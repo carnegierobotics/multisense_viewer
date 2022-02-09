@@ -3,14 +3,8 @@ project(MultiSense)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-
-find_package(glm REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(OpenCV 4.0.0 REQUIRED)
-
 
 # DEAR IMGUI LIBRARY
 set(IMGUI_DIR external/imgui)

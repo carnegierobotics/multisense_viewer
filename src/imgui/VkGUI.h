@@ -456,14 +456,13 @@ public:
             ImGui::Text("Show disparity image stream");
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-            ImGui::Checkbox("", &uiSettings.fa);
-            ImGui::Spacing();
+            ImGui::Checkbox("##", &uiSettings.fa);
 
             ImGui::Text("Show Left image stream");
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 35);
-            ImGui::Checkbox("", &uiSettings.fa);
+            ImGui::Checkbox("##", &uiSettings.fa);
             ImGui::Spacing();
 
             const char *items[] = {"None", "Hello world", "Distance to user", "Find ground planes",

@@ -8,8 +8,9 @@
 #include <cassert>
 #include <algorithm>
 #include <iostream>
-#include <ar_engine/src/tools/Populate.h>
+#include <MultiSense/src/tools/Populate.h>
 #include "Buffer.h"
+#include <vector>
 
 struct VulkanDevice {
     /** @brief Physical device representation */

@@ -6,6 +6,7 @@
 #define AR_ENGINE_POPULATE_H
 
 #include "vulkan/vulkan.h"
+#include <vector>
 
 namespace Populate {
 

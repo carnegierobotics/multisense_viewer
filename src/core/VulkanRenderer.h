@@ -4,27 +4,29 @@
 
 #ifndef AR_ENGINE_VULKANRENDERER_H
 #define AR_ENGINE_VULKANRENDERER_H
-#include <vulkan/vulkan.h>
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 #include <string>
 #include <vector>
-#include "VulkanDevice.h"
-#include "Validation.h"
-
-#include "VulkanSwapchain.h"
 #include "Camera.h"
 #include <vector>
-
 #include <cstring>
 #include <iostream>
 #include <glm/vec2.hpp>
 #include <chrono>
+
 #include <MultiSense/src/imgui/UISettings.h>
 #include <MultiSense/src/imgui/VkGUI.h>
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
+#include "VulkanSwapchain.h"
+#include "Validation.h"
+#include "VulkanDevice.h"
 
 
 class VulkanRenderer {

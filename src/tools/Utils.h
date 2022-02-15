@@ -16,7 +16,7 @@
 namespace Utils {
 
     static std::string getShadersPath() {
-        return "../shaders/";
+        return "shaders/";
     }
 
     static std::string getAssetsPath() {
@@ -24,7 +24,7 @@ namespace Utils {
     }
 
     static std::string getScriptsPath() {
-        return "../src/builder/";
+        return "scripts/";
     }
 
     inline VkFormat

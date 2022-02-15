@@ -19,6 +19,12 @@
 
 #include <MultiSense/src/core/VulkanRenderer.h>
 #include "MultiSense/src/imgui/UISettings.h"
+#include <MultiSense/src/core/Base.h>
+#include <MultiSense/src/core/ScriptBuilder.h>
+#include <MultiSense/src/tools/Macros.h>
+
+// Include scripts
+#include <MultiSense/src/scripts/MultiSenseCamera.h>
 
 #include "shaderParams.h"
 
@@ -47,6 +53,8 @@ public:
     void draw();
 
 private:
+
+    std::vector<std::unique_ptr<Base>> scripts;
 
 
 protected:

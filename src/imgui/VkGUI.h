@@ -487,6 +487,8 @@ public:
 
 
         ImGui::End();
+
+        //ImGui::ShowDemoWindow();
         // Render to generate draw buffers
         ImGui::Render();
     }

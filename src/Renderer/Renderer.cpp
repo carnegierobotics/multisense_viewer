@@ -1,9 +1,9 @@
-//
 // Created by magnus on 9/4/21.
 //
+//
 
-#include <MultiSense/src/tools/Macros.h>
 #include "Renderer.h"
+
 
 
 void Renderer::prepareRenderer() {
@@ -14,7 +14,15 @@ void Renderer::prepareRenderer() {
     camera.setPosition({-6.0f, 7.0f, -5.5f});
     camera.setRotation({-35.0f, -45.0f, 0.0f});
 
+
+    generateScriptClasses();
     prepareUniformBuffers();
+
+    for (auto& script : scripts) {
+        if (script->getType() != "None") {
+            script->prepareObject();
+        }
+    }
 }
 
 
@@ -116,3 +124,53 @@ void Renderer::prepareUniformBuffers() {
     updateUniformBuffers();
 }
 
+
+
+void Renderer::generateScriptClasses() {
+    std::cout << "Generate script classes" << std::endl;
+    std::vector<std::string> classNames;
+
+    /*
+    std::string path = Utils::getScriptsPath();
+
+
+    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        std::string file = entry.path().generic_string();
+
+        // Delete path from filename
+        auto n = file.find(path);
+        if (n != std::string::npos)
+            file.erase(n, path.length());
+
+        // Ensure we have the header file by looking for .h extension
+        std::string extension = file.substr(file.find('.') + 1, file.length());
+        if (extension == "h") {
+            std::string className = file.substr(0, file.find('.'));
+            classNames.emplace_back(className);
+        }
+    }
+    */
+    // TODO: Create a list of renderable classnames
+
+    classNames.emplace_back("MultiSenseCamera");
+    // Also add class names to listbox
+    UIOverlay->uiSettings.listBoxNames = classNames;
+    scripts.reserve(classNames.size());
+    // Create class instances of scripts
+    for (auto& className : classNames) {
+        scripts.push_back(ComponentMethodFactory::Create(className));
+    }
+
+    // Run Once
+    Base::SetupVars vars{};
+    vars.device = vulkanDevice;
+    vars.ui = &UIOverlay->uiSettings;
+    vars.renderPass = &renderPass;
+    vars.UBCount = swapchain.imageCount;
+
+    for (auto& script : scripts) {
+        assert(script);
+        script->setup(vars);
+    }
+    printf("Setup finished\n");
+}

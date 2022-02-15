@@ -3,12 +3,10 @@ project(MultiSense C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "" )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "" )
 
 if (WIN32)
-
     if(NOT CMAKE_BUILD_TYPE)
       set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
     endif()
@@ -40,10 +38,7 @@ if (WIN32)
     include_directories(${GLM_DIR})
 
     # Libraries
-    find_package(Vulkan REQUIRED)   
-    #find_library(VULKAN_LIBRARY
-      #NAMES vulkan vulkan-1)
-    #set(LIBRARIES "glfw;${VULKAN_LIBRARY}")
+    find_package(Vulkan REQUIRED)
     set(LIBRARIES "glfw;Vulkan::Vulkan")
 
     # Use vulkan headers from glfw:
@@ -62,13 +57,7 @@ if (WIN32)
         endif()
     endif()
 
-    # Copy dependency folders to output directory
-    add_custom_target(copy_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src/scripts ${CMAKE_CURRENT_BINARY_DIR}/scripts)
-    add_dependencies(MultiSense copy_assets)
-
-else()
+else() # IF build type is Linux
 
     find_package(Vulkan REQUIRED)
     find_package(glfw3 REQUIRED)
@@ -82,16 +71,19 @@ else()
 
 
     # Create a list of Libraries in project
-    set(LIBRARIES glfw vulkan GUI)
+    set(LIBRARIES glfw;vulkan;GUI)
     message(LIBRARIES:  ${LIBRARIES})
 
-    file(GLOB ENGINE_SRC src/core/* src/tools/* src/imgui/* src/Renderer/*)
+    file(GLOB ENGINE_SRC src/core/* src/tools/* src/imgui/* src/Renderer/* src/scripts/*)
     add_library(VulkanRenderer ${ENGINE_SRC} src/imgui/VkGUI.h)
     target_link_libraries(VulkanRenderer ${LIBRARIES})
     set_target_properties(VulkanRenderer PROPERTIES LINKER_LANGUAGE CXX)
 
     add_executable(MultiSense main.cpp)
     target_link_libraries(MultiSense VulkanRenderer)
-
-
 endif()
+
+# Copy dependency folders to output directory
+add_custom_target(copy_assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+add_dependencies(MultiSense copy_assets)

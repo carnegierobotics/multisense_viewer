@@ -58,9 +58,11 @@ if (WIN32)
         SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup" )
     endif()
 
+    add_library(VulkanRenderer ${ENGINE_SRC} )
+    target_link_libraries(VulkanRenderer ${LIBRARIES})
 
-    add_executable(MultiSense WIN32 main.cpp  ${ENGINE_SRC} )
-    target_link_libraries(MultiSense ${LIBRARIES})
+    add_executable(MultiSense WIN32 main.cpp)
+    target_link_libraries(MultiSense VulkanRenderer)
     if( MSVC )
         if(${CMAKE_VERSION} VERSION_LESS "3.6.0") 
             message( "\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n" )

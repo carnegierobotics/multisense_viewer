@@ -5,8 +5,10 @@
 #ifndef AR_ENGINE_VULKANRENDERER_H
 #define AR_ENGINE_VULKANRENDERER_H
 
-#ifdef WIN_DEBUG
-    #pragma comment(linker, "/SUBSYSTEM:CONSOLE")
+#ifdef WIN32
+    #ifdef WIN_DEBUG
+        #pragma comment(linker, "/SUBSYSTEM:CONSOLE")
+    #endif
 #endif
 
 #include "imgui.h"

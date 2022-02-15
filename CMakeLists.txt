@@ -23,16 +23,13 @@ include_directories(${GLFW_DIR}/include)
 # Dear ImGui
 set(IMGUI_DIR external/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
-
 # GLM
 set(GLM_DIR external/glm)
 include_directories(${GLM_DIR})
-
-set(LIBRARIES "glfw;Vulkan::Vulkan")
-
 # Use vulkan headers from glfw:
 include_directories(${GLFW_DIR}/deps)
 
+set(LIBRARIES "glfw;Vulkan::Vulkan")
 
 # add source files
 file(GLOB ENGINE_SRC

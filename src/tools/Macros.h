@@ -7,7 +7,6 @@
 
 #include <vulkan/vulkan_core.h>
 #include "string"
-#include <MultiSense/src/tools/Macros.h>
 
 #define CHECK_RESULT(f) \
 {                                                                                                           \

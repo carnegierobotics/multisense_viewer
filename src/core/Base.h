@@ -49,7 +49,7 @@ public:
 
     virtual std::string getType() { return type; }
 
-    /**@brief Render Commands **/
+    /**@brief Render Commands TODO: REMOVE**/
     virtual void prepareObject() {};
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};

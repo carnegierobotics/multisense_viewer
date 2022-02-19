@@ -10,9 +10,33 @@ void Example_Fox::setup(SetupVars vars) {
 
     std::string fileName;
     //loadFromFile(fileName);
-    model.loadFromFile(Utils::getAssetsPath() + "Models/Fox/glTF-Embedded/Fox.gltf", vars.device,
+    model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", vars.device,
                        vars.device->transferQueue, 1.0f);
 
+
+    std::vector<UISettings::DropDownItem> dropDownItems;
+    dropDownItems.emplace_back(UISettings::DropDownItem(type));
+    dropDownItems.emplace_back(UISettings::DropDownItem(type));
+    dropDownItems.emplace_back(UISettings::DropDownItem(type));
+
+    dropDownItems[0].dropdown = "Grayscale";
+    dropDownItems[1].dropdown = "Albedo";
+    dropDownItems[2].dropdown = "Albedo + Normal";
+
+    for (auto item : dropDownItems){
+        vars.ui->createDropDown(&item);
+    }
+
+    createUniformBuffers();
+    createDescriptorSetLayout();
+    createDescriptors(b.UBCount, uniformBuffers);
+
+    VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/fox.vert", VK_SHADER_STAGE_VERTEX_BIT);
+    VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/fox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
+    createPipeline(*b.renderPass, shaders);
 
 }
 
@@ -34,19 +58,6 @@ std::string Example_Fox::getType() {
     return type;
 }
 
-void Example_Fox::prepareObject() {
-    createUniformBuffers();
-    createDescriptorSetLayout();
-    createDescriptors(b.UBCount, uniformBuffers);
-
-    VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/fox.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/fox.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
-                                                            {fs}};
-    createPipeline(*b.renderPass, shaders);
-
-}
 
 void Example_Fox::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     glTFModel::draw(commandBuffer, i);

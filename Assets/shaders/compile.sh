@@ -16,6 +16,9 @@ $glslc ./imgui/ui.frag -o ./imgui/ui.frag.spv
 $glslc ${sceneDir}/fox/fox.vert -o ${sceneOutDir}fox.vert.spv
 $glslc ${sceneDir}/fox/fox.frag -o ${sceneOutDir}fox.frag.spv
 
+$glslc ${sceneDir}/helmet/helmet.vert -o ${sceneOutDir}helmet.vert.spv
+$glslc ${sceneDir}/helmet/helmet.frag -o ${sceneOutDir}helmet.frag.spv
+
 $glslc ${sceneDir}/box/box.vert -o ${sceneOutDir}box.vert.spv
 $glslc ${sceneDir}/box/box.frag -o ${sceneOutDir}box.frag.spv
 

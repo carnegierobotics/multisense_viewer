@@ -25,7 +25,6 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     std::string getType() override;
 
-    void generateSquare();
     void onUIUpdate(UISettings uiSettings) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
@@ -33,8 +32,6 @@ public:
     std::string type = "Render";
 
     void *selection = (void *) "0";
-
-    void prepareObject() override;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

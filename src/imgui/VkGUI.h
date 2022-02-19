@@ -434,11 +434,49 @@ public:
         uiSettings.flag |= ImGui::Button("Connect to camera", ImVec2(175, 30));
 
 
-        /*
-       ImGui::Text("Camera at (10.66.171.20):"); ImGui::SameLine(); ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-       ImGui::RadioButton("", false);
-       ImGui::Dummy(ImVec2(0, 5));
-       */
+        static int item_current_idx = 0; // Here we store our selection data as an index.
+        ImGui::Spacing();
+        ImGui::Text("Active objects");
+        if (ImGui::BeginListBox("ListBox")) {
+            for (int n = 0; n < uiSettings.listBoxNames.size(); n++) {
+                const bool is_selected = (uiSettings.selectedListboxIndex == n);
+
+                // Remove Example from list
+                if (uiSettings.listBoxNames[n] == "Example") continue;
+
+                if (ImGui::Selectable(uiSettings.listBoxNames[n].c_str(), is_selected)) {
+                    uiSettings.selectedListboxIndex = n;
+
+                }
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+            }
+            ImGui::EndListBox();
+        }
+
+        if (!uiSettings.dropDownItems.empty()){
+            if (ImGui::BeginCombo("##combo",
+                                  uiSettings.selectedDropDown)) // The second parameter is the label previewed before opening the combo.
+            {
+                for (int n = 0; n < uiSettings.dropDownItems.size(); n++) {
+                    bool is_selected = (uiSettings.selectedDropDown ==
+                                        uiSettings.dropDownItems[n]); // You can store your selection however you want, outside or inside your objects
+                    if (ImGui::Selectable(uiSettings.dropDownItems[n].c_str(), is_selected)) {
+                        uiSettings.selectedDropDown = uiSettings.dropDownItems[n].c_str();
+                        updated |= true;
+                    }
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+                }
+                ImGui::EndCombo();
+            }
+        }
+        active = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused() || ImGui::IsAnyItemActive();
+
+
         if (uiSettings.flag) {
 
 
@@ -576,6 +614,8 @@ public:
         ImDrawData *imDrawData = ImGui::GetDrawData();
         int32_t vertexOffset = 0;
         int32_t indexOffset = 0;
+
+        if (imDrawData == nullptr) return;
 
         if (imDrawData->CmdListsCount > 0) {
 

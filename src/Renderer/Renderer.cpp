@@ -5,7 +5,6 @@
 #include "Renderer.h"
 
 
-
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
@@ -15,14 +14,10 @@ void Renderer::prepareRenderer() {
     camera.setRotation({-35.0f, -45.0f, 0.0f});
 
 
-    generateScriptClasses();
     prepareUniformBuffers();
 
-    for (auto& script : scripts) {
-        if (script->getType() != "None") {
-            script->prepareObject();
-        }
-    }
+    generateScriptClasses();
+
 }
 
 
@@ -33,6 +28,10 @@ void Renderer::viewChanged() {
 
 void Renderer::UIUpdate(UISettings uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
+
+    for (auto &script: scripts) {
+        script->onUIUpdate(uiSettings);
+    }
 
     camera.setMovementSpeed(uiSettings.movementSpeed);
 
@@ -75,8 +74,14 @@ void Renderer::buildCommandBuffers() {
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-        UIOverlay->drawFrame(drawCmdBuffers[i]);
 
+        for (auto &script: scripts) {
+            if (script->getType() == "Render") {
+                script->draw(drawCmdBuffers[i], i);
+            }
+        }
+
+        UIOverlay->drawFrame(drawCmdBuffers[i]);
         vkCmdEndRenderPass(drawCmdBuffers[i]);
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
     }
@@ -94,7 +99,18 @@ void Renderer::draw() {
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+    Base::Render renderData{};
+    renderData.camera = &camera;
+    renderData.params = (void *) UBOFrag;
+    renderData.matrix = (void *) UBOVert;
+    renderData.deltaT = frameTimer;
+    renderData.index = currentBuffer;
 
+    for (auto &script: scripts) {
+        if (script->getType() == "Render") {
+            script->updateUniformBufferData(renderData);
+        }
+    }
 
     vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
     VulkanRenderer::submitFrame();
@@ -123,7 +139,6 @@ void Renderer::prepareUniformBuffers() {
 
     updateUniformBuffers();
 }
-
 
 
 void Renderer::generateScriptClasses() {
@@ -158,7 +173,7 @@ void Renderer::generateScriptClasses() {
     UIOverlay->uiSettings.listBoxNames = classNames;
     scripts.reserve(classNames.size());
     // Create class instances of scripts
-    for (auto& className : classNames) {
+    for (auto &className: classNames) {
         scripts.push_back(ComponentMethodFactory::Create(className));
     }
 
@@ -169,7 +184,7 @@ void Renderer::generateScriptClasses() {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
-    for (auto& script : scripts) {
+    for (auto &script: scripts) {
         assert(script);
         script->setup(vars);
     }

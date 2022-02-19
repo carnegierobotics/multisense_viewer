@@ -2,8 +2,8 @@
 // Created by magnus on 9/13/21.
 //
 
-#include <ar_engine/src/tools/Utils.h>
-#include <ar_engine/src/tools/Macros.h>
+#include <MultiSense/src/tools/Utils.h>
+#include <MultiSense/src/tools/Macros.h>
 #include "Texture.h"
 
 /*

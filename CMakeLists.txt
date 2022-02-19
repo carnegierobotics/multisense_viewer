@@ -29,7 +29,17 @@ include_directories(${GLM_DIR})
 # Use vulkan headers from glfw:
 include_directories(${GLFW_DIR}/deps)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan")
+# tiny-glTF header only loader
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+include_directories(external/tinygltf/)
+
+# VULKAN KTX TOOLS
+set(KTX_DIR external/KTX-Software)
+add_subdirectory(${KTX_DIR})
+
+
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx")
 
 # add source files
 file(GLOB ENGINE_SRC

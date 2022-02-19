@@ -153,6 +153,7 @@ void Renderer::generateScriptClasses() {
     // TODO: Create a list of renderable classnames
 
     classNames.emplace_back("MultiSenseCamera");
+    classNames.emplace_back("Example_Fox");
     // Also add class names to listbox
     UIOverlay->uiSettings.listBoxNames = classNames;
     scripts.reserve(classNames.size());

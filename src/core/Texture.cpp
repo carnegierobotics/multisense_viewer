@@ -21,7 +21,7 @@ void Texture::updateDescriptor() {
     descriptor.imageLayout = imageLayout;
 }
 
-void Texture::destroy() {
+void Texture::destroy() const {
     vkDestroyImageView(device->logicalDevice, view, nullptr);
     vkDestroyImage(device->logicalDevice, image, nullptr);
     if (sampler) {

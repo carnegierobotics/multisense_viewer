@@ -53,7 +53,7 @@ public:
     };
 
     void updateDescriptor();
-    void destroy();
+    void destroy() const;
 
     ktxResult loadKTXFile(std::string filename, ktxTexture **target);
     // Load a texture from a glTF image (stored as vector of chars loaded via stb_image) and generate a full mip chaing for it

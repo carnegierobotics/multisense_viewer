@@ -16,7 +16,7 @@
 namespace Utils {
 
     static std::string getShadersPath() {
-        return "shaders/";
+        return "../Assets/shaders/";
     }
 
     static std::string getAssetsPath() {

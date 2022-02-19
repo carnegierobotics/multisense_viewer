@@ -182,7 +182,7 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
         }
     }
 
-    // Node contains mesh data
+    // Node contains fox data
     if (node.mesh > -1) {
         const tinygltf::Mesh mesh = model.meshes[node.mesh];
         for (auto &primitive: mesh.primitives) {

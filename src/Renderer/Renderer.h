@@ -25,6 +25,7 @@
 
 // Include scripts
 #include <MultiSense/src/scripts/MultiSenseCamera.h>
+#include <MultiSense/src/scripts/Example_Fox.h>
 
 #include "shaderParams.h"
 

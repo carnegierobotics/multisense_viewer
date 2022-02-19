@@ -7,6 +7,7 @@
 
 #include <MultiSense/src/Renderer/shaderParams.h>
 #include <MultiSense/src/tools/Utils.h>
+#include <filesystem>
 #include "MultiSense/src/imgui/UISettings.h"
 #include "Camera.h"
 
@@ -34,9 +35,8 @@ public:
         void *matrix;
         const Camera *camera;
         float deltaT;
-        void* selection;
+        void *selection;
     } data;
-
 
 
     virtual ~Base() = default;
@@ -86,8 +86,16 @@ public:
         currentUB.fragSelect.unmap();
 
     }
+
     [[nodiscard]] VkPipelineShaderStageCreateInfo
-    loadShader(const std::string &fileName, VkShaderStageFlagBits stage) const {
+    loadShader(std::string fileName, VkShaderStageFlagBits stage) const {
+
+        // Check if we have .spv extensions. If not then add it.
+        std::size_t extension = fileName.find(".spv");
+        if (extension == std::string::npos)
+            fileName.append(".spv");
+
+
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
@@ -99,7 +107,6 @@ public:
     }
 
     std::string type = "None";
-
 
 
 protected:
@@ -125,8 +132,6 @@ protected:
         }
 
     }
-
-
 
 
 };

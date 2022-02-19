@@ -89,7 +89,9 @@ else()
 
 endif()
 
+
+## TODO: COPY dependencies with executables (shaders etc..)
 # Copy dependency folders to output directory
-add_custom_target(copy_assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-add_dependencies(MultiSense copy_assets)
+#add_custom_target(copy_assets
+        #COMMAND ${CMAKE_COMMAND} -E copy_directory Assets/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+#add_dependencies(MultiSense copy_assets)

@@ -121,7 +121,7 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 }
 
 // Find the normal for this fragment, pulling either from a predefined normal map
-// or from the interpolated mesh normal and tangent attributes.
+// or from the interpolated fox normal and tangent attributes.
 vec3 getNormal()
 {
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180

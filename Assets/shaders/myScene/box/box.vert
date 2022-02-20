@@ -10,24 +10,27 @@ layout (set = 0, binding = 0) uniform UBOScene
     mat4 projection;
     mat4 view;
     mat4 model;
-} uboScene;
+} ubo;
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec3 outColor;
+
+layout (location = 0) out vec3 outPos;
+layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec2 outUV;
-layout (location = 3) out vec3 outViewVec;
-layout (location = 4) out vec3 outLightVec;
+layout (location = 3) out vec3 FragPos;
+layout (location = 4) out mat4 model;
+
 
 void main()
 {
-    outNormal = inNormal;
-    outColor = inColor;
-    outUV = inUV;
-    gl_Position = uboScene.projection * uboScene.view * uboScene.model * vec4(inPos.xyz, 1.0);
+    gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos.xyz, 1.0);
 
-    vec4 pos = uboScene.view * vec4(inPos, 1.0);
-    outNormal = mat3(uboScene.view) * inNormal;
-    //vec3 lPos = mat3(uboScene.view) * uboScene.lightPos.xyz;
-    outViewVec = pos.xyz;
+    outNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
+
+    outUV = inUV;
+    FragPos = vec3(ubo.model * vec4(inPos, 1.0));
+
+    model = ubo.model;
+    outPos = inPos;
+
 
 }

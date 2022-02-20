@@ -44,6 +44,7 @@ void Example::update() {
     mat.model = glm::translate(mat.model, glm::vec3(4.0f, -5.0f, -1.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //mat.model = glm::scale(mat.model, glm::vec3(0.1f, 0.1f, 0.1f));
 
     auto *d = (UBOMatrix *) renderData.matrix;
     d->model = mat.model;

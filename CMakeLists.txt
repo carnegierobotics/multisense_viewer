@@ -70,24 +70,29 @@ if (WIN32)
 
 
 
-    add_executable(MultiSense WIN32 main.cpp)
-    target_link_libraries(MultiSense VulkanRenderer)
+    add_executable(MultiSense-viewer WIN32 main.cpp)
+    target_link_libraries(MultiSense-viewer VulkanRenderer)
     if( MSVC )
         if(${CMAKE_VERSION} VERSION_LESS "3.6.0") 
             message( "\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n" )
         else()
-            set_property( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense )
+            set_property( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-viewer )
         endif()
     endif()
 
 
-else()
+else() ## Linux
+
+    # LIBMULTISENSE
+    set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
+    include_directories(${MULTISENSE_SRC})
+    add_subdirectory(${MULTISENSE_SRC})
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC} )
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense)
 
-    add_executable(MultiSense main.cpp)
-    target_link_libraries(MultiSense VulkanRenderer)
+    add_executable(MultiSense-viewer main.cpp)
+    target_link_libraries(MultiSense-viewer VulkanRenderer)
 
 endif()
 
@@ -96,4 +101,4 @@ endif()
 # Copy dependency folders to output directory
  add_custom_target(copy_assets
         COMMAND ${CMAKE_COMMAND} -E copy_directory  ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/../Assets)
-add_dependencies(MultiSense copy_assets)
+add_dependencies(MultiSense-viewer copy_assets)

@@ -6,7 +6,7 @@
 #define MULTISENSE_MESHMODEL_H
 
 
-#include <glm/glm.hpp>
+#include <MultiSense/external/glm/glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 #include <string>
 #include <vector>

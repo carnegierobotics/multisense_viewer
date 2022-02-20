@@ -3,7 +3,7 @@
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/imgui/UISettings.h>
-#include <MultiSense/src/core/model_loaders/MeshModel.h>
+#include <MultiSense/src/model_loaders/MeshModel.h>
 
 class MultiSenseCamera: public Base, public RegisteredInFactory<MultiSenseCamera>, MeshModel
 {

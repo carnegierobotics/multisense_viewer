@@ -8,19 +8,12 @@
 #include <MultiSense/src/Renderer/shaderParams.h>
 #include <MultiSense/src/tools/Utils.h>
 #include <filesystem>
+#include <utility>
 #include "MultiSense/src/imgui/UISettings.h"
 #include "Camera.h"
 
 class Base {
 public:
-
-    struct SetupVars {
-        VulkanDevice *device{};
-        UISettings *ui{};
-        uint32_t UBCount = 0;
-        VkRenderPass *renderPass{};
-
-    } b;
 
     /**@brief A standard set of uniform buffers */
     struct UniformBufferSet {
@@ -29,6 +22,16 @@ public:
         Buffer fragSelect;
     };
 
+    struct RenderUtils {
+        VulkanDevice *device{};
+        UISettings *ui{};
+        uint32_t UBCount = 0;
+        VkRenderPass *renderPass{};
+        std::vector<VkPipelineShaderStageCreateInfo> shaders;
+        std::vector<UniformBufferSet> uniformBuffers;
+
+    } renderUtils;
+
     struct Render {
         uint32_t index;
         void *params;
@@ -36,55 +39,78 @@ public:
         const Camera *camera;
         float deltaT;
         void *selection;
-    } data;
+    } renderData;
 
 
     virtual ~Base() = default;
 
+    /**@brief Pure virtual function called once every frame*/
     virtual void update() = 0;
 
-    virtual void setup(SetupVars vars) = 0;
+    /**@brief Pure virtual function called only once when VK is ready to render*/
+    virtual void setup() = 0;
 
+    /**@brief Pure virtual function called on every UI update, also each frame*/
     virtual void onUIUpdate(UISettings uiSettings) = 0;
 
+    /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual std::string getType() { return type; }
-
-    /**@brief Render Commands TODO: REMOVE**/
-    virtual void prepareObject() {};
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
 
-    void updateUniformBufferData(Base::Render renderData) {
-        data = renderData;
+    /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
+    void updateUniformBufferData(Base::Render d) {
+        this->renderData = d;
 
         update();
         // If initialized
-        if (uniformBuffers.empty())
+        if (renderUtils.uniformBuffers.empty())
             return;
 
-        UniformBufferSet currentUB = uniformBuffers[data.index];
+        UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
 
-        auto d = (UBOMatrix *) data.matrix;
-
-        // TODO unceesarry mapping and unmapping occuring here maybe.
+        // TODO unceesarry mapping and unmapping occurring here.
         currentUB.vert.map();
-        memcpy(currentUB.vert.mapped, data.matrix, sizeof(UBOMatrix));
+        memcpy(currentUB.vert.mapped, renderData.matrix, sizeof(UBOMatrix));
         currentUB.vert.unmap();
 
         currentUB.frag.map();
-        memcpy(currentUB.frag.mapped, data.params, sizeof(FragShaderParams));
+        memcpy(currentUB.frag.mapped, renderData.params, sizeof(FragShaderParams));
         currentUB.frag.unmap();
 
 
-        if (data.selection == NULL)
+        if (renderData.selection == NULL)
             return;
 
         currentUB.fragSelect.map();
-        char *val = static_cast<char *>(data.selection);
+        char *val = static_cast<char *>(renderData.selection);
         float f = (float) atoi(val);
         memcpy(currentUB.fragSelect.mapped, &f, sizeof(float));
         currentUB.fragSelect.unmap();
 
+    }
+
+    void createUniformBuffers(RenderUtils utils) {
+        renderUtils = std::move(utils);
+        renderUtils.uniformBuffers.resize(renderUtils.UBCount);
+
+        for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &uniformBuffer.vert, sizeof(UBOMatrix));
+
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &uniformBuffer.frag, sizeof(FragShaderParams));
+
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &uniformBuffer.fragSelect, sizeof(float));
+
+        }
+
+        setup();
     }
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo
@@ -99,7 +125,7 @@ public:
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
-        shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(), b.device->logicalDevice);
+        shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(), renderUtils.device->logicalDevice);
         shaderStage.pName = "main";
         assert(shaderStage.module != VK_NULL_HANDLE);
         // TODO CLEANUP SHADERMODULES WHEN UNUSED
@@ -110,29 +136,6 @@ public:
 
 
 protected:
-    std::vector<UniformBufferSet> uniformBuffers;
-
-    void createUniformBuffers() {
-        uniformBuffers.resize(b.UBCount);
-
-        for (auto &uniformBuffer: uniformBuffers) {
-
-            b.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.vert, sizeof(UBOMatrix));
-
-            b.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.frag, sizeof(FragShaderParams));
-
-            b.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.fragSelect, sizeof(float));
-
-        }
-
-    }
-
 
 };
 

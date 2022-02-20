@@ -144,7 +144,11 @@ void glTFModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     }
 }
 
-
+/**
+ * Function to load each node specificed in glTF format.
+ * Recursive call which also loads childnodes and creates and transforms the mesh.
+ *
+ */
 void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex,
                                 const tinygltf::Model &model, std::vector<uint32_t> &indexBuffer,
                                 std::vector<Vertex> &vertexBuffer, float globalscale) {
@@ -440,6 +444,10 @@ VkFilter glTFModel::Model::getVkFilterMode(int32_t filterMode) {
     }
 }
 
+/**
+ * Function to set texture other than the specified in embedded glTF file.
+ * @param fileName Name of texture. Requires full path
+ */
 void glTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
     // Create texture image
 
@@ -467,6 +475,10 @@ void glTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
 }
 
 // TODO USE ENUMS TO SET COLOR OR NORMAL INSTEAD OF SEPARATE ALMOST INDENTICAL FUNCTIONS
+/**
+ * Function to set normal texture other than the specified in embedded glTF file.
+ * @param fileName Name of texture. Requires full path
+ */
 void glTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
 
     int texWidth, texHeight, texChannels;
@@ -535,9 +547,7 @@ void glTFModel::createDescriptorSetLayout() {
     descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
     descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-    CHECK_RESULT(
-            vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorSetLayoutCI, nullptr,
-                                        &descriptorSetLayout));
+    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorSetLayoutCI, nullptr,&descriptorSetLayout))
 }
 
 void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
@@ -564,8 +574,6 @@ void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
     /**
      * Create Descriptor Sets
      */
-
-
     for (auto i = 0; i < descriptors.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
@@ -769,4 +777,11 @@ void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineSh
     }
 
 
+}
+
+void glTFModel::createRenderPipeline(const Base::RenderUtils& utils) {
+    this->vulkanDevice = utils.device;
+    createDescriptorSetLayout();
+    createDescriptors(utils.UBCount, utils.uniformBuffers);
+    createPipeline(*utils.renderPass, utils.shaders);
 }

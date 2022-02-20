@@ -42,15 +42,13 @@ add_subdirectory(${KTX_DIR})
 set(LIBRARIES "glfw;Vulkan::Vulkan;ktx")
 
 # add source files
-file(GLOB ENGINE_SRC
-        src/core/*
-        src/tools/*
-        src/imgui/*
-        src/Renderer/*
-        src/scripts/*
+file(GLOB IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
         )
+
+file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h )
+
 
 if (WIN32)
 
@@ -81,7 +79,7 @@ if (WIN32)
 
 else()
 
-    add_library(VulkanRenderer ${ENGINE_SRC} )
+    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC} )
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_executable(MultiSense main.cpp)

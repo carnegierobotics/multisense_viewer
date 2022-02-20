@@ -7,15 +7,15 @@
 
 
 #include <vulkan/vulkan_core.h>
-#include <glm/detail/type_quat.hpp>
-#include "VulkanDevice.h"
+#include <MultiSense/external/glm/glm/detail/type_quat.hpp>
+#include "MultiSense/src/core/VulkanDevice.h"
 #include "glm/glm.hpp"
-#include "Texture.h"
+#include "MultiSense/src/core/Texture.h"
 
-#include <glm/gtc/type_ptr.hpp>
+#include <MultiSense/external/glm/glm/gtc/type_ptr.hpp>
 #include <ar_engine/src/tools/Macros.h>
 #include <ar_engine/src/Renderer/shaderParams.h>
-#include "Base.h"
+#include "MultiSense/src/core/Base.h"
 
 // Changing this value here also requires changing it in the vertex shader
 #define MAX_NUM_JOINTS 128u
@@ -182,6 +182,8 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i);
     void drawNode(Node *node, VkCommandBuffer commandBuffer);
+
+    void createRenderPipeline(const Base::RenderUtils& utils);
 };
 
 

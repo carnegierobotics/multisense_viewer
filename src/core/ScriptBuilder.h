@@ -22,6 +22,7 @@ class ComponentMethodFactory {
 public:
     using TCreateMethod = std::unique_ptr<Base>(*)();
     TCreateMethod m_CreateFunc;
+    std::string description;
 
 public:
     ComponentMethodFactory() = delete;
@@ -55,7 +56,7 @@ protected:
     static bool s_bRegistered;
 };
 
-template<typename T>
+template<typename T >
 bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
 
 

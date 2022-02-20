@@ -221,7 +221,7 @@ namespace Utils {
     }
 
     inline VkShaderModule loadShader(const char *fileName, VkDevice device) {
-        std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
+        std::ifstream is(fileName, std::ios::binary | std::ios::ate);
 
         if (is.is_open()) {
             size_t size = is.tellg();

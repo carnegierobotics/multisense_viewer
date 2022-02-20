@@ -115,17 +115,17 @@ void Renderer::draw() {
     vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
     VulkanRenderer::submitFrame();
 
-
 }
 
 
 void Renderer::updateUniformBuffers() {
-    // Scene
+    // Fragment shader params for light calculations
     UBOFrag->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     UBOFrag->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     UBOFrag->lightPos = glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
     UBOFrag->viewPos = camera.viewPos;
 
+    // UBO for vertex shader, contains MVP matrices
     UBOVert->projection = camera.matrices.perspective;
     UBOVert->view = camera.matrices.view;
     UBOVert->model = glm::mat4(1.0f);
@@ -166,9 +166,8 @@ void Renderer::generateScriptClasses() {
     }
     */
     // TODO: Create a list of renderable classnames
-
+    classNames.emplace_back("Example");
     classNames.emplace_back("MultiSenseCamera");
-    classNames.emplace_back("Example_Fox");
     // Also add class names to listbox
     UIOverlay->uiSettings.listBoxNames = classNames;
     scripts.reserve(classNames.size());
@@ -178,7 +177,7 @@ void Renderer::generateScriptClasses() {
     }
 
     // Run Once
-    Base::SetupVars vars{};
+    Base::RenderUtils vars{};
     vars.device = vulkanDevice;
     vars.ui = &UIOverlay->uiSettings;
     vars.renderPass = &renderPass;
@@ -186,7 +185,7 @@ void Renderer::generateScriptClasses() {
 
     for (auto &script: scripts) {
         assert(script);
-        script->setup(vars);
+        script->createUniformBuffers(vars);
     }
     printf("Setup finished\n");
 }

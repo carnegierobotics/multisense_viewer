@@ -25,7 +25,7 @@
 
 // Include scripts
 #include <MultiSense/src/scripts/MultiSenseCamera.h>
-#include <MultiSense/src/scripts/Example_Fox.h>
+#include <MultiSense/src/scripts/Example.h>
 
 #include "shaderParams.h"
 
@@ -74,7 +74,6 @@ protected:
 
     void generateScriptClasses();
 
-    void storeDepthFrame();
 };
 
 

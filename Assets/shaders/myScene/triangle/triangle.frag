@@ -15,9 +15,12 @@ layout(binding = 1, set = 0) uniform Colors {
   vec4 viewPos;
 } colors;
 
+layout(set = 0, binding = 2) uniform SELECT {
+  float map;
+} select ;
+
 
 void main() {
-
   // ambient
   float ambientStrength = 0.8;
   vec3 ambient = ambientStrength * colors.lightColor.xyz;
@@ -34,7 +37,9 @@ void main() {
   float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
   vec3 specular = specularStrength * spec * colors.lightColor.xyz;
 
-  vec3 result = (ambient + diffuse + specular) * colors.objectColor.xyz;
+  vec3 color = vec3(0.0f, 0.25f, 0.25f);
+
+  vec3 result = (ambient + diffuse + specular) * color;
   outColor = vec4(result, 1.0);
 
   //outColor = vec4(0.25, 0.25, 0.25, 1);

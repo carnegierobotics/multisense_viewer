@@ -2,3 +2,5 @@
 /cmake-build-debug/
 out/
 .vs
+/Assets/compiler
+/Assets/shaders/myScene/spv

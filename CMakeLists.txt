@@ -60,11 +60,15 @@ if (WIN32)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 
     if( MSVC )
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+        set(BUILD_SHARED_LIBS TRUE)
         SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup" )
     endif()
 
-    add_library(VulkanRenderer ${ENGINE_SRC} )
+    add_library(VulkanRenderer SHARED ${ENGINE_SRC} ${IMGUI_SRC} )
     target_link_libraries(VulkanRenderer ${LIBRARIES})
+
+
 
     add_executable(MultiSense WIN32 main.cpp)
     target_link_libraries(MultiSense VulkanRenderer)
@@ -90,6 +94,6 @@ endif()
 
 ## TODO: COPY dependencies with executables (shaders etc..)
 # Copy dependency folders to output directory
-#add_custom_target(copy_assets
-        #COMMAND ${CMAKE_COMMAND} -E copy_directory Assets/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-#add_dependencies(MultiSense copy_assets)
+ add_custom_target(copy_assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory  ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/../Assets)
+add_dependencies(MultiSense copy_assets)

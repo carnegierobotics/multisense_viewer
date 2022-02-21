@@ -2,19 +2,18 @@
 // Created by magnus on 2/20/22.
 //
 
-#include "MeshModel.h"
+#include "PointCloudModel.h"
 
-#include <utility>
 
-void MeshModel::destroy(VkDevice device) {
-
-}
-
-void MeshModel::loadFromFile(std::string filename, float scale) {
+void PointCloudModel::destroy(VkDevice device) {
 
 }
 
-void MeshModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+void PointCloudModel::loadFromFile(std::string filename, float scale) {
+
+}
+
+void PointCloudModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                              uint32_t
                              indexCount){
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
@@ -32,9 +31,9 @@ void MeshModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount, glm
 
 }
 
-void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+void PointCloudModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                     uint32_t
-                              indexCount) {
+                                    indexCount) {
 
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
@@ -102,7 +101,7 @@ void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCou
     }
 }
 
-void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void PointCloudModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
@@ -123,7 +122,7 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 }
 
 
-void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
+void PointCloudModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
     descriptors.resize(count);
 
     std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -176,7 +175,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
     }
 }
 
-void MeshModel::createDescriptorSetLayout() {
+void PointCloudModel::createDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> bindings = {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
                                                                   nullptr},
                                                           {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -191,12 +190,12 @@ void MeshModel::createDescriptorSetLayout() {
 
 }
 
-void MeshModel::createPipelineLayout() {
+void PointCloudModel::createPipelineLayout() {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
     CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, &pipelineLayout))
 }
 
-void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
+void PointCloudModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
     createPipelineLayout();
 
     // Vertex bindings an attributes
@@ -293,7 +292,7 @@ void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStag
 
 
 void
-MeshModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> shaders) {
+PointCloudModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> shaders) {
     this->vulkanDevice = utils.device;
 
     createDescriptorSetLayout();

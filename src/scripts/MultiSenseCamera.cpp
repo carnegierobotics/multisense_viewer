@@ -1,36 +1,40 @@
 #include "MultiSenseCamera.h"
 
-void MultiSenseCamera::setup()
-{
+void MultiSenseCamera::setup() {
 
-	std::cout << "Setup function for MultiSenseCamera\n";
-    MeshModel::vulkanDevice = renderUtils.device;
+    this->vulkanDevice = renderUtils.device;
     // Create a 5x5 mesh
-    generateSquare();
+
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/triangle.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/triangle.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    //VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/helmet.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    //VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/helmet.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs}, {fs}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
     renderUtils.shaders = shaders;
 
+    virtualCamera = new CRLVirtualCamera();
+    virtualCamera->initialize();
+
+
+    CRLBaseCamera::MeshData *meshData = virtualCamera->getStream();
+    transferDataStaging((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount, meshData->indices,
+                        meshData->indexCount);
     MeshModel::createRenderPipeline(renderUtils, shaders);
 
 }
 
-void MultiSenseCamera::update()
-{
+void MultiSenseCamera::update() {
+
+    virtualCamera->update();
+
+
 }
 
-void MultiSenseCamera::onUIUpdate(UISettings uiSettings)
-{
+void MultiSenseCamera::onUIUpdate(UISettings uiSettings) {
 }
 
 
-void MultiSenseCamera::generateSquare() {
+void MultiSenseCamera::generateGridPoints() {
     // 16*16 mesh as our ground
     // Get square size from input
 
@@ -94,7 +98,7 @@ void MultiSenseCamera::generateSquare() {
         vert++;
     }
 
-    useStagingBuffer(vertices, vertexCount, indices, indexCount);
+    transferDataStaging(vertices, vertexCount, indices, indexCount);
 
     delete[] vertices;
     delete[] indices;

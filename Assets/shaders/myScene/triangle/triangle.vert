@@ -18,7 +18,7 @@ layout(location = 2) out vec3 fragPos;
 
 void main()
 {
-	gl_PointSize = 10.0f;
+	gl_PointSize = 1.0f;
 
 	gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(inPos.xyz, 1.0);
 

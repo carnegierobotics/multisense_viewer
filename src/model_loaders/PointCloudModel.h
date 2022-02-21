@@ -1,24 +1,24 @@
 //
-// Created by magnus on 2/20/22.
+// Created by magnus on 2/21/22.
 //
 
-#ifndef MULTISENSE_MESHMODEL_H
-#define MULTISENSE_MESHMODEL_H
+#ifndef MULTISENSE_POINTCLOUDMODEL_H
+#define MULTISENSE_POINTCLOUDMODEL_H
 
-
-#include <MultiSense/external/glm/glm/glm.hpp>
+#include <utility>
 #include <vulkan/vulkan_core.h>
-#include <string>
 #include <vector>
+#include <string>
+#include <MultiSense/src/core/Buffer.h>
 #include <MultiSense/src/core/Texture.h>
-#include <MultiSense/src/tools/Macros.h>
-#include <MultiSense/src/Renderer/shaderParams.h>
 #include <MultiSense/src/core/Base.h>
+#include "glm/glm.hpp"
+#include <MultiSense/src/tools/Macros.h>
 
-class MeshModel {
+class PointCloudModel {
 
 public:
-     MeshModel() = default;
+    PointCloudModel() = default;
     struct Model {
         struct Vertex {
             glm::vec3 pos;
@@ -33,6 +33,7 @@ public:
             Buffer mvp;
             Buffer pointCloud;
         };
+
 
         struct Vertices {
             uint32_t count;
@@ -97,4 +98,4 @@ protected:
 };
 
 
-#endif //MULTISENSE_MESHMODEL_H
+#endif //MULTISENSE_POINTCLOUDMODEL_H

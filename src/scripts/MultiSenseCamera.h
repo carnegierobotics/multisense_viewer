@@ -4,6 +4,7 @@
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/imgui/UISettings.h>
 #include <MultiSense/src/model_loaders/MeshModel.h>
+#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 
 class MultiSenseCamera: public Base, public RegisteredInFactory<MultiSenseCamera>, MeshModel
 {
@@ -31,7 +32,11 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     std::string type = "Render";
 
-    void generateSquare();
+
+    CRLVirtualCamera* virtualCamera;
+
+    void generateGridPoints();
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+
 
 };

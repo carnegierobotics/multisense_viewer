@@ -12,7 +12,6 @@
 #include <vector>
 #include <MultiSense/src/core/Texture.h>
 #include <MultiSense/src/tools/Macros.h>
-#include <MultiSense/src/Renderer/shaderParams.h>
 #include <MultiSense/src/core/Base.h>
 
 class MeshModel {

@@ -11,9 +11,9 @@ void Example::setup() {
 
     // UI cretion
     std::vector<UISettings::DropDownItem> dropDownItems;
-    dropDownItems.emplace_back(UISettings::DropDownItem(type));
-    dropDownItems.emplace_back(UISettings::DropDownItem(type));
-    dropDownItems.emplace_back(UISettings::DropDownItem(type));
+    dropDownItems.emplace_back(UISettings::DropDownItem("type1"));
+    dropDownItems.emplace_back(UISettings::DropDownItem("type2"));
+    dropDownItems.emplace_back(UISettings::DropDownItem("type3"));
 
     dropDownItems[0].dropdown = "Grayscale";
     dropDownItems[1].dropdown = "Albedo";
@@ -44,13 +44,23 @@ void Example::update() {
     mat.model = glm::translate(mat.model, glm::vec3(4.0f, -5.0f, -1.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //mat.model = glm::scale(mat.model, glm::vec3(0.1f, 0.1f, 0.1f));
 
-    auto *d = (UBOMatrix *) renderData.matrix;
+    auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
 
-    renderData.matrix = d;
-    renderData.selection = selection;
+
+    d->projection = renderData.camera->matrices.perspective;
+    d->view = renderData.camera->matrices.view;
+
+    auto *d2 = (FragShaderParams *) bufferTwoData;
+    d2->objectColor =  glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
+    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    d2->lightPos = glm::vec4(glm::vec3(0.0f, -2.0f, -3.0f), 1.0f);
+    d2->viewPos = renderData.camera->viewPos;
+
+    bufferOneData = d;
+    bufferTwoData = d2;
+    bufferThreeData = selection;
 }
 
 

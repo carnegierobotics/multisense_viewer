@@ -27,7 +27,6 @@
 #include <MultiSense/src/scripts/MultiSenseCamera.h>
 #include <MultiSense/src/scripts/Example.h>
 
-#include "shaderParams.h"
 
 class Renderer : VulkanRenderer {
 
@@ -59,10 +58,6 @@ private:
 
 
 protected:
-
-    UBOMatrix *UBOVert{};
-    FragShaderParams *UBOFrag{};
-
 
     void updateUniformBuffers();
     void prepareUniformBuffers();

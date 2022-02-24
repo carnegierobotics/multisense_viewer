@@ -145,32 +145,18 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
 
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
 
-        std::array<VkWriteDescriptorSet, 3> writeDescriptorSet = {Populate::writeDescriptorSet(descriptors[i],
+        std::array<VkWriteDescriptorSet, 2> writeDescriptorSet = {Populate::writeDescriptorSet(descriptors[i],
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                                0,
                                                                                                &ubo[i]
-                                                                                                       .vert.descriptorBufferInfo,
+                                                                                                       .bufferOne.descriptorBufferInfo,
                                                                                                1),
-
                                                                   Populate::writeDescriptorSet(descriptors[i],
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                                               1,
+                                                                                               0,
                                                                                                &ubo[i]
-                                                                                                       .frag
-                                                                                                       .descriptorBufferInfo,
-                                                                                               1),
-
-
-                                                                  Populate::writeDescriptorSet(descriptors[i],
-                                                                                               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                                               2,
-                                                                                               &ubo[i]
-                                                                                                       .frag
-                                                                                                       .descriptorBufferInfo,
-                                                                                               1)
-
-
-        };
+                                                                                                       .bufferOne.descriptorBufferInfo,
+                                                                                               1)};
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSet.size(), writeDescriptorSet.data(), 0,
                                nullptr);
     }
@@ -180,8 +166,6 @@ void MeshModel::createDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> bindings = {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
                                                                   nullptr},
                                                           {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                                  nullptr},
-                                                          {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
                                                                   nullptr}};
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(bindings.data(),
                                                                                                bindings.size());

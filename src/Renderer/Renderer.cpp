@@ -14,8 +14,6 @@ void Renderer::prepareRenderer() {
     camera.setRotation({-35.0f, -45.0f, 0.0f});
 
 
-    prepareUniformBuffers();
-
     generateScriptClasses();
 
 }
@@ -76,7 +74,7 @@ void Renderer::buildCommandBuffers() {
 
 
         for (auto &script: scripts) {
-            if (script->getType() == "Render") {
+            if (script->getType() != FrDisabled) {
                 script->draw(drawCmdBuffers[i], i);
             }
         }
@@ -101,14 +99,12 @@ void Renderer::draw() {
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
     Base::Render renderData{};
     renderData.camera = &camera;
-    renderData.params = (void *) UBOFrag;
-    renderData.matrix = (void *) UBOVert;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
 
     for (auto &script: scripts) {
-        if (script->getType() == "Render") {
-            script->updateUniformBufferData(renderData);
+        if (script->getType() != FrDisabled) {
+            script->updateUniformBufferData(renderData, script->getType());
         }
     }
 
@@ -119,27 +115,9 @@ void Renderer::draw() {
 
 
 void Renderer::updateUniformBuffers() {
-    // Fragment shader params for light calculations
-    UBOFrag->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    UBOFrag->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    UBOFrag->lightPos = glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
-    UBOFrag->viewPos = camera.viewPos;
 
-    // UBO for vertex shader, contains MVP matrices
-    UBOVert->projection = camera.matrices.perspective;
-    UBOVert->view = camera.matrices.view;
-    UBOVert->model = glm::mat4(1.0f);
 
 }
-
-void Renderer::prepareUniformBuffers() {
-    // TODO REMEMBER TO CLEANUP
-    UBOVert = new UBOMatrix();
-    UBOFrag = new FragShaderParams();
-
-    updateUniformBuffers();
-}
-
 
 void Renderer::generateScriptClasses() {
     std::cout << "Generate script classes" << std::endl;
@@ -185,7 +163,7 @@ void Renderer::generateScriptClasses() {
 
     for (auto &script: scripts) {
         assert(script);
-        script->createUniformBuffers(vars);
+        script->createUniformBuffers(vars, script->getType());
     }
     printf("Setup finished\n");
 }

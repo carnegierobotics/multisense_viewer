@@ -148,14 +148,14 @@ void PointCloudModel::createDescriptors(uint32_t count, std::vector<Base::Unifor
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                                0,
                                                                                                &ubo[i]
-                                                                                                       .vert.descriptorBufferInfo,
+                                                                                                       .bufferOne.descriptorBufferInfo,
                                                                                                1),
 
                                                                   Populate::writeDescriptorSet(descriptors[i],
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                                1,
                                                                                                &ubo[i]
-                                                                                                       .frag
+                                                                                                       .bufferTwo
                                                                                                        .descriptorBufferInfo,
                                                                                                1),
 
@@ -164,7 +164,7 @@ void PointCloudModel::createDescriptors(uint32_t count, std::vector<Base::Unifor
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                                                                                2,
                                                                                                &ubo[i]
-                                                                                                       .frag
+                                                                                                       .bufferTwo
                                                                                                        .descriptorBufferInfo,
                                                                                                1)
 

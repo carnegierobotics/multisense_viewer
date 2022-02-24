@@ -13,9 +13,8 @@
 #include "MultiSense/src/core/Texture.h"
 
 #include <MultiSense/external/glm/glm/gtc/type_ptr.hpp>
-#include <ar_engine/src/tools/Macros.h>
-#include <ar_engine/src/Renderer/shaderParams.h>
 #include "MultiSense/src/core/Base.h"
+#include <MultiSense/src/tools/Macros.h>
 
 // Changing this value here also requires changing it in the vertex shader
 #define MAX_NUM_JOINTS 128u

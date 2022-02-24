@@ -5,22 +5,54 @@
 #ifndef AR_ENGINE_BASE_H
 #define AR_ENGINE_BASE_H
 
-#include <MultiSense/src/Renderer/shaderParams.h>
 #include <MultiSense/src/tools/Utils.h>
 #include <filesystem>
 #include <utility>
 #include "MultiSense/src/imgui/UISettings.h"
 #include "Camera.h"
 
+
+typedef enum ScriptType {
+    FrDefault,
+    FrPointCloud,
+    FrDisabled
+
+} ScriptType;
+
+
+struct UBOMatrix {
+    glm::mat4 projection;
+    glm::mat4 view;
+    glm::mat4 model;
+};
+
+struct FragShaderParams {
+    glm::vec4 lightColor;
+    glm::vec4 objectColor;
+    glm::vec4 lightPos;
+    glm::vec4 viewPos;
+};
+
+struct PointCloudShader{
+    glm::vec4 pos;
+    glm::vec4 col;
+};
+
+
+
 class Base {
 public:
 
     /**@brief A standard set of uniform buffers */
     struct UniformBufferSet {
-        Buffer vert;
-        Buffer frag;
-        Buffer fragSelect;
+        Buffer bufferOne;
+        Buffer bufferTwo;
+        Buffer bufferThree;
     };
+
+    void *bufferOneData;
+    void *bufferTwoData;
+    void *bufferThreeData;
 
     struct RenderUtils {
         VulkanDevice *device{};
@@ -34,11 +66,10 @@ public:
 
     struct Render {
         uint32_t index;
-        void *params;
-        void *matrix;
+
         const Camera *camera;
         float deltaT;
-        void *selection;
+
     } renderData;
 
 
@@ -54,12 +85,12 @@ public:
     virtual void onUIUpdate(UISettings uiSettings) = 0;
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    virtual std::string getType() { return type; }
+    virtual ScriptType getType() { return type; }
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    void updateUniformBufferData(Base::Render d) {
+    void updateUniformBufferData(Base::Render d, ScriptType scriptType) {
         this->renderData = d;
 
         update();
@@ -68,46 +99,86 @@ public:
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
+        if (scriptType == FrDefault){
+            // TODO unceesarry mapping and unmapping occurring here.
+            currentUB.bufferOne.map();
+            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
+            currentUB.bufferOne.unmap();
 
-        // TODO unceesarry mapping and unmapping occurring here.
-        currentUB.vert.map();
-        memcpy(currentUB.vert.mapped, renderData.matrix, sizeof(UBOMatrix));
-        currentUB.vert.unmap();
-
-        currentUB.frag.map();
-        memcpy(currentUB.frag.mapped, renderData.params, sizeof(FragShaderParams));
-        currentUB.frag.unmap();
+            currentUB.bufferTwo.map();
+            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
+            currentUB.bufferTwo.unmap();
 
 
-        if (renderData.selection == NULL)
-            return;
+            if (bufferThreeData == NULL)
+                return;
 
-        currentUB.fragSelect.map();
-        char *val = static_cast<char *>(renderData.selection);
-        float f = (float) atoi(val);
-        memcpy(currentUB.fragSelect.mapped, &f, sizeof(float));
-        currentUB.fragSelect.unmap();
+            currentUB.bufferThree.map();
+            char *val = static_cast<char *>(bufferThreeData);
+            float f = (float) atoi(val);
+            memcpy(currentUB.bufferThree.mapped, &f, sizeof(float));
+            currentUB.bufferThree.unmap();
+        } else if(scriptType == FrPointCloud){
+            currentUB.bufferOne.map();
+            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
+            currentUB.bufferOne.unmap();
+
+            currentUB.bufferTwo.map();
+            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(PointCloudShader));
+            currentUB.bufferTwo.unmap();
+        }
+
 
     }
 
-    void createUniformBuffers(RenderUtils utils) {
+    void createUniformBuffers(RenderUtils utils, ScriptType scriptType) {
+        if (scriptType == FrDisabled)
+            return;
+
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
-        for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+        if (scriptType == FrDefault) {
 
-            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.vert, sizeof(UBOMatrix));
+            bufferOneData = new UBOMatrix();
+            bufferTwoData = new FragShaderParams();
+            bufferThreeData = new float();
 
-            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.frag, sizeof(FragShaderParams));
+            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
-            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.fragSelect, sizeof(float));
+                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 &uniformBuffer.bufferOne, sizeof(UBOMatrix));
 
+                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 &uniformBuffer.bufferTwo, sizeof(FragShaderParams));
+
+                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 &uniformBuffer.bufferThree, sizeof(float));
+
+            }
+        }
+        else if (scriptType == FrPointCloud) {
+            bufferOneData = new UBOMatrix();
+            bufferTwoData = new PointCloudShader();
+
+            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+
+                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 &uniformBuffer.bufferOne, sizeof(UBOMatrix));
+
+                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                 &uniformBuffer.bufferTwo, sizeof(PointCloudShader));
+            }
         }
 
         setup();
@@ -125,14 +196,15 @@ public:
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
-        shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(), renderUtils.device->logicalDevice);
+        shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+                                               renderUtils.device->logicalDevice);
         shaderStage.pName = "main";
         assert(shaderStage.module != VK_NULL_HANDLE);
         // TODO CLEANUP SHADERMODULES WHEN UNUSED
         return shaderStage;
     }
 
-    std::string type = "None";
+    ScriptType type = FrDisabled;
 
 
 protected:

@@ -24,13 +24,13 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
-    std::string getType() override {return type;}
+    ScriptType getType() override {return type;}
 
     void onUIUpdate(UISettings uiSettings) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    std::string type = "Render";
+    ScriptType type = FrDisabled;
 
 
     CRLVirtualCamera* virtualCamera;

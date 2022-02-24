@@ -17,6 +17,7 @@ void MultiSenseCamera::setup() {
 
 
     CRLBaseCamera::MeshData *meshData = virtualCamera->getStream();
+
     transferDataStaging((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount, meshData->indices,
                         meshData->indexCount);
     MeshModel::createRenderPipeline(renderUtils, shaders);

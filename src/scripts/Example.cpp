@@ -11,9 +11,9 @@ void Example::setup() {
 
     // UI cretion
     std::vector<UISettings::DropDownItem> dropDownItems;
-    dropDownItems.emplace_back(UISettings::DropDownItem("type1"));
-    dropDownItems.emplace_back(UISettings::DropDownItem("type2"));
-    dropDownItems.emplace_back(UISettings::DropDownItem("type3"));
+    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
+    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
+    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
 
     dropDownItems[0].dropdown = "Grayscale";
     dropDownItems[1].dropdown = "Albedo";

@@ -11,6 +11,7 @@
 #include "MultiSense/src/imgui/UISettings.h"
 #include "Camera.h"
 
+#define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
     FrDefault,
@@ -34,8 +35,8 @@ struct FragShaderParams {
 };
 
 struct PointCloudShader{
-    glm::vec4 pos;
-    glm::vec4 col;
+    glm::vec4 pos[NUM_POINTS];
+    glm::vec4 col[NUM_POINTS];
 };
 
 
@@ -66,10 +67,9 @@ public:
 
     struct Render {
         uint32_t index;
-
         const Camera *camera;
         float deltaT;
-
+        float runTime;
     } renderData;
 
 

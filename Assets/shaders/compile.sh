@@ -24,3 +24,6 @@ $glslc ${sceneDir}/box/box.frag -o ${sceneOutDir}box.frag.spv
 
 $glslc ${sceneDir}sphere/sphere.vert -o ${sceneOutDir}sphere.vert.spv
 $glslc ${sceneDir}sphere/sphere.frag -o ${sceneOutDir}sphere.frag.spv
+
+$glslc ${sceneDir}pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
+$glslc ${sceneDir}pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv

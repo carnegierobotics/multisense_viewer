@@ -18,10 +18,8 @@ layout(location = 2) out vec3 fragPos;
 
 void main()
 {
-	gl_PointSize = 1.0f;
 
 	gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(inPos.xyz, 1.0);
-
 	fragTexCoord = inUV;
 	fragPos = vec3(ubo.modelMatrix * vec4(inPos, 1.0));
 	outNormal = mat3(transpose(inverse(ubo.modelMatrix))) * inNormal;

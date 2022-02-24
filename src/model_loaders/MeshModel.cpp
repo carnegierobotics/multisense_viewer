@@ -153,9 +153,9 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
                                                                                                1),
                                                                   Populate::writeDescriptorSet(descriptors[i],
                                                                                                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                                               0,
+                                                                                               1,
                                                                                                &ubo[i]
-                                                                                                       .bufferOne.descriptorBufferInfo,
+                                                                                                       .bufferTwo.descriptorBufferInfo,
                                                                                                1)};
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSet.size(), writeDescriptorSet.data(), 0,
                                nullptr);
@@ -165,7 +165,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
 void MeshModel::createDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> bindings = {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
                                                                   nullptr},
-                                                          {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                          {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
                                                                   nullptr}};
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(bindings.data(),
                                                                                                bindings.size());

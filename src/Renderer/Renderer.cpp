@@ -101,6 +101,7 @@ void Renderer::draw() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
+    renderData.runTime = runTime;
 
     for (auto &script: scripts) {
         if (script->getType() != FrDisabled) {

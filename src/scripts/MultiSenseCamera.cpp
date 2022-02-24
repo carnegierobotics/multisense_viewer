@@ -6,8 +6,8 @@ void MultiSenseCamera::setup() {
     // Create a 5x5 mesh
 
 
-    VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/triangle.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/triangle.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+    VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
+    VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     renderUtils.shaders = shaders;
@@ -24,9 +24,38 @@ void MultiSenseCamera::setup() {
 
 }
 
+float angle = 0.0f;
 void MultiSenseCamera::update() {
 
-    virtualCamera->update();
+    UBOMatrix mat{};
+    mat.model = glm::mat4(1.0f);
+    auto *d = (UBOMatrix *) bufferOneData;
+
+    d->model = mat.model;
+    d->projection = renderData.camera->matrices.perspective;
+    d->view = renderData.camera->matrices.view;
+
+    auto *d2 = (PointCloudShader *) bufferTwoData;
+    int v = 0;
+    float time = renderData.deltaT;
+
+    for (int i = 0; i < 45; ++i) {
+        for (int j = 0; j < 45; ++j) {
+            d2->pos[v] = glm::vec4((float) i / 2, (float)sin(glm::radians((float)v)), (float) j / 2, 1.0f);
+
+            d2->pos[v] = d2->pos[v] * glm::vec4(1.0f, (float)sin(glm::radians(renderData.runTime * 100)) * 2, 1.0f, 1.0f);
+
+            v++;
+        }
+    }
+
+
+
+
+    bufferOneData = d;
+    bufferTwoData = d2;
+
+    //virtualCamera->update();
 
 
 }

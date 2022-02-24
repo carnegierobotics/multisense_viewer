@@ -9,7 +9,7 @@ void CRLVirtualCamera::initialize() {
 
     // Initialize rendering
     // Get depth image size and point cloud size and create render data from this
-    int vertexCount = 1920 * 1080;
+    int vertexCount = 2048;
     int indexCount = 0;
 
     meshData = new MeshData();

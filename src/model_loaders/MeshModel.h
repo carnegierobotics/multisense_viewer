@@ -28,11 +28,6 @@ public:
             glm::vec4 weight0;
         };
 
-        struct UniformBufferSet {
-            Buffer mvp;
-            Buffer pointCloud;
-        };
-
         struct Vertices {
             uint32_t count;
             VkBuffer buffer = VK_NULL_HANDLE;

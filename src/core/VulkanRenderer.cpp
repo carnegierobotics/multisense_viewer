@@ -413,6 +413,8 @@ void VulkanRenderer::prepare() {
     };
     UIOverlay->initResources(renderPass, queue, Utils::getShadersPath());
 
+
+    startTime = std::chrono::system_clock::now();
 }
 
 
@@ -479,6 +481,11 @@ void VulkanRenderer::renderLoop() {
             viewUpdated = false;
             viewChanged();
         }
+
+        auto end = std::chrono::system_clock::now();
+        std::chrono::duration<float> elapsed_seconds = end-startTime;
+        runTime = elapsed_seconds.count();
+
         updateOverlay();
 
         render();

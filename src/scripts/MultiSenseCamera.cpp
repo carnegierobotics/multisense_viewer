@@ -37,11 +37,10 @@ void MultiSenseCamera::update() {
 
     auto *d2 = (PointCloudShader *) bufferTwoData;
     int v = 0;
-    float time = renderData.deltaT;
 
     for (int i = 0; i < 45; ++i) {
         for (int j = 0; j < 45; ++j) {
-            d2->pos[v] = glm::vec4((float) i / 2, (float)sin(glm::radians((float)v)), (float) j / 2, 1.0f);
+            d2->pos[v] = glm::vec4((float) i, (float)sin(glm::radians((float)v)), (float) j, 1.0f);
 
             d2->pos[v] = d2->pos[v] * glm::vec4(1.0f, (float)sin(glm::radians(renderData.runTime * 100)) * 2, 1.0f, 1.0f);
 

@@ -13,12 +13,6 @@ layout (binding = 0) uniform UBO
     mat4 modelMatrix;
 } ubo;
 
-layout (binding = 1) uniform PointCloud
-{
-    vec4 pos[NUM_POINTS];
-    vec4 col[NUM_POINTS];
-} pc;
-
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 fragPos;

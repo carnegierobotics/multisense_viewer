@@ -9,7 +9,7 @@ void CRLVirtualCamera::initialize() {
 
     // Initialize rendering
     // Get depth image size and point cloud size and create render data from this
-    int pcW = 1920,  pcH = 1080;
+    int pcW = 1024,  pcH = 544;
     int vertexCount = pcW * pcH;
     int indexCount = 0;
 
@@ -43,14 +43,14 @@ void CRLVirtualCamera::stop() {
 void CRLVirtualCamera::update(Base::Render render) {
 
     auto *vP = (MeshModel::Model::Vertex *) meshData->vertices;
-    auto y = (float) sin(glm::radians(render.runTime * 20.0f)) / 2;
-    int runTimeMs = (int) (render.runTime * 1000.0f);
-    for (int i = 0; i < 51 * 5; ++i) {
-        vP[point + i].pos.y = y;
+    auto y = (float) sin(glm::radians(render.runTime * 60.0f));
+
+    for (int i = 0; i < 1000; ++i) {
+        vP[point].pos.y = y;
         point++;
 
 
-        if (point + i >= meshData->vertexCount)
+        if (point>= meshData->vertexCount)
             point = 0;
     }
 

@@ -10,8 +10,8 @@ void Renderer::prepareRenderer() {
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
     camera.rotationSpeed = 0.25f;
     camera.movementSpeed = 0.1f;
-    camera.setPosition({-6.0f, 7.0f, -5.5f});
-    camera.setRotation({-35.0f, -45.0f, 0.0f});
+    camera.setPosition({0.0f, 0.0f, -5.0f});
+    camera.setRotation({0.0f, 0.0f, 0.0f});
 
 
     generateScriptClasses();
@@ -148,6 +148,8 @@ void Renderer::generateScriptClasses() {
     // TODO: Create a list of renderable classnames
     classNames.emplace_back("Example");
     classNames.emplace_back("MultiSenseCamera");
+    classNames.emplace_back("LightSource");
+
     // Also add class names to listbox
     UIOverlay->uiSettings.listBoxNames = classNames;
     scripts.reserve(classNames.size());

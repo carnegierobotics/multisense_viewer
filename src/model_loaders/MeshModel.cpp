@@ -125,49 +125,69 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
     descriptors.resize(count);
 
+    uint32_t uniformDescriptorCount = (3 * count);
+    uint32_t imageDescriptorSamplerCount = (3 * count);
     std::vector<VkDescriptorPoolSize> poolSizes = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count * 3}
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+
     };
-    VkDescriptorPoolCreateInfo descriptorPoolCI{};
-    descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descriptorPoolCI.poolSizeCount = 1;
-    descriptorPoolCI.pPoolSizes = poolSizes.data();
-    descriptorPoolCI.maxSets = count;
-    CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
+    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,count);
+    CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
-    for (uint32_t i = 0; i < ubo.size(); ++i) {
+    /**
+     * Create Descriptor Sets
+     */
+    for (auto i = 0; i < ubo.size(); i++) {
 
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = Populate::descriptorSetAllocateInfo(descriptorPool,
-                                                                                                 &descriptorSetLayout,
-                                                                                                 1);
-
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorSetCount = 1;
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
 
-        std::array<VkWriteDescriptorSet, 2> writeDescriptorSet = {Populate::writeDescriptorSet(descriptors[i],
-                                                                                               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                                               0,
-                                                                                               &ubo[i]
-                                                                                                       .bufferOne.descriptorBufferInfo,
-                                                                                               1),
-                                                                  Populate::writeDescriptorSet(descriptors[i],
-                                                                                               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                                               1,
-                                                                                               &ubo[i]
-                                                                                                       .bufferTwo.descriptorBufferInfo,
-                                                                                               1)};
-        vkUpdateDescriptorSets(vulkanDevice->logicalDevice, writeDescriptorSet.size(), writeDescriptorSet.data(), 0,
-                               nullptr);
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(3);
+
+        writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[0].descriptorCount = 1;
+        writeDescriptorSets[0].dstSet = descriptors[i];
+        writeDescriptorSets[0].dstBinding = 0;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+
+        writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[1].descriptorCount = 1;
+        writeDescriptorSets[1].dstSet = descriptors[i];
+        writeDescriptorSets[1].dstBinding = 1;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.descriptorBufferInfo;
+
+        writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[2].descriptorCount = 1;
+        writeDescriptorSets[2].dstSet = descriptors[i];
+        writeDescriptorSets[2].dstBinding = 2;
+        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+
+
+
+        vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                               writeDescriptorSets.data(), 0, NULL);
     }
+
 }
 
 void MeshModel::createDescriptorSetLayout() {
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
-                                                                  nullptr},
-                                                          {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
-                                                                  nullptr}};
-    VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(bindings.data(),
-                                                                                               bindings.size());
+    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+    };
+
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
+                                                                                               setLayoutBindings.size());
 
     CHECK_RESULT(
             vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout));

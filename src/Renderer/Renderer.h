@@ -26,6 +26,7 @@
 // Include scripts
 #include <MultiSense/src/scripts/MultiSenseCamera.h>
 #include <MultiSense/src/scripts/Example.h>
+#include <MultiSense/src/scripts/LightSource.h>
 
 
 class Renderer : VulkanRenderer {

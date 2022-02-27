@@ -2,8 +2,8 @@
 // Created by magnus on 9/23/21.
 //
 
-#ifndef AR_ENGINE_UISETTINGS_H
-#define AR_ENGINE_UISETTINGS_H
+#ifndef MULTISENSE_UISETTINGS_H
+#define MULTISENSE_UISETTINGS_H
 
 
 #include <utility>
@@ -84,4 +84,4 @@ public:
 };
 
 
-#endif //AR_ENGINE_UISETTINGS_H
+#endif //MULTISENSE_UISETTINGS_H

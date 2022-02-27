@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef AR_ENGINE_VULKANDEVICE_H
-#define AR_ENGINE_VULKANDEVICE_H
+#ifndef MULTISENSE_VULKANDEVICE_H
+#define MULTISENSE_VULKANDEVICE_H
 
 #include <cassert>
 #include <algorithm>
@@ -83,4 +83,4 @@ struct VulkanDevice {
 };
 
 
-#endif //AR_ENGINE_VULKANDEVICE_H
+#endif //MULTISENSE_VULKANDEVICE_H

@@ -2,8 +2,8 @@
 // Created by magnus on 10/3/20.
 //
 
-#ifndef AR_ENGINE_VALIDATION_H
-#define AR_ENGINE_VALIDATION_H
+#ifndef MULTISENSE_VALIDATION_H
+#define MULTISENSE_VALIDATION_H
 
 
 #include <vector>
@@ -142,4 +142,4 @@ namespace Validation {
     }
 };
 
-#endif //AR_ENGINE_VALIDATION_H
+#endif //MULTISENSE_VALIDATION_H

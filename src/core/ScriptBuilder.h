@@ -4,8 +4,8 @@
 // Created by magnus on 9/6/21.
 //
 
-#ifndef AR_ENGINE_SCRIPTBUILDER_H
-#define AR_ENGINE_SCRIPTBUILDER_H
+#ifndef MULTISENSE_SCRIPTBUILDER_H
+#define MULTISENSE_SCRIPTBUILDER_H
 #include <memory>
 #include <map>
 #include <iostream>
@@ -62,4 +62,4 @@ bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T:
 
 
 
-#endif //AR_ENGINE_SCRIPTBUILDER_H
+#endif //MULTISENSE_SCRIPTBUILDER_H

@@ -2,8 +2,8 @@
 // Created by magnus on 11/27/21.
 //
 
-#ifndef AR_ENGINE_BASE_H
-#define AR_ENGINE_BASE_H
+#ifndef MULTISENSE_BASE_H
+#define MULTISENSE_BASE_H
 
 #include <MultiSense/src/tools/Utils.h>
 #include <filesystem>
@@ -211,4 +211,4 @@ protected:
 
 };
 
-#endif //AR_ENGINE_BASE_H
+#endif //MULTISENSE_BASE_H

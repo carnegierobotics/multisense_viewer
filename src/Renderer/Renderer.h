@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef AR_ENGINE_RENDERER_H
-#define AR_ENGINE_RENDERER_H
+#ifndef MULTISENSE_RENDERER_H
+#define MULTISENSE_RENDERER_H
 
 
 // System

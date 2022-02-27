@@ -2,8 +2,8 @@
 // Created by magnus on 12/10/21.
 //
 
-#ifndef AR_ENGINE_GLTFMODEL_H
-#define AR_ENGINE_GLTFMODEL_H
+#ifndef MULTISENSE_GLTFMODEL_H
+#define MULTISENSE_GLTFMODEL_H
 
 
 #include <vulkan/vulkan_core.h>
@@ -186,4 +186,4 @@ public:
 };
 
 
-#endif //AR_ENGINE_GLTFMODEL_H
+#endif //MULTISENSE_GLTFMODEL_H

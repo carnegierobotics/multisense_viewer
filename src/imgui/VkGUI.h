@@ -430,14 +430,10 @@ public:
                          uiSettings.frameTimeMax, ImVec2(0, 80));
 
 
-        ImGui::Dummy(ImVec2(0, 10));
-        uiSettings.flag |= ImGui::Button("Connect to camera", ImVec2(175, 30));
-
-
         static int item_current_idx = 0; // Here we store our selection data as an index.
         ImGui::Spacing();
         ImGui::Text("Active objects");
-        if (ImGui::BeginListBox("ListBox")) {
+        if (ImGui::BeginListBox("##")) {
             for (int n = 0; n < uiSettings.listBoxNames.size(); n++) {
                 const bool is_selected = (uiSettings.selectedListboxIndex == n);
 
@@ -476,6 +472,11 @@ public:
         }
         active = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused() || ImGui::IsAnyItemActive();
 
+        updated |= ImGui::SliderFloat("Camera speed", &uiSettings.movementSpeed, 0.05f, 10.0f);
+
+
+        ImGui::Dummy(ImVec2(0, 10));
+        uiSettings.flag |= ImGui::Button("Connect to camera", ImVec2(175, 30));
 
         if (uiSettings.flag) {
 
@@ -508,7 +509,11 @@ public:
             static int current = 0;
             ImGui::Combo("Examples", &current, items, IM_ARRAYSIZE(items));
         }
-        //ImGui::ShowDemoWindow();
+
+        active = ImGui::IsItemHovered() || ImGui::IsWindowHovered();
+
+        /*
+        ImGui::ShowDemoWindow();
         ImGui::SetNextWindowPos(ImVec2(1280 - 350, 10), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(350, 150));
         ImGui::Begin("Camera controls");
@@ -520,12 +525,11 @@ public:
         ImGui::InputFloat3("position", pos, "%.3f");
         ImGui::InputFloat3("rotation", rot, "%.3f");
 
-        active = ImGui::IsItemHovered() || ImGui::IsWindowHovered();
-        updated |= ImGui::SliderFloat("Camera speed", &uiSettings.movementSpeed, 0.05f, 10.0f);
 
 
-        ImGui::End();
 
+        //ImGui::End();
+        */
         //ImGui::ShowDemoWindow();
         // Render to generate draw buffers
         ImGui::Render();

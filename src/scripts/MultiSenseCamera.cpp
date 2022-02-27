@@ -16,10 +16,7 @@ void MultiSenseCamera::setup() {
     virtualCamera->initialize();
 
 
-    CRLBaseCamera::MeshData *meshData = virtualCamera->getStream();
-
-    transferDataStaging((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount, meshData->indices,
-                        meshData->indexCount);
+    //transferDataStaging((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount, meshData->indices,meshData->indexCount);
     MeshModel::createRenderPipeline(renderUtils, shaders);
 
     auto *d2 = (PointCloudShader *) bufferTwoData;
@@ -30,14 +27,15 @@ void MultiSenseCamera::setup() {
             v++;
         }
     }
-
-
 }
 
-float angle = 0.0f;
 
-int point = 0;
 void MultiSenseCamera::update() {
+    virtualCamera->update(renderData);
+
+    CRLBaseCamera::MeshData *meshData = virtualCamera->getStream();
+    transferData((MeshModel::Model::Vertex *)meshData->vertices, meshData->vertexCount);
+
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
@@ -47,23 +45,6 @@ void MultiSenseCamera::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-
-    auto *d2 = (PointCloudShader *) bufferTwoData;
-    auto y = (float)sin(glm::radians(renderData.runTime * 100.0f));
-    int runTimeMs = (int) (renderData.runTime * 1000.0f);
-    if ((runTimeMs % 5) == 0){
-        d2->pos[point].y = y;
-        point ++;
-
-    }
-
-    if (point > 2000)
-        point = 0;
-
-    printf("point %d\n", point);
-
-
-    //virtualCamera->update();
 
 
 }
@@ -136,7 +117,7 @@ void MultiSenseCamera::generateGridPoints() {
         vert++;
     }
 
-    transferDataStaging(vertices, vertexCount, indices, indexCount);
+    //transferDataStaging(vertices, vertexCount, indices, indexCount);
 
     delete[] vertices;
     delete[] indices;
@@ -144,4 +125,5 @@ void MultiSenseCamera::generateGridPoints() {
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     MeshModel::draw(commandBuffer, i);
+
 }

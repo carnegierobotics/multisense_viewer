@@ -9,13 +9,25 @@ void CRLVirtualCamera::initialize() {
 
     // Initialize rendering
     // Get depth image size and point cloud size and create render data from this
-    int vertexCount = 2048;
+    int pcW = 1920,  pcH = 1080;
+    int vertexCount = pcW * pcH;
     int indexCount = 0;
 
     meshData = new MeshData();
     meshData->vertexCount = vertexCount;
     // Virtual class can generate some mesh data here
     meshData->vertices = calloc(vertexCount, sizeof(MeshModel::Model::Vertex));
+
+    uint32_t v = 0;
+    auto *vP = (MeshModel::Model::Vertex *) meshData->vertices;
+    for (uint32_t x = 0; x < pcW; ++x) {
+        for (uint32_t z = 0; z < pcH; ++z) {
+            MeshModel::Model::Vertex vertex{};
+            vertex.pos = glm::vec4((float) x / 100, 0.0f, (float) z / 100, 1.0f);
+            vP[v] = vertex;
+            v++;
+        }
+    }
 
 }
 
@@ -28,19 +40,25 @@ void CRLVirtualCamera::stop() {
 
 }
 
-void CRLVirtualCamera::update() {
+void CRLVirtualCamera::update(Base::Render render) {
 
-    uint32_t v = 0;
-    for (uint32_t x = 0; x < 640; ++x){
-        for (uint32_t z = 0; z < 480; ++z){
-            v++;
-        }
+    auto *vP = (MeshModel::Model::Vertex *) meshData->vertices;
+    auto y = (float) sin(glm::radians(render.runTime * 20.0f)) / 2;
+    int runTimeMs = (int) (render.runTime * 1000.0f);
+    for (int i = 0; i < 51 * 5; ++i) {
+        vP[point + i].pos.y = y;
+        point++;
+
+
+        if (point + i >= meshData->vertexCount)
+            point = 0;
     }
+
 
 }
 
-CRLBaseCamera::MeshData* CRLVirtualCamera::getStream() {
-    return  meshData;
+CRLBaseCamera::MeshData *CRLVirtualCamera::getStream() {
+    return meshData;
 }
 
 CRLVirtualCamera::~CRLVirtualCamera() {

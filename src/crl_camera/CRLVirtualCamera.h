@@ -13,10 +13,11 @@ public:
     std::string description;
     std::string data;
     MeshData* meshData;
+    int point = 0;
 
     void initialize() override;
     void start() override;
-    void update();
+    void update(Base::Render render);
     void stop() override;
     MeshData *getStream() override;
 

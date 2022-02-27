@@ -485,11 +485,8 @@ void VulkanRenderer::renderLoop() {
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end-startTime;
         runTime = elapsed_seconds.count();
-
-        updateOverlay();
-
         render();
-
+        updateOverlay();
 
         auto tEnd = std::chrono::high_resolution_clock::now();
 

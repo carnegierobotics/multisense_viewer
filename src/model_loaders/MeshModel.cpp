@@ -14,27 +14,27 @@ void MeshModel::loadFromFile(std::string filename, float scale) {
 
 }
 
-void MeshModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
-                             uint32_t
-                             indexCount){
+void MeshModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount) {
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
-    size_t indexBufferSize = indexCount * sizeof(uint32_t);
-    model.indices.count = indexCount;
     model.vertices.count = vertexCount;
+    model.indices.count = 0;
+    if (model.buffer.buffer == nullptr)
+        vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &model.buffer, vertexBufferSize, (void *) _vertices);
+    else {
+        model.buffer.map();
+        memcpy(model.buffer.mapped, _vertices, vertexBufferSize);
+        model.buffer.unmap();
+    }
 
-    CHECK_RESULT(vulkanDevice->createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vertexBufferSize,
-            &model.vertices.buffer,
-            &model.vertices.memory,
-            _vertices));
+
 
 }
 
 void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                     uint32_t
-                              indexCount) {
+                                    indexCount) {
 
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
@@ -110,7 +110,7 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertices.buffer, offsets);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.buffer.buffer, offsets);
 
     if (model.indices.count > 0) {
         vkCmdBindIndexBuffer(commandBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -118,7 +118,6 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     } else {
         vkCmdDraw(commandBuffer, model.vertices.count, 1, 0, 0);
     }
-
 
 }
 

@@ -13,7 +13,7 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
 
-    vec3 result = vec3(0.2f, 0.8f, 0.5f); //(ambient + diffuse + specular) * color;
+    vec3 result = vec3(0.2f, 0.4f, 0.5f); //(ambient + diffuse + specular) * color;
     outColor = vec4(result, 1.0);
 
 }

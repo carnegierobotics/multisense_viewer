@@ -28,6 +28,7 @@ public:
             glm::vec4 weight0;
         };
 
+        Buffer buffer;
         struct Vertices {
             uint32_t count;
             VkBuffer buffer = VK_NULL_HANDLE;
@@ -87,7 +88,7 @@ protected:
 
     void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-    void transferData(Model::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+    void transferData(Model::Vertex *_vertices, uint32_t vertexCount);
 };
 
 

@@ -22,9 +22,21 @@ void MultiSenseCamera::setup() {
                         meshData->indexCount);
     MeshModel::createRenderPipeline(renderUtils, shaders);
 
+    auto *d2 = (PointCloudShader *) bufferTwoData;
+    int v = 0;
+    for (int i = 1; i < 46; ++i) {
+        for (int j = 1; j < 46; ++j) {
+            d2->pos[v] = glm::vec4((float) i / 10, 0.0f, (float) j / 10, 1.0f);
+            v++;
+        }
+    }
+
+
 }
 
 float angle = 0.0f;
+
+int point = 0;
 void MultiSenseCamera::update() {
 
     UBOMatrix mat{};
@@ -35,24 +47,21 @@ void MultiSenseCamera::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
+
     auto *d2 = (PointCloudShader *) bufferTwoData;
-    int v = 0;
+    auto y = (float)sin(glm::radians(renderData.runTime * 100.0f));
+    int runTimeMs = (int) (renderData.runTime * 1000.0f);
+    if ((runTimeMs % 5) == 0){
+        d2->pos[point].y = y;
+        point ++;
 
-    for (int i = 0; i < 45; ++i) {
-        for (int j = 0; j < 45; ++j) {
-            d2->pos[v] = glm::vec4((float) i, (float)sin(glm::radians((float)v)), (float) j, 1.0f);
-
-            d2->pos[v] = d2->pos[v] * glm::vec4(1.0f, (float)sin(glm::radians(renderData.runTime * 100)) * 2, 1.0f, 1.0f);
-
-            v++;
-        }
     }
 
+    if (point > 2000)
+        point = 0;
 
+    printf("point %d\n", point);
 
-
-    bufferOneData = d;
-    bufferTwoData = d2;
 
     //virtualCamera->update();
 

@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef AR_ENGINE_POPULATE_H
-#define AR_ENGINE_POPULATE_H
+#ifndef MULTISENSE_POPULATE_H
+#define MULTISENSE_POPULATE_H
 
 #include "vulkan/vulkan.h"
 #include <vector>
@@ -607,4 +607,4 @@ namespace Populate {
 }
 
 
-#endif //AR_ENGINE_POPULATE_H
+#endif //MULTISENSE_POPULATE_H

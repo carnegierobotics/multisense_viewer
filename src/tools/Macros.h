@@ -2,8 +2,8 @@
 // Created by magnus on 9/16/21.
 //
 
-#ifndef AR_ENGINE_MACROS_H
-#define AR_ENGINE_MACROS_H
+#ifndef MULTISENSE_MACROS_H
+#define MULTISENSE_MACROS_H
 
 #include <vulkan/vulkan_core.h>
 #include "string"
@@ -54,4 +54,4 @@ namespace Macros {
     }
 }
 
-#endif //AR_ENGINE_MACROS_H
+#endif //MULTISENSE_MACROS_H

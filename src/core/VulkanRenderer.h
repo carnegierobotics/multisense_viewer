@@ -2,8 +2,8 @@
 // Created by magnus on 8/28/21.
 //
 
-#ifndef AR_ENGINE_VULKANRENDERER_H
-#define AR_ENGINE_VULKANRENDERER_H
+#ifndef MULTISENSE_VULKANRENDERER_H
+#define MULTISENSE_VULKANRENDERER_H
 
 #ifdef WIN32
     #ifdef WIN_DEBUG
@@ -217,4 +217,4 @@ private:
 };
 
 
-#endif //AR_ENGINE_VULKANRENDERER_H
+#endif //MULTISENSE_VULKANRENDERER_H

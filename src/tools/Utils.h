@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef AR_ENGINE_UTILS_H
-#define AR_ENGINE_UTILS_H
+#ifndef MULTISENSE_UTILS_H
+#define MULTISENSE_UTILS_H
 
 
 #include <fstream>
@@ -252,4 +252,4 @@ namespace Utils {
     }
 }
 
-#endif //AR_ENGINE_UTILS_H
+#endif //MULTISENSE_UTILS_H

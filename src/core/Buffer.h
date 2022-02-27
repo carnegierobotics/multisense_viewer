@@ -2,8 +2,8 @@
 // Created by magnus on 9/5/21.
 //
 
-#ifndef AR_ENGINE_BUFFER_H
-#define AR_ENGINE_BUFFER_H
+#ifndef MULTISENSE_BUFFER_H
+#define MULTISENSE_BUFFER_H
 
 
 #include <vulkan/vulkan.h>
@@ -38,4 +38,4 @@ struct Buffer
 };
 
 
-#endif //AR_ENGINE_BUFFER_H
+#endif //MULTISENSE_BUFFER_H

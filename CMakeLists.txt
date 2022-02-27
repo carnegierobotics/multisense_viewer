@@ -38,8 +38,12 @@ include_directories(external/tinygltf/)
 set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 
+    # LIBMULTISENSE
+    set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
+    include_directories(${MULTISENSE_SRC})
+    add_subdirectory(${MULTISENSE_SRC})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx")
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense")
 
 # add source files
 file(GLOB IMGUI_SRC
@@ -82,14 +86,8 @@ if (WIN32)
 
 
 else() ## Linux
-
-    # LIBMULTISENSE
-    set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
-    include_directories(${MULTISENSE_SRC})
-    add_subdirectory(${MULTISENSE_SRC})
-
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC} )
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} )
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

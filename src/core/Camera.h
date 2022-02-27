@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef AR_ENGINE_CAMERA_H
-#define AR_ENGINE_CAMERA_H
+#ifndef MULTISENSE_CAMERA_H
+#define MULTISENSE_CAMERA_H
 
 /*
 * Basic camera class
@@ -252,4 +252,4 @@ public:
 
 
 
-#endif //AR_ENGINE_CAMERA_H
+#endif // MULTISENSE_CAMERA_H

@@ -1,9 +1,10 @@
-# Readme Boilerplate
+# MultiSense Viewer
 
-[![GitHub version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/yilber/readme-boilerplate)
+[![GitHub version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://github.com/yilber/readme-boilerplate)
 [![License](https://img.shields.io/github/license/yilber/readme-boilerplate.svg)](https://github.com/Yilber/readme-boilerplate/blob/master/LICENSE)
-[![Backers on Patreon](https://img.shields.io/badge/backer-Patreon-orange.svg)](https://www.patreon.com/yilber)
-[![Backers on Paypal](https://img.shields.io/badge/backer-Paypal-blue.svg)](https://www.paypal.me/Yilber)
+<!---
+ [![Backers on Patreon](https://img.shields.io/badge/backer-Patreon-orange.svg)](https://www.patreon.com/yilber) [![Backers on Paypal](https://img.shields.io/badge/backer-Paypal-blue.svg)](https://www.paypal.me/Yilber) -->
+
 
 Boilerplate for creating github compatible readme files
 
@@ -16,38 +17,36 @@ Boilerplate for creating github compatible readme files
 Open your terminal and type in
 
 ```sh
-$ git clone https://github.com/Yilber/readme-boilerplate.git
-$ cd readme-boilerplate
+$ git clone https://github.com/M-Gjerde/MultiSense
+$ cd MultiSense
 ```
 
 ## Scaffolding
 
+Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
+
 ```text
 readme-boilerplate
+├── docs
+│   └── html
 ├── src
-│   └── templates
-│       ├── header-advanced.md
-│       ├── header-simple.md
-│       └── readme-template.md
+│   └── program source**
 ├── LICENSE
 └── README.md
 ```
 
 ## How to use
 
-* Create a README.md file.
-* Pick a header from the templates folder and copy its content onto the README.md file.
-* Update the URLs and add/remove any necessary badge.
-* Copy and paste the content from the readme-template.md onto the README.md file.
-* Add/remove necessary sections and update all URLs.
+Explanation coming
+
 
 ## Bugs
 
 If you have questions, feature requests or a bug you want to report, please click [here](https://github.com/Yilber/readme-boilerplate/issues) to file an issue.
 
-## Author
+## Author(s)
 
-* [**Yilber Mejia**](https://www.yilbermejia.com/) [![GitHub followers](https://img.shields.io/github/followers/yilber.svg?style=social)](https://github.com/yilber) [![Twitter Follow](https://img.shields.io/twitter/follow/Yilber_M.svg?style=social)](https://twitter.com/Yilber_M)
+* [**Magnus Gjerde**](https://github.com/M-Gjerde/)
 
 ## Support
 

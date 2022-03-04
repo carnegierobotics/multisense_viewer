@@ -3,7 +3,7 @@
 
 
 layout(location = 0) in vec3 Normal;
-layout(location = 1) in vec2 fragTexCoord;
+layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
@@ -19,6 +19,7 @@ layout(set = 0, binding = 2) uniform SELECT {
     float map;
 } select ;
 
+layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 
 
 void main()
@@ -40,6 +41,7 @@ void main()
     vec3 specular = specularStrength * spec * colors.lightColor.xyz;
 
     vec3 result = (ambient + diffuse + specular) * colors.objectColor.xyz;
-    outColor = vec4(result, 1.0);
+    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    outColor = vec4(tex, 1.0);
 
 }

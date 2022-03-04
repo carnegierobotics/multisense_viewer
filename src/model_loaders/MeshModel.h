@@ -17,7 +17,8 @@
 class MeshModel {
 
 public:
-     MeshModel() = default;
+    MeshModel() = default;
+
     struct Model {
         struct Vertex {
             glm::vec3 pos;
@@ -28,31 +29,66 @@ public:
             glm::vec4 weight0;
         };
 
-        Buffer buffer;
-        struct Vertices {
-            uint32_t count;
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory;
-        } vertices;
-        struct Indices {
-            uint32_t count;
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory;
-        } indices;
+        struct Primitive {
+            uint32_t firstIndex{};
+            uint32_t indexCount{};
+            uint32_t vertexCount{};
+            bool hasIndices{};
+            //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
+            //void setBoundingBox(glm::vec3 min, glm::vec3 max);
+        };
 
-        std::vector<std::string> extensions;
+        struct Mesh {
+            VulkanDevice *device;
+            uint32_t firstIndex = 0;
+            uint32_t indexCount = 0;
+            uint32_t vertexCount = 0;
+            bool hasIndices{};
+
+            struct Vertices {
+                VkBuffer buffer = VK_NULL_HANDLE;
+                VkDeviceMemory memory;
+            } vertices;
+            struct Indices {
+                int count;
+                VkBuffer buffer = VK_NULL_HANDLE;
+                VkDeviceMemory memory;
+            } indices;
+
+            Buffer uniformBuffer;
+
+        } mesh;
+
+        struct TextureIndices {
+            uint32_t baseColor = -1;
+            uint32_t normalMap = -1;
+        };
 
         struct Dimensions {
             glm::vec3 min = glm::vec3(FLT_MAX);
             glm::vec3 max = glm::vec3(-FLT_MAX);
         } dimensions;
 
-    } model;
+        VulkanDevice *vulkanDevice{};
+        VulkanDevice *device{};
+        std::vector<std::string> extensions;
+        std::vector<Texture2D> textures;
+        std::vector<Texture::TextureSampler> textureSamplers;
+        TextureIndices textureIndices;
 
-    struct Dimensions {
-        glm::vec3 min = glm::vec3(FLT_MAX);
-        glm::vec3 max = glm::vec3(-FLT_MAX);
-    } dimensions;
+        void createMesh(Model::Vertex *_vertices, uint32_t vertexCount);
+
+        void loadTextureSamplers();
+
+        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName,
+                        bool update);
+
+
+        Model(uint32_t count, VulkanDevice *_vulkanDevice);
+
+        void
+        createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+    };
 
 
     std::vector<VkDescriptorSet> descriptors;
@@ -61,34 +97,31 @@ public:
     VkPipeline pipeline{};
     VkPipelineLayout pipelineLayout{};
 
-    glm::mat4 aabb{};
-    std::vector<Texture> textures;
-    std::vector<std::string> extensions;
-
-
     void destroy(VkDevice device);
 
     void loadFromFile(std::string filename, float scale = 1.0f);
 
     void createDescriptorSetLayout();
 
-    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector);
+    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
 
     void createPipelineLayout();
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i);
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model *model);
 
-
-    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo);
+    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, MeshModel::Model *model);
 
 protected:
 
     VulkanDevice *vulkanDevice{};
-    void transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-    void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector);
+    void
+    transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-    void transferData(Model::Vertex *_vertices, uint32_t vertexCount);
+    void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
+                              Model *model,
+                              ScriptType type);
+
 };
 
 

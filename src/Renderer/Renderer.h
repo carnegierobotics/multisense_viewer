@@ -24,16 +24,20 @@
 #include <MultiSense/src/tools/Macros.h>
 
 // Include scripts
-#include <MultiSense/src/scripts/MultiSenseCamera.h>
+#include <MultiSense/src/scripts/MultiSensePointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/LightSource.h>
+#include <MultiSense/src/scripts/MultiSenseS30.h>
 
 
 class Renderer : VulkanRenderer {
 
 public:
 
-
+    /**
+     * @brief Default constructor for renderer
+     * @param title Title of application
+     */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
         // During constructor prepare backend for rendering
         this->title = title;
@@ -66,8 +70,16 @@ protected:
     void viewChanged() override;
     void addDeviceFeatures() override;
     void buildCommandBuffers() override;
+    /**
+     * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
+     * @param uiSettings Handle to UISetting variables
+     */
     void UIUpdate(UISettings uiSettings) override;
 
+    /**
+     *
+     * \brief creates instances from classes located in src/scripts directory. Usually each class here represents object(s) in the scene
+     */
     void generateScriptClasses();
 
 };

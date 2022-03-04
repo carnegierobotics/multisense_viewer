@@ -529,6 +529,49 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, VulkanDevice
     updateDescriptor();
 }
 
+void Texture2D::updateTexture(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
+                              VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
+                              VkImageLayout imageLayout){
+    this->device = device;
+    width = texWidth;
+    height = texHeight;
+    mipLevels = 1;
+
+    // Create optimal tiled target image
+    VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.format = format;
+    imageCreateInfo.mipLevels = mipLevels;
+    imageCreateInfo.arrayLayers = 1;
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo.extent = {width, height, 1};
+    imageCreateInfo.usage = imageUsageFlags;
+
+    // Create Vulkan Image
+    CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+
+    // Allocate image memory and bind to image
+    VkMemoryRequirements memReqs;
+    vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+    VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
+    memAlloc.allocationSize = memReqs.size;
+    memAlloc.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAlloc, nullptr, &deviceMemory));
+    CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+
+    // Copy buffer data to image
+    // Copy texture data into image memory buffer
+    uint8_t *data;
+    CHECK_RESULT(vkMapMemory(device->logicalDevice, deviceMemory, 0, memReqs.size, 0, (void **) &data));
+    memcpy(data, buffer, bufferSize);
+    vkUnmapMemory(device->logicalDevice, deviceMemory);
+
+
+
+}
 /**
 * Creates a 2D texture from a buffer
 *

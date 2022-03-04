@@ -23,6 +23,9 @@ namespace Utils {
         return "../Assets/";
     }
 
+    static std::string getTexturePath() {
+        return "../Assets/Textures/";
+    }
     static std::string getScriptsPath() {
         return "scripts/";
     }

@@ -99,7 +99,7 @@ public:
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
-        if (scriptType == FrDefault){
+        if (scriptType == FrDefault || scriptType == FrPointCloud) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -108,8 +108,6 @@ public:
             currentUB.bufferTwo.map();
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
-
-
             if (bufferThreeData == NULL)
                 return;
 
@@ -138,7 +136,7 @@ public:
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
-        if (scriptType == FrDefault) {
+        if (scriptType == FrDefault || scriptType == FrPointCloud) {
 
             bufferOneData = new UBOMatrix();
             bufferTwoData = new FragShaderParams();

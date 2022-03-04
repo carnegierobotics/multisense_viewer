@@ -3,6 +3,7 @@
 //
 
 #include "MeshModel.h"
+#include "stb_image.h"
 
 #include <utility>
 
@@ -14,36 +15,48 @@ void MeshModel::loadFromFile(std::string filename, float scale) {
 
 }
 
-void MeshModel::transferData(Model::Vertex *_vertices, uint32_t vertexCount) {
-    size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
-    model.vertices.count = vertexCount;
-    model.indices.count = 0;
-    if (model.buffer.buffer == nullptr)
-        vulkanDevice->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &model.buffer, vertexBufferSize, (void *) _vertices);
-    else {
-        model.buffer.map();
-        memcpy(model.buffer.mapped, _vertices, vertexBufferSize);
-        model.buffer.unmap();
-    }
-
-
+MeshModel::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
+    this->vulkanDevice = _vulkanDevice;
+    textures.resize(count);
+    textureSamplers.resize(count);
 
 }
 
-void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
-                                    uint32_t
-                                    indexCount) {
-
+void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t vertexCount) {
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
+
+    mesh.vertexCount = vertexCount;
+    if (mesh.vertices.buffer == nullptr) {
+        CHECK_RESULT(vulkanDevice->createBuffer(
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertexBufferSize,
+                &mesh.vertices.buffer,
+                &mesh.vertices.memory,
+                _vertices))
+    } else {
+        void *data;
+        // TODO dont map and unmmap memory every time
+        vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
+        memcpy(data, _vertices, vertexBufferSize);
+        vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
+    }
+}
+
+void MeshModel::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+                                             uint32_t
+                                             indexCount) {
+
+
+    size_t vertexBufferSize = vertexCount * sizeof(Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
-    model.indices.count = indexCount;
-    model.vertices.count = vertexCount;
+    mesh.vertexCount = vertexCount;
+    mesh.indexCount = indexCount;
+
     struct StagingBuffer {
         VkBuffer buffer;
         VkDeviceMemory memory;
-    } vertexStaging, indexStaging{};
+    } vertexStaging{}, indexStaging{};
 
     // Create staging buffers
     // Vertex data
@@ -71,26 +84,26 @@ void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCou
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             vertexBufferSize,
-            &model.vertices.buffer,
-            &model.vertices.memory));
+            &mesh.vertices.buffer,
+            &mesh.vertices.memory));
     // Index buffer
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 indexBufferSize,
-                &model.indices.buffer,
-                &model.indices.memory));
+                &mesh.indices.buffer,
+                &mesh.indices.memory));
     }
 
     // Copy from staging buffers
     VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
     VkBufferCopy copyRegion = {};
     copyRegion.size = vertexBufferSize;
-    vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, model.vertices.buffer, 1, &copyRegion);
+    vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, mesh.vertices.buffer, 1, &copyRegion);
     if (indexBufferSize > 0) {
         copyRegion.size = indexBufferSize;
-        vkCmdCopyBuffer(copyCmd, indexStaging.buffer, model.indices.buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(copyCmd, indexStaging.buffer, mesh.indices.buffer, 1, &copyRegion);
     }
     vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->transferQueue, true);
     vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
@@ -100,9 +113,46 @@ void MeshModel::transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCou
         vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
         vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
     }
+
+
 }
 
-void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+
+void MeshModel::Model::loadTextureSamplers() {
+    Texture::TextureSampler sampler{};
+    sampler.minFilter = VK_FILTER_LINEAR;
+    sampler.magFilter = VK_FILTER_LINEAR;
+    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler.addressModeW = sampler.addressModeV;
+    textureSamplers.push_back(sampler);
+
+}
+
+
+void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName,
+                                  bool update) {
+    // Create texture image if not created
+
+    int texWidth, texHeight, texChannels;
+    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
+
+    Texture2D texture;
+    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
+                       vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+    textureIndices.baseColor = 0;
+    textures[0] = texture;
+
+}
+
+void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model *model) {
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
@@ -110,19 +160,19 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.buffer.buffer, offsets);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
 
-    if (model.indices.count > 0) {
-        vkCmdBindIndexBuffer(commandBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, model.indices.count, 1, 0, 0, 0);
+    if (model->mesh.indexCount > 0) {
+        vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
     } else {
-        vkCmdDraw(commandBuffer, model.vertices.count, 1, 0, 0);
+        vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
     }
 
 }
 
 
-void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
+void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, MeshModel::Model *model) {
     descriptors.resize(count);
 
     uint32_t uniformDescriptorCount = (3 * count);
@@ -132,7 +182,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
 
     };
-    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,count);
+    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
@@ -148,7 +198,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
         descriptorSetAllocInfo.descriptorSetCount = 1;
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
 
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets(3);
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
 
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -171,7 +221,12 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
 
-
+        writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptorSets[3].descriptorCount = 1;
+        writeDescriptorSets[3].dstSet = descriptors[i];
+        writeDescriptorSets[3].dstBinding = 3;
+        writeDescriptorSets[3].pImageInfo = &model->textures[model->textureIndices.baseColor].descriptor;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -181,9 +236,11 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
 
 void MeshModel::createDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
-            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+
     };
 
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
@@ -199,13 +256,19 @@ void MeshModel::createPipelineLayout() {
     CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, &pipelineLayout))
 }
 
-void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
+void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type) {
     createPipelineLayout();
 
     // Vertex bindings an attributes
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
     inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    VkPrimitiveTopology topology;
+    if (type == FrPointCloud)
+        topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    else
+        topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    inputAssemblyStateCI.topology = topology;
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
     rasterizationStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -280,8 +343,8 @@ void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStag
     pipelineCI.pViewportState = &viewportStateCI;
     pipelineCI.pDepthStencilState = &depthStencilStateCI;
     pipelineCI.pDynamicState = &dynamicStateCI;
-    pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-    pipelineCI.pStages = shaderStages.data();
+    pipelineCI.stageCount = static_cast<uint32_t>(vector.size());
+    pipelineCI.pStages = vector.data();
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     pipelineCI.layout = pipelineLayout;
@@ -289,19 +352,21 @@ void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStag
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 
 
-    for (auto shaderStage: shaderStages) {
+    for (auto shaderStage: vector) {
         vkDestroyShaderModule(vulkanDevice->logicalDevice, shaderStage.module, nullptr);
     }
 }
 
 
 void
-MeshModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> shaders) {
+MeshModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
+                                Model *model,
+                                ScriptType type) {
     this->vulkanDevice = utils.device;
 
     createDescriptorSetLayout();
-    createDescriptors(utils.UBCount, utils.uniformBuffers);
+    createDescriptors(utils.UBCount, utils.uniformBuffers, model);
 
-    createPipeline(*utils.renderPass, std::move(shaders));
+    createPipeline(*utils.renderPass, std::move(vector), type);
 
 }

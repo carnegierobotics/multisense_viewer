@@ -14,7 +14,7 @@ layout (binding = 0) uniform UBO
 } ubo;
 
 layout(location = 0) out vec3 outNormal;
-layout(location = 1) out vec2 fragTexCoord;
+layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 fragPos;
 
 
@@ -22,5 +22,5 @@ void main()
 {
     gl_PointSize = 1.0f;
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos, 1.0f);
-
+    outUV = inUV;
 }

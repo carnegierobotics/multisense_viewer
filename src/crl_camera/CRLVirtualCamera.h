@@ -12,15 +12,16 @@ class CRLVirtualCamera : CRLBaseCamera {
 public:
     std::string description;
     std::string data;
-    MeshData* meshData;
+    PointCloudData* meshData;
+    ImageData* imageData;
     int point = 0;
 
-    void initialize() override;
+    void initialize(CRLCameraDataType source);
     void start() override;
     void update(Base::Render render);
     void stop() override;
-    MeshData *getStream() override;
-
+    PointCloudData *getStream() override;
+    ImageData* getImageData();
     ~CRLVirtualCamera();
 
 private:

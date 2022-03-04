@@ -85,6 +85,9 @@ public:
 
     void fromglTfImage(tinygltf::Image& gltfimage, TextureSampler textureSampler, VulkanDevice* device, VkQueue copyQueue);
 
+    void updateTexture(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
+                       VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
+                       VkImageLayout imageLayout);
 };
 
 class Texture2DArray : public Texture {

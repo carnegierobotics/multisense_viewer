@@ -10,7 +10,7 @@ Boilerplate for creating github compatible readme files
 
 ## Background
 
-> Creating a good README.md takes forever, especially if you are starting off from scratch. So, I decided to make a few templates to help me speed up things a little bit. The readme-template.md file is a template containing a group of sections that you might want to include on your readme file.
+> MultiSense Viewer
 
 ## Installation
 
@@ -52,10 +52,7 @@ If you have questions, feature requests or a bug you want to report, please clic
 
 Like what you see? Keep me awake at night by buying me a coffee or two.
 
-<a href="https://www.buymeacoffee.com/yilber" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;"></a>
-<a href="https://www.patreon.com/bePatron?u=17267732" target="_blank"><img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" height="37" alt="Become a patreon" style="height: auto !important;width: auto !important;"></a>
+<a href="https://www.buymeacoffee.com/" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;"></a>
 ## License
 
-Copyright (c) 2019 Yilber Mejia.
-
-Usage is provided under the MIT License. See [LICENSE](https://github.com/Yilber/readme-boilerplate/blob/master/LICENSE) for the full details.
+Usage is provided under the MIT License. See [LICENSE](https://github.com/M-Gjerde/MultiSense/blob/master/LICENSE) for the full details.

@@ -35,12 +35,29 @@ public:
     struct DropDownItem {
         std::string dropdown;
         std::string selected;
+
         explicit DropDownItem(std::string type) {
             scriptType = std::move(type);
         }
 
         std::string scriptType;
     };
+
+    struct Button {
+        std::string name;
+        float x;
+        float y;
+        bool clicked = false;
+
+        Button(std::string _name,
+               float _x,
+               float _y) {
+            name = std::move(_name);
+            x = _x;
+            y = _y;
+        }
+    };
+
 
     bool rotate = true;
     bool displayLogos = true;
@@ -74,10 +91,17 @@ public:
 
     std::vector<std::string> dropDownItems;
     const char *selectedDropDown = "Grayscale";
-    void createDropDown(DropDownItem* items){
+
+    void createDropDown(DropDownItem *items) {
         if (items->scriptType != "Render")
             return;
         dropDownItems.emplace_back(items->dropdown);
+    }
+
+    std::vector<Button> buttons;
+
+    void createButton(const Button& button) {
+        buttons.emplace_back(button);
     }
 
 

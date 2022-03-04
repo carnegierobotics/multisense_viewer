@@ -453,6 +453,15 @@ public:
             ImGui::EndListBox();
         }
 
+        if (!uiSettings.buttons.empty()){
+            for(auto& button: uiSettings.buttons){
+                button.clicked = ImGui::Button(button.name.c_str(), ImVec2(button.x, button.y));
+
+                if (button.clicked)
+                    updated |= true;
+            }
+        }
+
         if (!uiSettings.dropDownItems.empty()){
             if (ImGui::BeginCombo("##combo",
                                   uiSettings.selectedDropDown)) // The second parameter is the label previewed before opening the combo.
@@ -474,9 +483,6 @@ public:
 
         updated |= ImGui::SliderFloat("Camera speed", &uiSettings.movementSpeed, 0.05f, 10.0f);
 
-
-        ImGui::Dummy(ImVec2(0, 10));
-        uiSettings.flag |= ImGui::Button("Connect to camera", ImVec2(175, 30));
 
         if (uiSettings.flag) {
 

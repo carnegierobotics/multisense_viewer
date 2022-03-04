@@ -5,6 +5,19 @@
 #include "MultiSenseS30.h"
 
 void MultiSenseS30::setup() {
+    /**
+     * Create UI Elements
+     */
+
+    // UI cretion
+
+
+    renderUtils.ui->createButton({"Connect Camera", 175.0f, 30.0f});
+
+
+    /**
+     * Create and load Mesh elements
+     */
     model = new MeshModel::Model(1, renderUtils.device);
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -13,8 +26,9 @@ void MultiSenseS30::setup() {
                                                             {fs}};
     renderUtils.shaders = shaders;
 
-    camera = new CRLVirtualCamera();
-    camera->initialize(CrlImage);
+    camera = new CRLPhysicalCamera(CrlImage);
+
+    camera->initialize();
     CRLBaseCamera::ImageData *imgData = camera->getImageData();
     model->createMeshDeviceLocal((MeshModel::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
@@ -25,6 +39,7 @@ void MultiSenseS30::setup() {
 }
 
 int count = 1;
+
 void MultiSenseS30::update() {
     //camera->update(renderData);
 
@@ -64,6 +79,19 @@ void MultiSenseS30::update() {
 }
 
 void MultiSenseS30::onUIUpdate(UISettings uiSettings) {
+
+    if (uiSettings.buttons.empty())
+        return;
+
+    for (auto &button: uiSettings.buttons) {
+        if (button.name == "Connect Camera")
+            if (button.clicked) {
+                printf("%s: Clicked\n", button.name.c_str());
+                button.clicked = false;
+            }
+    }
+
+
 }
 
 

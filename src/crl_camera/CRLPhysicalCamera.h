@@ -2,16 +2,21 @@
 // Created by magnus on 3/1/22.
 //
 
-#ifndef MULTISENSE_CRLMULTISENSES30_H
-#define MULTISENSE_CRLMULTISENSES30_H
+#ifndef MULTISENSE_CRLPHYSICALCAMERA_H
+#define MULTISENSE_CRLPHYSICALCAMERA_H
 
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 
-class CRLMultiSenseS30 : CRLBaseCamera {
+class CRLPhysicalCamera : CRLBaseCamera {
 public:
+
+    explicit CRLPhysicalCamera(CRLCameraDataType type) : CRLBaseCamera(type) {
+        CRLBaseCamera::prepare();
+    }
+
     std::string description;
     std::string data;
-    PointCloudData* meshData;
+
     int point = 0;
 
     void initialize() override;
@@ -20,11 +25,11 @@ public:
     void stop() override;
     PointCloudData *getStream() override;
 
-    ~CRLMultiSenseS30();
+    ~CRLPhysicalCamera();
 
-private:
+    ImageData *getImageData();
 
 };
 
 
-#endif //MULTISENSE_CRLMULTISENSES30_H
+#endif //MULTISENSE_CRLPHYSICALCAMERA_H

@@ -8,7 +8,7 @@
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/imgui/UISettings.h>
 #include <MultiSense/src/model_loaders/MeshModel.h>
-#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
+#include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 
 class MultiSenseS30: public Base, public RegisteredInFactory<MultiSenseS30>, MeshModel
 {
@@ -35,7 +35,7 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = FrDefault;
-    CRLVirtualCamera* camera;
+    CRLPhysicalCamera* camera;
     MeshModel::Model* model;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;

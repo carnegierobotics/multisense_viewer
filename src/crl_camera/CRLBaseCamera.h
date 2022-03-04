@@ -8,40 +8,39 @@
 
 #include <MultiSense/MultiSenseChannel.hh>
 #include "MultiSense/src/model_loaders/MeshModel.h"
+
 typedef enum CRLCameraDataType {
     CrlPointCloud,
     CrlImage
-}CRLCameraDataType;
+} CRLCameraDataType;
 
 
 class CRLBaseCamera {
 
 public:
+    explicit CRLBaseCamera(CRLCameraDataType type) {
+        this->requestedDataType = type;
+
+    }
+    std::string DEFAULT_CAMERA_IP = "10.66.171.21";
+    static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
+    CRLCameraDataType requestedDataType;
+
+    crl::multisense::Channel * cameraInterface{};
+    std::unique_ptr<crl::multisense::Channel> camInterface;
     // TODO: Hide all multisense types/impl details in camera_stream pimpl
+
     using ImgConf = crl::multisense::image::Config;
     using NetConf = crl::multisense::system::NetworkConfig;
-    using DevInfo = crl::multisense::system::DeviceInfo;
     using CamCal = crl::multisense::image::Calibration;
     using DeviceMode = crl::multisense::system::DeviceMode;
     using DataSource = crl::multisense::DataSource;
     using VersionInfo = crl::multisense::system::VersionInfo;
 
+    crl::multisense::system::DeviceInfo devInfo;
 
-    const ImgConf& imgConf() const;
-    const DevInfo& devInfo() const;
-    const NetConf& netConf() const;
-    const CamCal&  camCal() const;
-    const VersionInfo versionInfo() const;
-    std::vector<DeviceMode> deviceModes() const;
-
-    bool updateNetConf(const NetConf &c);
-    bool updateImgConf(const ImgConf &c);
-
-    bool startStream(DataSource stream);
-    bool stopStream(DataSource stream);
-
-    bool connect(std::string hostname); // true if succeeds
-    bool connected() const;
+    void prepare();
+    void connect(std::string& hostname); // true if succeeds
 
     struct PointCloudData {
         void *vertices{};
@@ -49,15 +48,23 @@ public:
         uint32_t *indices{};
         uint32_t indexCount{};
 
-        PointCloudData() = default;
+        PointCloudData(uint32_t width, uint32_t height) {
+            vertexCount = width * height;
+            // Virtual class can generate some mesh data here
+            vertices = calloc(vertexCount, sizeof(MeshModel::Model::Vertex));
 
-        PointCloudData(uint32_t vertexCount, uint32_t indexCount) {
-            this->indexCount = indexCount;
-            this->vertexCount = vertexCount;
-            vertices = new MeshModel::Model::Vertex[vertexCount +
-                                                    1];          // Here I add +1 for padding just to be safe for later
-            indices = new uint32_t[indexCount + 1];              // Here I add +1 for padding just to be safe for later
-        }
+            uint32_t v = 0;
+            auto *vP = (MeshModel::Model::Vertex *) vertices;
+            for (uint32_t x = 0; x < width; ++x) {
+                for (uint32_t z = 0; z < height; ++z) {
+                    MeshModel::Model::Vertex vertex{};
+                    vertex.pos = glm::vec3((float) x / 50, 0.0f, (float) z / 50);
+                    vertex.uv0 = glm::vec2((float) x / (float) width, (float) z / (float) height);
+                    vP[v] = vertex;
+                    v++;
+                }
+            }
+        };
 
         ~PointCloudData() {
             free(vertices);
@@ -65,16 +72,17 @@ public:
         }
 
     };
+
     struct ImageData {
         struct {
-            void* vertices{};
+            void *vertices{};
             uint32_t vertexCount{};
             uint32_t *indices{};
             uint32_t indexCount{};
-        }quad;
+        } quad;
 
         /**@brief Generates a Quad with texture coordinates */
-        ImageData(){
+        ImageData() {
             int vertexCount = 4;
             int indexCount = 2 * 3;
             quad.vertexCount = vertexCount;
@@ -114,14 +122,14 @@ public:
             iP[5] = 3;
         }
     };
+
+    PointCloudData *meshData{};
+    ImageData *imageData{};
     // gets latest image, old image is invalidated on next getImage
-    std::optional<PointCloudData> getImage(DataSource d);  // in a more general version, this would be a weak_ptr
-
-    static constexpr char DEFAULT_CAMERA_IP[] = "10.66.171.21";
-    static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
 
 
-    virtual void initialize() { };
+
+    virtual void initialize() {};
 
     virtual void start() = 0;
 
@@ -134,6 +142,8 @@ private:
 
 
 };
+
+
 
 
 #endif //MULTISENSE_CRLBASECAMERA_H

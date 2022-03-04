@@ -77,6 +77,4 @@ void Example::onUIUpdate(UISettings uiSettings) {
     if (strcmp(uiSettings.selectedDropDown, "Albedo + Normal") == 0) {
         selection = (void *) "2";
     }
-
-    printf("Selection %s\n", (char *) selection);
 }

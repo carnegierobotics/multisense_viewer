@@ -21,7 +21,7 @@ MeshModel::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
     textureSamplers.resize(count);
 
 }
-
+// TODO change signature to CreateMesh(), and let function decide if its device local or not
 void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t vertexCount) {
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
 
@@ -42,6 +42,7 @@ void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t 
         vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
     }
 }
+// TODO change signature to CreateMesh(), and let function decide if its device local or not
 
 void MeshModel::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                              uint32_t
@@ -129,9 +130,26 @@ void MeshModel::Model::loadTextureSamplers() {
 
 }
 
+void MeshModel::Model::setVideoTexture(const std::string& fileName){
+    // Create texture image if not created
+    int texWidth, texHeight, texChannels;
+    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
 
-void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName,
-                                  bool update) {
+    if (textureVideos.empty()){
+        TextureVideo texture(texWidth, texHeight, imageSize, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        textureVideos.emplace_back(texture);
+    }
+
+    textureVideos[0].updateTextureFromBuffer(pixels);
+
+
+}
+
+void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
     // Create texture image if not created
 
     int texWidth, texHeight, texChannels;
@@ -142,6 +160,7 @@ void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
     }
 
     Texture2D texture;
+
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -221,12 +240,22 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
 
-        writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writeDescriptorSets[3].descriptorCount = 1;
-        writeDescriptorSets[3].dstSet = descriptors[i];
-        writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->textures[model->textureIndices.baseColor].descriptor;
+        if (model->textureVideos.empty()){
+            writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[3].descriptorCount = 1;
+            writeDescriptorSets[3].dstSet = descriptors[i];
+            writeDescriptorSets[3].dstBinding = 3;
+            writeDescriptorSets[3].pImageInfo = &model->textures[model->textureIndices.baseColor].descriptor;
+        } else {
+            writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[3].descriptorCount = 1;
+            writeDescriptorSets[3].dstSet = descriptors[i];
+            writeDescriptorSets[3].dstBinding = 3;
+            writeDescriptorSets[3].pImageInfo = &model->textureVideos[0].descriptor;
+        }
+
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);

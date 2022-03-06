@@ -73,6 +73,7 @@ public:
         VulkanDevice *device{};
         std::vector<std::string> extensions;
         std::vector<Texture2D> textures;
+        std::vector<TextureVideo> textureVideos;
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
@@ -80,14 +81,16 @@ public:
 
         void loadTextureSamplers();
 
-        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName,
-                        bool update);
+        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName);
 
 
         Model(uint32_t count, VulkanDevice *_vulkanDevice);
 
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+
+        void setVideoTexture(const std::string& fileName);
+
     };
 
 

@@ -108,4 +108,16 @@ public:
 };
 
 
+class TextureVideo : public Texture {
+
+public:
+    VkDeviceSize bufferSize;
+
+    TextureVideo() = default;
+    TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize bufferSize, VulkanDevice *device,
+                 VkImageLayout layout);
+    void updateTextureFromBuffer(void *buffer);
+
+};
+
 #endif //MULTISENSE_TEXTURE_H

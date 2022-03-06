@@ -12,7 +12,7 @@ var searchData=
   ['setrotationspeed_9',['setRotationSpeed',['../classCamera.html#a26310d6330a6bde6cc07dcaee505ed14',1,'Camera']]],
   ['settexture_10',['setTexture',['../structglTFModel_1_1Model.html#a4954e53ea532e74eabef4683f151040d',1,'glTFModel::Model::setTexture()'],['../structMeshModel_1_1Model.html#ad0e10664d9c11da98a023f102e5f9494',1,'MeshModel::Model::setTexture()']]],
   ['settranslation_11',['setTranslation',['../classCamera.html#a47fedda61f0005b745f317198c798903',1,'Camera']]],
-  ['setup_12',['setup',['../classMultiSenseS30.html#a38d3b639a5295530dcc1983789c00853',1,'MultiSenseS30::setup()'],['../classMultiSensePointCloud.html#ad237049acb5f146418769e46b42757b9',1,'MultiSensePointCloud::setup()'],['../classLightSource.html#ae093ec52e437c6eb854d01c69991cc95',1,'LightSource::setup()'],['../classExample.html#a7ba166bf8c8263eca9e6483490a97959',1,'Example::setup()'],['../classBase.html#a78ce3aa518ea3a0ca92ae29bfb25da0b',1,'Base::setup()']]],
+  ['setup_12',['setup',['../classBase.html#a78ce3aa518ea3a0ca92ae29bfb25da0b',1,'Base::setup()'],['../classExample.html#a7ba166bf8c8263eca9e6483490a97959',1,'Example::setup()'],['../classLightSource.html#ae093ec52e437c6eb854d01c69991cc95',1,'LightSource::setup()'],['../classMultiSensePointCloud.html#ad237049acb5f146418769e46b42757b9',1,'MultiSensePointCloud::setup()'],['../classMultiSenseS30.html#a38d3b639a5295530dcc1983789c00853',1,'MultiSenseS30::setup()']]],
   ['setupdepthstencil_13',['setupDepthStencil',['../classVulkanRenderer.html#aed85b4d7a70bf7b3180eab3c49213b3c',1,'VulkanRenderer']]],
   ['setupdescriptor_14',['setupDescriptor',['../structBuffer.html#a8cf4a23cd8732b202e9616630dc64735',1,'Buffer']]],
   ['setupframebuffer_15',['setupFrameBuffer',['../classVulkanRenderer.html#a4c89d6b5cc8f061440d223f281f0fdf8',1,'VulkanRenderer']]],
@@ -20,10 +20,8 @@ var searchData=
   ['setuprenderpass_17',['setupRenderPass',['../classVulkanRenderer.html#aa41c74e3ebd4dffb668f357d345c06ef',1,'VulkanRenderer']]],
   ['specializationinfo_18',['specializationInfo',['../namespacePopulate.html#a47b1572881561b9069c3dbb27cc58f11',1,'Populate::specializationInfo(uint32_t mapEntryCount, const VkSpecializationMapEntry *mapEntries, size_t dataSize, const void *data)'],['../namespacePopulate.html#a045b4acfd33c08cb41397a90695efda3',1,'Populate::specializationInfo(const std::vector&lt; VkSpecializationMapEntry &gt; &amp;mapEntries, size_t dataSize, const void *data)']]],
   ['specializationmapentry_19',['specializationMapEntry',['../namespacePopulate.html#ada0598f7be84602679d9e9475b0209a9',1,'Populate']]],
-  ['start_20',['start',['../classCRLVirtualCamera.html#a975810ee3876ca93e3baeaeb716f1237',1,'CRLVirtualCamera::start()'],['../classCRLMultiSenseS30.html#a20eba4c1f606c3e99fbb965084bbc61d',1,'CRLMultiSenseS30::start()'],['../classCRLBaseCamera.html#a10440cec86b3086f732918a32794d8fc',1,'CRLBaseCamera::start()=0']]],
-  ['startstream_21',['startStream',['../classCRLBaseCamera.html#a29367eb83bee595a25a03750d2dd778f',1,'CRLBaseCamera']]],
-  ['stop_22',['stop',['../classCRLBaseCamera.html#a3052fc5bbbf56a99f87e23d3466e24ed',1,'CRLBaseCamera::stop()'],['../classCRLMultiSenseS30.html#afa665821acb7ef6e8dc0d6dca32add57',1,'CRLMultiSenseS30::stop()'],['../classCRLVirtualCamera.html#a81e954113341f2367a09a35392694c0f',1,'CRLVirtualCamera::stop()']]],
-  ['stopstream_23',['stopStream',['../classCRLBaseCamera.html#a29fc656e95d751369854af1dc5c058e4',1,'CRLBaseCamera']]],
-  ['submitframe_24',['submitFrame',['../classVulkanRenderer.html#a445e3d72f43ab908594b7507bf81c327',1,'VulkanRenderer']]],
-  ['submitinfo_25',['submitInfo',['../namespacePopulate.html#a18b3badf58037908660955e822967a6b',1,'Populate']]]
+  ['start_20',['start',['../classCRLVirtualCamera.html#a975810ee3876ca93e3baeaeb716f1237',1,'CRLVirtualCamera::start()'],['../classCRLPhysicalCamera.html#a84f3b238fc1fa1276e4009563c06f1f2',1,'CRLPhysicalCamera::start()'],['../classCRLBaseCamera.html#a10440cec86b3086f732918a32794d8fc',1,'CRLBaseCamera::start()=0']]],
+  ['stop_21',['stop',['../classCRLBaseCamera.html#a3052fc5bbbf56a99f87e23d3466e24ed',1,'CRLBaseCamera::stop()'],['../classCRLPhysicalCamera.html#a52d2e4829bb10f75452cef862893f44c',1,'CRLPhysicalCamera::stop()'],['../classCRLVirtualCamera.html#a81e954113341f2367a09a35392694c0f',1,'CRLVirtualCamera::stop()']]],
+  ['submitframe_22',['submitFrame',['../classVulkanRenderer.html#a445e3d72f43ab908594b7507bf81c327',1,'VulkanRenderer']]],
+  ['submitinfo_23',['submitInfo',['../namespacePopulate.html#a18b3badf58037908660955e822967a6b',1,'Populate']]]
 ];

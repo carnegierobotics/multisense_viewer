@@ -23,7 +23,7 @@ var searchData=
   ['frametimes_20',['frameTimes',['../structUISettings.html#aa6d2ed3ea8636be93dd664803a89654c',1,'UISettings']]],
   ['frdefault_21',['FrDefault',['../Base_8h.html#a38fdafceddb99690332a23776f7c0c0fa3460eb2515ec3304858ab0a4550aaac2',1,'Base.h']]],
   ['frdisabled_22',['FrDisabled',['../Base_8h.html#a38fdafceddb99690332a23776f7c0c0fa47314b353f596d983990313a3fdab202',1,'Base.h']]],
-  ['frombuffer_23',['fromBuffer',['../classTexture2D.html#a998cd03ab4080317d9eaf15e84174677',1,'Texture2D']]],
+  ['frombuffer_23',['fromBuffer',['../classTexture2D.html#a998cd03ab4080317d9eaf15e84174677',1,'Texture2D::fromBuffer()'],['../classVideoTexture.html#a02491c170384158a6bc68bc1d6fe9cef',1,'VideoTexture::fromBuffer()']]],
   ['fromgltfimage_24',['fromglTfImage',['../classTexture2D.html#abdf9341ae401b31ec33a01067cd8c4d1',1,'Texture2D']]],
   ['frpointcloud_25',['FrPointCloud',['../Base_8h.html#a38fdafceddb99690332a23776f7c0c0fad16773fb0cfa38d915b53433e1e1c6d5',1,'Base.h']]],
   ['fullscreen_26',['fullscreen',['../structVulkanRenderer_1_1Settings.html#a642ca530c5435bf5ee0096e980a4096c',1,'VulkanRenderer::Settings']]]

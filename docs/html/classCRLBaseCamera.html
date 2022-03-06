@@ -67,6 +67,7 @@ $(function() {
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="classCRLBaseCamera-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">CRLBaseCamera Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div></div>
@@ -80,8 +81,8 @@ Inheritance diagram for CRLBaseCamera:</div>
  <div class="center">
   <img src="classCRLBaseCamera.png" usemap="#CRLBaseCamera_map" alt=""/>
   <map id="CRLBaseCamera_map" name="CRLBaseCamera_map">
-<area href="classCRLMultiSenseS30.html" alt="CRLPhysicalCamera" shape="rect" coords="0,56,120,80"/>
-<area href="classCRLVirtualCamera.html" alt="CRLVirtualCamera" shape="rect" coords="130,56,250,80"/>
+<area href="classCRLPhysicalCamera.html" alt="CRLPhysicalCamera" shape="rect" coords="0,56,128,80"/>
+<area href="classCRLVirtualCamera.html" alt="CRLVirtualCamera" shape="rect" coords="138,56,266,80"/>
   </map>
 </div></div>
 <table class="memberdecls">
@@ -98,8 +99,6 @@ Public Types</h2></td></tr>
 <tr class="separator:a0c48ca49cdff9230fc4160214701b259"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90f5e13b73287279f5f5c467163e119f"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a90f5e13b73287279f5f5c467163e119f">NetConf</a> = crl::multisense::system::NetworkConfig</td></tr>
 <tr class="separator:a90f5e13b73287279f5f5c467163e119f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af97d0de77cdf7a7d0457c4518422c1c8"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#af97d0de77cdf7a7d0457c4518422c1c8">DevInfo</a> = crl::multisense::system::DeviceInfo</td></tr>
-<tr class="separator:af97d0de77cdf7a7d0457c4518422c1c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2ae4f5f6f7032f855613277f0ede574a"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a2ae4f5f6f7032f855613277f0ede574a">CamCal</a> = crl::multisense::image::Calibration</td></tr>
 <tr class="separator:a2ae4f5f6f7032f855613277f0ede574a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afe2f14f4ce57be132cbe884174826e69"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#afe2f14f4ce57be132cbe884174826e69">DeviceMode</a> = crl::multisense::system::DeviceMode</td></tr>
@@ -111,32 +110,12 @@ Public Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a5fe4f93ba9e0b64ad370d01b80bf21f5"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classCRLBaseCamera.html#a0c48ca49cdff9230fc4160214701b259">ImgConf</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a5fe4f93ba9e0b64ad370d01b80bf21f5">imgConf</a> () const</td></tr>
-<tr class="separator:a5fe4f93ba9e0b64ad370d01b80bf21f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a30a2b4291fb6e3cd9188113b1a6badd6"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classCRLBaseCamera.html#af97d0de77cdf7a7d0457c4518422c1c8">DevInfo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a30a2b4291fb6e3cd9188113b1a6badd6">devInfo</a> () const</td></tr>
-<tr class="separator:a30a2b4291fb6e3cd9188113b1a6badd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2f9f63111bfb10bba68054aa08e6990c"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classCRLBaseCamera.html#a90f5e13b73287279f5f5c467163e119f">NetConf</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a2f9f63111bfb10bba68054aa08e6990c">netConf</a> () const</td></tr>
-<tr class="separator:a2f9f63111bfb10bba68054aa08e6990c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a16fe3b0a14495334b8e7d1f4e305ba1d"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classCRLBaseCamera.html#a2ae4f5f6f7032f855613277f0ede574a">CamCal</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a16fe3b0a14495334b8e7d1f4e305ba1d">camCal</a> () const</td></tr>
-<tr class="separator:a16fe3b0a14495334b8e7d1f4e305ba1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adea60917d1d2a83eb23b2d5e4fa220f4"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classCRLBaseCamera.html#ad71cd0297b4e46c0452f19946d8972a5">VersionInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#adea60917d1d2a83eb23b2d5e4fa220f4">versionInfo</a> () const</td></tr>
-<tr class="separator:adea60917d1d2a83eb23b2d5e4fa220f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa1fd1acec9d56c52739480501a7e74dc"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="classCRLBaseCamera.html#afe2f14f4ce57be132cbe884174826e69">DeviceMode</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#aa1fd1acec9d56c52739480501a7e74dc">deviceModes</a> () const</td></tr>
-<tr class="separator:aa1fd1acec9d56c52739480501a7e74dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a87e73ae4757c45675b222b67a2a92cca"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a87e73ae4757c45675b222b67a2a92cca">updateNetConf</a> (const <a class="el" href="classCRLBaseCamera.html#a90f5e13b73287279f5f5c467163e119f">NetConf</a> &amp;c)</td></tr>
-<tr class="separator:a87e73ae4757c45675b222b67a2a92cca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a870a3e88c5dfade83daf18a8d0f7f4e3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a870a3e88c5dfade83daf18a8d0f7f4e3">updateImgConf</a> (const <a class="el" href="classCRLBaseCamera.html#a0c48ca49cdff9230fc4160214701b259">ImgConf</a> &amp;c)</td></tr>
-<tr class="separator:a870a3e88c5dfade83daf18a8d0f7f4e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29367eb83bee595a25a03750d2dd778f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a29367eb83bee595a25a03750d2dd778f">startStream</a> (<a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a> stream)</td></tr>
-<tr class="separator:a29367eb83bee595a25a03750d2dd778f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29fc656e95d751369854af1dc5c058e4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a29fc656e95d751369854af1dc5c058e4">stopStream</a> (<a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a> stream)</td></tr>
-<tr class="separator:a29fc656e95d751369854af1dc5c058e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af2f28e3f34f9dac04da819924770b7e1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#af2f28e3f34f9dac04da819924770b7e1">connect</a> (std::string hostname)</td></tr>
-<tr class="separator:af2f28e3f34f9dac04da819924770b7e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa77a42f0497183fd512c2abdbe9e6696"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#aa77a42f0497183fd512c2abdbe9e6696">connected</a> () const</td></tr>
-<tr class="separator:aa77a42f0497183fd512c2abdbe9e6696"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa54f03c3289f3cbfb016d06b2aca801"><td class="memItemLeft" align="right" valign="top">std::optional&lt; <a class="el" href="structCRLBaseCamera_1_1PointCloudData.html">PointCloudData</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#aaa54f03c3289f3cbfb016d06b2aca801">getImage</a> (<a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a> d)</td></tr>
-<tr class="separator:aaa54f03c3289f3cbfb016d06b2aca801"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4ddf53384e0f3557b8cd7a2d7a3fe431"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a4ddf53384e0f3557b8cd7a2d7a3fe431">CRLBaseCamera</a> (<a class="el" href="CRLBaseCamera_8h.html#aad7aea731060e79508a5d75669678e4e">CRLCameraDataType</a> type)</td></tr>
+<tr class="separator:a4ddf53384e0f3557b8cd7a2d7a3fe431"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85d2bb1ed129b27f6aecf442ee5198fd"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a85d2bb1ed129b27f6aecf442ee5198fd">prepare</a> ()</td></tr>
+<tr class="separator:a85d2bb1ed129b27f6aecf442ee5198fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83ebe94392236383b665a9b8372c532f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a83ebe94392236383b665a9b8372c532f">connect</a> (std::string &amp;hostname)</td></tr>
+<tr class="separator:a83ebe94392236383b665a9b8372c532f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a58a185312f901cd471ac186ec51050"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a5a58a185312f901cd471ac186ec51050">initialize</a> ()</td></tr>
 <tr class="separator:a5a58a185312f901cd471ac186ec51050"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10440cec86b3086f732918a32794d8fc"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a10440cec86b3086f732918a32794d8fc">start</a> ()=0</td></tr>
@@ -146,10 +125,25 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ade34dff272e8149951b983f9e915594f"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="structCRLBaseCamera_1_1PointCloudData.html">PointCloudData</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#ade34dff272e8149951b983f9e915594f">getStream</a> ()=0</td></tr>
 <tr class="separator:ade34dff272e8149951b983f9e915594f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
+Public Attributes</h2></td></tr>
+<tr class="memitem:ad48e4f44e61a5579bdac7a6d5001407d"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#ad48e4f44e61a5579bdac7a6d5001407d">DEFAULT_CAMERA_IP</a> = &quot;10.66.171.21&quot;</td></tr>
+<tr class="separator:ad48e4f44e61a5579bdac7a6d5001407d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9516b37897b446a0205475096909864"><td class="memItemLeft" align="right" valign="top"><a class="el" href="CRLBaseCamera_8h.html#aad7aea731060e79508a5d75669678e4e">CRLCameraDataType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#ab9516b37897b446a0205475096909864">requestedDataType</a></td></tr>
+<tr class="separator:ab9516b37897b446a0205475096909864"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a602805a217759b44892177c907bdb969"><td class="memItemLeft" align="right" valign="top">crl::multisense::Channel *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a602805a217759b44892177c907bdb969">cameraInterface</a> {}</td></tr>
+<tr class="separator:a602805a217759b44892177c907bdb969"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abba6551303581f27efb139c8dcaf1ed0"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; crl::multisense::Channel &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#abba6551303581f27efb139c8dcaf1ed0">camInterface</a></td></tr>
+<tr class="separator:abba6551303581f27efb139c8dcaf1ed0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ce6065b1df03a732219eb47993ea470"><td class="memItemLeft" align="right" valign="top">crl::multisense::system::DeviceInfo&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a8ce6065b1df03a732219eb47993ea470">devInfo</a></td></tr>
+<tr class="separator:a8ce6065b1df03a732219eb47993ea470"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8117e3ac2a76868b77ea842c934738d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structCRLBaseCamera_1_1PointCloudData.html">PointCloudData</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#ac8117e3ac2a76868b77ea842c934738d">meshData</a> {}</td></tr>
+<tr class="separator:ac8117e3ac2a76868b77ea842c934738d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5bfad36504bd82ff43dfa88649505f02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structCRLBaseCamera_1_1ImageData.html">ImageData</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a5bfad36504bd82ff43dfa88649505f02">imageData</a> {}</td></tr>
+<tr class="separator:a5bfad36504bd82ff43dfa88649505f02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
-<tr class="memitem:a71c8398a9247caf76b457610f079fb93"><td class="memItemLeft" align="right" valign="top">static constexpr char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a71c8398a9247caf76b457610f079fb93">DEFAULT_CAMERA_IP</a> [] = &quot;10.66.171.21&quot;</td></tr>
-<tr class="separator:a71c8398a9247caf76b457610f079fb93"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff7b44a11963fa2b8720c13778ada0a4"><td class="memItemLeft" align="right" valign="top">static constexpr uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#aff7b44a11963fa2b8720c13778ada0a4">DEFAULT_WIDTH</a> = 1920</td></tr>
 <tr class="separator:aff7b44a11963fa2b8720c13778ada0a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a54f583ac62f3a0fd19c8876880219c8d"><td class="memItemLeft" align="right" valign="top">static constexpr uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classCRLBaseCamera.html#a54f583ac62f3a0fd19c8876880219c8d">DEFAULT_HEIGHT</a> = 1080</td></tr>
@@ -198,20 +192,6 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="af97d0de77cdf7a7d0457c4518422c1c8" name="af97d0de77cdf7a7d0457c4518422c1c8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af97d0de77cdf7a7d0457c4518422c1c8">&#9670;&nbsp;</a></span>DevInfo</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">using <a class="el" href="classCRLBaseCamera.html#af97d0de77cdf7a7d0457c4518422c1c8">CRLBaseCamera::DevInfo</a> =  crl::multisense::system::DeviceInfo</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a0c48ca49cdff9230fc4160214701b259" name="a0c48ca49cdff9230fc4160214701b259"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c48ca49cdff9230fc4160214701b259">&#9670;&nbsp;</a></span>ImgConf</h2>
 
@@ -254,104 +234,45 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<h2 class="groupheader">Member Function Documentation</h2>
-<a id="a16fe3b0a14495334b8e7d1f4e305ba1d" name="a16fe3b0a14495334b8e7d1f4e305ba1d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a16fe3b0a14495334b8e7d1f4e305ba1d">&#9670;&nbsp;</a></span>camCal()</h2>
+<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a4ddf53384e0f3557b8cd7a2d7a3fe431" name="a4ddf53384e0f3557b8cd7a2d7a3fe431"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4ddf53384e0f3557b8cd7a2d7a3fe431">&#9670;&nbsp;</a></span>CRLBaseCamera()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classCRLBaseCamera.html#a2ae4f5f6f7032f855613277f0ede574a">CamCal</a> &amp; CRLBaseCamera::camCal </td>
+          <td class="memname">CRLBaseCamera::CRLBaseCamera </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="af2f28e3f34f9dac04da819924770b7e1" name="af2f28e3f34f9dac04da819924770b7e1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af2f28e3f34f9dac04da819924770b7e1">&#9670;&nbsp;</a></span>connect()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CRLBaseCamera::connect </td>
-          <td>(</td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>hostname</em></td><td>)</td>
+          <td class="paramtype"><a class="el" href="CRLBaseCamera_8h.html#aad7aea731060e79508a5d75669678e4e">CRLCameraDataType</a>&#160;</td>
+          <td class="paramname"><em>type</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="aa77a42f0497183fd512c2abdbe9e6696" name="aa77a42f0497183fd512c2abdbe9e6696"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa77a42f0497183fd512c2abdbe9e6696">&#9670;&nbsp;</a></span>connected()</h2>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a83ebe94392236383b665a9b8372c532f" name="a83ebe94392236383b665a9b8372c532f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83ebe94392236383b665a9b8372c532f">&#9670;&nbsp;</a></span>connect()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">bool CRLBaseCamera::connected </td>
+          <td class="memname">void CRLBaseCamera::connect </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aa1fd1acec9d56c52739480501a7e74dc" name="aa1fd1acec9d56c52739480501a7e74dc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa1fd1acec9d56c52739480501a7e74dc">&#9670;&nbsp;</a></span>deviceModes()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::vector&lt; <a class="el" href="classCRLBaseCamera.html#afe2f14f4ce57be132cbe884174826e69">DeviceMode</a> &gt; CRLBaseCamera::deviceModes </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a30a2b4291fb6e3cd9188113b1a6badd6" name="a30a2b4291fb6e3cd9188113b1a6badd6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30a2b4291fb6e3cd9188113b1a6badd6">&#9670;&nbsp;</a></span>devInfo()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">const <a class="el" href="classCRLBaseCamera.html#af97d0de77cdf7a7d0457c4518422c1c8">DevInfo</a> &amp; CRLBaseCamera::devInfo </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aaa54f03c3289f3cbfb016d06b2aca801" name="aaa54f03c3289f3cbfb016d06b2aca801"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaa54f03c3289f3cbfb016d06b2aca801">&#9670;&nbsp;</a></span>getImage()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::optional&lt; <a class="el" href="structCRLBaseCamera_1_1PointCloudData.html">PointCloudData</a> &gt; CRLBaseCamera::getImage </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a>&#160;</td>
-          <td class="paramname"><em>d</em></td><td>)</td>
+          <td class="paramtype">std::string &amp;&#160;</td>
+          <td class="paramname"><em>hostname</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -382,24 +303,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classCRLMultiSenseS30.html#a33ca46e0302a0566d52be06a2d4f91f4">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a9d2069ae3d8e3b8d48f3cdeea878acf7">CRLVirtualCamera</a>.</p>
-
-</div>
-</div>
-<a id="a5fe4f93ba9e0b64ad370d01b80bf21f5" name="a5fe4f93ba9e0b64ad370d01b80bf21f5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5fe4f93ba9e0b64ad370d01b80bf21f5">&#9670;&nbsp;</a></span>imgConf()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">const <a class="el" href="classCRLBaseCamera.html#a0c48ca49cdff9230fc4160214701b259">ImgConf</a> &amp; CRLBaseCamera::imgConf </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<p>Implemented in <a class="el" href="classCRLPhysicalCamera.html#a8be35a3ad987f60962352fac737c9221">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a9d2069ae3d8e3b8d48f3cdeea878acf7">CRLVirtualCamera</a>.</p>
 
 </div>
 </div>
@@ -426,21 +330,21 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Reimplemented in <a class="el" href="classCRLMultiSenseS30.html#ae52dc6f632b007634eb8fe606bac4b71">CRLPhysicalCamera</a>.</p>
+<p>Reimplemented in <a class="el" href="classCRLPhysicalCamera.html#a0cdb01265f56ce7c3c5ac10af02f5094">CRLPhysicalCamera</a>.</p>
 
 </div>
 </div>
-<a id="a2f9f63111bfb10bba68054aa08e6990c" name="a2f9f63111bfb10bba68054aa08e6990c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2f9f63111bfb10bba68054aa08e6990c">&#9670;&nbsp;</a></span>netConf()</h2>
+<a id="a85d2bb1ed129b27f6aecf442ee5198fd" name="a85d2bb1ed129b27f6aecf442ee5198fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85d2bb1ed129b27f6aecf442ee5198fd">&#9670;&nbsp;</a></span>prepare()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">const <a class="el" href="classCRLBaseCamera.html#a90f5e13b73287279f5f5c467163e119f">NetConf</a> &amp; CRLBaseCamera::netConf </td>
+          <td class="memname">void CRLBaseCamera::prepare </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
-          <td> const</td>
+          <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -470,25 +374,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classCRLMultiSenseS30.html#a20eba4c1f606c3e99fbb965084bbc61d">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a975810ee3876ca93e3baeaeb716f1237">CRLVirtualCamera</a>.</p>
-
-</div>
-</div>
-<a id="a29367eb83bee595a25a03750d2dd778f" name="a29367eb83bee595a25a03750d2dd778f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a29367eb83bee595a25a03750d2dd778f">&#9670;&nbsp;</a></span>startStream()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CRLBaseCamera::startStream </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a>&#160;</td>
-          <td class="paramname"><em>stream</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<p>Implemented in <a class="el" href="classCRLPhysicalCamera.html#a84f3b238fc1fa1276e4009563c06f1f2">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a975810ee3876ca93e3baeaeb716f1237">CRLVirtualCamera</a>.</p>
 
 </div>
 </div>
@@ -515,100 +401,49 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classCRLMultiSenseS30.html#afa665821acb7ef6e8dc0d6dca32add57">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a81e954113341f2367a09a35392694c0f">CRLVirtualCamera</a>.</p>
-
-</div>
-</div>
-<a id="a29fc656e95d751369854af1dc5c058e4" name="a29fc656e95d751369854af1dc5c058e4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a29fc656e95d751369854af1dc5c058e4">&#9670;&nbsp;</a></span>stopStream()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CRLBaseCamera::stopStream </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classCRLBaseCamera.html#a3ba99898b8a481243323795c0973f8da">DataSource</a>&#160;</td>
-          <td class="paramname"><em>stream</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a870a3e88c5dfade83daf18a8d0f7f4e3" name="a870a3e88c5dfade83daf18a8d0f7f4e3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a870a3e88c5dfade83daf18a8d0f7f4e3">&#9670;&nbsp;</a></span>updateImgConf()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CRLBaseCamera::updateImgConf </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classCRLBaseCamera.html#a0c48ca49cdff9230fc4160214701b259">ImgConf</a> &amp;&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a87e73ae4757c45675b222b67a2a92cca" name="a87e73ae4757c45675b222b67a2a92cca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a87e73ae4757c45675b222b67a2a92cca">&#9670;&nbsp;</a></span>updateNetConf()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool CRLBaseCamera::updateNetConf </td>
-          <td>(</td>
-          <td class="paramtype">const <a class="el" href="classCRLBaseCamera.html#a90f5e13b73287279f5f5c467163e119f">NetConf</a> &amp;&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="adea60917d1d2a83eb23b2d5e4fa220f4" name="adea60917d1d2a83eb23b2d5e4fa220f4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adea60917d1d2a83eb23b2d5e4fa220f4">&#9670;&nbsp;</a></span>versionInfo()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">const <a class="el" href="classCRLBaseCamera.html#ad71cd0297b4e46c0452f19946d8972a5">VersionInfo</a> CRLBaseCamera::versionInfo </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<p>Implemented in <a class="el" href="classCRLPhysicalCamera.html#a52d2e4829bb10f75452cef862893f44c">CRLPhysicalCamera</a>, and <a class="el" href="classCRLVirtualCamera.html#a81e954113341f2367a09a35392694c0f">CRLVirtualCamera</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a id="a71c8398a9247caf76b457610f079fb93" name="a71c8398a9247caf76b457610f079fb93"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a71c8398a9247caf76b457610f079fb93">&#9670;&nbsp;</a></span>DEFAULT_CAMERA_IP</h2>
+<a id="a602805a217759b44892177c907bdb969" name="a602805a217759b44892177c907bdb969"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a602805a217759b44892177c907bdb969">&#9670;&nbsp;</a></span>cameraInterface</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr char CRLBaseCamera::DEFAULT_CAMERA_IP[] = &quot;10.66.171.21&quot;</td>
+          <td class="memname">crl::multisense::Channel* CRLBaseCamera::cameraInterface {}</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="abba6551303581f27efb139c8dcaf1ed0" name="abba6551303581f27efb139c8dcaf1ed0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abba6551303581f27efb139c8dcaf1ed0">&#9670;&nbsp;</a></span>camInterface</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;crl::multisense::Channel&gt; CRLBaseCamera::camInterface</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad48e4f44e61a5579bdac7a6d5001407d" name="ad48e4f44e61a5579bdac7a6d5001407d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad48e4f44e61a5579bdac7a6d5001407d">&#9670;&nbsp;</a></span>DEFAULT_CAMERA_IP</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string CRLBaseCamera::DEFAULT_CAMERA_IP = &quot;10.66.171.21&quot;</td>
+        </tr>
+      </table>
 </div><div class="memdoc">
 
 </div>
@@ -657,8 +492,65 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<hr/>The documentation for this class was generated from the following file:<ul>
+<a id="a8ce6065b1df03a732219eb47993ea470" name="a8ce6065b1df03a732219eb47993ea470"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8ce6065b1df03a732219eb47993ea470">&#9670;&nbsp;</a></span>devInfo</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">crl::multisense::system::DeviceInfo CRLBaseCamera::devInfo</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a5bfad36504bd82ff43dfa88649505f02" name="a5bfad36504bd82ff43dfa88649505f02"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5bfad36504bd82ff43dfa88649505f02">&#9670;&nbsp;</a></span>imageData</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structCRLBaseCamera_1_1ImageData.html">ImageData</a>* CRLBaseCamera::imageData {}</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac8117e3ac2a76868b77ea842c934738d" name="ac8117e3ac2a76868b77ea842c934738d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac8117e3ac2a76868b77ea842c934738d">&#9670;&nbsp;</a></span>meshData</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structCRLBaseCamera_1_1PointCloudData.html">PointCloudData</a>* CRLBaseCamera::meshData {}</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab9516b37897b446a0205475096909864" name="ab9516b37897b446a0205475096909864"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab9516b37897b446a0205475096909864">&#9670;&nbsp;</a></span>requestedDataType</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="CRLBaseCamera_8h.html#aad7aea731060e79508a5d75669678e4e">CRLCameraDataType</a> CRLBaseCamera::requestedDataType</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following files:<ul>
 <li>/home/magnus/CLionProjects/MultiSense/src/crl_camera/<a class="el" href="CRLBaseCamera_8h_source.html">CRLBaseCamera.h</a></li>
+<li>/home/magnus/CLionProjects/MultiSense/src/crl_camera/<a class="el" href="CRLBaseCamera_8cpp.html">CRLBaseCamera.cpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

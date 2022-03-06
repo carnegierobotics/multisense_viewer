@@ -33,7 +33,7 @@ void MultiSenseS30::setup() {
     model->createMeshDeviceLocal((MeshModel::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
 
-    model->setTexture(Utils::getTexturePath() + "moon.jpg", false);
+    model->setVideoTexture( Utils::getTexturePath() + "Video/earth/ezgif-frame-001.jpg");
 
     MeshModel::createRenderPipeline(renderUtils, shaders, model, type);
 }
@@ -43,16 +43,21 @@ int count = 1;
 void MultiSenseS30::update() {
     //camera->update(renderData);
 
-    /*
-    int runTimeInMS = renderData.runTime * 1000;
-    if (runTimeInMS % 500  > 2){
-        model->setTexture(Utils::getTexturePath() + "Video/earth/ezgif-frame-00" + std::to_string(count) + ".jpg",false);
+    int runTimeInMS = (int) (renderData.runTime * 1000);
+    if ((runTimeInMS % 50) < 20) {
+        std::string strCount = std::to_string(count);
+        std::string fileName = "Video/earth/ezgif-frame-000";
+        strCount.length();
+        std::string file = fileName.substr(0, fileName.length() - strCount.length());
+        file = file + strCount + ".jpg";
+        model->setVideoTexture(Utils::getTexturePath() + file);
+        printf("Count: %d\n", count);
         count += 1;
-        if (count >= 10)
+        if (count >= 101)
             count = 1;
 
     }
-*/
+
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);

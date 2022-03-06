@@ -1,7 +1,7 @@
 var searchData=
 [
   ['_7ebase_0',['~Base',['../classBase.html#a306fb25541331080645a716286357ef9',1,'Base']]],
-  ['_7ecrlmultisenses30_1',['~CRLMultiSenseS30',['../classCRLMultiSenseS30.html#aca0fa5e995de7fb099529f9a47a7c6fc',1,'CRLMultiSenseS30']]],
+  ['_7ecrlphysicalcamera_1',['~CRLPhysicalCamera',['../classCRLPhysicalCamera.html#a1933e16ebc2148102b9485cd37e870cf',1,'CRLPhysicalCamera']]],
   ['_7ecrlvirtualcamera_2',['~CRLVirtualCamera',['../classCRLVirtualCamera.html#a23566a23049cc17243ac3529ba25a36d',1,'CRLVirtualCamera']]],
   ['_7eimgui_3',['~ImGUI',['../classImGUI.html#a2810a9209c5b7775b208db087eb5f95f',1,'ImGUI']]],
   ['_7enode_4',['~Node',['../structglTFModel_1_1Node.html#af51d4b8201459c21df38ab79c19a3717',1,'glTFModel::Node']]],

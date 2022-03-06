@@ -21,6 +21,6 @@ var searchData=
   ['submitinfo_18',['submitInfo',['../classVulkanRenderer.html#a7b7323472635dcd0c360a9ab0916a2ea',1,'VulkanRenderer']]],
   ['submitpipelinestages_19',['submitPipelineStages',['../classVulkanRenderer.html#aeba0edd7e91546fb4cfafa62a00f8f03',1,'VulkanRenderer']]],
   ['supportedextensions_20',['supportedExtensions',['../structVulkanDevice.html#aa5ae599219fc3317a66f760355eb3b9f',1,'VulkanDevice']]],
-  ['swapchain_21',['swapChain',['../classVulkanSwapchain.html#ac1c9ec18c05c462eb08ac223748fa468',1,'VulkanSwapchain']]],
-  ['swapchain_22',['swapchain',['../classVulkanRenderer.html#a59948661c2d51fe30aaa6f1c016c214f',1,'VulkanRenderer']]]
+  ['swapchain_21',['swapchain',['../classVulkanRenderer.html#a59948661c2d51fe30aaa6f1c016c214f',1,'VulkanRenderer']]],
+  ['swapchain_22',['swapChain',['../classVulkanSwapchain.html#ac1c9ec18c05c462eb08ac223748fa468',1,'VulkanSwapchain']]]
 ];

@@ -12,7 +12,7 @@ void MultiSensePointCloud::setup() {
     virtualCamera = new CRLVirtualCamera(CrlPointCloud);
     virtualCamera->initialize(CrlPointCloud);
 
-    model->setTexture(Utils::getTexturePath() + "neist_point.jpg", false);
+    model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
     MeshModel::createRenderPipeline(renderUtils, shaders, model, type);
 }

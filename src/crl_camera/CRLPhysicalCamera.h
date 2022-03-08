@@ -10,25 +10,28 @@
 class CRLPhysicalCamera : CRLBaseCamera {
 public:
 
-    explicit CRLPhysicalCamera(CRLCameraDataType type) : CRLBaseCamera(type) {
+    explicit CRLPhysicalCamera(CRLCameraDataType type) : CRLBaseCamera() {
         CRLBaseCamera::prepare();
     }
 
     std::string description;
     std::string data;
+    bool online = false;
 
     int point = 0;
 
     void connect();
-    void start() override;
-    void update(Base::Render render);
+    void start(std::string string) override;
+    void update(Base::Render render, crl::multisense::image::Header *pHeader);
     void stop() override;
+    CameraInfo getInfo();
     PointCloudData *getStream() override;
 
     ~CRLPhysicalCamera();
 
     ImageData *getImageData();
 
+    crl::multisense::image::Header getImage();
 };
 
 

@@ -7,6 +7,8 @@
 
 
 #include <MultiSense/MultiSenseChannel.hh>
+#include <mutex>
+#include <unordered_set>
 #include "MultiSense/src/model_loaders/MeshModel.h"
 
 typedef enum CRLCameraDataType {
@@ -14,33 +16,75 @@ typedef enum CRLCameraDataType {
     CrlImage
 } CRLCameraDataType;
 
+typedef enum CRLCameraType {
+    DEFAULT_CAMERA_IP,
+    CUSTOM_CAMERA_IP,
+    VIRTUAL_CAMERA
+} CRLCameraType;
+
+struct Image
+{
+    uint16_t height{0}, width{0};
+    uint32_t size{0};
+    int64_t frame_id{0};
+    crl::multisense::DataSource source;
+    const void *data{nullptr};
+};
+
+struct BufferPair
+{
+    std::mutex swap_lock;
+    crl::multisense::image::Header active, inactive;
+    void *activeCBBuf{nullptr}, *inactiveCBBuf{nullptr};  // weird multisense BufferStream object, only for freeing reserved data later
+    Image user_handle;
+
+    void refresh()   // swap to latest if possible
+    {
+        std::scoped_lock lock(swap_lock);
+
+        auto handleFromHeader = [](const auto &h) {
+            return Image{static_cast<uint16_t>(h.height), static_cast<uint16_t>(h.width), h.imageLength, h.frameId, h.source, h.imageDataP};
+        };
+
+        if ((activeCBBuf == nullptr && inactiveCBBuf != nullptr) || // special case: first init
+            (active.frameId < inactive.frameId))
+        {
+            std::swap(active, inactive);
+            std::swap(activeCBBuf, inactiveCBBuf);
+            user_handle = handleFromHeader(active);
+        }
+    }
+};
 
 class CRLBaseCamera {
 
 public:
-    explicit CRLBaseCamera(CRLCameraDataType type) {
-        this->requestedDataType = type;
-
+    explicit CRLBaseCamera() {
+        // TODO MOVE CREATION TO AN APPROPIATE METHOD
+        imageData = new ImageData();
+        meshData = new PointCloudData(1280, 720);
     }
-    std::string DEFAULT_CAMERA_IP = "10.66.171.21";
+
     static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
-    CRLCameraDataType requestedDataType;
 
-    crl::multisense::Channel * cameraInterface{};
     std::unique_ptr<crl::multisense::Channel> camInterface;
-    // TODO: Hide all multisense types/impl details in camera_stream pimpl
+    std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_;
 
-    using ImgConf = crl::multisense::image::Config;
-    using NetConf = crl::multisense::system::NetworkConfig;
-    using CamCal = crl::multisense::image::Calibration;
-    using DeviceMode = crl::multisense::system::DeviceMode;
-    using DataSource = crl::multisense::DataSource;
-    using VersionInfo = crl::multisense::system::VersionInfo;
+    crl::multisense::image::Header imageP;
+    struct CameraInfo {
+        crl::multisense::system::DeviceInfo devInfo;
+        crl::multisense::image::Config imgConf;
+        crl::multisense::system::NetworkConfig netConfig;
+        crl::multisense::system::VersionInfo versionInfo;
+        crl::multisense::image::Calibration camCal{};
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+        crl::multisense::DataSource supportedSources{0};
+        std::vector<uint8_t*> rawImages;
+    }cameraInfo;
 
-    crl::multisense::system::DeviceInfo devInfo;
 
     void prepare();
-    void connect(std::string& hostname); // true if succeeds
+    bool connect(CRLCameraType type); // true if succeeds
 
     struct PointCloudData {
         void *vertices{};
@@ -125,22 +169,33 @@ public:
 
     PointCloudData *meshData{};
     ImageData *imageData{};
-    // gets latest image, old image is invalidated on next getImage
 
 
 
     virtual void initialize() {};
 
-    virtual void start() = 0;
+    virtual void start(std::string string) = 0;
 
     virtual void stop() = 0;
 
     virtual PointCloudData *getStream() = 0;
 
+    bool connected = false;
 
-private:
 
+    crl::multisense::Channel * cameraInterface{};
+protected:
+    void getCameraMetaData();
 
+    void getVirtualCameraMetaData();
+
+    void addCallbacks();
+
+    static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
+
+    void streamCallback(const crl::multisense::image::Header &image);
+
+    std::unordered_set<crl::multisense::DataSource> supportedSources();
 };
 
 

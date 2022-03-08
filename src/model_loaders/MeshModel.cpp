@@ -4,6 +4,7 @@
 
 #include "MeshModel.h"
 #include "stb_image.h"
+#include "MultiSense/MultiSenseTypes.hh"
 
 #include <utility>
 
@@ -131,14 +132,21 @@ void MeshModel::Model::loadTextureSamplers() {
 }
 
 int videoCounter = 0;
-void MeshModel::Model::setVideoTexture(const std::string& fileName){
+void MeshModel::Model::setVideoTexture(crl::multisense::image::Header imageP){
     // Create texture image if not created
 
-    if (videoCounter >= 100)
-        videoCounter = 0;
-    textureVideos[0].updateTextureFromBuffer(videos.pixels[videoCounter]);
+    auto* p = (uint16_t *) imageP.imageDataP;
+    auto * pixel = (unsigned char *) calloc(imageP.width * imageP.height * 4, 0x01);
+    for (int i = 0; i < imageP.width * imageP.height; ++i) {
+        pixel[i] =(unsigned char)(p[i] * 255);
+        unsigned char a = pixel[i];
+        int k = 0;
 
-    videoCounter += 1;
+    }
+
+    textureVideos[0].updateTextureFromBuffer(pixel);
+
+
 
 }
 
@@ -179,9 +187,9 @@ void MeshModel::Model::loadTextures() {
             throw std::runtime_error("failed to load texture image!");
         }
         videos.pixels.emplace_back(pixels);
-        videos.imageSize = imageSize;
-        videos.height = texHeight;
-        videos.width = texWidth;
+        videos.imageSize = 1200 * 1920 * 4;
+        videos.height = 1200;
+        videos.width = 1920;
         counter += 1;
     }
 

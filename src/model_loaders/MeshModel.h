@@ -13,6 +13,7 @@
 #include <MultiSense/src/core/Texture.h>
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/Base.h>
+#include "MultiSense/MultiSenseTypes.hh"
 
 class MeshModel {
 
@@ -95,7 +96,7 @@ public:
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-        void setVideoTexture(const std::string& fileName);
+        void setVideoTexture(crl::multisense::image::Header fileName);
 
         void loadTextures();
     };

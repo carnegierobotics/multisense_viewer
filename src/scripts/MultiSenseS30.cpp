@@ -9,10 +9,18 @@ void MultiSenseS30::setup() {
      * Create UI Elements
      */
 
-    // UI cretion
+    // UI creation
 
+    connectButton = new Button("Connect Camera", 175.0f, 30.0f);
+    renderUtils.ui->createButton(connectButton);
 
-    renderUtils.ui->createButton({"Connect Camera", 175.0f, 30.0f});
+    cameraNameHeader = new Text("Camera Name", ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+    cameraNameHeader->sameLine = true;
+    renderUtils.ui->createText(cameraNameHeader);
+
+    cameraName = new Text("No camera connected", ImVec4(0.5f, 1.0f, 1.0f, 1.0f));
+    renderUtils.ui->createText(cameraName);
+
 
 
     /**
@@ -32,7 +40,6 @@ void MultiSenseS30::setup() {
     model->createMeshDeviceLocal((MeshModel::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
 
-    //model->setVideoTexture( Utils::getTexturePath() + "Video/earth/ezgif-frame-001.jpg");
 
     model->loadTextures(); // TODO TEMP-remove it
 
@@ -41,12 +48,18 @@ void MultiSenseS30::setup() {
 
 
 void MultiSenseS30::update() {
-    //camera->update(renderData);
+
+    camera->update(renderData, nullptr);
+    crl::multisense::image::Header imageP = camera->getImage();
+    if (imageP.source == 1024){
+        model->setVideoTexture(imageP);
+
+    }
 
     int runTimeInMS = (int) (renderData.runTime * 1000);
     if ((runTimeInMS % 50) < 20) {
 
-        model->setVideoTexture("Utils::getTexturePath() + file");
+        //model->setVideoTexture("Utils::getTexturePath() + file");
         count += 1;
         if (count >= 101)
             count = 1;
@@ -79,16 +92,34 @@ void MultiSenseS30::update() {
 }
 
 void MultiSenseS30::onUIUpdate(UISettings uiSettings) {
+    if (connectButton->clicked && !camera->online){
+        camera->connect();
 
-    if (uiSettings.buttons.empty())
-        return;
+        cameraName->string = camera->getInfo().devInfo.name;
 
-    for (auto &button: uiSettings.buttons) {
-        if (button.name == "Connect Camera")
-            if (button.clicked) {
-                printf("%s: Clicked\n", button.name.c_str());
-                button.clicked = false;
-            }
+
+        // Generate drop downs
+        modes = new DropDownItem("Type");
+        for (int i = 0; i < camera->getInfo().supportedDeviceModes.size(); ++i) {
+            modes->selected = "Select device mode";
+            auto mode = camera->getInfo().supportedDeviceModes[i];
+            std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " : " + std::to_string(mode.disparities);
+            modes->dropDownItems.push_back(modeName);
+        }
+        renderUtils.ui->createDropDown(modes);
+
+        // Start stream
+        startStream = new Button("Start stream", 175.0f, 30.0f);
+        renderUtils.ui->createButton(startStream);
+
+        connectButton->clicked = false;
+    }
+
+    if (startStream != nullptr){
+        if (startStream->clicked){
+            camera->start(modes->selected);
+        }
+
     }
 }
 

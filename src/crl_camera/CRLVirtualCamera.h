@@ -10,19 +10,16 @@
 
 class CRLVirtualCamera : CRLBaseCamera {
 public:
-    explicit CRLVirtualCamera(CRLCameraDataType type) : CRLBaseCamera(type) {
+    explicit CRLVirtualCamera(CRLCameraDataType type) : CRLBaseCamera() {
 
 
     }
-
     std::string description;
     std::string data;
-    PointCloudData* meshData{};
-    ImageData* imageData{};
     int point = 0;
 
     void connect(CRLCameraDataType source);
-    void start() override;
+    void start(std::string string) override;
     void update(Base::Render render);
     void stop() override;
     PointCloudData *getStream() override;

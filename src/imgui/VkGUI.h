@@ -55,7 +55,7 @@ public:
         device = vulkanDevice;
         ImGui::CreateContext();
 
-        ImGuiStyle * style = &ImGui::GetStyle();
+        ImGuiStyle *style = &ImGui::GetStyle();
 
         /*
          style->WindowPadding = ImVec2(15, 15);
@@ -407,6 +407,26 @@ public:
 
     // Graphics pipeline
 
+
+    void createDropDowns(ElementBase *element) {
+        if (ImGui::BeginCombo("##combo",
+                              element->dropDown->selected.c_str())) // The second parameter is the label previewed before opening the combo.
+        {
+            for (auto &dropDownItem: element->dropDown->dropDownItems) {
+
+                bool is_selected = (element->dropDown->selected ==
+                                    dropDownItem); // You can store your selection however you want, outside or inside your objects
+                if (ImGui::Selectable(dropDownItem.c_str(), is_selected)) {
+                    element->dropDown->selected = dropDownItem;
+                    updated |= true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+            }
+            ImGui::EndCombo();
+        }
+    }
+
 // Starts a new imGui frame and sets up windows and ui elements
     void newFrame(bool updateFrameGraph, Camera camera, float frameTimer, std::string title) {
         ImGui::NewFrame();
@@ -420,11 +440,11 @@ public:
         ImGui::SetNextWindowSize(ImVec2(350, 720));
         ImGui::Begin("GUI", &pOpen, window_flags);
 
-        auto* wnd = ImGui::FindWindowByName("GUI");
+        auto *wnd = ImGui::FindWindowByName("GUI");
         if (wnd) {
-            ImGuiDockNode* node = wnd->DockNode;
+            ImGuiDockNode *node = wnd->DockNode;
             if (node)
-            node->WantHiddenTabBarToggle = true;
+                node->WantHiddenTabBarToggle = true;
 
         }
 
@@ -471,16 +491,38 @@ public:
             ImGui::EndListBox();
         }
 
-        if (!uiSettings.buttons.empty()){
-            for(auto& button: uiSettings.buttons){
-                button.clicked = ImGui::Button(button.name.c_str(), ImVec2(button.x, button.y));
+        if (!uiSettings.elements.empty()) {
+            for (auto &element: uiSettings.elements) {
 
-                if (button.clicked)
-                    updated |= true;
+                switch (element.type) {
+                    case AR_ELEMENT_TEXT:
+                        ImGui::TextColored(element.text->color, "%s", element.text->string.c_str());
+
+                        if (element.text->sameLine)
+                            ImGui::SameLine();
+
+                        break;
+                    case AR_ELEMENT_BUTTON:
+                        element.button->clicked = ImGui::Button(element.button->text.c_str(), element.button->size);
+                        if (element.button->clicked)
+                            updated |= true;
+                        break;
+                    case AR_ELEMENT_FLOAT_SLIDER:
+                        break; // TODO IMPLEMENT
+                    case AR_UI_ELEMENT_DROPDOWN:
+                        createDropDowns(&element);
+                        break;
+                    default:
+                        std::cerr << "Gui element not supported in AR Renderer\n";
+                        break;
+                }
+
+
             }
-        }
 
-        if (!uiSettings.dropDownItems.empty()){
+        }
+        /*
+                 if (!uiSettings.dropDownItems.empty()){
             if (ImGui::BeginCombo("##combo",
                                   uiSettings.selectedDropDown)) // The second parameter is the label previewed before opening the combo.
             {
@@ -497,10 +539,9 @@ public:
                 ImGui::EndCombo();
             }
         }
-        active = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused() || ImGui::IsAnyItemActive();
-
-        updated |= ImGui::SliderFloat("Camera speed", &uiSettings.movementSpeed, 0.05f, 10.0f);
-
+         */
+        /*
+         *
 
         if (uiSettings.flag) {
 
@@ -533,9 +574,7 @@ public:
             static int current = 0;
             ImGui::Combo("Examples", &current, items, IM_ARRAYSIZE(items));
         }
-
-        active = ImGui::IsItemHovered() || ImGui::IsWindowHovered();
-
+         */
         /*
         ImGui::End();
 
@@ -554,7 +593,8 @@ public:
         */
 
 
-
+        active = ImGui::IsWindowHovered() || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();
+        //active |= ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();
         ImGui::End();
 
         //ImGui::ShowDemoWindow();

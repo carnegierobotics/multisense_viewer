@@ -39,6 +39,15 @@ public:
     MeshModel::Model* model;
     int count = 1;
 
+    Button* connectButton;
+    Text* cameraNameHeader;
+    Text* cameraName;
+    DropDownItem *modes;
+
+    Button* startStream;
+
+
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
 

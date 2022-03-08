@@ -137,6 +137,7 @@ void MeshModel::Model::setVideoTexture(crl::multisense::image::Header imageP){
 
     auto* p = (uint16_t *) imageP.imageDataP;
     auto * pixel = (unsigned char *) calloc(imageP.width * imageP.height * 4, 0x01);
+
     for (int i = 0; i < imageP.width * imageP.height; ++i) {
         pixel[i] =(unsigned char)(p[i] * 255);
         unsigned char a = pixel[i];

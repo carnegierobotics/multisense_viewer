@@ -51,7 +51,7 @@ void MultiSenseS30::update() {
 
     camera->update(renderData, nullptr);
     crl::multisense::image::Header imageP = camera->getImage();
-    if (imageP.source == 1024){
+    if (imageP.source == crl::multisense::Source_Luma_Left){
         model->setVideoTexture(imageP);
 
     }

@@ -13,7 +13,7 @@ void CRLPhysicalCamera::connect() {
 void CRLPhysicalCamera::start(std::string string) {
 
     crl::multisense::DataSource source = crl::multisense::Source_Disparity;
-    bool status = cameraInterface->startStreams(crl::multisense::Source_Disparity);
+    bool status = cameraInterface->startStreams(crl::multisense::Source_Luma_Left);
     printf("Started stream %d\n", status);
 }
 

@@ -39,7 +39,7 @@ void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t 
         void *data;
         // TODO dont map and unmmap memory every time
         vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, _vertices, vertexBufferSize);
+        //memcpy(data, _vertices, vertexBufferSize);
         vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
     }
 }
@@ -135,15 +135,10 @@ int videoCounter = 0;
 void MeshModel::Model::setVideoTexture(crl::multisense::image::Header imageP){
     // Create texture image if not created
 
-    auto* p = (uint16_t *) imageP.imageDataP;
+    auto* p = (uint8_t *) imageP.imageDataP;
     auto * pixel = (unsigned char *) calloc(imageP.width * imageP.height * 4, 0x01);
+    memcpy(pixel, p, imageP.imageLength);
 
-    for (int i = 0; i < imageP.width * imageP.height; ++i) {
-        pixel[i] =(unsigned char)(p[i] * 255);
-        unsigned char a = pixel[i];
-        int k = 0;
-
-    }
 
     textureVideos[0].updateTextureFromBuffer(pixel);
 
@@ -218,7 +213,7 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model
         vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
     } else {
-        vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
+        //vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
     }
 
 }

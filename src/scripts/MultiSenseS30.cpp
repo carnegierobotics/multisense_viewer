@@ -28,30 +28,25 @@ void MultiSenseS30::setup() {
 
     camera = new CRLPhysicalCamera(CrlImage);
 
-    camera->initialize();
     CRLBaseCamera::ImageData *imgData = camera->getImageData();
     model->createMeshDeviceLocal((MeshModel::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
 
-    model->setVideoTexture( Utils::getTexturePath() + "Video/earth/ezgif-frame-001.jpg");
+    //model->setVideoTexture( Utils::getTexturePath() + "Video/earth/ezgif-frame-001.jpg");
+
+    model->loadTextures(); // TODO TEMP-remove it
 
     MeshModel::createRenderPipeline(renderUtils, shaders, model, type);
 }
 
-int count = 1;
 
 void MultiSenseS30::update() {
     //camera->update(renderData);
 
     int runTimeInMS = (int) (renderData.runTime * 1000);
     if ((runTimeInMS % 50) < 20) {
-        std::string strCount = std::to_string(count);
-        std::string fileName = "Video/earth/ezgif-frame-000";
-        strCount.length();
-        std::string file = fileName.substr(0, fileName.length() - strCount.length());
-        file = file + strCount + ".jpg";
-        model->setVideoTexture(Utils::getTexturePath() + file);
-        printf("Count: %d\n", count);
+
+        model->setVideoTexture("Utils::getTexturePath() + file");
         count += 1;
         if (count >= 101)
             count = 1;
@@ -95,8 +90,6 @@ void MultiSenseS30::onUIUpdate(UISettings uiSettings) {
                 button.clicked = false;
             }
     }
-
-
 }
 
 

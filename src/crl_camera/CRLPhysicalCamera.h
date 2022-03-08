@@ -19,7 +19,7 @@ public:
 
     int point = 0;
 
-    void initialize() override;
+    void connect();
     void start() override;
     void update(Base::Render render);
     void stop() override;

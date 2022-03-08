@@ -18,8 +18,6 @@ void CRLBaseCamera::connect(std::string& hostname) {
 }
 
 void CRLBaseCamera::prepare() {
-    connect(DEFAULT_CAMERA_IP);
-
     imageData = new ImageData();
     meshData = new PointCloudData(1280, 720);
 

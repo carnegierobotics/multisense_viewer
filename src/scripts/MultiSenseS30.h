@@ -37,6 +37,7 @@ public:
     ScriptType type = FrDefault;
     CRLPhysicalCamera* camera;
     MeshModel::Model* model;
+    int count = 1;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

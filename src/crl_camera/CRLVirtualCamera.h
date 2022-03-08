@@ -21,7 +21,7 @@ public:
     ImageData* imageData{};
     int point = 0;
 
-    void initialize(CRLCameraDataType source);
+    void connect(CRLCameraDataType source);
     void start() override;
     void update(Base::Render render);
     void stop() override;

@@ -4,20 +4,18 @@
 
 #include "CRLVirtualCamera.h"
 
-void CRLVirtualCamera::initialize(CRLCameraDataType source) {
+void CRLVirtualCamera::connect(CRLCameraDataType source) {
     // INitialize camera
 
     // Initialize rendering
     // Get depth image size and point cloud size and create render data from this
     if (source == CrlPointCloud) {
         // Load sample video
-        meshData = new PointCloudData(1280, 720);
+        meshData = new PointCloudData(640, 480);
 
     } else if (source == CrlImage) {
         imageData = new ImageData();
     }
-
-
 }
 
 void CRLVirtualCamera::start() {

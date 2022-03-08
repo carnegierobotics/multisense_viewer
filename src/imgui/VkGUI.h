@@ -13,6 +13,7 @@
 #include <MultiSense/external/imgui/imgui.h>
 #include <MultiSense/src/tools/Utils.h>
 #include "UISettings.h"
+#include "imgui_internal.h"
 
 
 class ImGUI {
@@ -56,7 +57,8 @@ public:
 
         ImGuiStyle * style = &ImGui::GetStyle();
 
-        style->WindowPadding = ImVec2(15, 15);
+        /*
+         style->WindowPadding = ImVec2(15, 15);
         style->WindowRounding = 5.0f;
         style->FramePadding = ImVec2(5, 5);
         style->FrameRounding = 4.0f;
@@ -103,6 +105,7 @@ public:
         style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
         style->Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
         style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
+         */
 
     };
 
@@ -142,6 +145,7 @@ public:
     void initResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string &shadersPath) {
 
         ImGuiIO &io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
         // Create font texture
         unsigned char *fontData;
@@ -408,8 +412,22 @@ public:
         ImGui::NewFrame();
         updated = false;
 
-        ImVec4 clear_color = ImColor(114, 144, 154);
-        static float f = 0.0f;
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(350, 720));
+        ImGui::Begin("GUI", &pOpen, window_flags);
+
+        auto* wnd = ImGui::FindWindowByName("GUI");
+        if (wnd) {
+            ImGuiDockNode* node = wnd->DockNode;
+            if (node)
+            node->WantHiddenTabBarToggle = true;
+
+        }
+
         ImGui::TextUnformatted(title.c_str());
         ImGui::TextUnformatted(device->properties.deviceName);
 
@@ -519,7 +537,10 @@ public:
         active = ImGui::IsItemHovered() || ImGui::IsWindowHovered();
 
         /*
+        ImGui::End();
+
         ImGui::ShowDemoWindow();
+
         ImGui::SetNextWindowPos(ImVec2(1280 - 350, 10), ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(350, 150));
         ImGui::Begin("Camera controls");
@@ -530,12 +551,12 @@ public:
         float rot[3] = {camera.rotation.x, camera.rotation.y, camera.rotation.z};
         ImGui::InputFloat3("position", pos, "%.3f");
         ImGui::InputFloat3("rotation", rot, "%.3f");
-
-
-
-
-        //ImGui::End();
         */
+
+
+
+        ImGui::End();
+
         //ImGui::ShowDemoWindow();
         // Render to generate draw buffers
         ImGui::Render();

@@ -130,22 +130,15 @@ void MeshModel::Model::loadTextureSamplers() {
 
 }
 
+int videoCounter = 0;
 void MeshModel::Model::setVideoTexture(const std::string& fileName){
     // Create texture image if not created
-    int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
 
-    if (textureVideos.empty()){
-        TextureVideo texture(texWidth, texHeight, imageSize, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        textureVideos.emplace_back(texture);
-    }
+    if (videoCounter >= 100)
+        videoCounter = 0;
+    textureVideos[0].updateTextureFromBuffer(videos.pixels[videoCounter]);
 
-    textureVideos[0].updateTextureFromBuffer(pixels);
-
+    videoCounter += 1;
 
 }
 
@@ -168,6 +161,37 @@ void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
 
     textureIndices.baseColor = 0;
     textures[0] = texture;
+
+}
+void MeshModel::Model::loadTextures() {
+    int counter = 1;
+    while(counter < 101){
+        std::string strCount = std::to_string(counter);
+        std::string fileName = "Video/earth/ezgif-frame-000";
+        strCount.length();
+        std::string file = fileName.substr(0, fileName.length() - strCount.length());
+        file = file + strCount + ".jpg";
+
+        int texWidth, texHeight, texChannels;
+        stbi_uc *pixels = stbi_load((Utils::getTexturePath() + file).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+        videos.pixels.emplace_back(pixels);
+        videos.imageSize = imageSize;
+        videos.height = texHeight;
+        videos.width = texWidth;
+        counter += 1;
+    }
+
+
+    if (textureVideos.empty()){
+        TextureVideo texture( videos.width,  videos.height,  videos.imageSize, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        textureVideos.emplace_back(texture);
+    }
+
+
 
 }
 

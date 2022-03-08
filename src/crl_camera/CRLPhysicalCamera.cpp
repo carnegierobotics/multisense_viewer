@@ -5,7 +5,7 @@
 #include "CRLPhysicalCamera.h"
 
 
-void CRLPhysicalCamera::initialize() {
+void CRLPhysicalCamera::connect() {
 
 
 

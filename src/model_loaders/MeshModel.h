@@ -20,6 +20,12 @@ public:
     MeshModel() = default;
 
     struct Model {
+        struct VideoTexture {
+            std::vector<u_char *> pixels;
+            VkDeviceSize imageSize;
+            uint32_t width;
+            uint32_t height;
+        }videos;
         struct Vertex {
             glm::vec3 pos;
             glm::vec3 normal;
@@ -91,6 +97,7 @@ public:
 
         void setVideoTexture(const std::string& fileName);
 
+        void loadTextures();
     };
 
 

@@ -25,11 +25,11 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(UISettings uiSettings) override;
+    void onUIUpdate(UISettings *uiSettings) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = FrDefault;
+    ScriptType type = ArDefault;
 
     void *selection = (void *) "0";
 

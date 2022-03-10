@@ -1150,7 +1150,7 @@ Do your rendering and whatnot
 start over at 1.
 */
 TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize bufferSize, VulkanDevice *device,
-                           VkImageLayout layout) : Texture() {
+                           VkImageLayout layout, VkFormat format) : Texture() {
 
     this->device = device;
     width = texWidth;
@@ -1162,7 +1162,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageCreateInfo.format = format;
     imageCreateInfo.mipLevels = mipLevels;
     imageCreateInfo.arrayLayers = 1;
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1191,8 +1191,8 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
     // Create sampler
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -1210,7 +1210,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreateInfo.pNext = NULL;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    viewCreateInfo.format = format;
     viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
                                  VK_COMPONENT_SWIZZLE_A};
     viewCreateInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};

@@ -140,3 +140,55 @@ std::unordered_set<crl::multisense::DataSource> CRLBaseCamera::supportedSources(
     if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Aux)        ret.insert(crl::multisense::Source_Disparity_Aux);
     return ret;
 }
+
+
+// Pick an image size
+void CRLBaseCamera::selectResolution(uint32_t RequestedWidth,
+                                     uint32_t RequestedHeight) {
+    // Configure the sensor.
+    crl::multisense::image::Config cfg;
+    bool status = cameraInterface->getImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to query image config: %d\n", status);
+    }
+
+    cfg.setResolution(RequestedWidth, RequestedHeight);
+    status = cameraInterface->setImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to configure sensor resolution and framerate\n");
+    }
+}
+
+// Pick a disparity level
+void CRLBaseCamera::selectDisparities(uint32_t disparities) {
+    // Configure the sensor.
+    crl::multisense::image::Config cfg;
+    bool status = cameraInterface->getImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to query image config: %d\n", status);
+    }
+
+    cfg.setDisparities(disparities);
+    status = cameraInterface->setImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to configure disparities\n");
+    }
+}
+// Set camera frames per second
+void CRLBaseCamera::selectFramerate(float FPS) {
+    crl::multisense::image::Config cfg;
+    // This routine also scales the camera values.
+    crl::multisense::Status status;
+
+
+    status = cameraInterface->getImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to query image config: %d\n", status);
+    }
+
+    cfg.setFps(FPS);  // Can be 1.0 -> 30.0
+    status = cameraInterface->setImageConfig(cfg);
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to configure sensor framerate: %d\n", status);
+    }
+}

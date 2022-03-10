@@ -24,10 +24,11 @@
 #include <MultiSense/src/tools/Macros.h>
 
 // Include scripts
-#include <MultiSense/src/scripts/MultiSensePointCloud.h>
+#include <MultiSense/src/scripts/VirtualPointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/LightSource.h>
-#include <MultiSense/src/scripts/MultiSenseS30.h>
+#include <MultiSense/src/scripts/MultiSenseGUI.h>
+#include <MultiSense/src/scripts/Quad.h>
 
 
 class Renderer : VulkanRenderer {
@@ -74,7 +75,7 @@ protected:
      * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
      * @param uiSettings Handle to UISetting variables
      */
-    void UIUpdate(UISettings uiSettings) override;
+    void UIUpdate(UISettings *uiSettings) override;
 
     /**
      *

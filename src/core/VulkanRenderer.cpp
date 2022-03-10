@@ -166,15 +166,6 @@ VulkanRenderer::~VulkanRenderer() {
 }
 
 void VulkanRenderer::addDeviceFeatures() {
-
-    // TODO PERFORM THIS IN THE OVERRIDDEN CLASS
-    if (deviceFeatures.fillModeNonSolid) {
-        enabledFeatures.fillModeNonSolid = VK_TRUE;
-        // Wide lines must be present for line width > 1.0f
-        if (deviceFeatures.wideLines) {
-            enabledFeatures.wideLines = VK_TRUE;
-        }
-    }
 }
 
 void VulkanRenderer::viewChanged() {
@@ -559,7 +550,7 @@ void VulkanRenderer::submitFrame() {
         throw std::runtime_error("Failed to wait for Queue Idle");
 }
 
-void VulkanRenderer::UIUpdate(UISettings uiSettings) {
+void VulkanRenderer::UIUpdate(UISettings *uiSettings) {
 
 }
 

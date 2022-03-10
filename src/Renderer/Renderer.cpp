@@ -24,14 +24,14 @@ void Renderer::viewChanged() {
 }
 
 
-void Renderer::UIUpdate(UISettings uiSettings) {
+void Renderer::UIUpdate(UISettings *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
 
     for (auto &script: scripts) {
         script->onUIUpdate(uiSettings);
     }
 
-    camera.setMovementSpeed(uiSettings.movementSpeed);
+    camera.setMovementSpeed(uiSettings->movementSpeed);
 
 }
 
@@ -74,7 +74,7 @@ void Renderer::buildCommandBuffers() {
 
 
         for (auto &script: scripts) {
-            if (script->getType() != FrDisabled) {
+            if (script->getType() != ArDisabled) {
                 script->draw(drawCmdBuffers[i], i);
             }
         }
@@ -103,7 +103,7 @@ void Renderer::draw() {
     renderData.runTime = runTime;
 
     for (auto &script: scripts) {
-        if (script->getType() != FrDisabled) {
+        if (script->getType() != ArDisabled) {
             script->updateUniformBufferData(renderData, script->getType());
         }
     }
@@ -147,12 +147,13 @@ void Renderer::generateScriptClasses() {
     */
     // TODO: Create a list of renderable classnames
     classNames.emplace_back("Example");
-    classNames.emplace_back("MultiSensePointCloud");
+    classNames.emplace_back("MultiSenseGUI");
     classNames.emplace_back("LightSource");
-    classNames.emplace_back("MultiSenseS30");
+    classNames.emplace_back("VirtualPointCloud");
+    classNames.emplace_back("Quad");
 
     // Also add class names to listbox
-    UIOverlay->uiSettings.listBoxNames = classNames;
+    UIOverlay->uiSettings->listBoxNames = classNames;
     scripts.reserve(classNames.size());
     // Create class instances of scripts
     for (auto &className: classNames) {
@@ -162,7 +163,7 @@ void Renderer::generateScriptClasses() {
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
-    vars.ui = &UIOverlay->uiSettings;
+    vars.ui = UIOverlay->uiSettings;
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 

@@ -17,8 +17,9 @@ public:
     std::string description;
     std::string data;
     bool online = false;
-
+    bool play = false;
     int point = 0;
+    bool modeChange = false;
 
     void connect();
     void start(std::string string) override;
@@ -29,9 +30,9 @@ public:
 
     ~CRLPhysicalCamera();
 
-    ImageData *getImageData();
-
     crl::multisense::image::Header getImage();
+
+    crl::multisense::image::Config getImageConfig() const;
 };
 
 

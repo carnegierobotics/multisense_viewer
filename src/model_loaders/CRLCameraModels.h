@@ -1,9 +1,10 @@
 //
-// Created by magnus on 2/20/22.
+// Created by magnus on 3/10/22.
 //
 
-#ifndef MULTISENSE_MESHMODEL_H
-#define MULTISENSE_MESHMODEL_H
+#ifndef MULTISENSE_CRLCAMERAMODELS_H
+#define MULTISENSE_CRLCAMERAMODELS_H
+
 
 
 #include <MultiSense/external/glm/glm/glm.hpp>
@@ -13,12 +14,15 @@
 #include <MultiSense/src/core/Texture.h>
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/Base.h>
-class MeshModel {
+#include "MultiSense/MultiSenseTypes.hh"
+
+class CRLCameraModels {
 
 public:
-    MeshModel() = default;
+    CRLCameraModels() = default;
 
     struct Model {
+
         struct VideoTexture {
             std::vector<u_char *> pixels;
             VkDeviceSize imageSize;
@@ -94,11 +98,61 @@ public:
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-        void setVideoTexture(uint32_t frame);
+        void setVideoTexture(crl::multisense::image::Header fileName);
 
-        void prepareVideoTextures();
+        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size);
     };
 
+    /**@brief Primitive for a surface */
+    struct ImageData {
+        struct {
+            void *vertices{};
+            uint32_t vertexCount{};
+            uint32_t *indices{};
+            uint32_t indexCount{};
+        } quad;
+
+        /**@brief Generates a Quad with texture coordinates */
+        ImageData(float widthScale, float heightScale) {
+            int vertexCount = 4;
+            int indexCount = 2 * 3;
+            quad.vertexCount = vertexCount;
+            quad.indexCount = indexCount;
+            // Virtual class can generate some mesh data here
+            quad.vertices = calloc(vertexCount, sizeof(CRLCameraModels::Model::Vertex));
+            quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
+
+            auto *vP = (CRLCameraModels::Model::Vertex *) quad.vertices;
+            auto *iP = (uint32_t *) quad.indices;
+
+            CRLCameraModels::Model::Vertex vertex[4];
+            vertex[0].pos = glm::vec3(0.0f, 0.0f, 0.0f);
+            vertex[1].pos = glm::vec3(1.0f * widthScale, 0.0f, 0.0f);
+            vertex[2].pos = glm::vec3(0.0f, 0.0f, 1.0f * heightScale);
+            vertex[3].pos = glm::vec3(1.0f * widthScale, 0.0f, 1.0f * heightScale);
+
+            vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+
+            vertex[0].uv0 = glm::vec2(0.0f, 0.0f);
+            vertex[1].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
+            vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
+            vP[0] = vertex[0];
+            vP[1] = vertex[1];
+            vP[2] = vertex[2];
+            vP[3] = vertex[3];
+            // indices
+            iP[0] = 0;
+            iP[1] = 1;
+            iP[2] = 2;
+            iP[3] = 1;
+            iP[4] = 2;
+            iP[5] = 3;
+        }
+    };
 
     std::vector<VkDescriptorSet> descriptors;
     VkDescriptorSetLayout descriptorSetLayout{};
@@ -116,9 +170,9 @@ public:
 
     void createPipelineLayout();
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model *model);
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model);
 
-    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, MeshModel::Model *model);
+    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
 
 protected:
 
@@ -134,4 +188,5 @@ protected:
 };
 
 
-#endif //MULTISENSE_MESHMODEL_H
+
+#endif //MULTISENSE_CRLCAMERAMODELS_H

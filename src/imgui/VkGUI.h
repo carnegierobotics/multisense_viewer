@@ -45,7 +45,7 @@ public:
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders;
 
-    UISettings uiSettings;
+    UISettings *uiSettings;
     bool updated = false;
     /** @brief active used to determine if camera should update view or user is currently using the UI */
     bool active = false;
@@ -55,6 +55,7 @@ public:
         device = vulkanDevice;
         ImGui::CreateContext();
 
+        uiSettings = new UISettings();
         ImGuiStyle *style = &ImGui::GetStyle();
 
         /*
@@ -453,33 +454,33 @@ public:
 
         // Update frame time display
         if (updateFrameGraph) {
-            std::rotate(uiSettings.frameTimes.begin(), uiSettings.frameTimes.begin() + 1, uiSettings.frameTimes.end());
+            std::rotate(uiSettings->frameTimes.begin(), uiSettings->frameTimes.begin() + 1, uiSettings->frameTimes.end());
             float frameTime = 1000.0f / (frameTimer * 1000.0f);
-            uiSettings.frameTimes.back() = frameTime;
-            if (frameTime < uiSettings.frameTimeMin) {
-                uiSettings.frameTimeMin = frameTime;
+            uiSettings->frameTimes.back() = frameTime;
+            if (frameTime < uiSettings->frameTimeMin) {
+                uiSettings->frameTimeMin = frameTime;
             }
-            if (frameTime > uiSettings.frameTimeMax) {
-                uiSettings.frameTimeMax = frameTime;
+            if (frameTime > uiSettings->frameTimeMax) {
+                uiSettings->frameTimeMax = frameTime;
             }
         }
 
-        ImGui::PlotLines("Frame Times", &uiSettings.frameTimes[0], 50, 0, "", uiSettings.frameTimeMin,
-                         uiSettings.frameTimeMax, ImVec2(0, 80));
+        ImGui::PlotLines("Frame Times", &uiSettings->frameTimes[0], 50, 0, "", uiSettings->frameTimeMin,
+                         uiSettings->frameTimeMax, ImVec2(0, 80));
 
 
         static int item_current_idx = 0; // Here we store our selection data as an index.
         ImGui::Spacing();
         ImGui::Text("Active objects");
         if (ImGui::BeginListBox("##")) {
-            for (int n = 0; n < uiSettings.listBoxNames.size(); n++) {
-                const bool is_selected = (uiSettings.selectedListboxIndex == n);
+            for (int n = 0; n < uiSettings->listBoxNames.size(); n++) {
+                const bool is_selected = (uiSettings->selectedListboxIndex == n);
 
                 // Remove Example from list
-                if (uiSettings.listBoxNames[n] == "Example") continue;
+                if (uiSettings->listBoxNames[n] == "Example") continue;
 
-                if (ImGui::Selectable(uiSettings.listBoxNames[n].c_str(), is_selected)) {
-                    uiSettings.selectedListboxIndex = n;
+                if (ImGui::Selectable(uiSettings->listBoxNames[n].c_str(), is_selected)) {
+                    uiSettings->selectedListboxIndex = n;
 
                 }
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -491,8 +492,8 @@ public:
             ImGui::EndListBox();
         }
 
-        if (!uiSettings.elements.empty()) {
-            for (auto &element: uiSettings.elements) {
+        if (!uiSettings->elements.empty()) {
+            for (auto &element: uiSettings->elements) {
 
                 switch (element.type) {
                     case AR_ELEMENT_TEXT:
@@ -522,15 +523,15 @@ public:
 
         }
         /*
-                 if (!uiSettings.dropDownItems.empty()){
+                 if (!uiSettings->dropDownItems.empty()){
             if (ImGui::BeginCombo("##combo",
-                                  uiSettings.selectedDropDown)) // The second parameter is the label previewed before opening the combo.
+                                  uiSettings->selectedDropDown)) // The second parameter is the label previewed before opening the combo.
             {
-                for (int n = 0; n < uiSettings.dropDownItems.size(); n++) {
-                    bool is_selected = (uiSettings.selectedDropDown ==
-                                        uiSettings.dropDownItems[n]); // You can store your selection however you want, outside or inside your objects
-                    if (ImGui::Selectable(uiSettings.dropDownItems[n].c_str(), is_selected)) {
-                        uiSettings.selectedDropDown = uiSettings.dropDownItems[n].c_str();
+                for (int n = 0; n < uiSettings->dropDownItems.size(); n++) {
+                    bool is_selected = (uiSettings->selectedDropDown ==
+                                        uiSettings->dropDownItems[n]); // You can store your selection however you want, outside or inside your objects
+                    if (ImGui::Selectable(uiSettings->dropDownItems[n].c_str(), is_selected)) {
+                        uiSettings->selectedDropDown = uiSettings->dropDownItems[n].c_str();
                         updated |= true;
                     }
                     if (is_selected)
@@ -543,7 +544,7 @@ public:
         /*
          *
 
-        if (uiSettings.flag) {
+        if (uiSettings->flag) {
 
 
             ImGui::Text("MultiSense S21 Found");
@@ -560,13 +561,13 @@ public:
             ImGui::Text("Show disparity image stream");
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-            ImGui::Checkbox("##", &uiSettings.fa);
+            ImGui::Checkbox("##", &uiSettings->fa);
 
             ImGui::Text("Show Left image stream");
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 35);
-            ImGui::Checkbox("##", &uiSettings.fa);
+            ImGui::Checkbox("##", &uiSettings->fa);
             ImGui::Spacing();
 
             const char *items[] = {"None", "Hello world", "Distance to user", "Find ground planes",

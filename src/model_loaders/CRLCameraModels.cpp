@@ -1,29 +1,36 @@
 //
+// Created by magnus on 3/10/22.
+//
+
+#include "CRLCameraModels.h"
+
+//
 // Created by magnus on 2/20/22.
 //
 
-#include "MeshModel.h"
+#include "CRLCameraModels.h"
 #include "stb_image.h"
 #include "MultiSense/MultiSenseTypes.hh"
 
 #include <utility>
 
-void MeshModel::destroy(VkDevice device) {
+void CRLCameraModels::destroy(VkDevice device) {
 
 }
 
-void MeshModel::loadFromFile(std::string filename, float scale) {
+void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-MeshModel::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
+CRLCameraModels::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
     this->vulkanDevice = _vulkanDevice;
     textures.resize(count);
     textureSamplers.resize(count);
 
 }
+
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
-void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t vertexCount) {
+void CRLCameraModels::Model::createMesh(CRLCameraModels::Model::Vertex *_vertices, uint32_t vertexCount) {
     size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
 
     mesh.vertexCount = vertexCount;
@@ -45,9 +52,10 @@ void MeshModel::Model::createMesh(MeshModel::Model::Vertex *_vertices, uint32_t 
 }
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 
-void MeshModel::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
-                                             uint32_t
-                                             indexCount) {
+void
+CRLCameraModels::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+                                              uint32_t
+                                              indexCount) {
 
 
     size_t vertexBufferSize = vertexCount * sizeof(Vertex);
@@ -82,6 +90,14 @@ void MeshModel::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t 
 
     // Create device local buffers
     // Vertex buffer
+    if (mesh.vertices.buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.vertices.buffer, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, nullptr);
+        if (indexBufferSize > 0) {
+            vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.indices.buffer, nullptr);
+            vkFreeMemory(vulkanDevice->logicalDevice, mesh.indices.memory, nullptr);
+        }
+    }
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -120,7 +136,7 @@ void MeshModel::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t 
 }
 
 
-void MeshModel::Model::loadTextureSamplers() {
+void CRLCameraModels::Model::loadTextureSamplers() {
     Texture::TextureSampler sampler{};
     sampler.minFilter = VK_FILTER_LINEAR;
     sampler.magFilter = VK_FILTER_LINEAR;
@@ -131,13 +147,21 @@ void MeshModel::Model::loadTextureSamplers() {
 
 }
 
-void MeshModel::Model::setVideoTexture(uint32_t frame){
+void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header imageP) {
     // Create texture image if not created
-    textureVideos[0].updateTextureFromBuffer(videos.pixels[frame]);
+    if (imageP.source == 0)
+        return;
+
+    auto *p = (uint8_t *) imageP.imageDataP;
+    auto *pixel = (unsigned char *) malloc(imageP.imageLength * sizeof(u_char));
+    //memcpy(pixel, p, imageP.imageLength);
+
+    textureVideos[0].updateTextureFromBuffer(const_cast<void *>(imageP.imageDataP));
 
 }
 
-void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
+void
+CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
     // Create texture image if not created
 
     int texWidth, texHeight, texChannels;
@@ -158,40 +182,29 @@ void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
     textures[0] = texture;
 
 }
-void MeshModel::Model::prepareVideoTextures() {
-    int counter = 1;
-    while(counter < 101){
-        std::string strCount = std::to_string(counter);
-        std::string fileName = "Video/earth/ezgif-frame-000";
-        strCount.length();
-        std::string file = fileName.substr(0, fileName.length() - strCount.length());
-        file = file + strCount + ".jpg";
 
-        int texWidth, texHeight, texChannels;
-        stbi_uc *pixels = stbi_load((Utils::getTexturePath() + file).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
-        if (!pixels) {
-            throw std::runtime_error("failed to load texture image!");
-        }
-        videos.pixels.emplace_back(pixels);
-        videos.imageSize = imageSize;
-        videos.height = texHeight;
-        videos.width = texWidth;
-        counter += 1;
-    }
+void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size) {
 
+    videos.imageSize = size;
+    videos.height = height;
+    videos.width = width;
 
-    if (textureVideos.empty()){
+    if (textureVideos.empty()) {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8G8B8A8_UNORM);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
         textureVideos.emplace_back(texture);
-    }
+    } else {
+        TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+        textureVideos[0] = texture;
+        textureVideos[0].updateDescriptor();
 
+    }
 
 
 }
 
-void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model *model) {
+void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
@@ -211,7 +224,8 @@ void MeshModel::draw(VkCommandBuffer commandBuffer, uint32_t i, MeshModel::Model
 }
 
 
-void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, MeshModel::Model *model) {
+void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo,
+                                        CRLCameraModels::Model *model) {
     descriptors.resize(count);
 
     uint32_t uniformDescriptorCount = (3 * count);
@@ -260,7 +274,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
 
-        if (model->textureVideos.empty()){
+        if (model->textureVideos.empty()) {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             writeDescriptorSets[3].descriptorCount = 1;
@@ -283,7 +297,7 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
 
 }
 
-void MeshModel::createDescriptorSetLayout() {
+void CRLCameraModels::createDescriptorSetLayout() {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
             {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -300,12 +314,13 @@ void MeshModel::createDescriptorSetLayout() {
 
 }
 
-void MeshModel::createPipelineLayout() {
+void CRLCameraModels::createPipelineLayout() {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
     CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, &pipelineLayout))
 }
 
-void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type) {
+void
+CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type) {
     createPipelineLayout();
 
     // Vertex bindings an attributes
@@ -408,9 +423,10 @@ void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStag
 
 
 void
-MeshModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
-                                Model *model,
-                                ScriptType type) {
+CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
+                                      std::vector<VkPipelineShaderStageCreateInfo> vector,
+                                      Model *model,
+                                      ScriptType type) {
     this->vulkanDevice = utils.device;
 
     createDescriptorSetLayout();

@@ -1,6 +1,6 @@
-#include "MultiSensePointCloud.h"
+#include "VirtualPointCloud.h"
 
-void MultiSensePointCloud::setup() {
+void VirtualPointCloud::setup() {
     model = new MeshModel::Model(1, renderUtils.device);
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -18,7 +18,7 @@ void MultiSensePointCloud::setup() {
 }
 
 
-void MultiSensePointCloud::update() {
+void VirtualPointCloud::update() {
     virtualCamera->update(renderData);
     CRLBaseCamera::PointCloudData *meshData = virtualCamera->getStream();
     model->createMesh((MeshModel::Model::Vertex *)meshData->vertices, meshData->vertexCount);
@@ -33,11 +33,11 @@ void MultiSensePointCloud::update() {
 
 }
 
-void MultiSensePointCloud::onUIUpdate(UISettings uiSettings) {
+void VirtualPointCloud::onUIUpdate(UISettings *uiSettings) {
 }
 
 
-void MultiSensePointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void VirtualPointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
     MeshModel::draw(commandBuffer, i, this->model);
 }

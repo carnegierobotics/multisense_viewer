@@ -13,7 +13,8 @@
 
 typedef enum CRLCameraDataType {
     CrlPointCloud,
-    CrlImage
+    CrlImage,
+    CrlNone
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {
@@ -61,13 +62,11 @@ class CRLBaseCamera {
 public:
     explicit CRLBaseCamera() {
         // TODO MOVE CREATION TO AN APPROPIATE METHOD
-        imageData = new ImageData();
         meshData = new PointCloudData(1280, 720);
     }
 
     static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
 
-    std::unique_ptr<crl::multisense::Channel> camInterface;
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_;
 
     crl::multisense::image::Header imageP;
@@ -117,59 +116,8 @@ public:
 
     };
 
-    struct ImageData {
-        struct {
-            void *vertices{};
-            uint32_t vertexCount{};
-            uint32_t *indices{};
-            uint32_t indexCount{};
-        } quad;
-
-        /**@brief Generates a Quad with texture coordinates */
-        ImageData() {
-            int vertexCount = 4;
-            int indexCount = 2 * 3;
-            quad.vertexCount = vertexCount;
-            quad.indexCount = indexCount;
-            // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(MeshModel::Model::Vertex));
-            quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
-
-            auto *vP = (MeshModel::Model::Vertex *) quad.vertices;
-            auto *iP = (uint32_t *) quad.indices;
-
-            MeshModel::Model::Vertex vertex[4];
-            vertex[0].pos = glm::vec3(0.0f, 0.0f, 0.0f);
-            vertex[1].pos = glm::vec3(1.0f, 0.0f, 0.0f);
-            vertex[2].pos = glm::vec3(0.0f, 0.0f, 1.0f);
-            vertex[3].pos = glm::vec3(1.0f, 0.0f, 1.0f);
-
-            vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-
-            vertex[0].uv0 = glm::vec2(0.0f, 0.0f);
-            vertex[1].uv0 = glm::vec2(1.0f, 0.0f);
-            vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
-            vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
-            vP[0] = vertex[0];
-            vP[1] = vertex[1];
-            vP[2] = vertex[2];
-            vP[3] = vertex[3];
-            // indices
-            iP[0] = 0;
-            iP[1] = 1;
-            iP[2] = 2;
-            iP[3] = 1;
-            iP[4] = 2;
-            iP[5] = 3;
-        }
-    };
 
     PointCloudData *meshData{};
-    ImageData *imageData{};
-
 
 
     virtual void initialize() {};
@@ -196,6 +144,15 @@ protected:
     void streamCallback(const crl::multisense::image::Header &image);
 
     std::unordered_set<crl::multisense::DataSource> supportedSources();
+
+
+    void selectFramerate(float FPS);
+
+    void selectDisparities(uint32_t disparities);
+
+    void selectResolution(uint32_t RequestedWidth, uint32_t RequestedHeight);
+
+    crl::multisense::image::Config getImageConfig() const;
 };
 
 

@@ -23,7 +23,7 @@ public:
     void update(Base::Render render);
     void stop() override;
     PointCloudData *getStream() override;
-    [[nodiscard]] ImageData* getImageData() const;
+
     ~CRLVirtualCamera();
 
 private:

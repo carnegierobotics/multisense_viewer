@@ -115,7 +115,7 @@ public:
 
     TextureVideo() = default;
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize bufferSize, VulkanDevice *device,
-                 VkImageLayout layout);
+                 VkImageLayout layout, VkFormat format);
     void updateTextureFromBuffer(void *buffer);
 
 };

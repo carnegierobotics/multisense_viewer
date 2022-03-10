@@ -44,7 +44,3 @@ CRLVirtualCamera::~CRLVirtualCamera() {
         free(meshData->vertices);
 
 }
-
-CRLBaseCamera::ImageData *CRLVirtualCamera::getImageData() const {
-    return imageData;
-}

@@ -14,9 +14,9 @@
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
-    FrDefault,
-    FrPointCloud,
-    FrDisabled
+    ArDefault,
+    ArPointCloud,
+    ArDisabled
 
 } ScriptType;
 
@@ -82,7 +82,7 @@ public:
     virtual void setup() = 0;
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(UISettings uiSettings) = 0;
+    virtual void onUIUpdate(UISettings *uiSettings) = 0;
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return type; }
@@ -99,7 +99,7 @@ public:
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
-        if (scriptType == FrDefault || scriptType == FrPointCloud) {
+        if (scriptType == ArDefault || scriptType == ArPointCloud) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -116,7 +116,7 @@ public:
             float f = (float) atoi(val);
             memcpy(currentUB.bufferThree.mapped, &f, sizeof(float));
             currentUB.bufferThree.unmap();
-        } else if(scriptType == FrPointCloud){
+        } else if(scriptType == ArPointCloud){
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
             currentUB.bufferOne.unmap();
@@ -130,13 +130,13 @@ public:
     }
 
     void createUniformBuffers(RenderUtils utils, ScriptType scriptType) {
-        if (scriptType == FrDisabled)
+        if (scriptType == ArDisabled)
             return;
 
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
-        if (scriptType == FrDefault || scriptType == FrPointCloud) {
+        if (scriptType == ArDefault || scriptType == ArPointCloud) {
 
             bufferOneData = new UBOMatrix();
             bufferTwoData = new FragShaderParams();
@@ -161,7 +161,7 @@ public:
 
             }
         }
-        else if (scriptType == FrPointCloud) {
+        else if (scriptType == ArPointCloud) {
             bufferOneData = new UBOMatrix();
             bufferTwoData = new PointCloudShader();
 
@@ -202,7 +202,7 @@ public:
         return shaderStage;
     }
 
-    ScriptType type = FrDisabled;
+    ScriptType type = ArDisabled;
 
 
 protected:

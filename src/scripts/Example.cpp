@@ -9,20 +9,6 @@ void Example::setup() {
                        renderUtils.device->transferQueue, 1.0f);
 
 
-    // UI cretion
-    std::vector<UISettings::DropDownItem> dropDownItems;
-    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
-    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
-    dropDownItems.emplace_back(UISettings::DropDownItem("Render"));
-
-    dropDownItems[0].dropdown = "Grayscale";
-    dropDownItems[1].dropdown = "Albedo";
-    dropDownItems[2].dropdown = "Albedo + Normal";
-
-    for (auto item: dropDownItems) {
-        renderUtils.ui->createDropDown(&item);
-    }
-
     // Shader creation
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/helmet.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/helmet.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -63,18 +49,6 @@ void Example::update() {
 
 
 
-void Example::onUIUpdate(UISettings uiSettings) {
+void Example::onUIUpdate(UISettings *uiSettings) {
 
-    if (uiSettings.selectedDropDown == NULL)
-        return;
-
-    if (strcmp(uiSettings.selectedDropDown, "Grayscale") == 0) {
-        selection = (void *) "0";
-    }
-    if (strcmp(uiSettings.selectedDropDown, "Albedo") == 0) {
-        selection = (void *) "1";
-    }
-    if (strcmp(uiSettings.selectedDropDown, "Albedo + Normal") == 0) {
-        selection = (void *) "2";
-    }
 }

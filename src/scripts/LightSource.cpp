@@ -39,6 +39,6 @@ void LightSource::update() {
 
 
 
-void LightSource::onUIUpdate(UISettings uiSettings) {
+void LightSource::onUIUpdate(UISettings *uiSettings) {
 
 }

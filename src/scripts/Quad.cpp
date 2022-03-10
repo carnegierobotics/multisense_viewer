@@ -18,13 +18,13 @@ void Quad::setup() {
 
     uint32_t width = 1920;
     uint32_t height = 1200;
-    model->prepareTextureImage(width, height, width * height); // TODO TEMP-remove it
+    model->prepareTextureImage(width, height, width * height * 4, VK_FORMAT_R8G8B8_UNORM); // TODO TEMP-remove it
     auto *imgData = new ImageData((1920.0f / 1200.0f), 1);
     model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
 
 
-    CRLCameraModels::createRenderPipeline(renderUtils,  renderUtils.shaders, model, type);
+    CRLCameraModels::createRenderPipeline(renderUtils, renderUtils.shaders, model, type);
 }
 
 
@@ -32,12 +32,15 @@ void Quad::update() {
     if (camera == nullptr || !camera->play)
         return;
     // If mode changes
-
+    uint32_t size = 0;
     if (camera->modeChange) {
         auto imgConf = camera->getImageConfig();
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), imgConf.width() * imgConf.height()); // TODO TEMP-remove it
+        size = imgConf.width() * imgConf.height() * 3 * 2;
+        model->prepareTextureImage(imgConf.width(), imgConf.height(),
+                                   size , VK_FORMAT_R8G8B8_UNORM); // TODO TEMP-remove it
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
-        model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,imgData->quad.indices, imgData->quad.indexCount);
+        model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices,
+                                     imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
@@ -48,17 +51,8 @@ void Quad::update() {
         camera->modeChange = false;
     }
 
+    model->setVideoTexture(camera->getImage(), size);
 
-
-    int runTimeInMS = (int) (renderData.runTime * 1000);
-    if ((runTimeInMS % 50) < 20) {
-
-        model->setVideoTexture(camera->getImage());
-        count += 1;
-        if (count >= 100)
-            count = 1;
-
-    }
 
 
     UBOMatrix mat{};

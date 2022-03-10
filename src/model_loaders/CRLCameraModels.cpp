@@ -137,26 +137,20 @@ CRLCameraModels::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t
 
 
 void CRLCameraModels::Model::loadTextureSamplers() {
-    Texture::TextureSampler sampler{};
-    sampler.minFilter = VK_FILTER_LINEAR;
-    sampler.magFilter = VK_FILTER_LINEAR;
-    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler.addressModeW = sampler.addressModeV;
-    textureSamplers.push_back(sampler);
+
 
 }
 
-void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header imageP) {
+void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header fileName, uint32_t size) {
     // Create texture image if not created
-    if (imageP.source == 0)
+    if (fileName.source == 0)
         return;
 
-    auto *p = (uint8_t *) imageP.imageDataP;
-    auto *pixel = (unsigned char *) malloc(imageP.imageLength * sizeof(u_char));
-    //memcpy(pixel, p, imageP.imageLength);
+    auto *p = (uint8_t *) fileName.imageDataP;
+    auto *pixel = (unsigned char *) malloc(size);
+    memcpy(pixel, p, fileName.imageLength);
 
-    textureVideos[0].updateTextureFromBuffer(const_cast<void *>(imageP.imageDataP));
+    textureVideos[0].updateTextureFromBuffer(pixel);
 
 }
 
@@ -183,7 +177,7 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
 
 }
 
-void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size) {
+void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size, VkFormat format) {
 
     videos.imageSize = size;
     videos.height = height;
@@ -191,13 +185,12 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 
     if (textureVideos.empty()) {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos.emplace_back(texture);
     } else {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos[0] = texture;
-        textureVideos[0].updateDescriptor();
 
     }
 

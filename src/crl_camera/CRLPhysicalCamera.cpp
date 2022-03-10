@@ -30,9 +30,7 @@ void CRLPhysicalCamera::start(std::string string) {
     this->selectFramerate(30);
 
     // Start stream
-    bool status = cameraInterface->startStreams(crl::multisense::Source_Disparity);
-    printf("Started stream| status: %d\n", status);
-
+    bool status = cameraInterface->startStreams(crl::multisense::Source_Chroma_Aux);
     this->modeChange = true;
 }
 

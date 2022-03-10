@@ -17,7 +17,7 @@ void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image)
     {
         cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
     }
-    if (image.source == crl::multisense::Source_Luma_Left){
+    if (image.source == crl::multisense::Source_Chroma_Aux){
         imageP = image;
     }
 

@@ -410,7 +410,7 @@ public:
 
 
     void createDropDowns(ElementBase *element) {
-        if (ImGui::BeginCombo("##combo",
+        if (ImGui::BeginCombo(element->dropDown->label.c_str(),
                               element->dropDown->selected.c_str())) // The second parameter is the label previewed before opening the combo.
         {
             for (auto &dropDownItem: element->dropDown->dropDownItems) {

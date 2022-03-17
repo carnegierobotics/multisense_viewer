@@ -6,8 +6,7 @@
 #include <unordered_set>
 #include "MultiSense/src/crl_camera/CRLBaseCamera.h"
 
-void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image)
-{
+void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image) {
     auto &buf = buffers_[image.source];
 
     // TODO: make this a method of the BufferPair or something
@@ -17,16 +16,14 @@ void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image)
     {
         cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
     }
-    if (image.source == crl::multisense::Source_Chroma_Aux){
-        imageP = image;
-    }
+    imageP = image;
 
     buf.inactiveCBBuf = cameraInterface->reserveCallbackBuffer();
     buf.inactive = image;
 }
 
 void CRLBaseCamera::imageCallback(const crl::multisense::image::Header &header, void *userDataP) {
-    auto cam = reinterpret_cast<CRLBaseCamera*>(userDataP);
+    auto cam = reinterpret_cast<CRLBaseCamera *>(userDataP);
     cam->streamCallback(header);
 }
 
@@ -37,7 +34,7 @@ bool CRLBaseCamera::connect(CRLCameraType type) {
         case DEFAULT_CAMERA_IP:
             if (cameraInterface == nullptr) {
                 cameraInterface = crl::multisense::Channel::Create("10.66.171.21");
-                if (cameraInterface != nullptr){
+                if (cameraInterface != nullptr) {
                     getCameraMetaData();
                     addCallbacks();
                     return true;
@@ -65,7 +62,8 @@ void CRLBaseCamera::prepare() {
 }
 
 void CRLBaseCamera::getCameraMetaData() {
-    cameraInterface->setMtu(7200);  //FROM CRL viewer --> (try to increase this to whatever we can get away with, or use in run-level config-file)
+    cameraInterface->setMtu(
+            7200);  //FROM CRL viewer --> (try to increase this to whatever we can get away with, or use in run-level config-file)
     cameraInterface->getImageConfig(cameraInfo.imgConf);
     cameraInterface->getNetworkConfig(cameraInfo.netConfig);
     cameraInterface->getVersionInfo(cameraInfo.versionInfo);
@@ -76,20 +74,24 @@ void CRLBaseCamera::getCameraMetaData() {
 
 }
 
-void CRLBaseCamera::addCallbacks(){
+void CRLBaseCamera::addCallbacks() {
 
 
-    for (auto e : cameraInfo.supportedDeviceModes)
+    for (auto e: cameraInfo.supportedDeviceModes)
         cameraInfo.supportedSources |= e.supportedDataSources;
 
     // reserve double_buffers for each stream
     uint_fast8_t num_sources = 0;
     crl::multisense::DataSource d = cameraInfo.supportedSources;
-    while (d) { num_sources += (d&1); d>>=1; }
+    while (d) {
+        num_sources += (d & 1);
+        d >>= 1;
+    }
 
     // --- initializing our callback buffers ---
-    std::size_t bufSize = 1024*1024*10;  // 10mb for every image, like in LibMultiSense
-    for (int i=0; i<(num_sources*2+1); ++i) // double-buffering for each stream, plus one for handling if those are full
+    std::size_t bufSize = 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
+    for (int i = 0;
+         i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
     {
         cameraInfo.rawImages.push_back(new uint8_t[bufSize]);
     }
@@ -98,8 +100,8 @@ void CRLBaseCamera::addCallbacks(){
     cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
 
     // finally, add our callback
-    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) != crl::multisense::Status_Ok)
-    {
+    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+        crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
     }
 
@@ -174,6 +176,7 @@ void CRLBaseCamera::selectDisparities(uint32_t disparities) {
         printf("Failed to configure disparities\n");
     }
 }
+
 // Set camera frames per second
 void CRLBaseCamera::selectFramerate(float FPS) {
     crl::multisense::image::Config cfg;

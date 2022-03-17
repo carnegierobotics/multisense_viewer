@@ -9,12 +9,12 @@ void CRLVirtualCamera::connect(CRLCameraDataType source) {
 
 }
 
-void CRLVirtualCamera::start(std::string string) {
+void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
 
 
 }
 
-void CRLVirtualCamera::stop() {
+void CRLVirtualCamera::stop(std::string dataSourceStr) {
 
 }
 

@@ -122,9 +122,9 @@ public:
 
     virtual void initialize() {};
 
-    virtual void start(std::string string) = 0;
+    virtual void start(std::string string, std::string dataSourceStr) = 0;
 
-    virtual void stop() = 0;
+    virtual void stop(std::string dataSourceStr) = 0;
 
     virtual PointCloudData *getStream() = 0;
 
@@ -143,9 +143,6 @@ protected:
 
     void streamCallback(const crl::multisense::image::Header &image);
 
-    std::unordered_set<crl::multisense::DataSource> supportedSources();
-
-
     void selectFramerate(float FPS);
 
     void selectDisparities(uint32_t disparities);
@@ -153,6 +150,8 @@ protected:
     void selectResolution(uint32_t RequestedWidth, uint32_t RequestedHeight);
 
     crl::multisense::image::Config getImageConfig() const;
+
+    std::unordered_set<crl::multisense::DataSource> supportedSources();
 };
 
 

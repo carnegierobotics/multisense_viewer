@@ -44,8 +44,9 @@ public:
     Text* cameraNameHeader;
     Text* cameraName;
     DropDownItem *modes;
-
+    DropDownItem* sources;
     Button* startStream;
+    Button* stopStream;
 
 
 

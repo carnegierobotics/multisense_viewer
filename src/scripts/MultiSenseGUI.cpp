@@ -32,32 +32,53 @@ void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
 
     if (connectButton->clicked && !camera->online){
         camera->connect();
+        if (!camera->online)
+            return;
         uiSettings->sharedData = camera;
 
         cameraName->string = camera->getInfo().devInfo.name;
         // Generate drop downs
-        modes = new DropDownItem("Type");
+        modes = new DropDownItem("Mode");
         for (int i = 0; i < camera->getInfo().supportedDeviceModes.size(); ++i) {
-            modes->selected = "Select device mode";
             auto mode = camera->getInfo().supportedDeviceModes[i];
             std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " + std::to_string(mode.disparities) + "x";
             modes->dropDownItems.push_back(modeName);
         }
+        modes->selected = "Select device mode";
         renderUtils.ui->createDropDown(modes);
+
+        //
+        sources = new DropDownItem("Source");
+        for (const auto& elem: camera->supportedSources()) {
+            std::string sourceName = camera->dataSourceToString(elem);
+            sources->dropDownItems.push_back(sourceName);
+        }
+        sources->selected = "Select data source";
+        renderUtils.ui->createDropDown(sources);
 
         // Start stream
         startStream = new Button("Start stream", 175.0f, 30.0f);
         renderUtils.ui->createButton(startStream);
+
+        // Start stream
+        stopStream = new Button("Stop stream", 175.0f, 30.0f);
+        renderUtils.ui->createButton(stopStream);
 
         connectButton->clicked = false;
     }
 
     if (startStream != nullptr){
         if (startStream->clicked){
-            camera->start(modes->selected);
+            camera->start(modes->selected, sources->selected);
             camera->play = true;
         }
+    }
 
+    if (stopStream != nullptr){
+        if (stopStream->clicked){
+            camera->stop(sources->selected);
+            camera->play = false;
+        }
     }
 }
 

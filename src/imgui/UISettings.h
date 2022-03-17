@@ -52,15 +52,14 @@ struct Text {
 };
 
 struct DropDownItem {
-    std::string dropdown;
+    std::string label;
     std::string selected;
     std::vector<std::string> dropDownItems;
 
-    explicit DropDownItem(std::string type) {
-        scriptType = std::move(type);
+    explicit DropDownItem(std::string label){
+        this->label = std::move(label);
     }
 
-    std::string scriptType;
 };
 
 class ElementBase {

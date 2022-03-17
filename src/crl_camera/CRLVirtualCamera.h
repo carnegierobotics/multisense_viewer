@@ -19,9 +19,9 @@ public:
     int point = 0;
 
     void connect(CRLCameraDataType source);
-    void start(std::string string) override;
+    void start(std::string string, std::string dataSourceStr) override;
     void update(Base::Render render);
-    void stop() override;
+    void stop(std::string dataSourceStr) override;
     PointCloudData *getStream() override;
 
     ~CRLVirtualCamera();

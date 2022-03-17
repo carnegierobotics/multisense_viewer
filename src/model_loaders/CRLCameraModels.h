@@ -98,9 +98,9 @@ public:
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-        void setVideoTexture(crl::multisense::image::Header fileName, uint32_t i);
+        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size);
 
-        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size, VkFormat format);
+        void setVideoTexture(crl::multisense::image::Header imageP);
     };
 
     /**@brief Primitive for a surface */

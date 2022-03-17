@@ -137,20 +137,53 @@ CRLCameraModels::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t
 
 
 void CRLCameraModels::Model::loadTextureSamplers() {
-
+    Texture::TextureSampler sampler{};
+    sampler.minFilter = VK_FILTER_LINEAR;
+    sampler.magFilter = VK_FILTER_LINEAR;
+    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler.addressModeW = sampler.addressModeV;
+    textureSamplers.push_back(sampler);
 
 }
 
-void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header fileName, uint32_t size) {
+void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header imageP) {
     // Create texture image if not created
-    if (fileName.source == 0)
+    if (imageP.source == 0)
         return;
 
-    auto *p = (uint8_t *) fileName.imageDataP;
-    auto *pixel = (unsigned char *) malloc(size);
-    memcpy(pixel, p, fileName.imageLength);
 
-    textureVideos[0].updateTextureFromBuffer(pixel);
+    if (imageP.source == crl::multisense::Source_Chroma_Rectified_Aux) {
+        auto *p = (uint16_t *) imageP.imageDataP;
+        auto * V = (uint8_t *) malloc(imageP.imageLength);
+        auto * U = (uint8_t *) malloc(imageP.imageLength);
+        auto * Y = (uint8_t *) malloc(imageP.imageLength);
+
+        for (int i = 0; i < imageP.imageLength; i++) {
+            V[i] = p[i] >> 8;     // high byte (0x12)
+            U[i] = p[i] & 0x00FF; //
+
+            uint32_t val1 = V[i];
+            uint32_t val2 = U[i];
+            int k = 0;// low byte (0x34)
+        }
+
+
+        std::vector<uint16_t> data;
+
+        data.reserve(20);
+
+
+        auto *pixel = (uint16_t *) malloc(imageP.imageLength);
+        textureVideos[0].updateTextureFromBuffer(V);
+
+    } else {
+        //memcpy(pixel, p, imageP.imageLength);
+        auto *p = (uint8_t *) imageP.imageDataP;
+        auto *pixel = (unsigned char *) malloc(imageP.imageLength * sizeof(u_char));
+        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(imageP.imageDataP));
+    }
+
 
 }
 
@@ -177,7 +210,7 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
 
 }
 
-void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size, VkFormat format) {
+void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size) {
 
     videos.imageSize = size;
     videos.height = height;
@@ -185,12 +218,13 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 
     if (textureVideos.empty()) {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
         textureVideos.emplace_back(texture);
     } else {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
         textureVideos[0] = texture;
+        textureVideos[0].updateDescriptor();
 
     }
 

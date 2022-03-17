@@ -21,10 +21,13 @@ public:
     int point = 0;
     bool modeChange = false;
 
+
+
     void connect();
-    void start(std::string string) override;
+    void start(std::string string, std::string dataSourceStr) override;
     void update(Base::Render render, crl::multisense::image::Header *pHeader);
-    void stop() override;
+    void stop( std::string dataSourceStr) override;
+
     CameraInfo getInfo();
     PointCloudData *getStream() override;
 
@@ -33,6 +36,13 @@ public:
     crl::multisense::image::Header getImage();
 
     crl::multisense::image::Config getImageConfig() const;
+
+    std::unordered_set<crl::multisense::DataSource> supportedSources();
+
+    std::string dataSourceToString(unsigned int d);
+
+    unsigned int stringToDataSource(const std::string &d);
+
 };
 
 

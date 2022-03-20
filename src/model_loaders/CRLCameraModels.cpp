@@ -4,15 +4,8 @@
 
 #include "CRLCameraModels.h"
 
-//
-// Created by magnus on 2/20/22.
-//
-
-#include "CRLCameraModels.h"
 #include "stb_image.h"
-#include "MultiSense/MultiSenseTypes.hh"
 
-#include <utility>
 
 void CRLCameraModels::destroy(VkDevice device) {
 
@@ -147,41 +140,23 @@ void CRLCameraModels::Model::loadTextureSamplers() {
 
 }
 
-void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header imageP) {
+void CRLCameraModels::Model::setVideoTexture(const crl::multisense::image::Header& streamOne, const crl::multisense::image::Header& streamTwo) {
     // Create texture image if not created
-    if (imageP.source == 0)
+    if (streamOne.source == 0)
         return;
 
 
-    if (imageP.source == crl::multisense::Source_Chroma_Rectified_Aux) {
-        auto *p = (uint16_t *) imageP.imageDataP;
-        auto * V = (uint8_t *) malloc(imageP.imageLength);
-        auto * U = (uint8_t *) malloc(imageP.imageLength);
-        auto * Y = (uint8_t *) malloc(imageP.imageLength);
+    if (streamOne.source == crl::multisense::Source_Chroma_Rectified_Aux) {
+        auto * chromaBuffer = (uint8_t *) malloc(streamOne.imageLength);
+        auto * lumaBuffer = (uint16_t *) malloc(streamTwo.imageLength);
 
-        for (int i = 0; i < imageP.imageLength; i++) {
-            V[i] = p[i] >> 8;     // high byte (0x12)
-            U[i] = p[i] & 0x00FF; //
-
-            uint32_t val1 = V[i];
-            uint32_t val2 = U[i];
-            int k = 0;// low byte (0x34)
-        }
-
-
-        std::vector<uint16_t> data;
-
-        data.reserve(20);
-
-
-        auto *pixel = (uint16_t *) malloc(imageP.imageLength);
-        textureVideos[0].updateTextureFromBuffer(V);
+        textureVideos[0].updateTextureFromBufferYUV(chromaBuffer, lumaBuffer);
 
     } else {
-        //memcpy(pixel, p, imageP.imageLength);
-        auto *p = (uint8_t *) imageP.imageDataP;
-        auto *pixel = (unsigned char *) malloc(imageP.imageLength * sizeof(u_char));
-        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(imageP.imageDataP));
+        //memcpy(pixel, p, streamOne.imageLength);
+        auto *p = (uint8_t *) streamOne.imageDataP;
+        auto *pixel = (unsigned char *) malloc(streamOne.imageLength * sizeof(u_char));
+        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne.imageDataP));
     }
 
 
@@ -210,19 +185,35 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
 
 }
 
-void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size) {
+void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size,
+                                                 CRLCameraDataType texType) {
 
     videos.imageSize = size;
     videos.height = height;
     videos.width = width;
 
+    VkFormat format;
+    switch (texType) {
+        case CrlColorImage:
+            format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+            break;
+        case CrlGrayscaleImage:
+            // Other textuere
+            format = VK_FORMAT_R8_UNORM;
+            break;
+        case CrlPointCloud:
+            break;
+        case CrlNone:
+            break;
+    }
+
     if (textureVideos.empty()) {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos.emplace_back(texture);
     } else {
         TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos[0] = texture;
         textureVideos[0].updateDescriptor();
 

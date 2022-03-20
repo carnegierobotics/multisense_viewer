@@ -42,6 +42,8 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
     if (!enabledInstanceExtensions.empty()) {
         if (settings.validation) {
             enabledInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            enabledInstanceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+
         }
         instanceCreateInfo.enabledExtensionCount = (uint32_t) enabledInstanceExtensions.size();
         instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();

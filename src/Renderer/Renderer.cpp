@@ -44,6 +44,7 @@ void Renderer::addDeviceFeatures() {
             enabledFeatures.wideLines = VK_TRUE;
         }
     }
+
 }
 
 void Renderer::buildCommandBuffers() {

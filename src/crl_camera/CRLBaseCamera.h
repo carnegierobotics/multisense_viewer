@@ -13,7 +13,8 @@
 
 typedef enum CRLCameraDataType {
     CrlPointCloud,
-    CrlImage,
+    CrlGrayscaleImage,
+    CrlColorImage,
     CrlNone
 } CRLCameraDataType;
 
@@ -28,7 +29,7 @@ struct Image
     uint16_t height{0}, width{0};
     uint32_t size{0};
     int64_t frame_id{0};
-    crl::multisense::DataSource source;
+    crl::multisense::DataSource source{};
     const void *data{nullptr};
 };
 
@@ -68,8 +69,8 @@ public:
     static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
 
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_;
+    std::unordered_map<crl::multisense::DataSource,crl::multisense::image::Header> imagePointers;
 
-    crl::multisense::image::Header imageP;
     struct CameraInfo {
         crl::multisense::system::DeviceInfo devInfo;
         crl::multisense::image::Config imgConf;

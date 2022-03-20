@@ -20,6 +20,7 @@ public:
     bool play = false;
     int point = 0;
     bool modeChange = false;
+    std::vector<crl::multisense::DataSource> enabledSources;
 
 
 
@@ -33,8 +34,6 @@ public:
 
     ~CRLPhysicalCamera();
 
-    crl::multisense::image::Header getImage();
-
     crl::multisense::image::Config getImageConfig() const;
 
     std::unordered_set<crl::multisense::DataSource> supportedSources();
@@ -43,6 +42,9 @@ public:
 
     unsigned int stringToDataSource(const std::string &d);
 
+    crl::multisense::image::Header getImage(unsigned int source);
+
+    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> getImage();
 };
 
 

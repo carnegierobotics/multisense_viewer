@@ -13,6 +13,10 @@ void CRLPhysicalCamera::connect() {
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
+    enabledSources.push_back(source);
+    if (source == crl::multisense::Source_Chroma_Rectified_Aux)
+        enabledSources.push_back(crl::multisense::Source_Luma_Rectified_Aux);
+
     // Set mode first
     std::string delimiter = "x";
 
@@ -42,6 +46,7 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     if (status == 0){
         printf("Stream stopped successfully\n");
     }
+    enabledSources.clear();
     this->modeChange = true;
 }
 
@@ -54,8 +59,8 @@ CRLBaseCamera::PointCloudData *CRLPhysicalCamera::getStream() {
     return meshData;
 }
 
-crl::multisense::image::Header CRLPhysicalCamera::getImage() {
-    return imageP;
+std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> CRLPhysicalCamera::getImage() {
+    return imagePointers;
 }
 
 CRLPhysicalCamera::~CRLPhysicalCamera() {

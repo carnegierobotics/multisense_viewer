@@ -16,7 +16,7 @@ void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image) 
     {
         cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
     }
-    imageP = image;
+    imagePointers[image.source] = image;
 
     buf.inactiveCBBuf = cameraInterface->reserveCallbackBuffer();
     buf.inactive = image;

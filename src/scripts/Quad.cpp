@@ -18,7 +18,7 @@ void Quad::setup() {
 
     uint32_t width = 1920;
     uint32_t height = 1200;
-    model->prepareTextureImage(width, height, width * height); //
+    model->prepareTextureImage(width, height, width * height, CrlGrayscaleImage); //
     auto *imgData = new ImageData((1920.0f / 1200.0f), 1);
     model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,
                                  imgData->quad.indices, imgData->quad.indexCount);
@@ -35,7 +35,7 @@ void Quad::update() {
 
     if (camera->modeChange) {
         auto imgConf = camera->getImageConfig();
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), imgConf.width() * imgConf.height());
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), imgConf.width() * imgConf.height(), CrlColorImage);
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
         model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices, imgData->quad.vertexCount,imgData->quad.indices, imgData->quad.indexCount);
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -53,7 +53,7 @@ void Quad::update() {
     int runTimeInMS = (int) (renderData.runTime * 1000);
     if ((runTimeInMS % 50) < 20 && camera->play) {
 
-        model->setVideoTexture(camera->getImage());
+        model->setVideoTexture(camera->getImage()[crl::multisense::Source_Chroma_Rectified_Aux],camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux] );
         count += 1;
         if (count >= 100)
             count = 1;

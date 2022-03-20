@@ -43,6 +43,7 @@ public:
     uint32_t layerCount;
     VkDescriptorImageInfo descriptor;
     VkSampler sampler;
+    VkSamplerYcbcrConversion YUVSamplerToRGB;
 
     struct TextureSampler {
         VkFilter magFilter;
@@ -118,6 +119,7 @@ public:
                  VkImageLayout layout, VkFormat format);
     void updateTextureFromBuffer(void *buffer);
 
+    void updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuffer);
 };
 
 #endif //MULTISENSE_TEXTURE_H

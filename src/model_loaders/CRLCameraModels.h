@@ -11,10 +11,13 @@
 #include <vulkan/vulkan_core.h>
 #include <string>
 #include <vector>
+#include <utility>
+
 #include <MultiSense/src/core/Texture.h>
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/Base.h>
 #include "MultiSense/MultiSenseTypes.hh"
+#include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 
 class CRLCameraModels {
 
@@ -98,9 +101,10 @@ public:
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size);
+        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size,
+                                 CRLCameraDataType texType);
 
-        void setVideoTexture(crl::multisense::image::Header imageP);
+        void setVideoTexture(const crl::multisense::image::Header& streamOne, const crl::multisense::image::Header& streamTwo);
     };
 
     /**@brief Primitive for a surface */

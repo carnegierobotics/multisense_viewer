@@ -1188,9 +1188,59 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
 
     CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
 
-    // Create sampler
+
+
+    // YUV TEXTURE SAMPLER
+    VkSamplerYcbcrConversionCreateInfo info = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
+
+    // Which 3x3 YUV to RGB matrix is used?
+    // 601 is generally used for SD content.
+    // 709 for HD content.
+    // 2020 for UHD content.
+    // Can also use IDENTITY which lets you sample the raw YUV and
+    // do the conversion in shader code.
+    // At least you don't have to hit the texture unit 3 times.
+    info.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+
+    // TV (NARROW) or PC (FULL) range for YUV?
+    // Usually, JPEG uses full range and broadcast content is narrow.
+    // If using narrow, the YUV components need to be
+    // rescaled before it can be converted.
+    info.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+
+    // Deal with order of components.
+    info.components = {
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+    };
+
+    // With NEAREST, chroma is duplicated to a 2x2 block for YUV420p.
+    // In fancy video players, you might even get bicubic/sinc
+    // interpolation filters for chroma because why not ...
+    info.chromaFilter = VK_FILTER_LINEAR;
+
+    // COSITED or MIDPOINT? I think normal YUV420p content is MIDPOINT,
+    // but not quite sure ...
+    info.xChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+    info.yChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+
+    // Not sure what this is for.
+    info.forceExplicitReconstruction = VK_FALSE;
+
+    // For YUV420p.
+    info.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+
+    vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
+                                      &YUVSamplerToRGB);
+
+    VkSamplerYcbcrConversionInfo samplerConversionInfo {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr, YUVSamplerToRGB};
+// Create sampler
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.pNext = &samplerConversionInfo;
+
     samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
     samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
@@ -1283,6 +1333,96 @@ void TextureVideo::updateTextureFromBuffer(void *buffer) {
 
     CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
+    vkUnmapMemory(device->logicalDevice, stagingMemory);
+
+
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = mipLevels;
+    subresourceRange.layerCount = 1;
+
+
+    VkBufferImageCopy bufferCopyRegion = {};
+    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bufferCopyRegion.imageSubresource.mipLevel = 0;
+    bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegion.imageSubresource.layerCount = 1;
+    bufferCopyRegion.imageExtent.width = width;
+    bufferCopyRegion.imageExtent.height = height;
+    bufferCopyRegion.imageExtent.depth = 1;
+    bufferCopyRegion.bufferOffset = 0;
+
+    // Use a separate command buffer for texture loading
+    VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+    // Image barrier for optimal image (target)
+    // Optimal image will be used as destination for the copy
+    Utils::setImageLayout(
+            copyCmd,
+            image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            subresourceRange,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Copy mip levels from staging buffer
+    vkCmdCopyBufferToImage(
+            copyCmd,
+            stagingBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegion
+    );
+
+    // Change texture image layout to shader read after all mip levels have been copied
+    this->imageLayout = imageLayout;
+    Utils::setImageLayout(
+            copyCmd,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            subresourceRange,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    device->flushCommandBuffer(copyCmd, device->transferQueue);
+
+    // Clean up staging resources
+    vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+    vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+
+}
+
+void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuffer) {
+
+
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory;
+
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            bufferSize,
+            &stagingBuffer,
+            &stagingMemory, chromaBuffer));
+
+
+    // Create the memory backing up the buffer handle
+    VkMemoryRequirements memReqs;
+    vkGetBufferMemoryRequirements(device->logicalDevice, stagingBuffer, &memReqs);
+    VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
+    memAlloc.allocationSize = memReqs.size;
+
+
+    // Copy texture data into staging buffer
+    uint8_t *data;
+
+    CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
+    memcpy(data, chromaBuffer, bufferSize);
     vkUnmapMemory(device->logicalDevice, stagingMemory);
 
 

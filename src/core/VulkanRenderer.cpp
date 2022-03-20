@@ -42,8 +42,6 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
     if (!enabledInstanceExtensions.empty()) {
         if (settings.validation) {
             enabledInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            enabledInstanceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-
         }
         instanceCreateInfo.enabledExtensionCount = (uint32_t) enabledInstanceExtensions.size();
         instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
@@ -106,13 +104,28 @@ bool VulkanRenderer::initVulkan() {
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
+    VkPhysicalDeviceVulkan11Features features;
+    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    features.samplerYcbcrConversion = VK_TRUE;
+    features.pNext = nullptr;
+
+
     // Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
     addDeviceFeatures();
+    enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+
+    VkPhysicalDeviceFeatures2 features2;
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &features;
+    features2.features = deviceFeatures;
+
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
     // Vulkan device creation
     // This is firstUpdate by a separate class that gets a logical device representation
     // and encapsulates functions related to a device
     vulkanDevice = new VulkanDevice(physicalDevice);
-    err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, nullptr);
+    err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
     if (err != VK_SUCCESS)
         throw std::runtime_error("Failed to create logical device");
 

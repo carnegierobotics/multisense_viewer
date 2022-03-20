@@ -5,6 +5,8 @@
 #include "VulkanDevice.h"
 #include <MultiSense/src/tools/Macros.h>
 
+#include <utility>
+
 
 VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
     assert(physicalDevice);
@@ -197,7 +199,7 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std:
     }
 
     // Create the logical device representation
-    std::vector<const char *> deviceExtensions(enabledExtensions);
+    std::vector<const char *> deviceExtensions(std::move(enabledExtensions));
     if (useSwapChain) {
         // If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -225,6 +227,7 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std:
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
     }
+
 
     if (deviceExtensions.size() > 0) {
         for (const char *enabledExtension: deviceExtensions) {

@@ -146,17 +146,20 @@ void CRLCameraModels::Model::setVideoTexture(const crl::multisense::image::Heade
         return;
 
 
-    if (streamOne.source == crl::multisense::Source_Chroma_Rectified_Aux) {
-        auto * chromaBuffer = (uint8_t *) malloc(streamOne.imageLength);
-        auto * lumaBuffer = (uint16_t *) malloc(streamTwo.imageLength);
+    if (streamOne.source == crl::multisense::Source_Chroma_Rectified_Aux && streamTwo.source == crl::multisense::Source_Luma_Rectified_Aux) {
+        auto * chromaBuffer = malloc(streamOne.imageLength);
+        auto * lumaBuffer = malloc(streamTwo.imageLength);
 
-        textureVideos[0].updateTextureFromBufferYUV(chromaBuffer, lumaBuffer);
+        memcpy(chromaBuffer, streamOne.imageDataP, streamOne.imageLength);
+        memcpy(lumaBuffer, streamTwo.imageDataP, streamTwo.imageLength);
+
+        textureVideos[0].updateTextureFromBufferYUV(chromaBuffer, streamOne.imageLength, lumaBuffer, streamTwo.imageLength);
 
     } else {
         //memcpy(pixel, p, streamOne.imageLength);
-        auto *p = (uint8_t *) streamOne.imageDataP;
-        auto *pixel = (unsigned char *) malloc(streamOne.imageLength * sizeof(u_char));
-        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne.imageDataP));
+        //auto *p = (uint8_t *) streamOne.imageDataP;
+        //auto *pixel = (unsigned char *) malloc(streamOne.imageLength * sizeof(u_char));
+        //textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne.imageDataP));
     }
 
 
@@ -294,7 +297,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
 
         if (model->textureVideos.empty()) {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ;
             writeDescriptorSets[3].descriptorCount = 1;
             writeDescriptorSets[3].dstSet = descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
@@ -315,14 +318,21 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
 
 }
 
-void CRLCameraModels::createDescriptorSetLayout() {
+void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
             {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
 
     };
+
+    VkDescriptorSetLayoutBinding binding;
+    binding.binding = 3;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    binding.descriptorCount = 1;
+    binding.pImmutableSamplers = &pModel->textureVideos[0].sampler;
+    setLayoutBindings.push_back(binding);
 
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
                                                                                                setLayoutBindings.size());
@@ -447,7 +457,7 @@ CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
                                       ScriptType type) {
     this->vulkanDevice = utils.device;
 
-    createDescriptorSetLayout();
+    createDescriptorSetLayout(model);
     createDescriptors(utils.UBCount, utils.uniformBuffers, model);
 
     createPipeline(*utils.renderPass, std::move(vector), type);

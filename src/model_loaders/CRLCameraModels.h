@@ -168,7 +168,7 @@ public:
 
     void loadFromFile(std::string filename, float scale = 1.0f);
 
-    void createDescriptorSetLayout();
+    void createDescriptorSetLayout(Model *pModel);
 
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
 

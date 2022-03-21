@@ -1244,21 +1244,28 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
     samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
     samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerCreateInfo.mipLodBias = 0.0f;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerCreateInfo.minLod = 0.0f;
     samplerCreateInfo.maxLod = 0.0f;
-    samplerCreateInfo.maxAnisotropy = 1.0f;
+    samplerCreateInfo.maxAnisotropy = VK_FALSE;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+
 
     CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
+
+    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo;
+    samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
+    samplerYcbcrConversionInfo.conversion = YUVSamplerToRGB;
 
     // Create image view
     VkImageViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewCreateInfo.pNext = NULL;
+    viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
     viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
@@ -1396,34 +1403,31 @@ void TextureVideo::updateTextureFromBuffer(void *buffer) {
 
 }
 
-void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuffer) {
+void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
+                                              uint32_t lumaBufferSize) {
 
 
     // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingMemory;
+    VkBuffer chromaStagingBuffer;
+    VkDeviceMemory chromaStagingMemory;
+
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer lumaStagingBuffer;
+    VkDeviceMemory lumaStagingMemory;
 
     CHECK_RESULT(device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            bufferSize,
-            &stagingBuffer,
-            &stagingMemory, chromaBuffer));
+            chromaBufferSize,
+            &chromaStagingBuffer,
+            &chromaStagingMemory, chromaBuffer));
 
-
-    // Create the memory backing up the buffer handle
-    VkMemoryRequirements memReqs;
-    vkGetBufferMemoryRequirements(device->logicalDevice, stagingBuffer, &memReqs);
-    VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
-    memAlloc.allocationSize = memReqs.size;
-
-
-    // Copy texture data into staging buffer
-    uint8_t *data;
-
-    CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
-    memcpy(data, chromaBuffer, bufferSize);
-    vkUnmapMemory(device->logicalDevice, stagingMemory);
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            lumaBufferSize,
+            &lumaStagingBuffer,
+            &lumaStagingMemory, lumaBuffer));
 
 
     VkImageSubresourceRange subresourceRange = {};
@@ -1432,9 +1436,8 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuff
     subresourceRange.levelCount = mipLevels;
     subresourceRange.layerCount = 1;
 
-
     VkBufferImageCopy bufferCopyRegion = {};
-    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT;
     bufferCopyRegion.imageSubresource.mipLevel = 0;
     bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
     bufferCopyRegion.imageSubresource.layerCount = 1;
@@ -1442,6 +1445,17 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuff
     bufferCopyRegion.imageExtent.height = height;
     bufferCopyRegion.imageExtent.depth = 1;
     bufferCopyRegion.bufferOffset = 0;
+
+    VkBufferImageCopy bufferCopyRegionChroma = {};
+    bufferCopyRegionChroma.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
+    bufferCopyRegionChroma.imageSubresource.mipLevel = 0;
+    bufferCopyRegionChroma.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegionChroma.imageSubresource.layerCount = 1;
+    bufferCopyRegionChroma.imageExtent.width = width / 2;
+    bufferCopyRegionChroma.imageExtent.height = height / 2;
+    bufferCopyRegionChroma.imageExtent.depth = 1;
+    bufferCopyRegionChroma.bufferOffset = 0;
+
 
     // Use a separate command buffer for texture loading
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -1457,14 +1471,25 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuff
             VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    // Copy mip levels from staging buffer
+    // Copy data from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer,
+            lumaStagingBuffer,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
             &bufferCopyRegion
+    );
+
+
+    // Copy data from staging buffer
+    vkCmdCopyBufferToImage(
+            copyCmd,
+            chromaStagingBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegionChroma
     );
 
     // Change texture image layout to shader read after all mip levels have been copied
@@ -1481,8 +1506,11 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuff
     device->flushCommandBuffer(copyCmd, device->transferQueue);
 
     // Clean up staging resources
-    vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-    vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(device->logicalDevice, chromaStagingMemory, nullptr);
+    vkDestroyBuffer(device->logicalDevice, chromaStagingBuffer, nullptr);
+
+    vkFreeMemory(device->logicalDevice, lumaStagingMemory, nullptr);
+    vkDestroyBuffer(device->logicalDevice, lumaStagingBuffer, nullptr);
 
 }
 

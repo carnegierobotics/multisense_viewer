@@ -41,7 +41,7 @@ void main()
     vec3 specular = specularStrength * spec * colors.lightColor.xyz;
 
     vec3 result = (ambient + diffuse + specular) * colors.objectColor.xyz;
-    float tex = texture(samplerColorMap, inUV).r;
-    outColor = vec4(tex, tex, tex, 1.0);
+    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    outColor = vec4(tex, 1.0);
 
 }

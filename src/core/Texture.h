@@ -119,7 +119,8 @@ public:
                  VkImageLayout layout, VkFormat format);
     void updateTextureFromBuffer(void *buffer);
 
-    void updateTextureFromBufferYUV(void *chromaBuffer, void *lumaBuffer);
+    void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
+                                    uint32_t lumaBufferSize);
 };
 
 #endif //MULTISENSE_TEXTURE_H

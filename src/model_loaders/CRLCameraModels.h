@@ -6,7 +6,6 @@
 #define MULTISENSE_CRLCAMERAMODELS_H
 
 
-
 #include <MultiSense/external/glm/glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 #include <string>
@@ -25,13 +24,16 @@ public:
     CRLCameraModels() = default;
 
     struct Model {
+        /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
+        bool draw = true;
+
 
         struct VideoTexture {
             std::vector<u_char *> pixels;
             VkDeviceSize imageSize;
             uint32_t width;
             uint32_t height;
-        }videos;
+        } videos;
         struct Vertex {
             glm::vec3 pos;
             glm::vec3 normal;
@@ -96,15 +98,16 @@ public:
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName);
 
 
-        Model(uint32_t count, VulkanDevice *_vulkanDevice);
+        Model(VulkanDevice *_vulkanDevice);
 
         void
         createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-        void prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size,
-                                 CRLCameraDataType texType);
+        void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setVideoTexture(const crl::multisense::image::Header& streamOne, const crl::multisense::image::Header& streamTwo);
+        void setVideoTexture(crl::multisense::image::Header* streamOne = nullptr,
+                             crl::multisense::image::Header* streamTwo = nullptr);
+
     };
 
     /**@brief Primitive for a surface */
@@ -190,7 +193,6 @@ protected:
                               ScriptType type);
 
 };
-
 
 
 #endif //MULTISENSE_CRLCAMERAMODELS_H

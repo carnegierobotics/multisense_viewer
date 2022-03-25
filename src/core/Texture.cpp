@@ -1149,14 +1149,13 @@ Transition image to whatever layout you need next
 Do your rendering and whatnot
 start over at 1.
 */
-TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize bufferSize, VulkanDevice *device,
-                           VkImageLayout layout, VkFormat format) : Texture() {
+TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
+                           VkFormat format) : Texture() {
 
     this->device = device;
     width = texWidth;
     height = texHeight;
     mipLevels = 1;
-    this->bufferSize = bufferSize;
 
 
     // Create optimal tiled target image
@@ -1261,6 +1260,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
     VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo;
     samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
     samplerYcbcrConversionInfo.conversion = YUVSamplerToRGB;
+    samplerYcbcrConversionInfo.pNext = VK_NULL_HANDLE;
 
     // Create image view
     VkImageViewCreateInfo viewCreateInfo = {};
@@ -1314,7 +1314,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize b
 
 }
 
-void TextureVideo::updateTextureFromBuffer(void *buffer) {
+void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
     // Create a host-visible staging buffer that contains the raw image data
     VkBuffer stagingBuffer;

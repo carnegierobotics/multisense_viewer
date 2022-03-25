@@ -133,7 +133,6 @@ void MeshModel::Model::loadTextureSamplers() {
 
 void MeshModel::Model::setVideoTexture(uint32_t frame){
     // Create texture image if not created
-    textureVideos[0].updateTextureFromBuffer(videos.pixels[frame]);
 
 }
 
@@ -182,7 +181,7 @@ void MeshModel::Model::prepareVideoTextures() {
 
 
     if (textureVideos.empty()){
-        TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
+        TextureVideo texture(videos.width, videos.height, vulkanDevice,
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8G8B8A8_UNORM);
         textureVideos.emplace_back(texture);
     }

@@ -112,12 +112,11 @@ public:
 class TextureVideo : public Texture {
 
 public:
-    VkDeviceSize bufferSize;
 
     TextureVideo() = default;
-    TextureVideo(uint32_t texWidth, uint32_t texHeight, VkDeviceSize bufferSize, VulkanDevice *device,
-                 VkImageLayout layout, VkFormat format);
-    void updateTextureFromBuffer(void *buffer);
+    TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
+                 VkFormat format);
+    void updateTextureFromBuffer(void *buffer, uint32_t bufferSize);
 
     void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
                                     uint32_t lumaBufferSize);

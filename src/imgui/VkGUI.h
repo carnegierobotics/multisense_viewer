@@ -143,6 +143,7 @@ public:
 
 
     // Initialize all Vulkan resources used by the ui
+    // Graphics pipeline
     void initResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string &shadersPath) {
 
         ImGuiIO &io = ImGui::GetIO();
@@ -406,9 +407,6 @@ public:
     }
 
 
-    // Graphics pipeline
-
-
     void createDropDowns(ElementBase *element) {
         if (ImGui::BeginCombo(element->dropDown->label.c_str(),
                               element->dropDown->selected.c_str())) // The second parameter is the label previewed before opening the combo.
@@ -428,18 +426,46 @@ public:
         }
     }
 
+    void buildElements(ElementBase element) {
+        ImGui::SetCursorPos(ImVec2(element.pos.x, element.pos.y));
+
+        switch (element.type) {
+            case AR_ELEMENT_TEXT:
+                ImGui::TextColored(element.text->color, "%s", element.text->string.c_str());
+
+                if (element.text->sameLine)
+                    ImGui::SameLine();
+
+                break;
+            case AR_ELEMENT_BUTTON:
+                element.button->clicked = ImGui::Button(element.button->string.c_str(), element.button->size);
+                if (element.button->clicked)
+                    updated |= true;
+                break;
+            case AR_ELEMENT_FLOAT_SLIDER:
+                break; // TODO IMPLEMENT
+            case AR_UI_ELEMENT_DROPDOWN:
+                createDropDowns(&element);
+                break;
+            default:
+                std::cerr << "Gui element not supported in AR Renderer\n";
+                break;
+        }
+    }
+
 // Starts a new imGui frame and sets up windows and ui elements
-    void newFrame(bool updateFrameGraph, Camera camera, float frameTimer, std::string title) {
+    void newFrame(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height) {
+
         ImGui::NewFrame();
         updated = false;
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
-
+        float sidebarWidth = 250.0f;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(350, 720));
-        ImGui::Begin("GUI", &pOpen, window_flags);
+        ImGui::SetNextWindowSize(ImVec2(sidebarWidth, (float) height));
+        ImGui::Begin("SideBar", &pOpen, window_flags);
 
         auto *wnd = ImGui::FindWindowByName("GUI");
         if (wnd) {
@@ -449,12 +475,13 @@ public:
 
         }
 
-        ImGui::TextUnformatted(title.c_str());
+        ImGui::TextUnformatted("title");
         ImGui::TextUnformatted(device->properties.deviceName);
 
         // Update frame time display
         if (updateFrameGraph) {
-            std::rotate(uiSettings->frameTimes.begin(), uiSettings->frameTimes.begin() + 1, uiSettings->frameTimes.end());
+            std::rotate(uiSettings->frameTimes.begin(), uiSettings->frameTimes.begin() + 1,
+                        uiSettings->frameTimes.end());
             float frameTime = 1000.0f / (frameTimer * 1000.0f);
             uiSettings->frameTimes.back() = frameTime;
             if (frameTime < uiSettings->frameTimeMin) {
@@ -492,114 +519,81 @@ public:
             ImGui::EndListBox();
         }
 
+        if (ImGui::BeginPopupModal("add_device_modal", NULL,
+                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
+            if (!uiSettings->modalElements.empty()) {
+
+                auto &btn = uiSettings->modalElements[0];
+                auto &inputName = uiSettings->modalElements[1];
+                auto &inputIP = uiSettings->modalElements[2];
+
+                ImGui::Text("Connect to your MultiSense Device");
+                ImGui::Separator();
+                ImGui::InputText("Profile name", inputName.inputText->string,
+                                 IM_ARRAYSIZE(inputName.inputText->string));
+                ImGui::InputText("Camera ip", inputIP.inputText->string, IM_ARRAYSIZE(inputIP.inputText->string));
+                btn.button->clicked = ImGui::Button( btn.button->string.c_str(),  btn.button->size);
+
+                if (uiSettings->closeModalPopup)
+                    ImGui::CloseCurrentPopup();
+
+                updated |= true;
+
+                ImGui::EndPopup();
+            }
+        }
+
+
+
+        /*
+        ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, 200));
+        ImGui::Begin("TopBar", &pOpen, window_flags);
+
         if (!uiSettings->elements.empty()) {
             for (auto &element: uiSettings->elements) {
-
-                switch (element.type) {
-                    case AR_ELEMENT_TEXT:
-                        ImGui::TextColored(element.text->color, "%s", element.text->string.c_str());
-
-                        if (element.text->sameLine)
-                            ImGui::SameLine();
-
-                        break;
-                    case AR_ELEMENT_BUTTON:
-                        element.button->clicked = ImGui::Button(element.button->text.c_str(), element.button->size);
-                        if (element.button->clicked)
-                            updated |= true;
-                        break;
-                    case AR_ELEMENT_FLOAT_SLIDER:
-                        break; // TODO IMPLEMENT
-                    case AR_UI_ELEMENT_DROPDOWN:
-                        createDropDowns(&element);
-                        break;
-                    default:
-                        std::cerr << "Gui element not supported in AR Renderer\n";
-                        break;
-                }
-
-
-            }
-
-        }
-        /*
-                 if (!uiSettings->dropDownItems.empty()){
-            if (ImGui::BeginCombo("##combo",
-                                  uiSettings->selectedDropDown)) // The second parameter is the label previewed before opening the combo.
-            {
-                for (int n = 0; n < uiSettings->dropDownItems.size(); n++) {
-                    bool is_selected = (uiSettings->selectedDropDown ==
-                                        uiSettings->dropDownItems[n]); // You can store your selection however you want, outside or inside your objects
-                    if (ImGui::Selectable(uiSettings->dropDownItems[n].c_str(), is_selected)) {
-                        uiSettings->selectedDropDown = uiSettings->dropDownItems[n].c_str();
-                        updated |= true;
-                    }
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
-                }
-                ImGui::EndCombo();
+                if (element.location == "topbar")
+                    buildElements(element);
             }
         }
-         */
-        /*
-         *
-
-        if (uiSettings->flag) {
-
-
-            ImGui::Text("MultiSense S21 Found");
-            ImGui::Spacing();
-
-            ImGui::Text("State:");
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Idle");
-            ImGui::Spacing();
-
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            ImGui::Text("Show disparity image stream");
-            ImGui::SameLine();
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-            ImGui::Checkbox("##", &uiSettings->fa);
-
-            ImGui::Text("Show Left image stream");
-            ImGui::SameLine();
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 35);
-            ImGui::Checkbox("##", &uiSettings->fa);
-            ImGui::Spacing();
-
-            const char *items[] = {"None", "Hello world", "Distance to user", "Find ground planes",
-                                   "Hand wave velocity"};
-            static int current = 0;
-            ImGui::Combo("Examples", &current, items, IM_ARRAYSIZE(items));
-        }
-         */
-        /*
         ImGui::End();
-
-        ImGui::ShowDemoWindow();
-
-        ImGui::SetNextWindowPos(ImVec2(1280 - 350, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(350, 150));
-        ImGui::Begin("Camera controls");
-
-
-        ImGui::Text("Camera");
-        float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
-        float rot[3] = {camera.rotation.x, camera.rotation.y, camera.rotation.z};
-        ImGui::InputFloat3("position", pos, "%.3f");
-        ImGui::InputFloat3("rotation", rot, "%.3f");
         */
 
+        if (!uiSettings->elements.empty()) {
+            for (auto &element: uiSettings->elements) {
+                if (element.location == "sidebar")
+                    buildElements(element);
 
-        active = ImGui::IsWindowHovered() || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();
-        //active |= ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();
+                // Treat special events from ImGUI
+                if (element.button && element.button->string == "ADD DEVICE" && element.button->clicked) {
+                    ImGui::OpenPopup("add_device_modal");
+                }
+
+            }
+        }
+        if (!uiSettings->modalElements.empty()) {
+            auto &element = uiSettings->modalElements;
+
+        }
+
+
         ImGui::End();
 
+        ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, height));
+        ImGui::Begin("main", &pOpen, window_flags);
+
+        if (!uiSettings->elements.empty()) {
+            for (auto &element: uiSettings->elements) {
+                if (element.location == "main")
+                    buildElements(element);
+            }
+        }
+        ImGui::End();
+
+        active = ImGui::IsWindowHovered() || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();
+
         //ImGui::ShowDemoWindow();
-        // Render to generate draw buffers
         ImGui::Render();
     }
 
@@ -607,8 +601,9 @@ public:
 // Update vertex and index buffer containing the imGui elements when required
     bool updateBuffers() {
         ImDrawData *imDrawData = ImGui::GetDrawData();
-        bool updateCommandBuffers = false;
 
+
+        bool updateCommandBuffers = false;
         // Note: Alignment is done inside buffer creation
         VkDeviceSize vertexBufferSize = imDrawData->TotalVtxCount * sizeof(ImDrawVert);
         VkDeviceSize indexBufferSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);

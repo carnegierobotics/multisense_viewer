@@ -17,19 +17,34 @@ typedef enum UIElement {
     AR_ELEMENT_TEXT,
     AR_ELEMENT_BUTTON,
     AR_ELEMENT_FLOAT_SLIDER,
-    AR_UI_ELEMENT_DROPDOWN
+    AR_UI_ELEMENT_DROPDOWN,
+    AR_UI_ELEMENT_INPUT_TEXT
 } UIElement;
 
 
 struct Button {
-    std::string text;
+    std::string string;
     ImVec2 size;
     bool clicked = false;
 
     Button(std::string _name,
            float size_x,
            float size_y) {
-        text = std::move(_name);
+        string = std::move(_name);
+        size = ImVec2(size_x, size_y);
+    }
+};
+
+struct InputText {
+    char string[64] = "MultiSense";
+    ImVec2 size;
+    bool clicked = false;
+
+    InputText(const char *_name,
+              float size_x,
+              float size_y) {
+
+        memcpy(string, _name, 64);
         size = ImVec2(size_x, size_y);
     }
 };
@@ -56,7 +71,7 @@ struct DropDownItem {
     std::string selected;
     std::vector<std::string> dropDownItems;
 
-    explicit DropDownItem(std::string label){
+    explicit DropDownItem(std::string label) {
         this->label = std::move(label);
     }
 
@@ -64,15 +79,35 @@ struct DropDownItem {
 
 class ElementBase {
 public:
-    Button* button{};
-    Text* text{};
-    DropDownItem* dropDown{};
+    Button *button{};
+    Text *text{};
+    DropDownItem *dropDown{};
     UIElement type{};
+    std::string location;
+    InputText* inputText;
+    struct {
+        float x = 0.0f;
+        float y = 0.0f;
+    } pos;
 
-    explicit ElementBase(Button* btn) : button(btn), type(AR_ELEMENT_BUTTON) {}
-    explicit ElementBase(Text* txt) : text(txt), type(AR_ELEMENT_TEXT) {}
-    explicit ElementBase(DropDownItem* _dropDown) : dropDown(_dropDown), type(AR_UI_ELEMENT_DROPDOWN) {}
+    explicit ElementBase(Button *btn) : button(btn), type(AR_ELEMENT_BUTTON) {}
 
+    explicit ElementBase(Text *txt) : text(txt), type(AR_ELEMENT_TEXT) {}
+
+    explicit ElementBase(DropDownItem *_dropDown) : dropDown(_dropDown), type(AR_UI_ELEMENT_DROPDOWN) {}
+
+    explicit ElementBase(InputText *_inputText) : inputText(_inputText), type(AR_UI_ELEMENT_INPUT_TEXT) {}
+
+    ElementBase() = default;
+
+};
+
+class SideBarElement : ElementBase {
+
+    SideBarElement() {
+
+
+    }
 
 };
 
@@ -91,9 +126,13 @@ public:
     float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
     float lightTimer = 0.0f;
 
+
+    bool closeModalPopup = false;
+
+
     /** void* for shared data among scripts. User defined type */
-    void* sharedData;
-    bool* sharedButtonData;
+    void *sharedData;
+    bool *sharedButtonData;
     /**
      * Listbox containing name of all scripts currently used in the scene
      */
@@ -103,19 +142,46 @@ public:
     // UI Element creations
     /** A vector containing each element that should be drawn on the ImGUI */
     std::vector<ElementBase> elements;
+    std::vector<ElementBase> modalElements;
 
     /**
      * Creates Text
      * @param text
      */
-    void createText(Text *text) {
-        elements.push_back((ElementBase(text)));
+    void createText(Text *text, std::string field, float x, float y) {
+        auto elem = ElementBase(text);
+        elem.location = std::move(field);
+        elem.pos.x = x;
+        elem.pos.y = y;
+        elements.push_back((elem));
     }
-    void createButton(Button *button) {
-        elements.push_back((ElementBase(button)));
+
+    void createButton(Button *button, std::string field, float x, float y) {
+        auto elem = ElementBase(button);
+        elem.location = std::move(field);
+        elem.pos.x = x;
+        elem.pos.y = y;
+        elements.push_back((elem));
     }
-    void createDropDown(DropDownItem* dropDown){
-        elements.emplace_back(dropDown);
+
+    void createDropDown(DropDownItem *dropDown, std::string field, float x, float y) {
+        auto elem = ElementBase(dropDown);
+        elem.location = std::move(field);
+        elem.pos.x = x;
+        elem.pos.y = y;
+        elements.emplace_back(elem);
+    }
+
+    void addModalButton(Button *button) {
+        auto elem = ElementBase(button);
+        modalElements.push_back((elem));
+    }
+    void addModalText(InputText *text) {
+        auto elem = ElementBase(text);
+        modalElements.push_back((elem));
+    }
+    void createSideBarElement() {
+
     }
 };
 

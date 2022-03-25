@@ -15,11 +15,8 @@ void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-CRLCameraModels::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
+CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice) {
     this->vulkanDevice = _vulkanDevice;
-    textures.resize(count);
-    textureSamplers.resize(count);
-
 }
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
@@ -140,26 +137,29 @@ void CRLCameraModels::Model::loadTextureSamplers() {
 
 }
 
-void CRLCameraModels::Model::setVideoTexture(const crl::multisense::image::Header& streamOne, const crl::multisense::image::Header& streamTwo) {
-    // Create texture image if not created
-    if (streamOne.source == 0)
+void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header* streamOne, crl::multisense::image::Header* streamTwo) {
+    if (streamOne == nullptr)
         return;
 
 
-    if (streamOne.source == crl::multisense::Source_Chroma_Rectified_Aux && streamTwo.source == crl::multisense::Source_Luma_Rectified_Aux) {
-        auto * chromaBuffer = malloc(streamOne.imageLength);
-        auto * lumaBuffer = malloc(streamTwo.imageLength);
+    if (streamOne->source == crl::multisense::Source_Chroma_Rectified_Aux && streamTwo->source == crl::multisense::Source_Luma_Rectified_Aux) {
+        auto * chromaBuffer = malloc(streamOne->imageLength);
+        auto * lumaBuffer = malloc(streamTwo->imageLength);
 
-        memcpy(chromaBuffer, streamOne.imageDataP, streamOne.imageLength);
-        memcpy(lumaBuffer, streamTwo.imageDataP, streamTwo.imageLength);
+        memcpy(chromaBuffer, streamOne->imageDataP, streamOne->imageLength);
+        memcpy(lumaBuffer, streamTwo->imageDataP, streamTwo->imageLength);
 
-        textureVideos[0].updateTextureFromBufferYUV(chromaBuffer, streamOne.imageLength, lumaBuffer, streamTwo.imageLength);
+        textureVideos[0].updateTextureFromBufferYUV(chromaBuffer, streamOne->imageLength, lumaBuffer, streamTwo->imageLength);
+
+
+        free(chromaBuffer);
+        free(lumaBuffer);
 
     } else {
         //memcpy(pixel, p, streamOne.imageLength);
         //auto *p = (uint8_t *) streamOne.imageDataP;
         //auto *pixel = (unsigned char *) malloc(streamOne.imageLength * sizeof(u_char));
-        //textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne.imageDataP));
+        //textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
     }
 
 
@@ -188,10 +188,8 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
 
 }
 
-void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, VkDeviceSize size,
-                                                 CRLCameraDataType texType) {
+void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType) {
 
-    videos.imageSize = size;
     videos.height = height;
     videos.width = width;
 
@@ -211,11 +209,11 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
     }
 
     if (textureVideos.empty()) {
-        TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
+        TextureVideo texture(videos.width, videos.height, vulkanDevice,
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos.emplace_back(texture);
     } else {
-        TextureVideo texture(videos.width, videos.height, videos.imageSize, vulkanDevice,
+        TextureVideo texture(videos.width, videos.height, vulkanDevice,
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos[0] = texture;
         textureVideos[0].updateDescriptor();

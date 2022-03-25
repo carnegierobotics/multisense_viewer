@@ -2,33 +2,52 @@
 // Created by magnus on 3/1/22.
 //
 
-#include "MultiSenseGUI.h"
+#include "GUISidebar.h"
 
-void MultiSenseGUI::setup() {
+void GUISidebar::setup() {
 
     camera = new CRLPhysicalCamera(CrlNone);
     /**
      * Create UI Elements
      */
     // UI creation
-    connectButton = new Button("Connect Camera", 175.0f, 30.0f);
-    renderUtils.ui->createButton(connectButton);
+
+    addDevice = new Button("ADD DEVICE", 200.0f, 35.0f);
+    renderUtils.ui->createButton(addDevice, "sidebar", 20, 650);
+
+    connectButton = new Button("Connect", 175.0f, 30.0f);
+    renderUtils.ui->addModalButton(connectButton);
 
     cameraNameHeader = new Text("Camera Name", ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     cameraNameHeader->sameLine = true;
-    renderUtils.ui->createText(cameraNameHeader);
 
-    cameraName = new Text("No camera connected", ImVec4(0.5f, 1.0f, 1.0f, 1.0f));
-    renderUtils.ui->createText(cameraName);
+    cameraName = new InputText("Name", 175.0f, 30.0f);
+    renderUtils.ui->addModalText(cameraName);
 
+    cameraIP = new InputText("10.66.171.21", 175.0f, 30.0f);
+    renderUtils.ui->addModalText(cameraIP);
+    //renderUtils.ui->createButton(connectButton, "sidebar");
+    //renderUtils.ui->createText(cameraNameHeader, "sidebar");
+    //renderUtils.ui->createText(cameraName, "sidebar");
 }
 
 
-void MultiSenseGUI::update() {
+void GUISidebar::update() {
 
 }
 
-void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
+void GUISidebar::onUIUpdate(UISettings *uiSettings) {
+    // Creates popup under the hood
+    if (addDevice->clicked){
+    }
+
+    // Add sidebar Element and attempt to connect
+    if (connectButton->clicked){
+        printf("Connect to: %s at %s\n", cameraName->string, cameraIP->string);
+        uiSettings->closeModalPopup = true;
+    }
+
+
 
     if (connectButton->clicked && !camera->online){
         camera->connect();
@@ -36,7 +55,6 @@ void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
             return;
         uiSettings->sharedData = camera;
 
-        cameraName->string = camera->getInfo().devInfo.name;
         // Generate drop downs
         modes = new DropDownItem("Mode");
         for (int i = 0; i < camera->getInfo().supportedDeviceModes.size(); ++i) {
@@ -45,7 +63,7 @@ void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
             modes->dropDownItems.push_back(modeName);
         }
         modes->selected = "Select device mode";
-        renderUtils.ui->createDropDown(modes);
+        renderUtils.ui->createDropDown(modes, "main", 440, 440);
 
         //
         sources = new DropDownItem("Source");
@@ -54,15 +72,15 @@ void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
             sources->dropDownItems.push_back(sourceName);
         }
         sources->selected = "Select data source";
-        renderUtils.ui->createDropDown(sources);
+        renderUtils.ui->createDropDown(sources, "main", 440, 380);
 
         // Start stream
         startStream = new Button("Start stream", 175.0f, 30.0f);
-        renderUtils.ui->createButton(startStream);
+        renderUtils.ui->createButton(startStream, "main", 440, 300);
 
         // Start stream
         stopStream = new Button("Stop stream", 175.0f, 30.0f);
-        renderUtils.ui->createButton(stopStream);
+        renderUtils.ui->createButton(stopStream,"main", 440, 340);
 
         connectButton->clicked = false;
     }
@@ -83,6 +101,6 @@ void MultiSenseGUI::onUIUpdate(UISettings *uiSettings) {
 }
 
 
-void MultiSenseGUI::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void GUISidebar::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
 }

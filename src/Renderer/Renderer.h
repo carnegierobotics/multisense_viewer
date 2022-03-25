@@ -27,7 +27,8 @@
 #include <MultiSense/src/scripts/VirtualPointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/LightSource.h>
-#include <MultiSense/src/scripts/MultiSenseGUI.h>
+#include <MultiSense/src/scripts/GUISidebar.h>
+#include <MultiSense/src/scripts/GUITopBar.h>
 #include <MultiSense/src/scripts/Quad.h>
 
 

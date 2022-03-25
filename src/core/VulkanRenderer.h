@@ -202,6 +202,7 @@ private:
     static void resizeCallback(GLFWwindow* window, int width, int height);
     static void cursorPositionCallback(GLFWwindow *window, double xPos, double yPos);
     static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
+    static void charCallback(GLFWwindow *window, unsigned int codepoint);
 
     void createCommandPool();
     void createCommandBuffers();
@@ -214,6 +215,12 @@ private:
     void handleMouseMove(int32_t x, int32_t y);
 
     static VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices);
+
+    static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode);
+
+    static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int key);
+
+
 };
 
 

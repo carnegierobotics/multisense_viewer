@@ -15,7 +15,7 @@ typedef enum CRLCameraDataType {
     CrlPointCloud,
     CrlGrayscaleImage,
     CrlColorImageYUV420,
-    CrlNone
+    CrlNone, CrlDisparityImage
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {

@@ -105,9 +105,10 @@ public:
 
         void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setVideoTexture(crl::multisense::image::Header* streamOne = nullptr,
+        void setColorTexture(crl::multisense::image::Header* streamOne = nullptr,
                              crl::multisense::image::Header* streamTwo = nullptr);
 
+        void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
     };
 
     /**@brief Primitive for a surface */

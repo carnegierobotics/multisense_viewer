@@ -1194,11 +1194,11 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 
     // Create sampler dependt on image format
     switch (format) {
+        case VK_FORMAT_R16_UNORM:
         case VK_FORMAT_R8_UNORM:
             // Create grayscale texture image
             createDefaultSampler();
             viewCreateInfo.pNext = nullptr;
-
             break;
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
             samplerYcbcrConversionInfo = createYUV420Sampler();
@@ -1405,6 +1405,7 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chrom
     bufferCopyRegionChroma.bufferOffset = 0;
 
 
+
     // Use a separate command buffer for texture loading
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
@@ -1509,7 +1510,8 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler() {
     vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
                                    &YUVSamplerToRGB);
 
-    VkSamplerYcbcrConversionInfo samplerConversionInfo {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr, YUVSamplerToRGB};
+    VkSamplerYcbcrConversionInfo samplerConversionInfo{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr,
+                                                       YUVSamplerToRGB};
 // Create sampler
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1527,7 +1529,6 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler() {
     samplerCreateInfo.maxLod = 0.0f;
     samplerCreateInfo.maxAnisotropy = VK_FALSE;
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-
 
 
     CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));

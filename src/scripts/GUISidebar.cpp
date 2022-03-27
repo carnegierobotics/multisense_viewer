@@ -88,7 +88,6 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
     if (startStream != nullptr){
         if (startStream->clicked){
             camera->start(modes->selected, sources->selected);
-            camera->play = true;
         }
     }
 

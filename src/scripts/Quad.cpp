@@ -26,7 +26,12 @@ void Quad::update() {
         auto lastEnabledSrc = camera->enabledSources[camera->enabledSources.size() - 1];
         switch (lastEnabledSrc) {
             case crl::multisense::Source_Chroma_Rectified_Aux:
+            case crl::multisense::Source_Chroma_Aux:
+            case crl::multisense::Source_Chroma_Left:
                 textureType = CrlColorImageYUV420;
+                break;
+            case crl::multisense::Source_Disparity_Left:
+                textureType = CrlDisparityImage;
                 break;
             default:
                 textureType = CrlGrayscaleImage;
@@ -52,26 +57,21 @@ void Quad::update() {
         camera->modeChange = false;
     }
 
+    if (camera->play) {
 
-    int runTimeInMS = (int) (renderData.runTime * 1000);
-    if ((runTimeInMS % 1) < 1 && camera->play) {
+        auto src = camera->enabledSources[camera->enabledSources.size() - 1];
+        switch (src) {
+            case crl::multisense::Source_Chroma_Rectified_Aux:
+            case crl::multisense::Source_Chroma_Aux:
+            case crl::multisense::Source_Chroma_Left:
+                model->setColorTexture(&camera->getImage()[src],
+                                       &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
+                break;
 
-        for (auto &src: camera->enabledSources) {
-            switch (src) {
-                case crl::multisense::Source_Chroma_Rectified_Aux:
-                    model->setVideoTexture(&camera->getImage()[src],
-                                           &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
-                    break;
-
-                case crl::multisense::Source_Disparity_Left:
-                    model->setVideoTexture(&camera->getImage()[src]);
-                    break;
-                default:
-                    model->setVideoTexture(&camera->getImage()[src]);
-                    break;
-            }
+            default:
+                model->setGrayscaleTexture(&camera->getImage()[src]);
+                break;
         }
-
 
         count += 1;
         if (count >= 100)

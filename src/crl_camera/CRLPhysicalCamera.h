@@ -44,6 +44,8 @@ public:
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> getImage();
 
     std::unordered_set<crl::multisense::DataSource> supportedSources();
+
+    static void setDelayedPropertyThreadFunc(void * context);
 };
 
 

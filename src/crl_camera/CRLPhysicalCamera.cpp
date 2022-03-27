@@ -2,6 +2,7 @@
 // Created by magnus on 3/1/22.
 //
 
+#include <thread>
 #include "CRLPhysicalCamera.h"
 
 
@@ -13,7 +14,10 @@ void CRLPhysicalCamera::connect() {
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
-    if (source == crl::multisense::Source_Chroma_Rectified_Aux)
+    uint32_t colorSource = crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Chroma_Rectified_Aux |
+                           crl::multisense::Source_Chroma_Aux |
+                           crl::multisense::Source_Chroma_Left | crl::multisense::Source_Chroma_Right;
+    if (source & colorSource)
         enabledSources.push_back(crl::multisense::Source_Luma_Rectified_Aux);
 
     enabledSources.push_back(source);
@@ -41,7 +45,17 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
     }
 
 
-    this->modeChange = true;
+    std::thread thread_obj(CRLPhysicalCamera::setDelayedPropertyThreadFunc, this);
+
+    thread_obj.join();
+}
+
+void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
+    auto *app = static_cast<CRLPhysicalCamera *>(context);
+    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(1));
+    app->modeChange = true;
+    app->play = true;
+
 }
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
@@ -56,11 +70,9 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
      */
 
-
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
-
-    this->modeChange = true;
+    modeChange = true;
 }
 
 void CRLPhysicalCamera::update(Base::Render render, crl::multisense::image::Header *pHeader) {

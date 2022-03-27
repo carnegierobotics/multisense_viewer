@@ -127,7 +127,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t
 
 
 void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header *streamOne) {
-    if (streamOne->imageDataP == nullptr)
+    if (streamOne->imageDataP == nullptr || streamOne->source < 1)
         return;
 
     if (streamOne->source == crl::multisense::Source_Disparity_Left) {
@@ -155,7 +155,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
         textureVideos[0].updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
 
     } else {
-        //textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
+        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
 
     }
 

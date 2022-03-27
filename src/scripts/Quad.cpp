@@ -22,15 +22,30 @@ void Quad::update() {
 
     if (camera->modeChange) {
         auto imgConf = camera->getImageConfig();
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlColorImage);
+        CRLCameraDataType textureType;
+        auto lastEnabledSrc = camera->enabledSources[camera->enabledSources.size() - 1];
+        switch (lastEnabledSrc) {
+            case crl::multisense::Source_Chroma_Rectified_Aux:
+                textureType = CrlColorImageYUV420;
+                break;
+            default:
+                textureType = CrlGrayscaleImage;
+                break;
+        }
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), textureType);
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
-        model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices,
-                                     imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
+
+
+        // Load shaders
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
+        // Create quad and store it locally on the GPU
+        model->createMeshDeviceLocal((CRLCameraModels::Model::Vertex *) imgData->quad.vertices,
+                                     imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
 
+        // Create graphics render pipeline
         CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
         model->draw = true;
@@ -41,8 +56,23 @@ void Quad::update() {
     int runTimeInMS = (int) (renderData.runTime * 1000);
     if ((runTimeInMS % 1) < 1 && camera->play) {
 
-        model->setVideoTexture(&camera->getImage()[crl::multisense::Source_Chroma_Rectified_Aux],
-                               &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
+        for (auto &src: camera->enabledSources) {
+            switch (src) {
+                case crl::multisense::Source_Chroma_Rectified_Aux:
+                    model->setVideoTexture(&camera->getImage()[src],
+                                           &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
+                    break;
+
+                case crl::multisense::Source_Disparity_Left:
+                    model->setVideoTexture(&camera->getImage()[src]);
+                    break;
+                default:
+                    model->setVideoTexture(&camera->getImage()[src]);
+                    break;
+            }
+        }
+
+
         count += 1;
         if (count >= 100)
             count = 1;

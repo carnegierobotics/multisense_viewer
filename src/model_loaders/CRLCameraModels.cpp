@@ -138,7 +138,7 @@ void CRLCameraModels::Model::loadTextureSamplers() {
 }
 
 void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header* streamOne, crl::multisense::image::Header* streamTwo) {
-    if (streamOne == nullptr)
+    if (streamOne == nullptr || streamOne->imageDataP == nullptr || streamOne->source < 1)
         return;
 
 
@@ -159,7 +159,7 @@ void CRLCameraModels::Model::setVideoTexture(crl::multisense::image::Header* str
         //memcpy(pixel, p, streamOne.imageLength);
         //auto *p = (uint8_t *) streamOne.imageDataP;
         //auto *pixel = (unsigned char *) malloc(streamOne.imageLength * sizeof(u_char));
-        //textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
+        textureVideos[0].updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
     }
 
 
@@ -194,13 +194,15 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
     videos.width = width;
 
     VkFormat format;
+    TextureVideo texture;
     switch (texType) {
-        case CrlColorImage:
-            format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+        case CrlColorImageYUV420:
+            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
             break;
         case CrlGrayscaleImage:
-            // Other textuere
-            format = VK_FORMAT_R8_UNORM;
+            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
             break;
         case CrlPointCloud:
             break;
@@ -209,18 +211,10 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
     }
 
     if (textureVideos.empty()) {
-        TextureVideo texture(videos.width, videos.height, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos.emplace_back(texture);
     } else {
-        TextureVideo texture(videos.width, videos.height, vulkanDevice,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, format);
         textureVideos[0] = texture;
-        textureVideos[0].updateDescriptor();
-
     }
-
-
 }
 
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {

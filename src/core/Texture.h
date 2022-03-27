@@ -116,6 +116,10 @@ public:
     TextureVideo() = default;
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
                  VkFormat format);
+
+    VkSamplerYcbcrConversionInfo createYUV420Sampler();
+    void createDefaultSampler();
+
     void updateTextureFromBuffer(void *buffer, uint32_t bufferSize);
 
     void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,

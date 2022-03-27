@@ -1158,6 +1158,8 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     mipLevels = 1;
 
 
+
+
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1187,85 +1189,31 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 
     CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
 
+    VkImageViewCreateInfo viewCreateInfo = {};
+    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo{};
 
+    // Create sampler dependt on image format
+    switch (format) {
+        case VK_FORMAT_R8_UNORM:
+            // Create grayscale texture image
+            createDefaultSampler();
+            viewCreateInfo.pNext = nullptr;
 
-    // YUV TEXTURE SAMPLER
-    VkSamplerYcbcrConversionCreateInfo info = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
+            break;
+        case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+            samplerYcbcrConversionInfo = createYUV420Sampler();
+            viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
 
-    // Which 3x3 YUV to RGB matrix is used?
-    // 601 is generally used for SD content.
-    // 709 for HD content.
-    // 2020 for UHD content.
-    // Can also use IDENTITY which lets you sample the raw YUV and
-    // do the conversion in shader code.
-    // At least you don't have to hit the texture unit 3 times.
-    info.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+            // Create YUV sampler
+            break;
+        default:
+            std::cerr << "No texture sampler for that format yet\n";
+            break;
+    }
 
-    // TV (NARROW) or PC (FULL) range for YUV?
-    // Usually, JPEG uses full range and broadcast content is narrow.
-    // If using narrow, the YUV components need to be
-    // rescaled before it can be converted.
-    info.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
-
-    // Deal with order of components.
-    info.components = {
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-    };
-
-    // With NEAREST, chroma is duplicated to a 2x2 block for YUV420p.
-    // In fancy video players, you might even get bicubic/sinc
-    // interpolation filters for chroma because why not ...
-    info.chromaFilter = VK_FILTER_LINEAR;
-
-    // COSITED or MIDPOINT? I think normal YUV420p content is MIDPOINT,
-    // but not quite sure ...
-    info.xChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
-    info.yChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
-
-    // Not sure what this is for.
-    info.forceExplicitReconstruction = VK_FALSE;
-
-    // For YUV420p.
-    info.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
-
-    vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
-                                      &YUVSamplerToRGB);
-
-    VkSamplerYcbcrConversionInfo samplerConversionInfo {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr, YUVSamplerToRGB};
-// Create sampler
-    VkSamplerCreateInfo samplerCreateInfo = {};
-    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.pNext = &samplerConversionInfo;
-
-    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.mipLodBias = 0.0f;
-    samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
-    samplerCreateInfo.minLod = 0.0f;
-    samplerCreateInfo.maxLod = 0.0f;
-    samplerCreateInfo.maxAnisotropy = VK_FALSE;
-    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-
-
-
-    CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
-
-    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo;
-    samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
-    samplerYcbcrConversionInfo.conversion = YUVSamplerToRGB;
-    samplerYcbcrConversionInfo.pNext = VK_NULL_HANDLE;
 
     // Create image view
-    VkImageViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
     viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
@@ -1511,6 +1459,106 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chrom
 
     vkFreeMemory(device->logicalDevice, lumaStagingMemory, nullptr);
     vkDestroyBuffer(device->logicalDevice, lumaStagingBuffer, nullptr);
+
+}
+
+VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler() {
+
+    // YUV TEXTURE SAMPLER
+    VkSamplerYcbcrConversionCreateInfo info = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
+
+    // Which 3x3 YUV to RGB matrix is used?
+    // 601 is generally used for SD content.
+    // 709 for HD content.
+    // 2020 for UHD content.
+    // Can also use IDENTITY which lets you sample the raw YUV and
+    // do the conversion in shader code.
+    // At least you don't have to hit the texture unit 3 times.
+    info.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+
+    // TV (NARROW) or PC (FULL) range for YUV?
+    // Usually, JPEG uses full range and broadcast content is narrow.
+    // If using narrow, the YUV components need to be
+    // rescaled before it can be converted.
+    info.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+
+    // Deal with order of components.
+    info.components = {
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+    };
+
+    // With NEAREST, chroma is duplicated to a 2x2 block for YUV420p.
+    // In fancy video players, you might even get bicubic/sinc
+    // interpolation filters for chroma because why not ...
+    info.chromaFilter = VK_FILTER_LINEAR;
+
+    // COSITED or MIDPOINT? I think normal YUV420p content is MIDPOINT,
+    // but not quite sure ...
+    info.xChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+    info.yChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+
+    // Not sure what this is for.
+    info.forceExplicitReconstruction = VK_FALSE;
+
+    // For YUV420p.
+    info.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+
+    vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
+                                   &YUVSamplerToRGB);
+
+    VkSamplerYcbcrConversionInfo samplerConversionInfo {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr, YUVSamplerToRGB};
+// Create sampler
+    VkSamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.pNext = &samplerConversionInfo;
+
+    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.mipLodBias = 0.0f;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
+    samplerCreateInfo.minLod = 0.0f;
+    samplerCreateInfo.maxLod = 0.0f;
+    samplerCreateInfo.maxAnisotropy = VK_FALSE;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+
+
+    CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
+
+    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo;
+    samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
+    samplerYcbcrConversionInfo.conversion = YUVSamplerToRGB;
+    samplerYcbcrConversionInfo.pNext = VK_NULL_HANDLE;
+
+    return samplerYcbcrConversionInfo;
+
+}
+
+void TextureVideo::createDefaultSampler() {
+
+    // Create sampler
+    VkSamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.mipLodBias = 0.0f;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
+    samplerCreateInfo.minLod = 0.0f;
+    samplerCreateInfo.maxLod = 0.0f;
+    samplerCreateInfo.maxAnisotropy = 1.0f;
+
+    CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
 }
 

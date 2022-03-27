@@ -13,9 +13,10 @@ void CRLPhysicalCamera::connect() {
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
-    enabledSources.push_back(source);
     if (source == crl::multisense::Source_Chroma_Rectified_Aux)
         enabledSources.push_back(crl::multisense::Source_Luma_Rectified_Aux);
+
+    enabledSources.push_back(source);
 
     // Set mode first
     std::string delimiter = "x";
@@ -47,8 +48,18 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     // Start stream
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
 
+    /*
+    std::vector<uint32_t>::iterator it;
+    it = std::find(enabledSources.begin(), enabledSources.end(), crl::multisense::Source_Chroma_Rectified_Aux);
+    if (it != enabledSources.end()){
+        src |= crl::multisense::Source_Luma_Rectified_Aux;
+    }
+     */
+
+
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
+
     this->modeChange = true;
 }
 

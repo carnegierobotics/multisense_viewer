@@ -14,11 +14,9 @@ public:
         CRLBaseCamera::prepare();
     }
 
-    std::string description;
-    std::string data;
+
     bool online = false;
     bool play = false;
-    int point = 0;
     bool modeChange = false;
     std::vector<crl::multisense::DataSource> enabledSources;
 
@@ -36,7 +34,6 @@ public:
 
     crl::multisense::image::Config getImageConfig() const;
 
-    std::unordered_set<crl::multisense::DataSource> supportedSources();
 
     std::string dataSourceToString(unsigned int d);
 
@@ -45,6 +42,8 @@ public:
     crl::multisense::image::Header getImage(unsigned int source);
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> getImage();
+
+    std::unordered_set<crl::multisense::DataSource> supportedSources();
 };
 
 

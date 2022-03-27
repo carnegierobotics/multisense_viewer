@@ -63,7 +63,7 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
             modes->dropDownItems.push_back(modeName);
         }
         modes->selected = "Select device mode";
-        renderUtils.ui->createDropDown(modes, "main", 440, 440);
+        renderUtils.ui->createDropDown(modes, "main", 10, 10);
 
         //
         sources = new DropDownItem("Source");
@@ -72,15 +72,15 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
             sources->dropDownItems.push_back(sourceName);
         }
         sources->selected = "Select data source";
-        renderUtils.ui->createDropDown(sources, "main", 440, 380);
+        renderUtils.ui->createDropDown(sources, "main", 10, 30);
 
         // Start stream
-        startStream = new Button("Start stream", 175.0f, 30.0f);
-        renderUtils.ui->createButton(startStream, "main", 440, 300);
+        startStream = new Button("Start stream", 175.0f, 20.0f);
+        renderUtils.ui->createButton(startStream, "main", 10, 55);
 
         // Start stream
-        stopStream = new Button("Stop stream", 175.0f, 30.0f);
-        renderUtils.ui->createButton(stopStream,"main", 440, 340);
+        stopStream = new Button("Stop stream", 175.0f, 20.0f);
+        renderUtils.ui->createButton(stopStream,"main", 10, 80);
 
         connectButton->clicked = false;
     }

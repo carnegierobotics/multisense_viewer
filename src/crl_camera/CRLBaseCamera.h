@@ -14,7 +14,7 @@
 typedef enum CRLCameraDataType {
     CrlPointCloud,
     CrlGrayscaleImage,
-    CrlColorImage,
+    CrlColorImageYUV420,
     CrlNone
 } CRLCameraDataType;
 
@@ -133,6 +133,7 @@ public:
 
 
     crl::multisense::Channel * cameraInterface{};
+
 protected:
     void getCameraMetaData();
 
@@ -149,8 +150,6 @@ protected:
     void selectDisparities(uint32_t disparities);
 
     void selectResolution(uint32_t RequestedWidth, uint32_t RequestedHeight);
-
-    crl::multisense::image::Config getImageConfig() const;
 
     std::unordered_set<crl::multisense::DataSource> supportedSources();
 };

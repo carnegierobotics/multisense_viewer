@@ -545,19 +545,6 @@ public:
 
 
 
-        /*
-        ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, 200));
-        ImGui::Begin("TopBar", &pOpen, window_flags);
-
-        if (!uiSettings->elements.empty()) {
-            for (auto &element: uiSettings->elements) {
-                if (element.location == "topbar")
-                    buildElements(element);
-            }
-        }
-        ImGui::End();
-        */
 
         if (!uiSettings->elements.empty()) {
             for (auto &element: uiSettings->elements) {
@@ -580,7 +567,7 @@ public:
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, height));
+        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, height - 550));
         ImGui::Begin("main", &pOpen, window_flags);
 
         if (!uiSettings->elements.empty()) {

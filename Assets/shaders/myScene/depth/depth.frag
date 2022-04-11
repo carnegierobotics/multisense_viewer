@@ -42,6 +42,6 @@ void main()
 
     vec3 result = (ambient + diffuse + specular) * colors.objectColor.xyz;
     vec3 tex = texture(samplerColorMap, inUV).rgb;
-    outColor = vec4(0.5, 0.5, 0.5, 1.0);
+    outColor = vec4(tex.r, tex.r, tex.r, 1.0);
 
 }

@@ -153,6 +153,7 @@ void Renderer::generateScriptClasses() {
     classNames.emplace_back("LightSource");
     classNames.emplace_back("VirtualPointCloud");
     classNames.emplace_back("Quad");
+    classNames.emplace_back("PointCloud");
 
     // Also add class names to listbox
     UIOverlay->uiSettings->listBoxNames = classNames;

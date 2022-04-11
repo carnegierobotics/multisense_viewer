@@ -24,16 +24,27 @@ void Quad::update() {
         auto imgConf = camera->getImageConfig();
         CRLCameraDataType textureType;
         auto lastEnabledSrc = camera->enabledSources[camera->enabledSources.size() - 1];
+
+
+        std::string vertexShaderFileName;
+        std::string fragmentShaderFileName;
+
         switch (lastEnabledSrc) {
             case crl::multisense::Source_Chroma_Rectified_Aux:
             case crl::multisense::Source_Chroma_Aux:
             case crl::multisense::Source_Chroma_Left:
                 textureType = CrlColorImageYUV420;
+                vertexShaderFileName = "myScene/spv/quad.vert";
+                fragmentShaderFileName = "myScene/spv/quad.frag";
                 break;
             case crl::multisense::Source_Disparity_Left:
                 textureType = CrlDisparityImage;
+                vertexShaderFileName = "myScene/spv/depth.vert";
+                fragmentShaderFileName = "myScene/spv/depth.frag";
                 break;
             default:
+                vertexShaderFileName = "myScene/spv/depth.vert";
+                fragmentShaderFileName = "myScene/spv/depth.frag";
                 textureType = CrlGrayscaleImage;
                 break;
         }
@@ -42,8 +53,8 @@ void Quad::update() {
 
 
         // Load shaders
-        VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/quad.vert", VK_SHADER_STAGE_VERTEX_BIT);
-        VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/quad.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+        VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
+        VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
         // Create quad and store it locally on the GPU
@@ -101,7 +112,7 @@ void Quad::update() {
 
 
 void Quad::onUIUpdate(UISettings *uiSettings) {
-    camera = (CRLPhysicalCamera *) uiSettings->sharedData;
+    camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
 }
 
 

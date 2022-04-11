@@ -9,6 +9,7 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "" )
 
 # Libraries
 find_package(Vulkan REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # GLFW
 set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo
@@ -43,7 +44,7 @@ add_subdirectory(${KTX_DIR})
     include_directories(${MULTISENSE_SRC})
     add_subdirectory(${MULTISENSE_SRC})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense")
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;${OpenCV_LIBS}")
 
 # add source files
 file(GLOB IMGUI_SRC

@@ -30,6 +30,7 @@
 #include <MultiSense/src/scripts/GUISidebar.h>
 #include <MultiSense/src/scripts/GUITopBar.h>
 #include <MultiSense/src/scripts/Quad.h>
+#include <MultiSense/src/scripts/PointCloud.h>
 
 
 class Renderer : VulkanRenderer {

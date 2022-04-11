@@ -13,8 +13,8 @@ $glslc ${sceneDir}triangle/triangle.frag -o ${sceneOutDir}triangle.frag.spv
 $glslc ./imgui/ui.vert -o ./imgui/ui.vert.spv
 $glslc ./imgui/ui.frag -o ./imgui/ui.frag.spv
 
-$glslc ${sceneDir}/fox/fox.vert -o ${sceneOutDir}fox.vert.spv
-$glslc ${sceneDir}/fox/fox.frag -o ${sceneOutDir}fox.frag.spv
+# $glslc ${sceneDir}/fox/fox.vert -o ${sceneOutDir}fox.vert.spv
+# $glslc ${sceneDir}/fox/fox.frag -o ${sceneOutDir}fox.frag.spv
 
 $glslc ${sceneDir}/helmet/helmet.vert -o ${sceneOutDir}helmet.vert.spv
 $glslc ${sceneDir}/helmet/helmet.frag -o ${sceneOutDir}helmet.frag.spv
@@ -30,3 +30,6 @@ $glslc ${sceneDir}pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
 
 $glslc ${sceneDir}quad/quad.vert -o ${sceneOutDir}quad.vert.spv
 $glslc ${sceneDir}quad/quad.frag -o ${sceneOutDir}quad.frag.spv
+
+$glslc ${sceneDir}depth/depth.vert -o ${sceneOutDir}depth.vert.spv
+$glslc ${sceneDir}depth/depth.frag -o ${sceneOutDir}depth.frag.spv

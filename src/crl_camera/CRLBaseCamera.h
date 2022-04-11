@@ -63,7 +63,7 @@ class CRLBaseCamera {
 public:
     explicit CRLBaseCamera() {
         // TODO MOVE CREATION TO AN APPROPIATE METHOD
-        meshData = new PointCloudData(1280, 720);
+        meshData = new PointCloudData(960, 600);
     }
 
     static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;

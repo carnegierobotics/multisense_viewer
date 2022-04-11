@@ -131,8 +131,8 @@ public:
 
 
     /** void* for shared data among scripts. User defined type */
-    void *sharedData;
-    bool *sharedButtonData;
+    void *physicalCamera = nullptr;
+    void *virtualCamera = nullptr;
     /**
      * Listbox containing name of all scripts currently used in the scene
      */
@@ -148,27 +148,27 @@ public:
      * Creates Text
      * @param text
      */
-    void createText(Text *text, std::string field, float x, float y) {
+    void createText(Text *text, std::string field, float posX, float posY) {
         auto elem = ElementBase(text);
         elem.location = std::move(field);
-        elem.pos.x = x;
-        elem.pos.y = y;
+        elem.pos.x = posX;
+        elem.pos.y = posY;
         elements.push_back((elem));
     }
 
-    void createButton(Button *button, std::string field, float x, float y) {
+    void createButton(Button *button, std::string field, float posX, float posY) {
         auto elem = ElementBase(button);
         elem.location = std::move(field);
-        elem.pos.x = x;
-        elem.pos.y = y;
+        elem.pos.x = posX;
+        elem.pos.y = posY;
         elements.push_back((elem));
     }
 
-    void createDropDown(DropDownItem *dropDown, std::string field, float x, float y) {
+    void createDropDown(DropDownItem *dropDown, std::string field, float posX, float posY) {
         auto elem = ElementBase(dropDown);
         elem.location = std::move(field);
-        elem.pos.x = x;
-        elem.pos.y = y;
+        elem.pos.x = posX;
+        elem.pos.y = posY;
         elements.emplace_back(elem);
     }
 

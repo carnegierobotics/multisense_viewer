@@ -524,8 +524,10 @@ public:
             if (!uiSettings->modalElements.empty()) {
 
                 auto &btn = uiSettings->modalElements[0];
-                auto &inputName = uiSettings->modalElements[1];
-                auto &inputIP = uiSettings->modalElements[2];
+                auto &btnAddVirtualCamera = uiSettings->modalElements[1];
+
+                auto &inputName = uiSettings->modalElements[2];
+                auto &inputIP = uiSettings->modalElements[3];
 
                 ImGui::Text("Connect to your MultiSense Device");
                 ImGui::Separator();
@@ -533,17 +535,18 @@ public:
                                  IM_ARRAYSIZE(inputName.inputText->string));
                 ImGui::InputText("Camera ip", inputIP.inputText->string, IM_ARRAYSIZE(inputIP.inputText->string));
                 btn.button->clicked = ImGui::Button( btn.button->string.c_str(),  btn.button->size);
+                ImGui::SameLine();
+                btnAddVirtualCamera.button->clicked = ImGui::Button( btnAddVirtualCamera.button->string.c_str(),  btnAddVirtualCamera.button->size);
 
-                if (uiSettings->closeModalPopup)
+                if (uiSettings->closeModalPopup){
                     ImGui::CloseCurrentPopup();
+                    uiSettings->closeModalPopup = false;
+                }
 
                 updated |= true;
-
                 ImGui::EndPopup();
             }
         }
-
-
 
 
         if (!uiSettings->elements.empty()) {
@@ -558,16 +561,12 @@ public:
 
             }
         }
-        if (!uiSettings->modalElements.empty()) {
-            auto &element = uiSettings->modalElements;
-
-        }
 
 
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, height - 550));
+        ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, 200));
         ImGui::Begin("main", &pOpen, window_flags);
 
         if (!uiSettings->elements.empty()) {

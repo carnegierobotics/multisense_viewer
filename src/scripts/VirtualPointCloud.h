@@ -30,9 +30,10 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArPointCloud;
+    ScriptType type = ArDisabled;
     CRLVirtualCamera* virtualCamera{};
     MeshModel::Model* model{};
+    bool drawModel = true;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

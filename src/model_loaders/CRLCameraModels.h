@@ -86,8 +86,8 @@ public:
         VulkanDevice *vulkanDevice{};
         VulkanDevice *device{};
         std::vector<std::string> extensions;
-        std::vector<Texture2D> textures;
-        std::vector<TextureVideo> textureVideos;
+        Texture2D texture;
+        TextureVideo textureVideo;
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 

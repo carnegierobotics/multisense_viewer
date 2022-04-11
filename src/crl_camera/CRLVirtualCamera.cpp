@@ -27,8 +27,6 @@ void CRLVirtualCamera::update(Base::Render render) {
     for (int i = 0; i < 720; ++i) {
         vP[point].pos.y = y;
         point++;
-
-
         if (point >= meshData->vertexCount)
             point = 0;
     }

@@ -24,13 +24,13 @@
 #include <MultiSense/src/tools/Macros.h>
 
 // Include scripts
-#include <MultiSense/src/scripts/VirtualPointCloud.h>
+#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
-#include <MultiSense/src/scripts/LightSource.h>
-#include <MultiSense/src/scripts/GUISidebar.h>
-#include <MultiSense/src/scripts/GUITopBar.h>
-#include <MultiSense/src/scripts/Quad.h>
-#include <MultiSense/src/scripts/PointCloud.h>
+#include <MultiSense/src/scripts/objects/LightSource.h>
+#include <MultiSense/src/scripts/gui/GUISidebar.h>
+#include <MultiSense/src/scripts/gui/GUITopBar.h>
+#include <MultiSense/src/scripts/video/Quad.h>
+#include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 
 
 class Renderer : VulkanRenderer {

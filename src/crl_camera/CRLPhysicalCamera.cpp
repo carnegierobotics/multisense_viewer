@@ -3,6 +3,8 @@
 //
 
 #include <thread>
+#include <opencv2/core/mat.hpp>
+#include <bitset>
 #include "CRLPhysicalCamera.h"
 
 
@@ -62,23 +64,19 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     // Start stream
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
 
-    /*
     std::vector<uint32_t>::iterator it;
+    // Search and stop additional sources
     it = std::find(enabledSources.begin(), enabledSources.end(), crl::multisense::Source_Chroma_Rectified_Aux);
     if (it != enabledSources.end()){
         src |= crl::multisense::Source_Luma_Rectified_Aux;
     }
-     */
+    enabledSources.clear();
 
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
     modeChange = true;
 }
 
-void CRLPhysicalCamera::update(Base::Render render, crl::multisense::image::Header *pHeader) {
-
-
-}
 
 CRLBaseCamera::PointCloudData *CRLPhysicalCamera::getStream() {
     return meshData;
@@ -212,4 +210,62 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
     throw std::runtime_error(std::string{} + "Unknown Datasource: " + d);
+}
+
+void CRLPhysicalCamera::update() {
+
+    for (auto src: enabledSources) {
+        if (src == crl::multisense::Source_Disparity_Left) {
+            // Reproject camera to 3D
+            stream = &imagePointers[crl::multisense::Source_Disparity_Left];
+
+        }
+    }
+
+
+    crl::multisense::DataSource config;
+    bool status = cameraInterface->getEnabledStreams(config) != 0;
+    if (crl::multisense::Status_Ok != status) {
+        printf("Failed to query image config: %d\n", status);
+    }
+    std::bitset<32> y(config);
+    //std::cout << y << '\n';
+
+
+
+}
+
+void CRLPhysicalCamera::setup() {
+
+    meshData = new PointCloudData(960, 600);
+
+    crl::multisense::image::Config c = cameraInfo.imgConf;
+
+
+    kInverseMatrix =
+              glm::mat4(
+                      glm::vec4(1/c.fx(), 0, -(c.cx()*c.fx())/(c.fx() * c.fy()), 0),
+                      glm::vec4(0, 1/c.fy(), -c.cy() / c.fy(), 0),
+                      glm::vec4(0, 0,  1, 0),
+                      glm::vec4(0, 0, 0, 1));
+    /*
+   kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
+                  glm::vec4(0, c.fx() * c.tx(), 0, -c.fx() * c.cy() * c.tx()),
+                  glm::vec4(0, 0, 0, c.fx() * c.fy() * c.tx()),
+                  glm::vec4(0, 0, -c.fx(), c.fy() * 1));
+
+                      kInverseMatrix =
+              glm::mat4(
+                      glm::vec4(1/c.fx(), 0, -(c.cx()*c.fx())/(c.fx() * c.fy()), 0),
+                      glm::vec4(0, 1/c.fy(), -c.cy() / c.fy(), 0),
+                      glm::vec4(0, 0,  1, 0),
+                      glm::vec4(0, 0, 0, 1));
+  */
+    // Load calibration data
+
+
+}
+
+cv::Mat *CRLPhysicalCamera::getCloudMat() {
+    return &cloudMat;
 }

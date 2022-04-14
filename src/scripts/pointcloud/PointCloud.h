@@ -45,10 +45,6 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
     int point = 0;
-    cv::Mat disparityFloatMat;
-    cv::Mat cloudMat;
-    cv::Mat m_qMatrix;
-    crl::multisense::image::Header *stream;
     bool drawModel = true;
 };
 

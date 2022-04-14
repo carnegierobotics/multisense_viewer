@@ -61,10 +61,7 @@ struct BufferPair
 class CRLBaseCamera {
 
 public:
-    explicit CRLBaseCamera() {
-        // TODO MOVE CREATION TO AN APPROPIATE METHOD
-        meshData = new PointCloudData(960, 600);
-    }
+    CRLBaseCamera() = default;
 
     static constexpr uint16_t DEFAULT_WIDTH = 1920, DEFAULT_HEIGHT = 1080;
 
@@ -81,7 +78,6 @@ public:
         crl::multisense::DataSource supportedSources{0};
         std::vector<uint8_t*> rawImages;
     }cameraInfo;
-
 
     void prepare();
     bool connect(CRLCameraType type); // true if succeeds
@@ -117,9 +113,7 @@ public:
 
     };
 
-
     PointCloudData *meshData{};
-
 
     virtual void initialize() {};
 
@@ -130,7 +124,6 @@ public:
     virtual PointCloudData *getStream() = 0;
 
     bool connected = false;
-
 
     crl::multisense::Channel * cameraInterface{};
 

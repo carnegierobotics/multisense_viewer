@@ -6,25 +6,32 @@
 #define MULTISENSE_CRLPHYSICALCAMERA_H
 
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
+#include <opencv2/opencv.hpp>
 
 class CRLPhysicalCamera : CRLBaseCamera {
 public:
+
+    bool online = false;
+    bool play = false;
+    bool modeChange = false;
+
+    glm::mat4 kInverseMatrix;
+    cv::Mat cloudMat;
+    cv::Mat disparityFloatMat;
+    crl::multisense::image::Header *stream = nullptr;
+
+    std::vector<crl::multisense::DataSource> enabledSources;
+
 
     explicit CRLPhysicalCamera(CRLCameraDataType type) : CRLBaseCamera() {
         CRLBaseCamera::prepare();
     }
 
 
-    bool online = false;
-    bool play = false;
-    bool modeChange = false;
-    std::vector<crl::multisense::DataSource> enabledSources;
-
-
-
     void connect();
     void start(std::string string, std::string dataSourceStr) override;
-    void update(Base::Render render, crl::multisense::image::Header *pHeader);
+    void update();
+    cv::Mat* getCloudMat();
     void stop( std::string dataSourceStr) override;
 
     CameraInfo getInfo();
@@ -46,6 +53,8 @@ public:
     std::unordered_set<crl::multisense::DataSource> supportedSources();
 
     static void setDelayedPropertyThreadFunc(void * context);
+
+    void setup();
 };
 
 

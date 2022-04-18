@@ -222,22 +222,11 @@ void CRLPhysicalCamera::update() {
         }
     }
 
-
-    crl::multisense::DataSource config;
-    bool status = cameraInterface->getEnabledStreams(config) != 0;
-    if (crl::multisense::Status_Ok != status) {
-        printf("Failed to query image config: %d\n", status);
-    }
-    std::bitset<32> y(config);
-    //std::cout << y << '\n';
-
-
-
 }
 
-void CRLPhysicalCamera::setup() {
+void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
 
-    meshData = new PointCloudData(960, 600);
+    meshData = new PointCloudData(width, height);
 
     crl::multisense::image::Config c = cameraInfo.imgConf;
 
@@ -248,6 +237,8 @@ void CRLPhysicalCamera::setup() {
                       glm::vec4(0, 1/c.fy(), -c.cy() / c.fy(), 0),
                       glm::vec4(0, 0,  1, 0),
                       glm::vec4(0, 0, 0, 1));
+
+    kInverseMatrix = glm::transpose(kInverseMatrix);
     /*
    kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
                   glm::vec4(0, c.fx() * c.tx(), 0, -c.fx() * c.cy() * c.tx()),

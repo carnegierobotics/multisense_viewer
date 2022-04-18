@@ -1196,6 +1196,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     switch (format) {
         case VK_FORMAT_R16_UNORM:
         case VK_FORMAT_R8_UNORM:
+        case VK_FORMAT_R16_UINT:
             // Create grayscale texture image
             createDefaultSampler();
             viewCreateInfo.pNext = nullptr;

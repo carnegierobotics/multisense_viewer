@@ -24,9 +24,11 @@ public:
     CRLCameraModels() = default;
 
     struct Model {
-        /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
-        bool draw = true;
+        Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type);
 
+/**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
+        bool draw = true;
+        CRLCameraDataType modelType;
 
         struct VideoTexture {
             std::vector<u_char *> pixels;
@@ -193,6 +195,15 @@ protected:
                               Model *model,
                               ScriptType type);
 
+    void createImageDescriptors(Model *model);
+
+    void createPointCloudDescriptors(Model *model);
+
+    void createImageDescriptors(Model *model, uint32_t i);
+
+    void createImageDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
+
+    void createPointCloudDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
 };
 
 

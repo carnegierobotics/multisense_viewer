@@ -54,7 +54,7 @@ public:
 
     static void setDelayedPropertyThreadFunc(void * context);
 
-    void setup();
+    void setup(uint32_t i, uint32_t i1);
 };
 
 

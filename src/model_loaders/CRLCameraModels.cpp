@@ -15,8 +15,9 @@ void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice) {
+CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type) {
     this->vulkanDevice = _vulkanDevice;
+    this->modelType = type;
 }
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
@@ -35,9 +36,9 @@ void CRLCameraModels::Model::createMesh(CRLCameraModels::Model::Vertex *_vertice
     } else {
         void *data;
         // TODO dont map and unmmap memory every time
-        vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, _vertices, vertexBufferSize);
-        vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
+        //vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
+        //memcpy(data, _vertices, vertexBufferSize);
+        //vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
     }
 }
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
@@ -132,6 +133,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
     if (streamOne->source == crl::multisense::Source_Disparity_Left) {
         auto *p = (uint16_t *) streamOne->imageDataP;
+        /*
         uint32_t min = 100000, max = 0;
         for (int i = 0; i < streamOne->imageLength / 2; ++i) {
             uint16_t val = p[i];
@@ -139,19 +141,16 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
                 max = val;
             if (val < min)
                 min = val;
-
         }
+
+        printf("Min max: %u, %u\n", min, max);
 
         for (int i = 0; i < streamOne->imageLength / 2; ++i) {
-            uint16_t val = p[i];
-            if (val > 0)
-                int k = 2;
             float intermediate = (float) ((float) p[i] / max) * 65536.0f;
             p[i] = (uint16_t) intermediate;
-            uint32_t someVal = p[i];
-            int a = 0;
         }
 
+         */
         textureVideo.updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
 
     } else {
@@ -272,6 +271,23 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
     /**
      * Create Descriptor Sets
      */
+
+    switch (model->modelType) {
+        case CrlImage:
+            createImageDescriptors(model, ubo);
+            break;
+        case CrlPointCloud:
+            createPointCloudDescriptors(model, ubo);
+            break;
+        default:
+            printf("Model type not supported yet\n");
+            break;
+    }
+
+}
+
+void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std::vector<Base::UniformBufferSet> ubo) {
+
     for (auto i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
@@ -281,8 +297,8 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
         descriptorSetAllocInfo.descriptorSetCount = 1;
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
 
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
 
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[0].descriptorCount = 1;
@@ -320,6 +336,52 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
             writeDescriptorSets[3].pImageInfo = &model->textureVideo.descriptor;
         }
 
+        vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                               writeDescriptorSets.data(), 0, NULL);
+    }
+}
+
+void
+CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std::vector<Base::UniformBufferSet> ubo) {
+
+    for (auto i = 0; i < ubo.size(); i++) {
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorSetCount = 1;
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
+
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
+        writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[0].descriptorCount = 1;
+        writeDescriptorSets[0].dstSet = descriptors[i];
+        writeDescriptorSets[0].dstBinding = 0;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+
+        writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[1].descriptorCount = 1;
+        writeDescriptorSets[1].dstSet = descriptors[i];
+        writeDescriptorSets[1].dstBinding = 1;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+
+        writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptorSets[2].descriptorCount = 1;
+        writeDescriptorSets[2].dstSet = descriptors[i];
+        writeDescriptorSets[2].dstBinding = 2;
+        writeDescriptorSets[2].pImageInfo = &model->textureVideo.descriptor;
+
+        writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptorSets[3].descriptorCount = 1;
+        writeDescriptorSets[3].dstSet = descriptors[i];
+        writeDescriptorSets[3].dstBinding = 3;
+        writeDescriptorSets[3].pImageInfo = &model->texture.descriptor;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -328,27 +390,40 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
 }
 
 void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
-    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
-            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+    switch (pModel->modelType) {
+        case CrlImage:
+            setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            };
+            break;
+        case CrlPointCloud:
+            setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+                    {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 
-    };
+            };
+            break;
 
-    // ADD YCBCR SAMPLER TO DESCRIPTORS
-    if (pModel->textureVideo.sampler != nullptr) {
-        VkDescriptorSetLayoutBinding binding;
-        setLayoutBindings[3].pImmutableSamplers= &pModel->textureVideo.sampler;
-
+        default:
+            printf("Model type not supported yet\n");
+            break;
     }
 
+    // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
+    if (pModel->textureVideo.sampler != nullptr) {
+        VkDescriptorSetLayoutBinding binding;
+        setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo.sampler;
+    }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
                                                                                                setLayoutBindings.size());
-
     CHECK_RESULT(
             vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout));
-
 }
 
 void CRLCameraModels::createPipelineLayout() {

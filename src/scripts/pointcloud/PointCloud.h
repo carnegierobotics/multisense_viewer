@@ -45,7 +45,6 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
     int point = 0;
-    bool drawModel = true;
 };
 
 

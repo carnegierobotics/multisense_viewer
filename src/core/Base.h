@@ -34,6 +34,12 @@ struct FragShaderParams {
     glm::vec4 viewPos;
 };
 
+struct PointCloudParam {
+    glm::mat4 kInverse;
+    float width;
+    float height;
+};
+
 struct PointCloudShader{
     glm::vec4 pos[NUM_POINTS];
     glm::vec4 col[NUM_POINTS];
@@ -108,14 +114,12 @@ public:
             currentUB.bufferTwo.map();
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
-            if (bufferThreeData == NULL)
-                return;
 
+            if (bufferThreeData == nullptr) return;
             currentUB.bufferThree.map();
-            char *val = static_cast<char *>(bufferThreeData);
-            float f = (float) atoi(val);
-            memcpy(currentUB.bufferThree.mapped, &f, sizeof(float));
+            memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
+
         } else if(scriptType == ArPointCloud){
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -140,7 +144,7 @@ public:
 
             bufferOneData = new UBOMatrix();
             bufferTwoData = new FragShaderParams();
-            bufferThreeData = new float();
+            bufferThreeData = new PointCloudParam();
 
             for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
@@ -157,7 +161,7 @@ public:
                 renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferThree, sizeof(float));
+                                                 &uniformBuffer.bufferThree, sizeof(PointCloudParam));
 
             }
         }

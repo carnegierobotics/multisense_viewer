@@ -9,7 +9,7 @@ void Quad::setup() {
      * Create and load Mesh elements
      */
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device);
+    model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
     // Don't draw it before we create the texture in update()
     model->draw = false;
 }
@@ -83,11 +83,6 @@ void Quad::update() {
                 model->setGrayscaleTexture(&camera->getImage()[src]);
                 break;
         }
-
-        count += 1;
-        if (count >= 100)
-            count = 1;
-
     }
 
 

@@ -47,6 +47,7 @@ public:
     Button *connectButton;
     Button *btnAddVirtualcamera;
 
+
     InputText *cameraIP;
     InputText *cameraName;
 
@@ -67,6 +68,9 @@ public:
         Text *connectionStatus;
         DropDownItem *modes;
         DropDownItem *sources;
+
+        SideBarElement* UIElement;
+        bool hasBeenCreated = false;
     };
 
     std::vector<SidebarDevice> sideBarElements;

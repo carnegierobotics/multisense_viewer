@@ -18,19 +18,21 @@ typedef enum UIElement {
     AR_ELEMENT_BUTTON,
     AR_ELEMENT_FLOAT_SLIDER,
     AR_UI_ELEMENT_DROPDOWN,
-    AR_UI_ELEMENT_INPUT_TEXT
+    AR_UI_ELEMENT_INPUT_TEXT,
+    AR_UI_ELEMENT_SIDEBAR_DEVICE
 } UIElement;
 
 
 struct Button {
-    std::string string;
+    char string[64] = "Btn";
     ImVec2 size;
     bool clicked = false;
 
-    Button(std::string _name,
+    Button(const std::string name,
            float size_x,
            float size_y) {
-        string = std::move(_name);
+
+        strcpy(string, name.c_str());
         size = ImVec2(size_x, size_y);
     }
 };
@@ -51,17 +53,17 @@ struct InputText {
 
 
 struct Text {
-    std::string string;
+    char string[64] = "Text";
     ImVec4 color;
     bool sameLine = false;
 
     explicit Text(std::string setText) {
-        string = std::move(setText);
+        strcpy(string, setText.c_str());
         color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     Text(std::string setText, ImVec4 textColor) {
-        string = std::move(setText);
+        strcpy(string, setText.c_str());
         color = textColor;
     }
 };
@@ -74,7 +76,6 @@ struct DropDownItem {
     explicit DropDownItem(std::string label) {
         this->label = std::move(label);
     }
-
 };
 
 class ElementBase {
@@ -84,7 +85,7 @@ public:
     DropDownItem *dropDown{};
     UIElement type{};
     std::string location;
-    InputText* inputText;
+    InputText *inputText;
     struct {
         float x = 0.0f;
         float y = 0.0f;
@@ -102,11 +103,29 @@ public:
 
 };
 
-class SideBarElement : ElementBase {
+class SideBarElement {
+public:
 
-    SideBarElement() {
+    Text *profileName{};
+    Text *cameraName{};
+    Button *activityState{};
+    UIElement type{};
 
+    struct {
+        float x = 0.0f;
+        float y = 0.0f;
+    }pos;
 
+    SideBarElement(Text *name, Text *camName, Button *btn, float posX, float posY) : profileName(name),
+                                                                                     cameraName(camName),
+                                                                                     activityState(btn),
+                                                                                     type(AR_ELEMENT_BUTTON) {
+        this->pos.x = posX;
+        this->pos.y = posY;
+    }
+
+    ImVec2 getPos() const {
+        return ImVec2{pos.x, pos.y};
     }
 
 };
@@ -116,19 +135,13 @@ struct UISettings {
 
 public:
 
-
-    bool rotate = true;
-    bool displayBackground = true;
-    bool toggleGridSize = true;
-
     float movementSpeed = 0.2;
+
     std::array<float, 50> frameTimes{};
     float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-    float lightTimer = 0.0f;
 
 
     bool closeModalPopup = false;
-
 
     /** void* for shared data among scripts. User defined type */
     void *physicalCamera = nullptr;
@@ -143,6 +156,7 @@ public:
     /** A vector containing each element that should be drawn on the ImGUI */
     std::vector<ElementBase> elements;
     std::vector<ElementBase> modalElements;
+    std::vector<SideBarElement *> sidebarElements;
 
     /**
      * Creates Text
@@ -176,12 +190,14 @@ public:
         auto elem = ElementBase(button);
         modalElements.push_back((elem));
     }
+
     void addModalText(InputText *text) {
         auto elem = ElementBase(text);
         modalElements.push_back((elem));
     }
-    void createSideBarElement() {
 
+    void createSideBarElement(SideBarElement *elem) {
+        sidebarElements.push_back(elem);
     }
 };
 

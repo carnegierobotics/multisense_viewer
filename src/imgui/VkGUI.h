@@ -431,14 +431,14 @@ public:
 
         switch (element.type) {
             case AR_ELEMENT_TEXT:
-                ImGui::TextColored(element.text->color, "%s", element.text->string.c_str());
+                ImGui::TextColored(element.text->color, "%s", element.text->string);
 
                 if (element.text->sameLine)
                     ImGui::SameLine();
 
                 break;
             case AR_ELEMENT_BUTTON:
-                element.button->clicked = ImGui::Button(element.button->string.c_str(), element.button->size);
+                element.button->clicked = ImGui::Button(element.button->string, element.button->size);
                 if (element.button->clicked)
                     updated |= true;
                 break;
@@ -534,11 +534,12 @@ public:
                 ImGui::InputText("Profile name", inputName.inputText->string,
                                  IM_ARRAYSIZE(inputName.inputText->string));
                 ImGui::InputText("Camera ip", inputIP.inputText->string, IM_ARRAYSIZE(inputIP.inputText->string));
-                btn.button->clicked = ImGui::Button( btn.button->string.c_str(),  btn.button->size);
+                btn.button->clicked = ImGui::Button(btn.button->string, btn.button->size);
                 ImGui::SameLine();
-                btnAddVirtualCamera.button->clicked = ImGui::Button( btnAddVirtualCamera.button->string.c_str(),  btnAddVirtualCamera.button->size);
+                btnAddVirtualCamera.button->clicked = ImGui::Button(btnAddVirtualCamera.button->string,
+                                                                    btnAddVirtualCamera.button->size);
 
-                if (uiSettings->closeModalPopup){
+                if (uiSettings->closeModalPopup) {
                     ImGui::CloseCurrentPopup();
                     uiSettings->closeModalPopup = false;
                 }
@@ -548,6 +549,21 @@ public:
             }
         }
 
+        if (!uiSettings->sidebarElements.empty()) {
+            for (auto &element: uiSettings->sidebarElements) {
+
+                ImGui::SetCursorPos(element->getPos());
+                ImGui::Text( "%s", element->profileName->string);
+                ImGui::Spacing();
+                ImGui::Text( "%s", element->cameraName->string);
+                //ImGui::TextColored(element->cameraName->color, "%s", element->cameraName->string.c_str());
+                element->activityState->clicked = ImGui::Button(element->activityState->string,element->activityState->size);
+
+                if (element->activityState->clicked)
+                    updated |= true;
+
+            }
+        }
 
         if (!uiSettings->elements.empty()) {
             for (auto &element: uiSettings->elements) {
@@ -555,7 +571,7 @@ public:
                     buildElements(element);
 
                 // Treat special events from ImGUI
-                if (element.button && element.button->string == "ADD DEVICE" && element.button->clicked) {
+                if (element.button && strcmp(element.button->string, "ADD DEVICE") == 0 && element.button->clicked) {
                     ImGui::OpenPopup("add_device_modal");
                 }
 

@@ -27,7 +27,7 @@ void GUISidebar::setup() {
     renderUtils.ui->addModalText(cameraName);
 
     cameraIP = new InputText("10.66.171.21", 175.0f, 30.0f);
-    renderUtils.ui->addModalText(cameraIP);
+     renderUtils.ui->addModalText(cameraIP);
     //renderUtils.ui->createButton(connectButton, "sidebar");
     //renderUtils.ui->createText(cameraNameHeader, "sidebar");
     //renderUtils.ui->createText(cameraName, "sidebar");
@@ -63,8 +63,14 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
         SidebarDevice d{};
         d.name = cameraName->string;
         d.camera = new CRLPhysicalCamera(CrlNone);
-
         d.index = sideBarElements.size();
+
+        // Create UI Element
+        Text profileName(cameraIP->string);
+        Text camName(cameraName->string);
+        Button btn("ActivityState", 175.0f, 30.0f);
+
+        d.UIElement = new SideBarElement(&profileName, &camName, &btn, 20, 300);
         // Create new sidebar element container
         sideBarElements.push_back(d);
 
@@ -73,6 +79,11 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
     // Run updates for this element
     if (!sideBarElements.empty()) {
         for (auto &id: sideBarElements) {
+            if (!id.hasBeenCreated){
+
+                renderUtils.ui->createSideBarElement(id.UIElement);
+                id.hasBeenCreated = true;
+            }
 
             if (id.btnStartStream != nullptr) {
                 if (id.btnStartStream->clicked) {
@@ -94,13 +105,11 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
                     id.virtualCamera->connect(CrlPointCloud);
                     uiSettings->virtualCamera = id.virtualCamera;
 
-                    float offset = 300.0f + (id.index * 50.0f);
-
                     id.cameraNameHeader = new Text(id.name);
-                    renderUtils.ui->createText(id.cameraNameHeader, "sidebar", 10, offset);
+                    //renderUtils.ui->createText(id.cameraNameHeader, "sidebar", 10, offset);
 
                     id.connectionStatus = new Text("Connected", ImVec4(0.2f, 1.0f, 0.3f, 1.0f));
-                    renderUtils.ui->createText(id.connectionStatus, "sidebar", 10, 15 + offset);
+                    //renderUtils.ui->createText(id.connectionStatus, "sidebar", 10, 15 + offset);
                     continue;
                 }
 
@@ -112,10 +121,10 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
                 float offset = 300.0f + (id.index * 50.0f);
                 uiSettings->physicalCamera = id.camera;
                 id.cameraNameHeader = new Text(id.name);
-                renderUtils.ui->createText(id.cameraNameHeader, "sidebar", 10, offset);
+               // renderUtils.ui->createText(id.cameraNameHeader, "sidebar", 10, offset);
 
                 id.connectionStatus = new Text("Connected", ImVec4(0.2f, 1.0f, 0.3f, 1.0f));
-                renderUtils.ui->createText(id.connectionStatus, "sidebar", 10, 15 + offset);
+                //renderUtils.ui->createText(id.connectionStatus, "sidebar", 10, 15 + offset);
 
                 // Generate drop downs
                 id.modes = new DropDownItem("Mode");
@@ -127,7 +136,7 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
                 }
 
                 id.modes->selected = "Select device mode";
-                renderUtils.ui->createDropDown(id.modes, "main", 10, 20);
+                //renderUtils.ui->createDropDown(id.modes, "main", 10, 20);
 
                 id.sources = new DropDownItem("Source");
                 for (const auto &elem: id.camera->supportedSources()) {
@@ -135,19 +144,19 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
                     id.sources->dropDownItems.push_back(sourceName);
                 }
                 id.sources->selected = "Select data source";
-                renderUtils.ui->createDropDown(id.sources, "main", 10, 45);
+                //renderUtils.ui->createDropDown(id.sources, "main", 10, 45);
 
                 // Start stream
                 id.btnStartStream = new Button("Start stream", 175.0f, 20.0f);
-                renderUtils.ui->createButton(id.btnStartStream, "main", 10, 70);
+                //renderUtils.ui->createButton(id.btnStartStream, "main", 10, 70);
 
                 // Start stream
                 id.btnStopStream = new Button("Stop stream", 175.0f, 20.0f);
-                renderUtils.ui->createButton(id.btnStopStream, "main", 10, 95);
+                //renderUtils.ui->createButton(id.btnStopStream, "main", 10, 95);
 
                 // Start stream
                 id.btnViewPointCloud = new Button("View point cloud", 175.0f, 20.0f);
-                renderUtils.ui->createButton(id.btnViewPointCloud, "main", 10, 125);
+                //renderUtils.ui->createButton(id.btnViewPointCloud, "main", 10, 125);
 
             }
         }

@@ -30,6 +30,8 @@
 
 #include <MultiSense/src/imgui/UISettings.h>
 #include <MultiSense/src/imgui/VkGUI.h>
+#include <MultiSense/src/imgui/GuiManager.h>
+
 #include "VulkanSwapchain.h"
 #include "Validation.h"
 #include "VulkanDevice.h"
@@ -89,7 +91,8 @@ public:
     } mouseButtons;
 
     /** @brief Handle for UI updates and overlay */
-    ImGUI* UIOverlay;
+
+    ArEngine::GuiManager* guiManager;
 
     /** @brief (Virtual) Creates the application wide Vulkan instance */
     virtual VkResult createInstance(bool enableValidation);
@@ -119,8 +122,6 @@ public:
     virtual void prepare();
     /** @brief Entry point for the main render loop */
     void renderLoop();
-    /** @brief Adds the drawing commands for the ImGui overlay to the given command buffer */
-    void drawUI(const VkCommandBuffer commandBuffer);
     /** Prepare the next frame for workload submission by acquiring the next swap chain image */
     void prepareFrame();
     /** @brief Presents the current image to the swap chain */

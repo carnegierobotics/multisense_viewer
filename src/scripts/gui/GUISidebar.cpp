@@ -11,6 +11,7 @@ void GUISidebar::setup() {
      */
     // UI creation
 
+    /*
     addDevice = new Button("ADD DEVICE", 200.0f, 35.0f);
     renderUtils.ui->createButton(addDevice, "sidebar", 20, 650);
 
@@ -31,6 +32,7 @@ void GUISidebar::setup() {
     //renderUtils.ui->createButton(connectButton, "sidebar");
     //renderUtils.ui->createText(cameraNameHeader, "sidebar");
     //renderUtils.ui->createText(cameraName, "sidebar");
+    */
 }
 
 

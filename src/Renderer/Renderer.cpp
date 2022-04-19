@@ -2,6 +2,7 @@
 //
 //
 
+#include <MultiSense/src/imgui/SideBar.h>
 #include "Renderer.h"
 
 
@@ -15,6 +16,10 @@ void Renderer::prepareRenderer() {
 
 
     generateScriptClasses();
+
+    // Generate UI from Layers
+    guiManager->pushLayer<SideBar>();
+
 
 }
 
@@ -80,7 +85,8 @@ void Renderer::buildCommandBuffers() {
             }
         }
 
-        UIOverlay->drawFrame(drawCmdBuffers[i]);
+        guiManager->drawFrame(drawCmdBuffers[i]);
+
         vkCmdEndRenderPass(drawCmdBuffers[i]);
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
     }
@@ -156,7 +162,7 @@ void Renderer::generateScriptClasses() {
     classNames.emplace_back("PointCloud");
 
     // Also add class names to listbox
-    UIOverlay->uiSettings->listBoxNames = classNames;
+    //UIOverlay->uiSettings->listBoxNames = classNames;
     scripts.reserve(classNames.size());
     // Create class instances of scripts
     for (auto &className: classNames) {
@@ -166,7 +172,7 @@ void Renderer::generateScriptClasses() {
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
-    vars.ui = UIOverlay->uiSettings;
+    //vars.ui = UIOverlay->uiSettings;
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 

@@ -410,14 +410,25 @@ void VulkanRenderer::prepare() {
     createPipelineCache();
     setupFrameBuffer();
 
-    // Prepare UI overlay
-    UIOverlay = new ImGUI(vulkanDevice);
-    UIOverlay->init((float) width, (float) height);
-    UIOverlay->shaders = {
+    guiManager = new ArEngine::GuiManager(vulkanDevice);
+    std::vector<VkPipelineShaderStageCreateInfo> shaders;
+    shaders = {
             loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
             loadShader("imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
     };
-    UIOverlay->initResources(renderPass, queue, Utils::getShadersPath());
+
+    guiManager->setup((float) width, (float) height, renderPass, queue, &shaders);
+
+    // Prepare UI overlay
+    //UIOverlay = new ImGUI(vulkanDevice);
+
+
+    //UIOverlay->init((float) width, (float) height);
+    //UIOverlay->shaders = {
+    //        loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+    //        loadShader("imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+    //};
+    //UIOverlay->initResources(renderPass, queue, Utils::getShadersPath());
 
 
     startTime = std::chrono::system_clock::now();
@@ -566,13 +577,14 @@ void VulkanRenderer::submitFrame() {
         throw std::runtime_error("Failed to wait for Queue Idle");
 }
 
+
 void VulkanRenderer::UIUpdate(UISettings *uiSettings) {
 
 }
 
 void VulkanRenderer::updateOverlay() {
-
     // Update imGui
+
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float) width, (float) height);
     io.DeltaTime = frameTimer;
@@ -581,20 +593,23 @@ void VulkanRenderer::updateOverlay() {
     io.MouseDown[0] = mouseButtons.left;
     io.MouseDown[1] = mouseButtons.right;
 
+    guiManager->update((frameCounter == 0), frameTimer, width, height);
+    if (guiManager->updateBuffers())
+        buildCommandBuffers();
+
+    /*
     UIOverlay->newFrame((frameCounter == 0), frameTimer, width, height);
     if (UIOverlay->updateBuffers()) {
         buildCommandBuffers();
+
     }
 
     if (UIOverlay->updated || UIOverlay->firstUpdate) {
         UIUpdate(UIOverlay->uiSettings);
         UIOverlay->firstUpdate = false;
     }
+     */
 }
-
-void VulkanRenderer::drawUI(const VkCommandBuffer commandBuffer) {
-}
-
 
 void VulkanRenderer::renderFrame() {
 
@@ -698,7 +713,7 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
         return;
     }
 
-    if (mouseButtons.left && !UIOverlay->active) {
+    if (mouseButtons.left) {
         camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
         viewUpdated = true;
     }
@@ -1012,3 +1027,5 @@ ImGuiKey VulkanRenderer::ImGui_ImplGlfw_KeyToImGuiKey(int key) {
             return ImGuiKey_None;
     }
 }
+
+

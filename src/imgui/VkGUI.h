@@ -407,6 +407,7 @@ public:
     }
 
 
+    /*
     void createDropDowns(ElementBase *element) {
         if (ImGui::BeginCombo(element->dropDown->label.c_str(),
                               element->dropDown->selected.c_str())) // The second parameter is the label previewed before opening the combo.
@@ -452,6 +453,7 @@ public:
                 break;
         }
     }
+     */
 
 // Starts a new imGui frame and sets up windows and ui elements
     void newFrame(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height) {
@@ -496,6 +498,7 @@ public:
                          uiSettings->frameTimeMax, ImVec2(0, 80));
 
 
+        /*
         static int item_current_idx = 0; // Here we store our selection data as an index.
         ImGui::Spacing();
         ImGui::Text("Active objects");
@@ -578,19 +581,21 @@ public:
             }
         }
 
-
+        */
         ImGui::End();
 
         ImGui::SetNextWindowPos(ImVec2(sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2((float) width - sidebarWidth, 200));
         ImGui::Begin("main", &pOpen, window_flags);
 
+        /*
         if (!uiSettings->elements.empty()) {
             for (auto &element: uiSettings->elements) {
                 if (element.location == "main")
                     buildElements(element);
             }
         }
+         */
         ImGui::End();
 
         active = ImGui::IsWindowHovered() || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemFocused();

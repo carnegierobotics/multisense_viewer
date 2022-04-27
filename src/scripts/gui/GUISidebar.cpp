@@ -9,7 +9,6 @@ void GUISidebar::setup() {
     /**
      * Create UI Elements
      */
-    // UI creation
 
     /*
     addDevice = new Button("ADD DEVICE", 200.0f, 35.0f);
@@ -41,6 +40,7 @@ void GUISidebar::update() {
 }
 
 void GUISidebar::onUIUpdate(UISettings *uiSettings) {
+    /*
     // Creates popup under the hood
     if (addDevice->clicked) {
     }
@@ -163,6 +163,7 @@ void GUISidebar::onUIUpdate(UISettings *uiSettings) {
             }
         }
     }
+     */
 }
 
 

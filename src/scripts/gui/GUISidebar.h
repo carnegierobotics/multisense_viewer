@@ -43,38 +43,6 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = ArDefault;
 
-    Text *cameraNameHeader;
-    Button *connectButton;
-    Button *btnAddVirtualcamera;
-
-
-    InputText *cameraIP;
-    InputText *cameraName;
-
-    Button *addDevice;
-
-    struct SidebarDevice {
-        std::string name;
-        uint32_t index;
-        CRLVirtualCamera *virtualCamera = nullptr;
-        CRLPhysicalCamera* camera;
-        Button* btnStartStream;
-        Button* btnStopStream;
-        Button* btnViewPointCloud;
-
-        InputText *cameraIP;
-        InputText *cameraName;
-        Text *cameraNameHeader;
-        Text *connectionStatus;
-        DropDownItem *modes;
-        DropDownItem *sources;
-
-        SideBarElement* UIElement;
-        bool hasBeenCreated = false;
-    };
-
-    std::vector<SidebarDevice> sideBarElements;
-
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

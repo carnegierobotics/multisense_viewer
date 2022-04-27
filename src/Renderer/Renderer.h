@@ -47,7 +47,6 @@ public:
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
         backendInitialized = true;
-
         prepareRenderer();
     };
      ~Renderer() override = default;

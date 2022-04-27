@@ -17,6 +17,7 @@
 #include <MultiSense/src/core/VulkanDevice.h>
 #include "MultiSense/src/imgui/Layer.h"
 #include <MultiSense/external/imgui/imgui.h>
+#include <MultiSense/src/core/Texture.h>
 #include "imgui_internal.h"
 
 namespace ArEngine {
@@ -24,9 +25,11 @@ namespace ArEngine {
 
     class GuiManager {
     public:
-        explicit GuiManager(VulkanDevice *vulkanDevice);
 
-        ~GuiManager();
+        GuiObjectHandles handles;
+
+        explicit GuiManager(VulkanDevice *vulkanDevice);
+        ~GuiManager() = default;
 
 
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height);
@@ -60,15 +63,14 @@ namespace ArEngine {
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
         GuiLayerUpdateInfo updateInfo;
 
+        Texture2D fontTexture;
+
         // Vulkan resources for rendering the UI
         VkSampler sampler{};
         Buffer vertexBuffer;
         Buffer indexBuffer;
         int32_t vertexCount = 0;
         int32_t indexCount = 0;
-        VkDeviceMemory fontMemory = VK_NULL_HANDLE;
-        VkImage fontImage = VK_NULL_HANDLE;
-        VkImageView fontView = VK_NULL_HANDLE;
         VkPipelineCache pipelineCache{};
         VkPipelineLayout pipelineLayout{};
         VkPipeline pipeline{};
@@ -78,6 +80,9 @@ namespace ArEngine {
 
         VulkanDevice *device;
 
+        void initializeFonts();
+        ImFont *AddDefaultFont(float pixel_size);
+        ImFont * loadFontFromFileName(std::string file, float fontSize);
     };
 
 }

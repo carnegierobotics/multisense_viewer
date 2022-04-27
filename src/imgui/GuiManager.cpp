@@ -6,6 +6,7 @@
 // Adapted from Dear ImGui Vulkan example and from TheCherno's Walnut application
 //
 
+#include <MultiSense/src/tools/Macros.h>
 #include "GuiManager.h"
 
 
@@ -23,6 +24,10 @@ namespace ArEngine {
 
         updateInfo.deviceName = device->properties.deviceName;
         updateInfo.title = "GuiManager";
+        io = &ImGui::GetIO();
+
+        initializeFonts();
+
     }
 
     void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height) {
@@ -36,13 +41,15 @@ namespace ArEngine {
 
         {
 
-            for (auto &layer: m_LayerStack){
+            for (auto &layer: m_LayerStack) {
                 layer->updateInfo(&updateInfo);
                 layer->OnUIRender();
+                layer->onFinishedRender();
             }
 
         }
         ImGui::Render();
+
 
     }
 
@@ -110,7 +117,6 @@ namespace ArEngine {
 
 
     void GuiManager::drawFrame(VkCommandBuffer commandBuffer) {
-        ImGuiIO &io = ImGui::GetIO();
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0,
                                 nullptr);
@@ -121,7 +127,7 @@ namespace ArEngine {
         //vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // UI scale and translate via push constants
-        pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+        pushConstBlock.scale = glm::vec2(2.0f / io->DisplaySize.x, 2.0f / io->DisplaySize.y);
         pushConstBlock.translate = glm::vec2(-1.0f);
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
                            &pushConstBlock);
@@ -158,7 +164,8 @@ namespace ArEngine {
     }
 
 
-    void GuiManager::setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue, std::vector<VkPipelineShaderStageCreateInfo>* shaders) {
+    void GuiManager::setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue,
+                           std::vector<VkPipelineShaderStageCreateInfo> *shaders) {
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
@@ -175,6 +182,7 @@ namespace ArEngine {
 
         io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+        /*
         // Create font texture
         unsigned char *fontData;
         int texWidth, texHeight;
@@ -318,7 +326,7 @@ namespace ArEngine {
         vkUpdateDescriptorSets(device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, nullptr);
 
-
+        */
         // Pipeline ---------
 
         // Pipeline cache
@@ -433,6 +441,104 @@ namespace ArEngine {
             throw std::runtime_error("Failed to create graphics pipeline");
     }
 
+    void GuiManager::initializeFonts() {
+        io->Fonts->Clear();
+
+        updateInfo.font13 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 13);
+        updateInfo.font18 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 18);
+        updateInfo.font24 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 24);
+
+    }
+
+    ImFont * GuiManager::loadFontFromFileName(std::string file, float fontSize) {
+        ImFont * font;
+        ImFontConfig config;
+        config.OversampleH = 2;
+        config.OversampleV = 1;
+        config.GlyphExtraSpacing.x = 1.0f;
+        font = io->Fonts->AddFontFromFileTTF(file.c_str(), fontSize, &config);
+
+        unsigned char *pixels;
+        int width, height;
+        io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+        size_t uploadSize = width * height * 4 * sizeof(char);
+
+        {
+            fontTexture.fromBuffer(pixels, uploadSize,
+                                   VK_FORMAT_R8G8B8A8_UNORM,
+                                   width, height, device,
+                                   device->transferQueue);
+
+        }
+
+        // Descriptor Layout
+
+        {
+            std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+            setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            };
+
+
+            VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                    setLayoutBindings.data(),
+                    setLayoutBindings.size());
+            CHECK_RESULT(
+                    vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                                                &descriptorSetLayout));
+        }
+
+        // Descriptor Pool
+        {
+            uint32_t imageDescriptorSamplerCount = (3 * 5);
+            std::vector<VkDescriptorPoolSize> poolSizes = {
+                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+
+            };
+            VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
+            CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+
+
+        }
+
+        // descriptors
+        {
+            // Create Descriptor Set:
+            {
+                VkDescriptorSetAllocateInfo alloc_info = {};
+                alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                alloc_info.descriptorPool = descriptorPool;
+                alloc_info.descriptorSetCount = 1;
+                alloc_info.pSetLayouts = &descriptorSetLayout;
+                CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &descriptorSet));
+            }
+
+            // Update the Descriptor Set:
+            {
+
+                VkWriteDescriptorSet write_desc[1] = {};
+                write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                write_desc[0].dstSet = descriptorSet;
+                write_desc[0].descriptorCount = 1;
+                write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                write_desc[0].pImageInfo = &fontTexture.descriptor;
+                vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            }
+        }
+
+        return font;
+    }
+
+    ImFont *GuiManager::AddDefaultFont(float pixel_size) {
+        ImGuiIO &io = ImGui::GetIO();
+        ImFontConfig config;
+        config.SizePixels = pixel_size;
+        config.OversampleH = 2;
+        config.OversampleV = 1;
+        config.FontDataOwnedByAtlas = false;
+        ImFont *font = io.Fonts->AddFontDefault(&config);
+        return font;
+    }
 
 
 }

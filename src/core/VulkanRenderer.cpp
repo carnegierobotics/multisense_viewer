@@ -419,18 +419,6 @@ void VulkanRenderer::prepare() {
 
     guiManager->setup((float) width, (float) height, renderPass, queue, &shaders);
 
-    // Prepare UI overlay
-    //UIOverlay = new ImGUI(vulkanDevice);
-
-
-    //UIOverlay->init((float) width, (float) height);
-    //UIOverlay->shaders = {
-    //        loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-    //        loadShader("imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
-    //};
-    //UIOverlay->initResources(renderPass, queue, Utils::getShadersPath());
-
-
     startTime = std::chrono::system_clock::now();
 }
 

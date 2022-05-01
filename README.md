@@ -21,7 +21,7 @@ $ git clone https://github.com/M-Gjerde/MultiSense
 $ cd MultiSense
 ```
 
-## Scaffolding
+## Folder structure
 
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
 
@@ -42,7 +42,6 @@ Explanation coming
 
 ## Bugs
 
-If you have questions, feature requests or a bug you want to report, please click [here](https://github.com/Yilber/readme-boilerplate/issues) to file an issue.
 
 ## Author(s)
 
@@ -50,9 +49,6 @@ If you have questions, feature requests or a bug you want to report, please clic
 
 ## Support
 
-Like what you see? Keep me awake at night by buying me a coffee or two.
-
-<a href="https://www.buymeacoffee.com/" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;"></a>
 ## License
 
 Usage is provided under the MIT License. See [LICENSE](https://github.com/M-Gjerde/MultiSense/blob/master/LICENSE) for the full details.

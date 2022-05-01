@@ -26,7 +26,6 @@ $ cd MultiSense
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
 
 ```text
-readme-boilerplate
 ├── docs
 │   └── html
 ├── src

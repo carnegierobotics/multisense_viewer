@@ -23,7 +23,7 @@ public:
     std::vector<crl::multisense::DataSource> enabledSources;
 
 
-    explicit CRLPhysicalCamera(CRLCameraDataType type) : CRLBaseCamera() {
+    explicit CRLPhysicalCamera() : CRLBaseCamera() {
         CRLBaseCamera::prepare();
     }
 

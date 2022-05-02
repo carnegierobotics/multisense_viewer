@@ -8,7 +8,6 @@
 #include <MultiSense/src/tools/Utils.h>
 #include <filesystem>
 #include <utility>
-#include "MultiSense/src/imgui/UISettings.h"
 #include "Camera.h"
 
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
@@ -45,7 +44,8 @@ struct PointCloudShader{
     glm::vec4 col[NUM_POINTS];
 };
 
-
+// PreDeclare
+class GuiObjectHandles;
 
 class Base {
 public:
@@ -57,13 +57,12 @@ public:
         Buffer bufferThree;
     };
 
-    void *bufferOneData;
-    void *bufferTwoData;
-    void *bufferThreeData;
+    void *bufferOneData{};
+    void *bufferTwoData{};
+    void *bufferThreeData{};
 
     struct RenderUtils {
         VulkanDevice *device{};
-        UISettings *ui{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
@@ -76,7 +75,7 @@ public:
         const Camera *camera;
         float deltaT;
         float runTime;
-    } renderData;
+    } renderData{};
 
 
     virtual ~Base() = default;
@@ -88,7 +87,7 @@ public:
     virtual void setup() = 0;
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(UISettings *uiSettings) = 0;
+    virtual void onUIUpdate(GuiObjectHandles *uiHandle) = 0;
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return type; }

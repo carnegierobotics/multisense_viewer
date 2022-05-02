@@ -6,6 +6,7 @@
 #include <MultiSense/src/model_loaders/MeshModel.h>
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 
+
 class VirtualPointCloud: public Base, public RegisteredInFactory<VirtualPointCloud>, MeshModel
 {
 public:
@@ -26,7 +27,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(UISettings *uiSettings) override;
+    void onUIUpdate(GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

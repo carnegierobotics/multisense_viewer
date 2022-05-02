@@ -29,14 +29,14 @@ void Renderer::viewChanged() {
 }
 
 
-void Renderer::UIUpdate(UISettings *uiSettings) {
+void Renderer::UIUpdate(GuiObjectHandles *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
 
     for (auto &script: scripts) {
         script->onUIUpdate(uiSettings);
     }
 
-    camera.setMovementSpeed(uiSettings->movementSpeed);
+    camera.setMovementSpeed(20.0f);
 
 }
 

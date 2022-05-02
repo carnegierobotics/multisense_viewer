@@ -28,7 +28,7 @@
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/objects/LightSource.h>
 #include <MultiSense/src/scripts/gui/GUISidebar.h>
-#include <MultiSense/src/scripts/gui/GUITopBar.h>
+#include <MultiSense/src/scripts/gui/CameraConnection.h>
 #include <MultiSense/src/scripts/video/Quad.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 
@@ -76,7 +76,7 @@ protected:
      * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
      * @param uiSettings Handle to UISetting variables
      */
-    void UIUpdate(UISettings *uiSettings) override;
+    void UIUpdate(GuiObjectHandles *uiSettings) override;
 
     /**
      *

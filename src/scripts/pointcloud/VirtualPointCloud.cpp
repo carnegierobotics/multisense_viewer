@@ -35,8 +35,8 @@ void VirtualPointCloud::update() {
 
 }
 
-void VirtualPointCloud::onUIUpdate(UISettings *uiSettings) {
-    virtualCamera = (CRLVirtualCamera *) uiSettings->virtualCamera;
+void VirtualPointCloud::onUIUpdate(GuiObjectHandles *uiHandle) {
+    //virtualCamera = (CRLVirtualCamera *) uiSettings->virtualCamera;
 
 }
 

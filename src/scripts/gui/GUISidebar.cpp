@@ -39,7 +39,7 @@ void GUISidebar::update() {
 
 }
 
-void GUISidebar::onUIUpdate(UISettings *uiSettings) {
+void GUISidebar::onUIUpdate(GuiObjectHandles *uiHandle) {
     /*
     // Creates popup under the hood
     if (addDevice->clicked) {

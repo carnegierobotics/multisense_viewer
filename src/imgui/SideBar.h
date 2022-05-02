@@ -11,15 +11,20 @@
 #include "imgui.h"
 #include "Layer.h"
 
-class SideBar : public ArEngine::Layer {
+class SideBar : public Layer {
 public:
 
+    // Create global object for convenience in other functions
+    GuiObjectHandles* handles;
 
     void onFinishedRender() override {
 
     }
 
-    void OnUIRender() override {
+    void OnUIRender(GuiObjectHandles* _handles) override {
+        this->handles = _handles;
+        GuiLayerUpdateInfo* info = handles->info;
+
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -82,9 +87,10 @@ public:
         ImGui::Spacing();
         ImGui::Spacing();
 
-        if (!elements.empty())
+        if (!devices.empty())
             sidebarElements();
-        addButton();
+
+        addDeviceButton();
 
         ImGui::ShowDemoWindow();
 
@@ -94,28 +100,28 @@ public:
 
 private:
 
-
-    std::vector<ArEngine::Element> elements;
+    std::vector<Element> devices;
 
     float sidebarWidth = 250.0f;
     bool btnConnect = false;
     bool btnAdd = false;
 
-
-
     void createNewElement(char *name, char *ip) {
-        ArEngine::Element el;
+        Element el;
 
         el.name = name;
         el.IP = ip;
+        el.state = ArConnectingState;
 
-        elements.emplace_back(el);
+        devices.emplace_back(el);
+
+        handles->devices = &devices;
 
     }
 
     void sidebarElements() {
-        for (int i = 0; i < elements.size(); ++i) {
-            auto& e = elements[i];
+        for (int i = 0; i < devices.size(); ++i) {
+            auto& e = devices[i];
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
 
@@ -125,7 +131,7 @@ private:
             ImVec2 cursorPos = ImGui::GetCursorPos();
 
             // Profile Name
-            ImGui::PushFont(info->font24);
+            ImGui::PushFont(handles->info->font24);
             ImVec2 lineSize = ImGui::CalcTextSize( e.name.c_str());
             cursorPos.x = window_center.x - (lineSize.x / 2);
             ImGui::SetCursorPos(cursorPos);
@@ -134,7 +140,7 @@ private:
 
 
             // Camera IP Address
-            ImGui::PushFont(info->font13);
+            ImGui::PushFont(handles->info->font13);
             lineSize = ImGui::CalcTextSize(e.IP.c_str());
             cursorPos.x = window_center.x - (lineSize.x / 2);
             ImGui::SetCursorPos(ImVec2(cursorPos.x,ImGui::GetCursorPosY()));
@@ -144,14 +150,41 @@ private:
 
             // Status Button
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
-            ImGui::PushFont(info->font18);
+            ImGui::PushFont(handles->info->font18);
             //ImGuiStyle style = ImGui::GetStyle();
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
 
             cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
             ImGui::SetCursorPos(ImVec2(cursorPos.x,ImGui::GetCursorPosY()));
-            ImGui::Button("Active", ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+
+            std::string buttonIdentifier = "" + std::to_string(i);
+
+            switch (e.state) {
+
+                case ArConnectedState:
+                    break;
+                case ArConnectingState:
+                    buttonIdentifier = "Connecting";
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));                    break;
+                case ArActiveState:
+                    buttonIdentifier = "Active";
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                    break;
+                case ArInActiveState:
+                    buttonIdentifier = "Inactive";
+                    break;
+                case ArDisconnectedState:
+                    break;
+                case ArUnavailableState:
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f,0.35f,0.35f, 1.0f));
+                    buttonIdentifier = "Unavailable";
+                    break;
+            }
+
+            buttonIdentifier += "##" + std::to_string(i);
+
+            e.clicked = ImGui::Button(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+
             ImGui::PopFont();
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
@@ -161,7 +194,7 @@ private:
         }
     }
 
-    void addButton() {
+    void addDeviceButton() {
 
         ImGui::SetCursorPos(ImVec2(20, 650));
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(200.0f, 35.0f));

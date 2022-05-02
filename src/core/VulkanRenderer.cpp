@@ -410,7 +410,7 @@ void VulkanRenderer::prepare() {
     createPipelineCache();
     setupFrameBuffer();
 
-    guiManager = new ArEngine::GuiManager(vulkanDevice);
+    guiManager = new GuiManager(vulkanDevice);
     std::vector<VkPipelineShaderStageCreateInfo> shaders;
     shaders = {
             loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
@@ -566,7 +566,7 @@ void VulkanRenderer::submitFrame() {
 }
 
 
-void VulkanRenderer::UIUpdate(UISettings *uiSettings) {
+void VulkanRenderer::UIUpdate(GuiObjectHandles *uiSettings) {
 
 }
 
@@ -584,6 +584,8 @@ void VulkanRenderer::updateOverlay() {
     guiManager->update((frameCounter == 0), frameTimer, width, height);
     if (guiManager->updateBuffers())
         buildCommandBuffers();
+
+    UIUpdate(&guiManager->handles);
 
     /*
     UIOverlay->newFrame((frameCounter == 0), frameTimer, width, height);

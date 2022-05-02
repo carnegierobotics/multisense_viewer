@@ -106,8 +106,10 @@ void Quad::update() {
 }
 
 
-void Quad::onUIUpdate(UISettings *uiSettings) {
-    camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
+void Quad::onUIUpdate(GuiObjectHandles *uiHandle) {
+    //camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
+
+
 }
 
 

@@ -88,7 +88,7 @@ std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> 
 
 CRLPhysicalCamera::~CRLPhysicalCamera() {
 
-    if (meshData->vertices != nullptr)
+    if (meshData != nullptr && meshData->vertices != nullptr)
         free(meshData->vertices);
 
 }

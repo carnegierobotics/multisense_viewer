@@ -20,7 +20,8 @@
 #include <MultiSense/src/core/Texture.h>
 #include "imgui_internal.h"
 
-namespace ArEngine {
+
+
 
 
     class GuiManager {
@@ -42,7 +43,7 @@ namespace ArEngine {
 
         template<typename T>
         void pushLayer() {
-            static_assert(std::is_base_of<ArEngine::Layer, T>::value, "Pushed type does not inherit Layer class!");
+            static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
             m_LayerStack.emplace_back(std::make_shared<T>())->OnAttach();
         }
 
@@ -54,14 +55,13 @@ namespace ArEngine {
         } pushConstBlock{};
 
 
-        std::vector<std::shared_ptr<ArEngine::Layer>> m_LayerStack;
+        std::vector<std::shared_ptr<Layer>> m_LayerStack;
         std::function<void()> m_MenubarCallback;
 
         ImGuiIO *io{};
         ImVec4 clearColor;
         std::array<float, 50> frameTimes{};
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-        GuiLayerUpdateInfo updateInfo;
 
         Texture2D fontTexture;
 
@@ -85,5 +85,4 @@ namespace ArEngine {
         ImFont * loadFontFromFileName(std::string file, float fontSize);
     };
 
-}
 #endif //MULTISENSE_GUIMANAGER_H

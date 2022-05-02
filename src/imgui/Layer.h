@@ -9,63 +9,61 @@
 #include "imgui_internal.h"
 #include "imgui.h"
 
-namespace ArEngine {
-    struct GuiLayerUpdateInfo {
-        bool firstFrame{};
-        float frameTimer{};
-        float width{};
-        float height{};
-        std::string deviceName{};
-        std::string title{};
 
-        std::array<float, 50> frameTimes{};
-        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+struct GuiLayerUpdateInfo {
+    bool firstFrame{};
+    float frameTimer{};
+    float width{};
+    float height{};
+    std::string deviceName = "DeviceName";
+    std::string title = "TitleName";
 
-        ImFont *font13{}, *font18{}, *font24{};
+    std::array<float, 50> frameTimes{};
+    float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
 
-    };
+    ImFont *font13{}, *font18{}, *font24{};
 
-    struct Element {
-        std::string name;
-        std::string cameraName;
-        std::string IP;
+};
 
-        bool selected;
-        CRLPhysicalCamera* camera;
+typedef enum {
+    ArConnectedState,
+    ArConnectingState,
+    ArActiveState,
+    ArInActiveState,
+    ArDisconnectedState,
+    ArUnavailableState
+} ArConnectionState;
 
+struct Element {
+    std::string name;
+    std::string cameraName;
+    std::string IP;
 
-    };
+    bool clicked;
+    ArConnectionState state;
 
-    struct GuiObjectHandles {
-        Element element;
+    CRLPhysicalCamera *camera;
 
-    };
+};
 
-    class Layer {
+struct GuiObjectHandles {
+    std::vector<Element> *devices{};
+    GuiLayerUpdateInfo *info{};
+};
 
-    public:
+class Layer {
 
-        virtual ~Layer() = default;
+public:
 
-        virtual void OnAttach() {}
+    virtual ~Layer() = default;
 
-        virtual void OnDetach() {}
+    virtual void OnAttach() {}
 
-        virtual void OnUIRender() {}
+    virtual void OnDetach() {}
 
-        virtual void onFinishedRender(){}
+    virtual void OnUIRender(GuiObjectHandles *handles) {}
 
-
-
-        void updateInfo(GuiLayerUpdateInfo *_info) {
-            this->info = _info;
-        }
-
-
-    protected:
-        GuiLayerUpdateInfo *info{};
-    };
-
+    virtual void onFinishedRender() {}
 
 };
 

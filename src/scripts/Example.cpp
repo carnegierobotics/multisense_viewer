@@ -49,6 +49,6 @@ void Example::update() {
 
 
 
-void Example::onUIUpdate(UISettings *uiSettings) {
+void Example::onUIUpdate(GuiObjectHandles *uiHandle) {
 
 }

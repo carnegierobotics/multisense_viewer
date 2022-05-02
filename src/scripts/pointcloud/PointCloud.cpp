@@ -66,8 +66,8 @@ void PointCloud::update() {
 }
 
 
-void PointCloud::onUIUpdate(UISettings *uiSettings) {
-    camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
+void PointCloud::onUIUpdate(GuiObjectHandles *uiHandle) {
+    //camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
 
 }
 

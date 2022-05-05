@@ -18,7 +18,6 @@
 
 
 #include <MultiSense/src/core/VulkanRenderer.h>
-#include "MultiSense/src/imgui/UISettings.h"
 #include <MultiSense/src/core/Base.h>
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/tools/Macros.h>
@@ -27,7 +26,6 @@
 #include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/objects/LightSource.h>
-#include <MultiSense/src/scripts/gui/GUISidebar.h>
 #include <MultiSense/src/scripts/gui/CameraConnection.h>
 #include <MultiSense/src/scripts/video/Quad.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>

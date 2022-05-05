@@ -3,6 +3,8 @@
 //
 
 #include <MultiSense/src/imgui/SideBar.h>
+#include <MultiSense/src/imgui/InteractionMenu.h>
+
 #include "Renderer.h"
 
 
@@ -19,6 +21,7 @@ void Renderer::prepareRenderer() {
 
     // Generate UI from Layers
     guiManager->pushLayer<SideBar>();
+    guiManager->pushLayer<InteractionMenu>();
 
 
 }
@@ -154,8 +157,7 @@ void Renderer::generateScriptClasses() {
     */
     // TODO: Create a list of renderable classnames
     classNames.emplace_back("Example");
-    classNames.emplace_back("GUISidebar");
-    classNames.emplace_back("GUITopBar");
+    classNames.emplace_back("CameraConnection");
     classNames.emplace_back("LightSource");
     classNames.emplace_back("VirtualPointCloud");
     classNames.emplace_back("Quad");

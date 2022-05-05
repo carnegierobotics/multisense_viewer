@@ -6,7 +6,6 @@
 #define MULTISENSE_CAMERACONNECTION_H
 
 #include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/imgui/UISettings.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
 
@@ -21,7 +20,7 @@ public:
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<CameraConnection>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "GUITopBar"; }
+    static std::string GetFactoryName() { return "CameraConnection"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;

@@ -15,15 +15,15 @@ class SideBar : public Layer {
 public:
 
     // Create global object for convenience in other functions
-    GuiObjectHandles* handles;
+    GuiObjectHandles *handles;
 
     void onFinishedRender() override {
 
     }
 
-    void OnUIRender(GuiObjectHandles* _handles) override {
+    void OnUIRender(GuiObjectHandles *_handles) override {
         this->handles = _handles;
-        GuiLayerUpdateInfo* info = handles->info;
+        GuiLayerUpdateInfo *info = handles->info;
 
 
         bool pOpen = true;
@@ -77,10 +77,22 @@ public:
             btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
             ImGui::SameLine();
 
+            // On connect button click
             if (btnConnect) {
-                createNewElement(inputName, inputIP);
+                bool exists = false;
+                for (auto &d: devices){
+                    if (d.IP == inputIP)
+                        exists = true;
+                }
+
+
+                if (!exists)
+                    createNewElement(inputName, inputIP);
+
                 ImGui::CloseCurrentPopup();
             }
+
+
             ImGui::EndPopup();
         }
 
@@ -121,7 +133,7 @@ private:
 
     void sidebarElements() {
         for (int i = 0; i < devices.size(); ++i) {
-            auto& e = devices[i];
+            auto &e = devices[i];
 
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
 
@@ -132,7 +144,7 @@ private:
 
             // Profile Name
             ImGui::PushFont(handles->info->font24);
-            ImVec2 lineSize = ImGui::CalcTextSize( e.name.c_str());
+            ImVec2 lineSize = ImGui::CalcTextSize(e.name.c_str());
             cursorPos.x = window_center.x - (lineSize.x / 2);
             ImGui::SetCursorPos(cursorPos);
             ImGui::Text("%s", e.name.c_str());
@@ -143,7 +155,7 @@ private:
             ImGui::PushFont(handles->info->font13);
             lineSize = ImGui::CalcTextSize(e.IP.c_str());
             cursorPos.x = window_center.x - (lineSize.x / 2);
-            ImGui::SetCursorPos(ImVec2(cursorPos.x,ImGui::GetCursorPosY()));
+            ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
 
             ImGui::Text("%s", e.IP.c_str());
             ImGui::PopFont();
@@ -155,7 +167,7 @@ private:
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
 
             cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
-            ImGui::SetCursorPos(ImVec2(cursorPos.x,ImGui::GetCursorPosY()));
+            ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
 
             std::string buttonIdentifier = "" + std::to_string(i);
 
@@ -165,7 +177,8 @@ private:
                     break;
                 case ArConnectingState:
                     buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));                    break;
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
+                    break;
                 case ArActiveState:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
@@ -176,14 +189,15 @@ private:
                 case ArDisconnectedState:
                     break;
                 case ArUnavailableState:
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f,0.35f,0.35f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.35f, 0.35f, 1.0f));
                     buttonIdentifier = "Unavailable";
                     break;
             }
 
             buttonIdentifier += "##" + std::to_string(i);
 
-            e.clicked = ImGui::Button(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+            e.clicked = ImGui::Button(buttonIdentifier.c_str(),
+                                      ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
 
             ImGui::PopFont();
             ImGui::PopStyleVar();

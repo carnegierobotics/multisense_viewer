@@ -28,8 +28,6 @@
 #include <glm/vec2.hpp>
 #include <chrono>
 
-#include <MultiSense/src/imgui/UISettings.h>
-#include <MultiSense/src/imgui/VkGUI.h>
 #include <MultiSense/src/imgui/GuiManager.h>
 
 #include "VulkanSwapchain.h"

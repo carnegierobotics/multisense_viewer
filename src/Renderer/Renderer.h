@@ -26,7 +26,7 @@
 #include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/objects/LightSource.h>
-#include <MultiSense/src/scripts/gui/CameraConnection.h>
+#include <MultiSense/src/core/CameraConnection.h>
 #include <MultiSense/src/scripts/video/Quad.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 
@@ -60,12 +60,12 @@ public:
 private:
 
     std::vector<std::unique_ptr<Base>> scripts;
+    CameraConnection *cameraConnection;
 
 
 protected:
 
     void updateUniformBuffers();
-    void prepareUniformBuffers();
 
     void viewChanged() override;
     void addDeviceFeatures() override;

@@ -9,7 +9,7 @@
 #include <MultiSense/MultiSenseChannel.hh>
 #include <mutex>
 #include <unordered_set>
-#include "MultiSense/src/model_loaders/MeshModel.h"
+#include <unordered_map>
 
 typedef enum CRLCameraDataType {
     CrlPointCloud,
@@ -88,6 +88,7 @@ public:
         uint32_t *indices{};
         uint32_t indexCount{};
 
+        /*
         PointCloudData(uint32_t width, uint32_t height) {
             vertexCount = width * height;
             // Virtual class can generate some mesh data here
@@ -105,7 +106,7 @@ public:
                 }
             }
         };
-
+*/
         ~PointCloudData() {
             free(vertices);
             delete[] indices;

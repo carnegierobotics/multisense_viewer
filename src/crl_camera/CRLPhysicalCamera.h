@@ -7,6 +7,7 @@
 
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 #include <opencv2/opencv.hpp>
+#include "glm/glm.hpp"
 
 class CRLPhysicalCamera : CRLBaseCamera {
 public:
@@ -15,7 +16,7 @@ public:
     bool play = false;
     bool modeChange = false;
 
-    glm::mat4 kInverseMatrix;
+    glm::mat4 kInverseMatrix{};
     cv::Mat cloudMat;
     cv::Mat disparityFloatMat;
     crl::multisense::image::Header *stream = nullptr;
@@ -23,7 +24,7 @@ public:
     std::vector<crl::multisense::DataSource> enabledSources;
 
 
-    explicit CRLPhysicalCamera() : CRLBaseCamera() {
+    CRLPhysicalCamera() : CRLBaseCamera() {
         CRLBaseCamera::prepare();
     }
 

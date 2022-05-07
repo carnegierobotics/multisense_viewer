@@ -30,7 +30,7 @@ public:
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(sidebarWidth, info->height));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, info->height));
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
 
@@ -114,7 +114,6 @@ private:
 
     std::vector<Element> devices;
 
-    float sidebarWidth = 250.0f;
     bool btnConnect = false;
     bool btnAdd = false;
 
@@ -124,6 +123,7 @@ private:
         el.name = name;
         el.IP = ip;
         el.state = ArConnectingState;
+        el.camPtr = nullptr;
 
         devices.emplace_back(el);
 

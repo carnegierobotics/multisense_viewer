@@ -490,8 +490,16 @@ void VulkanRenderer::renderLoop() {
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end - startTime;
         runTime = elapsed_seconds.count();
+
+        ImGuiIO &io = ImGui::GetIO();
+        io.DisplaySize = ImVec2((float) width, (float) height);
+        io.DeltaTime = frameTimer;
+        io.MousePos = ImVec2(mousePos.x, mousePos.y);
+
+        io.MouseDown[0] = mouseButtons.left;
+        io.MouseDown[1] = mouseButtons.right;
+
         render();
-        updateOverlay();
 
         auto tEnd = std::chrono::high_resolution_clock::now();
 

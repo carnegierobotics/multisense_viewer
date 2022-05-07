@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <unordered_set>
+#include <iostream>
 #include "MultiSense/src/crl_camera/CRLBaseCamera.h"
 
 void CRLBaseCamera::streamCallback(const crl::multisense::image::Header &image) {
@@ -57,7 +58,7 @@ bool CRLBaseCamera::connect(CRLCameraType type) {
 }
 
 void CRLBaseCamera::prepare() {
-
+    printf("Instatiated new CRLPhysicalCamera\n");
 
 }
 

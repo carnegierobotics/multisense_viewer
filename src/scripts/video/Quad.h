@@ -27,17 +27,18 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
     /** @brief update function called once per frame **/
-    void update() override;
+    void update() override {};
+    /** @brief update function called once per frame **/
+    void update(CameraConnection* conn) override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(GuiObjectHandles uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArDefault;
+    ScriptType type = ArCameraScript;
 
-    CRLPhysicalCamera* camera = nullptr;
     CRLCameraModels::Model* model;
 
     int count = 1;

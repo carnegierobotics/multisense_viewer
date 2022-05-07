@@ -20,7 +20,8 @@ public:
 
     void connect(CRLCameraDataType source);
     void start(std::string string, std::string dataSourceStr) override;
-    void update(Base::Render render);
+    //void update(Base::Render render);
+    void update();
     void stop(std::string dataSourceStr) override;
     PointCloudData *getStream() override;
 

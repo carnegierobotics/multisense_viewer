@@ -2,6 +2,7 @@
 // Created by magnus on 3/1/22.
 //
 
+#include <MultiSense/src/imgui/Layer.h>
 #include "GUISidebar.h"
 
 void GUISidebar::setup() {
@@ -39,7 +40,7 @@ void GUISidebar::update() {
 
 }
 
-void GUISidebar::onUIUpdate(GuiObjectHandles *uiHandle) {
+void GUISidebar::onUIUpdate(GuiObjectHandles uiHandle) {
     /*
     // Creates popup under the hood
     if (addDevice->clicked) {

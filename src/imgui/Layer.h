@@ -15,6 +15,7 @@ struct GuiLayerUpdateInfo {
     float frameTimer{};
     float width{};
     float height{};
+    float sidebarWidth = 250.0f;
     std::string deviceName = "DeviceName";
     std::string title = "TitleName";
 
@@ -34,18 +35,39 @@ typedef enum {
     ArUnavailableState
 } ArConnectionState;
 
+/** @brief  */
+struct StreamingModes {
+    std::string label;
+    std::string modeName;
+
+};
+
 struct Element {
+    /** @brief Profile Name information  */
     std::string name;
     std::string cameraName;
     std::string IP;
 
+    /** @brief Connection state and selection */
     bool clicked;
     ArConnectionState state;
 
-    CRLPhysicalCamera *camera;
+    /** @brief Camera streaming modes  */
+    std::vector<StreamingModes> modes;
+    /** @brief Which mode is currently selected */
+    std::string selectedStreamingMode = "Select sensor resolution";
+
+    /** @brief  */
+    bool pointCloud = false;
+    bool depthImage = false;
+    bool colorImage = false;
+
+    /** @brief Handle to this profile's camera object */
+    CRLPhysicalCamera *camPtr;
 
 };
 
+/** @brief Handle which is the communication from GUI to Scripts */
 struct GuiObjectHandles {
     std::vector<Element> *devices{};
     GuiLayerUpdateInfo *info{};

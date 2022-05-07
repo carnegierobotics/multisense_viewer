@@ -226,7 +226,7 @@ void CRLPhysicalCamera::update() {
 
 void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
 
-    meshData = new PointCloudData(width, height);
+    //meshData = new PointCloudData(width, height);
 
     crl::multisense::image::Config c = cameraInfo.imgConf;
 

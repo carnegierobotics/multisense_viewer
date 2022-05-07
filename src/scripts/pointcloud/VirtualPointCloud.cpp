@@ -1,3 +1,4 @@
+#include <MultiSense/src/imgui/Layer.h>
 #include "VirtualPointCloud.h"
 
 void VirtualPointCloud::setup() {
@@ -17,7 +18,7 @@ void VirtualPointCloud::setup() {
 
 void VirtualPointCloud::update() {
     if (virtualCamera != nullptr) {
-        virtualCamera->update(renderData);
+        //virtualCamera->update(renderData);
         CRLBaseCamera::PointCloudData *meshData = virtualCamera->getStream();
         model->createMesh((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount);
 
@@ -35,7 +36,7 @@ void VirtualPointCloud::update() {
 
 }
 
-void VirtualPointCloud::onUIUpdate(GuiObjectHandles *uiHandle) {
+void VirtualPointCloud::onUIUpdate(GuiObjectHandles uiHandle) {
     //virtualCamera = (CRLVirtualCamera *) uiSettings->virtualCamera;
 
 }

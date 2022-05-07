@@ -1,3 +1,4 @@
+#include <MultiSense/src/imgui/Layer.h>
 #include "LightSource.h"
 
 void LightSource::setup() {
@@ -39,6 +40,6 @@ void LightSource::update() {
 
 
 
-void LightSource::onUIUpdate(GuiObjectHandles *uiHandle) {
+void LightSource::onUIUpdate(GuiObjectHandles uiHandle) {
 
 }

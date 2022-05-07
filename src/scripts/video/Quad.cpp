@@ -15,12 +15,11 @@ void Quad::setup() {
 }
 
 
-void Quad::update() {
-    if (camera == nullptr)
-        return;
-    // If mode changes
+void Quad::update(CameraConnection* conn) {
+    auto* camera = conn->activeDevice.camPtr;
+    assert(camera != nullptr);
 
-    if (camera->modeChange) {
+    if (conn->activeDevice.camPtr->modeChange) {
         auto imgConf = camera->getImageConfig();
         CRLCameraDataType textureType;
         auto lastEnabledSrc = camera->enabledSources[camera->enabledSources.size() - 1];
@@ -86,6 +85,7 @@ void Quad::update() {
     }
 
 
+
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(5.0f, -5.0f, -5.0f));
@@ -106,9 +106,8 @@ void Quad::update() {
 }
 
 
-void Quad::onUIUpdate(GuiObjectHandles *uiHandle) {
+void Quad::onUIUpdate(GuiObjectHandles uiHandle) {
     //camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
-
 
 }
 

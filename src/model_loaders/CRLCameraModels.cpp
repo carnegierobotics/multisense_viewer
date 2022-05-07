@@ -133,7 +133,8 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
     if (streamOne->source == crl::multisense::Source_Disparity_Left) {
         auto *p = (uint16_t *) streamOne->imageDataP;
-        /*
+
+        // Normalize image
         uint32_t min = 100000, max = 0;
         for (int i = 0; i < streamOne->imageLength / 2; ++i) {
             uint16_t val = p[i];
@@ -143,14 +144,12 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
                 min = val;
         }
 
-        printf("Min max: %u, %u\n", min, max);
-
         for (int i = 0; i < streamOne->imageLength / 2; ++i) {
             float intermediate = (float) ((float) p[i] / max) * 65536.0f;
             p[i] = (uint16_t) intermediate;
         }
 
-         */
+
         textureVideo.updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
 
     } else {

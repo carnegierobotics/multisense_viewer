@@ -5,17 +5,19 @@
 #ifndef MULTISENSE_BASE_H
 #define MULTISENSE_BASE_H
 
-#include <MultiSense/src/tools/Utils.h>
 #include <filesystem>
 #include <utility>
 #include "Camera.h"
+#include "CameraConnection.h"
+#include "MultiSense/src/tools/Utils.h"
 
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
     ArDefault,
     ArPointCloud,
-    ArDisabled
+    ArDisabled,
+    ArCameraScript
 
 } ScriptType;
 
@@ -72,9 +74,11 @@ public:
 
     struct Render {
         uint32_t index;
-        const Camera *camera;
+        Camera *camera;
         float deltaT;
         float runTime;
+        CameraConnection* crlCamera;
+        ScriptType type;
     } renderData{};
 
 
@@ -83,28 +87,35 @@ public:
     /**@brief Pure virtual function called once every frame*/
     virtual void update() = 0;
 
+    /**@brief Optional virtual function usefully for camera scripts*/
+    virtual void update(CameraConnection *cameraHandle) {};
+
     /**@brief Pure virtual function called only once when VK is ready to render*/
     virtual void setup() = 0;
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(GuiObjectHandles *uiHandle) = 0;
+    virtual void onUIUpdate(GuiObjectHandles uiHandle) = 0;
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    virtual ScriptType getType() { return type; }
+    virtual ScriptType getType() { return ArDisabled; }
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    void updateUniformBufferData(Base::Render d, ScriptType scriptType) {
+    void updateUniformBufferData(Base::Render d) {
         this->renderData = d;
 
-        update();
+        if (d.type == ArDefault)
+            update();
+        else if(d.type == ArCameraScript && d.crlCamera->activeDevice.camPtr != nullptr)
+            update(d.crlCamera);
+
         // If initialized
         if (renderUtils.uniformBuffers.empty())
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
-        if (scriptType == ArDefault || scriptType == ArPointCloud) {
+        if (d.type != ArDisabled) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -119,17 +130,7 @@ public:
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
 
-        } else if(scriptType == ArPointCloud){
-            currentUB.bufferOne.map();
-            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
-            currentUB.bufferOne.unmap();
-
-            currentUB.bufferTwo.map();
-            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(PointCloudShader));
-            currentUB.bufferTwo.unmap();
         }
-
-
     }
 
     void createUniformBuffers(RenderUtils utils, ScriptType scriptType) {
@@ -138,8 +139,6 @@ public:
 
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
-
-        if (scriptType == ArDefault || scriptType == ArPointCloud) {
 
             bufferOneData = new UBOMatrix();
             bufferTwoData = new FragShaderParams();
@@ -163,24 +162,7 @@ public:
                                                  &uniformBuffer.bufferThree, sizeof(PointCloudParam));
 
             }
-        }
-        else if (scriptType == ArPointCloud) {
-            bufferOneData = new UBOMatrix();
-            bufferTwoData = new PointCloudShader();
 
-            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
-
-                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferOne, sizeof(UBOMatrix));
-
-                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferTwo, sizeof(PointCloudShader));
-            }
-        }
 
         setup();
     }
@@ -204,9 +186,6 @@ public:
         // TODO CLEANUP SHADERMODULES WHEN UNUSED
         return shaderStage;
     }
-
-    ScriptType type = ArDisabled;
-
 
 protected:
 

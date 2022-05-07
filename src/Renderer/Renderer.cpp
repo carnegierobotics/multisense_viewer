@@ -12,7 +12,7 @@ void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
     camera.rotationSpeed = 0.25f;
-    camera.movementSpeed = 0.1f;
+    camera.movementSpeed = 5.0f;
     camera.setPosition({0.0f, 0.0f, -5.0f});
     camera.setRotation({0.0f, 0.0f, 0.0f});
 
@@ -23,6 +23,7 @@ void Renderer::prepareRenderer() {
     guiManager->pushLayer<SideBar>();
     guiManager->pushLayer<InteractionMenu>();
 
+    cameraConnection = new CameraConnection();
 
 }
 
@@ -35,9 +36,7 @@ void Renderer::viewChanged() {
 void Renderer::UIUpdate(GuiObjectHandles *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
 
-    for (auto &script: scripts) {
-        script->onUIUpdate(uiSettings);
-    }
+
 
     camera.setMovementSpeed(20.0f);
 
@@ -95,42 +94,6 @@ void Renderer::buildCommandBuffers() {
     }
 }
 
-
-void Renderer::render() {
-    draw();
-
-}
-
-void Renderer::draw() {
-    VulkanRenderer::prepareFrame();
-
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-    Base::Render renderData{};
-    renderData.camera = &camera;
-    renderData.deltaT = frameTimer;
-    renderData.index = currentBuffer;
-    renderData.runTime = runTime;
-
-    for (auto &script: scripts) {
-        if (script->getType() != ArDisabled) {
-            script->updateUniformBufferData(renderData, script->getType());
-        }
-    }
-
-    buildCommandBuffers();
-
-    vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
-    VulkanRenderer::submitFrame();
-
-}
-
-
-void Renderer::updateUniformBuffers() {
-
-
-}
-
 void Renderer::generateScriptClasses() {
     std::cout << "Generate script classes" << std::endl;
     std::vector<std::string> classNames;
@@ -157,7 +120,6 @@ void Renderer::generateScriptClasses() {
     */
     // TODO: Create a list of renderable classnames
     classNames.emplace_back("Example");
-    classNames.emplace_back("CameraConnection");
     classNames.emplace_back("LightSource");
     classNames.emplace_back("VirtualPointCloud");
     classNames.emplace_back("Quad");
@@ -178,9 +140,62 @@ void Renderer::generateScriptClasses() {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
+    // Run Script setupfunction
     for (auto &script: scripts) {
         assert(script);
         script->createUniformBuffers(vars, script->getType());
     }
     printf("Setup finished\n");
 }
+
+void Renderer::render() {
+    VulkanRenderer::prepareFrame();
+
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+    Base::Render renderData{};
+    renderData.camera = &camera;
+    renderData.deltaT = frameTimer;
+    renderData.index = currentBuffer;
+    renderData.runTime = runTime;
+
+    // Update GUI
+    guiManager->update((frameCounter == 0), frameTimer, width, height);
+
+    // Update Camera connection based on Actions from GUI
+    cameraConnection->onUIUpdate(guiManager->handles.devices);
+    renderData.crlCamera = cameraConnection;
+
+    // Run update function on scripts
+    for (auto &script: scripts) {
+        if (script->getType() != ArDisabled) {
+            renderData.type = script->getType();
+            script->updateUniformBufferData(renderData);
+        }
+    }
+
+    // Update general scripts with handle to GUI
+    for (auto &script: scripts) {
+        script->onUIUpdate(guiManager->handles);
+    }
+
+    // Generate draw commands
+    guiManager->updateBuffers();
+    buildCommandBuffers();
+
+    vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
+    VulkanRenderer::submitFrame();
+
+}
+
+void Renderer::draw() {
+
+
+}
+
+
+void Renderer::updateUniformBuffers() {
+
+
+}
+

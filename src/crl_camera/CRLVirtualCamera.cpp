@@ -18,14 +18,14 @@ void CRLVirtualCamera::stop(std::string dataSourceStr) {
 
 }
 
-void CRLVirtualCamera::update(Base::Render render) {
+void CRLVirtualCamera::update() {
 
 
-    auto *vP = (MeshModel::Model::Vertex *) meshData->vertices;
-    auto y = (float) sin(glm::radians(render.runTime * 60.0f));
+    //auto *vP = (MeshModel::Model::Vertex *) meshData->vertices;
+    //auto y = (float) sin(glm::radians(render.runTime * 60.0f));
 
     for (int i = 0; i < 720; ++i) {
-        vP[point].pos.y = y;
+        //vP[point].pos.y = y;
         point++;
         if (point >= meshData->vertexCount)
             point = 0;

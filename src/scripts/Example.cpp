@@ -1,3 +1,4 @@
+#include <MultiSense/src/imgui/Layer.h>
 #include "Example.h"
 
 void Example::setup() {
@@ -49,6 +50,6 @@ void Example::update() {
 
 
 
-void Example::onUIUpdate(GuiObjectHandles *uiHandle) {
+void Example::onUIUpdate(GuiObjectHandles uiHandle) {
 
 }

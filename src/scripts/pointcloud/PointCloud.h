@@ -9,6 +9,7 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/model_loaders/MeshModel.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
+#include <MultiSense/src/imgui/Layer.h>
 #include "opencv4/opencv2/opencv.hpp"
 
 class PointCloud: public Base, public RegisteredInFactory<PointCloud>, CRLCameraModels
@@ -31,7 +32,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(GuiObjectHandles uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

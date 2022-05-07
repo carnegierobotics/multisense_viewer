@@ -16,10 +16,10 @@ void Quad::setup() {
 
 
 void Quad::update(CameraConnection* conn) {
-    auto* camera = conn->activeDevice.camPtr;
+    auto* camera = conn->camPtr;
     assert(camera != nullptr);
 
-    if (conn->activeDevice.camPtr->modeChange) {
+    if (camera->modeChange) {
         auto imgConf = camera->getImageConfig();
         CRLCameraDataType textureType;
         auto lastEnabledSrc = camera->enabledSources[camera->enabledSources.size() - 1];

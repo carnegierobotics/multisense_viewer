@@ -18,12 +18,12 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         if (dev.clicked && dev.state != ArActiveState) {
             // Connect to camera
             printf("Connecting\n");
-            dev.camPtr = new CRLPhysicalCamera();
-            dev.camPtr->connect();
-            if (dev.camPtr->online){
+            camPtr = new CRLPhysicalCamera();
+            camPtr->connect();
+            if (camPtr->online){
 
-                for (int i = 0; i < dev.camPtr->getInfo().supportedDeviceModes.size(); ++i) {
-                    auto mode = dev.camPtr->getInfo().supportedDeviceModes[i];
+                for (int i = 0; i < camPtr->getInfo().supportedDeviceModes.size(); ++i) {
+                    auto mode = camPtr->getInfo().supportedDeviceModes[i];
                     std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
                                            std::to_string(mode.disparities) + "x";
 
@@ -40,18 +40,18 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
 
         }
         if (dev.depthImage){
-            dev.camPtr->start(dev.selectedStreamingMode, "Disparity Left");
+            camPtr->start(dev.selectedStreamingMode, "Disparity Left");
         }
 
         if (dev.colorImage){
-            dev.camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
+            camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
         }
+
+
 
         if (dev.state == ArActiveState){
             activeDevice = dev;
-
         }
-
     }
 }
 

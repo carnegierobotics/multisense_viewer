@@ -62,9 +62,6 @@ struct Element {
     bool depthImage = false;
     bool colorImage = false;
 
-    /** @brief Handle to this profile's camera object */
-    CRLPhysicalCamera *camPtr;
-
 };
 
 /** @brief Handle which is the communication from GUI to Scripts */

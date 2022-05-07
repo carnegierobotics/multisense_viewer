@@ -107,7 +107,7 @@ public:
 
         if (d.type == ArDefault)
             update();
-        else if(d.type == ArCameraScript && d.crlCamera->activeDevice.camPtr != nullptr)
+        else if(d.type == ArCameraScript && d.crlCamera->camPtr != nullptr)
             update(d.crlCamera);
 
         // If initialized

@@ -8,6 +8,9 @@
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
 
+/**
+ * Class handles the bridge between the GUI interaction and actual communication to camera
+ */
 class CameraConnection
 {
 public:
@@ -16,6 +19,9 @@ public:
     void onUIUpdate(std::vector<Element> *pVector);
 
     Element activeDevice;
+
+    /** @brief Handle to the current camera object */
+    CRLPhysicalCamera *camPtr;
 
 };
 

@@ -66,7 +66,7 @@ public:
                                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
 
             static char inputName[32] = "Front Camera";
-            static char inputIP[32] = "10.42.0.10";
+            static char inputIP[32] = "10.66.171.21";
 
             ImGui::Text("Connect to your MultiSense Device");
             ImGui::Separator();
@@ -104,7 +104,6 @@ public:
 
         addDeviceButton();
 
-        ImGui::ShowDemoWindow();
 
         ImGui::End();
 
@@ -134,6 +133,42 @@ private:
         for (int i = 0; i < devices.size(); ++i) {
             auto &e = devices[i];
 
+            std::string buttonIdentifier = "";
+            // Set colors based on state
+            switch (e.state) {
+
+                case ArConnectedState:
+                    break;
+                case ArConnectingState:
+                    buttonIdentifier = "Connecting";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
+                    break;
+                case ArActiveState:
+                    buttonIdentifier = "Active";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                    break;
+                case ArInActiveState:
+                    buttonIdentifier = "Inactive";
+                    break;
+                case ArDisconnectedState:
+                    break;
+                case ArUnavailableState:
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    buttonIdentifier = "Unavailable";
+                    break;
+            }
+
+            ImGui::SetCursorPos(ImVec2(0, ImGui::GetCursorPosY()));
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+            std::string winId = e.IP + "Child";
+            ImGui::BeginChild(winId.c_str(), ImVec2(handles->info->sidebarWidth, handles->info->elementHeight),
+                              false, ImGuiWindowFlags_NoDecoration);
+
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
 
             ImVec2 window_pos = ImGui::GetWindowPos();
@@ -141,11 +176,14 @@ private:
             ImVec2 window_center = ImVec2(window_pos.x + window_size.x * 0.5f, window_pos.y + window_size.y * 0.5f);
             ImVec2 cursorPos = ImGui::GetCursorPos();
 
+
             // Profile Name
             ImGui::PushFont(handles->info->font24);
             ImVec2 lineSize = ImGui::CalcTextSize(e.name.c_str());
             cursorPos.x = window_center.x - (lineSize.x / 2);
             ImGui::SetCursorPos(cursorPos);
+
+
             ImGui::Text("%s", e.name.c_str());
             ImGui::PopFont();
 
@@ -168,32 +206,10 @@ private:
             cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
             ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
 
-            std::string buttonIdentifier = "" + std::to_string(i);
 
-            switch (e.state) {
 
-                case ArConnectedState:
-                    break;
-                case ArConnectingState:
-                    buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
-                    break;
-                case ArActiveState:
-                    buttonIdentifier = "Active";
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
-                    break;
-                case ArInActiveState:
-                    buttonIdentifier = "Inactive";
-                    break;
-                case ArDisconnectedState:
-                    break;
-                case ArUnavailableState:
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.35f, 0.35f, 1.0f));
-                    buttonIdentifier = "Unavailable";
-                    break;
-            }
 
-            buttonIdentifier += "##" + std::to_string(i);
+            buttonIdentifier += "##" + e.IP;
 
             e.clicked = ImGui::Button(buttonIdentifier.c_str(),
                                       ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
@@ -202,7 +218,11 @@ private:
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
 
-            //ImGui::PopItemWidth();
+            ImGui::EndChild();
+
+            ImGui::PopStyleColor();
+            ImGui::PopStyleVar();
+
 
         }
     }

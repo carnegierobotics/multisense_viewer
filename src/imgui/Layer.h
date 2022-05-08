@@ -16,6 +16,7 @@ struct GuiLayerUpdateInfo {
     float width{};
     float height{};
     float sidebarWidth = 250.0f;
+    float elementHeight = 100.0f;
     std::string deviceName = "DeviceName";
     std::string title = "TitleName";
 

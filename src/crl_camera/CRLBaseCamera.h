@@ -80,7 +80,7 @@ public:
     }cameraInfo;
 
     void prepare();
-    bool connect(CRLCameraType type); // true if succeeds
+    bool connect(const std::string& ip); // true if succeeds
 
     struct PointCloudData {
         void *vertices{};

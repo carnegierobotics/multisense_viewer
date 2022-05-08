@@ -29,31 +29,18 @@ void CRLBaseCamera::imageCallback(const crl::multisense::image::Header &header, 
 }
 
 
-bool CRLBaseCamera::connect(CRLCameraType type) {
-    std::string ip;
-    switch (type) {
-        case DEFAULT_CAMERA_IP:
-            if (cameraInterface == nullptr) {
-                cameraInterface = crl::multisense::Channel::Create("10.66.171.21");
-                if (cameraInterface != nullptr) {
-                    getCameraMetaData();
-                    addCallbacks();
-                    return true;
-                }
-            }
-            break;
-        case CUSTOM_CAMERA_IP:
-            // TODO IMPLEMENT
-            break;
-        case VIRTUAL_CAMERA:
-            getVirtualCameraMetaData();
-            return true;
-            break;
-        default:
-            std::cerr << "Not a valid Camera Type/IP\n";
-            break;
+bool CRLBaseCamera::connect(const std::string& ip) {
 
+    if (cameraInterface == nullptr) {
+        cameraInterface = crl::multisense::Channel::Create(ip);
+        if (cameraInterface != nullptr) {
+            getCameraMetaData();
+            addCallbacks();
+            return true;
+        }
     }
+    // TODO Add Virtual Camera connection
+
     return false;
 }
 
@@ -120,27 +107,38 @@ void CRLBaseCamera::getVirtualCameraMetaData() {
 
 }
 
-std::unordered_set<crl::multisense::DataSource> CRLBaseCamera::supportedSources()
-{
+std::unordered_set<crl::multisense::DataSource> CRLBaseCamera::supportedSources() {
     // this method effectively restrics the supported sources for the classice libmultisense api
     std::unordered_set<crl::multisense::DataSource> ret;
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Left)             ret.insert(crl::multisense::Source_Raw_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Right)            ret.insert(crl::multisense::Source_Raw_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Left)            ret.insert(crl::multisense::Source_Luma_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Right)           ret.insert(crl::multisense::Source_Luma_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Left)  ret.insert(crl::multisense::Source_Luma_Rectified_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Right) ret.insert(crl::multisense::Source_Luma_Rectified_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Aux)           ret.insert(crl::multisense::Source_Chroma_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Left)          ret.insert(crl::multisense::Source_Chroma_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Right)         ret.insert(crl::multisense::Source_Chroma_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Left)       ret.insert(crl::multisense::Source_Disparity_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Right)      ret.insert(crl::multisense::Source_Disparity_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Cost)       ret.insert(crl::multisense::Source_Disparity_Cost);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Aux)              ret.insert(crl::multisense::Source_Raw_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Aux)             ret.insert(crl::multisense::Source_Luma_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Aux)   ret.insert(crl::multisense::Source_Luma_Rectified_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Rectified_Aux) ret.insert(crl::multisense::Source_Chroma_Rectified_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Aux)        ret.insert(crl::multisense::Source_Disparity_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Left) ret.insert(crl::multisense::Source_Raw_Left);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Right) ret.insert(crl::multisense::Source_Raw_Right);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Left) ret.insert(crl::multisense::Source_Luma_Left);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Right)
+        ret.insert(crl::multisense::Source_Luma_Right);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Left)
+        ret.insert(crl::multisense::Source_Luma_Rectified_Left);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Right)
+        ret.insert(crl::multisense::Source_Luma_Rectified_Right);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Aux)
+        ret.insert(crl::multisense::Source_Chroma_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Left)
+        ret.insert(crl::multisense::Source_Chroma_Left);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Right)
+        ret.insert(crl::multisense::Source_Chroma_Right);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Left)
+        ret.insert(crl::multisense::Source_Disparity_Left);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Right)
+        ret.insert(crl::multisense::Source_Disparity_Right);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Cost)
+        ret.insert(crl::multisense::Source_Disparity_Cost);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Aux) ret.insert(crl::multisense::Source_Raw_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Aux) ret.insert(crl::multisense::Source_Luma_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Aux)
+        ret.insert(crl::multisense::Source_Luma_Rectified_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Rectified_Aux)
+        ret.insert(crl::multisense::Source_Chroma_Rectified_Aux);
+    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Aux)
+        ret.insert(crl::multisense::Source_Disparity_Aux);
     return ret;
 }
 

@@ -8,8 +8,8 @@
 #include "CRLPhysicalCamera.h"
 
 
-void CRLPhysicalCamera::connect() {
-    online = CRLBaseCamera::connect(DEFAULT_CAMERA_IP);
+void CRLPhysicalCamera::connect(const std::string& ip) {
+    online = CRLBaseCamera::connect(ip);
 
 }
 

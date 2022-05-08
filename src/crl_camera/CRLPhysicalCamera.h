@@ -29,7 +29,7 @@ public:
     }
 
 
-    void connect();
+    void connect(const std::string& ip);
     void start(std::string string, std::string dataSourceStr) override;
     void update();
     cv::Mat* getCloudMat();

@@ -47,9 +47,10 @@ public:
                         }
                         ImGui::EndCombo();
                     } // End dropdown
-                    
-                    d.depthImage = ImGui::Button("Depth Image", ImVec2(150, 30));
-                    d.colorImage = ImGui::Button("Color Image", ImVec2(150, 30));
+
+                    ImGui::Checkbox("Depth Image", & d.depthImage);
+                    ImGui::Checkbox("Color Image", & d.colorImage);
+                    ImGui::Checkbox("Point Cloud", & d.pointCloud);
 
                 }
             }

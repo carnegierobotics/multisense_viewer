@@ -5,7 +5,7 @@
 #include "CRLVirtualCamera.h"
 
 void CRLVirtualCamera::connect(CRLCameraDataType source) {
-    CRLBaseCamera::connect(VIRTUAL_CAMERA);
+    //CRLBaseCamera::connect(VIRTUAL_CAMERA);
 
 }
 

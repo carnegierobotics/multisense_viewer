@@ -32,6 +32,7 @@ public:
 private:
     void updateActiveDevice(Element element);
 
+    void connectCrlCamera(Element &element);
 };
 
 

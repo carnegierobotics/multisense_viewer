@@ -41,35 +41,43 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
     // Check for actions on each element
     for (auto &dev: *devices) {
         if (dev.clicked && dev.state != ArActiveState) {
-            // Connect to camera
-            printf("Connecting\n");
-            camPtr = new CRLPhysicalCamera();
-            camPtr->connect();
-            if (camPtr->online) {
-
-                for (int i = 0; i < camPtr->getInfo().supportedDeviceModes.size(); ++i) {
-                    auto mode = camPtr->getInfo().supportedDeviceModes[i];
-                    std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                                           std::to_string(mode.disparities) + "x";
-
-                    StreamingModes streamingModes;
-                    streamingModes.modeName = modeName;
-                    dev.modes.emplace_back(streamingModes);
-
-                }
-                dev.state = ArActiveState;
-            } else
-                dev.state = ArUnavailableState;
-
+            connectCrlCamera(dev);
         }
+
+        if (dev.state == ArConnectingState)
+            connectCrlCamera(dev);
 
         if (dev.state != ArActiveState)
             continue;
+
         updateActiveDevice(dev);
 
     }
 
 
+}
+
+void CameraConnection::connectCrlCamera(Element &dev) {
+    // Connect to camera
+    printf("Connecting\n");
+    camPtr = new CRLPhysicalCamera();
+    camPtr->connect(dev.IP);
+    if (camPtr->online) {
+
+        // List streaming modes
+        for (int i = 0; i < camPtr->getInfo().supportedDeviceModes.size(); ++i) {
+            auto mode = camPtr->getInfo().supportedDeviceModes[i];
+            std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                                   std::to_string(mode.disparities) + "x";
+
+            StreamingModes streamingModes;
+            streamingModes.modeName = modeName;
+            dev.modes.emplace_back(streamingModes);
+
+        }
+        dev.state = ArActiveState;
+    } else
+        dev.state = ArUnavailableState;
 }
 
 

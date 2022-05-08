@@ -22,7 +22,7 @@ public:
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 2));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
         if (handles->devices != nullptr) {
@@ -51,6 +51,11 @@ public:
                     ImGui::Checkbox("Depth Image", & d.depthImage);
                     ImGui::Checkbox("Color Image", & d.colorImage);
                     ImGui::Checkbox("Point Cloud", & d.pointCloud);
+
+                    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 50.0f));
+
+                    d.btnShowPreviewBar = ImGui::Button("Preview Bar", ImVec2(175.0f, 40.0f));
+
 
                 }
             }

@@ -15,14 +15,23 @@ class CameraConnection
 {
 public:
 
-    CameraConnection();
-    void onUIUpdate(std::vector<Element> *pVector);
+    struct CamPreviewBar {
+        bool active = false;
+        uint32_t numQuads = 3;
+
+    }camPreviewBar;
 
     /** @brief Handle to the current camera object */
     CRLPhysicalCamera *camPtr = nullptr;
     bool preview = false;
 
+
+    CameraConnection();
+    void onUIUpdate(std::vector<Element> *pVector);
+
+private:
     void updateActiveDevice(Element element);
+
 };
 
 

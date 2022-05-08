@@ -2,9 +2,9 @@
 // Created by magnus on 3/10/22.
 //
 
-#include "Quad.h"
+#include "DefaultPreview.h"
 
-void Quad::setup() {
+void DefaultPreview::setup() {
     /**
      * Create and load Mesh elements
      */
@@ -15,7 +15,7 @@ void Quad::setup() {
 }
 
 
-void Quad::update(CameraConnection* conn) {
+void DefaultPreview::update(CameraConnection* conn) {
     auto* camera = conn->camPtr;
     assert(camera != nullptr);
 
@@ -106,13 +106,13 @@ void Quad::update(CameraConnection* conn) {
 }
 
 
-void Quad::onUIUpdate(GuiObjectHandles uiHandle) {
+void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     //camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
 
 }
 
 
-void Quad::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw)
         CRLCameraModels::draw(commandBuffer, i, model);
 }

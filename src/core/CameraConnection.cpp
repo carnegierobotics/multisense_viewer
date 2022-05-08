@@ -23,6 +23,13 @@ void CameraConnection::updateActiveDevice(Element dev) {
         camPtr->stop("Color Rectified Aux");
     }
 
+    if (dev.btnShowPreviewBar && !camPreviewBar.active){
+
+        camPreviewBar.active = true;
+    } else if(dev.btnShowPreviewBar && !camPreviewBar.active){
+        camPreviewBar.active = false;
+    }
+
 
 }
 

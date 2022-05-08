@@ -27,8 +27,9 @@
 #include <MultiSense/src/scripts/Example.h>
 #include <MultiSense/src/scripts/objects/LightSource.h>
 #include <MultiSense/src/core/CameraConnection.h>
-#include <MultiSense/src/scripts/video/Quad.h>
+#include <MultiSense/src/scripts/video/DefaultPreview.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
+#include <MultiSense/src/scripts/video/PreviewBar.h>
 
 
 class Renderer : VulkanRenderer {

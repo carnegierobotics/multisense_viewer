@@ -61,6 +61,8 @@ struct Element {
     bool pointCloud = false;
     bool depthImage = false;
     bool colorImage = false;
+
+    bool btnShowPreviewBar = false;
 };
 
 /** @brief Handle which is the communication from GUI to Scripts */

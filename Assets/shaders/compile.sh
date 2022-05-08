@@ -33,3 +33,6 @@ $glslc ${sceneDir}quad/quad.frag -o ${sceneOutDir}quad.frag.spv
 
 $glslc ${sceneDir}depth/depth.vert -o ${sceneOutDir}depth.vert.spv
 $glslc ${sceneDir}depth/depth.frag -o ${sceneOutDir}depth.frag.spv
+
+$glslc ${sceneDir}depth/preview.vert -o ${sceneOutDir}preview.vert.spv
+$glslc ${sceneDir}depth/preview.frag -o ${sceneOutDir}preview.frag.spv

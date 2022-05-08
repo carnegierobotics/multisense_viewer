@@ -122,7 +122,8 @@ void Renderer::generateScriptClasses() {
     classNames.emplace_back("Example");
     classNames.emplace_back("LightSource");
     classNames.emplace_back("VirtualPointCloud");
-    classNames.emplace_back("Quad");
+    classNames.emplace_back("PreviewBar");
+    classNames.emplace_back("DefaultPreview");
     classNames.emplace_back("PointCloud");
 
     // Also add class names to listbox
@@ -136,11 +137,10 @@ void Renderer::generateScriptClasses() {
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
-    //vars.ui = UIOverlay->uiSettings;
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
-    // Run Script setupfunction
+    // Run script setup function
     for (auto &script: scripts) {
         assert(script);
         script->createUniformBuffers(vars, script->getType());

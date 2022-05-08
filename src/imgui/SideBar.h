@@ -123,7 +123,6 @@ private:
         el.name = name;
         el.IP = ip;
         el.state = ArConnectingState;
-        el.camPtr = nullptr;
 
         devices.emplace_back(el);
 

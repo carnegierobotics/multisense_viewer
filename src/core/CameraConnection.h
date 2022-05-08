@@ -18,11 +18,11 @@ public:
     CameraConnection();
     void onUIUpdate(std::vector<Element> *pVector);
 
-    Element activeDevice;
-
     /** @brief Handle to the current camera object */
-    CRLPhysicalCamera *camPtr;
+    CRLPhysicalCamera *camPtr = nullptr;
+    bool preview = false;
 
+    void updateActiveDevice(Element element);
 };
 
 

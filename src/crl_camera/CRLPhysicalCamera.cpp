@@ -14,8 +14,15 @@ void CRLPhysicalCamera::connect() {
 }
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
-
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
+
+    // Check if the stream has already been enabled first
+    if (std::find(enabledSources.begin(), enabledSources.end(),
+                  source) != enabledSources.end()) {
+        return;
+    }
+
+
     uint32_t colorSource = crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Chroma_Rectified_Aux |
                            crl::multisense::Source_Chroma_Aux |
                            crl::multisense::Source_Chroma_Left | crl::multisense::Source_Chroma_Right;
@@ -36,6 +43,10 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         string.erase(0, pos + delimiter.length());
     }
 
+    if (widthHeightDepth.size() != 3) {
+        std::cerr << "Select valid mode\n";
+        return;
+    }
     this->selectDisparities(widthHeightDepth[2]);
     this->selectResolution(widthHeightDepth[0], widthHeightDepth[1]);
     this->selectFramerate(60);
@@ -61,19 +72,32 @@ void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
 }
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
-    // Start stream
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
 
+    // Check if the stream has been enabled before we attempt to stop it
+    if (std::find(enabledSources.begin(), enabledSources.end(),
+                  src) == enabledSources.end()) {
+        return;
+    }
+
+    std::vector<uint32_t>::iterator it;
+    it = std::remove(enabledSources.begin(), enabledSources.end(),
+                          src);
+    enabledSources.erase(it);
+
+    /*
     std::vector<uint32_t>::iterator it;
     // Search and stop additional sources
     it = std::find(enabledSources.begin(), enabledSources.end(), crl::multisense::Source_Chroma_Rectified_Aux);
-    if (it != enabledSources.end()){
+    if (it != enabledSources.end()) {
         src |= crl::multisense::Source_Luma_Rectified_Aux;
     }
-    enabledSources.clear();
-
+    */
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
+
+
+
     modeChange = true;
 }
 
@@ -232,11 +256,11 @@ void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
 
 
     kInverseMatrix =
-              glm::mat4(
-                      glm::vec4(1/c.fx(), 0, -(c.cx()*c.fx())/(c.fx() * c.fy()), 0),
-                      glm::vec4(0, 1/c.fy(), -c.cy() / c.fy(), 0),
-                      glm::vec4(0, 0,  1, 0),
-                      glm::vec4(0, 0, 0, 1));
+            glm::mat4(
+                    glm::vec4(1 / c.fx(), 0, -(c.cx() * c.fx()) / (c.fx() * c.fy()), 0),
+                    glm::vec4(0, 1 / c.fy(), -c.cy() / c.fy(), 0),
+                    glm::vec4(0, 0, 1, 0),
+                    glm::vec4(0, 0, 0, 1));
 
     kInverseMatrix = glm::transpose(kInverseMatrix);
     /*

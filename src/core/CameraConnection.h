@@ -30,6 +30,9 @@ public:
     void onUIUpdate(std::vector<Element> *pVector);
 
 private:
+
+    //CRLPhysicalCamera *prevCam; // Quick and dirty way of remebering old devices
+
     void updateActiveDevice(Element element);
 
     void connectCrlCamera(Element &element);

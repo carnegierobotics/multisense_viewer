@@ -22,7 +22,7 @@ public:
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 2));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 4));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
         if (handles->devices != nullptr) {
@@ -52,9 +52,13 @@ public:
                     ImGui::Checkbox("Color Image", & d.colorImage);
                     ImGui::Checkbox("Point Cloud", & d.pointCloud);
 
-                    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 50.0f));
+                    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 10.0f));
 
-                    d.btnShowPreviewBar = ImGui::Button("Preview Bar", ImVec2(175.0f, 40.0f));
+                    d.btnShowPreviewBar = ImGui::Button("Preview Bar", ImVec2(175.0f, 20.0f));
+
+                    ImGui::SliderFloat("X", &handles->sliderOne, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
+                    ImGui::SliderFloat("Y", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
+                    ImGui::SliderFloat("Z", &handles->sliderThree, -5.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
 
 
                 }

@@ -16,7 +16,7 @@ struct GuiLayerUpdateInfo {
     float width{};
     float height{};
     float sidebarWidth = 250.0f;
-    float elementHeight = 100.0f;
+    float elementHeight = 130.0f;
     std::string deviceName = "DeviceName";
     std::string title = "TitleName";
 
@@ -70,6 +70,11 @@ struct Element {
 struct GuiObjectHandles {
     std::vector<Element> *devices{};
     GuiLayerUpdateInfo *info{};
+
+    float sliderOne = 0.0f;
+    float sliderTwo = 0.0f;
+    float sliderThree = 0.0f;
+
 };
 
 class Layer {

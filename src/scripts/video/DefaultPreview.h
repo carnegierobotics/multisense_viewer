@@ -46,6 +46,8 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
+    float posX, posY, posZ;
+
 };
 
 

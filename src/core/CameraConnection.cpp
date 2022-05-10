@@ -60,6 +60,8 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
 void CameraConnection::connectCrlCamera(Element &dev) {
     // Connect to camera
     printf("Connecting\n");
+
+
     camPtr = new CRLPhysicalCamera();
     camPtr->connect(dev.IP);
     if (camPtr->online) {
@@ -76,8 +78,10 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
         }
         dev.state = ArActiveState;
-    } else
+    } else{
         dev.state = ArUnavailableState;
+
+    }
 }
 
 

@@ -88,10 +88,11 @@ void DefaultPreview::update(CameraConnection* conn) {
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(5.0f, -5.0f, -5.0f));
+
+    mat.model = glm::translate(mat.model, glm::vec3(1.35, -0.33, -1.35));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    mat.model = glm::scale(mat.model, glm::vec3(5.0f, 5.0f, 5.0f));
+    //mat.model = glm::scale(mat.model, glm::vec3(5.0f, 5.0f, 5.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -107,7 +108,11 @@ void DefaultPreview::update(CameraConnection* conn) {
 
 
 void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
-    //camera = (CRLPhysicalCamera *) uiSettings->physicalCamera;
+    posX = uiHandle.sliderOne;
+    posY = uiHandle.sliderTwo;
+    posZ = uiHandle.sliderThree;
+
+    //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 
 }
 

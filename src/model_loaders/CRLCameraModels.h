@@ -31,7 +31,7 @@ public:
         CRLCameraDataType modelType;
 
         struct VideoTexture {
-            std::vector<u_char *> pixels;
+            std::vector<unsigned char *> pixels;
             VkDeviceSize imageSize;
             uint32_t width;
             uint32_t height;

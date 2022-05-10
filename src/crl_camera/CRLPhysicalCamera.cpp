@@ -3,9 +3,9 @@
 //
 
 #include <thread>
-#include <opencv2/core/mat.hpp>
 #include <bitset>
 #include "CRLPhysicalCamera.h"
+#include <iostream>
 
 
 void CRLPhysicalCamera::connect(const std::string& ip) {
@@ -281,6 +281,3 @@ void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
 
 }
 
-cv::Mat *CRLPhysicalCamera::getCloudMat() {
-    return &cloudMat;
-}

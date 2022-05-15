@@ -17,6 +17,7 @@
 #include <MultiSense/src/core/Base.h>
 #include "MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
+#include <MultiSense/src/core/Definitions.h>
 
 class CRLCameraModels {
 
@@ -29,30 +30,6 @@ public:
 /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
         CRLCameraDataType modelType;
-
-        struct VideoTexture {
-            std::vector<unsigned char *> pixels;
-            VkDeviceSize imageSize;
-            uint32_t width;
-            uint32_t height;
-        } videos;
-        struct Vertex {
-            glm::vec3 pos;
-            glm::vec3 normal;
-            glm::vec2 uv0;
-            glm::vec2 uv1;
-            glm::vec4 joint0;
-            glm::vec4 weight0;
-        };
-
-        struct Primitive {
-            uint32_t firstIndex{};
-            uint32_t indexCount{};
-            uint32_t vertexCount{};
-            bool hasIndices{};
-            //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
-            //void setBoundingBox(glm::vec3 min, glm::vec3 max);
-        };
 
         struct Mesh {
             VulkanDevice *device;
@@ -93,7 +70,7 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(Model::Vertex *_vertices, uint32_t vertexCount);
+        void createMesh(Basil::Vertex*_vertices, uint32_t vertexCount);
 
         void loadTextureSamplers();
 
@@ -103,7 +80,7 @@ public:
         Model(VulkanDevice *_vulkanDevice);
 
         void
-        createMeshDeviceLocal(Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+        createMeshDeviceLocal(Basil::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
         void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
@@ -129,13 +106,13 @@ public:
             quad.vertexCount = vertexCount;
             quad.indexCount = indexCount;
             // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(CRLCameraModels::Model::Vertex));
+            quad.vertices = calloc(vertexCount, sizeof(Basil::Vertex));
             quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
 
-            auto *vP = (CRLCameraModels::Model::Vertex *) quad.vertices;
+            auto *vP = (Basil::Vertex*) quad.vertices;
             auto *iP = (uint32_t *) quad.indices;
 
-            CRLCameraModels::Model::Vertex vertex[4];
+            Basil::Vertex vertex[4];
             vertex[0].pos = glm::vec3(0.0f, 0.0f, 0.0f);
             vertex[1].pos = glm::vec3(1.0f * widthScale, 0.0f, 0.0f);
             vertex[2].pos = glm::vec3(0.0f, 0.0f, 1.0f * heightScale);
@@ -189,7 +166,7 @@ protected:
     VulkanDevice *vulkanDevice{};
 
     void
-    transferDataStaging(Model::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+    transferDataStaging(Basil::Vertex*_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
     void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
                               Model *model,

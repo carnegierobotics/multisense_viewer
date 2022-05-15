@@ -8,6 +8,7 @@
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include "imgui_internal.h"
 #include "imgui.h"
+#include <array>
 
 
 struct GuiLayerUpdateInfo {

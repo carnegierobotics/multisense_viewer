@@ -44,11 +44,6 @@ bool CRLBaseCamera::connect(const std::string& ip) {
     return false;
 }
 
-void CRLBaseCamera::prepare() {
-    printf("Instatiated new CRLPhysicalCamera\n");
-
-}
-
 void CRLBaseCamera::getCameraMetaData() {
     cameraInterface->setMtu(
             7200);  //FROM CRL viewer --> (try to increase this to whatever we can get away with, or use in run-level config-file)
@@ -95,17 +90,7 @@ void CRLBaseCamera::addCallbacks() {
 
 }
 
-void CRLBaseCamera::getVirtualCameraMetaData() {
 
-    // Just populating it with some hardcoded data :)
-    // - DevInfo
-    cameraInfo.devInfo.name = "CRL Virtual Camera";
-    cameraInfo.devInfo.imagerName = "Virtual";
-    cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
-    // - getImageCalibration
-    cameraInfo.netConfig.ipv4Address = "Knock knock";
-
-}
 
 std::unordered_set<crl::multisense::DataSource> CRLBaseCamera::supportedSources() {
     // this method effectively restrics the supported sources for the classice libmultisense api

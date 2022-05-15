@@ -10,6 +10,7 @@
 #include <mutex>
 #include <unordered_set>
 #include <unordered_map>
+#include <MultiSense/src/core/Definitions.h>
 
 typedef enum CRLCameraDataType {
     CrlPointCloud,
@@ -79,26 +80,22 @@ public:
         std::vector<uint8_t*> rawImages;
     }cameraInfo;
 
-    void prepare();
-    bool connect(const std::string& ip); // true if succeeds
-
     struct PointCloudData {
         void *vertices{};
         uint32_t vertexCount{};
         uint32_t *indices{};
         uint32_t indexCount{};
 
-        /*
         PointCloudData(uint32_t width, uint32_t height) {
             vertexCount = width * height;
             // Virtual class can generate some mesh data here
-            vertices = calloc(vertexCount, sizeof(MeshModel::Model::Vertex));
+            vertices = calloc(vertexCount, sizeof(Basil::Vertex));
 
             uint32_t v = 0;
-            auto *vP = (MeshModel::Model::Vertex *) vertices;
+            auto *vP = (Basil::Vertex*) vertices;
             for (uint32_t x = 0; x < width; ++x) {
                 for (uint32_t z = 0; z < height; ++z) {
-                    MeshModel::Model::Vertex vertex{};
+                    Basil::Vertex vertex{};
                     vertex.pos = glm::vec3((float) x / 50, 0.0f, (float) z / 50);
                     vertex.uv0 = glm::vec2((float) x / (float) width, (float) z / (float) height);
                     vP[v] = vertex;
@@ -106,7 +103,7 @@ public:
                 }
             }
         };
-*/
+
         ~PointCloudData() {
             free(vertices);
             delete[] indices;
@@ -115,6 +112,8 @@ public:
     };
 
     PointCloudData *meshData{};
+
+    bool connect(const std::string& ip); // true if succeeds
 
     virtual void initialize() {};
 

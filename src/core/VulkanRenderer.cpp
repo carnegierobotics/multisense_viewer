@@ -107,13 +107,11 @@ bool VulkanRenderer::initVulkan() {
 
     VkPhysicalDeviceVulkan11Features features;
     features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-    features.samplerYcbcrConversion = VK_TRUE;
     features.pNext = nullptr;
 
 
     // Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
     addDeviceFeatures();
-    enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 
     VkPhysicalDeviceFeatures2 features2;
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -121,6 +119,11 @@ bool VulkanRenderer::initVulkan() {
     features2.features = deviceFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+    // If available then: Add KHR_SAMPLER_YCBCR For Color camera data format.
+    if (features.samplerYcbcrConversion) {  
+        enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+    }
 
     // Vulkan device creation
     // This is firstUpdate by a separate class that gets a logical device representation

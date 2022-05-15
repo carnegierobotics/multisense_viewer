@@ -21,8 +21,8 @@ CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType typ
 }
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
-void CRLCameraModels::Model::createMesh(CRLCameraModels::Model::Vertex *_vertices, uint32_t vertexCount) {
-    size_t vertexBufferSize = vertexCount * sizeof(Model::Vertex);
+void CRLCameraModels::Model::createMesh(Basil::Vertex *_vertices, uint32_t vertexCount) {
+    size_t vertexBufferSize = vertexCount * sizeof(Basil::Vertex);
 
     mesh.vertexCount = vertexCount;
     if (mesh.vertices.buffer == nullptr) {
@@ -44,12 +44,12 @@ void CRLCameraModels::Model::createMesh(CRLCameraModels::Model::Vertex *_vertice
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 
 void
-CRLCameraModels::Model::createMeshDeviceLocal(Model::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+CRLCameraModels::Model::createMeshDeviceLocal(Basil::Vertex*_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                               uint32_t
                                               indexCount) {
 
 
-    size_t vertexBufferSize = vertexCount * sizeof(Vertex);
+    size_t vertexBufferSize = vertexCount * sizeof(Basil::Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
     mesh.vertexCount = vertexCount;
     mesh.indexCount = indexCount;
@@ -501,7 +501,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
 
-    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(Model::Vertex),
+    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(Basil::Vertex),
                                                           VK_VERTEX_INPUT_RATE_VERTEX};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
             {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},

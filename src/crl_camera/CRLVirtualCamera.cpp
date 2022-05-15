@@ -36,9 +36,22 @@ CRLBaseCamera::PointCloudData *CRLVirtualCamera::getStream() {
     return meshData;
 }
 
+void  CRLVirtualCamera::getVirtualCameraMetaData() {
+
+    // Just populating it with some hardcoded data :)
+    // - DevInfo
+    cameraInfo.devInfo.name = "CRL Virtual Camera";
+    cameraInfo.devInfo.imagerName = "Virtual";
+    cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
+    // - getImageCalibration
+    cameraInfo.netConfig.ipv4Address = "Knock knock";
+
+}
+
 CRLVirtualCamera::~CRLVirtualCamera() {
 
     if (meshData->vertices != nullptr)
         free(meshData->vertices);
 
 }
+

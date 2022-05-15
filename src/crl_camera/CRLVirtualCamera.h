@@ -25,6 +25,8 @@ public:
     void stop(std::string dataSourceStr) override;
     PointCloudData *getStream() override;
 
+    void getVirtualCameraMetaData();
+
     ~CRLVirtualCamera();
 
 private:

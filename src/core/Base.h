@@ -47,7 +47,7 @@ struct PointCloudShader{
 };
 
 // PreDeclare
-class GuiObjectHandles;
+struct GuiObjectHandles;
 
 class Base {
 public:

@@ -4,3 +4,4 @@ out/
 .vs
 /Assets/compiler
 /Assets/shaders/myScene/spv
+/compiler

@@ -31,6 +31,8 @@ public:
         bool draw = true;
         CRLCameraDataType modelType;
 
+        Basil::VideoTexture videos;
+
         struct Mesh {
             VulkanDevice *device;
             uint32_t firstIndex = 0;

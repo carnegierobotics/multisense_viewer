@@ -53,7 +53,7 @@ void PointCloud::update() {
     if (camera->play && model->draw) {
         CRLBaseCamera::PointCloudData *meshData = camera->getStream();
         model->setGrayscaleTexture(&camera->getImage()[crl::multisense::Source_Disparity_Left]);
-        model->createMesh((CRLCameraModels::Model::Vertex *) meshData->vertices, meshData->vertexCount);
+        model->createMesh((Basil::Vertex *) meshData->vertices, meshData->vertexCount);
     }
     // Transform pointcloud
     UBOMatrix mat{};

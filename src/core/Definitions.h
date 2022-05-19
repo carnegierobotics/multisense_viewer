@@ -14,7 +14,7 @@ namespace Basil{
         VkDeviceSize imageSize;
         uint32_t width;
         uint32_t height;
-    } videos;
+    };
 
     struct Vertex {
         glm::vec3 pos;

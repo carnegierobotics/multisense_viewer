@@ -1,6 +1,6 @@
 # install glslc in project folder
-mkdir -p "Assets/compiler"
-cd "Assets/compiler" || exit
+mkdir -p "spirv_compiler"
+cd "spirv_compiler" || exit
 git clone https://github.com/google/shaderc
 cd shaderc || exit
 python3 ./utils/git-sync-deps || exit

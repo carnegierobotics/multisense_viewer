@@ -22,7 +22,7 @@ public:
 
 
     CRLPhysicalCamera() : CRLBaseCamera() {
-        CRLBaseCamera::prepare();
+
     }
 
 

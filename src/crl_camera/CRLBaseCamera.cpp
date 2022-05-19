@@ -81,7 +81,8 @@ void CRLBaseCamera::addCallbacks() {
 
     // use these buffers instead of the default
     cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
-
+     
+    printf("cameraInfo.supportedSources: %d\n", cameraInfo.supportedSources);
     // finally, add our callback
     if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
         crl::multisense::Status_Ok) {

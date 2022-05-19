@@ -34,7 +34,7 @@ void CRLCameraModels::Model::createMesh(Basil::Vertex *_vertices, uint32_t verte
                 &mesh.vertices.memory,
                 _vertices))
     } else {
-        void *data;
+        void *data{};
         // TODO dont map and unmmap memory every time
         //vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
         //memcpy(data, _vertices, vertexBufferSize);
@@ -204,7 +204,7 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture;
+    Texture2D texture{};
 
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -428,7 +428,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
 
     // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
     if (pModel->textureVideo.sampler != nullptr) {
-        VkDescriptorSetLayoutBinding binding;
+        VkDescriptorSetLayoutBinding binding{};
         setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo.sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),

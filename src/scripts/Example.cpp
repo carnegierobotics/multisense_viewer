@@ -1,4 +1,3 @@
-#include <MultiSense/src/imgui/Layer.h>
 #include "Example.h"
 
 void Example::setup() {

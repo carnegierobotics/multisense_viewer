@@ -15,8 +15,6 @@
 #include <fstream>
 #include <filesystem>
 
-
-
 #include <MultiSense/src/core/VulkanRenderer.h>
 #include <MultiSense/src/core/Base.h>
 #include <MultiSense/src/core/ScriptBuilder.h>

@@ -119,9 +119,9 @@ void Renderer::generateScriptClasses() {
     }
     */
     // TODO: Create a list of renderable classnames
-    classNames.emplace_back("Example");
-    classNames.emplace_back("LightSource");
-    classNames.emplace_back("VirtualPointCloud");
+    //classNames.emplace_back("Example");
+    //classNames.emplace_back("LightSource");
+    //classNames.emplace_back("VirtualPointCloud");
     classNames.emplace_back("PreviewBar");
     classNames.emplace_back("DefaultPreview");
     classNames.emplace_back("PointCloud");

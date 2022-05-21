@@ -1,4 +1,3 @@
-#include <MultiSense/src/imgui/Layer.h>
 #include "LightSource.h"
 
 void LightSource::setup() {

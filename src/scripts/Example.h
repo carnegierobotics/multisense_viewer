@@ -3,6 +3,7 @@
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/model_loaders/glTFModel.h>
+#include <MultiSense/src/imgui/Layer.h>
 
 class Example: public Base, public RegisteredInFactory<Example>, glTFModel
 {

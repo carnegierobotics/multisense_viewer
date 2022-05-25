@@ -6,12 +6,11 @@
 #define MULTISENSE_DEFINITIONS_H
 
 #include "glm/glm.hpp"
-#include "vulkan/vulkan.hpp"
 
 namespace Basil{
     struct VideoTexture {
         std::vector<unsigned char*> pixels;
-        VkDeviceSize imageSize;
+        uint64_t imageSize;
         uint32_t width;
         uint32_t height;
     };

@@ -545,8 +545,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 }
 
 
-void
-CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
+void CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
                                       std::vector<VkPipelineShaderStageCreateInfo> vector,
                                       Model *model,
                                       ScriptType type) {

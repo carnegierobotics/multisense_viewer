@@ -9,10 +9,10 @@
 
 namespace Basil{
     struct VideoTexture {
-        std::vector<unsigned char*> pixels;
-        uint64_t imageSize;
-        uint32_t width;
-        uint32_t height;
+        std::vector<unsigned char*> pixels{};
+        uint64_t imageSize{};
+        uint32_t width{};
+        uint32_t height{};
     };
 
 

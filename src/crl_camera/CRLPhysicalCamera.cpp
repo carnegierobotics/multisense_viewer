@@ -8,9 +8,21 @@
 #include <iostream>
 
 
-void CRLPhysicalCamera::connect(const std::string& ip) {
-    online = CRLBaseCamera::connect(ip);
+bool CRLPhysicalCamera::connect(const std::string& ip) {
+    if (cameraInterface == nullptr) {
+        cameraInterface = crl::multisense::Channel::Create(ip);
+        if (cameraInterface != nullptr) {
+            updateCameraInfo();
+            addCallbacks();
 
+            cameraInterface->setMtu(7200); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
+            online = true;
+            return true;
+        }
+    }
+
+
+    return false;
 }
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
@@ -47,9 +59,9 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         std::cerr << "Select valid mode\n";
         return;
     }
-    this->selectDisparities(widthHeightDepth[2]);
-    this->selectResolution(widthHeightDepth[0], widthHeightDepth[1]);
-    this->selectFramerate(60);
+    //this->selectDisparities(widthHeightDepth[2]);
+    //this->selectResolution(widthHeightDepth[0], widthHeightDepth[1]);
+    //this->selectFramerate(60);
 
     // Start stream
     for (auto src: enabledSources) {
@@ -101,7 +113,7 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     modeChange = true;
 }
 
-
+/*
 CRLBaseCamera::PointCloudData *CRLPhysicalCamera::getStream() {
     return meshData;
 }
@@ -168,6 +180,7 @@ std::unordered_set<crl::multisense::DataSource> CRLPhysicalCamera::supportedSour
     return ret;
 }
 
+ */
 std::string CRLPhysicalCamera::dataSourceToString(crl::multisense::DataSource d) {
     switch (d) {
         case crl::multisense::Source_Raw_Left:
@@ -241,7 +254,7 @@ void CRLPhysicalCamera::update() {
     for (auto src: enabledSources) {
         if (src == crl::multisense::Source_Disparity_Left) {
             // Reproject camera to 3D
-            stream = &imagePointers[crl::multisense::Source_Disparity_Left];
+            //stream = &imagePointers[crl::multisense::Source_Disparity_Left];
 
         }
     }
@@ -250,10 +263,7 @@ void CRLPhysicalCamera::update() {
 
 void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
 
-    //meshData = new PointCloudData(width, height);
-
     crl::multisense::image::Config c = cameraInfo.imgConf;
-
 
     kInverseMatrix =
             glm::mat4(
@@ -277,7 +287,70 @@ void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
                       glm::vec4(0, 0, 0, 1));
   */
     // Load calibration data
+}
 
+void CRLPhysicalCamera::updateCameraInfo() {
+    cameraInterface->getImageConfig(cameraInfo.imgConf);
+    cameraInterface->getNetworkConfig(cameraInfo.netConfig);
+    cameraInterface->getVersionInfo(cameraInfo.versionInfo);
+    cameraInterface->getDeviceInfo(cameraInfo.devInfo);
+    cameraInterface->getDeviceModes(cameraInfo.supportedDeviceModes);
+    cameraInterface->getImageCalibration(cameraInfo.camCal);
+    cameraInterface->getEnabledStreams(cameraInfo.supportedSources);
 
 }
 
+void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &image) {
+    auto &buf = buffers_[image.source];
+
+    // TODO: make this a method of the BufferPair or something
+    std::scoped_lock lock(buf.swap_lock);
+
+    if (buf.inactiveCBBuf != nullptr)  // initial state
+    {
+        cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
+    }
+    imagePointers[image.source] = image;
+
+    buf.inactiveCBBuf = cameraInterface->reserveCallbackBuffer();
+    buf.inactive = image;
+}
+
+void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &header, void *userDataP) {
+    auto cam = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
+    cam->streamCallback(header);
+}
+
+
+void CRLPhysicalCamera::addCallbacks() {
+
+
+    for (auto e: cameraInfo.supportedDeviceModes)
+        cameraInfo.supportedSources |= e.supportedDataSources;
+
+    // reserve double_buffers for each stream
+    uint_fast8_t num_sources = 0;
+    crl::multisense::DataSource d = cameraInfo.supportedSources;
+    while (d) {
+        num_sources += (d & 1);
+        d >>= 1;
+    }
+
+    // --- initializing our callback buffers ---
+    std::size_t bufSize = 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
+    for (int i = 0;
+         i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
+    {
+        cameraInfo.rawImages.push_back(new uint8_t[bufSize]);
+    }
+
+    // use these buffers instead of the default
+    cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
+
+    // finally, add our callback
+    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+        crl::multisense::Status_Ok) {
+        std::cerr << "Adding callback failed!\n";
+    }
+
+}

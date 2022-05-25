@@ -100,7 +100,7 @@ public:
 
                     if (btnConnect) {
                         for (auto &d: devices) {
-                            if (d.IP == inputIP)
+                            if (d.IP == inputIP && strcmp(items[item_current_idx], "Virtual Camera") != 0)
                                 deviceAlreadyExist = true;
                         }
 
@@ -172,6 +172,7 @@ private:
         el.IP = ip;
         el.state = ArConnectingState;
         el.cameraName = cameraName;
+        el.clicked = true;
 
         devices.emplace_back(el);
 
@@ -186,6 +187,7 @@ private:
         el.IP = ip;
         el.state = ArConnectingState;
         el.cameraName = "Unknown";
+        el.clicked = true;
 
         devices.emplace_back(el);
 
@@ -229,7 +231,7 @@ private:
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-            std::string winId = e.IP + "Child";
+            std::string winId = e.name + "Child";
             ImGui::BeginChild(winId.c_str(), ImVec2(handles->info->sidebarWidth, handles->info->elementHeight),
                               false, ImGuiWindowFlags_NoDecoration);
 

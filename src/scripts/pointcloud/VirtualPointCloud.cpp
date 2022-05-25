@@ -19,8 +19,8 @@ void VirtualPointCloud::setup() {
 void VirtualPointCloud::update() {
     if (virtualCamera != nullptr) {
         //virtualCamera->update(renderData);
-        CRLBaseCamera::PointCloudData *meshData = virtualCamera->getStream();
-        model->createMesh((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount);
+        //CRLBaseCamera::PointCloudData *meshData = virtualCamera->getStream();
+        //model->createMesh((MeshModel::Model::Vertex *) meshData->vertices, meshData->vertexCount);
 
         // Transform pointcloud
         UBOMatrix mat{};

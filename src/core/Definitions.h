@@ -35,4 +35,18 @@ namespace Basil{
     };
 }
 
+typedef enum CRLCameraDataType {
+    CrlPointCloud,
+    CrlGrayscaleImage,
+    CrlColorImageYUV420,
+    CrlNone, CrlDisparityImage, CrlImage
+} CRLCameraDataType;
+
+typedef enum CRLCameraType {
+    DEFAULT_CAMERA_IP,
+    CUSTOM_CAMERA_IP,
+    VIRTUAL_CAMERA
+} CRLCameraType;
+
+
 #endif //MULTISENSE_DEFINITIONS_H

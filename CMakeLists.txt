@@ -145,11 +145,11 @@ else () ## Linux
 
 endif ()
 
-
+message(Path: ${CMAKE_CURRENT_BINARY_DIR})
+message(${CMAKE_CURRENT_SOURCE_DIR}/Assets)
 ## TODO: COPY dependencies with executables (shaders etc..)
 # Copy dependency folders to output directory
 add_custom_target(copy_assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/../Assets)
-add_dependencies(MultiSense-viewer copy_assets)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-add_subdirectory("Viewer")
+add_dependencies(MultiSense-viewer copy_assets)

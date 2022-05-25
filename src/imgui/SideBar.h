@@ -65,35 +65,52 @@ public:
         if (ImGui::BeginPopupModal("add_device_modal", NULL,
                                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
 
+            bool deviceAlreadyExist = false;
             static char inputName[32] = "Front Camera";
             static char inputIP[32] = "10.66.171.21";
 
-            ImGui::Text("Connect to your MultiSense Device");
-            ImGui::Separator();
-            ImGui::InputText("Profile name", inputName,
-                             IM_ARRAYSIZE(inputName));
-            ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
+            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
+                if (ImGui::BeginTabItem("Select Premade Profile")) {
+                    ImGui::Text("Connect to your MultiSense Device");
+                    ImGui::Separator();
+                    ImGui::InputText("Profile name", inputName,
+                                     IM_ARRAYSIZE(inputName));
+                    ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
 
-            btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
-            ImGui::SameLine();
-
-            // On connect button click
-            if (btnConnect) {
-                bool exists = false;
-                for (auto &d: devices){
-                    if (d.IP == inputIP)
-                        exists = true;
+                    ImGui::EndTabItem();
                 }
+                if (ImGui::BeginTabItem("Advanced Options")) {
+                    ImGui::Text("Connect to your MultiSense Device");
+                    ImGui::Separator();
+                    ImGui::InputText("Profile name", inputName,
+                                     IM_ARRAYSIZE(inputName));
+                    ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
 
+                    btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
+                    ImGui::SameLine();
 
-                if (!exists)
-                    createNewElement(inputName, inputIP);
+                    // On connect button click
+                    if (btnConnect) {
+                        for (auto &d: devices) {
+                            if (d.IP == inputIP)
+                                deviceAlreadyExist = true;
+                        }
 
-                ImGui::CloseCurrentPopup();
+                        if (!deviceAlreadyExist)
+                            createNewElement(inputName, inputIP);
+
+                        ImGui::CloseCurrentPopup();
+
+                    }
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
             }
 
 
             ImGui::EndPopup();
+
         }
 
         ImGui::Spacing();
@@ -103,8 +120,6 @@ public:
             sidebarElements();
 
         addDeviceButton();
-
-
         ImGui::End();
 
     }
@@ -205,8 +220,6 @@ private:
 
             cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
             ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
-
-
 
 
             buttonIdentifier += "##" + e.IP;

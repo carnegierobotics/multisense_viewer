@@ -14,6 +14,7 @@
 
 #include <MultiSense/src/core/Texture.h>
 #include <MultiSense/src/tools/Macros.h>
+#include <MultiSense/src/core/Base.h>
 #include "MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 #include <MultiSense/src/core/Definitions.h>
@@ -154,24 +155,22 @@ public:
 
     void createDescriptorSetLayout(Model *pModel);
 
-    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
+    //void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
 
     void createPipelineLayout();
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model);
 
-    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
+    //void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
 
 protected:
 
     VulkanDevice *vulkanDevice{};
 
-    void
-    transferDataStaging(Basil::Vertex*_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+    //void transferDataStaging(Basil::Vertex*_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
-    void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
-                              Model *model,
-                              ScriptType type);
+    //void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
+    //                          Model *model, ScriptType type);
 
     void createImageDescriptors(Model *model);
 
@@ -182,6 +181,15 @@ protected:
     void createImageDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
 
     void createPointCloudDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
+
+    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
+
+    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, Model *model);
+
+    void
+    createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
+                         Model *model,
+                         ScriptType type);
 };
 
 

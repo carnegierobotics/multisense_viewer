@@ -69,8 +69,7 @@ set(ENGINE_SRC
         src/core/VulkanRenderer.h
         src/core/VulkanSwapchain.cpp
         src/core/VulkanSwapchain.h
-        src/crl_camera/CRLBaseCamera.cpp
-        src/crl_camera/CRLBaseCamera.h
+        src/crl_camera/CRLBaseInterface.h
         src/crl_camera/CRLPhysicalCamera.cpp
         src/crl_camera/CRLPhysicalCamera.h
         src/crl_camera/CRLVirtualCamera.cpp

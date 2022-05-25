@@ -24,10 +24,10 @@ void CameraConnection::updateActiveDevice(Element dev) {
         camPtr->stop("Color Rectified Aux");
     }
 
-    if (dev.btnShowPreviewBar && !camPreviewBar.active){
+    if (dev.btnShowPreviewBar && !camPreviewBar.active) {
 
         camPreviewBar.active = true;
-    } else if(dev.btnShowPreviewBar && !camPreviewBar.active){
+    } else if (dev.btnShowPreviewBar && !camPreviewBar.active) {
         camPreviewBar.active = false;
     }
 
@@ -45,8 +45,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
             connectCrlCamera(dev);
         }
 
-        if (dev.state == ArConnectingState)
-            connectCrlCamera(dev);
+        updateDeviceState(&dev);
 
         if (dev.state != ArActiveState)
             continue;
@@ -59,40 +58,49 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
 }
 
 void CameraConnection::connectCrlCamera(Element &dev) {
-    // Connect to camera
-    printf("Connecting\n");
+    // 1. Connect to camera
+    // 2. If successful: Disable any other available camera
+    bool connected = false;
 
-    if (dev.cameraName == "Virtual Camera"){
+    if (dev.cameraName == "Virtual Camera") {
         camPtr = new CRLVirtualCamera();
+        connected = camPtr->connect("None");
+        if (connected) {
+            dev.state = ArActiveState;
+            //dev.cameraName = "Virtual Camera";
+            dev.IP = "Local";
+        }
 
     } else {
         camPtr = new CRLPhysicalCamera();
-        camPtr->connect(dev.IP);
-    }
+        connected = camPtr->connect(dev.IP);
+        if (connected) {
+            dev.state = ArActiveState;
+            dev.cameraName = camPtr->getCameraInfo().devInfo.name;
+            for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+                auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+                std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                                       std::to_string(mode.disparities) + "x";
 
-    /*
-    if (camPtr->online) {
-        printf("Querying Camera name\n");
-        dev.cameraName = camPtr->getInfo().devInfo.name;
-
-        printf("Querying streaming modes\n");
-        // List streaming modes
-        for (int i = 0; i < camPtr->getInfo().supportedDeviceModes.size(); ++i) {
-            auto mode = camPtr->getInfo().supportedDeviceModes[i];
-            std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                                   std::to_string(mode.disparities) + "x";
-
-            StreamingModes streamingModes;
-            streamingModes.modeName = modeName;
-            dev.modes.emplace_back(streamingModes);
-
+                StreamingModes streamingModes;
+                streamingModes.modeName = modeName;
+                dev.modes.emplace_back(streamingModes);
+            }
         }
-        dev.state = ArActiveState;
-    } else{
-        dev.state = ArUnavailableState;
-
     }
-     */
+    lastActiveDevice = dev.name;
+
+
+
+}
+
+void CameraConnection::updateDeviceState(Element* dev) {
+
+    dev->state = ArUnavailableState;
+
+    if (dev->name == lastActiveDevice)
+        dev->state = ArActiveState;
+
 }
 
 

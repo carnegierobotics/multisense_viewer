@@ -16,7 +16,6 @@
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/Base.h>
 #include "MultiSense/MultiSenseTypes.hh"
-#include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 #include <MultiSense/src/core/Definitions.h>
 
 class CRLCameraModels {

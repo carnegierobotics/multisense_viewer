@@ -6,31 +6,26 @@
 #define MULTISENSE_CRLVIRTUALCAMERA_H
 
 
-#include <MultiSense/src/crl_camera/CRLBaseCamera.h>
+#include "CRLBaseInterface.h"
 
-class CRLVirtualCamera : public CRLBaseCamera {
+class CRLVirtualCamera : public CRLBaseInterface {
 public:
-    explicit CRLVirtualCamera() : CRLBaseCamera() {
-
-
+    explicit CRLVirtualCamera() : CRLBaseInterface() {
     }
+
     std::string description;
     std::string data;
     int point = 0;
 
-    void connect(CRLCameraDataType source);
+    bool connect(const std::string& ip) override;
+    void updateCameraInfo() override;
     void start(std::string string, std::string dataSourceStr) override;
-    //void update(Base::Render render);
-    void update();
     void stop(std::string dataSourceStr) override;
-    PointCloudData *getStream() override;
 
-    void getVirtualCameraMetaData();
-
-    ~CRLVirtualCamera();
 
 private:
 
+    void update();
 };
 
 

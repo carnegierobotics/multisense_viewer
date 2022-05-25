@@ -5,8 +5,8 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include <MultiSense/src/crl_camera/CRLBaseInterface.h>
 
 /**
  * Class handles the bridge between the GUI interaction and actual communication to camera
@@ -22,9 +22,9 @@ public:
     }camPreviewBar;
 
     /** @brief Handle to the current camera object */
-    CRLBaseCamera *camPtr = nullptr;
+    CRLBaseInterface *camPtr = nullptr;
     bool preview = false;
-    //std::shared_ptr<CRLBaseCamera> camPtr;
+    std::string lastActiveDevice{};
 
     CameraConnection();
     void onUIUpdate(std::vector<Element> *pVector);
@@ -36,6 +36,8 @@ private:
     void updateActiveDevice(Element element);
 
     void connectCrlCamera(Element &element);
+
+    void updateDeviceState(Element *element);
 };
 
 

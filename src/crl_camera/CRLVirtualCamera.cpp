@@ -4,9 +4,10 @@
 
 #include "CRLVirtualCamera.h"
 
-void CRLVirtualCamera::connect(CRLCameraDataType source) {
+bool CRLVirtualCamera::connect(const std::string& ip) {
     //CRLBaseCamera::connect(VIRTUAL_CAMERA);
-
+    online = true;
+    return true;
 }
 
 void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
@@ -15,6 +16,18 @@ void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
 }
 
 void CRLVirtualCamera::stop(std::string dataSourceStr) {
+
+}
+
+void CRLVirtualCamera::updateCameraInfo() {
+    // Just populating it with some hardcoded data :)
+    // - DevInfo
+
+    cameraInfo.devInfo.name = "CRL Virtual Camera";
+    cameraInfo.devInfo.imagerName = "Virtual";
+    cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
+    // - getImageCalibration
+    cameraInfo.netConfig.ipv4Address = "Knock knock";
 
 }
 
@@ -27,31 +40,10 @@ void CRLVirtualCamera::update() {
     for (int i = 0; i < 720; ++i) {
         //vP[point].pos.y = y;
         point++;
-        if (point >= meshData->vertexCount)
-            point = 0;
+        //if (point >= meshData->vertexCount)
+        //    point = 0;
     }
 }
 
-CRLBaseCamera::PointCloudData *CRLVirtualCamera::getStream() {
-    return meshData;
-}
 
-void  CRLVirtualCamera::getVirtualCameraMetaData() {
-
-    // Just populating it with some hardcoded data :)
-    // - DevInfo
-    cameraInfo.devInfo.name = "CRL Virtual Camera";
-    cameraInfo.devInfo.imagerName = "Virtual";
-    cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
-    // - getImageCalibration
-    cameraInfo.netConfig.ipv4Address = "Knock knock";
-
-}
-
-CRLVirtualCamera::~CRLVirtualCamera() {
-
-    if (meshData->vertices != nullptr)
-        free(meshData->vertices);
-
-}
 

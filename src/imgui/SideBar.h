@@ -62,11 +62,13 @@ public:
         ImGui::PlotLines("Frame Times", &info->frameTimes[0], 50, 0, "", info->frameTimeMin,
                          info->frameTimeMax, ImVec2(0, 80));
 
+        ImGui::SetNextWindowSize(ImVec2(info->popupWidth, info->popupHeight), ImGuiCond_Once);
+
         if (ImGui::BeginPopupModal("add_device_modal", NULL,
-                                   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)) {
+                                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking)) {
 
             bool deviceAlreadyExist = false;
-            static char inputName[32] = "Front Camera";
+            static char inputName[32] = "Profile #1";
             static char inputIP[32] = "10.66.171.21";
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
@@ -76,7 +78,39 @@ public:
                     ImGui::Separator();
                     ImGui::InputText("Profile name", inputName,
                                      IM_ARRAYSIZE(inputName));
-                    ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
+
+                    const char *items[] = {"MultiSense S30", "MultiSense S21", "Virtual Camera"};
+                    static int item_current_idx = 0; // Here we store our selection data as an index.
+                    const char *combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
+                    static ImGuiComboFlags flags = 0;
+
+                    if (ImGui::BeginCombo("Select Default Configuration", combo_preview_value, flags)) {
+                        for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                            const bool is_selected = (item_current_idx == n);
+                            if (ImGui::Selectable(items[n], is_selected))
+                                item_current_idx = n;
+
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                    btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
+
+                    if (btnConnect) {
+                        for (auto &d: devices) {
+                            if (d.IP == inputIP)
+                                deviceAlreadyExist = true;
+                        }
+
+                        if (!deviceAlreadyExist){
+                            createDefaultElement(inputName, inputIP, items[item_current_idx]);
+                            deviceAlreadyExist = true;
+                        }
+
+                    }
+
 
                     ImGui::EndTabItem();
                 }
@@ -90,24 +124,24 @@ public:
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
                     ImGui::SameLine();
 
-                    // On connect button click
-                    if (btnConnect) {
-                        for (auto &d: devices) {
-                            if (d.IP == inputIP)
-                                deviceAlreadyExist = true;
-                        }
-
-                        if (!deviceAlreadyExist)
-                            createNewElement(inputName, inputIP);
-
-                        ImGui::CloseCurrentPopup();
-
-                    }
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
             }
 
+            // On connect button click
+            if (btnConnect) {
+                for (auto &d: devices) {
+                    if (d.IP == inputIP)
+                        deviceAlreadyExist = true;
+                }
+
+                if (!deviceAlreadyExist)
+                    createAdvancedElement(inputName, inputIP);
+
+                ImGui::CloseCurrentPopup();
+
+            }
 
             ImGui::EndPopup();
 
@@ -131,12 +165,27 @@ private:
     bool btnConnect = false;
     bool btnAdd = false;
 
-    void createNewElement(char *name, char *ip) {
+    void createDefaultElement(char *name, char *ip, const char *cameraName) {
         Element el;
 
         el.name = name;
         el.IP = ip;
         el.state = ArConnectingState;
+        el.cameraName = cameraName;
+
+        devices.emplace_back(el);
+
+        handles->devices = &devices;
+
+    }
+
+    void createAdvancedElement(char *name, char *ip) {
+        Element el;
+
+        el.name = name;
+        el.IP = ip;
+        el.state = ArConnectingState;
+        el.cameraName = "Unknown";
 
         devices.emplace_back(el);
 
@@ -148,7 +197,7 @@ private:
         for (int i = 0; i < devices.size(); ++i) {
             auto &e = devices[i];
 
-            std::string buttonIdentifier = "";
+            std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
 
@@ -190,40 +239,47 @@ private:
             ImVec2 window_size = ImGui::GetWindowSize();
             ImVec2 window_center = ImVec2(window_pos.x + window_size.x * 0.5f, window_pos.y + window_size.y * 0.5f);
             ImVec2 cursorPos = ImGui::GetCursorPos();
-
-
+            ImVec2 lineSize;
             // Profile Name
-            ImGui::PushFont(handles->info->font24);
-            ImVec2 lineSize = ImGui::CalcTextSize(e.name.c_str());
-            cursorPos.x = window_center.x - (lineSize.x / 2);
-            ImGui::SetCursorPos(cursorPos);
-
-
-            ImGui::Text("%s", e.name.c_str());
-            ImGui::PopFont();
-
-
+            {
+                ImGui::PushFont(handles->info->font24);
+                lineSize = ImGui::CalcTextSize(e.name.c_str());
+                cursorPos.x = window_center.x - (lineSize.x / 2);
+                ImGui::SetCursorPos(cursorPos);
+                ImGui::Text("%s", e.name.c_str());
+                ImGui::PopFont();
+            }
+            // Camera Name
+            {
+                ImGui::PushFont(handles->info->font13);
+                lineSize = ImGui::CalcTextSize(e.cameraName.c_str());
+                cursorPos.x = window_center.x - (lineSize.x / 2);
+                ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
+                ImGui::Text("%s", e.cameraName.c_str());
+                ImGui::PopFont();
+            }
             // Camera IP Address
-            ImGui::PushFont(handles->info->font13);
-            lineSize = ImGui::CalcTextSize(e.IP.c_str());
-            cursorPos.x = window_center.x - (lineSize.x / 2);
-            ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
+            {
+                ImGui::PushFont(handles->info->font13);
+                lineSize = ImGui::CalcTextSize(e.IP.c_str());
+                cursorPos.x = window_center.x - (lineSize.x / 2);
+                ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
 
-            ImGui::Text("%s", e.IP.c_str());
-            ImGui::PopFont();
+                ImGui::Text("%s", e.IP.c_str());
+                ImGui::PopFont();
+            }
 
             // Status Button
-            ImGui::Dummy(ImVec2(0.0f, 5.0f));
-            ImGui::PushFont(handles->info->font18);
-            //ImGuiStyle style = ImGui::GetStyle();
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
-
-            cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
-            ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
-
+            {
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::PushFont(handles->info->font18);
+                //ImGuiStyle style = ImGui::GetStyle();
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
+                cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
+                ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
+            }
 
             buttonIdentifier += "##" + e.IP;
-
             e.clicked = ImGui::Button(buttonIdentifier.c_str(),
                                       ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
 

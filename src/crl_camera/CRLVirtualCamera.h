@@ -8,9 +8,9 @@
 
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 
-class CRLVirtualCamera : CRLBaseCamera {
+class CRLVirtualCamera : public CRLBaseCamera {
 public:
-    explicit CRLVirtualCamera(CRLCameraDataType type) : CRLBaseCamera() {
+    explicit CRLVirtualCamera() : CRLBaseCamera() {
 
 
     }

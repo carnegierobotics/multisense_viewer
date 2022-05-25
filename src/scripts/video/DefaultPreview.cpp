@@ -19,6 +19,7 @@ void DefaultPreview::update(CameraConnection* conn) {
     auto* camera = conn->camPtr;
     assert(camera != nullptr);
 
+    /*
     if (camera->modeChange) {
         auto imgConf = camera->getImageConfig();
         CRLCameraDataType textureType;
@@ -84,7 +85,7 @@ void DefaultPreview::update(CameraConnection* conn) {
         }
     }
 
-
+    */
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);

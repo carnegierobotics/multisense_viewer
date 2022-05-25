@@ -22,9 +22,9 @@ public:
     }camPreviewBar;
 
     /** @brief Handle to the current camera object */
-    CRLPhysicalCamera *camPtr = nullptr;
+    CRLBaseCamera *camPtr = nullptr;
     bool preview = false;
-
+    //std::shared_ptr<CRLBaseCamera> camPtr;
 
     CameraConnection();
     void onUIUpdate(std::vector<Element> *pVector);

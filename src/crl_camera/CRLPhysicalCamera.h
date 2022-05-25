@@ -8,7 +8,7 @@
 #include <MultiSense/src/crl_camera/CRLBaseCamera.h>
 #include "glm/glm.hpp"
 
-class CRLPhysicalCamera : CRLBaseCamera {
+class CRLPhysicalCamera : public CRLBaseCamera {
 public:
 
     bool online = false;

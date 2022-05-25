@@ -2,6 +2,7 @@
 // Created by magnus on 3/21/22.
 //
 
+#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include "CameraConnection.h"
 
 CameraConnection::CameraConnection() {
@@ -61,11 +62,20 @@ void CameraConnection::connectCrlCamera(Element &dev) {
     // Connect to camera
     printf("Connecting\n");
 
+    if (dev.cameraName == "Virtual Camera"){
+        camPtr = new CRLVirtualCamera();
 
-    camPtr = new CRLPhysicalCamera();
-    camPtr->connect(dev.IP);
+    } else {
+        camPtr = new CRLPhysicalCamera();
+        camPtr->connect(dev.IP);
+    }
+
+    /*
     if (camPtr->online) {
+        printf("Querying Camera name\n");
+        dev.cameraName = camPtr->getInfo().devInfo.name;
 
+        printf("Querying streaming modes\n");
         // List streaming modes
         for (int i = 0; i < camPtr->getInfo().supportedDeviceModes.size(); ++i) {
             auto mode = camPtr->getInfo().supportedDeviceModes[i];
@@ -82,6 +92,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         dev.state = ArUnavailableState;
 
     }
+     */
 }
 
 

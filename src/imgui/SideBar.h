@@ -120,6 +120,15 @@ public:
                     ImGui::InputText("Profile name", inputName,
                                      IM_ARRAYSIZE(inputName));
                     ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
+                    ImGui::Spacing();
+                    ImGui::Spacing();
+
+                    static int item = 1;
+                    static float color[4] = { 0.4f, 0.7f, 0.0f, 0.5f };
+                    ImGui::Combo("Ethernet Adapter", &item, "lan\0eth0\0eth1\0eth2\0\0");
+
+                    ImGui::Spacing();
+                    ImGui::Spacing();
 
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
                     ImGui::SameLine();

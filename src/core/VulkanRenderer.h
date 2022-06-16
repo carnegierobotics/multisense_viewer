@@ -86,6 +86,7 @@ public:
         bool left = false;
         bool right = false;
         bool middle = false;
+        float wheel = 0.0f;
     } mouseButtons;
 
     /** @brief Handle for UI updates and overlay */
@@ -202,6 +203,7 @@ private:
     static void cursorPositionCallback(GLFWwindow *window, double xPos, double yPos);
     static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
     static void charCallback(GLFWwindow *window, unsigned int codepoint);
+    static void mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
 
     void createCommandPool();
     void createCommandBuffers();

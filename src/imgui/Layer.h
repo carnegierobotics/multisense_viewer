@@ -44,7 +44,8 @@ typedef enum {
     ArActiveState,
     ArInActiveState,
     ArDisconnectedState,
-    ArUnavailableState
+    ArUnavailableState,
+    ArJustAddedState
 } ArConnectionState;
 
 /** @brief  */

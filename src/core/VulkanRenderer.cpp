@@ -20,6 +20,7 @@ VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) 
     glfwSetWindowSizeCallback(window, VulkanRenderer::resizeCallback);
     glfwSetMouseButtonCallback(window, VulkanRenderer::mouseButtonCallback);
     glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
+    glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
     glfwSetCharCallback(window, VulkanRenderer::charCallback);
 
 }
@@ -499,10 +500,15 @@ void VulkanRenderer::renderLoop() {
         io.DeltaTime = frameTimer;
         io.MousePos = ImVec2(mousePos.x, mousePos.y);
 
+
+        io.MouseWheel = mouseButtons.wheel;
+
         io.MouseDown[0] = mouseButtons.left;
         io.MouseDown[1] = mouseButtons.right;
 
         render();
+
+        mouseButtons.wheel = 0.0f; // Reset mousewheel after we rendered frames with imgui.
 
         auto tEnd = std::chrono::high_resolution_clock::now();
 
@@ -759,6 +765,13 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
                 myApp->mouseButtons.left = false;
         }
     }
+}
+void VulkanRenderer::mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    ImGuiIO& io = ImGui::GetIO();
+
+    double scrollSpeed = 0.80f;
+    myApp->mouseButtons.wheel += (float) (yoffset * scrollSpeed);
 }
 
 VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) {

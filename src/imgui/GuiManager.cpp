@@ -43,6 +43,7 @@ void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width,
 
     }
     ImGui::Render();
+    ImGui::EndFrame();
 
 
 }

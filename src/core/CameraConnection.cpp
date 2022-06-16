@@ -41,11 +41,12 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
 
     // Check for actions on each element
     for (auto &dev: *devices) {
-        if (dev.clicked && dev.state != ArActiveState) {
+        // Connect if we click a device or if it is just added
+        if ((dev.clicked && dev.state != ArActiveState) || dev.state == ArJustAddedState) {
             connectCrlCamera(dev);
         }
 
-        updateDeviceState(&dev);
+        //updateDeviceState(&dev);
 
         if (dev.state != ArActiveState)
             continue;
@@ -69,7 +70,8 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.state = ArActiveState;
             //dev.cameraName = "Virtual Camera";
             dev.IP = "Local";
-        }
+        } else
+            dev.state = ArUnavailableState;
 
     } else {
         camPtr = new CRLPhysicalCamera();
@@ -87,10 +89,12 @@ void CameraConnection::connectCrlCamera(Element &dev) {
                 dev.modes.emplace_back(streamingModes);
             }
         }
+        else
+            dev.state = ArUnavailableState;
     }
+
+
     lastActiveDevice = dev.name;
-
-
 
 }
 
@@ -98,8 +102,12 @@ void CameraConnection::updateDeviceState(Element* dev) {
 
     dev->state = ArUnavailableState;
 
-    if (dev->name == lastActiveDevice)
+    // IF our clicked device is the one we already clicked
+    if (dev->name == lastActiveDevice){
         dev->state = ArActiveState;
+
+    }
+
 
 }
 

@@ -179,7 +179,7 @@ private:
 
         el.name = name;
         el.IP = ip;
-        el.state = ArConnectingState;
+        el.state = ArJustAddedState;
         el.cameraName = cameraName;
         el.clicked = true;
 
@@ -194,7 +194,7 @@ private:
 
         el.name = name;
         el.IP = ip;
-        el.state = ArConnectingState;
+        el.state = ArJustAddedState;
         el.cameraName = "Unknown";
         el.clicked = true;
 
@@ -233,6 +233,11 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     buttonIdentifier = "Unavailable";
+                    break;
+                case ArJustAddedState:
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    buttonIdentifier = "Added...";
                     break;
             }
 

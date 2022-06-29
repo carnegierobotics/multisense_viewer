@@ -13,6 +13,10 @@ public:
     explicit CRLVirtualCamera() : CRLBaseInterface() {
     }
 
+    ~CRLVirtualCamera() override {
+        // TODO FREE RESOURCES AS THIS CLASS IS REUSED
+    }
+
     std::string description;
     std::string data;
     int point = 0;

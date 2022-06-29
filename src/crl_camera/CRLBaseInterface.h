@@ -10,6 +10,11 @@
 class CRLBaseInterface {
 
 public:
+
+    virtual ~CRLBaseInterface() {
+        printf("BaseInterface destructor\n");
+    };
+
     struct CameraInfo {
         crl::multisense::system::DeviceInfo devInfo;
         crl::multisense::image::Config imgConf;

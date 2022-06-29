@@ -21,8 +21,8 @@ CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType typ
 }
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
-void CRLCameraModels::Model::createMesh(Basil::Vertex *_vertices, uint32_t vertexCount) {
-    size_t vertexBufferSize = vertexCount * sizeof(Basil::Vertex);
+void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount) {
+    size_t vertexBufferSize = vertexCount * sizeof(ArEngine::Vertex);
 
     mesh.vertexCount = vertexCount;
     if (mesh.vertices.buffer == nullptr) {
@@ -44,12 +44,12 @@ void CRLCameraModels::Model::createMesh(Basil::Vertex *_vertices, uint32_t verte
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 
 void
-CRLCameraModels::Model::createMeshDeviceLocal(Basil::Vertex*_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex*_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                               uint32_t
                                               indexCount) {
 
 
-    size_t vertexBufferSize = vertexCount * sizeof(Basil::Vertex);
+    size_t vertexBufferSize = vertexCount * sizeof(ArEngine::Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
     mesh.vertexCount = vertexCount;
     mesh.indexCount = indexCount;
@@ -235,7 +235,8 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
             break;
-        case CrlNone:
+        case CrlColorImage:
+
             break;
         case CrlPointCloud:
             break;
@@ -501,7 +502,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
 
-    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(Basil::Vertex),
+    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(ArEngine::Vertex),
                                                           VK_VERTEX_INPUT_RATE_VERTEX};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
             {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},

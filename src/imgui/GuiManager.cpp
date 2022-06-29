@@ -15,8 +15,6 @@ GuiManager::GuiManager(VulkanDevice *vulkanDevice) {
     ImGui::CreateContext();
 
     handles.info = new GuiLayerUpdateInfo();
-    handles.devices = nullptr;
-
     handles.info->deviceName = device->properties.deviceName;
     handles.info->title = "GuiManager";
     io = &ImGui::GetIO();
@@ -35,12 +33,10 @@ void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width,
     ImGui::NewFrame();
 
     {
-
         for (auto &layer: m_LayerStack) {
             layer->OnUIRender(&handles);
 
         }
-
     }
     ImGui::Render();
     ImGui::EndFrame();

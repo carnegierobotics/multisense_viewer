@@ -28,6 +28,7 @@
 #include <MultiSense/src/scripts/video/DefaultPreview.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 #include <MultiSense/src/scripts/video/PreviewBar.h>
+#include <MultiSense/src/scripts/video/DecodeVideo.h>
 
 
 class Renderer : VulkanRenderer {
@@ -59,7 +60,7 @@ public:
 private:
 
     std::vector<std::unique_ptr<Base>> scripts;
-    CameraConnection *cameraConnection;
+    CameraConnection *cameraConnection{};
 
 
 protected:

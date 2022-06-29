@@ -58,7 +58,7 @@ void DefaultPreview::update(CameraConnection* conn) {
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
         // Create quad and store it locally on the GPU
-        model->createMeshDeviceLocal((Basil::Vertex *) imgData->quad.vertices,
+        model->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
                                      imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
 
         // Create graphics render pipeline

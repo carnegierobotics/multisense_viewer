@@ -125,6 +125,7 @@ void Renderer::generateScriptClasses() {
     classNames.emplace_back("PreviewBar");
     classNames.emplace_back("DefaultPreview");
     classNames.emplace_back("PointCloud");
+    classNames.emplace_back("DecodeVideo");
 
     // Also add class names to listbox
     //UIOverlay->uiSettings->listBoxNames = classNames;

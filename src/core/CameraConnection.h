@@ -31,13 +31,15 @@ public:
 
 private:
 
-    //CRLPhysicalCamera *prevCam; // Quick and dirty way of remebering old devices
+    Element* currentActiveDevice = nullptr; // handle to current device
 
     void updateActiveDevice(Element element);
 
     void connectCrlCamera(Element &element);
 
     void updateDeviceState(Element *element);
+
+    void disableCrlCamera(Element &element);
 };
 
 

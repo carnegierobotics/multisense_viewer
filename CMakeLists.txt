@@ -99,6 +99,8 @@ set(ENGINE_SRC
         src/scripts/video/DefaultPreview.h
         src/scripts/video/PreviewBar.cpp
         src/scripts/video/PreviewBar.h
+        src/scripts/video/DecodeVideo.cpp
+        src/scripts/video/DecodeVideo.h
         src/tools/Macros.h
         src/tools/Populate.h
         src/tools/Utils.h
@@ -140,7 +142,7 @@ else () ## Linux
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_executable(MultiSense-viewer main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer)
+    target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil)
 
 endif ()
 

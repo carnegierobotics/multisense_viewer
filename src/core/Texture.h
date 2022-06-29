@@ -124,6 +124,8 @@ public:
 
     void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
                                     uint32_t lumaBufferSize);
+
+    void updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize);
 };
 
 #endif //MULTISENSE_TEXTURE_H

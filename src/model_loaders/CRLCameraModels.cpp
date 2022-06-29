@@ -44,7 +44,7 @@ void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t ve
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 
 void
-CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex*_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                               uint32_t
                                               indexCount) {
 
@@ -128,17 +128,17 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex*_vertices, uint32
 
 
 void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header *streamOne) {
-    if (streamOne == nullptr){
+    if (streamOne == nullptr) {
         uint32_t size = 1920 * 1080 * 2;
-        auto* p = malloc(size);
+        auto *p = malloc(size);
         memset(p, 0xff, size);
         textureVideo.updateTextureFromBuffer(static_cast<void *>(p), size);
         free(p);
         return;
     }
 
-    if (streamOne->imageDataP == nullptr || streamOne->source < 1){
-    return;
+    if (streamOne->imageDataP == nullptr || streamOne->source < 1) {
+        return;
 
     }
 
@@ -190,6 +190,20 @@ void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *str
 
     free(chromaBuffer);
     free(lumaBuffer);
+
+}
+
+void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize) {
+    auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
+    if (videoFrame->coded_picture_number > 593)
+        return;
+    uint32_t size = videoFrame->width * videoFrame->height;
+    memcpy(yuv420pBuffer, videoFrame->data[0], size);
+    memcpy(yuv420pBuffer + (videoFrame->width * videoFrame->height), videoFrame->data[1], (videoFrame->width * videoFrame->height) / 2);
+
+    textureVideo.updateTextureFromBufferYUV(yuv420pBuffer, bufferSize);
+
+    delete yuv420pBuffer;
 
 }
 
@@ -416,7 +430,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
-                    {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 
             };
@@ -547,9 +561,9 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
 
 void CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
-                                      std::vector<VkPipelineShaderStageCreateInfo> vector,
-                                      Model *model,
-                                      ScriptType type) {
+                                           std::vector<VkPipelineShaderStageCreateInfo> vector,
+                                           Model *model,
+                                           ScriptType type) {
     this->vulkanDevice = utils.device;
 
     createDescriptorSetLayout(model);

@@ -81,7 +81,7 @@ struct Element {
     bool colorImage = false;
 
     /** @brief Show a default preview with some selected streams*/
-    bool btnShowPreviewBar = false;
+    bool button = false;
 };
 
 /** @brief Handle which is the communication from GUI to Scripts */

@@ -9,6 +9,9 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include<bits/stdc++.h>
+#include<pthread.h>
+#include<semaphore.h>
 
 extern "C" {
 #include<libavutil/avutil.h>
@@ -37,10 +40,7 @@ public:
     void setup() override;
 
     /** @brief update function called once per frame **/
-    void update() override {};
-
-    /** @brief update function called once per frame **/
-    void update(CameraConnection *conn) override;
+    void update() override;
 
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
@@ -50,12 +50,30 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = ArDefault;
-    CRLCameraModels::Model *model;
+    CRLCameraModels::Model *model{};
+
+    int width = 0, height = 0;
+    AVFrame videoFrame[5];
+    int bufferSize = 0;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    int decode();
+    static void* decode(void* arg);
     void saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame);
+
+    void prepareTextureAfterDecode();
+
+    int childProcessDecode();
+
+
+// Declaration
+    int r1, items = 0;
+
+// Semaphore declaration
+    sem_t notEmpty, notFull;
+
+
+    bool drawFrame;
 };
 
 

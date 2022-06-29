@@ -1352,6 +1352,7 @@ void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
 }
 
+// TODO Mayde Reuse updateTextureFromBufferYUV with different signature. Its maybe weird to split the channels Y+UV leading to double memcpy operations --> for the future.
 void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
                                               uint32_t lumaBufferSize) {
 
@@ -1461,6 +1462,101 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chrom
 
     vkFreeMemory(device->logicalDevice, lumaStagingMemory, nullptr);
     vkDestroyBuffer(device->logicalDevice, lumaStagingBuffer, nullptr);
+
+}
+
+void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize) {
+
+
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory;
+
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            bufferSize,
+            &stagingBuffer,
+            &stagingMemory, buffer));
+
+
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = mipLevels;
+    subresourceRange.layerCount = 1;
+
+    VkBufferImageCopy bufferCopyRegion = {};
+    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT;
+    bufferCopyRegion.imageSubresource.mipLevel = 0;
+    bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegion.imageSubresource.layerCount = 1;
+    bufferCopyRegion.imageExtent.width = width;
+    bufferCopyRegion.imageExtent.height = height;
+    bufferCopyRegion.imageExtent.depth = 1;
+    bufferCopyRegion.bufferOffset = 0;
+
+    VkBufferImageCopy bufferCopyRegionChroma = {};
+    bufferCopyRegionChroma.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
+    bufferCopyRegionChroma.imageSubresource.mipLevel = 0;
+    bufferCopyRegionChroma.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegionChroma.imageSubresource.layerCount = 1;
+    bufferCopyRegionChroma.imageExtent.width = width / 2;
+    bufferCopyRegionChroma.imageExtent.height = height / 2;
+    bufferCopyRegionChroma.imageExtent.depth = 1;
+    bufferCopyRegionChroma.bufferOffset = width * height;
+
+
+    // Use a separate command buffer for texture loading
+    VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+    // Image barrier for optimal image (target)
+    // Optimal image will be used as destination for the copy
+    Utils::setImageLayout(
+            copyCmd,
+            image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            subresourceRange,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Copy data from staging buffer
+    vkCmdCopyBufferToImage(
+            copyCmd,
+            stagingBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegion
+    );
+
+    // Copy data from staging buffer
+    vkCmdCopyBufferToImage(
+            copyCmd,
+            stagingBuffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegionChroma
+    );
+
+    // Change texture image layout to shader read after all mip levels have been copied
+    this->imageLayout = imageLayout;
+    Utils::setImageLayout(
+            copyCmd,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            subresourceRange,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    device->flushCommandBuffer(copyCmd, device->transferQueue);
+
+
+    vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+    vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
 }
 

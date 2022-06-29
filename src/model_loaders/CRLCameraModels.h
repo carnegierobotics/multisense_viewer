@@ -18,6 +18,11 @@
 #include "MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/core/Definitions.h>
 
+extern "C" {
+#include <libavutil/frame.h>
+#include <libavcodec/avcodec.h>
+}
+
 class CRLCameraModels {
 
 public:
@@ -71,7 +76,7 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(ArEngine::Vertex*_vertices, uint32_t vertexCount);
+        void createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount);
 
         void loadTextureSamplers();
 
@@ -81,14 +86,17 @@ public:
         Model(VulkanDevice *_vulkanDevice);
 
         void
-        createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+        createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices,
+                              uint32_t indexCount);
 
         void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setColorTexture(crl::multisense::image::Header* streamOne = nullptr,
-                             crl::multisense::image::Header* streamTwo = nullptr);
+        void setColorTexture(crl::multisense::image::Header *streamOne = nullptr,
+                             crl::multisense::image::Header *streamTwo = nullptr);
 
         void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
+
+        void setColorTexture(AVFrame *videoFrame, int bufferSize);
     };
 
     /**@brief Primitive for a surface */
@@ -110,7 +118,7 @@ public:
             quad.vertices = calloc(vertexCount, sizeof(ArEngine::Vertex));
             quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
 
-            auto *vP = (ArEngine::Vertex*) quad.vertices;
+            auto *vP = (ArEngine::Vertex *) quad.vertices;
             auto *iP = (uint32_t *) quad.indices;
 
             ArEngine::Vertex vertex[4];

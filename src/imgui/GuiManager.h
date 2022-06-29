@@ -27,7 +27,7 @@
     class GuiManager {
     public:
 
-        GuiObjectHandles handles;
+        GuiObjectHandles handles{};
 
         explicit GuiManager(VulkanDevice *vulkanDevice);
         ~GuiManager() = default;
@@ -63,7 +63,7 @@
         std::array<float, 50> frameTimes{};
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
 
-        Texture2D fontTexture;
+        Texture2D fontTexture{};
 
         // Vulkan resources for rendering the UI
         VkSampler sampler{};

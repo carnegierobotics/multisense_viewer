@@ -8,14 +8,18 @@
 #include <iostream>
 
 
-bool CRLPhysicalCamera::connect(const std::string& ip) {
+bool CRLPhysicalCamera::connect(const std::string &ip) {
     if (cameraInterface == nullptr) {
         cameraInterface = crl::multisense::Channel::Create(ip);
         if (cameraInterface != nullptr) {
             updateCameraInfo();
             addCallbacks();
 
-            cameraInterface->setMtu(7200); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
+            /*bool status = cameraInterface->setMtu(7200); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
+            if (status != crl::multisense::Status_Ok){
+                std::cerr << "Failed to set MTU 7200\n";
+            }
+            */
             online = true;
             return true;
         }
@@ -87,16 +91,20 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
 
     // Check if the stream has been enabled before we attempt to stop it
-    if (std::find(enabledSources.begin(), enabledSources.end(),
-                  src) == enabledSources.end()) {
-        return;
+
+    if (dataSourceStr != "All") {
+        if (std::find(enabledSources.begin(), enabledSources.end(),
+                      src) == enabledSources.end()) {
+            return;
+        }
+
+        std::vector<uint32_t>::iterator it;
+        it = std::remove(enabledSources.begin(), enabledSources.end(),
+                         src);
+        enabledSources.erase(it);
+    } else {
+        enabledSources.clear();
     }
-
-    std::vector<uint32_t>::iterator it;
-    it = std::remove(enabledSources.begin(), enabledSources.end(),
-                          src);
-    enabledSources.erase(it);
-
     /*
     std::vector<uint32_t>::iterator it;
     // Search and stop additional sources
@@ -107,7 +115,6 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     */
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
-
 
 
     modeChange = true;
@@ -246,6 +253,7 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
     if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
+    if (d == "All") return crl::multisense::Source_All;
     throw std::runtime_error(std::string{} + "Unknown Datasource: " + d);
 }
 
@@ -323,8 +331,6 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
 
 void CRLPhysicalCamera::addCallbacks() {
-
-
     for (auto e: cameraInfo.supportedDeviceModes)
         cameraInfo.supportedSources |= e.supportedDataSources;
 
@@ -348,7 +354,12 @@ void CRLPhysicalCamera::addCallbacks() {
     cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
 
     // finally, add our callback
-    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+    /*    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+        crl::multisense::Status_Ok) {
+        std::cerr << "Adding callback failed!\n";
+    }*/
+
+    if (cameraInterface->addIsolatedCallback(imageCallback, crl::multisense::Source_All, this) !=
         crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
     }

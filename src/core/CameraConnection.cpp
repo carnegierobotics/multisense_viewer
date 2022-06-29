@@ -44,15 +44,21 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         // Connect if we click a device or if it is just added
         if ((dev.clicked && dev.state != ArActiveState) || dev.state == ArJustAddedState) {
             connectCrlCamera(dev);
+            continue;
         }
 
-        //updateDeviceState(&dev);
-
+        updateDeviceState(&dev);
         if (dev.state != ArActiveState)
             continue;
 
+
         updateActiveDevice(dev);
 
+        // Disable if we click a device already connected
+        if (dev.clicked && dev.state == ArActiveState){
+            disableCrlCamera(dev);
+            continue;
+        }
     }
 
 
@@ -68,7 +74,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         connected = camPtr->connect("None");
         if (connected) {
             dev.state = ArActiveState;
-            //dev.cameraName = "Virtual Camera";
+            dev.cameraName = "Virtual Camera";
             dev.IP = "Local";
         } else
             dev.state = ArUnavailableState;
@@ -79,6 +85,9 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         if (connected) {
             dev.state = ArActiveState;
             dev.cameraName = camPtr->getCameraInfo().devInfo.name;
+
+            dev.modes.clear(); // Clear possible modes. Modes can maybe be dynamic between connections. If the camera's FW was updated in-between?
+
             for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
                 auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
                 std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
@@ -93,7 +102,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.state = ArUnavailableState;
     }
 
-
+    currentActiveDevice = &dev;
     lastActiveDevice = dev.name;
 
 }
@@ -105,9 +114,23 @@ void CameraConnection::updateDeviceState(Element* dev) {
     // IF our clicked device is the one we already clicked
     if (dev->name == lastActiveDevice){
         dev->state = ArActiveState;
-
     }
 
+
+}
+
+void CameraConnection::disableCrlCamera(Element &dev) {
+    dev.state = ArDisconnectedState;
+    lastActiveDevice = "";
+
+    dev.colorImage = false;
+    dev.colorImage = false;
+    dev.depthImage = false;
+    dev.pointCloud = false;
+
+    // Free camPtr memory and point it to null for a reset.
+    delete camPtr;
+    camPtr = nullptr;
 
 }
 

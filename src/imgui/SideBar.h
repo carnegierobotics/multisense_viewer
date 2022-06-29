@@ -228,6 +228,9 @@ private:
                     buttonIdentifier = "Inactive";
                     break;
                 case ArDisconnectedState:
+                    buttonIdentifier = "Disconnected";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
                     break;
                 case ArUnavailableState:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));

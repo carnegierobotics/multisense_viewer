@@ -41,7 +41,7 @@ struct PointCloudParam {
     float height;
 };
 
-struct PointCloudShader{
+struct PointCloudShader {
     glm::vec4 pos[NUM_POINTS];
     glm::vec4 col[NUM_POINTS];
 };
@@ -77,7 +77,7 @@ public:
         Camera *camera;
         float deltaT;
         float runTime;
-        CameraConnection* crlCamera;
+        CameraConnection *crlCamera;
         ScriptType type;
     } renderData{};
 
@@ -87,7 +87,9 @@ public:
     /**@brief Pure virtual function called once every frame*/
     virtual void update() = 0;
 
-    /**@brief Optional virtual function usefully for camera scripts*/
+    /**@brief Optional virtual function usefully for camera scripts
+     * Called if the script type is: ArCameraScript and
+     * the cameraHandle has been initialized by the CameraConnection Class */
     virtual void update(CameraConnection *cameraHandle) {};
 
     /**@brief Pure virtual function called only once when VK is ready to render*/
@@ -107,7 +109,7 @@ public:
 
         if (d.type == ArDefault)
             update();
-        else if(d.type == ArCameraScript && d.crlCamera->camPtr != nullptr)
+        else if (d.type == ArCameraScript && d.crlCamera->camPtr != nullptr)
             update(d.crlCamera);
 
         // If initialized
@@ -140,28 +142,28 @@ public:
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
-            bufferOneData = new UBOMatrix();
-            bufferTwoData = new FragShaderParams();
-            bufferThreeData = new PointCloudParam();
+        bufferOneData = new UBOMatrix();
+        bufferTwoData = new FragShaderParams();
+        bufferThreeData = new PointCloudParam();
 
-            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+        for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
-                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferOne, sizeof(UBOMatrix));
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                             &uniformBuffer.bufferOne, sizeof(UBOMatrix));
 
-                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferTwo, sizeof(FragShaderParams));
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                             &uniformBuffer.bufferTwo, sizeof(FragShaderParams));
 
-                renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                 &uniformBuffer.bufferThree, sizeof(PointCloudParam));
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                             &uniformBuffer.bufferThree, sizeof(PointCloudParam));
 
-            }
+        }
 
 
         setup();

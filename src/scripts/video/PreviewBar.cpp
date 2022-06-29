@@ -87,7 +87,7 @@ void PreviewBar::createRenderResource(CRLPhysicalCamera *pCamera) {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
-    left->createMeshDeviceLocal((Basil::Vertex *) imgData->quad.vertices,
+    left->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
                                 imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
 
     // Create graphics render pipeline

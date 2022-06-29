@@ -5,13 +5,12 @@
 #include "CRLVirtualCamera.h"
 
 bool CRLVirtualCamera::connect(const std::string& ip) {
-    //CRLBaseCamera::connect(VIRTUAL_CAMERA);
+
     online = true;
     return true;
 }
 
 void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
-
 
 }
 
@@ -20,7 +19,7 @@ void CRLVirtualCamera::stop(std::string dataSourceStr) {
 }
 
 void CRLVirtualCamera::updateCameraInfo() {
-    // Just populating it with some hardcoded data :)
+    // Just populating it with some hardcoded data
     // - DevInfo
 
     cameraInfo.devInfo.name = "CRL Virtual Camera";

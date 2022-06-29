@@ -87,7 +87,7 @@ struct Element {
 /** @brief Handle which is the communication from GUI to Scripts */
 struct GuiObjectHandles {
     /** @brief Handle for current devices located in sidebar */
-    std::vector<Element> *devices{};
+    std::vector<Element> *devices = new std::vector<Element>();
     /** @brief Static info used in creation of gui */
     GuiLayerUpdateInfo *info{};
 

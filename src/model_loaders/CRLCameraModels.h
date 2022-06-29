@@ -30,7 +30,7 @@ public:
         bool draw = true;
         CRLCameraDataType modelType;
 
-        Basil::VideoTexture videos;
+        ArEngine::VideoTexture videos;
 
         struct Mesh {
             VulkanDevice *device;
@@ -71,7 +71,7 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(Basil::Vertex*_vertices, uint32_t vertexCount);
+        void createMesh(ArEngine::Vertex*_vertices, uint32_t vertexCount);
 
         void loadTextureSamplers();
 
@@ -81,7 +81,7 @@ public:
         Model(VulkanDevice *_vulkanDevice);
 
         void
-        createMeshDeviceLocal(Basil::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
+        createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
 
         void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
@@ -107,13 +107,13 @@ public:
             quad.vertexCount = vertexCount;
             quad.indexCount = indexCount;
             // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(Basil::Vertex));
+            quad.vertices = calloc(vertexCount, sizeof(ArEngine::Vertex));
             quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
 
-            auto *vP = (Basil::Vertex*) quad.vertices;
+            auto *vP = (ArEngine::Vertex*) quad.vertices;
             auto *iP = (uint32_t *) quad.indices;
 
-            Basil::Vertex vertex[4];
+            ArEngine::Vertex vertex[4];
             vertex[0].pos = glm::vec3(0.0f, 0.0f, 0.0f);
             vertex[1].pos = glm::vec3(1.0f * widthScale, 0.0f, 0.0f);
             vertex[2].pos = glm::vec3(0.0f, 0.0f, 1.0f * heightScale);

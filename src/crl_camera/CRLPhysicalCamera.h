@@ -21,6 +21,14 @@ public:
     CRLPhysicalCamera() : CRLBaseInterface() {
 
     }
+
+    ~CRLPhysicalCamera() override {
+        // TODO FREE RESOURCES AS THIS CLASS IS REUSED
+        stop("All");
+        printf("BaseInterface destructor\n");
+
+    }
+
     void update();
 
 

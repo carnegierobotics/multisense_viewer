@@ -7,7 +7,7 @@
 
 #include "glm/glm.hpp"
 
-namespace Basil{
+namespace ArEngine{
     struct VideoTexture {
         std::vector<unsigned char*> pixels{};
         uint64_t imageSize{};
@@ -39,6 +39,7 @@ typedef enum CRLCameraDataType {
     CrlPointCloud,
     CrlGrayscaleImage,
     CrlColorImageYUV420,
+    CrlColorImage,
     CrlNone, CrlDisparityImage, CrlImage
 } CRLCameraDataType;
 

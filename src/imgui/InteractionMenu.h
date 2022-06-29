@@ -91,7 +91,7 @@ public:
 
         ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 10.0f));
 
-        d->btnShowPreviewBar = ImGui::Button("Preview Bar", ImVec2(175.0f, 20.0f));
+        d->button = ImGui::Button("Preview Bar", ImVec2(175.0f, 20.0f));
 
 
     }

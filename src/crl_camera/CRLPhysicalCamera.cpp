@@ -15,11 +15,13 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
             updateCameraInfo();
             addCallbacks();
 
-            /*bool status = cameraInterface->setMtu(7200); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
+            /*
+            crl::multisense::system::NetworkConfig config;
+            bool status = cameraInterface->getNetworkConfig(config); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
             if (status != crl::multisense::Status_Ok){
                 std::cerr << "Failed to set MTU 7200\n";
             }
-            */
+             */
             online = true;
             return true;
         }
@@ -305,6 +307,7 @@ void CRLPhysicalCamera::updateCameraInfo() {
     cameraInterface->getDeviceModes(cameraInfo.supportedDeviceModes);
     cameraInterface->getImageCalibration(cameraInfo.camCal);
     cameraInterface->getEnabledStreams(cameraInfo.supportedSources);
+    cameraInterface->getMtu(cameraInfo.sensorMTU);
 
 }
 

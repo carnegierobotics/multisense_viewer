@@ -21,68 +21,75 @@
 #include "imgui_internal.h"
 
 
+class GuiManager {
+public:
+
+    GuiObjectHandles handles{};
+
+    explicit GuiManager(VulkanDevice *vulkanDevice);
+
+    ~GuiManager() = default;
 
 
+    void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height);
 
-    class GuiManager {
-    public:
+    void setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue,
+               std::vector<VkPipelineShaderStageCreateInfo> *shaders);
 
-        GuiObjectHandles handles{};
+    void drawFrame(VkCommandBuffer commandBuffer);
 
-        explicit GuiManager(VulkanDevice *vulkanDevice);
-        ~GuiManager() = default;
+    bool updateBuffers();
 
+    void setMenubarCallback(const std::function<void()> &menubarCallback) { m_MenubarCallback = menubarCallback; }
 
-        void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height);
+    template<typename T>
+    void pushLayer() {
+        static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
+        m_LayerStack.emplace_back(std::make_shared<T>())->OnAttach();
+    }
 
-        void setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue, std::vector<VkPipelineShaderStageCreateInfo> *shaders);
-
-        void drawFrame(VkCommandBuffer commandBuffer);
-        bool updateBuffers();
-        void setMenubarCallback(const std::function<void()> &menubarCallback) { m_MenubarCallback = menubarCallback; }
-
-        template<typename T>
-        void pushLayer() {
-            static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
-            m_LayerStack.emplace_back(std::make_shared<T>())->OnAttach();
-        }
-
-    private:
-        // UI params are set via push constants
-        struct PushConstBlock {
-            glm::vec2 scale;
-            glm::vec2 translate;
-        } pushConstBlock{};
+private:
+    // UI params are set via push constants
+    struct PushConstBlock {
+        glm::vec2 scale;
+        glm::vec2 translate;
+    } pushConstBlock{};
 
 
-        std::vector<std::shared_ptr<Layer>> m_LayerStack;
-        std::function<void()> m_MenubarCallback;
+    std::vector<std::shared_ptr<Layer>> m_LayerStack;
+    std::function<void()> m_MenubarCallback;
 
-        ImGuiIO *io{};
-        ImVec4 clearColor;
-        std::array<float, 50> frameTimes{};
-        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+    ImGuiIO *io{};
+    ImVec4 clearColor;
+    std::array<float, 50> frameTimes{};
+    float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
 
-        Texture2D fontTexture{};
+    Texture2D fontTexture{};
+    Texture2D iconTexture{};
 
-        // Vulkan resources for rendering the UI
-        VkSampler sampler{};
-        Buffer vertexBuffer;
-        Buffer indexBuffer;
-        int32_t vertexCount = 0;
-        int32_t indexCount = 0;
-        VkPipelineCache pipelineCache{};
-        VkPipelineLayout pipelineLayout{};
-        VkPipeline pipeline{};
-        VkDescriptorPool descriptorPool{};
-        VkDescriptorSetLayout descriptorSetLayout{};
-        VkDescriptorSet descriptorSet{};
+    // Vulkan resources for rendering the UI
+    VkSampler sampler{};
+    Buffer vertexBuffer;
+    Buffer indexBuffer;
+    int32_t vertexCount = 0;
+    int32_t indexCount = 0;
+    VkPipelineCache pipelineCache{};
+    VkPipelineLayout pipelineLayout{};
+    VkPipeline pipeline{};
+    VkDescriptorPool descriptorPool{};
+    VkDescriptorSetLayout descriptorSetLayout{};
+    VkDescriptorSet fontDescriptor{};
+    VkDescriptorSet imageIconDescriptor{};
 
-        VulkanDevice *device;
+    VulkanDevice *device;
 
-        void initializeFonts();
-        ImFont *AddDefaultFont(float pixel_size);
-        ImFont * loadFontFromFileName(std::string file, float fontSize);
-    };
+    void initializeFonts();
 
+    ImFont *AddDefaultFont(float pixel_size);
+
+    ImFont *loadFontFromFileName(std::string file, float fontSize);
+
+    void loadImGuiTextureFromFileName(std::string file);
+
+};
 #endif //MULTISENSE_GUIMANAGER_H

@@ -8,6 +8,7 @@
 
 #include <MultiSense/src/tools/Macros.h>
 #include "GuiManager.h"
+#include "stb_image.h"
 
 
 GuiManager::GuiManager(VulkanDevice *vulkanDevice) {
@@ -109,8 +110,6 @@ bool GuiManager::updateBuffers() {
 
 void GuiManager::drawFrame(VkCommandBuffer commandBuffer) {
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0,
-                            nullptr);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     //VkViewport viewport = Populate
@@ -138,8 +137,14 @@ void GuiManager::drawFrame(VkCommandBuffer commandBuffer) {
 
         for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
             const ImDrawList *cmd_list = imDrawData->CmdLists[i];
+
+
             for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                 const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
+
+                auto texture = (VkDescriptorSet)pcmd->TextureId;
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &texture, 0,nullptr);
+
                 VkRect2D scissorRect;
                 scissorRect.offset.x = std::max((int32_t) (pcmd->ClipRect.x), 0);
                 scissorRect.offset.y = std::max((int32_t) (pcmd->ClipRect.y), 0);
@@ -438,8 +443,93 @@ void GuiManager::initializeFonts() {
     handles.info->font13 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 13);
     handles.info->font18 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 18);
     handles.info->font24 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 24);
+    io->Fonts->SetTexID(reinterpret_cast<void *>(fontDescriptor));
 
+
+    loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png");
+    handles.info->imageButtonTextureDescriptor[0] = reinterpret_cast<void *>(imageIconDescriptor);
+
+    loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_information.png");
+    handles.info->imageButtonTextureDescriptor[1] = reinterpret_cast<void *>(imageIconDescriptor);
+
+    loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png");
+    handles.info->imageButtonTextureDescriptor[2] = reinterpret_cast<void *>(imageIconDescriptor);
 }
+
+void GuiManager::loadImGuiTextureFromFileName(std::string file) {
+
+
+    {
+        int texWidth, texHeight, texChannels;
+        stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        iconTexture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device,
+                               device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+    }
+
+    // Descriptor Layout
+
+    {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+        setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+
+
+        VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                setLayoutBindings.data(),
+                setLayoutBindings.size());
+        CHECK_RESULT(
+                vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                                            &descriptorSetLayout));
+    }
+
+    // Descriptor Pool
+    {
+        uint32_t imageDescriptorSamplerCount = (3 * 5);
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
+        CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+
+
+    }
+
+    // descriptors
+    {
+        // Create Descriptor Set:
+        {
+            VkDescriptorSetAllocateInfo alloc_info = {};
+            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            alloc_info.descriptorPool = descriptorPool;
+            alloc_info.descriptorSetCount = 1;
+            alloc_info.pSetLayouts = &descriptorSetLayout;
+            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptor));
+        }
+
+        // Update the Descriptor Set:
+        {
+
+            VkWriteDescriptorSet write_desc[1] = {};
+            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_desc[0].dstSet = imageIconDescriptor;
+            write_desc[0].descriptorCount = 1;
+            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write_desc[0].pImageInfo = &iconTexture.descriptor;
+            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+        }
+    }
+}
+
 
 ImFont *GuiManager::loadFontFromFileName(std::string file, float fontSize) {
     ImFont *font;
@@ -501,7 +591,7 @@ ImFont *GuiManager::loadFontFromFileName(std::string file, float fontSize) {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &descriptorSet));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &fontDescriptor));
         }
 
         // Update the Descriptor Set:
@@ -509,13 +599,14 @@ ImFont *GuiManager::loadFontFromFileName(std::string file, float fontSize) {
 
             VkWriteDescriptorSet write_desc[1] = {};
             write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = descriptorSet;
+            write_desc[0].dstSet = fontDescriptor;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_desc[0].pImageInfo = &fontTexture.descriptor;
             vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
         }
     }
+
 
     return font;
 }

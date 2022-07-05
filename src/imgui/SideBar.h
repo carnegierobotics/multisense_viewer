@@ -97,8 +97,15 @@ public:
                         ImGui::EndCombo();
                     }
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
+                    bool btnCancel = ImGui::Button("cancel", ImVec2(175.0f, 30.0f));
+
+                    if(btnCancel){
+                        ImGui::CloseCurrentPopup();
+
+                    }
 
                     if (btnConnect) {
+                        // Loop through devices and check that it doesn't exist already.
                         for (auto &d: devices) {
                             if (d.IP == inputIP && strcmp(items[item_current_idx], "Virtual Camera") != 0)
                                 deviceAlreadyExist = true;

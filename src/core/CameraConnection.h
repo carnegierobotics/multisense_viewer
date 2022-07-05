@@ -10,6 +10,7 @@
 
 /**
  * Class handles the bridge between the GUI interaction and actual communication to camera
+ * Also handles all configuration with local network adapter
  */
 class CameraConnection
 {
@@ -30,6 +31,7 @@ public:
     void onUIUpdate(std::vector<Element> *pVector);
 
 private:
+    int sd = 0;
 
     Element* currentActiveDevice = nullptr; // handle to current device
 
@@ -40,6 +42,8 @@ private:
     void updateDeviceState(Element *element);
 
     void disableCrlCamera(Element &element);
+
+    void setNetworkAdapterParameters(Element &dev);
 };
 
 

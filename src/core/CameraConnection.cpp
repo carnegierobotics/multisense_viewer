@@ -3,6 +3,12 @@
 //
 
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
+#include <linux/sockios.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <linux/if_ether.h>
 #include "CameraConnection.h"
 
 CameraConnection::CameraConnection() {
@@ -55,7 +61,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         updateActiveDevice(dev);
 
         // Disable if we click a device already connected
-        if (dev.clicked && dev.state == ArActiveState){
+        if (dev.clicked && dev.state == ArActiveState) {
             disableCrlCamera(dev);
             continue;
         }
@@ -80,6 +86,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.state = ArUnavailableState;
 
     } else {
+        setNetworkAdapterParameters(dev);
         camPtr = new CRLPhysicalCamera();
         connected = camPtr->connect(dev.IP);
         if (connected) {
@@ -97,8 +104,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
                 streamingModes.modeName = modeName;
                 dev.modes.emplace_back(streamingModes);
             }
-        }
-        else
+        } else
             dev.state = ArUnavailableState;
     }
 
@@ -107,12 +113,61 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
 }
 
-void CameraConnection::updateDeviceState(Element* dev) {
+void CameraConnection::setNetworkAdapterParameters(Element &dev) {
+
+    if ((sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+        fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
+    }
+    // Specify interface name
+    const char *interface = "enx606d3cbfb36a";
+    setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
+
+    struct ifreq ifr{};
+    /// note: no pointer here
+    struct sockaddr_in inet_addr{}, subnet_mask;
+    /* get interface name */
+    /* Prepare the struct ifreq */
+    bzero(ifr.ifr_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+    /// note: prepare the two struct sockaddr_in
+    inet_addr.sin_family = AF_INET;
+    int inet_addr_config_result = inet_pton(AF_INET, "10.66.171.22", &(inet_addr.sin_addr));
+
+    subnet_mask.sin_family = AF_INET;
+    int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+
+    /* Call ioctl to configure network devices */
+    /// put addr in ifr structure
+    memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+    int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+    }
+
+    /// put mask in ifr structure
+    memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+    ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+    }
+
+    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+    ifr.ifr_mtu = 7200; //your MTU size here
+    ioctl_result = ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr);
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFMTU: %s", strerror(errno));
+    }
+
+
+}
+
+void CameraConnection::updateDeviceState(Element *dev) {
 
     dev->state = ArUnavailableState;
 
     // IF our clicked device is the one we already clicked
-    if (dev->name == lastActiveDevice){
+    if (dev->name == lastActiveDevice) {
         dev->state = ArActiveState;
     }
 

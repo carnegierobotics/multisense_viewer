@@ -32,6 +32,7 @@ struct GuiLayerUpdateInfo {
     /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
     ImFont *font13{}, *font18{}, *font24{};
 
+    ImTextureID imageButtonTextureDescriptor[9];
     /** @brief Height of popupModal*/
     float popupHeight = 350.0f;
     /** @brief Width of popupModal*/

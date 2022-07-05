@@ -21,18 +21,71 @@ public:
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 4));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+        int i = 0;
+
+        ImGui::BeginChild("blah");
+
+
+        /*
+        float my_tex_w = 100;
+        float my_tex_h = 100;
+        ImGui::PushID("Preview Button");
+        ImVec2 frame_padding = ImVec2(0,0);                     // Size of the image we want to make visible
+        ImVec2 size = ImVec2(my_tex_w, my_tex_h);                     // Size of the image we want to make visible
+        ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+        ImVec2 uv1 = ImVec2(1.0f, 1.0f);// UV coordinates for (32,32) in our texture
+        ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);         // no background
+        ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
+        bool clicked = ImGui::ImageButton(handles->info->id, size, uv0, uv1, 0, bg_col, tint_col);
+        clicked =  ImGui::IsItemActive();
+        ImGui::PopID();
+*/
+        int imageButtonHeight = 100;
+        static int pressed_count[3] = {0, 0, 0};
+        const char* labels[3] = {"Preview Device", "Device Information", "Configure Device"};
+        for (int i = 0; i < 3; i++) {
+            float offset = 150;
+            ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + (i * offset),
+                                       (handles->info->height / 2) - (imageButtonHeight / 2)));
+
+            ImGui::PushID(i);
+            ImVec2 size = ImVec2(100.0f, 100.0f);                     // Size of the image we want to make visible
+            ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+            ImVec2 uv1 = ImVec2(1.0f, 1.0f);
+
+            ImVec4 bg_col = ImVec4(0.054, 0.137, 0.231, 1.0f);         // Match bg color
+            ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
+            if (ImGui::ImageButton(handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, 0, bg_col, tint_col))
+                pressed_count[i] += 1;
+            ImGui::PopID();
+
+            ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + (i * offset),
+                                       (handles->info->height / 2) + (imageButtonHeight / 2) + 8));
+
+            ImGui::Text("%s", labels[i]);
+
+            ImGui::SameLine();
+        }
+        ImGui::NewLine();
 
         if (handles->devices != nullptr) {
 
 
         }
 
+        ImGui::EndChild();
+
         ImGui::ShowDemoWindow();
         ImGui::End();
+        ImGui::PopStyleColor(); // bg color
 
-        return;
+        if (pressed_count[0] == 0)
+            return;
         //// Start of configuration layout
         //bool pOpen = true;
         //ImGuiWindowFlags window_flags = 0;
@@ -83,7 +136,7 @@ public:
 
     }
 
-    void addStreamingTab(GuiObjectHandles *handles, Element* d) {
+    void addStreamingTab(GuiObjectHandles *handles, Element *d) {
 
         if (ImGui::BeginCombo("Resolution",
                               d->selectedStreamingMode.c_str())) // The second parameter is the label previewed before opening the combo.

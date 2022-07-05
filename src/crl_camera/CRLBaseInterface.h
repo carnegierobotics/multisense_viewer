@@ -24,6 +24,7 @@ public:
         std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
         crl::multisense::DataSource supportedSources{0};
         std::vector<uint8_t*> rawImages;
+        int sensorMTU = 0;
     }cameraInfo;
 
     virtual bool connect(const std::string& ip) = 0;

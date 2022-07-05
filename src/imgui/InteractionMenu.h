@@ -17,13 +17,30 @@ public:
     }
 
     void OnUIRender(GuiObjectHandles *handles) override {
-
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 4));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+        if (handles->devices != nullptr) {
+
+
+        }
+
+        ImGui::ShowDemoWindow();
+        ImGui::End();
+
+        return;
+        //// Start of configuration layout
+        //bool pOpen = true;
+        //ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height / 4));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
 
         if (handles->devices != nullptr) {
             for (auto &d: *handles->devices) {

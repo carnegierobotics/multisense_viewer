@@ -647,7 +647,7 @@ void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
 
 void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-    if (key == GLFW_KEY_ESCAPE and action == GLFW_PRESS) {
+    if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)  && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 

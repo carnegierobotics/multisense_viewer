@@ -15,6 +15,12 @@ target_link_libraries(listAdapter MultiSense)
 
 add_executable(broadcast_listener BroadcastListener.cpp )
 
+add_executable(igmpsniffer igmp_sniffer.cpp )
+target_link_libraries(igmpsniffer -ltbb)
+
+add_executable(packet_sniffer packet_sniffer.cpp )
+target_link_libraries(packet_sniffer -ltbb)
+
 set(CMAKE_CXX_FLAGS "-D__STDC_CONSTANT_MACROS")
 
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)

@@ -75,11 +75,12 @@ void Renderer::buildCommandBuffers() {
 
     for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i) {
         renderPassBeginInfo.framebuffer = frameBuffers[i];
-        (vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+        vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo);
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
+        guiManager->drawFrame(drawCmdBuffers[i]);
 
         for (auto &script: scripts) {
             if (script->getType() != ArDisabled) {
@@ -87,7 +88,6 @@ void Renderer::buildCommandBuffers() {
             }
         }
 
-        guiManager->drawFrame(drawCmdBuffers[i]);
 
         vkCmdEndRenderPass(drawCmdBuffers[i]);
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));

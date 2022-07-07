@@ -2,10 +2,9 @@
 // Created by magnus on 3/1/22.
 //
 
-#include <thread>
-#include <bitset>
+
 #include "CRLPhysicalCamera.h"
-#include <iostream>
+
 
 
 bool CRLPhysicalCamera::connect(const std::string &ip) {
@@ -90,6 +89,9 @@ void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
 }
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
+    if (cameraInterface == nullptr)
+        return;
+
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
 
     // Check if the stream has been enabled before we attempt to stop it

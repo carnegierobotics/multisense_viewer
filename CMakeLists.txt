@@ -142,7 +142,7 @@ else () ## Linux
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_executable(MultiSense-viewer main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil)
+    target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil -ltbb)
 
 endif ()
 

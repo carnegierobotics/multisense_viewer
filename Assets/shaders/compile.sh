@@ -3,8 +3,8 @@
 # Simple script to compile shaders. Just configure it to run on every build for convenience.
 # Make sure the glslc exec is installed.
 
-glslc="../compiler/shaderc/build/glslc/glslc" # usual linux path
-#glslc="../../compiler/shaderc/build/glslc/Debug/glslc" # usual windows path
+glslc="../../spirv_compiler/shaderc/build/glslc/glslc" # usual linux path
+#glslc="../../spirv_compiler/shaderc/build/glslc/Debug/glslc" # usual windows path
 
 sceneOutDir="./myScene/spv/"
 sceneDir="./myScene/"

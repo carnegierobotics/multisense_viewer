@@ -107,6 +107,7 @@ public:
     void updateUniformBufferData(Base::Render d) {
         this->renderData = d;
 
+        // Default update function is called for updating models. Else CRL extension
         if (d.type == ArDefault)
             update();
         else if (d.type == ArCameraScript && d.crlCamera->camPtr != nullptr)

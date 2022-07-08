@@ -10,8 +10,8 @@ add_subdirectory(${MULTISENSE_SRC}  [EXCLUDE_FROM_ALL])
 
 find_package( OpenCV REQUIRED )
 
-add_executable(listAdapter ListAdapters.cpp )
-target_link_libraries(listAdapter MultiSense)
+add_executable(AutoConnect AutoConnect.cpp)
+target_link_libraries(AutoConnect MultiSense)
 
 add_executable(broadcast_listener BroadcastListener.cpp )
 

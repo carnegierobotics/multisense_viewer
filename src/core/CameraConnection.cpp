@@ -82,6 +82,8 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.state = ArActiveState;
             dev.cameraName = "Virtual Camera";
             dev.IP = "Local";
+            lastActiveDevice = dev.name;
+
         } else
             dev.state = ArUnavailableState;
 
@@ -103,13 +105,13 @@ void CameraConnection::connectCrlCamera(Element &dev) {
                 StreamingModes streamingModes;
                 streamingModes.modeName = modeName;
                 dev.modes.emplace_back(streamingModes);
+                lastActiveDevice = dev.name;
+
             }
         } else
             dev.state = ArUnavailableState;
     }
 
-    currentActiveDevice = &dev;
-    lastActiveDevice = dev.name;
 
 }
 

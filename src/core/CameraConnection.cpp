@@ -121,7 +121,7 @@ void CameraConnection::setNetworkAdapterParameters(Element &dev) {
         fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
     }
     // Specify interface name
-    const char *interface = "enp8s0";
+    const char *interface = "enx606d3cbfbd11";
     setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
 
     struct ifreq ifr{};

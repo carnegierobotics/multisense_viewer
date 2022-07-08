@@ -31,7 +31,18 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = name.c_str();
     appInfo.pEngineName = name.c_str();
+
+    auto FN_vkEnumerateInstanceVersion = PFN_vkEnumerateInstanceVersion(
+            vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
+    if (&vkEnumerateInstanceVersion) {
+        vkEnumerateInstanceVersion(&apiVersion);
+    }
     appInfo.apiVersion = apiVersion;
+
+    pLogger->info("Setting up vulkan with API Version: %d.%d.%d. Minimum recommended version to use is 1.2.0",
+                  VK_VERSION_MAJOR(apiVersion), VK_VERSION_MINOR(apiVersion), VK_VERSION_PATCH(apiVersion));
+
+
     // Get extensions supported by the instance
     enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
     // Check if extensions are supported
@@ -58,6 +69,7 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
         if (Validation::checkValidationLayerSupport(validationLayers)) {
             instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
             instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            pLogger->info("Enabling Validation Layers");
         } else {
             std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
         }
@@ -71,6 +83,7 @@ bool VulkanRenderer::initVulkan() {
     if (err) {
         throw std::runtime_error("Could not create Vulkan instance");
     }
+    pLogger->info("Vulkan Instance successfully created");
     // If requested, we enable the default validation layers for debugging
 // If requested, we enable the default validation layers for debugging
     if (settings.validation) {
@@ -84,6 +97,8 @@ bool VulkanRenderer::initVulkan() {
             VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
         }
+
+
     }
     // Get list of devices and capabilities of each device
     uint32_t gpuCount = 0;
@@ -122,8 +137,11 @@ bool VulkanRenderer::initVulkan() {
     vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
     // If available then: Add KHR_SAMPLER_YCBCR For Color camera data format.
-    if (features.samplerYcbcrConversion) {  
+    if (features.samplerYcbcrConversion) {
         enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+        pLogger->info("Enabling YCBCR Sampler Extension");
+    }else {
+        pLogger->error("YCBCR Sampler support not found!");
     }
 
     // Vulkan device creation
@@ -420,8 +438,8 @@ void VulkanRenderer::prepare() {
             loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
             loadShader("imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
     };
-
     guiManager->setup((float) width, (float) height, renderPass, queue, &shaders);
+    pLogger->info("Initialized GUI with shaders, ui.vert and ui.frag");
 
     startTime = std::chrono::system_clock::now();
 }
@@ -647,7 +665,8 @@ void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
 
 void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-    if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)  && action == GLFW_PRESS) {
+    if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+        myApp->pLogger->info("Escape or Quit (Q) key registered. Closing program..");
         glfwSetWindowShouldClose(window, true);
     }
 
@@ -766,9 +785,10 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
         }
     }
 }
-void VulkanRenderer::mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+
+void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
 
     double scrollSpeed = 0.80f;
     myApp->mouseButtons.wheel += (float) (yoffset * scrollSpeed);
@@ -788,8 +808,11 @@ VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice
         vkGetPhysicalDeviceFeatures(device, &features);
         vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
 
+        pLogger->info("Found physical device: %s, ", properties.deviceName);
+
         // Search for a discrete GPU and prefer this one
         if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            pLogger->info("Picked Discrete GPU. Name: %s, ", properties.deviceName);
             return device;
         }
 

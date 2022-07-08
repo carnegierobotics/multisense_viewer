@@ -29,6 +29,7 @@
 #include <chrono>
 
 #include <MultiSense/src/imgui/GuiManager.h>
+#include <MultiSense/src/tools/Logger.h>
 
 #include "VulkanSwapchain.h"
 #include "Validation.h"
@@ -89,8 +90,11 @@ public:
         float wheel = 0.0f;
     } mouseButtons;
 
-    /** @brief Handle for UI updates and overlay */
+    /** @brief Handle for Logging*/
+    Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class
 
+
+    /** @brief Handle for UI updates and overlay */
     GuiManager* guiManager;
 
     /** @brief (Virtual) Creates the application wide Vulkan instance */
@@ -215,7 +219,7 @@ private:
     /** @brief Default function to handle cursor position input, calls the override function mouseMoved(...) **/
     void handleMouseMove(int32_t x, int32_t y);
 
-    static VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices);
+    VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices);
 
     static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode);
 

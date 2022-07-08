@@ -200,3 +200,8 @@ void Renderer::updateUniformBuffers() {
 
 }
 
+void Renderer::cleanUp() {
+    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+
+}
+

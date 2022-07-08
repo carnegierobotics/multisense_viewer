@@ -287,7 +287,7 @@ int main(int argc, char *argv[]) {
         // SIOCGIFFLAGS	0x8913		/* get flags			*/
         // SIOCSIFFLAGS	0x8914		/* set flags			*/
         struct ifreq ethreq;
-        strncpy(ethreq.ifr_name, "enp8s0", IF_NAMESIZE);
+        strncpy(ethreq.ifr_name, adapter.name.c_str(), IF_NAMESIZE);
         if (ioctl(sd, SIOCGIFFLAGS, &ethreq) == -1) {
             perror("ioctl");
             close(sd);

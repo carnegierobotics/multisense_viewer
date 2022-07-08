@@ -104,6 +104,8 @@ set(ENGINE_SRC
         src/tools/Macros.h
         src/tools/Populate.h
         src/tools/Utils.h
+        src/tools/Logger.h
+        src/tools/Logger.cpp
         )
 
 

@@ -134,6 +134,7 @@ int DecodeVideo::childProcessDecode() {
                   "Error in creating thread" << std::endl;
         exit(-1);
     }
+    return EXIT_SUCCESS;
 }
 
 void *DecodeVideo::decode(void *arg) {

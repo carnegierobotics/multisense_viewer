@@ -40,19 +40,30 @@ public:
      * @param title Title of application
      */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
-        // During constructor prepare backend for rendering
         this->title = title;
+        // Create Log C++ Interface
+        Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
+        pLogger = Log::Logger::getInstance();
+
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
         backendInitialized = true;
+        pLogger->info("Initialized Backend");
+
         prepareRenderer();
+        pLogger->info("Prepared Renderer");
+
     };
      ~Renderer() override = default;
 
     void render() override;
     void prepareRenderer();
+
+    void cleanUp();
+
     void run() {
         renderLoop();
+        cleanUp();
     }
 
     void draw();

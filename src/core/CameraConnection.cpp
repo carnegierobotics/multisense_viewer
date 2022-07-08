@@ -17,21 +17,12 @@ CameraConnection::CameraConnection() {
 
 void CameraConnection::updateActiveDevice(Element dev) {
 
-    if (dev.depthImage) {
-        camPtr->start(dev.selectedStreamingMode, "Disparity Left");
-    } else {
-        camPtr->stop("Disparity Left");
-    }
+    camPtr->start(dev.selectedStreamingMode, dev.selectedStreamingSource);
 
+    //camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
 
-    if (dev.colorImage) {
-        camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
-    } else {
-        camPtr->stop("Color Rectified Aux");
-    }
 
     if (dev.button && !camPreviewBar.active) {
-
         camPreviewBar.active = true;
     } else if (dev.button && !camPreviewBar.active) {
         camPreviewBar.active = false;
@@ -96,6 +87,9 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.cameraName = camPtr->getCameraInfo().devInfo.name;
 
             dev.modes.clear(); // Clear possible modes. Modes can maybe be dynamic between connections. If the camera's FW was updated in-between?
+            dev.sources.emplace_back("Raw Left");
+            dev.sources.emplace_back("Luma Rectified Left");
+            dev.sources.emplace_back("Compressed");
 
             for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
                 auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];

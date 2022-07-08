@@ -73,8 +73,8 @@ public:
     sem_t notEmpty, notFull;
 
 
-    bool drawFrame;
-    bool runDecodeThread = true;
+    bool drawFrame = false;
+    bool runDecodeThread = false;
     pthread_t producer;
 
 };

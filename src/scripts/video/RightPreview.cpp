@@ -21,7 +21,7 @@ void RightPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw) {
+    if (!model->draw && camera->modeChange) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
         std::string vertexShaderFileName;

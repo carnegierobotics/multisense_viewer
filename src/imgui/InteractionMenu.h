@@ -8,12 +8,12 @@
 #include "Layer.h"
 
 
-typedef enum PAGES{
+typedef enum PAGES {
     PAGE_PREVIEW_DEVICES = 0,
     PAGE_DEVICE_INFORMATION = 1,
     PAGE_CONFIGURE_DEVICE = 2,
     PAGE_TOTAL_PAGES = 3,
-}PAGES;
+} PAGES;
 
 class InteractionMenu : public Layer {
 public:
@@ -35,7 +35,7 @@ public:
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
-        if (ImGui::Button("Back")){
+        if (ImGui::Button("Back")) {
             page[PAGE_DEVICE_INFORMATION] = false;
             drawActionPage = true;
         }
@@ -56,7 +56,7 @@ public:
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
-        if (ImGui::Button("Back")){
+        if (ImGui::Button("Back")) {
             page[PAGE_PREVIEW_DEVICES] = false;
             drawActionPage = true;
         }
@@ -141,11 +141,11 @@ private:
     void buildConfigurationPreview(GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always );
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
         for (auto &d: *handles->devices) {
@@ -168,14 +168,12 @@ private:
             }
         }
 
-        if (ImGui::Button("Back")){
-            page[PAGE_CONFIGURE_DEVICE] = false;
-            drawActionPage = true;
-        }
 
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->height / 3), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 1.0f));
-        ImGui::BeginChild("ConfigurationPewview", ImVec2(handles->info->width - handles->info->sidebarWidth, 2* handles->info->height / 3), window_flags);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 0.0f));
+        ImGui::BeginChild("ConfigurationPewview",
+                          ImVec2(handles->info->width - handles->info->sidebarWidth, 2 * handles->info->height / 3),
+                          false, window_flags | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
         ImGui::EndChild();
         ImGui::PopStyleColor(); // child window bg color
@@ -188,6 +186,11 @@ private:
     void addConfigurationTab(GuiObjectHandles *handles, Element *d) {
         ImGui::Text("This tab is reserved for configurations. Placeholders, not implemented");
 
+        if (ImGui::Button("Back")) {
+            page[PAGE_CONFIGURE_DEVICE] = false;
+            drawActionPage = true;
+        }
+
         ImGui::SliderFloat("Exposure time", &handles->sliderOne, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
         ImGui::SliderFloat("LED duty cycle", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
 
@@ -198,27 +201,57 @@ private:
     }
 
     void addStreamingTab(GuiObjectHandles *handles, Element *d) {
+        if (ImGui::Button("Back")) {
+            page[PAGE_CONFIGURE_DEVICE] = false;
+            drawActionPage = true;
+        }
 
-        if (ImGui::BeginCombo("Resolution",
-                              d->selectedStreamingMode.c_str())) // The second parameter is the label previewed before opening the combo.
+
+        ImVec2 pos = ImGui::GetCursorPos();
+        pos.y += 5;
+        pos.x += 50;
+        ImGui::SetCursorPos(pos);
+        ImGui::Text("Left Stereo Imager");
+
+        static int item_current_idx = 0; // Here we store our selection data as an index.
+
+        if (ImGui::BeginListBox("##Source", ImVec2(200.0f, d->sources.size() * ImGui::GetTextLineHeightWithSpacing())))
         {
-            for (auto &mode: d->modes) {
+            for (int n = 0; n < d->sources.size(); n++)
+            {
+                const bool is_selected = (item_current_idx == n);
 
-                bool is_selected = (mode.modeName ==
-                                    d->selectedStreamingMode); // You can store your selection however you want, outside or inside your objects
-                if (ImGui::Selectable(mode.modeName.c_str(), is_selected)) {
-                    d->selectedStreamingMode = mode.modeName;
+                if (ImGui::Selectable(d->sources[n].c_str(), is_selected))
+                    item_current_idx = n;
 
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                    d->selectedStreamingSource = d->sources[item_current_idx];
                 }
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();   // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
             }
-            ImGui::EndCombo();
-        } // End dropdown
+            ImGui::EndListBox();
+        }
 
-        ImGui::Checkbox("Depth Image", &d->depthImage);
-        ImGui::Checkbox("Color Image", &d->colorImage);
-        ImGui::Checkbox("Point Cloud", &d->pointCloud);
+        static int item_current_idx2 = 0; // Here we store our selection data as an index.
+
+        if (ImGui::BeginListBox("##Resolution", ImVec2(200.0f, 5.0f + (float) d->modes.size() *
+                                                                      ImGui::GetTextLineHeightWithSpacing()))) {
+            for (int n = 0; n < d->modes.size(); n++) {
+                const bool is_selected = (item_current_idx2 == n);
+
+                if (ImGui::Selectable(d->modes[n].modeName.c_str(), is_selected))
+                    item_current_idx2 = n;
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                    d->selectedStreamingMode = d->modes[item_current_idx2].modeName;
+                }
+            }
+            ImGui::EndListBox();
+        }
+
 
         ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 10.0f));
 

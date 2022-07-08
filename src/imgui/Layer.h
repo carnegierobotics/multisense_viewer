@@ -53,7 +53,6 @@ typedef enum {
 struct StreamingModes {
     std::string label;
     std::string modeName;
-
 };
 
 struct Element {
@@ -71,8 +70,12 @@ struct Element {
     ArConnectionState state;
     /** @brief Camera streaming modes  */
     std::vector<StreamingModes> modes;
+    /** @brief Camera streaming sources  */
+    std::vector<std::string> sources;
     /** @brief Which mode is currently selected */
     std::string selectedStreamingMode = "Select sensor resolution";
+    /** @brief Which source is currently selected */
+    std::string selectedStreamingSource = "Select sensor resolution";
 
     /** @brief  Showing point cloud view*/
     bool pointCloud = false;

@@ -21,7 +21,7 @@ void DefaultPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw ) {
+    if (!model->draw && camera->modeChange) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
 
@@ -31,7 +31,7 @@ void DefaultPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlDisparityImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlGrayscaleImage);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -53,7 +53,7 @@ void DefaultPreview::update(CameraConnection *conn) {
     }
 
     if (camera->play && model->draw) {
-        model->setGrayscaleTexture(&camera->getImage()[crl::multisense::Source_Disparity_Left]);
+        model->setGrayscaleTexture(&camera->getImage()[crl::multisense::Source_Luma_Rectified_Left]);
 
     }
 

@@ -34,7 +34,7 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
-
+    if (source ==false)return;
     // Check if the stream has already been enabled first
     if (std::find(enabledSources.begin(), enabledSources.end(),
                   source) != enabledSources.end()) {
@@ -260,7 +260,7 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
     if (d == "All") return crl::multisense::Source_All;
-    throw std::runtime_error(std::string{} + "Unknown Datasource: " + d);
+    return false;
 }
 
 void CRLPhysicalCamera::update() {

@@ -77,13 +77,13 @@ void Renderer::buildCommandBuffers() {
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
-        guiManager->drawFrame(drawCmdBuffers[i]);
 
         for (auto &script: scripts) {
             if (script->getType() != ArDisabled) {
                 script->draw(drawCmdBuffers[i], i);
             }
         }
+        guiManager->drawFrame(drawCmdBuffers[i]);
 
 
         vkCmdEndRenderPass(drawCmdBuffers[i]);

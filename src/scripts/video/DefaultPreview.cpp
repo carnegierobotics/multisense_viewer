@@ -113,6 +113,10 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
 
+    for(const auto& dev: *uiHandle.devices){
+        if (dev.button)
+            model->draw = false;
+    }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 
 }

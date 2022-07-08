@@ -21,6 +21,8 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
                 std::cerr << "Failed to set MTU 7200\n";
             }
              */
+
+            cameraInterface->setMtu(7200);
             online = true;
             return true;
         }

@@ -24,19 +24,62 @@ public:
 
     }
 
+    void buildDeviceInformation(GuiObjectHandles *handles) {
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+
+        if (ImGui::Button("Back")){
+            page[PAGE_DEVICE_INFORMATION] = false;
+            drawActionPage = true;
+        }
+
+        ImGui::NewLine();
+        ImGui::PopStyleColor(); // bg color
+        ImGui::End();
+    }
+
+    void buildPreview(GuiObjectHandles *handles) {
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+
+        if (ImGui::Button("Back")){
+            page[PAGE_PREVIEW_DEVICES] = false;
+            drawActionPage = true;
+        }
+
+        ImGui::NewLine();
+        ImGui::PopStyleColor(); // bg color
+        ImGui::End();
+    }
+
     void OnUIRender(GuiObjectHandles *handles) override {
-        //if (handles->devices->empty()) return;
+        if (handles->devices->empty()) return;
 
         for (int i = 0; i < PAGE_TOTAL_PAGES; ++i) {
             if (page[i]) {
                 if (drawActionPage) {
                     drawActionPage = false;
-                    break;
                 }
                 switch (i) {
                     case PAGE_PREVIEW_DEVICES:
+                        buildPreview(handles);
                         break;
                     case PAGE_DEVICE_INFORMATION:
+                        buildDeviceInformation(handles);
                         break;
                     case PAGE_CONFIGURE_DEVICE:
                         buildConfigurationPreview(handles);

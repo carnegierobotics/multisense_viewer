@@ -141,8 +141,8 @@ private:
     void buildConfigurationPreview(GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always );
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
@@ -173,8 +173,15 @@ private:
             drawActionPage = true;
         }
 
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->height / 3), ImGuiCond_Always);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 1.0f));
+        ImGui::BeginChild("ConfigurationPewview", ImVec2(handles->info->width - handles->info->sidebarWidth, 2* handles->info->height / 3), window_flags);
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor(); // child window bg color
+
         ImGui::NewLine();
-        ImGui::PopStyleColor(); // bg color
+        ImGui::PopStyleColor(); // main bg color
         ImGui::End();
     }
 
@@ -184,7 +191,7 @@ private:
         ImGui::SliderFloat("Exposure time", &handles->sliderOne, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
         ImGui::SliderFloat("LED duty cycle", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
 
-        ImGui::SliderFloat("X", &handles->sliderOne, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
+        ImGui::SliderFloat("X", &handles->sliderOne, -4.0f, 4.0f, "%.3f", ImGuiSliderFlags_None);
         ImGui::SliderFloat("Y", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
         ImGui::SliderFloat("Z", &handles->sliderThree, -5.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
 

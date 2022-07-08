@@ -97,6 +97,8 @@ set(ENGINE_SRC
         src/scripts/pointcloud/VirtualPointCloud.h
         src/scripts/video/DefaultPreview.cpp
         src/scripts/video/DefaultPreview.h
+        src/scripts/video/RightPreview.cpp
+        src/scripts/video/RightPreview.h
         src/scripts/video/PreviewBar.cpp
         src/scripts/video/PreviewBar.h
         src/scripts/video/DecodeVideo.cpp

@@ -58,7 +58,7 @@ void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
     VkClearValue clearValues[2];
-    clearValues[0].color = {{0.06f, 0.05f, 0.05f, 1.0f}};
+    clearValues[0].color = {{0.054, 0.137, 0.231, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();

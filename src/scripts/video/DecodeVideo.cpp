@@ -87,8 +87,17 @@ void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
     if (!uiHandle.devices->empty()) {
         for (auto &dev: *uiHandle.devices) {
             if (dev.cameraName == "Virtual Camera" && dev.button) {
+                runDecodeThread = true;
                 childProcessDecode();
                 drawFrame = true;
+            }
+
+            if (dev.state != ArActiveState && runDecodeThread){
+                model->draw = false;
+                runDecodeThread = false;
+                void *status;
+                pthread_join(producer, &status);
+                printf("Decoder thread exited with status %ld\n", (intptr_t) status);
             }
         }
     }
@@ -105,7 +114,6 @@ void DecodeVideo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 int DecodeVideo::childProcessDecode() {
 // thread declaration
     int N = 5;
-    pthread_t producer;
 
     // Declaration of attribute......
     pthread_attr_t attr;
@@ -129,8 +137,9 @@ int DecodeVideo::childProcessDecode() {
 }
 
 void *DecodeVideo::decode(void *arg) {
-    while (1) {
-        auto *instance = (DecodeVideo *) arg;
+    auto *instance = (DecodeVideo *) arg;
+    while (instance->runDecodeThread) {
+
 
         AVFormatContext *ctx_format = nullptr;
         AVCodecContext *ctx_codec = nullptr;
@@ -138,7 +147,7 @@ void *DecodeVideo::decode(void *arg) {
         AVFrame *frame = av_frame_alloc();
         int stream_idx;
         SwsContext *ctx_sws = nullptr;
-        std::string fileName = Utils::getTexturePath() + "Video/pixels.mpg";
+        std::string fileName = Utils::getTexturePath() + "Video/pixels.mp4";
         AVStream *vid_stream = nullptr;
         AVPacket *pkt = av_packet_alloc();
 
@@ -183,14 +192,14 @@ void *DecodeVideo::decode(void *arg) {
         //av_new_packet(pkt, pic_size);
         int index = 0;
 
-        while (av_read_frame(ctx_format, pkt) >= 0) {
+        while (av_read_frame(ctx_format, pkt) >= 0 && instance->runDecodeThread) {
             if (pkt->stream_index == stream_idx) {
                 int ret = avcodec_send_packet(ctx_codec, pkt);
                 if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     std::cout << "avcodec_send_packet: " << ret << std::endl;
                     break;
                 }
-                while (ret >= 0) {
+                while (ret >= 0 && instance->runDecodeThread) {
                     ret = avcodec_receive_frame(ctx_codec, frame);
                     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                         //std::cout << "avcodec_receive_frame: " << ret << std::endl;
@@ -224,6 +233,8 @@ void *DecodeVideo::decode(void *arg) {
         avcodec_free_context(&ctx_codec);
         avformat_free_context(ctx_format);
     }
+
+    pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
 }
 
 void DecodeVideo::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {

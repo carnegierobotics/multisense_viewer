@@ -74,6 +74,9 @@ public:
 
 
     bool drawFrame;
+    bool runDecodeThread = true;
+    pthread_t producer;
+
 };
 
 

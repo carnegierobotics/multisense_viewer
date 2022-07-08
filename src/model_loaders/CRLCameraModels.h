@@ -122,18 +122,18 @@ public:
             auto *iP = (uint32_t *) quad.indices;
 
             ArEngine::Vertex vertex[4];
-            vertex[0].pos = glm::vec3(0.0f, 0.0f, 0.0f);
-            vertex[1].pos = glm::vec3(1.0f * widthScale, 0.0f, 0.0f);
-            vertex[2].pos = glm::vec3(0.0f, 0.0f, 1.0f * heightScale);
-            vertex[3].pos = glm::vec3(1.0f * widthScale, 0.0f, 1.0f * heightScale);
+            vertex[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f);
+            vertex[1].pos = glm::vec3(1.0f * widthScale, -1.0f, 0.0f);
+            vertex[2].pos = glm::vec3(1.0f * widthScale, 1.0f, 0.0f);
+            vertex[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f);
 
             vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 
-            vertex[0].uv0 = glm::vec2(0.0f, 0.0f);
-            vertex[1].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[0].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[1].uv0 = glm::vec2(0.0f, 0.0f);
             vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
             vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
             vP[0] = vertex[0];
@@ -144,9 +144,9 @@ public:
             iP[0] = 0;
             iP[1] = 1;
             iP[2] = 2;
-            iP[3] = 1;
-            iP[4] = 2;
-            iP[5] = 3;
+            iP[3] = 2;
+            iP[4] = 3;
+            iP[5] = 0;
         }
     };
 

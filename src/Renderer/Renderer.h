@@ -20,6 +20,8 @@
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/CameraConnection.h>
+#include <MultiSense/src/imgui/SideBar.h>
+#include <MultiSense/src/imgui/InteractionMenu.h>
 
 // Include scripts
 //#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
@@ -29,6 +31,7 @@
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 #include <MultiSense/src/scripts/video/PreviewBar.h>
 #include <MultiSense/src/scripts/video/DecodeVideo.h>
+#include <MultiSense/src/scripts/video/RightPreview.h>
 
 
 class Renderer : VulkanRenderer {

@@ -1,10 +1,10 @@
 //
-// Created by magnus on 3/10/22.
+// Created by magnus on 7/8/22.
 //
 
-#include "DefaultPreview.h"
+#include "RightPreview.h"
 
-void DefaultPreview::setup() {
+void RightPreview::setup() {
     /**
      * Create and load Mesh elements
      */
@@ -16,22 +16,20 @@ void DefaultPreview::setup() {
 }
 
 
-void DefaultPreview::update(CameraConnection *conn) {
+void RightPreview::update(CameraConnection *conn) {
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
 
-    if (!model->draw ) {
+    if (!model->draw) {
         auto imgConf = camera->getCameraInfo().imgConf;
-
 
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
+        vertexShaderFileName = "myScene/spv/quad.vert";
+        fragmentShaderFileName = "myScene/spv/quad.frag";
 
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
-
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlDisparityImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlColorImageYUV420);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -53,14 +51,17 @@ void DefaultPreview::update(CameraConnection *conn) {
     }
 
     if (camera->play && model->draw) {
-        model->setGrayscaleTexture(&camera->getImage()[crl::multisense::Source_Disparity_Left]);
+
+        model->setColorTexture(&camera->getImage()[crl::multisense::Source_Chroma_Rectified_Aux],
+                               &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
 
     }
 
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(-1.8, 0.4, -5));
+
+    mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -76,7 +77,7 @@ void DefaultPreview::update(CameraConnection *conn) {
 }
 
 
-void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
@@ -90,7 +91,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 }
 
 
-void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw)
         CRLCameraModels::draw(commandBuffer, i, model);
 

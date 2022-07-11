@@ -18,8 +18,6 @@ class CRLPhysicalCamera : public CRLBaseInterface {
 public:
 
     glm::mat4 kInverseMatrix{};
-    crl::multisense::image::Header *stream = nullptr;
-
 
     CRLPhysicalCamera() : CRLBaseInterface() {
 
@@ -39,6 +37,8 @@ public:
     void start(std::string string, std::string dataSourceStr) override;
     void stop( std::string dataSourceStr) override;
     void updateCameraInfo() override;
+    void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
+                          crl::multisense::image::Header **src2 = nullptr) override;
 
 private:
     struct Image

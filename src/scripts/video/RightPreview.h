@@ -45,6 +45,8 @@ public:
 
     int count = 1;
     void *selection = (void *) "0";
+    std::string src;
+    uint32_t playbackSate = -1;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

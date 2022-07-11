@@ -6,7 +6,6 @@
 #include "CRLPhysicalCamera.h"
 
 
-
 bool CRLPhysicalCamera::connect(const std::string &ip) {
     if (cameraInterface == nullptr) {
         cameraInterface = crl::multisense::Channel::Create(ip);
@@ -34,7 +33,8 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
-    if (source ==false)return;
+    if (source == false)
+        return;
     // Check if the stream has already been enabled first
     if (std::find(enabledSources.begin(), enabledSources.end(),
                   source) != enabledSources.end()) {
@@ -84,7 +84,7 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
 void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
     auto *app = static_cast<CRLPhysicalCamera *>(context);
-    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(1));
+    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(300));
     app->modeChange = true;
     app->play = true;
 
@@ -259,6 +259,7 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
     if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
+    if (d == "Chroma + Luma Rectified Aux") return  crl::multisense::Source_Luma_Rectified_Aux | crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "All") return crl::multisense::Source_All;
     return false;
 }
@@ -371,4 +372,18 @@ void CRLPhysicalCamera::addCallbacks() {
         std::cerr << "Adding callback failed!\n";
     }
 
+}
+
+void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
+                                          crl::multisense::image::Header **stream2) {
+
+    // If user selects combines streams ex. Luma and Chroma, return this instead. Otherwise choose from standrad streams.
+    if (stringSrc == "Chroma + Luma Rectified Aux"){
+        *stream = &imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
+        *stream2 = &imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
+        return;
+    }
+
+    uint32_t source = stringToDataSource(stringSrc);
+    *stream = &imagePointers[source];
 }

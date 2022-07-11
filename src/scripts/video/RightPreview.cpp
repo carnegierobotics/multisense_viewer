@@ -17,6 +17,10 @@ void RightPreview::setup() {
 
 
 void RightPreview::update(CameraConnection *conn) {
+
+    if (playbackSate != PREVIEW_PLAYING)
+        return;
+
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
@@ -52,8 +56,11 @@ void RightPreview::update(CameraConnection *conn) {
 
     if (camera->play && model->draw) {
 
-        model->setColorTexture(&camera->getImage()[crl::multisense::Source_Chroma_Rectified_Aux],
-                               &camera->getImage()[crl::multisense::Source_Luma_Rectified_Aux]);
+        crl::multisense::image::Header *chroma;
+        crl::multisense::image::Header *luma;
+        camera->getCameraStream(src, &chroma, &luma);
+        model->setColorTexture(chroma, luma);
+
 
     }
 
@@ -85,6 +92,9 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
+
+        src = dev.stream[PREVIEW_AUXILIARY].selectedStreamingSource;
+        playbackSate = dev.stream[PREVIEW_AUXILIARY].playbackStatus;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 

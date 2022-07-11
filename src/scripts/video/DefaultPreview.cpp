@@ -17,6 +17,9 @@ void DefaultPreview::setup() {
 
 
 void DefaultPreview::update(CameraConnection *conn) {
+    if (playbackSate != PREVIEW_PLAYING)
+        return;
+
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
@@ -53,14 +56,17 @@ void DefaultPreview::update(CameraConnection *conn) {
     }
 
     if (camera->play && model->draw) {
-        model->setGrayscaleTexture(&camera->getImage()[crl::multisense::Source_Luma_Rectified_Left]);
+
+        crl::multisense::image::Header* image;
+        camera->getCameraStream(src, &image);
+        model->setGrayscaleTexture(image);
 
     }
 
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(-1.8, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(-1.3, 0.4, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -84,7 +90,13 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
+
+        src = dev.stream[PREVIEW_LEFT].selectedStreamingSource;
+        playbackSate = dev.stream[PREVIEW_LEFT].playbackStatus;
+
     }
+
+
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 
 }

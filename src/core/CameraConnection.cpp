@@ -17,7 +17,12 @@ CameraConnection::CameraConnection() {
 
 void CameraConnection::updateActiveDevice(Element dev) {
 
-    camPtr->start(dev.selectedStreamingMode, dev.selectedStreamingSource);
+    for (auto d : dev.stream){
+        if (d.playbackStatus == PREVIEW_PLAYING){
+            camPtr->start(d.selectedStreamingMode, d.selectedStreamingSource);
+
+        }
+    }
 
     //camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
 
@@ -85,28 +90,91 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         if (connected) {
             dev.state = ArActiveState;
             dev.cameraName = camPtr->getCameraInfo().devInfo.name;
+            setStreamingModes(dev);
 
-            dev.modes.clear(); // Clear possible modes. Modes can maybe be dynamic between connections. If the camera's FW was updated in-between?
-            dev.sources.emplace_back("Raw Left");
-            dev.sources.emplace_back("Luma Rectified Left");
-            dev.sources.emplace_back("Compressed");
-
-            for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-                auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-                std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                                       std::to_string(mode.disparities) + "x";
-
-                StreamingModes streamingModes;
-                streamingModes.modeName = modeName;
-                dev.modes.emplace_back(streamingModes);
-                lastActiveDevice = dev.name;
-
-            }
         } else
             dev.state = ArUnavailableState;
     }
+}
+
+void CameraConnection::setStreamingModes(Element &dev){
+    // Find sources for each imager and and set these correspondly in element
+    // Start with left
+    dev.stream.reserve(PREVIEW_DISPARITY);
+
+    StreamingModes left{};
+    left.sources.emplace_back("None");
+    left.sources.emplace_back("Raw Left");
+    left.sources.emplace_back("Luma Rectified Left");
+    left.sources.emplace_back("Compressed");
+    left.streamIndex = PREVIEW_LEFT;
+
+    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+        left.modes.emplace_back(modeName);
+    }
+    left.selectedStreamingMode = left.modes.front();
+    left.selectedStreamingSource = left.sources.front();
+
+    StreamingModes right{};
+    right.sources.emplace_back("None");
+    right.sources.emplace_back("Raw Left");
+    right.sources.emplace_back("Luma Rectified Left");
+    right.sources.emplace_back("Compressed");
+    right.streamIndex = PREVIEW_RIGHT;
+
+    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+
+        right.modes.emplace_back(modeName);
+
+    }
 
 
+    StreamingModes disparity{};
+    disparity.sources.emplace_back("None");
+    disparity.sources.emplace_back("Raw Left");
+    disparity.sources.emplace_back("Luma Rectified Left");
+    disparity.sources.emplace_back("Compressed");
+    disparity.sources.emplace_back("Cost");
+    disparity.streamIndex = PREVIEW_DISPARITY;
+
+    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+
+        disparity.modes.emplace_back(modeName);
+
+    }
+
+    StreamingModes auxiliary{};
+    auxiliary.sources.emplace_back("None");
+    auxiliary.sources.emplace_back("Chroma Rectified Aux");
+    auxiliary.sources.emplace_back("Luma Rectified Aux");
+    auxiliary.sources.emplace_back("Chroma + Luma Rectified Aux");
+    auxiliary.streamIndex = PREVIEW_AUXILIARY;
+
+    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+
+        auxiliary.modes.emplace_back(modeName);
+
+    }
+
+
+    dev.stream.emplace_back(left);
+    dev.stream.emplace_back(right);
+    dev.stream.emplace_back(disparity);
+    dev.stream.emplace_back(auxiliary);
+
+    lastActiveDevice = dev.name;
 }
 
 void CameraConnection::setNetworkAdapterParameters(Element &dev) {

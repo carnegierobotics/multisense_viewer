@@ -44,6 +44,8 @@ private:
     void disableCrlCamera(Element &element);
 
     void setNetworkAdapterParameters(Element &dev);
+
+    void setStreamingModes(Element &dev);
 };
 
 

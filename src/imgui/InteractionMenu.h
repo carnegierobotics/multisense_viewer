@@ -141,7 +141,8 @@ private:
     void buildConfigurationPreview(GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
+                       ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
@@ -211,55 +212,72 @@ private:
         pos.y += 5;
         pos.x += 50;
         ImGui::SetCursorPos(pos);
-        ImGui::Text("Left Stereo Imager");
-
-        static int item_current_idx = 0; // Here we store our selection data as an index.
-
-        if (ImGui::BeginListBox("##Source", ImVec2(200.0f, d->sources.size() * ImGui::GetTextLineHeightWithSpacing())))
-        {
-            for (int n = 0; n < d->sources.size(); n++)
-            {
-                const bool is_selected = (item_current_idx == n);
-
-                if (ImGui::Selectable(d->sources[n].c_str(), is_selected))
-                    item_current_idx = n;
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                    d->selectedStreamingSource = d->sources[item_current_idx];
-                }
-            }
-            ImGui::EndListBox();
-        }
-
-        static int item_current_idx2 = 0; // Here we store our selection data as an index.
-
-        if (ImGui::BeginListBox("##Resolution", ImVec2(200.0f, 5.0f + (float) d->modes.size() *
-                                                                      ImGui::GetTextLineHeightWithSpacing()))) {
-            for (int n = 0; n < d->modes.size(); n++) {
-                const bool is_selected = (item_current_idx2 == n);
-
-                if (ImGui::Selectable(d->modes[n].modeName.c_str(), is_selected))
-                    item_current_idx2 = n;
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                    d->selectedStreamingMode = d->modes[item_current_idx2].modeName;
-                }
-            }
-            ImGui::EndListBox();
-        }
-
-
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, ImGui::GetCursorPos().y + 10.0f));
-
-        d->button = ImGui::Button("Preview Bar", ImVec2(175.0f, 20.0f));
-
+        addStreamPlaybackControls(PREVIEW_LEFT, "Left preview", d);
+        ImGui::SameLine();
+        addStreamPlaybackControls(PREVIEW_RIGHT, "Right preview", d);
+        ImGui::SameLine();
+        addStreamPlaybackControls(PREVIEW_DISPARITY, "Disparity preview", d);
+        ImGui::SameLine();
+        addStreamPlaybackControls(PREVIEW_AUXILIARY, "Auxiliary preview", d);
 
     }
 
+    void addStreamPlaybackControls(StreamIndex streamIndex, std::string label, Element *d) {
+        ImGui::BeginGroup();
+        ImGui::Text("%s", label.c_str());
+        auto &stream = d->stream[streamIndex];
+
+        ImGui::SetNextItemWidth(200);
+        const char *combo_preview_value = stream.sources[stream.selectedSourceIndex].c_str();  // Pass in the preview value visible before opening the combo (it could be anything)
+        std::string srcLabel = "##Source" + std::to_string(streamIndex);
+        if (ImGui::BeginCombo(srcLabel.c_str(), combo_preview_value,
+                              ImGuiComboFlags_HeightSmall)) {
+            for (int n = 0; n < stream.sources.size(); n++) {
+
+                const bool is_selected = (stream.selectedSourceIndex == n);
+                if (ImGui::Selectable(stream.sources[n].c_str(), is_selected)) {
+                    stream.selectedSourceIndex = n;
+                    stream.selectedStreamingSource = stream.sources[stream.selectedSourceIndex];
+
+                }
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::SetNextItemWidth(200);
+
+        std::string resLabel = "##Resolution" + std::to_string(streamIndex);
+        if (ImGui::BeginCombo(resLabel.c_str(), stream.modes[stream.selectedModeIndex].c_str(),
+                              ImGuiComboFlags_HeightSmall)) {
+            for (int n = 0; n < stream.modes.size(); n++) {
+                const bool is_selected = (stream.selectedModeIndex == n);
+                if (ImGui::Selectable(stream.modes[n].c_str(), is_selected)) {
+                    stream.selectedModeIndex = n;
+                    stream.selectedStreamingMode = stream.modes[stream.selectedModeIndex];
+
+                }
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        std::string btnLabel  = "Play/Pause"+ std::to_string(streamIndex);
+        if (ImGui::Button(btnLabel.c_str())) {
+            if (stream.playbackStatus != PREVIEW_PLAYING)
+                stream.playbackStatus = PREVIEW_PLAYING;
+            else
+                stream.playbackStatus = PREVIEW_STOPPED;
+        }
+
+        ImGui::EndGroup();
+    }
 
 };
 

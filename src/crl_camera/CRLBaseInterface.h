@@ -4,6 +4,7 @@
 
 #ifndef MULTISENSE_VIEWER_CRLBASEINTERFACE_H
 #define MULTISENSE_VIEWER_CRLBASEINTERFACE_H
+
 #include <MultiSense/MultiSenseChannel.hh>
 #include <unordered_map>
 
@@ -23,14 +24,18 @@ public:
         crl::multisense::image::Calibration camCal{};
         std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
         crl::multisense::DataSource supportedSources{0};
-        std::vector<uint8_t*> rawImages;
+        std::vector<uint8_t *> rawImages;
         int sensorMTU = 0;
-    }cameraInfo;
+    } cameraInfo;
 
-    virtual bool connect(const std::string& ip) = 0;
+    virtual bool connect(const std::string &ip) = 0;
+
     virtual void updateCameraInfo() = 0;
+
     virtual void start(std::string string, std::string dataSourceStr) = 0;
+
     virtual void stop(std::string dataSourceStr) = 0;
+
     virtual CameraInfo getCameraInfo() {
         return cameraInfo;
     }
@@ -39,7 +44,10 @@ public:
         return imagePointers;
     }
 
-    std::unordered_map<crl::multisense::DataSource,crl::multisense::image::Header> imagePointers;
+    virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
+                                  crl::multisense::image::Header **src2 = nullptr) {}
+
+    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
     bool online = false;
     bool modeChange = false;
     bool play = false;

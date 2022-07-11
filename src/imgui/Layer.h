@@ -114,9 +114,9 @@ struct GuiObjectHandles {
     /** @brief Static info used in creation of gui */
     GuiLayerUpdateInfo *info{};
 
-    float sliderOne = 2.5f;
-    float sliderTwo = -0.33;
-    float sliderThree = -1.35f;
+    float sliderOne = -1.77f;
+    float sliderTwo = 0.986f;
+    float sliderThree = -0.718;
 
 };
 

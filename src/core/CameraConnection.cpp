@@ -19,6 +19,7 @@ void CameraConnection::updateActiveDevice(Element dev) {
 
     for (auto d : dev.stream){
         if (d.playbackStatus == PREVIEW_PLAYING){
+
             camPtr->start(d.selectedStreamingMode, d.selectedStreamingSource);
 
         }
@@ -105,6 +106,7 @@ void CameraConnection::setStreamingModes(Element &dev){
     StreamingModes left{};
     left.sources.emplace_back("None");
     left.sources.emplace_back("Raw Left");
+    left.sources.emplace_back("Luma Left");
     left.sources.emplace_back("Luma Rectified Left");
     left.sources.emplace_back("Compressed");
     left.streamIndex = PREVIEW_LEFT;
@@ -120,8 +122,9 @@ void CameraConnection::setStreamingModes(Element &dev){
 
     StreamingModes right{};
     right.sources.emplace_back("None");
-    right.sources.emplace_back("Raw Left");
-    right.sources.emplace_back("Luma Rectified Left");
+    right.sources.emplace_back("Raw Right");
+    right.sources.emplace_back("Luma Right");
+    right.sources.emplace_back("Luma Rectified Right");
     right.sources.emplace_back("Compressed");
     right.streamIndex = PREVIEW_RIGHT;
 
@@ -133,14 +136,14 @@ void CameraConnection::setStreamingModes(Element &dev){
         right.modes.emplace_back(modeName);
 
     }
-
+    right.selectedStreamingMode = right.modes.front();
+    right.selectedStreamingSource = right.sources.front();
 
     StreamingModes disparity{};
     disparity.sources.emplace_back("None");
-    disparity.sources.emplace_back("Raw Left");
-    disparity.sources.emplace_back("Luma Rectified Left");
-    disparity.sources.emplace_back("Compressed");
-    disparity.sources.emplace_back("Cost");
+    disparity.sources.emplace_back("Disparity Left");
+    disparity.sources.emplace_back("Disparity Cost");
+    disparity.sources.emplace_back("Disparity Cost");
     disparity.streamIndex = PREVIEW_DISPARITY;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
@@ -151,12 +154,14 @@ void CameraConnection::setStreamingModes(Element &dev){
         disparity.modes.emplace_back(modeName);
 
     }
+    disparity.selectedStreamingMode = disparity.modes.front();
+    disparity.selectedStreamingSource = disparity.sources.front();
 
     StreamingModes auxiliary{};
     auxiliary.sources.emplace_back("None");
-    auxiliary.sources.emplace_back("Chroma Rectified Aux");
+    auxiliary.sources.emplace_back("Color Rectified Aux");
     auxiliary.sources.emplace_back("Luma Rectified Aux");
-    auxiliary.sources.emplace_back("Chroma + Luma Rectified Aux");
+    auxiliary.sources.emplace_back("Color + Luma Rectified Aux");
     auxiliary.streamIndex = PREVIEW_AUXILIARY;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
@@ -167,7 +172,8 @@ void CameraConnection::setStreamingModes(Element &dev){
         auxiliary.modes.emplace_back(modeName);
 
     }
-
+    auxiliary.selectedStreamingMode = auxiliary.modes.front();
+    auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
     dev.stream.emplace_back(left);
     dev.stream.emplace_back(right);
@@ -206,21 +212,21 @@ void CameraConnection::setNetworkAdapterParameters(Element &dev) {
     memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
     int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+        fprintf(stderr, "ioctl SIOCSIFADDR: %s\n", strerror(errno));
     }
 
     /// put mask in ifr structure
     memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
     ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
     if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s\n", strerror(errno));
     }
 
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
     ifr.ifr_mtu = 7200; //your MTU size here
     ioctl_result = ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr);
     if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFMTU: %s", strerror(errno));
+        fprintf(stderr, "ioctl SIOCSIFMTU: %s\n", strerror(errno));
     }
 
 
@@ -242,10 +248,6 @@ void CameraConnection::disableCrlCamera(Element &dev) {
     dev.state = ArDisconnectedState;
     lastActiveDevice = "";
 
-    dev.colorImage = false;
-    dev.colorImage = false;
-    dev.depthImage = false;
-    dev.pointCloud = false;
 
     // Free camPtr memory and point it to null for a reset.
     delete camPtr;

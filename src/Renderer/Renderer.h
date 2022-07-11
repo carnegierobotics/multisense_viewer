@@ -29,9 +29,10 @@
 //#include <MultiSense/src/scripts/objects/LightSource.h>
 #include <MultiSense/src/scripts/video/DefaultPreview.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
-#include <MultiSense/src/scripts/video/PreviewBar.h>
+#include <MultiSense/src/scripts/video/DisparityPreview.h>
 #include <MultiSense/src/scripts/video/DecodeVideo.h>
 #include <MultiSense/src/scripts/video/RightPreview.h>
+#include <MultiSense/src/scripts/video/AuxiliaryPreview.h>
 
 
 class Renderer : VulkanRenderer {

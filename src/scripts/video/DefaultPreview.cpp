@@ -56,7 +56,6 @@ void DefaultPreview::update(CameraConnection *conn) {
     }
 
     if (camera->play && model->draw) {
-
         crl::multisense::image::Header* image;
         camera->getCameraStream(src, &image);
         model->setGrayscaleTexture(image);

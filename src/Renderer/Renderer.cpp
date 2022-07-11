@@ -119,9 +119,10 @@ void Renderer::generateScriptClasses() {
     //classNames.emplace_back("Example");
     //classNames.emplace_back("LightSource");
     //classNames.emplace_back("VirtualPointCloud");
-    classNames.emplace_back("PreviewBar");
+    classNames.emplace_back("DisparityPreview");
     classNames.emplace_back("DefaultPreview");
     classNames.emplace_back("RightPreview");
+    classNames.emplace_back("AuxiliaryPreview");
     classNames.emplace_back("PointCloud");
     classNames.emplace_back("DecodeVideo");
 

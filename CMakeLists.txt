@@ -99,8 +99,10 @@ set(ENGINE_SRC
         src/scripts/video/DefaultPreview.h
         src/scripts/video/RightPreview.cpp
         src/scripts/video/RightPreview.h
-        src/scripts/video/PreviewBar.cpp
-        src/scripts/video/PreviewBar.h
+        src/scripts/video/DisparityPreview.cpp
+        src/scripts/video/DisparityPreview.h
+        src/scripts/video/AuxiliaryPreview.cpp
+        src/scripts/video/AuxiliaryPreview.h
         src/scripts/video/DecodeVideo.cpp
         src/scripts/video/DecodeVideo.h
         src/tools/Macros.h

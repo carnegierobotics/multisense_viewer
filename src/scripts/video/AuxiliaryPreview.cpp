@@ -1,10 +1,11 @@
 //
-// Created by magnus on 7/8/22.
+// Created by magnus on 7/11/22.
 //
 
-#include "RightPreview.h"
+#include "AuxiliaryPreview.h"
 
-void RightPreview::setup() {
+
+void AuxiliaryPreview::setup() {
     /**
      * Create and load Mesh elements
      */
@@ -16,7 +17,7 @@ void RightPreview::setup() {
 }
 
 
-void RightPreview::update(CameraConnection *conn) {
+void AuxiliaryPreview::update(CameraConnection *conn) {
 
     if (playbackSate != PREVIEW_PLAYING)
         return;
@@ -30,10 +31,10 @@ void RightPreview::update(CameraConnection *conn) {
 
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
+        vertexShaderFileName = "myScene/spv/quad.vert";
+        fragmentShaderFileName = "myScene/spv/quad.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlGrayscaleImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlColorImageYUV420);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -55,10 +56,11 @@ void RightPreview::update(CameraConnection *conn) {
     }
 
     if (camera->play && model->draw) {
-        crl::multisense::image::Header *disp;
-        camera->getCameraStream(src, &disp);
+        crl::multisense::image::Header *chroma;
+        crl::multisense::image::Header *luma;
+        camera->getCameraStream(src, &chroma, &luma);
 
-        model->setGrayscaleTexture(disp);
+        model->setColorTexture(chroma, luma);
 
     }
 
@@ -66,7 +68,7 @@ void RightPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
 
-    mat.model = glm::translate(mat.model, glm::vec3(1, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(3.2, 0.4, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -82,7 +84,7 @@ void RightPreview::update(CameraConnection *conn) {
 }
 
 
-void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
@@ -91,15 +93,15 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        src = dev.stream[PREVIEW_RIGHT].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_RIGHT].playbackStatus;
+        src = dev.stream[PREVIEW_AUXILIARY].selectedStreamingSource;
+        playbackSate = dev.stream[PREVIEW_AUXILIARY].playbackStatus;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 
 }
 
 
-void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void AuxiliaryPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw)
         CRLCameraModels::draw(commandBuffer, i, model);
 

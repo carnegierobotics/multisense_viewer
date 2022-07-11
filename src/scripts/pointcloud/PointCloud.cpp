@@ -21,12 +21,7 @@ void PointCloud::update() {
         return;
     camera->update();
 
-    if (camera->stream == nullptr)
-        return;
 
-
-    if (camera->stream->source != crl::multisense::Source_Disparity_Left)
-        return;
 
     if (model->draw == false || camera->modeChange) {
         /*

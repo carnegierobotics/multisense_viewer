@@ -49,10 +49,35 @@ typedef enum {
     ArJustAddedState
 } ArConnectionState;
 
+typedef enum StreamIndex {
+    PREVIEW_LEFT = 0,
+    PREVIEW_RIGHT = 1,
+    PREVIEW_DISPARITY = 2,
+    PREVIEW_AUXILIARY = 3,
+    PREVIEW_PLAYING = 10,
+    PREVIEW_PAUSED = 11,
+    PREVIEW_STOPPED = 12,
+} StreamIndex;
+
 /** @brief  */
 struct StreamingModes {
-    std::string label;
-    std::string modeName;
+    /** @brief Which gui index is selected */
+    uint32_t streamIndex = PREVIEW_LEFT;
+    /** @brief Current camera streaming state  */
+    uint32_t playbackStatus = PREVIEW_STOPPED;
+
+    /** @brief Camera streaming modes  */
+    std::vector<std::string> modes;
+    /** @brief Camera streaming sources  */
+    std::vector<std::string> sources;
+    uint32_t selectedModeIndex = 0;
+    uint32_t selectedSourceIndex = 0;
+    /** @brief Which mode is currently selected */
+    std::string selectedStreamingMode = "Select sensor resolution";
+    /** @brief Which source is currently selected */
+    std::string selectedStreamingSource = "Select sensor resolution";
+
+
 };
 
 struct Element {
@@ -68,14 +93,8 @@ struct Element {
     bool clicked;
     /** @brief Current connection state for this device */
     ArConnectionState state;
-    /** @brief Camera streaming modes  */
-    std::vector<StreamingModes> modes;
-    /** @brief Camera streaming sources  */
-    std::vector<std::string> sources;
-    /** @brief Which mode is currently selected */
-    std::string selectedStreamingMode = "Select sensor resolution";
-    /** @brief Which source is currently selected */
-    std::string selectedStreamingSource = "Select sensor resolution";
+
+    std::vector<StreamingModes> stream;
 
     /** @brief  Showing point cloud view*/
     bool pointCloud = false;

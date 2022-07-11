@@ -86,6 +86,8 @@ private:
     static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
 
     void streamCallback(const crl::multisense::image::Header &image);
+
+    void setResolution(uint32_t width, uint32_t height, uint32_t depth);
 };
 
 

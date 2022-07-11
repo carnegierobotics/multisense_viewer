@@ -1,13 +1,11 @@
 //
-// Created by magnus on 7/8/22.
+// Created by magnus on 5/8/22.
 //
 
-#include "RightPreview.h"
+#include "DisparityPreview.h"
 
-void RightPreview::setup() {
-    /**
-     * Create and load Mesh elements
-     */
+
+void DisparityPreview::setup() {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
@@ -16,8 +14,7 @@ void RightPreview::setup() {
 }
 
 
-void RightPreview::update(CameraConnection *conn) {
-
+void DisparityPreview::update(CameraConnection *conn) {
     if (playbackSate != PREVIEW_PLAYING)
         return;
 
@@ -33,7 +30,7 @@ void RightPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlGrayscaleImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlDisparityImage);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -66,7 +63,7 @@ void RightPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
 
-    mat.model = glm::translate(mat.model, glm::vec3(1, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(2.8 + posX, 0.4 + posY, -5 + posZ));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -82,25 +79,23 @@ void RightPreview::update(CameraConnection *conn) {
 }
 
 
-void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
+
 
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
 
-        src = dev.stream[PREVIEW_RIGHT].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_RIGHT].playbackStatus;
+        src = dev.stream[PREVIEW_DISPARITY].selectedStreamingSource;
+        playbackSate = dev.stream[PREVIEW_DISPARITY].playbackStatus;
     }
-    //printf("Pos %f, %f, %f\n", posX, posY, posZ);
-
 }
 
 
-void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void DisparityPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw)
         CRLCameraModels::draw(commandBuffer, i, model);
-
 }

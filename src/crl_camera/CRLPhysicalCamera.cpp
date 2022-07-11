@@ -21,7 +21,10 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
             }
              */
 
-            cameraInterface->setMtu(7200);
+            int status = cameraInterface->setMtu(7200);
+            if (status != crl::multisense::Status_Ok){
+                std::cerr << "Failed to set MTU 9000\n";
+            }
             online = true;
             return true;
         }
@@ -31,24 +34,27 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
     return false;
 }
 
+void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t depth = 64) {
+
+    crl::multisense::image::Config cfg;
+    int ret = cameraInterface->getImageConfig(cfg);
+    if (ret != crl::multisense::Status_Ok)
+        std::cerr << "Error retrieving Image config";
+    cfg.setResolution(width, height);
+    cfg.setDisparities(depth);
+
+    ret = cameraInterface->setImageConfig(cfg);
+    if (ret != crl::multisense::Status_Ok)
+        std::cerr << "Error setting Image config";
+    else
+        printf("Set resolution successfully\n");
+
+    this->updateCameraInfo();
+
+}
+
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
-    crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
-    if (source == false)
-        return;
-    // Check if the stream has already been enabled first
-    if (std::find(enabledSources.begin(), enabledSources.end(),
-                  source) != enabledSources.end()) {
-        return;
-    }
 
-
-    uint32_t colorSource = crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Chroma_Rectified_Aux |
-                           crl::multisense::Source_Chroma_Aux |
-                           crl::multisense::Source_Chroma_Left | crl::multisense::Source_Chroma_Right;
-    if (source & colorSource)
-        enabledSources.push_back(crl::multisense::Source_Luma_Rectified_Aux);
-
-    enabledSources.push_back(source);
 
     // Set mode first
     std::string delimiter = "x";
@@ -61,21 +67,36 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         widthHeightDepth.push_back(std::stoi(token));
         string.erase(0, pos + delimiter.length());
     }
-
     if (widthHeightDepth.size() != 3) {
-        std::cerr << "Select valid mode\n";
+        std::cerr << "Select valid resolution\n";
         return;
     }
-    //this->selectDisparities(widthHeightDepth[2]);
-    //this->selectResolution(widthHeightDepth[0], widthHeightDepth[1]);
-    //this->selectFramerate(60);
+
+    // If res changed then set it again.
+    if (cameraInfo.imgConf.disparities() != widthHeightDepth[2])
+        setResolution(widthHeightDepth[0], widthHeightDepth[1], widthHeightDepth[2]);
+
+
+    crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
+    if (source == false)
+        return;
+    // Check if the stream has already been enabled first
+    if (std::find(enabledSources.begin(), enabledSources.end(),
+                  source) != enabledSources.end()) {
+        return;
+    }
+    if (dataSourceStr == "Color + Luma Rectified Aux") {
+        enabledSources.push_back(
+                crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux);
+    } else {
+        enabledSources.push_back(source);
+    }
 
     // Start stream
     for (auto src: enabledSources) {
         bool status = cameraInterface->startStreams(src);
         printf("Started stream %s status: %d\n", dataSourceToString(src).c_str(), status);
     }
-
 
     std::thread thread_obj(CRLPhysicalCamera::setDelayedPropertyThreadFunc, this);
 
@@ -93,17 +114,13 @@ void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     if (cameraInterface == nullptr)
         return;
-
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
-
     // Check if the stream has been enabled before we attempt to stop it
-
     if (dataSourceStr != "All") {
         if (std::find(enabledSources.begin(), enabledSources.end(),
                       src) == enabledSources.end()) {
             return;
         }
-
         std::vector<uint32_t>::iterator it;
         it = std::remove(enabledSources.begin(), enabledSources.end(),
                          src);
@@ -121,10 +138,23 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     */
     bool status = cameraInterface->stopStreams(src);
     printf("Stopped stream %s status: %d\n", dataSourceStr.c_str(), status);
-
-
     modeChange = true;
 }
+void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
+                                        crl::multisense::image::Header **stream2) {
+
+    // If user selects combines streams ex. Luma and Chroma, return this instead. Otherwise choose from standrad streams.
+    if (stringSrc == "Color + Luma Rectified Aux") {
+        *stream = &imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
+        *stream2 = &imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
+        return;
+    }
+
+    uint32_t source = stringToDataSource(stringSrc);
+    *stream = &imagePointers[source];
+}
+
+
 
 /*
 CRLBaseCamera::PointCloudData *CRLPhysicalCamera::getStream() {
@@ -259,7 +289,8 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
     if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
-    if (d == "Chroma + Luma Rectified Aux") return  crl::multisense::Source_Luma_Rectified_Aux | crl::multisense::Source_Chroma_Rectified_Aux;
+    if (d == "Color + Luma Rectified Aux")
+        return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;
     if (d == "All") return crl::multisense::Source_All;
     return false;
 }
@@ -362,28 +393,17 @@ void CRLPhysicalCamera::addCallbacks() {
     cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
 
     // finally, add our callback
-    /*    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+        if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
         crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
-    }*/
+    }
 
+        /*
     if (cameraInterface->addIsolatedCallback(imageCallback, crl::multisense::Source_All, this) !=
         crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
     }
+         */
 
 }
 
-void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
-                                          crl::multisense::image::Header **stream2) {
-
-    // If user selects combines streams ex. Luma and Chroma, return this instead. Otherwise choose from standrad streams.
-    if (stringSrc == "Chroma + Luma Rectified Aux"){
-        *stream = &imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
-        *stream2 = &imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
-        return;
-    }
-
-    uint32_t source = stringToDataSource(stringSrc);
-    *stream = &imagePointers[source];
-}

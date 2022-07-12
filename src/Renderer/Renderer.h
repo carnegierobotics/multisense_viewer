@@ -75,7 +75,7 @@ public:
 private:
 
     std::vector<std::unique_ptr<Base>> scripts;
-    CameraConnection *cameraConnection{};
+    std::unique_ptr<CameraConnection> cameraConnection{};
 
 
 protected:

@@ -15,6 +15,8 @@
 class CameraConnection
 {
 public:
+    CameraConnection();
+    ~CameraConnection();
 
     struct CamPreviewBar {
         bool active = false;
@@ -27,7 +29,6 @@ public:
     bool preview = false;
     std::string lastActiveDevice{};
 
-    CameraConnection();
     void onUIUpdate(std::vector<Element> *pVector);
 
 private:

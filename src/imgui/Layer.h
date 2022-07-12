@@ -50,13 +50,21 @@ typedef enum {
 } ArConnectionState;
 
 typedef enum StreamIndex {
+    // First 0 - 3 elements also correspond to array indices. Should not change.
     PREVIEW_LEFT = 0,
     PREVIEW_RIGHT = 1,
     PREVIEW_DISPARITY = 2,
     PREVIEW_AUXILIARY = 3,
+    PREVIEW_VIRTUAL = 4 ,
+
+    // Other flags
     PREVIEW_PLAYING = 10,
     PREVIEW_PAUSED = 11,
     PREVIEW_STOPPED = 12,
+    PREVIEW_NONE = 13,
+    PREVIEW_RESET = 14,
+
+
 } StreamIndex;
 
 /** @brief  */
@@ -64,7 +72,7 @@ struct StreamingModes {
     /** @brief Which gui index is selected */
     uint32_t streamIndex = PREVIEW_LEFT;
     /** @brief Current camera streaming state  */
-    uint32_t playbackStatus = PREVIEW_STOPPED;
+    uint32_t playbackStatus = PREVIEW_NONE;
 
     /** @brief Camera streaming modes  */
     std::vector<std::string> modes;
@@ -94,7 +102,7 @@ struct Element {
     /** @brief Current connection state for this device */
     ArConnectionState state;
 
-    std::vector<StreamingModes> stream;
+    std::unordered_map<int, StreamingModes> streams;
 
     /** @brief  Showing point cloud view*/
     bool pointCloud = false;

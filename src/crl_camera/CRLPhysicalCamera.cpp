@@ -383,8 +383,7 @@ void CRLPhysicalCamera::addCallbacks() {
 
     // --- initializing our callback buffers ---
     std::size_t bufSize = 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
-    for (int i = 0;
-         i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
+    for (int i = 0; i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
     {
         cameraInfo.rawImages.push_back(new uint8_t[bufSize]);
     }

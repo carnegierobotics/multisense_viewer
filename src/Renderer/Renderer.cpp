@@ -20,8 +20,7 @@ void Renderer::prepareRenderer() {
     guiManager->pushLayer<SideBar>();
     guiManager->pushLayer<InteractionMenu>();
 
-    cameraConnection = new CameraConnection();
-
+    cameraConnection = std::make_unique<CameraConnection>();
 }
 
 
@@ -164,7 +163,7 @@ void Renderer::render() {
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
-    renderData.crlCamera = cameraConnection;
+    renderData.crlCamera = &cameraConnection;
 
     // Run update function on scripts
     for (auto &script: scripts) {
@@ -201,6 +200,7 @@ void Renderer::updateUniformBuffers() {
 
 void Renderer::cleanUp() {
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+    cameraConnection.reset();
 
 }
 

@@ -22,7 +22,7 @@ void DisparityPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw && camera->modeChange) {
+    if (!model->draw) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
         std::string vertexShaderFileName;
@@ -85,12 +85,16 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posZ = uiHandle.sliderThree;
 
 
+    // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
 
-        src = dev.stream[PREVIEW_DISPARITY].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_DISPARITY].playbackStatus;
+        if (dev.streams.find(PREVIEW_DISPARITY) == dev.streams.end())
+            continue;
+
+        src = dev.streams.find(PREVIEW_DISPARITY)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(PREVIEW_DISPARITY)->second.playbackStatus;
     }
 }
 

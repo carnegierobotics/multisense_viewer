@@ -77,7 +77,7 @@ public:
         Camera *camera;
         float deltaT;
         float runTime;
-        CameraConnection *crlCamera;
+        std::unique_ptr<CameraConnection> *crlCamera;
         ScriptType type;
     } renderData{};
 
@@ -110,8 +110,8 @@ public:
         // Default update function is called for updating models. Else CRL extension
         if (d.type == ArDefault)
             update();
-        else if (d.type == ArCameraScript && d.crlCamera->camPtr != nullptr)
-            update(d.crlCamera);
+        else if (d.type == ArCameraScript && d.crlCamera->get()->camPtr != nullptr)
+            update(d.crlCamera->get());
 
         // If initialized
         if (renderUtils.uniformBuffers.empty())

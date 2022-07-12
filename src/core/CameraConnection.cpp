@@ -17,11 +17,10 @@ CameraConnection::CameraConnection() {
 
 void CameraConnection::updateActiveDevice(Element dev) {
 
-    for (auto d : dev.stream){
-        if (d.playbackStatus == PREVIEW_PLAYING){
+    for (auto d: dev.streams) {
 
-            camPtr->start(d.selectedStreamingMode, d.selectedStreamingSource);
-
+        if (d.second.playbackStatus == PREVIEW_PLAYING) {
+            camPtr->start(d.second.selectedStreamingMode, d.second.selectedStreamingSource);
         }
     }
 
@@ -51,14 +50,23 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         }
 
         updateDeviceState(&dev);
-        if (dev.state != ArActiveState)
+
+        // Make sure inactive devices' preview are not drawn.
+        if (dev.state != ArActiveState){
+            for (auto &s: dev.streams)
+                    s.second.playbackStatus = PREVIEW_NONE;
             continue;
+        }
 
 
         updateActiveDevice(dev);
 
         // Disable if we click a device already connected
         if (dev.clicked && dev.state == ArActiveState) {
+            // Disable all streams
+            for (auto &s: dev.streams)
+                s.second.playbackStatus = PREVIEW_RESET;
+
             disableCrlCamera(dev);
             continue;
         }
@@ -81,6 +89,16 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.IP = "Local";
             lastActiveDevice = dev.name;
 
+            StreamingModes virtualCam{};
+            virtualCam.sources.emplace_back("None");
+            virtualCam.sources.emplace_back("Local Mp4 File");
+            virtualCam.streamIndex = PREVIEW_VIRTUAL;
+            std::string modeName = "1920x1080";
+            virtualCam.modes.emplace_back(modeName);
+            virtualCam.selectedStreamingMode = virtualCam.modes.front();
+            virtualCam.selectedStreamingSource = virtualCam.sources.front();
+            dev.streams[PREVIEW_VIRTUAL] = virtualCam;
+
         } else
             dev.state = ArUnavailableState;
 
@@ -98,11 +116,10 @@ void CameraConnection::connectCrlCamera(Element &dev) {
     }
 }
 
-void CameraConnection::setStreamingModes(Element &dev){
+void CameraConnection::setStreamingModes(Element &dev) {
     // Find sources for each imager and and set these correspondly in element
     // Start with left
-    dev.stream.reserve(PREVIEW_DISPARITY);
-
+    // TODO USE camPtr to fetch these values dynamically
     StreamingModes left{};
     left.sources.emplace_back("None");
     left.sources.emplace_back("Raw Left");
@@ -175,10 +192,10 @@ void CameraConnection::setStreamingModes(Element &dev){
     auxiliary.selectedStreamingMode = auxiliary.modes.front();
     auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
-    dev.stream.emplace_back(left);
-    dev.stream.emplace_back(right);
-    dev.stream.emplace_back(disparity);
-    dev.stream.emplace_back(auxiliary);
+    dev.streams[PREVIEW_LEFT] = left;
+    dev.streams[PREVIEW_RIGHT] = right;
+    dev.streams[PREVIEW_DISPARITY] = disparity;
+    dev.streams[PREVIEW_AUXILIARY] = auxiliary;
 
     lastActiveDevice = dev.name;
 }
@@ -255,4 +272,9 @@ void CameraConnection::disableCrlCamera(Element &dev) {
 
 }
 
-
+CameraConnection::~CameraConnection(){
+    // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
+    // stops all streams on the camera
+    if (camPtr != nullptr)
+        delete camPtr;
+}

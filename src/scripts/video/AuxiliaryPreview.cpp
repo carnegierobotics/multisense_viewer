@@ -26,7 +26,7 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw && camera->modeChange) {
+    if (!model->draw) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
         std::string vertexShaderFileName;
@@ -93,8 +93,11 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        src = dev.stream[PREVIEW_AUXILIARY].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_AUXILIARY].playbackStatus;
+        if (dev.streams.find(PREVIEW_AUXILIARY) == dev.streams.end())
+            continue;
+
+        src = dev.streams.find(PREVIEW_AUXILIARY)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(PREVIEW_AUXILIARY)->second.playbackStatus;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 

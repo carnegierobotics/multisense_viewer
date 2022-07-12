@@ -25,7 +25,7 @@ void RightPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw && camera->modeChange) {
+    if (!model->draw) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
         std::string vertexShaderFileName;
@@ -90,9 +90,11 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
+        if (dev.streams.find(PREVIEW_RIGHT) == dev.streams.end())
+            continue;
 
-        src = dev.stream[PREVIEW_RIGHT].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_RIGHT].playbackStatus;
+        src = dev.streams.find(PREVIEW_RIGHT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(PREVIEW_RIGHT)->second.playbackStatus;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 

@@ -24,7 +24,7 @@ void DefaultPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw && camera->modeChange) {
+    if (!model->draw) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
 
@@ -90,8 +90,11 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        src = dev.stream[PREVIEW_LEFT].selectedStreamingSource;
-        playbackSate = dev.stream[PREVIEW_LEFT].playbackStatus;
+        if (dev.streams.find(PREVIEW_LEFT)== dev.streams.end())
+            continue;
+
+        src = dev.streams.find(PREVIEW_LEFT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(PREVIEW_LEFT)->second.playbackStatus;
 
     }
 
@@ -102,7 +105,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
 
 void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw)
+    if (model->draw && playbackSate != PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

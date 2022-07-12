@@ -24,50 +24,19 @@ public:
 
     }
 
-    void buildDeviceInformation(GuiObjectHandles *handles) {
-        bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
-
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
-        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
-
-
-        if (ImGui::Button("Back")) {
-            page[PAGE_DEVICE_INFORMATION] = false;
-            drawActionPage = true;
-        }
-
-        ImGui::NewLine();
-        ImGui::PopStyleColor(); // bg color
-        ImGui::End();
-    }
-
-    void buildPreview(GuiObjectHandles *handles) {
-        bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
-
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
-        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
-
-
-        if (ImGui::Button("Back")) {
-            page[PAGE_PREVIEW_DEVICES] = false;
-            drawActionPage = true;
-        }
-
-        ImGui::NewLine();
-        ImGui::PopStyleColor(); // bg color
-        ImGui::End();
-    }
 
     void OnUIRender(GuiObjectHandles *handles) override {
         if (handles->devices->empty()) return;
+
+        // Check if stream was interrupted by a disconnect event and reset pages events across all devices
+        for (auto &d: *handles->devices) {
+            for (auto &s: d.streams)
+                if (s.second.playbackStatus == PREVIEW_RESET) {
+                    s.second.playbackStatus = PREVIEW_NONE;
+                    std::fill_n(page, PAGE_TOTAL_PAGES, false);
+                    drawActionPage = true;
+                }
+        }
 
         for (int i = 0; i < PAGE_TOTAL_PAGES; ++i) {
             if (page[i]) {
@@ -138,6 +107,48 @@ private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
 
+    void buildDeviceInformation(GuiObjectHandles *handles) {
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+
+        if (ImGui::Button("Back")) {
+            page[PAGE_DEVICE_INFORMATION] = false;
+            drawActionPage = true;
+        }
+
+        ImGui::NewLine();
+        ImGui::PopStyleColor(); // bg color
+        ImGui::End();
+    }
+
+    void buildPreview(GuiObjectHandles *handles) {
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+
+        if (ImGui::Button("Back")) {
+            page[PAGE_PREVIEW_DEVICES] = false;
+            drawActionPage = true;
+        }
+
+        ImGui::NewLine();
+        ImGui::PopStyleColor(); // bg color
+        ImGui::End();
+    }
+
     void buildConfigurationPreview(GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -155,6 +166,13 @@ private:
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     if (ImGui::BeginTabItem("Streaming")) {
+
+                        if (ImGui::Button("Back")) {
+                            page[PAGE_CONFIGURE_DEVICE] = false;
+                            drawActionPage = true;
+                        }
+
+
                         addStreamingTab(handles, &d);
 
                         ImGui::EndTabItem();
@@ -171,10 +189,10 @@ private:
 
 
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->height / 3), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 0.0f));
-        ImGui::BeginChild("ConfigurationPewview",
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 0.10f));
+        ImGui::BeginChild("ConfigurationPreview",
                           ImVec2(handles->info->width - handles->info->sidebarWidth, 2 * handles->info->height / 3),
-                          false, window_flags | ImGuiWindowFlags_NoBringToFrontOnFocus);
+                          false, window_flags);
 
         ImGui::EndChild();
         ImGui::PopStyleColor(); // child window bg color
@@ -202,31 +220,32 @@ private:
     }
 
     void addStreamingTab(GuiObjectHandles *handles, Element *d) {
-        if (ImGui::Button("Back")) {
-            page[PAGE_CONFIGURE_DEVICE] = false;
-            drawActionPage = true;
-        }
 
 
         ImVec2 pos = ImGui::GetCursorPos();
         pos.y += 5;
         pos.x += 50;
         ImGui::SetCursorPos(pos);
-        addStreamPlaybackControls(PREVIEW_LEFT, "Left preview", d);
-        ImGui::SameLine();
-        addStreamPlaybackControls(PREVIEW_RIGHT, "Right preview", d);
-        ImGui::SameLine();
-        addStreamPlaybackControls(PREVIEW_DISPARITY, "Disparity preview", d);
-        ImGui::SameLine();
-        addStreamPlaybackControls(PREVIEW_AUXILIARY, "Auxiliary preview", d);
+
+        if (d->cameraName == "Virtual Camera") {
+            addStreamPlaybackControls(PREVIEW_VIRTUAL, "Virtual preview", d);
+
+        } else {
+            addStreamPlaybackControls(PREVIEW_LEFT, "Left preview", d);
+            ImGui::SameLine();
+            addStreamPlaybackControls(PREVIEW_RIGHT, "Right preview", d);
+            ImGui::SameLine();
+            addStreamPlaybackControls(PREVIEW_DISPARITY, "Disparity preview", d);
+            ImGui::SameLine();
+            addStreamPlaybackControls(PREVIEW_AUXILIARY, "Auxiliary preview", d);
+        }
 
     }
 
     void addStreamPlaybackControls(StreamIndex streamIndex, std::string label, Element *d) {
         ImGui::BeginGroup();
         ImGui::Text("%s", label.c_str());
-        auto &stream = d->stream[streamIndex];
-
+        auto &stream = d->streams[streamIndex];
         ImGui::SetNextItemWidth(200);
         const char *combo_preview_value = stream.sources[stream.selectedSourceIndex].c_str();  // Pass in the preview value visible before opening the combo (it could be anything)
         std::string srcLabel = "##Source" + std::to_string(streamIndex);
@@ -268,7 +287,7 @@ private:
             ImGui::EndCombo();
         }
 
-        std::string btnLabel  = "Play/Pause"+ std::to_string(streamIndex);
+        std::string btnLabel = "Play/Pause##" + std::to_string(streamIndex);
         if (ImGui::Button(btnLabel.c_str())) {
             if (stream.playbackStatus != PREVIEW_PLAYING)
                 stream.playbackStatus = PREVIEW_PLAYING;

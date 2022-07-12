@@ -7,6 +7,7 @@
 
 #include <MultiSense/MultiSenseChannel.hh>
 #include <unordered_map>
+#include "glm/glm.hpp"
 
 class CRLBaseInterface {
 
@@ -36,6 +37,8 @@ public:
 
     virtual void stop(std::string dataSourceStr) = 0;
 
+    virtual void preparePointCloud(uint32_t width, uint32_t height) = 0;
+
     virtual CameraInfo getCameraInfo() {
         return cameraInfo;
     }
@@ -52,6 +55,7 @@ public:
     bool modeChange = false;
     bool play = false;
     std::vector<crl::multisense::DataSource> enabledSources;
+    glm::mat4 kInverseMatrix{};
 
 
 };

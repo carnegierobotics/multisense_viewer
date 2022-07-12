@@ -682,8 +682,8 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
 
 
     // If we do not want to send key events to the Render engine but keem them in the UI.
-    if (io.WantCaptureKeyboard)
-        return;
+    //if (io.WantCaptureKeyboard)
+    //    return;
 
     if (action == GLFW_PRESS) {
 

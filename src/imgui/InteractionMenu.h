@@ -8,13 +8,6 @@
 #include "Layer.h"
 
 
-typedef enum PAGES {
-    PAGE_PREVIEW_DEVICES = 0,
-    PAGE_DEVICE_INFORMATION = 1,
-    PAGE_CONFIGURE_DEVICE = 2,
-    PAGE_TOTAL_PAGES = 3,
-} PAGES;
-
 class InteractionMenu : public Layer {
 public:
 
@@ -166,12 +159,10 @@ private:
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     if (ImGui::BeginTabItem("Streaming")) {
-
                         if (ImGui::Button("Back")) {
                             page[PAGE_CONFIGURE_DEVICE] = false;
                             drawActionPage = true;
                         }
-
 
                         addStreamingTab(handles, &d);
 
@@ -193,6 +184,28 @@ private:
         ImGui::BeginChild("ConfigurationPreview",
                           ImVec2(handles->info->width - handles->info->sidebarWidth, 2 * handles->info->height / 3),
                           false, window_flags);
+
+        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 5 , ImGui::GetCursorPosY()));
+        // Create Preview Window
+        for (auto &d: *handles->devices) {
+            // Create dropdown
+            if (d.state == ArActiveState) {
+                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
+                if (ImGui::BeginTabBar("2D Preview", tab_bar_flags)) {
+                    if (ImGui::BeginTabItem("Streaming")) {
+                        d.selectedPreviewTab = TAB_2D_PREVIEW;
+
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("3D Point cloud")) {
+                        d.selectedPreviewTab = TAB_3D_POINTCLOUD;
+
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+            }
+        }
 
         ImGui::EndChild();
         ImGui::PopStyleColor(); // child window bg color
@@ -242,7 +255,7 @@ private:
 
     }
 
-    void addStreamPlaybackControls(StreamIndex streamIndex, std::string label, Element *d) {
+    void addStreamPlaybackControls(CameraStreamInfoFlag streamIndex, std::string label, Element *d) {
         ImGui::BeginGroup();
         ImGui::Text("%s", label.c_str());
         auto &stream = d->streams[streamIndex];

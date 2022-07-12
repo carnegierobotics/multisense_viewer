@@ -27,7 +27,9 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
     /** @brief update function called once per frame **/
-    void update() override;
+    void update() override {};
+    /** @brief update function called once per frame **/
+    void update(CameraConnection *conn) override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
@@ -37,9 +39,8 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = ArPointCloud;
 
-    void *selection = (void *) "0";
-    CRLPhysicalCamera* camera = nullptr;
     CRLCameraModels::Model* model;
+    CameraStreamInfoFlag playbackSate;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

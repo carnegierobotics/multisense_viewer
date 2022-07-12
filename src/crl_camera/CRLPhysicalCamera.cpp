@@ -307,7 +307,7 @@ void CRLPhysicalCamera::update() {
 
 }
 
-void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
+void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
     crl::multisense::image::Config c = cameraInfo.imgConf;
 
@@ -319,6 +319,9 @@ void CRLPhysicalCamera::setup(uint32_t width, uint32_t height) {
                     glm::vec4(0, 0, 0, 1));
 
     kInverseMatrix = glm::transpose(kInverseMatrix);
+
+    start("960 x 600 x 64x", "Disparity Left");
+
     /*
    kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
                   glm::vec4(0, c.fx() * c.tx(), 0, -c.fx() * c.cy() * c.tx()),

@@ -57,7 +57,7 @@ void PointCloud::update(CameraConnection *conn) {
         for (int i = 0; i < 960; ++i) {
             for (int j = 0; j < 600; ++j) {
                 meshData[v].pos = glm::vec3((float) i / 100.0f, (float) j / 100.0f, 0.0f);
-                meshData[v].uv0 = glm::vec2((float) i / 960.0f, (float) j / 600.0f);
+                meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float)j / 600.0f));
 
                 v++;
             }

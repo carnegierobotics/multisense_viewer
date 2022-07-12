@@ -144,6 +144,8 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
 
     if (streamOne->source == crl::multisense::Source_Disparity_Left) {
+
+
         auto *p = (uint16_t *) streamOne->imageDataP;
 
         // Normalize image

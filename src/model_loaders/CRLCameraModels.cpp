@@ -36,9 +36,9 @@ void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t ve
     } else {
         void *data{};
         // TODO dont map and unmmap memory every time
-        //vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
-        //memcpy(data, _vertices, vertexBufferSize);
-        //vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
+        vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
+        memcpy(data, _vertices, vertexBufferSize);
+        vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
     }
 }
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
@@ -253,6 +253,11 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 
             break;
         case CrlPointCloud:
+            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            break;
+        default:
+            std::cerr << "Texture type not supported yet" << std::endl;
             break;
     }
     textureVideo = texture;
@@ -260,10 +265,8 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 }
 
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
-
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
-
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     const VkDeviceSize offsets[1] = {0};

@@ -8,8 +8,8 @@
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
-    camera.rotationSpeed = 0.0f;
-    camera.movementSpeed = 0.0f;
+    camera.rotationSpeed = 0.2f;
+    camera.movementSpeed = 10.0f;
     camera.setPosition({0.0f, 0.0f, 0.0f});
     camera.setRotation({0.0f, 0.0f, 0.0f});
 

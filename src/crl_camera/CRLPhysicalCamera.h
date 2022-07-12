@@ -6,7 +6,6 @@
 #define MULTISENSE_CRLPHYSICALCAMERA_H
 
 #include <MultiSense/src/crl_camera/CRLBaseInterface.h>
-#include "glm/glm.hpp"
 #include <mutex>
 #include <unordered_set>
 #include <unordered_map>
@@ -16,8 +15,6 @@
 
 class CRLPhysicalCamera : public CRLBaseInterface {
 public:
-
-    glm::mat4 kInverseMatrix{};
 
     CRLPhysicalCamera() : CRLBaseInterface() {
 
@@ -39,6 +36,7 @@ public:
     void updateCameraInfo() override;
     void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
                           crl::multisense::image::Header **src2 = nullptr) override;
+    void preparePointCloud(uint32_t i, uint32_t i1) override;
 
 private:
     struct Image
@@ -81,7 +79,6 @@ private:
     std::string dataSourceToString(unsigned int d);
     unsigned int stringToDataSource(const std::string &d);
     static void setDelayedPropertyThreadFunc(void * context);
-    void setup(uint32_t i, uint32_t i1);
     void addCallbacks();
     static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
 

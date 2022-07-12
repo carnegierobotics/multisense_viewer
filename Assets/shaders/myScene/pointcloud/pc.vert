@@ -40,6 +40,7 @@ void main()
     vec4 imgCoords = vec4(uvCoords, 1.0f, 1.0f / depth);
     coords = depth * (matrix.kInverse * imgCoords);
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(coords.xyz, 1.0f);
-
+    //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos.xyz, 1.0f);
+    //gl_Position = vec4(inPos.xyz, 1.0f);
     outUV = inUV;
 }

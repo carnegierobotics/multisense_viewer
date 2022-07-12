@@ -110,7 +110,7 @@ public:
         // Default update function is called for updating models. Else CRL extension
         if (d.type == ArDefault)
             update();
-        else if (d.type == ArCameraScript && d.crlCamera->get()->camPtr != nullptr)
+        else if (d.crlCamera->get()->camPtr != nullptr)
             update(d.crlCamera->get());
 
         // If initialized
@@ -128,7 +128,7 @@ public:
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
 
-            if (bufferThreeData == nullptr) return;
+            if (d.type != ArPointCloud) return;
             currentUB.bufferThree.map();
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();

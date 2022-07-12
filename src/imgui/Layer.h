@@ -63,16 +63,24 @@ typedef enum StreamIndex {
     PREVIEW_STOPPED = 12,
     PREVIEW_NONE = 13,
     PREVIEW_RESET = 14,
+} CameraStreamInfoFlag;
 
-
-} StreamIndex;
+typedef enum page {
+    PAGE_PREVIEW_DEVICES = 0,
+    PAGE_DEVICE_INFORMATION = 1,
+    PAGE_CONFIGURE_DEVICE = 2,
+    PAGE_TOTAL_PAGES = 3,
+    TAB_NONE = 10,
+    TAB_2D_PREVIEW = 11,
+    TAB_3D_POINTCLOUD = 12,
+} Page;
 
 /** @brief  */
 struct StreamingModes {
     /** @brief Which gui index is selected */
-    uint32_t streamIndex = PREVIEW_LEFT;
+    CameraStreamInfoFlag streamIndex = PREVIEW_LEFT;
     /** @brief Current camera streaming state  */
-    uint32_t playbackStatus = PREVIEW_NONE;
+    CameraStreamInfoFlag playbackStatus = PREVIEW_NONE;
 
     /** @brief Camera streaming modes  */
     std::vector<std::string> modes;
@@ -104,6 +112,8 @@ struct Element {
 
     std::unordered_map<int, StreamingModes> streams;
 
+
+    Page selectedPreviewTab = TAB_NONE;
     /** @brief  Showing point cloud view*/
     bool pointCloud = false;
     /** @brief  Showing depth image stream*/

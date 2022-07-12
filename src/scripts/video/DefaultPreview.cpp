@@ -96,6 +96,9 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         src = dev.streams.find(PREVIEW_LEFT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(PREVIEW_LEFT)->second.playbackStatus;
 
+        if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
+            playbackSate = PREVIEW_NONE;
+
     }
 
 

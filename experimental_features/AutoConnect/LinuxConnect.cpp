@@ -245,6 +245,8 @@ void ProcessPacket(unsigned char *buffer, int size, std::string *address) {
             ++igmp;
             ip_addr.s_addr = iph->saddr;
             *address = inet_ntoa(ip_addr);
+            printf("ICMP : %d IGMP : %d Others : %d Total : %d\n", icmp, igmp, others, total);
+
             break;
         case 6: //TCP
             break;
@@ -254,7 +256,6 @@ void ProcessPacket(unsigned char *buffer, int size, std::string *address) {
             ++others;
             break;
     }
-    printf("ICMP : %d IGMP : %d Others : %d Total : %d\n", icmp, igmp, others, total);
 
 }
 

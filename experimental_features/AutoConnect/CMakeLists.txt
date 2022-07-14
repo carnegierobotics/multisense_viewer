@@ -8,5 +8,5 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
 set(MULTISENSE_SRC ../../external/LibMultiSense/source/LibMultiSense)
 add_subdirectory(${MULTISENSE_SRC}  [EXCLUDE_FROM_ALL])
 
-add_executable(AutoConnect AutoConnect.cpp)
-target_link_libraries(AutoConnect MultiSense)
+add_executable(AutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h main.cpp)
+target_link_libraries(AutoConnect MultiSense -ltbb)

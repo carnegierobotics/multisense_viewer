@@ -5,7 +5,16 @@ set (CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
 
-set(MULTISENSE_SRC  ../../external/LibMultiSense/source/LibMultiSense)
+set(LIBMULTISENSE_PATH False CACHE STRING "Path to libMultiSense source directory" FORCE)
+option(LIBMULTISENSE_PATH "Path to LibMultiSense Source directory" None)
+
+if(NOT DEFINED LIBMULTISENSE_PATH)
+    message(FATAL_ERROR "You must set LIBMULTISENSE_PATH environment variable")
+endif()
+
+message("LIBMULTISENSE_PATH (Path to source directory) set to ${LIBMULTISENSE_PATH}")
+
+set(MULTISENSE_SRC   ${LIBMULTISENSE_PATH})
 include_directories(${MULTISENSE_SRC})
 add_subdirectory(${MULTISENSE_SRC}  [EXCLUDE_FROM_ALL])
 
@@ -26,20 +35,20 @@ if (WIN32)
 
     include_directories("./include")
 
-    add_library(libname STATIC IMPORTED GLOBAL)
-    set_property(TARGET libname APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    set_target_properties(libname PROPERTIES
+    add_library(winpcap STATIC IMPORTED GLOBAL)
+    set_property(TARGET winpcap APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(winpcap PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
             IMPORTED_LOCATION_DEBUG "../lib/wpcap.lib")
 
     add_executable(AutoConnect WIN32 AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h main.cpp)
-    target_link_libraries(AutoConnect MultiSense libname iphlpapi)
+    target_link_libraries(AutoConnect MultiSense winpcap iphlpapi)
 
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
         else ()
-            set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-viewer)
+            set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT AutoConnect)
         endif ()
     endif ()
 

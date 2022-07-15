@@ -29,6 +29,9 @@ public:
     void onFoundCamera() override;
     /** @Brief boolean set to true in onFoundCamera() **/
     bool isConnected() { return success; }
+
+    AutoConnect::Result getResult();
+    crl::multisense::Channel* getCameraChannel();
 private:
     static void run(void* instance, std::vector<AdapterSupportResult> adapters);
 };

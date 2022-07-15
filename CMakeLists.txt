@@ -43,7 +43,15 @@ set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
 add_subdirectory(${MULTISENSE_SRC})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;")
+# Internal Library
+set(LIBMULTISENSE_SKIP True)
+set(TOP_LEVEL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(AUTOCONNECT_SRC internal/AutoConnect/)
+include_directories(${AUTOCONNECT_SRC})
+# Parameter for Autoconnect Library
+add_subdirectory(${AUTOCONNECT_SRC})
+
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect")
 
 # add source files
 set(IMGUI_SRC

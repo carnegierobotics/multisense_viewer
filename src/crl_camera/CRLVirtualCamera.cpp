@@ -48,5 +48,10 @@ void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 }
 
+void CRLVirtualCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
+                                        crl::multisense::image::Header **stream2) {
+
+    *stream = nullptr;
+}
 
 

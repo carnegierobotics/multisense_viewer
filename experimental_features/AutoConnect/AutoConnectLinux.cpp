@@ -74,15 +74,15 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
     return adapterSupportResult;
 }
 
-void AutoConnectLinux::run(void *app, std::vector<AdapterSupportResult> adapters) {
-    AutoConnectLinux *instance = (AutoConnectLinux *) app;
+void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> adapters) {
+    AutoConnectLinux *app = (AutoConnectLinux *) instance;
 
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
     int i = 0;
 
     // Loop keeps retrying to connect on supported network adapters.
-    while (instance->loopAdapters) {
+    while (app->loopAdapters) {
         auto adapter = adapters[i];
         i++;
         if (i == adapters.size())
@@ -92,6 +92,9 @@ void AutoConnectLinux::run(void *app, std::vector<AdapterSupportResult> adapters
             continue;
         }
         printf("\nTesting Adapter: %s\n", adapter.name.c_str());
+        app->startTime = time(nullptr);
+
+
         int sd = -1;
         // Submit request for a socket descriptor to look up interface.
         if ((sd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
@@ -135,7 +138,14 @@ void AutoConnectLinux::run(void *app, std::vector<AdapterSupportResult> adapters
 
 
         printf("Listening for a IGMP packet\n");
-        while (instance->listenOnAdapter) {
+        while (app->listenOnAdapter) {
+            // Timeout handler
+            if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS){
+                app->startTime = time(nullptr);
+                printf("Timeout reached. Switching adapter\n");
+                break;
+            }
+
             saddr_size = sizeof saddr;
             //Receive a packet
             data_size = (int) recvfrom(sock_raw, buffer, IP_MAXPACKET, 0, &saddr,
@@ -156,8 +166,19 @@ void AutoConnectLinux::run(void *app, std::vector<AdapterSupportResult> adapters
                 address = inet_ntoa(ip_addr);
                 printf("Packet found. Source address: %s\n", address.c_str());
 
-                if (instance->onFoundIp(address, adapter)) {
-                    instance->loopAdapters = false;
+                FoundCameraOnIp ret = app->onFoundIp(address, adapter);
+
+                if (ret == FOUND_CAMERA) {
+                    std::cout << "Found camera. quitting..." << std::endl;
+                    app->listenOnAdapter = false;
+                    app->loopAdapters = false;
+                    app->success = true;
+                    break;
+                } else if (ret == NO_CAMERA_RETRY) {
+                    std::cout << "No camera retrying on same adapter" << std::endl;
+                    continue;
+                } else if (ret == NO_CAMERA) {
+                    std::cout << "No camera trying other adapter" << std::endl;
                     break;
                 }
 
@@ -235,16 +256,20 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     /*** END **/
 
     // Attempt to connect to camera and post some info
-    auto *cameraInterface = crl::multisense::Channel::Create(address);
+    cameraInterface = crl::multisense::Channel::Create(address);
 
-    if (cameraInterface != nullptr) {
-        onFoundCamera();
-        return true;
+    if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
+        connectAttemptCounter = 0;
+        return NO_CAMERA;
+    } else if (cameraInterface == nullptr) {
+        connectAttemptCounter++;
+        return NO_CAMERA_RETRY;
     } else {
-        printf("Did not find a camera on %s\n Retrying...\n", address.c_str());
-        close(camera_fd);
+        result.networkAdapter = adapter.name;
+        result.networkAdapterLongName = adapter.lName;
+        result.cameraIpv4Address = address;
+        return FOUND_CAMERA;
     }
-    return false;
 }
 
 void AutoConnectLinux::onFoundCamera() {
@@ -262,4 +287,11 @@ void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
     printf("Started thread\n");
 
+}
+AutoConnect::Result AutoConnectLinux::getResult() {
+    return result;
+}
+
+crl::multisense::Channel* AutoConnectLinux::getCameraChannel() {
+    return cameraInterface;
 }

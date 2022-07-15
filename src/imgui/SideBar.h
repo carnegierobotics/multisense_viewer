@@ -5,6 +5,16 @@
 #ifndef MULTISENSE_SIDEBAR_H
 #define MULTISENSE_SIDEBAR_H
 
+#include "AutoConnect.h"
+
+#ifdef WIN32
+#include "AutoConnectWindows.h"
+#else
+
+#include "AutoConnectLinux.h"
+
+#endif
+
 
 #include <algorithm>
 #include "imgui_internal.h"
@@ -21,6 +31,46 @@ public:
 
     }
 
+    void autoDetectCamera() {
+
+        Log::Logger::getInstance()->info("Start looking for ethernet adapters");
+#ifdef WIN32
+        AutoConnectWindows connect{};
+    std::vector<AutoConnect::AdapterSupportResult> res =  connect.findEthernetAdapters();
+#else
+        AutoConnectLinux connect{};
+        std::vector<AutoConnect::AdapterSupportResult> res = connect.findEthernetAdapters();
+#endif
+
+        connect.start(res);
+
+        // TODO DONT BLOCK UI THREAD WHILE LOOKING FOR ADAPTERS
+        while (true) {
+            if (connect.isConnected())
+                break;
+        }
+        connect.stop();
+        AutoConnect::Result result = connect.getResult();
+        crl::multisense::Channel *ptr = connect.getCameraChannel();
+        crl::multisense::system::DeviceInfo info;
+        ptr->getDeviceInfo(info);
+        Log::Logger::getInstance()->info(
+                "AUTOCONNECT: Found Camera on IP: %s, using Adapter: %s, adapter long name: %s, Camera returned name %s",
+                result.cameraIpv4Address.c_str(), result.networkAdapter.c_str(), result.networkAdapterLongName.c_str(),
+                info.name.c_str());
+
+        inputIP = result.cameraIpv4Address;
+        inputName = info.name;
+
+        if (inputName == "Multisense S30")
+            presetItemIdIndex = 1;
+        else if(inputName == "MultiSense S21")
+            presetItemIdIndex = 2;
+        else
+            presetItemIdIndex = 0;
+
+    }
+
     void OnUIRender(GuiObjectHandles *_handles) override {
         this->handles = _handles;
         GuiLayerUpdateInfo *info = handles->info;
@@ -31,7 +81,7 @@ public:
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, info->height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.031, 0.078, 0.129, 1.0f ));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.031, 0.078, 0.129, 1.0f));
 
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
@@ -70,27 +120,25 @@ public:
                                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking)) {
 
             bool deviceAlreadyExist = false;
-            static char inputName[32] = "Profile #1";
-            static char inputIP[32] = "10.66.171.21";
+            //static char inputName[32] = "Profile #1";
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
             if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
                 if (ImGui::BeginTabItem("Select Premade Profile")) {
                     ImGui::Text("Connect to your MultiSense Device");
                     ImGui::Separator();
-                    ImGui::InputText("Profile name", inputName,
-                                     IM_ARRAYSIZE(inputName));
+                    ImGui::InputText("Profile name##1", inputName.data(),
+                                     inputFieldNameLength);
 
-                    const char *items[] = {"MultiSense S30", "MultiSense S21", "Virtual Camera"};
-                    static int item_current_idx = 0; // Here we store our selection data as an index.
-                    const char *combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
+                    const char *items[] = {"Select Preset","MultiSense S30", "MultiSense S21", "Virtual Camera"};
+                    const char *combo_preview_value = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                     static ImGuiComboFlags flags = 0;
 
                     if (ImGui::BeginCombo("Select Default Configuration", combo_preview_value, flags)) {
                         for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-                            const bool is_selected = (item_current_idx == n);
+                            const bool is_selected = (presetItemIdIndex == n);
                             if (ImGui::Selectable(items[n], is_selected))
-                                item_current_idx = n;
+                                presetItemIdIndex = n;
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                             if (is_selected)
@@ -100,21 +148,26 @@ public:
                     }
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
                     bool btnCancel = ImGui::Button("cancel", ImVec2(175.0f, 30.0f));
+                    btnAutoConnect = ImGui::Button("Automatic configuration", ImVec2(175.0f, 30.0f));
 
-                    if(btnCancel){
+                    if (btnCancel) {
                         ImGui::CloseCurrentPopup();
+                    }
 
+                    if (btnAutoConnect) {
+                        // Attempt to search for camera
+                        autoDetectCamera();
                     }
 
                     if (btnConnect) {
                         // Loop through devices and check that it doesn't exist already.
                         for (auto &d: devices) {
-                            if (d.IP == inputIP && strcmp(items[item_current_idx], "Virtual Camera") != 0)
+                            if (d.IP == inputIP && strcmp(items[presetItemIdIndex], "Virtual Camera") != 0)
                                 deviceAlreadyExist = true;
                         }
 
-                        if (!deviceAlreadyExist){
-                            createDefaultElement(inputName, inputIP, items[item_current_idx]);
+                        if (!deviceAlreadyExist) {
+                            createDefaultElement(inputName.data(), inputIP.data(), items[presetItemIdIndex]);
                             deviceAlreadyExist = true;
                         }
 
@@ -124,16 +177,16 @@ public:
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Advanced Options")) {
-                    ImGui::Text("Connect to your MultiSense Device");
+                    ImGui::Text("NOT IMPLEMENTED YET\n\nConnect to your MultiSense Device");
                     ImGui::Separator();
-                    ImGui::InputText("Profile name", inputName,
-                                     IM_ARRAYSIZE(inputName));
-                    ImGui::InputText("Camera ip", inputIP, IM_ARRAYSIZE(inputIP));
+                    ImGui::InputText("Profile name##2", inputName.data(),
+                                     inputFieldNameLength);
+                    ImGui::InputText("Camera ip##1", inputIP.data(), inputFieldNameLength);
                     ImGui::Spacing();
                     ImGui::Spacing();
 
                     static int item = 1;
-                    static float color[4] = { 0.4f, 0.7f, 0.0f, 0.5f };
+                    static float color[4] = {0.4f, 0.7f, 0.0f, 0.5f};
                     ImGui::Combo("Ethernet Adapter", &item, "lan\0eth0\0eth1\0eth2\0\0");
 
                     ImGui::Spacing();
@@ -155,7 +208,7 @@ public:
                 }
 
                 if (!deviceAlreadyExist)
-                    createAdvancedElement(inputName, inputIP);
+                    createAdvancedElement(inputName.data(), inputIP.data());
 
                 ImGui::CloseCurrentPopup();
 
@@ -183,6 +236,12 @@ private:
 
     bool btnConnect = false;
     bool btnAdd = false;
+    bool btnAutoConnect = false;
+
+    static const uint32_t inputFieldNameLength = 32;
+    uint32_t presetItemIdIndex = 0;
+    std::string inputIP = "10.66.171.21";
+    std::string inputName = "Profile 1";
 
     void createDefaultElement(char *name, char *ip, const char *cameraName) {
         Element el;

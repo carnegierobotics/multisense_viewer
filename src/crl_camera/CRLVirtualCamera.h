@@ -26,7 +26,8 @@ public:
     void preparePointCloud(uint32_t width, uint32_t height) override;
     void start(std::string string, std::string dataSourceStr) override;
     void stop(std::string dataSourceStr) override;
-
+    void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
+                                 crl::multisense::image::Header **src2 = nullptr) override;
 
 private:
 

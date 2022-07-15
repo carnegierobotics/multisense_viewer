@@ -173,7 +173,7 @@ void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapter
 
 }
 
-bool AutoConnectLinux::onFoundIp(std::string address, AdapterSupportResult adapter) {
+AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, AdapterSupportResult adapter) {
 // Set the host ip address to the same subnet but with *.1 at the end.
     std::string hostAddress = address;
     std::string last_element(hostAddress.substr(hostAddress.rfind(".")));

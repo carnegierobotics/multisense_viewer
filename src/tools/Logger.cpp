@@ -5,7 +5,7 @@
 
 // Code Specific Header Files(s)
 #include "Logger.h"
-
+#include <stdarg.h>
 using namespace std;
 namespace Log {
 
@@ -76,7 +76,7 @@ namespace Log {
     }
 
 // Interface for Error Log
-    void Logger::error(const char *text) throw() {
+    void Logger::_error(const char *text) throw() {
         string data;
         data.append("[ERROR]: ");
         data.append(text);
@@ -90,12 +90,31 @@ namespace Log {
     }
 
     void Logger::error(std::string &text) throw() {
-        error(text.data());
+        _error(text.data());
     }
 
     void Logger::error(std::ostringstream &stream) throw() {
         string text = stream.str();
-        error(text.data());
+        _error(text.data());
+    }
+
+    void Logger::error(const char *fmt, ...)
+    {
+        // determine required buffer size
+        va_list args;
+        va_start(args, fmt);
+        int len = vsnprintf(NULL, 0, fmt, args);
+        va_end(args);
+        if(len < 0) return;
+
+        // format message
+        char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
+        va_start(args, fmt);
+        vsnprintf(msg, len + 1, fmt, args);
+        va_end(args);
+
+        // call myFunction
+        _error(msg);
     }
 
 // Interface for Alarm Log 
@@ -187,7 +206,7 @@ namespace Log {
         string text = stream.str();
         _info(text.data());
     }
-#include <stdarg.h>
+
 
     void Logger::info(const char *fmt, ...)
     {

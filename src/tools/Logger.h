@@ -80,9 +80,10 @@ namespace Log
          static Logger* getInstance() throw ();
 
          // Interface for Error Log 
-         void error(const char* text) throw();
+         void _error(const char* text) throw();
          void error(std::string& text) throw();
          void error(std::ostringstream& stream) throw();
+         void error(const char *fmt, ...);
 
          // Interface for Alarm Log 
          void alarm(const char* text) throw();

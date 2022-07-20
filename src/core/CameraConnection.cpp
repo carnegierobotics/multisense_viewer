@@ -3,6 +3,7 @@
 //
 
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
+#include <MultiSense/src/tools/Logger.h>
 
 #include "CameraConnection.h"
 
@@ -75,6 +76,9 @@ void CameraConnection::connectCrlCamera(Element &dev) {
     // 2. If successful: Disable any other available camera
     bool connected = false;
 
+    Log::Logger::getInstance()->info("CameraConnection:: Connect.");
+
+
     if (dev.cameraName == "Virtual Camera") {
         camPtr = new CRLVirtualCamera();
         connected = camPtr->connect("None");
@@ -94,11 +98,16 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
             dev.streams[PREVIEW_VIRTUAL] = virtualCam;
 
+            Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
+
+
         } else
             dev.state = ArUnavailableState;
 
     } else {
         setNetworkAdapterParameters(dev);
+        Log::Logger::getInstance()->info("CameraConnection:: Creating new physical camera.");
+
         camPtr = new CRLPhysicalCamera();
         connected = camPtr->connect(dev.IP);
         if (connected) {
@@ -192,6 +201,9 @@ void CameraConnection::setStreamingModes(Element &dev) {
     dev.streams[PREVIEW_DISPARITY] = disparity;
     dev.streams[PREVIEW_AUXILIARY] = auxiliary;
 
+    Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
+
+
     lastActiveDevice = dev.name;
 }
 
@@ -218,6 +230,7 @@ void CameraConnection::disableCrlCamera(Element &dev) {
     dev.state = ArDisconnectedState;
     lastActiveDevice = "";
 
+    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(), dev.cameraName.c_str());
 
     // Free camPtr memory and point it to null for a reset.
     delete camPtr;

@@ -256,6 +256,10 @@ private:
 
         handles->devices = &devices;
 
+        Log::Logger::getInstance()->info("GUI:: Connect clicked for Default Device");
+        Log::Logger::getInstance()->info("GUI:: Using: Ip: %s, and preset: %s", ip, name);
+
+
     }
 
     void createAdvancedElement(char *name, char *ip) {
@@ -270,6 +274,10 @@ private:
         devices.emplace_back(el);
 
         handles->devices = &devices;
+
+        Log::Logger::getInstance()->info("GUI:: Connect clicked for Advanced Device");
+        Log::Logger::getInstance()->info("GUI:: Using: Ip: %s", ip);
+
 
     }
 

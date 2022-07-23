@@ -33,10 +33,16 @@ struct GuiLayerUpdateInfo {
     ImFont *font13{}, *font18{}, *font24{};
 
     ImTextureID imageButtonTextureDescriptor[9];
+    float offset5px = 5.0f;
+
     /** @brief Height of popupModal*/
     float popupHeight = 350.0f;
     /** @brief Width of popupModal*/
     float popupWidth = 500.0f;
+
+    /** @brief size of Control Area*/
+    float controlAreaWidth = 440.0f, controlAreaHeight = height;
+
 };
 
 typedef enum {

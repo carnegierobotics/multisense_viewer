@@ -19,7 +19,7 @@ public:
 
 
     void OnUIRender(GuiObjectHandles *handles) override {
-        if (handles->devices->empty()) return;
+        //if (handles->devices->empty()) return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
@@ -87,6 +87,25 @@ public:
                 ImGui::SameLine();
             }
 
+            const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
+            static int item_current_idx = 0; // Here we store our selection data as an index.
+            const char* combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
+
+            if (ImGui::CustomCombo("Custom", ImVec2(200.0f, 30.0f), &openDropDown, combo_preview_value, 0)) {
+                for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+
+                    const bool is_selected = (item_current_idx == n);
+                    if (ImGui::Selectable(items[n], is_selected)) {
+                        item_current_idx = n;
+
+                    }
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
             ImGui::NewLine();
             ImGui::ShowDemoWindow();
@@ -99,6 +118,7 @@ public:
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
+    bool openDropDown = false;
 
     void buildDeviceInformation(GuiObjectHandles *handles) {
         bool pOpen = true;
@@ -142,6 +162,77 @@ private:
         ImGui::End();
     }
 
+
+    void buildConfigurationPreview(GuiObjectHandles *handles) {
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+
+        // Control page
+        ImGui::BeginGroup();
+        createControlArea(handles);
+        ImGui::EndGroup();
+
+        // Viewing page
+
+
+        ImGui::NewLine();
+        ImGui::PopStyleColor(); // bg color
+        ImGui::End();
+    }
+
+    void createControlArea(GuiObjectHandles *handles) {
+
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth + handles->info->offset5px, 0), ImGuiCond_Always);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
+        ImGui::BeginChild("Viewing", ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight), false,
+                          window_flags);
+
+        for (auto &d: *handles->devices) {
+            // Create dropdown
+            if (d.state == ArActiveState) {
+                ImGuiTabBarFlags tab_bar_flags = 0;//ImGuiTabBarFlags_FittingPolicyResizeDown;
+                if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
+                    if (ImGui::BeginTabItem("Control")) {
+
+                        if (ImGui::Button("Back")) {
+                            page[PAGE_CONFIGURE_DEVICE] = false;
+                            drawActionPage = true;
+                        }
+
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Configuration")) {
+
+                        ImGui::EndTabItem();
+                    }
+
+                    if (ImGui::BeginTabItem("Future Tab 1")) {
+
+                        ImGui::EndTabItem();
+                    }
+
+                    if (ImGui::BeginTabItem("Future Tab 2")) {
+
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+            }
+        }
+        ImGui::PopStyleColor();
+        ImGui::EndChild();
+    }
+
+    /*
     void buildConfigurationPreview(GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -185,7 +276,7 @@ private:
                           ImVec2(handles->info->width - handles->info->sidebarWidth, 2 * handles->info->height / 3),
                           false, window_flags);
 
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 5 , ImGui::GetCursorPosY()));
+        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 5, ImGui::GetCursorPosY()));
         // Create Preview Window
         for (auto &d: *handles->devices) {
             // Create dropdown
@@ -310,6 +401,8 @@ private:
 
         ImGui::EndGroup();
     }
+     */
+
 
 };
 

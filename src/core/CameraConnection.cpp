@@ -90,7 +90,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
             StreamingModes virtualCam{};
             virtualCam.sources.emplace_back("None");
-            virtualCam.sources.emplace_back("Local Mp4 File");
+            virtualCam.sources.emplace_back("Local");
             virtualCam.streamIndex = PREVIEW_VIRTUAL;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);

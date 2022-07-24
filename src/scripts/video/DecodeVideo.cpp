@@ -20,9 +20,10 @@ void DecodeVideo::setup() {
 }
 
 int frameIndex = 0;
-void DecodeVideo::update() {
 
-     if (drawFrame){
+void DecodeVideo::update(CameraConnection *conn) {
+
+    if (drawFrame) {
         sem_wait(&notEmpty);
         if (model->draw == false && height != 0) {
             prepareTextureAfterDecode();
@@ -40,11 +41,7 @@ void DecodeVideo::update() {
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-
-    mat.model = glm::translate(mat.model, glm::vec3(1.35, -0.33, -1.35));
-    mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //mat.model = glm::scale(mat.model, glm::vec3(5.0f, 5.0f, 5.0f));
+    mat.model = glm::translate(mat.model, glm::vec3(-1.3, 0.4, -5));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -84,22 +81,34 @@ void DecodeVideo::prepareTextureAfterDecode() {
 }
 
 void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
-    if (!uiHandle.devices->empty()) {
+    for (const auto &dev: *uiHandle.devices) {
+        if (dev.button)
+            model->draw = false;
+
+        if (dev.streams.find(PREVIEW_VIRTUAL) == dev.streams.end())
+            continue;
+
+        src = dev.streams.find(PREVIEW_VIRTUAL)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(PREVIEW_VIRTUAL)->second.playbackStatus;
+
+
+    }
+
+    if (playbackSate == PREVIEW_PLAYING) {
         for (auto &dev: *uiHandle.devices) {
-            if (dev.cameraName == "Virtual Camera" && dev.button) {
+            if (dev.cameraName == "Virtual Camera" && !drawFrame) {
                 runDecodeThread = true;
                 childProcessDecode();
                 drawFrame = true;
             }
-
-            if (dev.state != ArActiveState && runDecodeThread){
-                model->draw = false;
-                runDecodeThread = false;
-                void *status;
-                pthread_join(producer, &status);
-                printf("Decoder thread exited with status %ld\n", (intptr_t) status);
-            }
         }
+
+    } else if (playbackSate == PREVIEW_STOPPED) {
+        model->draw = false;
+        runDecodeThread = false;
+        void *status;
+        pthread_join(producer, &status);
+        printf("Decoder thread exited with status %ld\n", (intptr_t) status);
     }
 
 }

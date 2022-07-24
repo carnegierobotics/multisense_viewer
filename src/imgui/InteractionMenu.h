@@ -87,7 +87,7 @@ public:
                 ImGui::SameLine();
             }
 
-
+            /*
             bool open = true;
             // Create Control Area
             ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
@@ -103,8 +103,10 @@ public:
             ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
             bool clicked = ImGui::InvisibleButton("Item#1", ImVec2(200.0f, 30.0f));
 
-            if (clicked && openDropDown) { openDropDown = false; length = 0; }
-            else if (clicked) openDropDown = true;
+            if (clicked && openDropDown) {
+                openDropDown = false;
+                length = 0;
+            } else if (clicked) openDropDown = true;
 
             if (openDropDown) {
                 printf("Clicked\n");
@@ -118,7 +120,7 @@ public:
                 pos.x += 150;
                 ImGui::SetNextWindowPos(position, 0);
 
-                ImGui::BeginChild("Test1",ImVec2(300,300));
+                ImGui::BeginChild("Test1", ImVec2(300, 300));
                 ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
 
 
@@ -151,6 +153,8 @@ public:
                 //openDropDownMenu(handles, position);
             }
             ImGui::End();
+
+             */
 
             /*
             const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
@@ -188,7 +192,7 @@ private:
     bool openDropDown = false;
     float length = 0.0f;
 
-    void openDropDownMenu(GuiObjectHandles *handles, ImVec2 position ){
+    void openDropDownMenu(GuiObjectHandles *handles, ImVec2 position) {
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.17, 0.157, 0.271, 1.0f));
         position.y += 30.0f;
@@ -275,7 +279,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -284,6 +288,16 @@ private:
             drawActionPage = true;
         }
 
+        ImVec2 pos = ImGui::GetCursorPos();
+        pos.y += 5;
+        pos.x += 50;
+        ImGui::SetCursorPos(pos);
+
+        for (auto& d: *handles->devices) {
+            if (d.cameraName == "Virtual Camera") {
+                addStreamPlaybackControls(PREVIEW_VIRTUAL, "Virtual preview", &d);
+            }
+        }
         ImGui::NewLine();
         ImGui::PopStyleColor(); // bg color
         ImGui::End();
@@ -473,6 +487,7 @@ private:
 
     }
 
+     */
     void addStreamPlaybackControls(CameraStreamInfoFlag streamIndex, std::string label, Element *d) {
         ImGui::BeginGroup();
         ImGui::Text("%s", label.c_str());
@@ -528,7 +543,6 @@ private:
 
         ImGui::EndGroup();
     }
-     */
 
 
 };

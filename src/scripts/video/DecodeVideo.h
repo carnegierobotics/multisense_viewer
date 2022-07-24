@@ -40,7 +40,9 @@ public:
     void setup() override;
 
     /** @brief update function called once per frame **/
-    void update() override;
+    void update() override {};
+    /** @brief update function called once per frame **/
+    void update(CameraConnection* conn) override;
 
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
@@ -49,12 +51,14 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArDefault;
+    ScriptType type = ArCameraScript;
     CRLCameraModels::Model *model{};
 
     int width = 0, height = 0;
     AVFrame videoFrame[5];
     int bufferSize = 0;
+    std::string src;
+    uint32_t playbackSate = 1;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

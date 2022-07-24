@@ -12,6 +12,8 @@ bool CRLVirtualCamera::connect(const std::string& ip) {
 
 void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
 
+
+
 }
 
 void CRLVirtualCamera::stop(std::string dataSourceStr) {

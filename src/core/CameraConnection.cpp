@@ -15,8 +15,10 @@ void CameraConnection::updateActiveDevice(Element dev) {
 
     for (auto d: dev.streams) {
 
+
+        // TODO REMOVE
         if (d.second.playbackStatus == AR_PREVIEW_PLAYING) {
-            camPtr->start(d.second.selectedStreamingMode, d.second.selectedStreamingSource);
+            //camPtr->start(d.second.selectedStreamingMode, d.second.selectedStreamingSource);
         }
     }
 

@@ -17,7 +17,8 @@ typedef enum ScriptType {
     ArDefault,
     ArPointCloud,
     ArDisabled,
-    ArCameraScript
+    ArCameraScript,
+    AR_CAMERA_SETUP_ONLY
 
 } ScriptType;
 
@@ -115,7 +116,7 @@ public:
         this->renderData = d;
 
         // Default update function is called for updating models. Else CRL extension
-        if (d.type == ArDefault)
+        if (d.type == ArDefault || AR_CAMERA_SETUP_ONLY)
             update();
         else if (d.crlCamera->get()->camPtr != nullptr)
             update(d.crlCamera->get());
@@ -173,7 +174,7 @@ public:
 
         }
 
-        if (scriptType == ArCameraScript)
+        if (scriptType == ArCameraScript || AR_CAMERA_SETUP_ONLY)
             setup(d.crlCamera->get());
         else
             setup();

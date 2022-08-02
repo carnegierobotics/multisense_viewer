@@ -55,12 +55,15 @@ public:
     }
 
     virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
-                                  crl::multisense::image::Header **src2 = nullptr) {}
+                                  crl::multisense::image::Header **src2 = nullptr) {};
+    virtual void getCameraStream(crl::multisense::image::Header *stream) {};
+
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
     bool online = false;
     bool modeChange = false;
     bool play = false;
+    bool ready = false;
     std::vector<crl::multisense::DataSource> enabledSources;
     glm::mat4 kInverseMatrix{};
 

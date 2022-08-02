@@ -4,21 +4,19 @@
 
 #include "RightPreview.h"
 
-void RightPreview::setup() {
-    /**
-     * Create and load Mesh elements
-     */
+void RightPreview::setup(CameraConnection* camHandle) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+
 }
 
 
 void RightPreview::update(CameraConnection *conn) {
 
-    if (playbackSate != PREVIEW_PLAYING)
+    if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
     auto *camera = conn->camPtr;
@@ -90,11 +88,11 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
-        if (dev.streams.find(PREVIEW_RIGHT) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(PREVIEW_RIGHT)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(PREVIEW_RIGHT)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_RIGHT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_RIGHT)->second.playbackStatus;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 

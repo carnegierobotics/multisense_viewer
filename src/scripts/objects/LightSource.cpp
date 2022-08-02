@@ -27,13 +27,19 @@ void LightSource::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 void LightSource::update() {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(0.0f, -3.0f, 0.0f));
-    mat.model = glm::scale(mat.model, glm::vec3(0.1f, 0.1f, 0.1f));
+    mat.model = glm::scale(mat.model, glm::vec3(10.0f, 10.0f, 10.0f));
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -10.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
+
+    auto *d2 = (FragShaderParams *) bufferTwoData;
+    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
+    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
+    d2->viewPos = renderData.camera->viewPos;
 
 }
 

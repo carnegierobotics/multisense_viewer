@@ -9,17 +9,7 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
-#include<bits/stdc++.h>
-#include<pthread.h>
-#include<semaphore.h>
 
-extern "C" {
-#include<libavutil/avutil.h>
-#include<libavutil/imgutils.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
-}
 
 class DecodeVideo : public Base, public RegisteredInFactory<DecodeVideo>, CRLCameraModels {
 
@@ -37,12 +27,12 @@ public:
     static std::string GetFactoryName() { return "DecodeVideo"; }
 
     /** @brief Setup function called one during engine prepare **/
-    void setup() override;
+    void setup() override {};
+    /** @brief Setup function called one during engine prepare **/
+    void setup(CameraConnection* camHandle) override;
 
     /** @brief update function called once per frame **/
-    void update() override {};
-    /** @brief update function called once per frame **/
-    void update(CameraConnection* conn) override;
+    void update() override;
 
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
@@ -55,32 +45,19 @@ public:
     CRLCameraModels::Model *model{};
 
     int width = 0, height = 0;
-    AVFrame videoFrame[5];
-    int bufferSize = 0;
     std::string src;
     uint32_t playbackSate = 1;
+    CameraConnection* camHandle;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    static void* decode(void* arg);
+    static void *decode(void *arg);
+
     void saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame);
 
     void prepareTextureAfterDecode();
 
     int childProcessDecode();
-
-
-// Declaration
-    int r1, items = 0;
-
-// Semaphore declaration
-    sem_t notEmpty, notFull;
-
-
-    bool drawFrame = false;
-    bool runDecodeThread = false;
-    pthread_t producer;
-
 };
 
 

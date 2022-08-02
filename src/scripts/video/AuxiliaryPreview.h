@@ -25,7 +25,9 @@ public:
     static std::string GetFactoryName() { return "AuxiliaryPreview"; }
 
     /** @brief Setup function called one during engine prepare **/
-    void setup() override;
+    void setup() override {};
+    /** @brief Setup function called one during engine prepare **/
+    void setup(CameraConnection* camHandle) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/

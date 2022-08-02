@@ -5,21 +5,19 @@
 #include "AuxiliaryPreview.h"
 
 
-void AuxiliaryPreview::setup() {
-    /**
-     * Create and load Mesh elements
-     */
+void AuxiliaryPreview::setup(CameraConnection* camHandle) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+
 }
 
 
 void AuxiliaryPreview::update(CameraConnection *conn) {
 
-    if (playbackSate != PREVIEW_PLAYING)
+    if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
     auto *camera = conn->camPtr;
@@ -93,14 +91,14 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(PREVIEW_AUXILIARY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(PREVIEW_AUXILIARY)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(PREVIEW_AUXILIARY)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.playbackStatus;
 
         if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
-            playbackSate = PREVIEW_NONE;
+            playbackSate = AR_PREVIEW_NONE;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 
@@ -108,7 +106,7 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
 
 void AuxiliaryPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

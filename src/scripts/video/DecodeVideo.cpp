@@ -7,7 +7,7 @@
 #include "DecodeVideo.h"
 
 
-void DecodeVideo::setup() {
+void DecodeVideo::setup(CameraConnection* camHandle) {
     /**
      * Create and load Mesh elements
      */
@@ -16,27 +16,24 @@ void DecodeVideo::setup() {
     // Don't draw it before we create the texture in update()
 
     model->draw = false;
-    drawFrame = false;
+    this->camHandle = camHandle;
 }
 
-int frameIndex = 0;
 
-void DecodeVideo::update(CameraConnection *conn) {
+void DecodeVideo::update() {
+    if (playbackSate != AR_PREVIEW_PLAYING)
+        return;
 
-    if (drawFrame) {
-        sem_wait(&notEmpty);
-        if (model->draw == false && height != 0) {
-            prepareTextureAfterDecode();
-        }
-        std::cout << "Consumer consumes item.Items Present = " << --items << std::endl;
+    if (!model->draw) {
+        camHandle->camPtr->start(" ", " ");
 
-        model->setColorTexture(&videoFrame[frameIndex], bufferSize);
-        frameIndex++;
+        prepareTextureAfterDecode();
+    } else {
+        crl::multisense::image::Header *stream;
+        camHandle->camPtr->getCameraStream("", &stream);
 
-        if (frameIndex == 5)
-            frameIndex = 0;
+        //model->setColorTexture(&videoFrame[frameIndex], bufferSize);
 
-        sem_post(&notFull);
     }
 
     UBOMatrix mat{};
@@ -77,7 +74,6 @@ void DecodeVideo::prepareTextureAfterDecode() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
-    model->draw = true;
 }
 
 void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
@@ -85,30 +81,26 @@ void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(PREVIEW_VIRTUAL) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(PREVIEW_VIRTUAL)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(PREVIEW_VIRTUAL)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.playbackStatus;
 
 
     }
 
-    if (playbackSate == PREVIEW_PLAYING) {
+    if (playbackSate == AR_PREVIEW_PLAYING) {
         for (auto &dev: *uiHandle.devices) {
-            if (dev.cameraName == "Virtual Camera" && !drawFrame) {
-                runDecodeThread = true;
-                childProcessDecode();
-                drawFrame = true;
+            if (dev.cameraName == "Virtual Camera" && !model->draw) {
+
+                camHandle->camPtr->start("", "");
+
             }
         }
 
-    } else if (playbackSate == PREVIEW_STOPPED) {
+    } else if (playbackSate == AR_PREVIEW_STOPPED) {
         model->draw = false;
-        runDecodeThread = false;
-        void *status;
-        pthread_join(producer, &status);
-        printf("Decoder thread exited with status %ld\n", (intptr_t) status);
     }
 
 }
@@ -119,6 +111,7 @@ void DecodeVideo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
+/*
 
 int DecodeVideo::childProcessDecode() {
 // thread declaration
@@ -145,7 +138,7 @@ int DecodeVideo::childProcessDecode() {
     }
     return EXIT_SUCCESS;
 }
-
+/*
 void *DecodeVideo::decode(void *arg) {
     auto *instance = (DecodeVideo *) arg;
     while (instance->runDecodeThread) {
@@ -246,6 +239,7 @@ void *DecodeVideo::decode(void *arg) {
 
     pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
 }
+ */
 
 void DecodeVideo::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {
     FILE *pFile;

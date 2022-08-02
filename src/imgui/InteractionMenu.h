@@ -24,8 +24,8 @@ public:
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
             for (auto &s: d.streams)
-                if (s.second.playbackStatus == PREVIEW_RESET) {
-                    s.second.playbackStatus = PREVIEW_NONE;
+                if (s.second.playbackStatus == AR_PREVIEW_RESET) {
+                    s.second.playbackStatus = AR_PREVIEW_NONE;
                     std::fill_n(page, PAGE_TOTAL_PAGES, false);
                     drawActionPage = true;
                 }
@@ -295,7 +295,7 @@ private:
 
         for (auto& d: *handles->devices) {
             if (d.cameraName == "Virtual Camera") {
-                addStreamPlaybackControls(PREVIEW_VIRTUAL, "Virtual preview", &d);
+                addStreamPlaybackControls(AR_PREVIEW_VIRTUAL, "Virtual preview", &d);
             }
         }
         ImGui::NewLine();
@@ -535,10 +535,10 @@ private:
 
         std::string btnLabel = "Play/Pause##" + std::to_string(streamIndex);
         if (ImGui::Button(btnLabel.c_str())) {
-            if (stream.playbackStatus != PREVIEW_PLAYING)
-                stream.playbackStatus = PREVIEW_PLAYING;
+            if (stream.playbackStatus != AR_PREVIEW_PLAYING)
+                stream.playbackStatus = AR_PREVIEW_PLAYING;
             else
-                stream.playbackStatus = PREVIEW_STOPPED;
+                stream.playbackStatus = AR_PREVIEW_STOPPED;
         }
 
         ImGui::EndGroup();

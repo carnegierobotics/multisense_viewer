@@ -26,7 +26,8 @@
 // Include scripts
 //#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
 //#include <MultiSense/src/scripts/Example.h>
-//#include <MultiSense/src/scripts/objects/LightSource.h>
+
+#include <MultiSense/src/scripts/objects/LightSource.h>
 #include <MultiSense/src/scripts/video/DefaultPreview.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 #include <MultiSense/src/scripts/video/DisparityPreview.h>
@@ -58,9 +59,11 @@ public:
         pLogger->info("Prepared Renderer");
 
     };
-     ~Renderer() override = default;
+
+    ~Renderer() override = default;
 
     void render() override;
+
     void prepareRenderer();
 
     void cleanUp();
@@ -74,8 +77,9 @@ public:
 
 private:
 
-    std::vector<std::unique_ptr<Base>> scripts;
+    std::map<std::string, std::unique_ptr<Base>> scripts;
     std::unique_ptr<CameraConnection> cameraConnection{};
+    std::vector<std::string> scriptNames;
 
 
 protected:
@@ -83,8 +87,11 @@ protected:
     void updateUniformBuffers();
 
     void viewChanged() override;
+
     void addDeviceFeatures() override;
+
     void buildCommandBuffers() override;
+
     /**
      * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
      * @param uiSettings Handle to UISetting variables
@@ -97,6 +104,9 @@ protected:
      */
     void generateScriptClasses();
 
+    void deleteScript(const std::string &scriptName);
+
+    void buildScript(const std::string &scriptName);
 };
 
 

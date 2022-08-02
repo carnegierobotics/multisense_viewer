@@ -18,7 +18,7 @@ void PointCloud::setup() {
 void PointCloud::update(CameraConnection *conn) {
     CRLBaseInterface *camPtr = conn->camPtr;
 
-    if (model->draw == false) {
+    if (!model->draw == false) {
 
         auto imgConf = camPtr->getCameraInfo().imgConf;
         camPtr->preparePointCloud(imgConf.width(), imgConf.height());
@@ -94,21 +94,21 @@ void PointCloud::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(PREVIEW_DISPARITY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end())
             continue;
 
-        playbackSate = dev.streams.find(PREVIEW_DISPARITY)->second.playbackStatus;
+        playbackSate = dev.streams.find(AR_PREVIEW_DISPARITY)->second.playbackStatus;
 
         if (dev.selectedPreviewTab != TAB_3D_POINTCLOUD)
-            playbackSate = PREVIEW_NONE;
+            playbackSate = AR_PREVIEW_NONE;
         else
-            playbackSate = PREVIEW_PLAYING;
+            playbackSate = AR_PREVIEW_PLAYING;
     }
 
 }
 
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 }

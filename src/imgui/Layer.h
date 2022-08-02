@@ -5,8 +5,9 @@
 #ifndef MULTISENSE_LAYER_H
 #define MULTISENSE_LAYER_H
 
+#define IMGUI_INCLUDE_IMGUI_USER_H
+
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
-#include "imgui_internal.h"
 #include "imgui.h"
 #include <array>
 

@@ -176,7 +176,7 @@ void GuiManager::setup(float width, float height, VkRenderPass renderPass, VkQue
     // Initialize all Vulkan resources used by the ui
     // Graphics pipeline
 
-    io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io->ConfigFlags |= ImGuiConfigFlags_None;
 
     /*
     // Create font texture

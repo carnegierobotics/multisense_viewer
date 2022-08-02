@@ -6,7 +6,7 @@
 #define MULTISENSE_INTERACTIONMENU_H
 
 #include "Layer.h"
-
+#include "imgui_user.h"
 
 class InteractionMenu : public Layer {
 public:

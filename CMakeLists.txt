@@ -57,7 +57,10 @@ set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect")
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
+        src/imgui/custom/imgui_user.h
+        src/imgui/custom/imgui_user.inl
         )
+INCLUDE_DIRECTORIES(src/imgui/custom)
 
 set(ENGINE_SRC
         src/core/Base.h
@@ -118,7 +121,7 @@ set(ENGINE_SRC
         src/tools/Utils.h
         src/tools/Logger.h
         src/tools/Logger.cpp
-        )
+        src/imgui/CustomImGuiWidgets.h )
 
 
 if (WIN32)

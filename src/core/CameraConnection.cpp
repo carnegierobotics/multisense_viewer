@@ -15,7 +15,7 @@ void CameraConnection::updateActiveDevice(Element dev) {
 
     for (auto d: dev.streams) {
 
-        if (d.second.playbackStatus == PREVIEW_PLAYING) {
+        if (d.second.playbackStatus == AR_PREVIEW_PLAYING) {
             camPtr->start(d.second.selectedStreamingMode, d.second.selectedStreamingSource);
         }
     }
@@ -50,7 +50,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         // Make sure inactive devices' preview are not drawn.
         if (dev.state != ArActiveState){
             for (auto &s: dev.streams)
-                    s.second.playbackStatus = PREVIEW_NONE;
+                    s.second.playbackStatus = AR_PREVIEW_NONE;
             continue;
         }
 
@@ -61,7 +61,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         if (dev.clicked && dev.state == ArActiveState) {
             // Disable all streams
             for (auto &s: dev.streams)
-                s.second.playbackStatus = PREVIEW_RESET;
+                s.second.playbackStatus = AR_PREVIEW_RESET;
 
             disableCrlCamera(dev);
             continue;
@@ -90,13 +90,14 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
             StreamingModes virtualCam{};
             virtualCam.sources.emplace_back("None");
-            virtualCam.sources.emplace_back("Local");
-            virtualCam.streamIndex = PREVIEW_VIRTUAL;
+            virtualCam.sources.emplace_back("earth");
+            virtualCam.sources.emplace_back("pixels");
+            virtualCam.streamIndex = AR_PREVIEW_VIRTUAL;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);
             virtualCam.selectedStreamingMode = virtualCam.modes.front();
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
-            dev.streams[PREVIEW_VIRTUAL] = virtualCam;
+            dev.streams[AR_PREVIEW_VIRTUAL] = virtualCam;
 
             Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
 
@@ -130,7 +131,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     left.sources.emplace_back("Luma Left");
     left.sources.emplace_back("Luma Rectified Left");
     left.sources.emplace_back("Compressed");
-    left.streamIndex = PREVIEW_LEFT;
+    left.streamIndex = AR_PREVIEW_LEFT;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
         auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
@@ -147,7 +148,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     right.sources.emplace_back("Luma Right");
     right.sources.emplace_back("Luma Rectified Right");
     right.sources.emplace_back("Compressed");
-    right.streamIndex = PREVIEW_RIGHT;
+    right.streamIndex = AR_PREVIEW_RIGHT;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
         auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
@@ -165,7 +166,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     disparity.sources.emplace_back("Disparity Left");
     disparity.sources.emplace_back("Disparity Cost");
     disparity.sources.emplace_back("Disparity Cost");
-    disparity.streamIndex = PREVIEW_DISPARITY;
+    disparity.streamIndex = AR_PREVIEW_DISPARITY;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
         auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
@@ -183,7 +184,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     auxiliary.sources.emplace_back("Color Rectified Aux");
     auxiliary.sources.emplace_back("Luma Rectified Aux");
     auxiliary.sources.emplace_back("Color + Luma Rectified Aux");
-    auxiliary.streamIndex = PREVIEW_AUXILIARY;
+    auxiliary.streamIndex = AR_PREVIEW_AUXILIARY;
 
     for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
         auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
@@ -196,10 +197,10 @@ void CameraConnection::setStreamingModes(Element &dev) {
     auxiliary.selectedStreamingMode = auxiliary.modes.front();
     auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
-    dev.streams[PREVIEW_LEFT] = left;
-    dev.streams[PREVIEW_RIGHT] = right;
-    dev.streams[PREVIEW_DISPARITY] = disparity;
-    dev.streams[PREVIEW_AUXILIARY] = auxiliary;
+    dev.streams[AR_PREVIEW_LEFT] = left;
+    dev.streams[AR_PREVIEW_RIGHT] = right;
+    dev.streams[AR_PREVIEW_DISPARITY] = disparity;
+    dev.streams[AR_PREVIEW_AUXILIARY] = auxiliary;
 
     Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
 

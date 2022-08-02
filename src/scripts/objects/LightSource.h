@@ -28,7 +28,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArDisabled;
+    ScriptType type = ArDefault;
 
     void *selection = (void *) "0";
 

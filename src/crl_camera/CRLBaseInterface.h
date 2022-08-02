@@ -29,6 +29,13 @@ public:
         int sensorMTU = 0;
     } cameraInfo;
 
+    // TODO REMOVE STRUCT
+    struct cameraStream {
+        std::string stringSrc;
+        crl::multisense::image::Header **src;
+        crl::multisense::image::Header **src2 = nullptr;
+    };
+
     virtual bool connect(const std::string &ip) = 0;
 
     virtual void updateCameraInfo() = 0;

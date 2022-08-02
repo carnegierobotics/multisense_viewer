@@ -90,10 +90,17 @@ public:
     /**@brief Optional virtual function usefully for camera scripts
      * Called if the script type is: ArCameraScript and
      * the cameraHandle has been initialized by the CameraConnection Class */
+    // TODO Refactor and remove this
     virtual void update(CameraConnection *cameraHandle) {};
 
     /**@brief Pure virtual function called only once when VK is ready to render*/
     virtual void setup() = 0;
+
+    /**@brief Virtual function called once when VK is ready to render with camera handle
+     * @param camHandle: Handle to currently connected camera
+     * Called if the script type is: ArCameraScript and
+     * the cameraHandle has been initialized by the CameraConnection Class */
+    virtual void setup(CameraConnection *camHandle) {};
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
     virtual void onUIUpdate(GuiObjectHandles uiHandle) = 0;
@@ -136,7 +143,7 @@ public:
         }
     }
 
-    void createUniformBuffers(RenderUtils utils, ScriptType scriptType) {
+    void createUniformBuffers(RenderUtils utils, Base::Render d, ScriptType scriptType) {
         if (scriptType == ArDisabled)
             return;
 
@@ -166,8 +173,10 @@ public:
 
         }
 
-
-        setup();
+        if (scriptType == ArCameraScript)
+            setup(d.crlCamera->get());
+        else
+            setup();
     }
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo

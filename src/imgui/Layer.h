@@ -56,19 +56,19 @@ typedef enum {
 } ArConnectionState;
 
 typedef enum StreamIndex {
-    // First 0 - 3 elements also correspond to array indices. Should not change.
-    PREVIEW_LEFT = 0,
-    PREVIEW_RIGHT = 1,
-    PREVIEW_DISPARITY = 2,
-    PREVIEW_AUXILIARY = 3,
-    PREVIEW_VIRTUAL = 4 ,
+    // First 0 - 4 elements also correspond to array indices. Should not change.
+    AR_PREVIEW_LEFT = 0,
+    AR_PREVIEW_RIGHT = 1,
+    AR_PREVIEW_DISPARITY = 2,
+    AR_PREVIEW_AUXILIARY = 3,
+    AR_PREVIEW_VIRTUAL = 4 ,
 
     // Other flags
-    PREVIEW_PLAYING = 10,
-    PREVIEW_PAUSED = 11,
-    PREVIEW_STOPPED = 12,
-    PREVIEW_NONE = 13,
-    PREVIEW_RESET = 14,
+    AR_PREVIEW_PLAYING = 10,
+    AR_PREVIEW_PAUSED = 11,
+    AR_PREVIEW_STOPPED = 12,
+    AR_PREVIEW_NONE = 13,
+    AR_PREVIEW_RESET = 14,
 } CameraStreamInfoFlag;
 
 typedef enum page {
@@ -84,9 +84,9 @@ typedef enum page {
 /** @brief  */
 struct StreamingModes {
     /** @brief Which gui index is selected */
-    CameraStreamInfoFlag streamIndex = PREVIEW_LEFT;
+    CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
     /** @brief Current camera streaming state  */
-    CameraStreamInfoFlag playbackStatus = PREVIEW_NONE;
+    CameraStreamInfoFlag playbackStatus = AR_PREVIEW_NONE;
 
     /** @brief Camera streaming modes  */
     std::vector<std::string> modes;
@@ -117,7 +117,6 @@ struct Element {
     ArConnectionState state;
 
     std::unordered_map<int, StreamingModes> streams;
-
 
     Page selectedPreviewTab = TAB_NONE;
     /** @brief  Showing point cloud view*/

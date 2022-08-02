@@ -14,7 +14,7 @@ void Renderer::prepareRenderer() {
     camera.setRotation({0.0f, 0.0f, 0.0f});
 
 
-    generateScriptClasses();
+    //generateScriptClasses();
 
     // Generate UI from Layers
     guiManager->pushLayer<SideBar>();
@@ -78,8 +78,8 @@ void Renderer::buildCommandBuffers() {
 
 
         for (auto &script: scripts) {
-            if (script->getType() != ArDisabled) {
-                script->draw(drawCmdBuffers[i], i);
+            if (script.second->getType() != ArDisabled) {
+                script.second->draw(drawCmdBuffers[i], i);
             }
         }
         guiManager->drawFrame(drawCmdBuffers[i]);
@@ -89,6 +89,48 @@ void Renderer::buildCommandBuffers() {
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
     }
 }
+
+
+void Renderer::buildScript(const std::string& scriptName){
+
+    // Do not recreate script if already created
+    auto end = std::remove(scriptNames.begin(), scriptNames.end(), scriptName);
+    if (end != scriptNames.end()){
+        return;
+    }
+
+    scriptNames.emplace_back(scriptName);
+    scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
+
+
+    // Run Once
+    Base::RenderUtils vars{};
+    vars.device = vulkanDevice;
+    vars.renderPass = &renderPass;
+    vars.UBCount = swapchain.imageCount;
+
+    Base::Render renderData{};
+    renderData.crlCamera = &cameraConnection;
+
+
+    // Run script setup function
+    for (auto &script: scripts) {
+        assert(script.second);
+        script.second->createUniformBuffers(vars, renderData, script.second->getType());
+    }
+    printf("Setup finished\n");
+}
+
+void Renderer::deleteScript(const std::string& scriptName){
+    auto end = std::remove(scriptNames.begin(), scriptNames.end(), scriptName);
+    if (end == scriptNames.end()){
+        pLogger->error("RENDERER:: Failed to find script %s in deleteScript(...)\n", scriptName.c_str());
+    }
+
+    scripts.erase(scriptName);
+
+}
+
 
 void Renderer::generateScriptClasses() {
     std::cout << "Generate script classes" << std::endl;
@@ -114,17 +156,19 @@ void Renderer::generateScriptClasses() {
         }
     }
     */
-    // TODO: Create a list of renderable classnames
     //classNames.emplace_back("Example");
-    //classNames.emplace_back("LightSource");
+    classNames.emplace_back("LightSource");
     //classNames.emplace_back("VirtualPointCloud");
+
+    // TODO INSERT AND RUN SETUP AS THE ITEMS ARE PLACED INTO THE SCENE
     classNames.emplace_back("DisparityPreview");
-    classNames.emplace_back("DefaultPreview");
+    //classNames.emplace_back("DefaultPreview");
     classNames.emplace_back("RightPreview");
     classNames.emplace_back("AuxiliaryPreview");
     classNames.emplace_back("PointCloud");
-    classNames.emplace_back("DecodeVideo");
+    //classNames.emplace_back("DecodeVideo");
 
+    /*
     // Also add class names to listbox
     //UIOverlay->uiSettings->listBoxNames = classNames;
     scripts.reserve(classNames.size());
@@ -139,13 +183,18 @@ void Renderer::generateScriptClasses() {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
+    Base::Render renderData{};
+    renderData.crlCamera = &cameraConnection;
+
+
     // Run script setup function
     for (auto &script: scripts) {
         assert(script);
-        script->createUniformBuffers(vars, script->getType());
+        script->createUniformBuffers(vars, renderData, script->getType());
     }
     printf("Setup finished\n");
-}
+*/
+     }
 
 void Renderer::render() {
     VulkanRenderer::prepareFrame();
@@ -165,17 +214,80 @@ void Renderer::render() {
     cameraConnection->onUIUpdate(guiManager->handles.devices);
     renderData.crlCamera = &cameraConnection;
 
+    // Create/delete scripts after use
+    // Run update function on scripts
+    for (auto &dev: *guiManager->handles.devices) {
+
+        for (const auto& i : dev.streams){
+            if(i.second.playbackStatus == AR_PREVIEW_PLAYING){
+                switch (i.second.streamIndex) {
+                    case AR_PREVIEW_LEFT:
+                        buildScript("DefaultPreview");
+                        break;
+                    case AR_PREVIEW_RIGHT:
+                        break;
+                    case AR_PREVIEW_DISPARITY:
+                        break;
+                    case AR_PREVIEW_AUXILIARY:
+                        break;
+                    case AR_PREVIEW_VIRTUAL:
+                        buildScript("DecodeVideo");
+                        break;
+                    case AR_PREVIEW_PLAYING:
+                        break;
+                    case AR_PREVIEW_PAUSED:
+                        break;
+                    case AR_PREVIEW_STOPPED:
+                        break;
+                    case AR_PREVIEW_NONE:
+                        break;
+                    case AR_PREVIEW_RESET:
+                        break;
+                }
+            }
+
+            if (i.second.playbackStatus == AR_PREVIEW_NONE){
+                switch (i.second.streamIndex) {
+                    case AR_PREVIEW_LEFT:
+                        deleteScript("DefaultPreview");
+                        break;
+                    case AR_PREVIEW_RIGHT:
+                        break;
+                    case AR_PREVIEW_DISPARITY:
+                        break;
+                    case AR_PREVIEW_AUXILIARY:
+                        break;
+                    case AR_PREVIEW_VIRTUAL:
+                        deleteScript("DecodeVideo");
+                        break;
+                    case AR_PREVIEW_PLAYING:
+                        break;
+                    case AR_PREVIEW_PAUSED:
+                        break;
+                    case AR_PREVIEW_STOPPED:
+                        break;
+                    case AR_PREVIEW_NONE:
+                        break;
+                    case AR_PREVIEW_RESET:
+                        break;
+                }
+            }
+        }
+
+    }
+
+
     // Run update function on scripts
     for (auto &script: scripts) {
-        if (script->getType() != ArDisabled) {
-            renderData.type = script->getType();
-            script->updateUniformBufferData(renderData);
+        if (script.second->getType() != ArDisabled) {
+            renderData.type = script.second->getType();
+            script.second->updateUniformBufferData(renderData);
         }
     }
 
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {
-        script->onUIUpdate(guiManager->handles);
+        script.second->onUIUpdate(guiManager->handles);
     }
 
     // Generate draw commands

@@ -195,6 +195,7 @@ void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *str
 
 }
 
+// TODO REMOVE AVFRAME FROM CRLCAMERAMODELS.cpp
 void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize) {
     auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
     if (videoFrame->coded_picture_number > 593)

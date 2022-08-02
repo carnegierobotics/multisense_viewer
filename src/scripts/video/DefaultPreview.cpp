@@ -4,20 +4,18 @@
 
 #include "DefaultPreview.h"
 
-void DefaultPreview::setup() {
-    /**
-     * Create and load Mesh elements
-     */
+void DefaultPreview::setup(CameraConnection* camHandle) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+
 }
 
 
 void DefaultPreview::update(CameraConnection *conn) {
-    if (playbackSate != PREVIEW_PLAYING)
+    if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
     auto *camera = conn->camPtr;
@@ -90,14 +88,14 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(PREVIEW_LEFT)== dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(PREVIEW_LEFT)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(PREVIEW_LEFT)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
 
         if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
-            playbackSate = PREVIEW_NONE;
+            playbackSate = AR_PREVIEW_NONE;
 
     }
 
@@ -108,7 +106,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
 
 void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

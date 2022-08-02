@@ -195,6 +195,16 @@ void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *str
 
 }
 
+void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header stream) {
+
+    auto *buf = malloc(stream.imageLength);
+    memcpy(buf, stream.imageDataP, stream.imageLength);
+    textureVideo.updateTextureFromBufferYUV(buf, stream.imageLength);
+
+    free(buf);
+
+}
+
 // TODO REMOVE AVFRAME FROM CRLCAMERAMODELS.cpp
 void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize) {
     auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
@@ -206,7 +216,7 @@ void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize
 
     textureVideo.updateTextureFromBufferYUV(yuv420pBuffer, bufferSize);
 
-    delete yuv420pBuffer;
+    free(yuv420pBuffer);
 
 }
 

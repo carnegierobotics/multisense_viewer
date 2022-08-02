@@ -97,6 +97,8 @@ public:
         void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
 
         void setColorTexture(AVFrame *videoFrame, int bufferSize);
+
+        void setColorTexture(crl::multisense::image::Header stream);
     };
 
     /**@brief Primitive for a surface */

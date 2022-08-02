@@ -17,24 +17,31 @@ extern "C" {
 #include<semaphore.h>
 #include <MultiSense/src/tools/Utils.h>
 #include <thread>
+#include <MultiSense/src/tools/Logger.h>
+
 
 bool CRLVirtualCamera::connect(const std::string &ip) {
 
-    online = true;
     return true;
 }
 
 void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
 
-    runDecodeThread = true;
-    childProcessDecode();
+    pauseThread = false;
+    videoName = string;
+    getVideoMetadata();
 
+    if (!runDecodeThread){
+        runDecodeThread = true;
+        childProcessDecode();
+    }
+
+    updateCameraInfo();
 }
 
 void CRLVirtualCamera::stop(std::string dataSourceStr) {
-    void *status;
-    pthread_join(producer, &status);
-    printf("Decoder thread exited with status %ld\n", (intptr_t) status);
+    pauseThread = true;
+
 }
 
 void CRLVirtualCamera::updateCameraInfo() {
@@ -46,6 +53,9 @@ void CRLVirtualCamera::updateCameraInfo() {
     cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
     // - getImageCalibration
     cameraInfo.netConfig.ipv4Address = "Knock knock";
+
+    cameraInfo.imgConf.setWidth(width);
+    cameraInfo.imgConf.setHeight(height);
 
 }
 
@@ -59,20 +69,33 @@ void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 }
 
-void CRLVirtualCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
-                                       crl::multisense::image::Header **stream2) {
-
+void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
+    pauseThread = false;
     assert(stream != nullptr);
 
     sem_wait(&notEmpty);
     std::cout << "Consumer consumes item. Items Present = " << --items << std::endl;
+    auto * str = stream;
 
-    auto * str = *stream;
-    str->imageLength = bufferSize;
+    auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
+    str->imageDataP = malloc(bufferSize);
+
+    if (videoFrame->coded_picture_number > 593)
+        return;
+    uint32_t size = videoFrame[0].width * videoFrame[0].height;
+    memcpy(yuv420pBuffer, videoFrame[0].data[0], size);
+    memcpy(yuv420pBuffer + size, videoFrame[0].data[1], (videoFrame[0].width * videoFrame[0].height) / 2);
+
+    uint32_t totalSize = size + (videoFrame[0].width * videoFrame[0].height) / 2;
+
+    memcpy((void *) str->imageDataP, yuv420pBuffer, totalSize);
+
+    free(yuv420pBuffer);
+
+    str->imageLength = (uint32_t) bufferSize;
     str->frameId = frameIndex;
-    str->imageDataP = (void *) videoFrame[frameIndex].data;
-    str->width = videoFrame[frameIndex].width;
-    str->height = videoFrame[frameIndex].height;
+    str->width = videoFrame[0].width;
+    str->height = videoFrame[0].height;
 
     frameIndex++;
     if (frameIndex == 5)
@@ -83,9 +106,11 @@ void CRLVirtualCamera::getCameraStream(std::string stringSrc, crl::multisense::i
 }
 
 
+
+
 int CRLVirtualCamera::childProcessDecode() {
 // thread declaration
-    int N = 5;
+    int N = 1;
 
     // Declaration of attribute......
     pthread_attr_t attr;
@@ -109,10 +134,71 @@ int CRLVirtualCamera::childProcessDecode() {
     return EXIT_SUCCESS;
 }
 
+void CRLVirtualCamera::getVideoMetadata(){
+    AVFormatContext *ctx_format = nullptr;
+    AVCodecContext *ctx_codec = nullptr;
+    AVCodec *codec = nullptr;
+    AVFrame *frame = av_frame_alloc();
+    int stream_idx;
+    SwsContext *ctx_sws = nullptr;
+    std::string fileName = Utils::getTexturePath() + "Video/" + videoName;
+    AVStream *vid_stream = nullptr;
+    AVPacket *pkt = av_packet_alloc();
+
+    av_register_all();
+
+    if (int ret = avformat_open_input(&ctx_format, fileName.c_str(), nullptr, nullptr) != 0) {
+        std::cout << 1 << std::endl;
+
+    }
+    if (avformat_find_stream_info(ctx_format, nullptr) < 0) {
+        std::cout << 2 << std::endl;
+
+    }
+    av_dump_format(ctx_format, 0, fileName.c_str(), false);
+
+    for (int i = 0; i < ctx_format->nb_streams; i++)
+        if (ctx_format->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            stream_idx = i;
+            vid_stream = ctx_format->streams[i];
+            break;
+        }
+    if (vid_stream == nullptr) {
+        std::cout << 4 << std::endl;
+    }
+
+    codec = avcodec_find_decoder(vid_stream->codecpar->codec_id);
+    if (!codec) {
+        fprintf(stderr, "codec not found\n");
+        exit(1);
+    }
+    ctx_codec = avcodec_alloc_context3(codec);
+
+    if (avcodec_parameters_to_context(ctx_codec, vid_stream->codecpar) < 0)
+        std::cout << 512;
+    if (avcodec_open2(ctx_codec, codec, nullptr) < 0) {
+        std::cout << 5;
+    }
+
+    width = ctx_codec->width;
+    height = ctx_codec->height;
+
+    avformat_close_input(&ctx_format);
+    av_packet_unref(pkt);
+    avcodec_free_context(&ctx_codec);
+    avformat_free_context(ctx_format);
+}
+
 void *CRLVirtualCamera::decode(void *arg) {
     auto *instance = (CRLVirtualCamera *) arg;
     while (instance->runDecodeThread) {
 
+        // If paused or we haven't specificed any video
+        if (instance->pauseThread, instance->videoName == "None"){
+            std::chrono::milliseconds ten_ms(10);
+            std::this_thread::sleep_for(ten_ms);
+            continue;
+        }
 
         AVFormatContext *ctx_format = nullptr;
         AVCodecContext *ctx_codec = nullptr;
@@ -120,7 +206,7 @@ void *CRLVirtualCamera::decode(void *arg) {
         AVFrame *frame = av_frame_alloc();
         int stream_idx;
         SwsContext *ctx_sws = nullptr;
-        std::string fileName = Utils::getTexturePath() + "Video/pixels.mp4";
+        std::string fileName = Utils::getTexturePath() + "Video/" + instance->videoName;
         AVStream *vid_stream = nullptr;
         AVPacket *pkt = av_packet_alloc();
 
@@ -159,8 +245,6 @@ void *CRLVirtualCamera::decode(void *arg) {
             std::cout << 5;
         }
 
-        instance->width = ctx_codec->width;
-        instance->height = ctx_codec->height;
 
         //av_new_packet(pkt, pic_size);
         int index = 0;
@@ -179,17 +263,24 @@ void *CRLVirtualCamera::decode(void *arg) {
                         break;
                     }
 
+                    // TODO REMOVE THIS STOPS AFTER 593 frames
+                    if (frame->coded_picture_number > 593)
+                        continue;
+
                     sem_wait(&instance->notFull);
                     std::cout <<
                               "Producer produces item.Items Present = "
                               << ++instance->items << std::endl;
                     //std::cout << "frame: " << ctx_codec->frame_number << std::endl;
-                    instance->videoFrame[index] = *frame;
+                    instance->videoFrame[0] = *frame;
+
+
                     instance->bufferSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, ctx_codec->width,
                                                                     ctx_codec->height, 1);
                     index++;
                     if (index == 5)
                         index = 0;
+
                     sem_post(&instance->notEmpty);
 
                     //saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);

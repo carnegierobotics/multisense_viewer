@@ -7,7 +7,7 @@
 #include "DecodeVideo.h"
 
 
-void DecodeVideo::setup(CameraConnection* camHandle) {
+void DecodeVideo::setup(CameraConnection *camHandle) {
     /**
      * Create and load Mesh elements
      */
@@ -17,6 +17,8 @@ void DecodeVideo::setup(CameraConnection* camHandle) {
 
     model->draw = false;
     this->camHandle = camHandle;
+
+
 }
 
 
@@ -24,16 +26,12 @@ void DecodeVideo::update() {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
-    if (!model->draw) {
-        camHandle->camPtr->start(" ", " ");
+    if (model->draw){
+        crl::multisense::image::Header stream;
+        camHandle->camPtr->getCameraStream(&stream);
+        model->setColorTexture(stream);
 
-        prepareTextureAfterDecode();
-    } else {
-        crl::multisense::image::Header *stream;
-        camHandle->camPtr->getCameraStream("", &stream);
-
-        //model->setColorTexture(&videoFrame[frameIndex], bufferSize);
-
+        free((void *) stream.imageDataP);
     }
 
     UBOMatrix mat{};
@@ -57,6 +55,11 @@ void DecodeVideo::prepareTextureAfterDecode() {
     std::string fragmentShaderFileName;
     vertexShaderFileName = "myScene/spv/quad.vert";
     fragmentShaderFileName = "myScene/spv/quad.frag";
+
+    auto inf = camHandle->camPtr->getCameraInfo();
+
+    width = inf.imgConf.width();
+    height = inf.imgConf.height();
 
     model->prepareTextureImage(width, height, CrlColorImageYUV420);
     auto *imgData = new ImageData(((float) width / (float) height), 1);
@@ -94,13 +97,17 @@ void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
         for (auto &dev: *uiHandle.devices) {
             if (dev.cameraName == "Virtual Camera" && !model->draw) {
 
-                camHandle->camPtr->start("", "");
+                camHandle->camPtr->start(src + ".mp4", " ");
+                prepareTextureAfterDecode();
+                model->draw = true;
 
             }
         }
 
-    } else if (playbackSate == AR_PREVIEW_STOPPED) {
+    } else if (playbackSate == AR_PREVIEW_STOPPED && model->draw == true) {
         model->draw = false;
+        camHandle->camPtr->stop("");
+
     }
 
 }

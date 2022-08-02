@@ -25,6 +25,7 @@ public:
     std::string description;
     std::string data;
     int point = 0;
+    int width = 0, height = 0;
 
     bool connect(const std::string &ip) override;
 
@@ -36,31 +37,30 @@ public:
 
     void stop(std::string dataSourceStr) override;
 
-    void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
-                         crl::multisense::image::Header **src2 = nullptr) override;
-
+    void getCameraStream(crl::multisense::image::Header *stream) override;
 
 
 private:
 
     void update();
 
-
-    int width = 0, height = 0;
     AVFrame videoFrame[5];
     int bufferSize = 0;
+    std::string videoName = "None";
 
     int r1, items = 0;
     sem_t notEmpty, notFull;
     bool runDecodeThread = false;
     pthread_t producer;
     int frameIndex = 0;
+    bool pauseThread = false;
 
 
     int childProcessDecode();
     static void* decode(void* arg);
 
 
+    void getVideoMetadata();
 };
 
 

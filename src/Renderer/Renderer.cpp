@@ -124,7 +124,7 @@ void Renderer::buildScript(const std::string& scriptName){
 void Renderer::deleteScript(const std::string& scriptName){
     auto end = std::remove(scriptNames.begin(), scriptNames.end(), scriptName);
     if (end == scriptNames.end()){
-        pLogger->error("RENDERER:: Failed to find script %s in deleteScript(...)\n", scriptName.c_str());
+        return;
     }
 
     scripts.erase(scriptName);

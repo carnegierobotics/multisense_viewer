@@ -33,12 +33,23 @@ namespace ArEngine{
         //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
         //void setBoundingBox(glm::vec3 min, glm::vec3 max);
     };
+
+    struct MP4Frame {
+        void* plane0;
+        void* plane1;
+        void* plane2;
+
+        uint32_t plane0Size;
+        uint32_t plane1Size;
+        uint32_t plane2Size;
+    };
 }
 
 typedef enum CRLCameraDataType {
     CrlPointCloud,
     CrlGrayscaleImage,
     CrlColorImageYUV420,
+    AR_YUV_PLANAR_FRAME,
     CrlColorImage,
     CrlNone, CrlDisparityImage, CrlImage
 } CRLCameraDataType;

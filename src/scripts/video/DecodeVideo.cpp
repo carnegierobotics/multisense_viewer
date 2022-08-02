@@ -7,7 +7,7 @@
 #include "DecodeVideo.h"
 
 
-void DecodeVideo::setup(CameraConnection *camHandle) {
+void DecodeVideo::setup(Base::Render r) {
     /**
      * Create and load Mesh elements
      */
@@ -16,7 +16,7 @@ void DecodeVideo::setup(CameraConnection *camHandle) {
     // Don't draw it before we create the texture in update()
 
     model->draw = false;
-    this->camHandle = camHandle;
+    this->camHandle = r.crlCamera->get();
 
 
 }
@@ -28,10 +28,14 @@ void DecodeVideo::update() {
 
     if (model->draw){
         crl::multisense::image::Header stream;
-        camHandle->camPtr->getCameraStream(&stream);
-        model->setColorTexture(stream);
+        ArEngine::MP4Frame frame{};
 
-        free((void *) stream.imageDataP);
+        camHandle->camPtr->getCameraStream(&frame);
+        model->setColorTexture(&frame);
+
+        free(frame.plane0);
+        free(frame.plane1);
+        free(frame.plane2);
     }
 
     UBOMatrix mat{};
@@ -61,7 +65,7 @@ void DecodeVideo::prepareTextureAfterDecode() {
     width = inf.imgConf.width();
     height = inf.imgConf.height();
 
-    model->prepareTextureImage(width, height, CrlColorImageYUV420);
+    model->prepareTextureImage(width, height, AR_YUV_PLANAR_FRAME);
     auto *imgData = new ImageData(((float) width / (float) height), 1);
 
 
@@ -89,7 +93,6 @@ void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.playbackStatus;
-
 
     }
 
@@ -248,22 +251,3 @@ void *DecodeVideo::decode(void *arg) {
 }
  */
 
-void DecodeVideo::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {
-    FILE *pFile;
-    char szFilename[32];
-    int y;
-
-    // Open file
-    sprintf(szFilename, "frame%d.yuv", iFrame);
-    pFile = fopen(szFilename, "wb");
-    if (pFile == nullptr)
-        return;
-
-    // Write pixel data
-    fwrite(pFrame->data[0], 1, width * height, pFile);
-    fwrite(pFrame->data[1], 1, width * height / 4, pFile);
-    fwrite(pFrame->data[2], 1, width * height / 4, pFile);
-
-    // Close file
-    fclose(pFile);
-}

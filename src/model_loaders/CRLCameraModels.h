@@ -98,7 +98,7 @@ public:
 
         void setColorTexture(AVFrame *videoFrame, int bufferSize);
 
-        void setColorTexture(crl::multisense::image::Header stream);
+        void setColorTexture(ArEngine::MP4Frame* frame);
     };
 
     /**@brief Primitive for a surface */

@@ -94,15 +94,15 @@ void Renderer::buildCommandBuffers() {
 void Renderer::buildScript(const std::string& scriptName){
 
     // Do not recreate script if already created
-    auto end = std::remove(scriptNames.begin(), scriptNames.end(), scriptName);
-    if (end != scriptNames.end()){
+
+    auto it = std::find(scriptNames.begin(), scriptNames.end(), scriptName);
+    if (it != scriptNames.end())
         return;
-    }
 
     scriptNames.emplace_back(scriptName);
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
 
-
+    pLogger->info("RENDERER::Built Script: %s, running setup...", scriptName.c_str());
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
@@ -111,21 +111,27 @@ void Renderer::buildScript(const std::string& scriptName){
 
     Base::Render renderData{};
     renderData.crlCamera = &cameraConnection;
-
+    renderData.gui = *guiManager->handles.devices;
 
     // Run script setup function
     for (auto &script: scripts) {
         assert(script.second);
         script.second->createUniformBuffers(vars, renderData, script.second->getType());
     }
-    printf("Setup finished\n");
+
 }
 
 void Renderer::deleteScript(const std::string& scriptName){
-    auto end = std::remove(scriptNames.begin(), scriptNames.end(), scriptName);
-    if (end == scriptNames.end()){
+    if (scriptNames.empty())
         return;
-    }
+
+    auto it = std::find(scriptNames.begin(), scriptNames.end(), scriptName);
+    if (it != scriptNames.end())
+        scriptNames.erase(it);
+    else
+        return;
+
+    pLogger->info("RENDERER::deleted Script: %s", scriptName.c_str());
 
     scripts.erase(scriptName);
 
@@ -207,6 +213,7 @@ void Renderer::render() {
     renderData.index = currentBuffer;
     renderData.runTime = runTime;
 
+    guiManager->handles.keypress = keypress;
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, width, height);
 
@@ -227,8 +234,10 @@ void Renderer::render() {
                     case AR_PREVIEW_RIGHT:
                         break;
                     case AR_PREVIEW_DISPARITY:
+                        buildScript("DisparityPreview");
                         break;
                     case AR_PREVIEW_AUXILIARY:
+                        buildScript("AuxiliaryPreview");
                         break;
                     case AR_PREVIEW_VIRTUAL:
                         buildScript("DecodeVideo");
@@ -254,8 +263,10 @@ void Renderer::render() {
                     case AR_PREVIEW_RIGHT:
                         break;
                     case AR_PREVIEW_DISPARITY:
+                        deleteScript("DisparityPreview");
                         break;
                     case AR_PREVIEW_AUXILIARY:
+                        deleteScript("AuxiliaryPreview");
                         break;
                     case AR_PREVIEW_VIRTUAL:
                         deleteScript("DecodeVideo");

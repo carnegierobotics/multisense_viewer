@@ -40,6 +40,9 @@ struct GuiLayerUpdateInfo {
     /** @brief Width of popupModal*/
     float popupWidth = 500.0f;
 
+    /**@brief size of control area tabs*/
+    float tabAreaHeight = 60.0f;
+
     /** @brief size of Control Area*/
     float controlAreaWidth = 440.0f, controlAreaHeight = height;
 
@@ -137,9 +140,13 @@ struct GuiObjectHandles {
     /** @brief Static info used in creation of gui */
     GuiLayerUpdateInfo *info{};
 
+    int keypress;
+
     float sliderOne = -1.77f;
     float sliderTwo = 0.986f;
     float sliderThree = -0.718;
+
+
 
 };
 

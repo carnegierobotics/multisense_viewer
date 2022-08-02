@@ -29,7 +29,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
-    void setup(CameraConnection* camHandle) override;
+    void setup(Base::Render r) override;
 
     /** @brief update function called once per frame **/
     void update() override;
@@ -53,7 +53,6 @@ public:
 
     static void *decode(void *arg);
 
-    void saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame);
 
     void prepareTextureAfterDecode();
 

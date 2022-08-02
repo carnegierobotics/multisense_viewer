@@ -38,6 +38,7 @@ public:
     void stop(std::string dataSourceStr) override;
 
     void getCameraStream(crl::multisense::image::Header *stream) override;
+    void getCameraStream(ArEngine::MP4Frame* frame) override;
 
 
 private:
@@ -61,6 +62,8 @@ private:
 
 
     void getVideoMetadata();
+
+    void saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame);
 };
 
 

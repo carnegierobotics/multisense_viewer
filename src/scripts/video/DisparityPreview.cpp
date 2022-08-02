@@ -3,14 +3,23 @@
 //
 
 #include "DisparityPreview.h"
+#include "GLFW/glfw3.h"
 
 
-void DisparityPreview::setup(CameraConnection* camHandle) {
+void DisparityPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+
+    for (auto dev : r.gui){
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end())
+            continue;
+
+        auto opt = dev.streams.find(AR_PREVIEW_DISPARITY)->second;
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+    }
 
 }
 
@@ -64,7 +73,7 @@ void DisparityPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
 
-    mat.model = glm::translate(mat.model, glm::vec3(2.8 + posX, 0.4 + posY, -5 + posZ));
+    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -84,7 +93,12 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
-
+    if (uiHandle.keypress == GLFW_KEY_I){
+        up += 0.1;
+    }
+    if (uiHandle.keypress == GLFW_KEY_K){
+        up -= 0.1;
+    }
 
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle.devices) {
@@ -97,8 +111,6 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         src = dev.streams.find(AR_PREVIEW_DISPARITY)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_DISPARITY)->second.playbackStatus;
 
-        if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
-            playbackSate = AR_PREVIEW_NONE;
     }
 }
 

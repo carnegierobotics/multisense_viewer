@@ -80,6 +80,7 @@ public:
         float runTime;
         std::unique_ptr<CameraConnection> *crlCamera;
         ScriptType type;
+        std::vector<Element> gui;
     } renderData{};
 
 
@@ -101,7 +102,7 @@ public:
      * @param camHandle: Handle to currently connected camera
      * Called if the script type is: ArCameraScript and
      * the cameraHandle has been initialized by the CameraConnection Class */
-    virtual void setup(CameraConnection *camHandle) {};
+    virtual void setup(Render r) {};
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
     virtual void onUIUpdate(GuiObjectHandles uiHandle) = 0;
@@ -116,7 +117,7 @@ public:
         this->renderData = d;
 
         // Default update function is called for updating models. Else CRL extension
-        if (d.type == ArDefault || AR_CAMERA_SETUP_ONLY)
+        if (d.type == ArDefault || d.type == AR_CAMERA_SETUP_ONLY)
             update();
         else if (d.crlCamera->get()->camPtr != nullptr)
             update(d.crlCamera->get());
@@ -174,8 +175,8 @@ public:
 
         }
 
-        if (scriptType == ArCameraScript || AR_CAMERA_SETUP_ONLY)
-            setup(d.crlCamera->get());
+        if (scriptType == ArCameraScript || scriptType == AR_CAMERA_SETUP_ONLY)
+            setup(d);
         else
             setup();
     }

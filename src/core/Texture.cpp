@@ -1157,9 +1157,6 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     height = texHeight;
     mipLevels = 1;
 
-
-
-
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1201,8 +1198,9 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
             createDefaultSampler();
             viewCreateInfo.pNext = nullptr;
             break;
+        case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-            samplerYcbcrConversionInfo = createYUV420Sampler();
+            samplerYcbcrConversionInfo = createYUV420Sampler(format);
             viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
 
             // Create YUV sampler
@@ -1217,8 +1215,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
-    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
-                                 VK_COMPONENT_SWIZZLE_A};
+    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B};
     viewCreateInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.image = image;
@@ -1465,19 +1462,33 @@ void TextureVideo::updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chrom
 
 }
 
-void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize) {
+void TextureVideo::updateTextureFromBufferYUV(ArEngine::MP4Frame *frame) {
 
 
     // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingMemory;
+    VkBuffer plane0, plane1, plane2;
+    VkDeviceMemory planeMem0, planeMem1, planeMem2;
 
     CHECK_RESULT(device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            bufferSize,
-            &stagingBuffer,
-            &stagingMemory, buffer));
+            frame->plane0Size,
+            &plane0,
+            &planeMem0, frame->plane0));
+
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            frame->plane1Size,
+            &plane1,
+            &planeMem1, frame->plane1));
+
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            frame->plane2Size,
+            &plane2,
+            &planeMem2, frame->plane2));
 
 
     VkImageSubresourceRange subresourceRange = {};
@@ -1496,18 +1507,27 @@ void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize)
     bufferCopyRegion.imageExtent.depth = 1;
     bufferCopyRegion.bufferOffset = 0;
 
-    VkBufferImageCopy bufferCopyRegionChroma = {};
-    bufferCopyRegionChroma.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
-    bufferCopyRegionChroma.imageSubresource.mipLevel = 0;
-    bufferCopyRegionChroma.imageSubresource.baseArrayLayer = 0;
-    bufferCopyRegionChroma.imageSubresource.layerCount = 1;
-    bufferCopyRegionChroma.imageExtent.width = width / 2;
-    bufferCopyRegionChroma.imageExtent.height = height / 2;
-    bufferCopyRegionChroma.imageExtent.depth = 1;
-    bufferCopyRegionChroma.bufferOffset = width * height;
+    VkBufferImageCopy bufferCopyRegionPlane1= {};
+    bufferCopyRegionPlane1.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
+    bufferCopyRegionPlane1.imageSubresource.mipLevel = 0;
+    bufferCopyRegionPlane1.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegionPlane1.imageSubresource.layerCount = 1;
+    bufferCopyRegionPlane1.imageExtent.width = width / 2;
+    bufferCopyRegionPlane1.imageExtent.height = height / 2;
+    bufferCopyRegionPlane1.imageExtent.depth = 1;
+    bufferCopyRegionPlane1.bufferOffset = 0;
 
+    VkBufferImageCopy bufferCopyRegionPlane2 = {};
+    bufferCopyRegionPlane2.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_2_BIT;
+    bufferCopyRegionPlane2.imageSubresource.mipLevel = 0;
+    bufferCopyRegionPlane2.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegionPlane2.imageSubresource.layerCount = 1;
+    bufferCopyRegionPlane2.imageExtent.width = width / 2;
+    bufferCopyRegionPlane2.imageExtent.height = height / 2;
+    bufferCopyRegionPlane2.imageExtent.depth = 1;
+    bufferCopyRegionPlane2.bufferOffset = 0;
 
-    // Use a separate command buffer for texture loading
+    // Use a separate command buffer for texture loading|
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
     // Image barrier for optimal image (target)
@@ -1524,7 +1544,7 @@ void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize)
     // Copy data from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer,
+            plane0,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -1534,11 +1554,20 @@ void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize)
     // Copy data from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer,
+            plane1,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
-            &bufferCopyRegionChroma
+            &bufferCopyRegionPlane1
+    );
+
+    vkCmdCopyBufferToImage(
+            copyCmd,
+            plane2,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegionPlane2
     );
 
     // Change texture image layout to shader read after all mip levels have been copied
@@ -1555,12 +1584,18 @@ void TextureVideo::updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize)
     device->flushCommandBuffer(copyCmd, device->transferQueue);
 
 
-    vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-    vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(device->logicalDevice, planeMem0, nullptr);
+    vkDestroyBuffer(device->logicalDevice, plane0, nullptr);
+
+    vkFreeMemory(device->logicalDevice, planeMem1, nullptr);
+    vkDestroyBuffer(device->logicalDevice, plane1, nullptr);
+
+    vkFreeMemory(device->logicalDevice, planeMem2, nullptr);
+    vkDestroyBuffer(device->logicalDevice, plane2, nullptr);
 
 }
 
-VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler() {
+VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) {
 
     // YUV TEXTURE SAMPLER
     VkSamplerYcbcrConversionCreateInfo info = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
@@ -1602,7 +1637,7 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler() {
     info.forceExplicitReconstruction = VK_FALSE;
 
     // For YUV420p.
-    info.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+    info.format = format;
 
     vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
                                    &YUVSamplerToRGB);

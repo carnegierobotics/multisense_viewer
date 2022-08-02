@@ -27,7 +27,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
-    void setup(CameraConnection* camHandle) override;
+    void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/
@@ -44,6 +44,7 @@ public:
     CRLCameraModels::Model* model;
 
     int count = 1;
+    float up = 1.3f;
     void *selection = (void *) "0";
     std::string src;
     CameraStreamInfoFlag playbackSate;

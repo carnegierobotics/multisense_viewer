@@ -4,7 +4,7 @@
 
 #include "RightPreview.h"
 
-void RightPreview::setup(CameraConnection* camHandle) {
+void RightPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 

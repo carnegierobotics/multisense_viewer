@@ -3,13 +3,23 @@
 //
 
 #include "DefaultPreview.h"
+#include "GLFW/glfw3.h"
 
-void DefaultPreview::setup(CameraConnection* camHandle) {
+void DefaultPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+
+
+    for (auto dev : r.gui){
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
+            continue;
+
+        auto opt = dev.streams.find(AR_PREVIEW_LEFT)->second;
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+    }
 
 }
 
@@ -63,7 +73,7 @@ void DefaultPreview::update(CameraConnection *conn) {
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(-1.3, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -84,6 +94,13 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
 
+    if (uiHandle.keypress == GLFW_KEY_I){
+        up += 0.1;
+    }
+    if (uiHandle.keypress == GLFW_KEY_K){
+        up -= 0.1;
+    }
+
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
@@ -93,9 +110,6 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
-
-        if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
-            playbackSate = AR_PREVIEW_NONE;
 
     }
 

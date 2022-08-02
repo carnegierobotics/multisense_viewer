@@ -27,7 +27,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
-    void setup(CameraConnection* camHandle) override;
+    void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/
@@ -48,6 +48,8 @@ public:
     std::string src;
     CameraStreamInfoFlag playbackSate;
     float posX, posY, posZ;
+
+    float up = 3.6f;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

@@ -90,6 +90,8 @@ public:
         float wheel = 0.0f;
     } mouseButtons;
 
+    int keypress = 0;
+
     /** @brief Handle for Logging*/
     Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class
 

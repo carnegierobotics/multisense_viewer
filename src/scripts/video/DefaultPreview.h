@@ -27,7 +27,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
-    void setup(CameraConnection* camHandle) override;
+    void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/
@@ -45,6 +45,7 @@ public:
 
     int count = 1;
     void *selection = (void *) "0";
+    float up = -1.3f;
 
     std::string src;
     uint32_t playbackSate = -1;

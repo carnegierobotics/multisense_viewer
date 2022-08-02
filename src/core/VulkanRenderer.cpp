@@ -526,6 +526,7 @@ void VulkanRenderer::renderLoop() {
 
         render();
 
+        keypress = 0; // reset keypress
         mouseButtons.wheel = 0.0f; // Reset mousewheel after we rendered frames with imgui.
 
         auto tEnd = std::chrono::high_resolution_clock::now();
@@ -684,6 +685,7 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
     // If we do not want to send key events to the Render engine but keem them in the UI.
     //if (io.WantCaptureKeyboard)
     //    return;
+    myApp->keypress = key;
 
     if (action == GLFW_PRESS) {
 

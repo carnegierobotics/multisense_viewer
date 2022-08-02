@@ -19,7 +19,7 @@ public:
 
 
     void OnUIRender(GuiObjectHandles *handles) override {
-        //if (handles->devices->empty()) return;
+        if (handles->devices->empty()) return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
@@ -86,87 +86,84 @@ public:
 
                 ImGui::SameLine();
             }
-
-            /*
-            bool open = true;
-            // Create Control Area
-            ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(440.0f, 720.0f));
-            ImGui::Begin("Control Area", &open, ImGuiCond_Always);
-
-            ImVec2 position = ImGui::GetCursorScreenPos();
-            //bool clicked(ImGui::Button("Custom", ImVec2(200.0f, 30.0f)));
-            ImVec2 pos = position;
-            pos.y += 30.0f;
-            pos.x += 200.0f;
-
-            ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
-            bool clicked = ImGui::InvisibleButton("Item#1", ImVec2(200.0f, 30.0f));
-
-            if (clicked && openDropDown) {
-                openDropDown = false;
-                length = 0;
-            } else if (clicked) openDropDown = true;
-
-            if (openDropDown) {
-                printf("Clicked\n");
-                ImVec2 position = ImGui::GetCursorScreenPos();
-
-                ImVec2 pos = position;
-                if (length < 250)
-                    length += 1;
-
-                pos.y += length;
-                pos.x += 150;
-                ImGui::SetNextWindowPos(position, 0);
-
-                ImGui::BeginChild("Test1", ImVec2(300, 300));
-                ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
-
-
-                ImGui::Text("Select data source");
-
-                const char *items[] = {"AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ",
-                                       "KKKK", "LLLLLLL", "MMMM", "OOOOOOO"};
-                static int item_current_idx = 0; // Here we store our selection data as an index.
-                const char *combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
-
-                if (ImGui::BeginCombo("Custom", combo_preview_value, 0)) {
-                    for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-
-                        const bool is_selected = (item_current_idx == n);
-                        if (ImGui::Selectable(items[n], is_selected)) {
-                            item_current_idx = n;
-
-                        }
-                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                        if (is_selected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-
-
-                ImGui::EndChild();
-
-                //openDropDownMenu(handles, position);
-            }
+            ImGui::NewLine();
+            ImGui::ShowDemoWindow();
             ImGui::End();
+            ImGui::PopStyleColor(); // bg color
 
-             */
+        }
 
-            /*
-            const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
-            static int item_current_idx = 0; // Here we store our selection data as an index.
-            const char* combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
 
-            if (ImGui::CustomCombo("Custom", ImVec2(200.0f, 30.0f), &openDropDown, combo_preview_value, 0)) {
-                for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
 
-                    const bool is_selected = (item_current_idx == n);
-                    if (ImGui::Selectable(items[n], is_selected)) {
-                        item_current_idx = n;
+
+        /*
+        const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
+        static int item_current_idx = 0; // Here we store our selection data as an index.
+        const char* combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
+
+        if (ImGui::CustomCombo("Custom", ImVec2(200.0f, 30.0f), &openDropDown, combo_preview_value, 0)) {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+
+                const bool is_selected = (item_current_idx == n);
+                if (ImGui::Selectable(items[n], is_selected)) {
+                    item_current_idx = n;
+
+                }
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        */
+
+        //openDropDownMenu(handles, ImVec2(200.0f, 0.0f));
+
+
+
+
+    }
+
+
+    void addDropDown(GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, StreamingModes *stream) {
+
+
+        ImVec2 position = ImGui::GetCursorScreenPos();
+        position.x += 0;//handles->info->sidebarWidth;
+        ImVec2 pos = position;
+        pos.x += 250.0f;
+        pos.y += 30.0f;
+
+
+        if (openDropDown[streamIndex]) {
+            pos = position;
+            if (animationLength[streamIndex] < 220)
+                animationLength[streamIndex] += 1;
+            pos.y += animationLength[streamIndex];
+            pos.x += 250;
+        } else {
+            animationLength[streamIndex] = 0;
+        }
+
+        ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
+        ImGui::CustomSelectable(id.c_str(), &openDropDown[streamIndex], 0, ImVec2(250.0f, 30.0f));
+
+        if (openDropDown[streamIndex]) {
+
+            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+            ImGui::Text("Data source:");
+
+            ImGui::SetNextItemWidth(200.0f);
+            if (ImGui::BeginCombo(std::string("##Source" + std::to_string(streamIndex)).c_str(),  stream->sources[stream->selectedSourceIndex].c_str(),
+                                  ImGuiComboFlags_HeightSmall)) {
+                for (int n = 0; n < stream->sources.size(); n++) {
+
+                    const bool is_selected = (stream->selectedSourceIndex == n);
+                    if (ImGui::Selectable(stream->sources[n].c_str(), is_selected)) {
+                        stream->selectedSourceIndex = n;
+                        stream->selectedStreamingSource = stream->sources[stream->selectedSourceIndex];
 
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -176,21 +173,56 @@ public:
                 }
                 ImGui::EndCombo();
             }
-            */
 
-            ImGui::NewLine();
-            ImGui::ShowDemoWindow();
-            ImGui::PopStyleColor(); // bg color
-            ImGui::End();
+            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+            ImGui::Text("Resolution:");
+
+            ImGui::SetNextItemWidth(200.0f);
+            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(streamIndex)).c_str(), stream->modes[stream->selectedModeIndex].c_str(),
+                                  ImGuiComboFlags_HeightSmall)) {
+                for (int n = 0; n < stream->modes.size(); n++) {
+                    const bool is_selected = (stream->selectedModeIndex == n);
+                    if (ImGui::Selectable(stream->modes[n].c_str(), is_selected)) {
+                        stream->selectedModeIndex = n;
+                        stream->selectedStreamingMode = stream->modes[stream->selectedModeIndex];
+
+                    }
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::Dummy(ImVec2(0.0f, 30.0f));
+
+            std::string btnLabel = "Start##" + std::to_string(streamIndex);
+            if (ImGui::Button(btnLabel.c_str())) {
+                stream->playbackStatus = AR_PREVIEW_PLAYING;
+            }
+                        ImGui::SameLine();
+            btnLabel = "Pause##" + std::to_string(streamIndex);
+            if (ImGui::Button(btnLabel.c_str())) {
+                stream->playbackStatus = AR_PREVIEW_PAUSED;
+            }
+            btnLabel = "Stop##" + std::to_string(streamIndex);
+            if (ImGui::Button(btnLabel.c_str())) {
+                stream->playbackStatus = AR_PREVIEW_NONE;
+            }
+
+            ImGui::Dummy(ImVec2(0.0f, 40.0f));
+
+
+            //openDropDownMenu(handles, position);
         }
-
     }
 
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
-    bool openDropDown = false;
-    float length = 0.0f;
+    bool openDropDown[5] = {false};
+    float animationLength[5] = {false};
 
     void openDropDownMenu(GuiObjectHandles *handles, ImVec2 position) {
 
@@ -293,7 +325,7 @@ private:
         pos.x += 50;
         ImGui::SetCursorPos(pos);
 
-        for (auto& d: *handles->devices) {
+        for (auto &d: *handles->devices) {
             if (d.cameraName == "Virtual Camera") {
                 addStreamPlaybackControls(AR_PREVIEW_VIRTUAL, "Virtual preview", &d);
             }
@@ -311,7 +343,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
         // Control page
@@ -348,6 +380,29 @@ private:
                             page[PAGE_CONFIGURE_DEVICE] = false;
                             drawActionPage = true;
                         }
+
+                        bool open = true;
+                        // Create Control Area
+                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->tabAreaHeight), ImGuiCond_Always);
+                        ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->height - handles->info->tabAreaHeight), ImGuiCond_Always);
+                        ImGui::Begin("Control Area", &open, ImGuiCond_Always);
+
+                        //bool clicked(ImGui::Button("Custom", ImVec2(200.0f, 30.0f)));
+                        //bool clicked = ImGui::InvisibleButton("Item#1", ImVec2(200.0f, 30.0f));
+                        StreamingModes *stream = nullptr;
+                        for (auto &d: *handles->devices) {
+                            if (d.state == ArActiveState) {
+                                addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
+                                addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
+                                addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY, &d.streams[AR_PREVIEW_AUXILIARY]);
+                                addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY, &d.streams[AR_PREVIEW_DISPARITY]);
+
+                            }
+                        }
+
+
+                        ImGui::End();
+
 
                         ImGui::EndTabItem();
                     }

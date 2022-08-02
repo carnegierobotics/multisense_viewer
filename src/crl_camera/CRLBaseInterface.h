@@ -7,6 +7,7 @@
 
 #include <MultiSense/MultiSenseChannel.hh>
 #include <unordered_map>
+#include <MultiSense/src/core/Definitions.h>
 #include "glm/glm.hpp"
 
 class CRLBaseInterface {
@@ -57,6 +58,7 @@ public:
     virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
                                   crl::multisense::image::Header **src2 = nullptr) {};
     virtual void getCameraStream(crl::multisense::image::Header *stream) {};
+    virtual void getCameraStream(ArEngine::MP4Frame* frame) {};
 
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;

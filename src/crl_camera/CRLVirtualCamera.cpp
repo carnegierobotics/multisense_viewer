@@ -31,7 +31,7 @@ void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
     videoName = string;
     getVideoMetadata();
 
-    if (!runDecodeThread){
+    if (!runDecodeThread) {
         runDecodeThread = true;
         childProcessDecode();
     }
@@ -62,12 +62,46 @@ void CRLVirtualCamera::updateCameraInfo() {
 void CRLVirtualCamera::update() {
 
 
-
 }
 
 void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 }
+
+
+void CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
+    pauseThread = false;
+    assert(frame != nullptr);
+
+    sem_wait(&notEmpty);
+
+/*
+    frame->plane0Size = videoFrame[0].linesize[0] * videoFrame[0].height;
+    frame->plane1Size = videoFrame[0].linesize[1] * videoFrame[0].height;
+    frame->plane2Size = videoFrame[0].linesize[2] * videoFrame[0].height;
+ */
+
+    frame->plane0Size = videoFrame[0].width * videoFrame[0].height;
+    frame->plane1Size = (videoFrame[0].width * videoFrame[0].height) / 4;
+    frame->plane2Size = (videoFrame[0].width * videoFrame[0].height) / 4;
+
+    frame->plane0 = malloc(frame->plane0Size);
+    frame->plane1 = malloc(frame->plane1Size);
+    frame->plane2 = malloc(frame->plane2Size);
+
+    memcpy(frame->plane0, videoFrame[0].data[0], frame->plane0Size);
+    memcpy(frame->plane1, videoFrame[0].data[1], frame->plane1Size);
+    memcpy(frame->plane2, videoFrame[0].data[2], frame->plane2Size);
+
+
+    frameIndex++;
+    if (frameIndex == 5)
+        frameIndex = 0;
+
+    sem_post(&notFull);
+
+}
+
 
 void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
     pauseThread = false;
@@ -75,7 +109,7 @@ void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
 
     sem_wait(&notEmpty);
     std::cout << "Consumer consumes item. Items Present = " << --items << std::endl;
-    auto * str = stream;
+    auto *str = stream;
 
     auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
     str->imageDataP = malloc(bufferSize);
@@ -106,8 +140,6 @@ void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
 }
 
 
-
-
 int CRLVirtualCamera::childProcessDecode() {
 // thread declaration
     int N = 1;
@@ -134,7 +166,7 @@ int CRLVirtualCamera::childProcessDecode() {
     return EXIT_SUCCESS;
 }
 
-void CRLVirtualCamera::getVideoMetadata(){
+void CRLVirtualCamera::getVideoMetadata() {
     AVFormatContext *ctx_format = nullptr;
     AVCodecContext *ctx_codec = nullptr;
     AVCodec *codec = nullptr;
@@ -194,7 +226,7 @@ void *CRLVirtualCamera::decode(void *arg) {
     while (instance->runDecodeThread) {
 
         // If paused or we haven't specificed any video
-        if (instance->pauseThread, instance->videoName == "None"){
+        if (instance->pauseThread, instance->videoName == "None") {
             std::chrono::milliseconds ten_ms(10);
             std::this_thread::sleep_for(ten_ms);
             continue;
@@ -268,9 +300,7 @@ void *CRLVirtualCamera::decode(void *arg) {
                         continue;
 
                     sem_wait(&instance->notFull);
-                    std::cout <<
-                              "Producer produces item.Items Present = "
-                              << ++instance->items << std::endl;
+
                     //std::cout << "frame: " << ctx_codec->frame_number << std::endl;
                     instance->videoFrame[0] = *frame;
 
@@ -283,7 +313,7 @@ void *CRLVirtualCamera::decode(void *arg) {
 
                     sem_post(&instance->notEmpty);
 
-                    //saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);
+                    instance->saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);
 
                 }
             }
@@ -298,4 +328,24 @@ void *CRLVirtualCamera::decode(void *arg) {
     }
 
     pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
+}
+
+void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {
+    FILE *pFile;
+    char szFilename[32];
+    int y;
+
+    // Open file
+    sprintf(szFilename, "frame%d.yuv", iFrame);
+    pFile = fopen(szFilename, "wb");
+    if (pFile == nullptr)
+        return;
+
+    // Write pixel data
+    fwrite(pFrame->data[0], 1, width * height, pFile);
+    fwrite(pFrame->data[1], 1, width * height / 4, pFile);
+    fwrite(pFrame->data[2], 1, width * height / 4, pFile);
+
+    // Close file
+    fclose(pFile);
 }

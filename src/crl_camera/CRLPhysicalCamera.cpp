@@ -24,7 +24,7 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 
             int status = cameraInterface->setMtu(7200);
             if (status != crl::multisense::Status_Ok) {
-                std::cerr << "Failed to set MTU 9000\n";
+                std::cerr << "Failed to set MTU 7200\n";
             }
             online = true;
             return true;

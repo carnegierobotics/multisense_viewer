@@ -30,6 +30,8 @@
 #include "VulkanDevice.h"
 #include "tiny_gltf.h"
 
+#include "Definitions.h"
+
 
 class Texture {
 public:
@@ -117,7 +119,7 @@ public:
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
                  VkFormat format);
 
-    VkSamplerYcbcrConversionInfo createYUV420Sampler();
+    VkSamplerYcbcrConversionInfo createYUV420Sampler(VkFormat format);
     void createDefaultSampler();
 
     void updateTextureFromBuffer(void *buffer, uint32_t bufferSize);
@@ -125,7 +127,8 @@ public:
     void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
                                     uint32_t lumaBufferSize);
 
-    void updateTextureFromBufferYUV(void *buffer, uint32_t bufferSize);
+    void updateTextureFromBufferYUV(ArEngine::MP4Frame *frame);
+
 };
 
 #endif //MULTISENSE_TEXTURE_H

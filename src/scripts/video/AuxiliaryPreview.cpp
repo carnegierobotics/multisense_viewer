@@ -3,20 +3,26 @@
 //
 
 #include "AuxiliaryPreview.h"
+#include "GLFW/glfw3.h"
 
 
-void AuxiliaryPreview::setup(CameraConnection* camHandle) {
+void AuxiliaryPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+    for (auto dev : r.gui){
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end())
+            continue;
 
+        auto opt = dev.streams.find(AR_PREVIEW_AUXILIARY)->second;
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+    }
 }
 
 
 void AuxiliaryPreview::update(CameraConnection *conn) {
-
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -66,7 +72,7 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
 
-    mat.model = glm::translate(mat.model, glm::vec3(3.2, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -87,6 +93,13 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
 
+    if (uiHandle.keypress == GLFW_KEY_I){
+        up += 0.1;
+    }
+    if (uiHandle.keypress == GLFW_KEY_K){
+        up -= 0.1;
+    }
+
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
@@ -97,8 +110,6 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.playbackStatus;
 
-        if (dev.selectedPreviewTab != TAB_2D_PREVIEW)
-            playbackSate = AR_PREVIEW_NONE;
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
 

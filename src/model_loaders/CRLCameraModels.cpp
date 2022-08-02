@@ -195,13 +195,9 @@ void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *str
 
 }
 
-void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header stream) {
+void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame* frame) {
 
-    auto *buf = malloc(stream.imageLength);
-    memcpy(buf, stream.imageDataP, stream.imageLength);
-    textureVideo.updateTextureFromBufferYUV(buf, stream.imageLength);
-
-    free(buf);
+    textureVideo.updateTextureFromBufferYUV(frame);
 
 }
 
@@ -214,7 +210,7 @@ void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize
     memcpy(yuv420pBuffer, videoFrame->data[0], size);
     memcpy(yuv420pBuffer + (videoFrame->width * videoFrame->height), videoFrame->data[1], (videoFrame->width * videoFrame->height) / 2);
 
-    textureVideo.updateTextureFromBufferYUV(yuv420pBuffer, bufferSize);
+    //textureVideo.updateTextureFromBufferYUV(yuv420pBuffer, bufferSize);
 
     free(yuv420pBuffer);
 
@@ -268,6 +264,10 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
         case CrlPointCloud:
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            break;
+        case AR_YUV_PLANAR_FRAME:
+            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM);
             break;
         default:
             std::cerr << "Texture type not supported yet" << std::endl;

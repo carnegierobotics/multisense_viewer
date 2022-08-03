@@ -24,7 +24,7 @@ void PointCloud::setup(Base::Render r) {
 
 
 void PointCloud::update(CameraConnection *conn) {
-    if (playbackSate != AR_PREVIEW_PLAYING) return;
+    if (playbackSate != AR_PREVIEW_PLAYING && TAB_3D_POINT_CLOUD == selectedPreviewTab) return;
     CRLBaseInterface *camPtr = conn->camPtr;
 
     if (model->draw == false) {

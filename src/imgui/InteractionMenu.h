@@ -19,7 +19,15 @@ public:
 
 
     void OnUIRender(GuiObjectHandles *handles) override {
-        //if (handles->devices->empty()) return;
+        if (handles->devices->empty()) return;
+        bool allUnavailable = true;
+        for (auto &d: *handles->devices) {
+            if (d.state == ArActiveState)
+                allUnavailable = false;
+        }
+
+        if (allUnavailable)
+            return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
@@ -96,6 +104,8 @@ public:
 
     void addDropDown(GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, StreamingModes *stream) {
 
+    if (stream->modes.empty() || stream->sources.empty())
+        return;
 
         ImVec2 position = ImGui::GetCursorScreenPos();
         position.x += 0;//handles->info->sidebarWidth;
@@ -388,7 +398,7 @@ private:
                         ImGui::BeginChild("Dropdown Area", ImVec2(handles->info->controlAreaWidth,
                                                                   handles->info->height - handles->info->tabAreaHeight),
                                           false, ImGuiCond_Always);
-                        StreamingModes *stream = nullptr;
+
                         for (auto &d: *handles->devices) {
                             if (d.state == ArActiveState) {
                                 addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);

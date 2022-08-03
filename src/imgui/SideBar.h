@@ -87,12 +87,14 @@ public:
 
 
         auto *wnd = ImGui::FindWindowByName("GUI");
+        /*
         if (wnd) {
             ImGuiDockNode *node = wnd->DockNode;
             if (node)
                 node->WantHiddenTabBarToggle = true;
 
         }
+         */
 
         ImGui::TextUnformatted(info->title.c_str());
         ImGui::TextUnformatted(info->deviceName.c_str());
@@ -117,7 +119,7 @@ public:
         ImGui::SetNextWindowSize(ImVec2(info->popupWidth, info->popupHeight), ImGuiCond_Once);
 
         if (ImGui::BeginPopupModal("add_device_modal", NULL,
-                                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking)) {
+                                   ImGuiWindowFlags_NoTitleBar)) {
 
             bool deviceAlreadyExist = false;
             //static char inputName[32] = "Profile #1";

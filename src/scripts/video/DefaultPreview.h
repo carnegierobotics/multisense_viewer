@@ -46,6 +46,7 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
+    Page selectedPreviewTab = TAB_NONE;
 
     std::string src;
     uint32_t playbackSate = -1;

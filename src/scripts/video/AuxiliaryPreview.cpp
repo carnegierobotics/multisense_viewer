@@ -109,6 +109,7 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
 
     }
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
@@ -117,7 +118,7 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
 
 void AuxiliaryPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != AR_PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

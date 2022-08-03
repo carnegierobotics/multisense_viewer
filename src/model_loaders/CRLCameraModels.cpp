@@ -481,7 +481,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
     inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     VkPrimitiveTopology topology;
-    if (type == ArPointCloud)
+    if (type == AR_POINT_CLOUD)
         topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
     else
         topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;

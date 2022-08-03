@@ -25,11 +25,13 @@ public:
     static std::string GetFactoryName() { return "PointCloud"; }
 
     /** @brief Setup function called one during engine prepare **/
-    void setup() override;
+    void setup() override {};
+    /** @brief Setup function called one during engine prepare **/
+    void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/
-    void update(CameraConnection *conn) override;
+    void update(CameraConnection* conn) override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
@@ -37,11 +39,11 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArPointCloud;
+    ScriptType type = AR_POINT_CLOUD;
 
     CRLCameraModels::Model* model;
     CameraStreamInfoFlag playbackSate;
-
+    Page selectedPreviewTab = TAB_NONE;
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
     int point = 0;

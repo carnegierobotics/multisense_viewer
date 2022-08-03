@@ -5,20 +5,29 @@
 #include "PointCloud.h"
 
 
-void PointCloud::setup() {
+void PointCloud::setup(Base::Render r) {
 
     model = new CRLCameraModels::Model(renderUtils.device, CrlPointCloud);
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
+
+    for (auto dev: r.gui) {
+        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end())
+            continue;
+
+        auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Disparity Left");
+    }
 
 
 }
 
 
 void PointCloud::update(CameraConnection *conn) {
+    if (playbackSate != AR_PREVIEW_PLAYING) return;
     CRLBaseInterface *camPtr = conn->camPtr;
 
-    if (!model->draw == false) {
+    if (model->draw == false) {
 
         auto imgConf = camPtr->getCameraInfo().imgConf;
         camPtr->preparePointCloud(imgConf.width(), imgConf.height());
@@ -50,19 +59,16 @@ void PointCloud::update(CameraConnection *conn) {
         model->setGrayscaleTexture(disp);
 
         const int vertexCount = 960 * 600;
-
-        ArEngine::Vertex* meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
+        ArEngine::Vertex *meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
 
         int v = 0;
         for (int i = 0; i < 960; ++i) {
             for (int j = 0; j < 600; ++j) {
                 meshData[v].pos = glm::vec3((float) i / 100.0f, (float) j / 100.0f, 0.0f);
-                meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float)j / 600.0f));
-
+                meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float) j / 600.0f));
                 v++;
             }
         }
-
 
         model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
 
@@ -94,21 +100,17 @@ void PointCloud::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end())
             continue;
 
-        playbackSate = dev.streams.find(AR_PREVIEW_DISPARITY)->second.playbackStatus;
-
-        if (dev.selectedPreviewTab != TAB_3D_POINTCLOUD)
-            playbackSate = AR_PREVIEW_NONE;
-        else
-            playbackSate = AR_PREVIEW_PLAYING;
+        playbackSate = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
     }
 
 }
 
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != AR_PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_3D_POINT_CLOUD)
         CRLCameraModels::draw(commandBuffer, i, model);
 }

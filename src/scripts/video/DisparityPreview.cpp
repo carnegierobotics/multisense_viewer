@@ -110,12 +110,13 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_DISPARITY)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_DISPARITY)->second.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
 
     }
 }
 
 
 void DisparityPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != AR_PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 }

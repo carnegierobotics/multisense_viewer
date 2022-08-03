@@ -107,12 +107,14 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_RIGHT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_RIGHT)->second.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
+
     }
 }
 
 
 void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

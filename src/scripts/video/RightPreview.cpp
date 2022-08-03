@@ -3,6 +3,7 @@
 //
 
 #include "RightPreview.h"
+#include "GLFW/glfw3.h"
 
 void RightPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
@@ -70,7 +71,7 @@ void RightPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
 
-    mat.model = glm::translate(mat.model, glm::vec3(1, 0.4, -5));
+    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -107,8 +108,6 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         src = dev.streams.find(AR_PREVIEW_RIGHT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_RIGHT)->second.playbackStatus;
     }
-    //printf("Pos %f, %f, %f\n", posX, posY, posZ);
-
 }
 
 

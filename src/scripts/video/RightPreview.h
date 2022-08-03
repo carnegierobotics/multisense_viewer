@@ -46,6 +46,7 @@ public:
     CRLCameraModels::Model* model;
 
     int count = 1;
+    float up = 4.0f;
     void *selection = (void *) "0";
     std::string src;
     CameraStreamInfoFlag playbackSate;

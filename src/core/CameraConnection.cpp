@@ -92,7 +92,6 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
             StreamingModes virtualCam{};
             virtualCam.sources.emplace_back("None");
-            virtualCam.sources.emplace_back("earth");
             virtualCam.sources.emplace_back("pixels");
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL;
             std::string modeName = "1920x1080";

@@ -47,6 +47,9 @@ struct GuiLayerUpdateInfo {
     /** @brief size of Control Area*/
     float controlAreaWidth = 440.0f, controlAreaHeight = height;
 
+    /** @brief size of viewing Area*/
+    float viewingAreaWidth = 580.0f, viewingAreaHeight = height;
+
 };
 
 typedef enum {
@@ -65,7 +68,8 @@ typedef enum StreamIndex {
     AR_PREVIEW_RIGHT = 1,
     AR_PREVIEW_DISPARITY = 2,
     AR_PREVIEW_AUXILIARY = 3,
-    AR_PREVIEW_VIRTUAL = 4 ,
+    AR_PREVIEW_VIRTUAL = 4,
+    AR_PREVIEW_POINT_CLOUD = 5,
 
     // Other flags
     AR_PREVIEW_PLAYING = 10,
@@ -82,7 +86,7 @@ typedef enum page {
     PAGE_TOTAL_PAGES = 3,
     TAB_NONE = 10,
     TAB_2D_PREVIEW = 11,
-    TAB_3D_POINTCLOUD = 12,
+    TAB_3D_POINT_CLOUD = 12,
 } Page;
 
 /** @brief  */
@@ -122,7 +126,7 @@ struct Element {
 
     std::unordered_map<int, StreamingModes> streams;
 
-    Page selectedPreviewTab = TAB_NONE;
+    Page selectedPreviewTab = TAB_2D_PREVIEW;
     /** @brief  Showing point cloud view*/
     bool pointCloud = false;
     /** @brief  Showing depth image stream*/
@@ -146,7 +150,6 @@ struct GuiObjectHandles {
     float sliderOne = -1.77f;
     float sliderTwo = 0.986f;
     float sliderThree = -0.718;
-
 
 
 };

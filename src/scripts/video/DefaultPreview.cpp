@@ -110,6 +110,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
         src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
 
     }
 
@@ -120,7 +121,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
 
 
 void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw && playbackSate != AR_PREVIEW_NONE)
+    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }

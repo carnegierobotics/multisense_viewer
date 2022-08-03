@@ -19,7 +19,7 @@ public:
 
 
     void OnUIRender(GuiObjectHandles *handles) override {
-        if (handles->devices->empty()) return;
+        //if (handles->devices->empty()) return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
@@ -87,42 +87,10 @@ public:
                 ImGui::SameLine();
             }
             ImGui::NewLine();
-            ImGui::ShowDemoWindow();
+            //ImGui::ShowDemoWindow();
             ImGui::End();
             ImGui::PopStyleColor(); // bg color
-
         }
-
-
-
-
-        /*
-        const char* items[] = { "AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ", "KKKK", "LLLLLLL", "MMMM", "OOOOOOO" };
-        static int item_current_idx = 0; // Here we store our selection data as an index.
-        const char* combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
-
-        if (ImGui::CustomCombo("Custom", ImVec2(200.0f, 30.0f), &openDropDown, combo_preview_value, 0)) {
-            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-
-                const bool is_selected = (item_current_idx == n);
-                if (ImGui::Selectable(items[n], is_selected)) {
-                    item_current_idx = n;
-
-                }
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-        */
-
-        //openDropDownMenu(handles, ImVec2(200.0f, 0.0f));
-
-
-
-
     }
 
 
@@ -156,7 +124,8 @@ public:
             ImGui::Text("Data source:");
 
             ImGui::SetNextItemWidth(200.0f);
-            if (ImGui::BeginCombo(std::string("##Source" + std::to_string(streamIndex)).c_str(),  stream->sources[stream->selectedSourceIndex].c_str(),
+            if (ImGui::BeginCombo(std::string("##Source" + std::to_string(streamIndex)).c_str(),
+                                  stream->sources[stream->selectedSourceIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (int n = 0; n < stream->sources.size(); n++) {
 
@@ -178,7 +147,8 @@ public:
             ImGui::Text("Resolution:");
 
             ImGui::SetNextItemWidth(200.0f);
-            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(streamIndex)).c_str(), stream->modes[stream->selectedModeIndex].c_str(),
+            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(streamIndex)).c_str(),
+                                  stream->modes[stream->selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (int n = 0; n < stream->modes.size(); n++) {
                     const bool is_selected = (stream->selectedModeIndex == n);
@@ -201,7 +171,7 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PLAYING;
             }
-                        ImGui::SameLine();
+            ImGui::SameLine();
             btnLabel = "Pause##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PAUSED;
@@ -337,37 +307,67 @@ private:
 
 
     void buildConfigurationPreview(GuiObjectHandles *handles) {
-        bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
+        for (auto& dev: *handles->devices) {
+            if (dev.state != ArActiveState)
+                continue;
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
-        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
+            // Control page
+            ImGui::BeginGroup();
+            createControlArea(handles, dev);
+            ImGui::EndGroup();
 
-        // Control page
-        ImGui::BeginGroup();
-        createControlArea(handles);
-        ImGui::EndGroup();
+            // Viewing page
+            ImGui::BeginGroup();
+            createViewingArea(handles, dev);
+            ImGui::EndGroup();
 
-        // Viewing page
-
-
-        ImGui::NewLine();
-        ImGui::PopStyleColor(); // bg color
-        ImGui::End();
+        }
+        //ImGui::PopStyleColor(); // bg color
+        //ImGui::End();
     }
 
-    void createControlArea(GuiObjectHandles *handles) {
+    void createViewingArea(GuiObjectHandles *handles, Element &dev) {
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                       ImGuiWindowFlags_NoScrollWithMouse;
+        ImGui::SetNextWindowPos(
+                ImVec2(handles->info->sidebarWidth + handles->info->offset5px + handles->info->controlAreaWidth +
+                       handles->info->offset5px, 0), ImGuiCond_Always);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight));
+        ImGui::Begin("ViewingArea", &pOpen, window_flags);
+
+
+        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2 ) - 30.0f, 0.0f));
+        ImGui::SameLine();
+        ImGui::PushFont(handles->info->font18);
+        ImGui::Text("Viewing");
+        ImGui::PopFont();
+
+        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2 )- 80.0f, 0.0f));
+        ImGui::SameLine();
+        if (ImGui::Button("2D", ImVec2(75.0f, 20.0f)))
+            dev.selectedPreviewTab = TAB_2D_PREVIEW;
+        ImGui::SameLine();
+        if(ImGui::Button("3D", ImVec2(75.0f, 20.0f)))
+            dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
+
+        ImGui::End();
+        ImGui::PopStyleColor();
+    }
+
+    void createControlArea(GuiObjectHandles *handles, Element &dev) {
+
+        bool pOpen = true;
+        ImGuiWindowFlags window_flags = 0;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                       ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth + handles->info->offset5px, 0), ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
-        ImGui::BeginChild("Viewing", ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight), false,
-                          window_flags);
+        ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
+        ImGui::Begin("ControlArea", &pOpen, window_flags);
 
         for (auto &d: *handles->devices) {
             // Create dropdown
@@ -381,27 +381,32 @@ private:
                             drawActionPage = true;
                         }
 
-                        bool open = true;
                         // Create Control Area
-                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->tabAreaHeight), ImGuiCond_Always);
-                        ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->height - handles->info->tabAreaHeight), ImGuiCond_Always);
-                        ImGui::Begin("Control Area", &open, ImGuiCond_Always);
-
-                        //bool clicked(ImGui::Button("Custom", ImVec2(200.0f, 30.0f)));
-                        //bool clicked = ImGui::InvisibleButton("Item#1", ImVec2(200.0f, 30.0f));
+                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth + handles->info->offset5px +
+                                                       (handles->info->offset5px * 2), handles->info->tabAreaHeight),
+                                                ImGuiCond_Always);
+                        ImGui::BeginChild("Dropdown Area", ImVec2(handles->info->controlAreaWidth,
+                                                                  handles->info->height - handles->info->tabAreaHeight),
+                                          false, ImGuiCond_Always);
                         StreamingModes *stream = nullptr;
                         for (auto &d: *handles->devices) {
                             if (d.state == ArActiveState) {
                                 addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
                                 addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
-                                addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY, &d.streams[AR_PREVIEW_AUXILIARY]);
-                                addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY, &d.streams[AR_PREVIEW_DISPARITY]);
+                                addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,
+                                            &d.streams[AR_PREVIEW_AUXILIARY]);
+                                addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY,
+                                            &d.streams[AR_PREVIEW_DISPARITY]);
+
+                                addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
+                                            &d.streams[AR_PREVIEW_POINT_CLOUD]);
+
 
                             }
                         }
 
 
-                        ImGui::End();
+                        ImGui::EndChild();
 
 
                         ImGui::EndTabItem();
@@ -425,124 +430,10 @@ private:
             }
         }
         ImGui::PopStyleColor();
-        ImGui::EndChild();
-    }
-
-    /*
-    void buildConfigurationPreview(GuiObjectHandles *handles) {
-        bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
-                       ImGuiWindowFlags_NoScrollWithMouse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
-
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
-        ImGui::Begin("InteractionMenu", &pOpen, window_flags);
-
-        for (auto &d: *handles->devices) {
-            // Create dropdown
-            if (d.state == ArActiveState) {
-                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
-                if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
-                    if (ImGui::BeginTabItem("Streaming")) {
-                        if (ImGui::Button("Back")) {
-                            page[PAGE_CONFIGURE_DEVICE] = false;
-                            drawActionPage = true;
-                        }
-
-                        addStreamingTab(handles, &d);
-
-                        ImGui::EndTabItem();
-                    }
-                    if (ImGui::BeginTabItem("Configuration")) {
-                        addConfigurationTab(handles, &d);
-
-                        ImGui::EndTabItem();
-                    }
-                    ImGui::EndTabBar();
-                }
-            }
-        }
-
-
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->height / 3), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.035, 0.078, 0.125, 0.10f));
-        ImGui::BeginChild("ConfigurationPreview",
-                          ImVec2(handles->info->width - handles->info->sidebarWidth, 2 * handles->info->height / 3),
-                          false, window_flags);
-
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 5, ImGui::GetCursorPosY()));
-        // Create Preview Window
-        for (auto &d: *handles->devices) {
-            // Create dropdown
-            if (d.state == ArActiveState) {
-                ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
-                if (ImGui::BeginTabBar("2D Preview", tab_bar_flags)) {
-                    if (ImGui::BeginTabItem("Streaming")) {
-                        d.selectedPreviewTab = TAB_2D_PREVIEW;
-
-                        ImGui::EndTabItem();
-                    }
-                    if (ImGui::BeginTabItem("3D Point cloud")) {
-                        d.selectedPreviewTab = TAB_3D_POINTCLOUD;
-
-                        ImGui::EndTabItem();
-                    }
-                    ImGui::EndTabBar();
-                }
-            }
-        }
-
-        ImGui::EndChild();
-        ImGui::PopStyleColor(); // child window bg color
-
-        ImGui::NewLine();
-        ImGui::PopStyleColor(); // main bg color
         ImGui::End();
     }
 
-    void addConfigurationTab(GuiObjectHandles *handles, Element *d) {
-        ImGui::Text("This tab is reserved for configurations. Placeholders, not implemented");
 
-        if (ImGui::Button("Back")) {
-            page[PAGE_CONFIGURE_DEVICE] = false;
-            drawActionPage = true;
-        }
-
-        ImGui::SliderFloat("Exposure time", &handles->sliderOne, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
-        ImGui::SliderFloat("LED duty cycle", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
-
-        ImGui::SliderFloat("X", &handles->sliderOne, -4.0f, 4.0f, "%.3f", ImGuiSliderFlags_None);
-        ImGui::SliderFloat("Y", &handles->sliderTwo, -2.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
-        ImGui::SliderFloat("Z", &handles->sliderThree, -5.0f, 2.0f, "%.3f", ImGuiSliderFlags_None);
-
-    }
-
-    void addStreamingTab(GuiObjectHandles *handles, Element *d) {
-
-
-        ImVec2 pos = ImGui::GetCursorPos();
-        pos.y += 5;
-        pos.x += 50;
-        ImGui::SetCursorPos(pos);
-
-        if (d->cameraName == "Virtual Camera") {
-            addStreamPlaybackControls(PREVIEW_VIRTUAL, "Virtual preview", d);
-
-        } else {
-            addStreamPlaybackControls(PREVIEW_LEFT, "Left preview", d);
-            ImGui::SameLine();
-            addStreamPlaybackControls(PREVIEW_RIGHT, "Right preview", d);
-            ImGui::SameLine();
-            addStreamPlaybackControls(PREVIEW_DISPARITY, "Disparity preview", d);
-            ImGui::SameLine();
-            addStreamPlaybackControls(PREVIEW_AUXILIARY, "Auxiliary preview", d);
-        }
-
-    }
-
-     */
     void addStreamPlaybackControls(CameraStreamInfoFlag streamIndex, std::string label, Element *d) {
         ImGui::BeginGroup();
         ImGui::Text("%s", label.c_str());

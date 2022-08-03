@@ -253,6 +253,9 @@ void Renderer::render() {
                         break;
                     case AR_PREVIEW_RESET:
                         break;
+                    case AR_PREVIEW_POINT_CLOUD:
+                        buildScript("PointCloud");
+                        break;
                 }
             }
 
@@ -282,6 +285,9 @@ void Renderer::render() {
                     case AR_PREVIEW_NONE:
                         break;
                     case AR_PREVIEW_RESET:
+                        break;
+                    case AR_PREVIEW_POINT_CLOUD:
+                        deleteScript("PointCloud");
                         break;
                 }
             }

@@ -48,6 +48,7 @@ public:
     std::string src;
     CameraStreamInfoFlag playbackSate;
     float posX, posY, posZ;
+    Page selectedPreviewTab = TAB_NONE;
 
     float up = 3.6f;
 

@@ -199,10 +199,27 @@ void CameraConnection::setStreamingModes(Element &dev) {
     auxiliary.selectedStreamingMode = auxiliary.modes.front();
     auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
+    StreamingModes pointCloud{};
+    pointCloud.sources.emplace_back("None");
+    pointCloud.sources.emplace_back("S19");
+    pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
+
+    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
+        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+
+        pointCloud.modes.emplace_back(modeName);
+
+    }
+    pointCloud.selectedStreamingMode = pointCloud.modes.front();
+    pointCloud.selectedStreamingSource = pointCloud.sources.front();
+
     dev.streams[AR_PREVIEW_LEFT] = left;
     dev.streams[AR_PREVIEW_RIGHT] = right;
     dev.streams[AR_PREVIEW_DISPARITY] = disparity;
     dev.streams[AR_PREVIEW_AUXILIARY] = auxiliary;
+    dev.streams[AR_PREVIEW_POINT_CLOUD] = pointCloud;
 
     Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
 

@@ -48,6 +48,7 @@ public:
     void *selection = (void *) "0";
     std::string src;
     CameraStreamInfoFlag playbackSate;
+    Page selectedPreviewTab = TAB_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

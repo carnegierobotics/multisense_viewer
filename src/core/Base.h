@@ -15,7 +15,7 @@
 
 typedef enum ScriptType {
     ArDefault,
-    ArPointCloud,
+    AR_POINT_CLOUD,
     ArDisabled,
     ArCameraScript,
     AR_CAMERA_SETUP_ONLY
@@ -121,6 +121,9 @@ public:
             update();
         else if (d.crlCamera->get()->camPtr != nullptr)
             update(d.crlCamera->get());
+        else
+            update();
+
 
         // If initialized
         if (renderUtils.uniformBuffers.empty())
@@ -137,7 +140,7 @@ public:
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
 
-            if (d.type != ArPointCloud) return;
+            if (d.type != AR_POINT_CLOUD) return;
             currentUB.bufferThree.map();
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
@@ -175,8 +178,8 @@ public:
 
         }
 
-        if (scriptType == ArCameraScript || scriptType == AR_CAMERA_SETUP_ONLY)
-            setup(d);
+        if (scriptType == ArCameraScript || scriptType == AR_CAMERA_SETUP_ONLY || scriptType == AR_POINT_CLOUD)
+            setup(std::move(d));
         else
             setup();
     }

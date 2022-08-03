@@ -232,6 +232,7 @@ void Renderer::render() {
                         buildScript("DefaultPreview");
                         break;
                     case AR_PREVIEW_RIGHT:
+                        buildScript("RightPreview");
                         break;
                     case AR_PREVIEW_DISPARITY:
                         buildScript("DisparityPreview");
@@ -261,6 +262,7 @@ void Renderer::render() {
                         deleteScript("DefaultPreview");
                         break;
                     case AR_PREVIEW_RIGHT:
+                        deleteScript("RightPreview");
                         break;
                     case AR_PREVIEW_DISPARITY:
                         deleteScript("DisparityPreview");

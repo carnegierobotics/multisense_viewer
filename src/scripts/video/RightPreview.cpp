@@ -10,7 +10,13 @@ void RightPreview::setup(Base::Render r) {
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
+    for (auto dev : r.gui){
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end())
+            continue;
 
+        auto opt = dev.streams.find(AR_PREVIEW_RIGHT)->second;
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+    }
 }
 
 
@@ -84,6 +90,13 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
+
+    if (uiHandle.keypress == GLFW_KEY_I){
+        up += 0.1;
+    }
+    if (uiHandle.keypress == GLFW_KEY_K){
+        up -= 0.1;
+    }
 
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)

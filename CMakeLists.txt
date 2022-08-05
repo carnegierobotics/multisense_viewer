@@ -169,19 +169,6 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
-    add_library(random_seed STATIC IMPORTED GLOBAL)
-    set_property(TARGET random_seed APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    set_target_properties(random_seed PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/libavutil/random_seed.o")
-    
-    add_library(av STATIC IMPORTED GLOBAL)
-    set_property(TARGET av APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    set_target_properties(av PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/dll/avcodec-55.lib")
-
-
 
     add_library(VulkanRenderer SHARED ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)

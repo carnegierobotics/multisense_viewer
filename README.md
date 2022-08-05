@@ -25,10 +25,10 @@ $ sudo apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libsw
 ```
 To get the latest vulkan SDK for Ubuntu 20.04. use the following:
 ```sh
-wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.216-focal.list https://packages.lunarg.com/vulkan/1.3.216/lunarg-vulkan-1.3.216-focal.list
-sudo apt update
-sudo apt install vulkan-sdk
+$ wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+$ sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.216-focal.list https://packages.lunarg.com/vulkan/1.3.216/lunarg-vulkan-1.3.216-focal.list
+$ sudo apt update
+$ sudo apt install vulkan-sdk
 ```
 Clone the git repo and build the MultiSense Viewer
 ```sh

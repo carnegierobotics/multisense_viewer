@@ -35,8 +35,11 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
 # VULKAN KTX TOOLS
-set(KTX_FEATURE_STATIC_LIBRARY ON )
+if (WIN32)
+    set(KTX_FEATURE_STATIC_LIBRARY ON )
+endif ()
 set(KTX_FEATURE_TESTS OFF)
+
 set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 

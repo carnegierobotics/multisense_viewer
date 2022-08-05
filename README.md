@@ -39,7 +39,8 @@ $ cmake ..
 $ make -j12 # j-parallell jobs (Same number as cores on your cpu for faster compile)
 ```
 
-
+In your build folder there is a executable called Multisense-viewer. Launch this to start the application.
+To be able to use the auto connect feature, launch with root/admin privileges.
 
 ### Windows
 ## Folder structure

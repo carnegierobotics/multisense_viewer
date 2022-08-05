@@ -77,11 +77,12 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     pauseThread = false;
     assert(frame != nullptr);
 
+#ifdef WIN32
     if (!decoded) {
         SetEvent(notFull);
         return false;
     }
-#ifdef WIN32
+
     /*
     DWORD dwWaitResult = WaitForSingleObject(
         notEmpty,   // handle to semaphore // zero-second time-out interval
@@ -123,7 +124,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     SetEvent(notFull);
 
 #else
-    sem_post(&instance->notEmpty);
+    sem_post(&notFull);
 #endif
     return true;
 

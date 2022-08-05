@@ -43,25 +43,25 @@ In your build folder there is a executable called Multisense-viewer. Launch this
 To be able to use the auto connect feature, launch with root/admin privileges.
 
 ### Windows
-Prerequisites:
+<b> Prerequisites: </b>
 
-Have Microsoft's Visual studio installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>
-Install the Vulkan SDK for windows. Get the SDK installer [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe) and run it.
+Have Microsoft's Visual studio with c++ desktop environment tools installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>
+Install the Vulkan SDK for windows. Get the SDK installer [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe) and run it. <br/> 
+Install WinPcap DLLs. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe). You can uncheck enabling winpcap driver after installation.
 
-Clone this repo using git
+#### Clone this repo using git
 ``` sh
 $ git clone --recurse-submodules -j4 https://github.com/M-Gjerde/MultiSense
 ```
 #### Tested with Visual Studio 2022. 
 1. Open up a new cmake project in Visual studio. Remember to launch as admin.
-2. 
-
+2. Configure the cmake file and set MultiSense-viewer.exe as startup item
+3. Launch using VS or run the exe located in out/ folder
 
 
 
 ## Folder structure
 
-Install winpcap. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe) Used to enable the auto connect feature.
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
 
 ```text

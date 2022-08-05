@@ -14,13 +14,34 @@ Boilerplate for creating github compatible readme files
 
 ## Installation
 
-Open your terminal and type in
+### Linux/Ubuntu packages
+Install Dependencies:
 
+Open your terminal and type in
 ```sh
-$ git clone https://github.com/M-Gjerde/MultiSense
+$ sudo apt update
+$ sudo apt install build-essential cmake libzstd-dev ninja-build doxygen libsdl2-dev libgl1-mesa-glx libgl1-mesa-dev libvulkan1 libvulkan-dev libassimp-dev opencl-c-headers
+$ sudo apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libtbb-dev
+```
+To get the latest vulkan SDK for Ubuntu 20.04. use the following:
+```sh
+wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.216-focal.list https://packages.lunarg.com/vulkan/1.3.216/lunarg-vulkan-1.3.216-focal.list
+sudo apt update
+sudo apt install vulkan-sdk
+```
+Clone the git repo and build the MultiSense Viewer
+```sh
+$ git clone --recurse-submodules -j4 https://github.com/M-Gjerde/MultiSense
 $ cd MultiSense
+$ mkdir build && cd build
+$ cmake ..
+$ make -j12 # j-parallell jobs (Same number as cores on your cpu for faster compile)
 ```
 
+
+
+### Windows
 ## Folder structure
 
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.

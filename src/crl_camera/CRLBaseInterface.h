@@ -58,7 +58,7 @@ public:
     virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
                                   crl::multisense::image::Header **src2 = nullptr) {};
     virtual void getCameraStream(crl::multisense::image::Header *stream) {};
-    virtual void getCameraStream(ArEngine::MP4Frame* frame) {};
+    virtual bool getCameraStream(ArEngine::MP4Frame* frame) { return false; };
 
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;

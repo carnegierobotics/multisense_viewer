@@ -35,6 +35,8 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
 # VULKAN KTX TOOLS
+set(KTX_FEATURE_STATIC_LIBRARY ON )
+set(KTX_FEATURE_TESTS OFF)
 set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 
@@ -51,6 +53,9 @@ include_directories(${AUTOCONNECT_SRC})
 # Parameter for Autoconnect Library
 add_subdirectory(${AUTOCONNECT_SRC})
 
+## FFMPEG
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
+ 
 set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect")
 
 # add source files
@@ -138,8 +143,48 @@ if (WIN32)
         SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
     endif ()
 
+
+    add_library(avcodec STATIC IMPORTED GLOBAL)
+    set_property(TARGET avcodec APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+    set_target_properties(avcodec PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avcodec.lib")
+     
+
+    add_library(avutil STATIC IMPORTED GLOBAL)
+    set_property(TARGET avutil APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(avutil PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avutil.lib")
+
+    add_library(avformat STATIC IMPORTED GLOBAL)
+    set_property(TARGET avformat APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(avformat PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avformat.lib")
+
+    add_library(swscale STATIC IMPORTED GLOBAL)
+    set_property(TARGET swscale APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(swscale PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
+
+    add_library(random_seed STATIC IMPORTED GLOBAL)
+    set_property(TARGET random_seed APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(random_seed PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/libavutil/random_seed.o")
+    
+    add_library(av STATIC IMPORTED GLOBAL)
+    set_property(TARGET av APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(av PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/dll/avcodec-55.lib")
+
+
+
     add_library(VulkanRenderer SHARED ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
 
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
@@ -162,11 +207,19 @@ else () ## Linux
 
 endif ()
 
-message(Path: ${CMAKE_CURRENT_BINARY_DIR})
-message(${CMAKE_CURRENT_SOURCE_DIR}/Assets)
-## TODO: COPY dependencies with executables (shaders etc..)
-# Copy dependency folders to output directory
-add_custom_target(copy_assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-add_dependencies(MultiSense-viewer copy_assets)
+## TODO: COPY dependencies with executables (shaders etc..)
+## TODO COPY FFMPEG DLLs for windows build
+# Copy dependency folders to output directory
+#add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+#add_dependencies(MultiSense-viewer copy_assets)
+file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
+file(COPY ${ASSETS} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+
+# Copy DLLs
+if (WIN32)
+#add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+#add_dependencies(MultiSense-viewer copy_assets)
+file(GLOB FFMPEG_DLL "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/*.dll")
+file(COPY ${FFMPEG_DLL} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR})
+endif()

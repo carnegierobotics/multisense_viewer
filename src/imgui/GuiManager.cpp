@@ -440,9 +440,9 @@ void GuiManager::setup(float width, float height, VkRenderPass renderPass, VkQue
 void GuiManager::initializeFonts() {
     io->Fonts->Clear();
 
-    handles.info->font13 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 13);
-    handles.info->font18 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 18);
-    handles.info->font24 = loadFontFromFileName("../Assets/Fonts/Roboto-Black.ttf", 24);
+    handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13); // TODO FIX PATHS
+    handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
+    handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
     io->Fonts->SetTexID(reinterpret_cast<void *>(fontDescriptor));
 
 

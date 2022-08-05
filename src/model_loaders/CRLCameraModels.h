@@ -18,10 +18,6 @@
 #include "MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/core/Definitions.h>
 
-extern "C" {
-#include <libavutil/frame.h>
-#include <libavcodec/avcodec.h>
-}
 
 class CRLCameraModels {
 
@@ -95,8 +91,6 @@ public:
                              crl::multisense::image::Header *streamTwo = nullptr);
 
         void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
-
-        void setColorTexture(AVFrame *videoFrame, int bufferSize);
 
         void setColorTexture(ArEngine::MP4Frame* frame);
     };

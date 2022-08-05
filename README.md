@@ -45,6 +45,7 @@ To be able to use the auto connect feature, launch with root/admin privileges.
 ### Windows
 ## Folder structure
 
+Install winpcap. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe) Used to enable the auto connect feature.
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
 
 ```text

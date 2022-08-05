@@ -43,6 +43,22 @@ In your build folder there is a executable called Multisense-viewer. Launch this
 To be able to use the auto connect feature, launch with root/admin privileges.
 
 ### Windows
+Prerequisites:
+
+Have Microsoft's Visual studio installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>
+Install the Vulkan SDK for windows. Get the SDK installer [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe) and run it.
+
+Clone this repo using git
+``` sh
+$ git clone --recurse-submodules -j4 https://github.com/M-Gjerde/MultiSense
+```
+#### Tested with Visual Studio 2022. 
+1. Open up a new cmake project in Visual studio. Remember to launch as admin.
+2. 
+
+
+
+
 ## Folder structure
 
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.

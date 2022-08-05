@@ -61,6 +61,7 @@ $ git clone --recurse-submodules -j4 https://github.com/M-Gjerde/MultiSense
 
 ## Folder structure
 
+Install winpcap. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe) Used to enable the auto connect feature.
 Primarily documented using doxygen. Use a browser to view documentation located in docs/html.
 
 ```text

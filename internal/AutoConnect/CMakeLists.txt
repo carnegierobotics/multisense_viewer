@@ -41,13 +41,16 @@ if (WIN32)
     include_directories("./include")
 
     add_library(winpcap STATIC IMPORTED GLOBAL)
-    set_property(TARGET winpcap APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_property(TARGET winpcap APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
     set_target_properties(winpcap PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-            IMPORTED_LOCATION_DEBUG "../lib/wpcap.lib")
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
+    IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/wpcap.lib")
+
+    message(CURRENT PATH: ${CMAKE_CURRENT_SOURCE_DIR} | ${BUILD_AUTOCONNECT_LIB})
 
     if (${BUILD_AUTOCONNECT_LIB})
-        # TODO BUILD LIB ON WINDOWS
+        add_library(LibAutoConnect AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h)
+        target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi)
     else()
         add_executable(AutoConnect WIN32 AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h main.cpp)
         target_link_libraries(AutoConnect MultiSense winpcap iphlpapi)

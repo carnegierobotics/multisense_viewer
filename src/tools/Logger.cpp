@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <vector>
 
 // Code Specific Header Files(s)
 #include "Logger.h"
@@ -18,7 +19,7 @@ namespace Log {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
         m_LogLevel = LOG_LEVEL_TRACE;
         m_LogType = FILE_LOG;
-
+        /*
         int ret = 0;
         ret = pthread_mutexattr_settype(&m_Attr, PTHREAD_MUTEX_ERRORCHECK_NP);
         if (ret != 0) {
@@ -30,12 +31,13 @@ namespace Log {
             printf("Logger::Logger() -- Mutex not initialize!!\n");
             exit(0);
         }
+        */
     }
 
     Logger::~Logger() {
         m_File.close();
-        pthread_mutexattr_destroy(&m_Attr);
-        pthread_mutex_destroy(&m_Mutex);
+        //pthread_mutexattr_destroy(&m_Attr);
+        //pthread_mutex_destroy(&m_Mutex);
     }
 
     Logger *Logger::getInstance() throw() {
@@ -46,11 +48,11 @@ namespace Log {
     }
 
     void Logger::lock() {
-        pthread_mutex_lock(&m_Mutex);
+        //pthread_mutex_lock(&m_Mutex);
     }
 
     void Logger::unlock() {
-        pthread_mutex_unlock(&m_Mutex);
+        //pthread_mutex_unlock(&m_Mutex);
     }
 
     void Logger::logIntoFile(std::string &data) {
@@ -108,13 +110,15 @@ namespace Log {
         if(len < 0) return;
 
         // format message
-        char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
+        std::vector<char> msg;
+        msg.resize(len + 1);
+        //char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
         va_start(args, fmt);
-        vsnprintf(msg, len + 1, fmt, args);
+        vsnprintf(msg.data(), len + 1, fmt, args);
         va_end(args);
 
         // call myFunction
-        _error(msg);
+        _error(msg.data());
     }
 
 // Interface for Alarm Log 
@@ -218,13 +222,15 @@ namespace Log {
         if(len < 0) return;
 
         // format message
-        char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
+        std::vector<char> msg;
+        msg.resize(len + 1);
+        //char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
         va_start(args, fmt);
-        vsnprintf(msg, len + 1, fmt, args);
+        vsnprintf(msg.data(), len + 1, fmt, args);
         va_end(args);
 
         // call myFunction
-        _info(msg);
+        _info(msg.data());
     }
 
 // Interface for Trace Log

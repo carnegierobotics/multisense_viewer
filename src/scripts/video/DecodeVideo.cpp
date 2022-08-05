@@ -30,8 +30,10 @@ void DecodeVideo::update() {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
-        camHandle->camPtr->getCameraStream(&frame);
-        model->setColorTexture(&frame);
+        bool ret = camHandle->camPtr->getCameraStream(&frame);
+
+        if (ret)
+            model->setColorTexture(&frame);
 
         free(frame.plane0);
         free(frame.plane1);

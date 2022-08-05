@@ -5,12 +5,17 @@
 #ifndef MULTISENSE_CRLVIRTUALCAMERA_H
 #define MULTISENSE_CRLVIRTUALCAMERA_H
 
-
+#ifdef WIN32
+#include <windows.h>
+#include <thread>
+#else
 #include <semaphore.h>
+#endif
+
 #include "CRLBaseInterface.h"
 
 extern "C" {
-#include <libavutil/frame.h>
+    #include <libavutil/frame.h>
 };
 
 class CRLVirtualCamera : public CRLBaseInterface {
@@ -38,7 +43,7 @@ public:
     void stop(std::string dataSourceStr) override;
 
     void getCameraStream(crl::multisense::image::Header *stream) override;
-    void getCameraStream(ArEngine::MP4Frame* frame) override;
+    bool getCameraStream(ArEngine::MP4Frame* frame) override;
 
 
 private:
@@ -48,17 +53,31 @@ private:
     AVFrame videoFrame[5];
     int bufferSize = 0;
     std::string videoName = "None";
+    bool decoded = false;
 
     int r1, items = 0;
+#ifdef WIN32
+    HANDLE notEmpty;
+    HANDLE notFull;
+    //HANDLE producer;
+    DWORD ThreadID;
+    //static void decode(LPVOID);
+    static void* decode(void* arg);
+    std::thread* producer;
+
+#else
     sem_t notEmpty, notFull;
-    bool runDecodeThread = false;
     pthread_t producer;
+    static void* decode(void* arg);
+
+#endif    
+    bool runDecodeThread = false;
+
     int frameIndex = 0;
     bool pauseThread = false;
 
 
     int childProcessDecode();
-    static void* decode(void* arg);
 
 
     void getVideoMetadata();

@@ -201,21 +201,6 @@ void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame* frame) {
 
 }
 
-// TODO REMOVE AVFRAME FROM CRLCAMERAMODELS.cpp
-void CRLCameraModels::Model::setColorTexture(AVFrame *videoFrame, int bufferSize) {
-    auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
-    if (videoFrame->coded_picture_number > 593)
-        return;
-    uint32_t size = videoFrame->width * videoFrame->height;
-    memcpy(yuv420pBuffer, videoFrame->data[0], size);
-    memcpy(yuv420pBuffer + (videoFrame->width * videoFrame->height), videoFrame->data[1], (videoFrame->width * videoFrame->height) / 2);
-
-    //textureVideo.updateTextureFromBufferYUV(yuv420pBuffer, bufferSize);
-
-    free(yuv420pBuffer);
-
-}
-
 void
 CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
     // Create texture image if not created

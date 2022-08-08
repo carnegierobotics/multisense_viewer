@@ -233,6 +233,7 @@ void CRLVirtualCamera::getVideoMetadata() {
 
     if (int ret = avformat_open_input(&ctx_format, fileName.c_str(), nullptr, nullptr) != 0) {
         std::cout << 1 << std::endl;
+        Log::Logger::getInstance()->error("Error in opening video input: %s", fileName.c_str());
 
     }
     if (avformat_find_stream_info(ctx_format, nullptr) < 0) {

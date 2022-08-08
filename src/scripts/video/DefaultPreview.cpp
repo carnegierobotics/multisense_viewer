@@ -5,7 +5,7 @@
 #include "DefaultPreview.h"
 #include "GLFW/glfw3.h"
 
-void DefaultPreview::setup(Base::Render r) {
+void DefaultPreview::setup(Base::Render renderData) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
@@ -13,12 +13,12 @@ void DefaultPreview::setup(Base::Render r) {
     model->draw = false;
 
 
-    for (auto dev : r.gui){
+    for (auto dev : renderData.gui){
         if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_LEFT)->second;
-        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+        renderData.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
     }
 
 }
@@ -108,7 +108,8 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
+        std::string s =  dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
+        src = s;
         playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
 

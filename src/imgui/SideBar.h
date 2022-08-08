@@ -64,7 +64,7 @@ public:
 
         if (inputName == "Multisense S30")
             presetItemIdIndex = 1;
-        else if(inputName == "MultiSense S21")
+        else if (inputName == "MultiSense S21")
             presetItemIdIndex = 2;
         else
             presetItemIdIndex = 0;
@@ -86,6 +86,7 @@ public:
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
 
+        // Docking
         auto *wnd = ImGui::FindWindowByName("GUI");
         /*
         if (wnd) {
@@ -121,22 +122,59 @@ public:
         if (ImGui::BeginPopupModal("add_device_modal", NULL,
                                    ImGuiWindowFlags_NoTitleBar)) {
 
-            bool deviceAlreadyExist = false;
-            //static char inputName[32] = "Profile #1";
+            bool ipAlreadyInUse = false;
+            bool profileNameTaken = false;
 
             ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
             if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
                 if (ImGui::BeginTabItem("Select Premade Profile")) {
                     ImGui::Text("Connect to your MultiSense Device");
                     ImGui::Separator();
-                    ImGui::InputText("Profile name##1", inputName.data(),
-                                     inputFieldNameLength);
+                    //ImGui::InputText("Profile name##1", inputName.data(),inputFieldNameLength);
 
-                    const char *items[] = {"Select Preset","MultiSense S30", "MultiSense S21", "Virtual Camera"};
-                    const char *combo_preview_value = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+
+                    // Create input field with resizable data structure
+                    {
+                        // To wire InputText() with std::string or any other custom string type,
+                        // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
+                        // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
+                        struct Funcs
+                        {
+                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
+                            {
+                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+                                {
+                                    auto* my_str = (std::string *)data->UserData;
+                                    IM_ASSERT(my_str->data() == data->Buf);
+                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                    data->Buf = my_str->data();
+                                }
+                                return 0;
+                            }
+
+                            // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+                            // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
+                            {
+                                IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
+                            }
+                        };
+
+                        // Note that because we need to store a terminating zero character, our size/capacity are 1 more
+                        // than usually reported by a typical string class.
+                        if (inputName.empty())
+                            inputName.push_back(0);
+                        Funcs::MyInputText("Profile name##1", &inputName);
+                    }
+
+
+
+                    const char *items[] = {"Select Preset", "MultiSense S30", "MultiSense S21", "Virtual Camera"};
+                    const char *selectedVal = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                     static ImGuiComboFlags flags = 0;
 
-                    if (ImGui::BeginCombo("Select Default Configuration", combo_preview_value, flags)) {
+                    if (ImGui::BeginCombo("Select Default Configuration", selectedVal, flags)) {
                         for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
                             const bool is_selected = (presetItemIdIndex == n);
                             if (ImGui::Selectable(items[n], is_selected))
@@ -148,6 +186,14 @@ public:
                         }
                         ImGui::EndCombo();
                     }
+
+                    // Set the IP according to which profile is set.
+                    if (strcmp(selectedVal, "Virtual Camera") == 0){
+                        inputIP = "Local Ip";
+                    } else {
+                        inputIP = "10.66.171.21";
+                    }
+
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
                     bool btnCancel = ImGui::Button("cancel", ImVec2(175.0f, 30.0f));
                     btnAutoConnect = ImGui::Button("Automatic configuration", ImVec2(175.0f, 30.0f));
@@ -164,13 +210,14 @@ public:
                     if (btnConnect) {
                         // Loop through devices and check that it doesn't exist already.
                         for (auto &d: devices) {
-                            if (d.IP == inputIP && strcmp(items[presetItemIdIndex], "Virtual Camera") != 0)
-                                deviceAlreadyExist = true;
+                            if (d.IP == inputIP)
+                                ipAlreadyInUse = true;
+                            if (d.name == inputName)
+                                profileNameTaken = true;
                         }
 
-                        if (!deviceAlreadyExist) {
+                        if (!ipAlreadyInUse && !profileNameTaken) {
                             createDefaultElement(inputName.data(), inputIP.data(), items[presetItemIdIndex]);
-                            deviceAlreadyExist = true;
                         }
 
                     }
@@ -206,10 +253,12 @@ public:
             if (btnConnect) {
                 for (auto &d: devices) {
                     if (d.IP == inputIP)
-                        deviceAlreadyExist = true;
+                        ipAlreadyInUse = true;
+                    if (d.name == inputName)
+                        profileNameTaken = true;
                 }
 
-                if (!deviceAlreadyExist)
+                if (!ipAlreadyInUse && !profileNameTaken)
                     createAdvancedElement(inputName.data(), inputIP.data());
 
                 ImGui::CloseCurrentPopup();
@@ -242,8 +291,8 @@ private:
 
     static const uint32_t inputFieldNameLength = 32;
     uint32_t presetItemIdIndex = 0;
-    std::string inputIP = "10.66.171.21";
-    std::string inputName = "Profile 1";
+    std::string inputIP = "";
+    std::string inputName = "";
 
     void createDefaultElement(char *name, char *ip, const char *cameraName) {
         Element el;
@@ -287,10 +336,10 @@ private:
         for (int i = 0; i < devices.size(); ++i) {
             auto &e = devices[i];
 
+
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
-
                 case ArConnectedState:
                     break;
                 case ArConnectingState:
@@ -323,15 +372,26 @@ private:
                     break;
             }
 
-            ImGui::SetCursorPos(ImVec2(0, ImGui::GetCursorPosY()));
-
+            ImGui::SetCursorPos(ImVec2(5.0f, ImGui::GetCursorPosY()));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
             std::string winId = e.name + "Child";
             ImGui::BeginChild(winId.c_str(), ImVec2(handles->info->sidebarWidth, handles->info->elementHeight),
                               false, ImGuiWindowFlags_NoDecoration);
 
+
+            if (ImGui::SmallButton("X")) {
+                devices.erase(devices.begin() + i);
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
+                ImGui::EndChild();
+                continue;
+            }
+            ImGui::SetCursorPos(ImVec2(0.0f, ImGui::GetCursorPosY()));
+
+            ImGui::SameLine();
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
+
 
             ImVec2 window_pos = ImGui::GetWindowPos();
             ImVec2 window_size = ImGui::GetWindowSize();

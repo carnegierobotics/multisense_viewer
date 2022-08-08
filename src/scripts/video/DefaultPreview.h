@@ -18,6 +18,7 @@ public:
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     DefaultPreview() {
         s_bRegistered;
+        std::cout << "Constructor" << std::endl;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DefaultPreview>(); }
@@ -27,7 +28,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
-    void setup(Base::Render r) override;
+    void setup(Base::Render renderData) override;
     /** @brief update function called once per frame **/
     void update() override {};
     /** @brief update function called once per frame **/
@@ -39,23 +40,26 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArCameraScript;
+    ScriptType type = ArDisabled;
 
-    CRLCameraModels::Model* model; // TODO DELETE POINTER IN CLEANUP
+    CRLCameraModels::Model* model{}; // TODO DELETE POINTER IN CLEANUP
 
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
     Page selectedPreviewTab = TAB_NONE;
 
-    std::string src;
+    std::string src = "source";
     uint32_t playbackSate = -1;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    float posX, posY, posZ;
+    float posX{}, posY{}, posZ{};
+
+
 
 };
+template bool RegisteredInFactory<DefaultPreview>::s_bRegistered;
 
 
 

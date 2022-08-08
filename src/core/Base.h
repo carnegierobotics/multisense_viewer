@@ -14,9 +14,9 @@
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
+    ArDisabled,
     ArDefault,
     AR_POINT_CLOUD,
-    ArDisabled,
     ArCameraScript,
     AR_CAMERA_SETUP_ONLY
 
@@ -78,10 +78,17 @@ public:
         uint32_t index;
         Camera *camera;
         float deltaT;
-        float runTime;
+        bool finishedSetup = false;
+        float scriptRuntime;
+        int scriptDrawCount;
+        std::string* scriptName;
         std::unique_ptr<CameraConnection> *crlCamera;
         ScriptType type;
         std::vector<Element> gui;
+
+#ifdef LOGGING_VERBOSE
+        Log::Logger* pLogger;
+#endif
     } renderData{};
 
 
@@ -108,20 +115,59 @@ public:
     /**@brief Pure virtual function called on every UI update, also each frame*/
     virtual void onUIUpdate(GuiObjectHandles uiHandle) = 0;
 
+    void uiUpdate(GuiObjectHandles uiHandle) {
+
+        if (renderData.finishedSetup)
+            onUIUpdate(uiHandle);
+#ifdef LOGGING_VERBOSE
+        else
+            renderData.pLogger->info("Skipped UI Update. Script has not run setup yet");
+#endif
+
+    }
+
+
+
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return ArDisabled; }
+
+    void drawScript(VkCommandBuffer commandBuffer, uint32_t i) {
+
+        if (!renderData.finishedSetup)
+            return;
+
+#ifdef LOGGING_VERBOSE
+        if ((renderData.scriptDrawCount % 100) == 0){
+            std::string str = "Log info";
+            renderData.pLogger->info(str, true);
+        }
+#endif
+
+
+        draw(commandBuffer, i);
+        renderData.scriptDrawCount++;
+
+    };
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    void updateUniformBufferData(Base::Render d) {
-        this->renderData = d;
+    void updateUniformBufferData(Base::Render data) {
+        this->renderData.camera = data.camera;
+        this->renderData.crlCamera = data.crlCamera;
+        this->renderData.gui = data.gui;
+        this->renderData.type = data.type;
+        this->renderData.deltaT = data.deltaT;
+        this->renderData.index = data.index;
+#ifdef LOGGING_VERBOSE
+        this->renderData.pLogger = data.pLogger;
+#endif
 
         // Default update function is called for updating models. Else CRL extension
-        if (d.type == ArDefault || d.type == AR_CAMERA_SETUP_ONLY)
+        if (renderData.type == ArDefault || renderData.type == AR_CAMERA_SETUP_ONLY)
             update();
-        else if (d.crlCamera->get()->camPtr != nullptr)
-            update(d.crlCamera->get());
+        else if (renderData.crlCamera->get()->camPtr != nullptr)
+            update(renderData.crlCamera->get());
         else
             update();
 
@@ -131,7 +177,7 @@ public:
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
-        if (d.type != ArDisabled) {
+        if (renderData.type != ArDisabled) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -141,7 +187,7 @@ public:
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
 
-            if (d.type != AR_POINT_CLOUD) return;
+            if (renderData.type != AR_POINT_CLOUD) return;
             currentUB.bufferThree.map();
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
@@ -180,9 +226,11 @@ public:
         }
 
         if (scriptType == ArCameraScript || scriptType == AR_CAMERA_SETUP_ONLY || scriptType == AR_POINT_CLOUD)
-            setup(std::move(d));
+            setup(std::move(renderData));
         else
             setup();
+
+        renderData.finishedSetup = true;
     }
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo

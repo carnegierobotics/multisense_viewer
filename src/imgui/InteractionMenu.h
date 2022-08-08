@@ -95,7 +95,7 @@ public:
                 ImGui::SameLine();
             }
             ImGui::NewLine();
-            //ImGui::ShowDemoWindow();
+            ImGui::ShowDemoWindow();
             ImGui::End();
             ImGui::PopStyleColor(); // bg color
         }

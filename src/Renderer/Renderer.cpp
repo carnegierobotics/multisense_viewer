@@ -39,7 +39,6 @@ void Renderer::UIUpdate(GuiObjectHandles *uiSettings) {
 }
 
 void Renderer::addDeviceFeatures() {
-    printf("Overriden function\n");
     if (deviceFeatures.fillModeNonSolid) {
         enabledFeatures.fillModeNonSolid = VK_TRUE;
         // Wide lines must be present for line width > 1.0f
@@ -79,7 +78,7 @@ void Renderer::buildCommandBuffers() {
 
         for (auto &script: scripts) {
             if (script.second->getType() != ArDisabled) {
-                script.second->draw(drawCmdBuffers[i], i);
+                script.second->drawScript(drawCmdBuffers[i], i);
             }
         }
         guiManager->drawFrame(drawCmdBuffers[i]);
@@ -100,8 +99,10 @@ void Renderer::buildScript(const std::string& scriptName){
         return;
 
     scriptNames.emplace_back(scriptName);
-    scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
+    std::unique_ptr<Base> ptr = ComponentMethodFactory::Create(scriptName);
 
+    //scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
+    ScriptType type = ptr->getType();
     pLogger->info("RENDERER::Built Script: %s, running setup...", scriptName.c_str());
     // Run Once
     Base::RenderUtils vars{};
@@ -211,7 +212,7 @@ void Renderer::render() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
-    renderData.runTime = runTime;
+    renderData.scriptRuntime = runTime;
 
     guiManager->handles.keypress = keypress;
     // Update GUI
@@ -308,7 +309,7 @@ void Renderer::render() {
 
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {
-        script.second->onUIUpdate(guiManager->handles);
+        script.second->uiUpdate(guiManager->handles);
     }
 
     // Generate draw commands

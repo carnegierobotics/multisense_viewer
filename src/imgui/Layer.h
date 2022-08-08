@@ -37,7 +37,7 @@ struct GuiLayerUpdateInfo {
     float offset5px = 5.0f;
 
     /** @brief Height of popupModal*/
-    float popupHeight = 350.0f;
+    float popupHeight = 250.0f;
     /** @brief Width of popupModal*/
     float popupWidth = 500.0f;
 
@@ -68,8 +68,8 @@ typedef enum StreamIndex {
     AR_PREVIEW_RIGHT = 1,
     AR_PREVIEW_DISPARITY = 2,
     AR_PREVIEW_AUXILIARY = 3,
-    AR_PREVIEW_VIRTUAL = 4,
-    AR_PREVIEW_POINT_CLOUD = 5,
+    AR_PREVIEW_POINT_CLOUD = 4,
+    AR_PREVIEW_VIRTUAL = 5,
 
     // Other flags
     AR_PREVIEW_PLAYING = 10,

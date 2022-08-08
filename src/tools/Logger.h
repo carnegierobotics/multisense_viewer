@@ -33,6 +33,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <source_location>
 
 #ifdef WIN32
 // Win Socket Header File(s)
@@ -102,8 +103,8 @@ namespace Log
 
          // Interface for Info Log 
          void _info(const char* text) throw();
-         void info(std::string& text) throw();
-         void info(std::ostringstream& stream) throw();
+         void info(std::string& text, bool log, const std::source_location &location = std::source_location::current()) throw();
+         //void info(std::ostringstream& stream) throw();
          void info(const char *fmt, ...);
 
          // Interface for Trace log 

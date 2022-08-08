@@ -193,6 +193,12 @@ namespace Log {
     void Logger::_info(const char *text) throw() {
         string data;
         data.append("[INFO]: ");
+
+        const std::source_location &location = std::source_location::current();
+        std::cout << location.file_name() << ":"
+                  << location.line() << ":"
+                  << location.function_name() << ":" << std::endl;
+
         data.append(text);
 
         if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_INFO)) {
@@ -202,14 +208,19 @@ namespace Log {
         }
     }
 
-    void Logger::info(std::string &text) throw() {
+    void Logger::info(std::string &text, bool log, const std::source_location &location) throw() {
+        std::cout << location.file_name() << ":"
+                  << location.line() << ":"
+                  << location.function_name() << ":" << std::endl;
         _info(text.data());
     }
 
+    /*
     void Logger::info(std::ostringstream &stream) throw() {
         string text = stream.str();
         _info(text.data());
     }
+     */
 
 
     void Logger::info(const char *fmt, ...)

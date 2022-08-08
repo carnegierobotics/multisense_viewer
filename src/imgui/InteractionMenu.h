@@ -201,8 +201,8 @@ public:
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
-    bool openDropDown[5] = {false};
-    float animationLength[5] = {false};
+    bool openDropDown[6] = {false};
+    float animationLength[6] = {false};
 
     void openDropDownMenu(GuiObjectHandles *handles, ImVec2 position) {
 

@@ -261,7 +261,7 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
 
 }
 
-void AutoConnectWindows::onFoundCamera() {
+void AutoConnectWindows::onFoundCamera(AdapterSupportResult supportResult) {
 
 }
 

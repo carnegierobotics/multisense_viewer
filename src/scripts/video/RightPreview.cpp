@@ -12,7 +12,7 @@ void RightPreview::setup(Base::Render r) {
     // Don't draw it before we create the texture in update()
     model->draw = false;
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end()  || dev.state != ArActiveState )
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_RIGHT)->second;

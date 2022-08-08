@@ -41,7 +41,7 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = ArCameraScript;
 
-    CRLCameraModels::Model* model;
+    CRLCameraModels::Model* model; // TODO DELETE POINTER IN CLEANUP
 
     int count = 1;
     void *selection = (void *) "0";

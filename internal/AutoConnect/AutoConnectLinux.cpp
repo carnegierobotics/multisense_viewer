@@ -177,8 +177,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter);
 
                 if (ret == FOUND_CAMERA) {
-                    Log::Logger::getInstance()->info("AUTOCONNECT: Found camera. quitting...");
-                    std::cout << "Found camera. quitting..." << std::endl;
+                    Log::Logger::getInstance()->info("AUTOCONNECT: Found camera");
+                    app->onFoundCamera(adapter);
                     app->listenOnAdapter = false;
                     app->loopAdapters = false;
                     app->success = true;
@@ -287,8 +287,22 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     }
 }
 
-void AutoConnectLinux::onFoundCamera() {
+void AutoConnectLinux::onFoundCamera(AdapterSupportResult supportResult) {
     success = true;
+
+    auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+    struct ifreq ifr;
+    ifr.ifr_addr.sa_family = AF_INET;//address family
+    strncpy(ifr.ifr_name, supportResult.name.c_str(), sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+    ifr.ifr_mtu = 7200; //your MTU size here
+    if (ioctl(fd, SIOCSIFMTU, (caddr_t)&ifr) < 0){
+        Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size %d on adapter %s", 7200, supportResult.name.c_str());
+    }
+
+    Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to %d on adapter %s", 7200, supportResult.name.c_str());
+
+    // Modify adapter. Set  mtu size and such.
 }
 
 void AutoConnectLinux::stop() {

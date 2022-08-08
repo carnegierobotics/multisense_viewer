@@ -63,7 +63,7 @@ typedef enum {
 } ArConnectionState;
 
 typedef enum StreamIndex {
-    // First 0 - 4 elements also correspond to array indices. Should not change.
+    // First 0 - 5 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
     AR_PREVIEW_LEFT = 0,
     AR_PREVIEW_RIGHT = 1,
     AR_PREVIEW_DISPARITY = 2,

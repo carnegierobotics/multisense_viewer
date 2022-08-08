@@ -60,6 +60,7 @@ public:
         Buffer bufferThree;
     };
 
+    // TODO DELETE POINTERS AS WELL
     void *bufferOneData{};
     void *bufferTwoData{};
     void *bufferThreeData{};

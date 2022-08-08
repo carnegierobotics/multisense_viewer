@@ -222,8 +222,10 @@ void Renderer::render() {
     renderData.crlCamera = &cameraConnection;
 
     // Create/delete scripts after use
-    // Run update function on scripts
+    // Run update function on active camera scripts
     for (auto &dev: *guiManager->handles.devices) {
+        if (dev.state != ArActiveState)
+            continue;
 
         for (const auto& i : dev.streams){
             if(i.second.playbackStatus == AR_PREVIEW_PLAYING){

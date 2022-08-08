@@ -13,7 +13,7 @@ void AuxiliaryPreview::setup(Base::Render r) {
     // Don't draw it before we create the texture in update()
     model->draw = false;
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_AUXILIARY)->second;

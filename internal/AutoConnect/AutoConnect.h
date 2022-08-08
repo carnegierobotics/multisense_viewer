@@ -52,7 +52,7 @@ public:
     virtual void start(std::vector<AdapterSupportResult> vector) = 0;
     virtual void onFoundAdapters(std::vector<AdapterSupportResult> vector) = 0;
     virtual FoundCameraOnIp onFoundIp(std::string string, AdapterSupportResult adapter) = 0;
-    virtual void onFoundCamera() = 0;
+    virtual void onFoundCamera(AdapterSupportResult supportResult) = 0;
     virtual void stop() = 0;
 
 private:

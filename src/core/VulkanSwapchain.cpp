@@ -248,7 +248,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     swapchainCI.presentMode = swapchainPresentMode;
     // Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
     swapchainCI.oldSwapchain = oldSwapchain;
-    // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
+    // Setting clipped to VK_TRUE allows the implementation to discard rendering outside the surface area
     swapchainCI.clipped = VK_TRUE;
     swapchainCI.compositeAlpha = compositeAlpha;
 

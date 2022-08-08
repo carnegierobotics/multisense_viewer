@@ -12,7 +12,7 @@ void PointCloud::setup(Base::Render r) {
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
     for (auto dev: r.gui) {
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end()  || dev.state != ArActiveState )
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;

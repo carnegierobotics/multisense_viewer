@@ -14,7 +14,7 @@ void DisparityPreview::setup(Base::Render r) {
     model->draw = false;
 
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end()  || dev.state != ArActiveState)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_DISPARITY)->second;

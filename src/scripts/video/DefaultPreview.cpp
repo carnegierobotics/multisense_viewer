@@ -14,7 +14,7 @@ void DefaultPreview::setup(Base::Render r) {
 
 
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_LEFT)->second;

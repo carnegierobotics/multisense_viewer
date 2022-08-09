@@ -34,6 +34,7 @@
 #include <sstream>
 #include <string>
 #include <source_location>
+#include <string_view>
 
 #ifdef WIN32
 // Win Socket Header File(s)
@@ -80,32 +81,42 @@ namespace Log
       public:
          static Logger* getInstance() throw ();
 
-         // Interface for Error Log 
+         // Interface for Error Log
          void _error(const char* text) throw();
          void error(std::string& text) throw();
          void error(std::ostringstream& stream) throw();
          void error(const char *fmt, ...);
 
-         // Interface for Alarm Log 
+         // Interface for Alarm Log
          void alarm(const char* text) throw();
          void alarm(std::string& text) throw();
          void alarm(std::ostringstream& stream) throw();
 
-         // Interface for Always Log 
+         // Interface for Always Log
          void always(const char* text) throw();
          void always(std::string& text) throw();
          void always(std::ostringstream& stream) throw();
 
-         // Interface for Buffer Log 
+         // Interface for Buffer Log
          void buffer(const char* text) throw();
          void buffer(std::string& text) throw();
          void buffer(std::ostringstream& stream) throw();
 
-         // Interface for Info Log 
-         void _info(const char* text) throw();
-         void info(std::string& text, bool log, const std::source_location &location = std::source_location::current()) throw();
-         //void info(std::ostringstream& stream) throw();
-         void info(const char *fmt, ...);
+         // Interface for Info Log
+
+         void info(std::ostringstream& stream) throw();
+
+       template<typename... Args>
+       void log(const char* fmt, Args&&... args, const std::source_location& loc = std::source_location::current()){
+           std::cout <<
+           loc.file_name() << " : " <<
+           loc.line() << " : " <<
+           loc.function_name() << std::endl;
+
+           info(fmt, args...);
+
+       }
+
 
          // Interface for Trace log 
          void trace(const char* text) throw();
@@ -134,6 +145,14 @@ namespace Log
          Logger();
          ~Logger();
 
+         struct FormatString{
+             std::string_view str;
+             std::source_location loc;
+
+             explicit FormatString(const char* str,
+                          const std::source_location& loc = std::source_location::current()) : str(str), loc(loc) {}
+
+         };
          // Wrapper function for lock/unlock
          // For Extensible feature, lock and unlock should be in protected
          void lock();
@@ -142,6 +161,10 @@ namespace Log
          std::string getCurrentTime();
 
       private:
+       void info(const char *fmt, ...);
+       void _info(const char *text) throw();
+       void info(std::string &text) throw();
+
          void logIntoFile(std::string& data);
          void logOnConsole(std::string& data);
          Logger(const Logger& obj) {}

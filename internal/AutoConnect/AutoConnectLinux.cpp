@@ -93,6 +93,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
             continue;
         }
         Log::Logger::getInstance()->info("AUTOCONNECT: Testing Adapter %s for camera connection", adapter.name.c_str());
+        Log::Logger::getInstance()->info("%d fmt", adapter.supports);
 
         app->startTime = time(nullptr);
 

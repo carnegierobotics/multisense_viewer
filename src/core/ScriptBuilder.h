@@ -25,7 +25,7 @@ public:
     std::string description;
 
 public:
-    ComponentMethodFactory() = default;
+    ComponentMethodFactory() = delete;
 
     static bool Register(const std::string name, TCreateMethod createFunc) {
 

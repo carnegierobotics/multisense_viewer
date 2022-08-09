@@ -17,8 +17,6 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     DefaultPreview() {
-        s_bRegistered;
-        std::cout << "Constructor" << std::endl;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DefaultPreview>(); }
@@ -40,7 +38,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArDisabled;
+    ScriptType type = ArCameraScript;
 
     CRLCameraModels::Model* model{}; // TODO DELETE POINTER IN CLEANUP
 

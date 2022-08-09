@@ -99,10 +99,8 @@ void Renderer::buildScript(const std::string& scriptName){
         return;
 
     scriptNames.emplace_back(scriptName);
-    std::unique_ptr<Base> ptr = ComponentMethodFactory::Create(scriptName);
 
-    //scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
-    ScriptType type = ptr->getType();
+    scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
     pLogger->info("RENDERER::Built Script: %s, running setup...", scriptName.c_str());
     // Run Once
     Base::RenderUtils vars{};
@@ -213,6 +211,7 @@ void Renderer::render() {
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
     renderData.scriptRuntime = runTime;
+    renderData.pLogger = pLogger;
 
     guiManager->handles.keypress = keypress;
     // Update GUI

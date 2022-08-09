@@ -20,7 +20,7 @@ Install Dependencies:
 Open your terminal and type in
 ```sh
 $ sudo apt update
-$ sudo apt install build-essential cmake libzstd-dev ninja-build doxygen libsdl2-dev libgl1-mesa-glx libgl1-mesa-dev libvulkan1 libvulkan-dev libassimp-dev opencl-c-headers
+$ sudo apt install build-essential cmake libzstd-dev ninja-build doxygen libsdl2-dev libgl1-mesa-glx libgl1-mesa-dev libvulkan1 libvulkan-dev libassimp-dev opencl-c-headers libfmt-dev
 $ sudo apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libtbb-dev
 ```
 To get the latest vulkan SDK for Ubuntu 20.04. use the following:

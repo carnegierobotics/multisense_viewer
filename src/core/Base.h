@@ -10,6 +10,7 @@
 #include "Camera.h"
 #include "CameraConnection.h"
 #include "MultiSense/src/tools/Utils.h"
+#include "MultiSense/src/tools/Logger.h"
 
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
@@ -86,9 +87,8 @@ public:
         ScriptType type;
         std::vector<Element> gui;
 
-#ifdef LOGGING_VERBOSE
         Log::Logger* pLogger;
-#endif
+
     } renderData{};
 
 
@@ -119,10 +119,6 @@ public:
 
         if (renderData.finishedSetup)
             onUIUpdate(uiHandle);
-#ifdef LOGGING_VERBOSE
-        else
-            renderData.pLogger->info("Skipped UI Update. Script has not run setup yet");
-#endif
 
     }
 
@@ -136,13 +132,11 @@ public:
         if (!renderData.finishedSetup)
             return;
 
-#ifdef LOGGING_VERBOSE
-        if ((renderData.scriptDrawCount % 100) == 0){
-            std::string str = "Log info";
-            renderData.pLogger->info(str, true);
+        if (renderData.scriptDrawCount % 150 == 0)
+        {
+            std::string str ="Loginfo";
+            renderData.pLogger->info(str);
         }
-#endif
-
 
         draw(commandBuffer, i);
         renderData.scriptDrawCount++;
@@ -159,9 +153,6 @@ public:
         this->renderData.type = data.type;
         this->renderData.deltaT = data.deltaT;
         this->renderData.index = data.index;
-#ifdef LOGGING_VERBOSE
-        this->renderData.pLogger = data.pLogger;
-#endif
 
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == ArDefault || renderData.type == AR_CAMERA_SETUP_ONLY)

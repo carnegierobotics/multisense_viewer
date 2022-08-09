@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.6)
 project(MultiSense-Viewer C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 
@@ -58,7 +56,7 @@ add_subdirectory(${AUTOCONNECT_SRC})
 
 ## FFMPEG
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
- 
+
 set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect")
 
 # add source files

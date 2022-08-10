@@ -76,7 +76,7 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     // If res changed then set it again.
     if (cameraInfo.imgConf.disparities() != widthHeightDepth[2]) {
-        Log::Logger::getInstance()->info("CRLPhysicalCamera:: Setting resolution %d x %d x %d", widthHeightDepth[0],
+        Log::Logger::getInstance()->info("CRLPhysicalCamera:: Setting resolution {} x {} x {}", widthHeightDepth[0],
                                          widthHeightDepth[1], widthHeightDepth[2]);
         setResolution(widthHeightDepth[0], widthHeightDepth[1], widthHeightDepth[2]);
     }
@@ -102,10 +102,10 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         bool status = cameraInterface->startStreams(src);
 
         if (status == crl::multisense::Status_Ok)
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: %s ",
+            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {} }",
                                              dataSourceToString(src).c_str());
         else
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: %s ",
+            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {} ",
                                              dataSourceToString(src).c_str());
 
     }
@@ -129,7 +129,7 @@ void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
 }
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
-    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopping camera streams %s", dataSourceStr.c_str());
+    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopping camera streams {}", dataSourceStr.c_str());
 
     if (cameraInterface == nullptr)
         return;
@@ -156,7 +156,7 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
     */
     bool status = cameraInterface->stopStreams(src);
-    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams %s", dataSourceStr.c_str());
+    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}", dataSourceStr.c_str());
     modeChange = true;
 }
 

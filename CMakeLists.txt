@@ -57,7 +57,11 @@ add_subdirectory(${AUTOCONNECT_SRC})
 ## FFMPEG
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect")
+# FMT
+# USed for logging purposes
+find_package(FMT REQUIRED)
+
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect;fmt::fmt")
 
 # add source files
 set(IMGUI_SRC

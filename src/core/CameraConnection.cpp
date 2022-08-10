@@ -50,9 +50,9 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         updateDeviceState(&dev);
 
         // Make sure inactive devices' preview are not drawn.
-        if (dev.state != ArActiveState){
+        if (dev.state != ArActiveState) {
             for (auto &s: dev.streams)
-                    s.second.playbackStatus = AR_PREVIEW_NONE;
+                s.second.playbackStatus = AR_PREVIEW_NONE;
             continue;
         }
 
@@ -116,9 +116,14 @@ void CameraConnection::connectCrlCamera(Element &dev) {
             dev.state = ArActiveState;
             dev.cameraName = camPtr->getCameraInfo().devInfo.name;
             setStreamingModes(dev);
+            lastActiveDevice = dev.name;
 
-        } else
+        } else {
+            delete camPtr;
             dev.state = ArUnavailableState;
+            lastActiveDevice = "";
+
+        }
     }
 }
 
@@ -223,12 +228,9 @@ void CameraConnection::setStreamingModes(Element &dev) {
     Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
 
 
-    lastActiveDevice = dev.name;
 }
 
 void CameraConnection::setNetworkAdapterParameters(Element &dev) {
-
-
 
 
 }
@@ -249,7 +251,8 @@ void CameraConnection::disableCrlCamera(Element &dev) {
     dev.state = ArDisconnectedState;
     lastActiveDevice = "";
 
-    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(), dev.cameraName.c_str());
+    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
+                                     dev.cameraName.c_str());
 
     // Free camPtr memory and point it to null for a reset.
     delete camPtr;
@@ -257,7 +260,7 @@ void CameraConnection::disableCrlCamera(Element &dev) {
 
 }
 
-CameraConnection::~CameraConnection(){
+CameraConnection::~CameraConnection() {
     // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
     // stops all streams on the camera
     if (camPtr != nullptr)

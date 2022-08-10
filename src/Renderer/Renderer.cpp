@@ -101,7 +101,7 @@ void Renderer::buildScript(const std::string& scriptName){
     scriptNames.emplace_back(scriptName);
 
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
-    pLogger->info("RENDERER::Built Script: %s, running setup...", scriptName.c_str());
+    pLogger->info("RENDERER::Built Script: {}, running setup...", scriptName.c_str());
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
@@ -130,76 +130,11 @@ void Renderer::deleteScript(const std::string& scriptName){
     else
         return;
 
-    pLogger->info("RENDERER::deleted Script: %s", scriptName.c_str());
+    pLogger->info("RENDERER::deleted Script: {}", scriptName.c_str());
 
     scripts.erase(scriptName);
 
 }
-
-
-void Renderer::generateScriptClasses() {
-    std::cout << "Generate script classes" << std::endl;
-    std::vector<std::string> classNames;
-
-    /*
-    std::string path = Utils::getScriptsPath();
-
-
-    for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        std::string file = entry.path().generic_string();
-
-        // Delete path from filename
-        auto n = file.find(path);
-        if (n != std::string::npos)
-            file.erase(n, path.length());
-
-        // Ensure we have the header file by looking for .h extension
-        std::string extension = file.substr(file.find('.') + 1, file.length());
-        if (extension == "h") {
-            std::string className = file.substr(0, file.find('.'));
-            classNames.emplace_back(className);
-        }
-    }
-    */
-    //classNames.emplace_back("Example");
-    classNames.emplace_back("LightSource");
-    //classNames.emplace_back("VirtualPointCloud");
-
-    // TODO INSERT AND RUN SETUP AS THE ITEMS ARE PLACED INTO THE SCENE
-    classNames.emplace_back("DisparityPreview");
-    //classNames.emplace_back("DefaultPreview");
-    classNames.emplace_back("RightPreview");
-    classNames.emplace_back("AuxiliaryPreview");
-    classNames.emplace_back("PointCloud");
-    //classNames.emplace_back("DecodeVideo");
-
-    /*
-    // Also add class names to listbox
-    //UIOverlay->uiSettings->listBoxNames = classNames;
-    scripts.reserve(classNames.size());
-    // Create class instances of scripts
-    for (auto &className: classNames) {
-        scripts.push_back(ComponentMethodFactory::Create(className));
-    }
-
-    // Run Once
-    Base::RenderUtils vars{};
-    vars.device = vulkanDevice;
-    vars.renderPass = &renderPass;
-    vars.UBCount = swapchain.imageCount;
-
-    Base::Render renderData{};
-    renderData.crlCamera = &cameraConnection;
-
-
-    // Run script setup function
-    for (auto &script: scripts) {
-        assert(script);
-        script->createUniformBuffers(vars, renderData, script->getType());
-    }
-    printf("Setup finished\n");
-*/
-     }
 
 void Renderer::render() {
     VulkanRenderer::prepareFrame();
@@ -214,6 +149,7 @@ void Renderer::render() {
     renderData.pLogger = pLogger;
 
     guiManager->handles.keypress = keypress;
+
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, width, height);
 

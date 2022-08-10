@@ -92,8 +92,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         if (!adapter.supports) {
             continue;
         }
-        Log::Logger::getInstance()->info("AUTOCONNECT: Testing Adapter %s for camera connection", adapter.name.c_str());
-        Log::Logger::getInstance()->info("%d fmt", adapter.supports);
+        Log::Logger::getInstance()->info("AUTOCONNECT: Testing Adapter {} for camera connection", adapter.name.c_str());
+        Log::Logger::getInstance()->info("{} fmt", adapter.supports);
 
         app->startTime = time(nullptr);
 
@@ -123,7 +123,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
             exit(1);
         }
 
-        Log::Logger::getInstance()->info("AUTOCONNECT: %s Enabled Promiscuous mode", adapter.name.c_str());
+        Log::Logger::getInstance()->info("AUTOCONNECT: {} Enabled Promiscuous mode", adapter.name.c_str());
 
 
         int saddr_size, data_size;
@@ -173,7 +173,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
             {
                 ip_addr.s_addr = iph->saddr;
                 address = inet_ntoa(ip_addr);
-                Log::Logger::getInstance()->info("AUTOCONNECT: Packet found. Source address: %s", address.c_str());
+                Log::Logger::getInstance()->info("AUTOCONNECT: Packet found. Source address: {}", address.c_str());
 
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter);
 
@@ -204,7 +204,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
 void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapters) {
 
     for (auto & adapter : adapters) {
-        Log::Logger::getInstance()->info("AUTOCONNECT: Found Adapter %s, supports %d, 0 = false, 1 = true", adapter.name.c_str(), adapter.supports);
+        Log::Logger::getInstance()->info("AUTOCONNECT: Found Adapter {}, supports {}, 0 = false, 1 = true", adapter.name.c_str(), adapter.supports);
     }
 
 
@@ -216,7 +216,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     std::string last_element(hostAddress.substr(hostAddress.rfind(".")));
     auto ptr = hostAddress.rfind(".");
     hostAddress.replace(ptr, last_element.length(), ".2");
-    Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to: %s", hostAddress.c_str());
+    Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to: {}", hostAddress.c_str());
 
 
 
@@ -225,7 +225,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     int camera_fd = -1;
     camera_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (camera_fd < 0)
-        fprintf(stderr, "failed to create the UDP socket: %s",
+        fprintf(stderr, "failed to create the UDP socket: {}",
                 strerror(errno));
 
     // Bind Camera FD to the ethernet device
@@ -233,7 +233,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     int ret = setsockopt(camera_fd, SOL_SOCKET, SO_BINDTODEVICE, interface,
                          IFNAMSIZ); // 15 is max length for an adapter name.
     if (ret != 0) {
-        fprintf(stderr, "Error binding to: %s, %s", interface, strerror(errno));
+        fprintf(stderr, "Error binding to: {}, {}", interface, strerror(errno));
     }
 
     struct ifreq ifr{};
@@ -257,7 +257,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
     int ioctl_result = ioctl(camera_fd, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFADDR: %s\n", strerror(errno));
+        fprintf(stderr, "ioctl SIOCSIFADDR: {}\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -298,10 +298,10 @@ void AutoConnectLinux::onFoundCamera(AdapterSupportResult supportResult) {
     strncpy(ifr.ifr_name, supportResult.name.c_str(), sizeof(ifr.ifr_name));//interface name where you want to set the MTU
     ifr.ifr_mtu = 7200; //your MTU size here
     if (ioctl(fd, SIOCSIFMTU, (caddr_t)&ifr) < 0){
-        Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size %d on adapter %s", 7200, supportResult.name.c_str());
+        Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size {} on adapter {}", 7200, supportResult.name.c_str());
     }
 
-    Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to %d on adapter %s", 7200, supportResult.name.c_str());
+    Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200, supportResult.name.c_str());
 
     // Modify adapter. Set  mtu size and such.
 }
@@ -309,14 +309,14 @@ void AutoConnectLinux::onFoundCamera(AdapterSupportResult supportResult) {
 void AutoConnectLinux::stop() {
     loopAdapters = false;
     listenOnAdapter = false;
-    Log::Logger::getInstance()->info("AUTOCONNECT: stopping.. Joining thread %s and exiting", t->get_id());
+    Log::Logger::getInstance()->info("AUTOCONNECT: stopping.. Joining thread {} and exiting", std::hash<std::thread::id>{}(std::this_thread::get_id()));
     t->join();
 }
 
 void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
 
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
-    Log::Logger::getInstance()->info("AUTOCONNECT: Starting new thread, %s", t->get_id());
+    Log::Logger::getInstance()->info("AUTOCONNECT: Starting new thread, {}", std::hash<std::thread::id>{}(std::this_thread::get_id()));
 
 }
 AutoConnect::Result AutoConnectLinux::getResult() {

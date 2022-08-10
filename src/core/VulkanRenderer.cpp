@@ -39,7 +39,7 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
     }
     appInfo.apiVersion = apiVersion;
 
-    pLogger->info("Setting up vulkan with API Version: %d.%d.%d. Minimum recommended version to use is 1.2.0",
+    pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
                   VK_VERSION_MAJOR(apiVersion), VK_VERSION_MINOR(apiVersion), VK_VERSION_PATCH(apiVersion));
 
 
@@ -810,11 +810,11 @@ VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice
         vkGetPhysicalDeviceFeatures(device, &features);
         vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
 
-        pLogger->info("Found physical device: %s, ", properties.deviceName);
+        pLogger->info("Found physical device: {}, ", properties.deviceName);
 
         // Search for a discrete GPU and prefer this one
         if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            pLogger->info("Picked Discrete GPU. Name: %s, ", properties.deviceName);
+            pLogger->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
             return device;
         }
 

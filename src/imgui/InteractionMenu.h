@@ -360,9 +360,9 @@ private:
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                        ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(
-                ImVec2(handles->info->sidebarWidth + handles->info->offset5px + handles->info->controlAreaWidth +
-                       handles->info->offset5px, 0), ImGuiCond_Always);
+                ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth , 0), ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
+        handles->info->viewingAreaWidth = handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight));
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 

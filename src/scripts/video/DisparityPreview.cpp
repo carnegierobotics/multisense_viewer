@@ -21,6 +21,8 @@ void DisparityPreview::setup(Base::Render r) {
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
     }
 
+    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
+
 }
 
 

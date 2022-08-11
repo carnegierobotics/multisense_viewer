@@ -5,7 +5,7 @@
 #include "DefaultPreview.h"
 #include "GLFW/glfw3.h"
 
-void DefaultPreview::setup(Base::Render renderData) {
+void DefaultPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
 
@@ -21,6 +21,7 @@ void DefaultPreview::setup(Base::Render renderData) {
         renderData.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
     }
 
+    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
 

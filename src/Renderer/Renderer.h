@@ -106,7 +106,7 @@ protected:
 
     void deleteScript(const std::string &scriptName);
 
-    void buildScript(const std::string &scriptName);
+    void buildScript(std::string scriptName);
 };
 
 

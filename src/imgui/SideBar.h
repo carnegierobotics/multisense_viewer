@@ -82,7 +82,7 @@ public:
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.031, 0.078, 0.129, 1.0f));
-
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
 
@@ -278,7 +278,7 @@ public:
         addDeviceButton();
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
-
+        ImGui::PopStyleVar();
     }
 
 private:

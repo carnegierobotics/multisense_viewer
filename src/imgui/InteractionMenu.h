@@ -104,36 +104,42 @@ public:
 
     void addDropDown(GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, StreamingModes *stream) {
 
-    if (stream->modes.empty() || stream->sources.empty())
-        return;
+        if (stream->modes.empty() || stream->sources.empty())
+            return;
 
         ImVec2 position = ImGui::GetCursorScreenPos();
-        position.x += 0;//handles->info->sidebarWidth;
+        position.x += (handles->info->controlAreaWidth / 2) - (handles->info->controlDropDownWidth / 2);
         ImVec2 pos = position;
-        pos.x += 250.0f;
-        pos.y += 30.0f;
+        pos.x += handles->info->controlDropDownWidth;
+        pos.y += handles->info->controlDropDownHeight;
 
 
         if (openDropDown[streamIndex]) {
             pos = position;
-            if (animationLength[streamIndex] < 220)
-                animationLength[streamIndex] += 1;
+            if (animationLength[streamIndex] < handles->info->dropDownHeightOpen)
+                animationLength[streamIndex] += 1000 * handles->info->frameTimer;
             pos.y += animationLength[streamIndex];
-            pos.x += 250;
+            pos.x += handles->info->controlDropDownWidth;
         } else {
             animationLength[streamIndex] = 0;
         }
 
         ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
-        ImGui::CustomSelectable(id.c_str(), &openDropDown[streamIndex], 0, ImVec2(250.0f, 30.0f));
+
+        ImGui::SetCursorScreenPos(position);
+        ImGui::CustomSelectable(id.c_str(), &openDropDown[streamIndex], 0,
+                                ImVec2(handles->info->controlDropDownWidth, handles->info->controlDropDownHeight));
 
         if (openDropDown[streamIndex]) {
 
+            ImVec2 sourceComboPos((handles->info->controlAreaWidth / 2) - (handles->info->dropDownWidth / 2), ImGui::GetCursorPosY());
+            ImGui::SetCursorPos(sourceComboPos);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::Text("Data source:");
 
-            ImGui::SetNextItemWidth(200.0f);
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+            ImGui::SetNextItemWidth(handles->info->dropDownWidth);
             if (ImGui::BeginCombo(std::string("##Source" + std::to_string(streamIndex)).c_str(),
                                   stream->sources[stream->selectedSourceIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
@@ -153,10 +159,15 @@ public:
                 ImGui::EndCombo();
             }
 
+
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::Text("Resolution:");
 
-            ImGui::SetNextItemWidth(200.0f);
+
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+            ImGui::SetNextItemWidth(handles->info->dropDownWidth);
             if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(streamIndex)).c_str(),
                                   stream->modes[stream->selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
@@ -175,8 +186,10 @@ public:
                 ImGui::EndCombo();
             }
 
-            ImGui::Dummy(ImVec2(0.0f, 30.0f));
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+            ImGui::Dummy(ImVec2(0.0f, 20.0f));
 
+            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             std::string btnLabel = "Start##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PLAYING;
@@ -186,6 +199,7 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PAUSED;
             }
+            ImGui::SameLine();
             btnLabel = "Stop##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_NONE;
@@ -317,7 +331,7 @@ private:
 
 
     void buildConfigurationPreview(GuiObjectHandles *handles) {
-        for (auto& dev: *handles->devices) {
+        for (auto &dev: *handles->devices) {
             if (dev.state != ArActiveState)
                 continue;
 
@@ -350,18 +364,18 @@ private:
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
 
-        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2 ) - 30.0f, 0.0f));
+        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 30.0f, 0.0f));
         ImGui::SameLine();
         ImGui::PushFont(handles->info->font18);
         ImGui::Text("Viewing");
         ImGui::PopFont();
 
-        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2 )- 80.0f, 0.0f));
+        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
         ImGui::SameLine();
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f)))
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
         ImGui::SameLine();
-        if(ImGui::Button("3D", ImVec2(75.0f, 20.0f)))
+        if (ImGui::Button("3D", ImVec2(75.0f, 20.0f)))
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
 
         ImGui::End();
@@ -374,7 +388,11 @@ private:
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                        ImGuiWindowFlags_NoScrollWithMouse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth + handles->info->offset5px, 0), ImGuiCond_Always);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
         ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
         ImGui::Begin("ControlArea", &pOpen, window_flags);
@@ -382,8 +400,10 @@ private:
         for (auto &d: *handles->devices) {
             // Create dropdown
             if (d.state == ArActiveState) {
-                ImGuiTabBarFlags tab_bar_flags = 0;//ImGuiTabBarFlags_FittingPolicyResizeDown;
+
+                ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
+                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Control")) {
 
                         if (ImGui::Button("Back")) {
@@ -392,8 +412,9 @@ private:
                         }
 
                         // Create Control Area
-                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth + handles->info->offset5px +
-                                                       (handles->info->offset5px * 2), handles->info->tabAreaHeight),
+
+
+                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->tabAreaHeight),
                                                 ImGuiCond_Always);
                         ImGui::BeginChild("Dropdown Area", ImVec2(handles->info->controlAreaWidth,
                                                                   handles->info->height - handles->info->tabAreaHeight),
@@ -418,19 +439,19 @@ private:
 
                         ImGui::EndChild();
 
-
                         ImGui::EndTabItem();
                     }
+                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Configuration")) {
 
                         ImGui::EndTabItem();
                     }
-
+                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Future Tab 1")) {
 
                         ImGui::EndTabItem();
                     }
-
+                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Future Tab 2")) {
 
                         ImGui::EndTabItem();
@@ -441,6 +462,9 @@ private:
         }
         ImGui::PopStyleColor();
         ImGui::End();
+        ImGui::PopStyleVar(2);
+
+
     }
 
 

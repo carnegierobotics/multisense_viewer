@@ -36,6 +36,10 @@ struct GuiLayerUpdateInfo {
     ImTextureID imageButtonTextureDescriptor[9];
     float offset5px = 5.0f;
 
+    /** @brief add device button params */
+    float addDeviceBottomPadding = 70.0f,addDeviceLeftPadding = 20.0f;
+    float addDeviceWidth = 200.0f,addDeviceHeight = 35.0f;
+
     /** @brief Height of popupModal*/
     float popupHeight = 250.0f;
     /** @brief Width of popupModal*/
@@ -49,7 +53,7 @@ struct GuiLayerUpdateInfo {
     int numControlTabs = 4;
 
     /** @brief size of viewing Area*/
-    float viewingAreaWidth = 580.0f, viewingAreaHeight = height;
+    float viewingAreaWidth = 590.0f, viewingAreaHeight = height;
 
     /** @brief control area drop down box size */
     float controlDropDownWidth = 350.0, controlDropDownHeight = 40.0f;

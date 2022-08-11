@@ -275,7 +275,7 @@ public:
         if (!devices.empty())
             sidebarElements();
 
-        addDeviceButton();
+        addDeviceButton(handles);
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
         ImGui::PopStyleVar();
@@ -454,10 +454,10 @@ private:
         }
     }
 
-    void addDeviceButton() {
+    void addDeviceButton(GuiObjectHandles *handles) {
 
-        ImGui::SetCursorPos(ImVec2(20, 650));
-        btnAdd = ImGui::Button("ADD DEVICE", ImVec2(200.0f, 35.0f));
+        ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding, handles->info->height - handles->info->addDeviceBottomPadding));
+        btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth,handles->info->addDeviceHeight));
 
         if (btnAdd) {
             ImGui::OpenPopup("add_device_modal");

@@ -26,7 +26,6 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
             if (status != crl::multisense::Status_Ok) {
                 std::cerr << "Failed to set MTU 7200\n";
             }
-            online = true;
             return true;
         }
     }
@@ -75,7 +74,7 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
     }
 
     // If res changed then set it again.
-    if (cameraInfo.imgConf.disparities() != widthHeightDepth[2]) {
+    if (info.imgConf.disparities() != widthHeightDepth[2]) {
         Log::Logger::getInstance()->info("CRLPhysicalCamera:: Setting resolution {} x {} x {}", widthHeightDepth[0],
                                          widthHeightDepth[1], widthHeightDepth[2]);
         setResolution(widthHeightDepth[0], widthHeightDepth[1], widthHeightDepth[2]);
@@ -114,19 +113,8 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     }
 
-
-    std::thread thread_obj(CRLPhysicalCamera::setDelayedPropertyThreadFunc, this);
-
-    thread_obj.join();
 }
 
-void CRLPhysicalCamera::setDelayedPropertyThreadFunc(void *context) {
-    auto *app = static_cast<CRLPhysicalCamera *>(context);
-    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::milliseconds(300));
-    app->modeChange = true;
-    app->play = true;
-
-}
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopping camera streams {}", dataSourceStr.c_str());
@@ -157,21 +145,30 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     */
     bool status = cameraInterface->stopStreams(src);
     Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}", dataSourceStr.c_str());
-    modeChange = true;
 }
 
-void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header **stream,
+void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::image::Header *stream,
                                         crl::multisense::image::Header **stream2) {
+    uint32_t source = stringToDataSource(stringSrc);
 
     // If user selects combines streams ex. Luma and Chroma, return this instead. Otherwise choose from standrad streams.
     if (stringSrc == "Color + Luma Rectified Aux") {
-        *stream = &imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
-        *stream2 = &imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
+        *stream = imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
+        **stream2 = imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
         return;
     }
 
-    uint32_t source = stringToDataSource(stringSrc);
-    *stream = &imagePointers[source];
+
+
+    if (imagePointers[source].width == info.imgConf.width()) {
+        stream->imageLength = imagePointers[source].imageLength;
+        stream->width = imagePointers[source].width;
+        stream->height = imagePointers[source].height;
+        stream->source = imagePointers[source].source;
+        stream->imageDataP = imagePointers[source].imageDataP;
+    }
+    else
+        stream = nullptr;
 }
 
 
@@ -328,7 +325,7 @@ void CRLPhysicalCamera::update() {
 
 void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
-    crl::multisense::image::Config c = cameraInfo.imgConf;
+    crl::multisense::image::Config c = info.imgConf;
 
     kInverseMatrix =
             glm::mat4(
@@ -338,17 +335,19 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
                     glm::vec4(0, 0, 0, 1));
 
     kInverseMatrix = glm::transpose(kInverseMatrix);
-    crl::multisense::image::Config params = cameraInfo.imgConf;
-    crl::multisense::image::Calibration cal = cameraInfo.camCal;
-    crl::multisense::system::DeviceInfo info = cameraInfo.devInfo;
+    crl::multisense::image::Config params = info.imgConf;
+    crl::multisense::image::Calibration cal = info.camCal;
 
-    float dcx = (cal.right.P[0][2] - cal.left.P[0][2]) * (1.0f / static_cast<float>(info.imagerWidth * params.width()));
+    float dcx = (cal.right.P[0][2] - cal.left.P[0][2]) *
+                (1.0f / static_cast<float>(info.devInfo.imagerWidth * params.width()));
     glm::mat4 Q = glm::mat4(glm::vec4(params.fy() * params.tx(), 0, 0, -params.fy() * params.cx() * params.tx()),
                             glm::vec4(0, params.fx() * params.tx(), 0, -params.fx() * params.cy() * params.tx()),
                             glm::vec4(0, 0, 0, params.fx() * params.fy() * params.tx()),
                             glm::vec4(0, 0, -params.fx(), params.fy() * (dcx)));
 
     start("960 x 600 x 64x", "Disparity Left");
+
+    info.kInverseMatrix = kInverseMatrix;
     //kInverseMatrix = Q;
     /*
    kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
@@ -367,15 +366,14 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 }
 
 void CRLPhysicalCamera::updateCameraInfo() {
-    cameraInterface->getImageConfig(cameraInfo.imgConf);
-    cameraInterface->getNetworkConfig(cameraInfo.netConfig);
-    cameraInterface->getVersionInfo(cameraInfo.versionInfo);
-    cameraInterface->getDeviceInfo(cameraInfo.devInfo);
-    cameraInterface->getDeviceModes(cameraInfo.supportedDeviceModes);
-    cameraInterface->getImageCalibration(cameraInfo.camCal);
-    cameraInterface->getEnabledStreams(cameraInfo.supportedSources);
-    cameraInterface->getMtu(cameraInfo.sensorMTU);
-
+    cameraInterface->getImageConfig(info.imgConf);
+    cameraInterface->getNetworkConfig(info.netConfig);
+    cameraInterface->getVersionInfo(info.versionInfo);
+    cameraInterface->getDeviceInfo(info.devInfo);
+    cameraInterface->getDeviceModes(info.supportedDeviceModes);
+    cameraInterface->getImageCalibration(info.camCal);
+    cameraInterface->getEnabledStreams(info.supportedSources);
+    cameraInterface->getMtu(info.sensorMTU);
 }
 
 void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &image) {
@@ -388,6 +386,8 @@ void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &ima
     {
         cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
     }
+
+
     imagePointers[image.source] = image;
 
     buf.inactiveCBBuf = cameraInterface->reserveCallbackBuffer();
@@ -401,12 +401,12 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
 
 void CRLPhysicalCamera::addCallbacks() {
-    for (auto e: cameraInfo.supportedDeviceModes)
-        cameraInfo.supportedSources |= e.supportedDataSources;
+    for (auto e: info.supportedDeviceModes)
+        info.supportedSources |= e.supportedDataSources;
 
     // reserve double_buffers for each stream
     uint_fast8_t num_sources = 0;
-    crl::multisense::DataSource d = cameraInfo.supportedSources;
+    crl::multisense::DataSource d = info.supportedSources;
     while (d) {
         num_sources += (d & 1);
         d >>= 1;
@@ -417,14 +417,14 @@ void CRLPhysicalCamera::addCallbacks() {
     for (int i = 0;
          i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
     {
-        cameraInfo.rawImages.push_back(new uint8_t[bufSize]);
+        info.rawImages.push_back(new uint8_t[bufSize]);
     }
 
     // use these buffers instead of the default
-    cameraInterface->setLargeBuffers(cameraInfo.rawImages, bufSize);
+    cameraInterface->setLargeBuffers(info.rawImages, bufSize);
 
     // finally, add our callback
-    if (cameraInterface->addIsolatedCallback(imageCallback, cameraInfo.supportedSources, this) !=
+    if (cameraInterface->addIsolatedCallback(imageCallback, info.supportedSources, this) !=
         crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
     }
@@ -436,5 +436,9 @@ if (cameraInterface->addIsolatedCallback(imageCallback, crl::multisense::Source_
 }
      */
 
+}
+
+CRLBaseInterface::CameraInfo CRLPhysicalCamera::getCameraInfo() {
+    return info;
 }
 

@@ -34,8 +34,9 @@ public:
     void start(std::string string, std::string dataSourceStr) override;
     void stop( std::string dataSourceStr) override;
     void updateCameraInfo() override;
-    void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
-                          crl::multisense::image::Header **src2 = nullptr) override;
+    void getCameraStream(std::string stringSrc, crl::multisense::image::Header *stream,
+                         crl::multisense::image::Header **stream2 = nullptr) override;
+    CameraInfo getCameraInfo() override;
     void preparePointCloud(uint32_t i, uint32_t i1) override;
 
 private:
@@ -73,8 +74,14 @@ private:
         }
     };
 
+    CameraInfo info{};
+    std::vector<crl::multisense::DataSource> enabledSources;
     crl::multisense::Channel * cameraInterface{};
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_;
+
+    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
+    glm::mat4 kInverseMatrix{};
+
 
     std::string dataSourceToString(unsigned int d);
     unsigned int stringToDataSource(const std::string &d);

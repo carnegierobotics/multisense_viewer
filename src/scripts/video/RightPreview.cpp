@@ -11,8 +11,8 @@ void RightPreview::setup(Base::Render r) {
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
-    for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end()  || dev.state != ArActiveState )
+    for (auto dev: r.gui) {
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_RIGHT)->second;
@@ -59,9 +59,9 @@ void RightPreview::update(CameraConnection *conn) {
         model->draw = true;
     }
 
-    if (camera->play && model->draw) {
+    if (model->draw) {
         crl::multisense::image::Header *disp;
-        camera->getCameraStream(src, &disp);
+        camera->getCameraStream(src, disp);
 
         model->setGrayscaleTexture(disp);
 
@@ -92,17 +92,17 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
 
-    if (uiHandle.keypress == GLFW_KEY_I){
+    if (uiHandle.keypress == GLFW_KEY_I) {
         up += 0.1;
     }
-    if (uiHandle.keypress == GLFW_KEY_K){
+    if (uiHandle.keypress == GLFW_KEY_K) {
         up -= 0.1;
     }
 
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
-        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_RIGHT)->second.selectedStreamingSource;

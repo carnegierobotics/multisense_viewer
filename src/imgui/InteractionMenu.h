@@ -193,16 +193,19 @@ public:
             std::string btnLabel = "Start##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PLAYING;
+                Log::Logger::getInstance()->info("Pressed Play for preview {}", id.c_str());
             }
             ImGui::SameLine();
             btnLabel = "Pause##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PAUSED;
+                Log::Logger::getInstance()->info("Pressed Pause for preview {}", id.c_str());
             }
             ImGui::SameLine();
             btnLabel = "Stop##" + std::to_string(streamIndex);
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_NONE;
+                Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
             }
 
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
@@ -372,11 +375,31 @@ private:
 
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
         ImGui::SameLine();
-        if (ImGui::Button("2D", ImVec2(75.0f, 20.0f)))
+
+        if (dev.selectedPreviewTab == TAB_2D_PREVIEW)
+            ImGui::PushStyleColor(ImGuiCol_Button, green);
+        else
+            ImGui::PushStyleColor(ImGuiCol_Button, red);
+
+        if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
+            Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
+        }
+        ImGui::PopStyleColor();
+
+        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD)
+            ImGui::PushStyleColor(ImGuiCol_Button, green);
+        else
+            ImGui::PushStyleColor(ImGuiCol_Button, red);
+
         ImGui::SameLine();
-        if (ImGui::Button("3D", ImVec2(75.0f, 20.0f)))
+        if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
+            Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
+        }
+        ImGui::PopStyleColor();
+
+
 
         ImGui::End();
         ImGui::PopStyleColor();

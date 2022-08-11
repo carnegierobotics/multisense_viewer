@@ -90,7 +90,7 @@ void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL)== dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;

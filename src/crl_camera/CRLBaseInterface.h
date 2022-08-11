@@ -28,14 +28,9 @@ public:
         crl::multisense::DataSource supportedSources{0};
         std::vector<uint8_t *> rawImages;
         int sensorMTU = 0;
-    } cameraInfo;
-
-    // TODO REMOVE STRUCT
-    struct cameraStream {
-        std::string stringSrc;
-        crl::multisense::image::Header **src;
-        crl::multisense::image::Header **src2 = nullptr;
+        glm::mat4 kInverseMatrix;
     };
+
 
     virtual bool connect(const std::string &ip) = 0;
 
@@ -47,28 +42,13 @@ public:
 
     virtual void preparePointCloud(uint32_t width, uint32_t height) = 0;
 
-    virtual CameraInfo getCameraInfo() {
-        return cameraInfo;
-    }
+    virtual CameraInfo getCameraInfo() = 0;
 
-    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> getImage() {
-        return imagePointers;
-    }
 
-    virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header **src,
-                                  crl::multisense::image::Header **src2 = nullptr) {};
+    virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header *src,
+                                 crl::multisense::image::Header **src2 = nullptr) {};
     virtual void getCameraStream(crl::multisense::image::Header *stream) {};
     virtual bool getCameraStream(ArEngine::MP4Frame* frame) { return false; };
-
-
-    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
-    bool online = false;
-    bool modeChange = false;
-    bool play = false;
-    bool ready = false;
-    std::vector<crl::multisense::DataSource> enabledSources;
-    glm::mat4 kInverseMatrix{};
-
 
 };
 

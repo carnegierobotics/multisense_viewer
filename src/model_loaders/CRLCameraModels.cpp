@@ -128,6 +128,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 
 
 void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header *streamOne) {
+    // TODO Make sure the data from StreamOne is good. Dont to validity checking here, do it in CRLPhysicalCamera..
     if (streamOne == nullptr) {
         uint32_t size = 1920 * 1080 * 2;
         auto *p = malloc(size);
@@ -166,7 +167,8 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
         textureVideo.updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
 
-    } else {
+    }
+    else if (streamOne->width < 2000){
         textureVideo.updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
 
     }

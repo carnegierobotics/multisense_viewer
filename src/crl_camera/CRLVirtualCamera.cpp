@@ -52,14 +52,14 @@ void CRLVirtualCamera::updateCameraInfo() {
     // Just populating it with some hardcoded data
     // - DevInfo
 
-    cameraInfo.devInfo.name = "CRL Virtual Camera";
-    cameraInfo.devInfo.imagerName = "Virtual";
-    cameraInfo.devInfo.serialNumber = "25.8069758011"; // Root of all evil
+    info.devInfo.name = "CRL Virtual Camera";
+    info.devInfo.imagerName = "Virtual";
+    info.devInfo.serialNumber = "25.8069758011"; // Root of all evil
     // - getImageCalibration
-    cameraInfo.netConfig.ipv4Address = "Knock knock";
+    info.netConfig.ipv4Address = "Knock knock";
 
-    cameraInfo.imgConf.setWidth(width);
-    cameraInfo.imgConf.setHeight(height);
+    info.imgConf.setWidth(width);
+    info.imgConf.setHeight(height);
 
 }
 
@@ -417,4 +417,8 @@ void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, 
 
     // Close file
     fclose(pFile);
+}
+
+CRLBaseInterface::CameraInfo CRLVirtualCamera::getCameraInfo() {
+    return info;
 }

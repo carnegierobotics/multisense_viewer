@@ -3,6 +3,7 @@
 //
 
 #include "PointCloud.h"
+#include <glm/gtx/string_cast.hpp>
 
 
 void PointCloud::setup(Base::Render r) {
@@ -43,10 +44,10 @@ void PointCloud::update(CameraConnection *conn) {
         CRLCameraModels::createRenderPipeline(renderUtils, renderUtils.shaders, model, type);
 
         auto *buf = (PointCloudParam *) bufferThreeData;
-        buf->kInverse = camPtr->kInverseMatrix;
-        buf->height = imgConf.height();
-        buf->width = imgConf.width();
-
+        buf->kInverse = camPtr->getCameraInfo().kInverseMatrix;
+        buf->height = static_cast<float>(imgConf.height());
+        buf->width = static_cast<float>(imgConf.width());
+        std::cout << glm::to_string( buf->kInverse) << std::endl;
         model->draw = true;
 
     }
@@ -54,12 +55,12 @@ void PointCloud::update(CameraConnection *conn) {
 
     if (model->draw) {
         //CRLBaseCamera::PointCloudData *meshData = camera->getStream();
-        crl::multisense::image::Header *disp;
+        crl::multisense::image::Header disp;
         camPtr->getCameraStream("Disparity Left", &disp);
-        model->setGrayscaleTexture(disp);
+        model->setGrayscaleTexture(&disp);
 
         const int vertexCount = 960 * 600;
-        ArEngine::Vertex *meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
+        auto *meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
 
         int v = 0;
         for (int i = 0; i < 960; ++i) {
@@ -72,7 +73,7 @@ void PointCloud::update(CameraConnection *conn) {
 
         model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
 
-        free(meshData);
+        delete[] meshData;
     }
 
     UBOMatrix mat{};

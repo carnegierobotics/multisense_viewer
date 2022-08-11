@@ -61,10 +61,10 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         model->draw = true;
     }
 
-    if (camera->play && model->draw) {
+    if (model->draw) {
         crl::multisense::image::Header *chroma;
         crl::multisense::image::Header *luma;
-        camera->getCameraStream(src, &chroma, &luma);
+        camera->getCameraStream(src, chroma, &luma);
 
         model->setColorTexture(chroma, luma);
 
@@ -106,7 +106,7 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;

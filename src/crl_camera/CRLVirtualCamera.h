@@ -42,6 +42,8 @@ public:
 
     void stop(std::string dataSourceStr) override;
 
+    CameraInfo getCameraInfo() override;
+
     void getCameraStream(crl::multisense::image::Header *stream) override;
     bool getCameraStream(ArEngine::MP4Frame* frame) override;
 
@@ -50,6 +52,7 @@ private:
 
     void update();
 
+    CameraInfo info{};
     AVFrame videoFrame[5];
     int bufferSize = 0;
     std::string videoName = "None";

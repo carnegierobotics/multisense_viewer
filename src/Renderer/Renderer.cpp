@@ -90,7 +90,7 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(const std::string& scriptName){
+void Renderer::buildScript(std::string scriptName){
 
     // Do not recreate script if already created
 
@@ -101,22 +101,23 @@ void Renderer::buildScript(const std::string& scriptName){
     scriptNames.emplace_back(scriptName);
 
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
-    pLogger->info("RENDERER::Built Script: {}, running setup...", scriptName.c_str());
+    pLogger->info("Registered script: {} in factory", scriptName.c_str());
+
     // Run Once
     Base::RenderUtils vars{};
     vars.device = vulkanDevice;
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
+
     Base::Render renderData{};
     renderData.crlCamera = &cameraConnection;
     renderData.gui = *guiManager->handles.devices;
+    renderData.scriptName = scriptName;
 
     // Run script setup function
-    for (auto &script: scripts) {
-        assert(script.second);
-        script.second->createUniformBuffers(vars, renderData, script.second->getType());
-    }
+    scripts[scriptName]->createUniformBuffers(vars, renderData);
+
 
 }
 
@@ -145,7 +146,6 @@ void Renderer::render() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
-    renderData.scriptRuntime = runTime;
     renderData.pLogger = pLogger;
 
     guiManager->handles.keypress = keypress;
@@ -237,8 +237,7 @@ void Renderer::render() {
     // Run update function on scripts
     for (auto &script: scripts) {
         if (script.second->getType() != ArDisabled) {
-            renderData.type = script.second->getType();
-            script.second->updateUniformBufferData(renderData);
+            script.second->updateUniformBufferData(&renderData);
         }
     }
 

@@ -76,18 +76,17 @@ public:
     } renderUtils;
 
     struct Render {
-        uint32_t index;
-        Camera *camera;
-        float deltaT;
+        uint32_t index = -1;
+        Camera *camera = nullptr;
+        float deltaT = 0.0f;
         bool finishedSetup = false;
-        float scriptRuntime;
-        int scriptDrawCount;
-        std::string* scriptName;
-        std::unique_ptr<CameraConnection> *crlCamera;
+        float scriptRuntime = 0.0f;
+        int scriptDrawCount = 0;
+        std::string scriptName;
+        std::unique_ptr<CameraConnection> *crlCamera = nullptr;
         ScriptType type;
         std::vector<Element> gui;
-
-        Log::Logger* pLogger;
+        Log::Logger *pLogger;
 
     } renderData{};
 
@@ -123,7 +122,6 @@ public:
     }
 
 
-
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return ArDisabled; }
 
@@ -132,10 +130,12 @@ public:
         if (!renderData.finishedSetup)
             return;
 
-        if (renderData.scriptDrawCount % 150 == 0)
-        {
-            std::string str ="Loginfo";
-            renderData.pLogger->info(str);
+        auto time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> time_span =
+                std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
+        if (time_span.count() > 2.0f) {
+            lastLogTime = std::chrono::high_resolution_clock::now();
+            renderData.pLogger->info("Draw-count: {} | Script: {} |", renderData.scriptDrawCount, renderData.scriptName.c_str());
         }
 
         draw(commandBuffer, i);
@@ -146,13 +146,17 @@ public:
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    void updateUniformBufferData(Base::Render data) {
-        this->renderData.camera = data.camera;
-        this->renderData.crlCamera = data.crlCamera;
-        this->renderData.gui = data.gui;
-        this->renderData.type = data.type;
-        this->renderData.deltaT = data.deltaT;
-        this->renderData.index = data.index;
+    void updateUniformBufferData(Render *data) {
+        this->renderData.camera = data->camera;
+        this->renderData.crlCamera = data->crlCamera;
+        this->renderData.gui = data->gui;
+        this->renderData.deltaT = data->deltaT;
+        this->renderData.index = data->index;
+        this->renderData.pLogger = data->pLogger;
+
+        this->renderData.type = getType();
+
+        renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
 
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == ArDefault || renderData.type == AR_CAMERA_SETUP_ONLY)
@@ -186,12 +190,17 @@ public:
         }
     }
 
-    void createUniformBuffers(RenderUtils utils, Base::Render d, ScriptType scriptType) {
-        if (scriptType == ArDisabled)
+    void createUniformBuffers(RenderUtils utils, Base::Render rData) {
+        if (this->getType() == ArDisabled)
             return;
+        renderData = std::move(rData);
 
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
+
+        startTime = std::chrono::high_resolution_clock::now();
+        lastLogTime = std::chrono::high_resolution_clock::now();
+
 
         bufferOneData = new UBOMatrix();
         bufferTwoData = new FragShaderParams();
@@ -216,8 +225,10 @@ public:
 
         }
 
-        if (scriptType == ArCameraScript || scriptType == AR_CAMERA_SETUP_ONLY || scriptType == AR_POINT_CLOUD)
-            setup(std::move(renderData));
+
+        renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
+        if (getType() == ArCameraScript || getType() == AR_CAMERA_SETUP_ONLY || getType() == AR_POINT_CLOUD)
+            setup(renderData);
         else
             setup();
 
@@ -245,6 +256,10 @@ public:
     }
 
 protected:
+
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<float>> startTime;
+    std::chrono::high_resolution_clock::time_point lastLogTime;
 
 };
 

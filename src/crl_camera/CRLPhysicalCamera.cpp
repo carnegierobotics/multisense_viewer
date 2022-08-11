@@ -102,7 +102,7 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         bool status = cameraInterface->startStreams(src);
 
         if (status == crl::multisense::Status_Ok)
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {} }",
+            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {}",
                                              dataSourceToString(src).c_str());
         else
             Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {} ",

@@ -46,9 +46,14 @@ struct GuiLayerUpdateInfo {
 
     /** @brief size of Control Area*/
     float controlAreaWidth = 440.0f, controlAreaHeight = height;
+    int numControlTabs = 4;
 
     /** @brief size of viewing Area*/
     float viewingAreaWidth = 580.0f, viewingAreaHeight = height;
+
+    /** @brief control area drop down box size */
+    float controlDropDownWidth = 350.0, controlDropDownHeight = 40.0f;
+    float dropDownWidth = 300.0f, dropDownHeightOpen = 220.0f;
 
 };
 
@@ -146,13 +151,16 @@ struct GuiObjectHandles {
     GuiLayerUpdateInfo *info{};
 
     int keypress;
-
     float sliderOne = -1.77f;
     float sliderTwo = 0.986f;
     float sliderThree = -0.718;
-
-
 };
+
+static ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
+static ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+static ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
+static ImVec4 darkGray(0.1f, 0.1f, 0.1f, 1.0f);
+
 
 class Layer {
 

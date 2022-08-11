@@ -64,11 +64,12 @@ void DefaultPreview::update(CameraConnection *conn) {
         model->draw = true;
     }
 
-    if (camera->play && model->draw) {
-        crl::multisense::image::Header* image;
-        camera->getCameraStream(src, &image);
+    if (model->draw) {
+        crl::multisense::image::Header* image = new crl::multisense::image::Header();
+        camera->getCameraStream(src, image);
         model->setGrayscaleTexture(image);
 
+        delete image;
     }
 
 
@@ -106,7 +107,7 @@ void DefaultPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         std::string s =  dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;

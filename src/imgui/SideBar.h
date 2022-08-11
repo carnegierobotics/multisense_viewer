@@ -308,7 +308,7 @@ private:
         handles->devices = &devices;
 
         Log::Logger::getInstance()->info("GUI:: Connect clicked for Default Device");
-        Log::Logger::getInstance()->info("GUI:: Using: Ip: %s, and preset: %s", ip, name);
+        Log::Logger::getInstance()->info("GUI:: Using: Ip: {}, and preset: {}", ip, name);
 
 
     }
@@ -327,7 +327,7 @@ private:
         handles->devices = &devices;
 
         Log::Logger::getInstance()->info("GUI:: Connect clicked for Advanced Device");
-        Log::Logger::getInstance()->info("GUI:: Using: Ip: %s", ip);
+        Log::Logger::getInstance()->info("GUI:: Using: Ip: {}", ip);
 
 
     }

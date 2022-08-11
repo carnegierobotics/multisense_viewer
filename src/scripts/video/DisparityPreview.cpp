@@ -63,9 +63,9 @@ void DisparityPreview::update(CameraConnection *conn) {
         model->draw = true;
     }
 
-    if (camera->play && model->draw) {
+    if (model->draw) {
         crl::multisense::image::Header *disp;
-        camera->getCameraStream(src, &disp);
+        camera->getCameraStream(src, disp);
 
         model->setGrayscaleTexture(disp);
 
@@ -107,7 +107,7 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end() || dev.state != ArActiveState)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_DISPARITY)->second.selectedStreamingSource;

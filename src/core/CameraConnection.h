@@ -29,24 +29,24 @@ public:
     bool preview = false;
     std::string lastActiveDevice{};
 
-    void onUIUpdate(std::vector<Element> *pVector);
+    void onUIUpdate(std::vector<AR::Element> *pVector);
 
 private:
     int sd = 0;
 
-    Element* currentActiveDevice = nullptr; // handle to current device
+    AR::Element* currentActiveDevice = nullptr; // handle to current device
 
-    void updateActiveDevice(Element element);
+    void updateActiveDevice(AR::Element element);
 
-    void connectCrlCamera(Element &element);
+    void connectCrlCamera(AR::Element &element);
 
-    void updateDeviceState(Element *element);
+    void updateDeviceState(AR::Element *element);
 
-    void disableCrlCamera(Element &element);
+    void disableCrlCamera(AR::Element &element);
 
-    void setNetworkAdapterParameters(Element &dev);
+    void setNetworkAdapterParameters(AR::Element &dev);
 
-    void setStreamingModes(Element &dev);
+    void setStreamingModes(AR::Element &dev);
 };
 
 

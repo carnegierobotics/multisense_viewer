@@ -233,22 +233,22 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 
     TextureVideo texture;
     switch (texType) {
-        case CrlColorImageYUV420:
+        case AR_COLOR_IMAGE_YUV420:
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
             break;
-        case CrlGrayscaleImage:
+        case AR_GRAYSCALE_IMAGE:
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
             break;
-        case CrlDisparityImage:
+        case AR_DISPARITY_IMAGE:
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
             break;
-        case CrlColorImage:
+        case AR_COLOR_IMAGE:
 
             break;
-        case CrlPointCloud:
+        case AR_POINT_CLOUD:
             texture = TextureVideo(videos.width, videos.height, vulkanDevice,
                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
             break;
@@ -302,10 +302,10 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
      */
 
     switch (model->modelType) {
-        case CrlImage:
+        case AR_CAMERA_DATA_COLOR_IMAGE:
             createImageDescriptors(model, ubo);
             break;
-        case CrlPointCloud:
+        case AR_POINT_CLOUD:
             createPointCloudDescriptors(model, ubo);
             break;
         default:
@@ -421,7 +421,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std:
 void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
     switch (pModel->modelType) {
-        case CrlImage:
+        case AR_CAMERA_DATA_COLOR_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -429,7 +429,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             };
             break;
-        case CrlPointCloud:
+        case AR_POINT_CLOUD:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
@@ -468,7 +468,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
     inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     VkPrimitiveTopology topology;
-    if (type == AR_POINT_CLOUD)
+    if (type == AR_SCRIPT_TYPE_POINT_CLOUD)
         topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
     else
         topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;

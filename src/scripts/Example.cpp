@@ -49,6 +49,6 @@ void Example::update() {
 
 
 
-void Example::onUIUpdate(GuiObjectHandles uiHandle) {
+void Example::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
 }

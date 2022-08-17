@@ -46,12 +46,12 @@ namespace ArEngine{
 }
 
 typedef enum CRLCameraDataType {
-    CrlPointCloud,
-    CrlGrayscaleImage,
-    CrlColorImageYUV420,
+    AR_POINT_CLOUD,
+    AR_GRAYSCALE_IMAGE,
+    AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
-    CrlColorImage,
-    CrlNone, CrlDisparityImage, CrlImage
+    AR_COLOR_IMAGE,
+    CrlNone, AR_DISPARITY_IMAGE, AR_CAMERA_DATA_COLOR_IMAGE
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {
@@ -59,6 +59,43 @@ typedef enum CRLCameraType {
     CUSTOM_CAMERA_IP,
     VIRTUAL_CAMERA
 } CRLCameraType;
+
+typedef enum ArConnectionState{
+    AR_STATE_CONNECTED,
+    AR_STATE_CONNECTING,
+    AR_STATE_ACTIVE,
+    AR_STATE_INACTIVE,
+    AR_STATE_DISCONNECTED,
+    AR_STATE_UNAVAILABLE,
+    AR_STATE_JUST_ADDED
+} ArConnectionState;
+
+typedef enum StreamIndex {
+    // First 0 - 5 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
+    AR_PREVIEW_LEFT = 0,
+    AR_PREVIEW_RIGHT = 1,
+    AR_PREVIEW_DISPARITY = 2,
+    AR_PREVIEW_AUXILIARY = 3,
+    AR_PREVIEW_POINT_CLOUD = 4,
+    AR_PREVIEW_VIRTUAL = 5,
+
+    // Other flags
+    AR_PREVIEW_PLAYING = 10,
+    AR_PREVIEW_PAUSED = 11,
+    AR_PREVIEW_STOPPED = 12,
+    AR_PREVIEW_NONE = 13,
+    AR_PREVIEW_RESET = 14,
+} CameraStreamInfoFlag;
+
+typedef enum page {
+    PAGE_PREVIEW_DEVICES = 0,
+    PAGE_DEVICE_INFORMATION = 1,
+    PAGE_CONFIGURE_DEVICE = 2,
+    PAGE_TOTAL_PAGES = 3,
+    TAB_NONE = 10,
+    TAB_2D_PREVIEW = 11,
+    TAB_3D_POINT_CLOUD = 12,
+} Page;
 
 
 #endif //MULTISENSE_DEFINITIONS_H

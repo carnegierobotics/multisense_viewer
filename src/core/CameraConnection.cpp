@@ -11,7 +11,7 @@ CameraConnection::CameraConnection() {
 
 }
 
-void CameraConnection::updateActiveDevice(Element dev) {
+void CameraConnection::updateActiveDevice(AR::Element dev) {
 
     for (auto d: dev.streams) {
 
@@ -34,7 +34,7 @@ void CameraConnection::updateActiveDevice(Element dev) {
 
 }
 
-void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
+void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
     // If no device is connected then return
     if (devices == nullptr)
         return;
@@ -42,7 +42,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
     // Check for actions on each element
     for (auto &dev: *devices) {
         // Connect if we click a device or if it is just added
-        if ((dev.clicked && dev.state != ArActiveState) || dev.state == ArJustAddedState) {
+        if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
             connectCrlCamera(dev);
             continue;
         }
@@ -50,7 +50,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         updateDeviceState(&dev);
 
         // Make sure inactive devices' preview are not drawn.
-        if (dev.state != ArActiveState) {
+        if (dev.state != AR_STATE_ACTIVE) {
             for (auto &s: dev.streams)
                 s.second.playbackStatus = AR_PREVIEW_NONE;
             continue;
@@ -60,7 +60,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
         updateActiveDevice(dev);
 
         // Disable if we click a device already connected
-        if (dev.clicked && dev.state == ArActiveState) {
+        if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
             // Disable all streams
             for (auto &s: dev.streams)
                 s.second.playbackStatus = AR_PREVIEW_RESET;
@@ -73,7 +73,7 @@ void CameraConnection::onUIUpdate(std::vector<Element> *devices) {
 
 }
 
-void CameraConnection::connectCrlCamera(Element &dev) {
+void CameraConnection::connectCrlCamera(AR::Element &dev) {
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
     bool connected = false;
@@ -85,12 +85,12 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         camPtr = new CRLVirtualCamera();
         connected = camPtr->connect("None");
         if (connected) {
-            dev.state = ArActiveState;
+            dev.state = AR_STATE_ACTIVE;
             dev.cameraName = "Virtual Camera";
             dev.IP = "Local";
             lastActiveDevice = dev.name;
 
-            StreamingModes virtualCam{};
+            AR::StreamingModes virtualCam{};
             virtualCam.sources.emplace_back("None");
             virtualCam.sources.emplace_back("pixels");
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL;
@@ -104,7 +104,7 @@ void CameraConnection::connectCrlCamera(Element &dev) {
 
 
         } else
-            dev.state = ArUnavailableState;
+            dev.state = AR_STATE_UNAVAILABLE;
 
     } else {
         setNetworkAdapterParameters(dev);
@@ -113,25 +113,25 @@ void CameraConnection::connectCrlCamera(Element &dev) {
         camPtr = new CRLPhysicalCamera();
         connected = camPtr->connect(dev.IP);
         if (connected) {
-            dev.state = ArActiveState;
+            dev.state = AR_STATE_ACTIVE;
             dev.cameraName = camPtr->getCameraInfo().devInfo.name;
             setStreamingModes(dev);
             lastActiveDevice = dev.name;
 
         } else {
             delete camPtr;
-            dev.state = ArUnavailableState;
+            dev.state = AR_STATE_UNAVAILABLE;
             lastActiveDevice = "";
 
         }
     }
 }
 
-void CameraConnection::setStreamingModes(Element &dev) {
+void CameraConnection::setStreamingModes(AR::Element &dev) {
     // Find sources for each imager and and set these correspondly in element
     // Start with left
     // TODO USE camPtr to fetch these values dynamically
-    StreamingModes left{};
+    AR::StreamingModes left{};
     left.sources.emplace_back("None");
     left.sources.emplace_back("Raw Left");
     left.sources.emplace_back("Luma Left");
@@ -148,7 +148,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     left.selectedStreamingMode = left.modes.front();
     left.selectedStreamingSource = left.sources.front();
 
-    StreamingModes right{};
+    AR::StreamingModes right{};
     right.sources.emplace_back("None");
     right.sources.emplace_back("Raw Right");
     right.sources.emplace_back("Luma Right");
@@ -167,7 +167,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     right.selectedStreamingMode = right.modes.front();
     right.selectedStreamingSource = right.sources.front();
 
-    StreamingModes disparity{};
+    AR::StreamingModes disparity{};
     disparity.sources.emplace_back("None");
     disparity.sources.emplace_back("Disparity Left");
     disparity.sources.emplace_back("Disparity Cost");
@@ -185,7 +185,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     disparity.selectedStreamingMode = disparity.modes.front();
     disparity.selectedStreamingSource = disparity.sources.front();
 
-    StreamingModes auxiliary{};
+    AR::StreamingModes auxiliary{};
     auxiliary.sources.emplace_back("None");
     auxiliary.sources.emplace_back("Color Rectified Aux");
     auxiliary.sources.emplace_back("Luma Rectified Aux");
@@ -203,7 +203,7 @@ void CameraConnection::setStreamingModes(Element &dev) {
     auxiliary.selectedStreamingMode = auxiliary.modes.front();
     auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
-    StreamingModes pointCloud{};
+    AR::StreamingModes pointCloud{};
     pointCloud.sources.emplace_back("None");
     pointCloud.sources.emplace_back("S19");
     pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
@@ -230,25 +230,25 @@ void CameraConnection::setStreamingModes(Element &dev) {
 
 }
 
-void CameraConnection::setNetworkAdapterParameters(Element &dev) {
+void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
 
 }
 
-void CameraConnection::updateDeviceState(Element *dev) {
+void CameraConnection::updateDeviceState(AR::Element *dev) {
 
-    dev->state = ArUnavailableState;
+    dev->state = AR_STATE_UNAVAILABLE;
 
     // IF our clicked device is the one we already clicked
     if (dev->name == lastActiveDevice) {
-        dev->state = ArActiveState;
+        dev->state = AR_STATE_ACTIVE;
     }
 
 
 }
 
-void CameraConnection::disableCrlCamera(Element &dev) {
-    dev.state = ArDisconnectedState;
+void CameraConnection::disableCrlCamera(AR::Element &dev) {
+    dev.state = AR_STATE_DISCONNECTED;
     lastActiveDevice = "";
 
     Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),

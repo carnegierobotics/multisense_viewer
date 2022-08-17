@@ -8,12 +8,12 @@
 
 void PointCloud::setup(Base::Render r) {
 
-    model = new CRLCameraModels::Model(renderUtils.device, CrlPointCloud);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_POINT_CLOUD);
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
     for (auto dev: r.gui) {
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end()  || dev.state != ArActiveState )
+        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end()  || dev.state != AR_STATE_ACTIVE )
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;
@@ -33,7 +33,7 @@ void PointCloud::update(CameraConnection *conn) {
         auto imgConf = camPtr->getCameraInfo().imgConf;
         camPtr->preparePointCloud(imgConf.width(), imgConf.height());
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlPointCloud);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_POINT_CLOUD);
 
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -95,7 +95,7 @@ void PointCloud::update(CameraConnection *conn) {
 }
 
 
-void PointCloud::onUIUpdate(GuiObjectHandles uiHandle) {
+void PointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)

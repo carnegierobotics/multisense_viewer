@@ -12,7 +12,7 @@ void DecodeVideo::setup(Base::Render r) {
      * Create and load Mesh elements
      */
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
     // Don't draw it before we create the texture in update()
 
     model->draw = false;
@@ -85,12 +85,12 @@ void DecodeVideo::prepareTextureAfterDecode() {
 
 }
 
-void DecodeVideo::onUIUpdate(GuiObjectHandles uiHandle) {
+void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL)== dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL)== dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;

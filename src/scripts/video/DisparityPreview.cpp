@@ -8,13 +8,13 @@
 
 void DisparityPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
 
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end()  || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end()  || dev.state != AR_STATE_ACTIVE)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_DISPARITY)->second;
@@ -42,7 +42,7 @@ void DisparityPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlDisparityImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_DISPARITY_IMAGE);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -91,7 +91,7 @@ void DisparityPreview::update(CameraConnection *conn) {
 }
 
 
-void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
@@ -107,7 +107,7 @@ void DisparityPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_DISPARITY)->second.selectedStreamingSource;

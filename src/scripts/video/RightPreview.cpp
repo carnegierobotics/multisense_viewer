@@ -7,12 +7,12 @@
 
 void RightPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
     for (auto dev: r.gui) {
-        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_RIGHT)->second;
@@ -38,7 +38,7 @@ void RightPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlGrayscaleImage);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -87,7 +87,7 @@ void RightPreview::update(CameraConnection *conn) {
 }
 
 
-void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void RightPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
@@ -102,7 +102,7 @@ void RightPreview::onUIUpdate(GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
-        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_RIGHT)->second.selectedStreamingSource;

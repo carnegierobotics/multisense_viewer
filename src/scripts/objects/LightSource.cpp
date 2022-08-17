@@ -45,6 +45,6 @@ void LightSource::update() {
 
 
 
-void LightSource::onUIUpdate(GuiObjectHandles uiHandle) {
+void LightSource::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
 }

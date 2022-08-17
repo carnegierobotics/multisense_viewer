@@ -21,11 +21,11 @@
 #include "imgui.h"
 #include "Layer.h"
 
-class SideBar : public Layer {
+class SideBar : public AR::Layer {
 public:
 
     // Create global object for convenience in other functions
-    GuiObjectHandles *handles;
+    AR::GuiObjectHandles *handles;
 
     void onFinishedRender() override {
 
@@ -62,7 +62,7 @@ public:
         inputIP = result.cameraIpv4Address;
         inputName = info.name;
 
-        if (inputName == "Multisense S30")
+        if (inputName == "Multisense S30") // TODO: Avoid hardcoded if-cond here
             presetItemIdIndex = 1;
         else if (inputName == "MultiSense S21")
             presetItemIdIndex = 2;
@@ -71,9 +71,9 @@ public:
 
     }
 
-    void OnUIRender(GuiObjectHandles *_handles) override {
+    void OnUIRender(AR::GuiObjectHandles *_handles) override {
         this->handles = _handles;
-        GuiLayerUpdateInfo *info = handles->info;
+        AR::GuiLayerUpdateInfo *info = handles->info;
 
 
         bool pOpen = true;
@@ -282,8 +282,7 @@ public:
     }
 
 private:
-
-    std::vector<Element> devices;
+    std::vector<AR::Element> devices;
 
     bool btnConnect = false;
     bool btnAdd = false;
@@ -295,11 +294,11 @@ private:
     std::string inputName = "Profile Name";
 
     void createDefaultElement(char *name, char *ip, const char *cameraName) {
-        Element el;
+        AR::Element el;
 
         el.name = name;
         el.IP = ip;
-        el.state = ArJustAddedState;
+        el.state = AR_STATE_JUST_ADDED;
         el.cameraName = cameraName;
         el.clicked = true;
 
@@ -314,11 +313,11 @@ private:
     }
 
     void createAdvancedElement(char *name, char *ip) {
-        Element el;
+        AR::Element el;
 
         el.name = name;
         el.IP = ip;
-        el.state = ArJustAddedState;
+        el.state = AR_STATE_JUST_ADDED;
         el.cameraName = "Unknown";
         el.clicked = true;
 
@@ -340,32 +339,32 @@ private:
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
-                case ArConnectedState:
+                case AR_STATE_CONNECTED:
                     break;
-                case ArConnectingState:
+                case AR_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
                     break;
-                case ArActiveState:
+                case AR_STATE_ACTIVE:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     break;
-                case ArInActiveState:
+                case AR_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
                     break;
-                case ArDisconnectedState:
+                case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
                     break;
-                case ArUnavailableState:
+                case AR_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     buttonIdentifier = "Unavailable";
                     break;
-                case ArJustAddedState:
+                case AR_STATE_JUST_ADDED:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     buttonIdentifier = "Added...";
@@ -454,7 +453,7 @@ private:
         }
     }
 
-    void addDeviceButton(GuiObjectHandles *handles) {
+    void addDeviceButton(AR::GuiObjectHandles *handles) {
 
         ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding, handles->info->height - handles->info->addDeviceBottomPadding));
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth,handles->info->addDeviceHeight));

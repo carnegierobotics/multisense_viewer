@@ -8,12 +8,12 @@
 
 void AuxiliaryPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, CrlImage);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
     for (auto dev : r.gui){
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_AUXILIARY)->second;
@@ -40,7 +40,7 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/quad.vert";
         fragmentShaderFileName = "myScene/spv/quad.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), CrlColorImageYUV420);
+        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_COLOR_IMAGE_YUV420);
 
         auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
@@ -90,7 +90,7 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
 }
 
 
-void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
+void AuxiliaryPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     posX = uiHandle.sliderOne;
     posY = uiHandle.sliderTwo;
     posZ = uiHandle.sliderThree;
@@ -106,7 +106,7 @@ void AuxiliaryPreview::onUIUpdate(GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != ArActiveState)
+        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;

@@ -29,7 +29,7 @@ void Renderer::viewChanged() {
 }
 
 
-void Renderer::UIUpdate(GuiObjectHandles *uiSettings) {
+void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
 
 
@@ -77,7 +77,7 @@ void Renderer::buildCommandBuffers() {
 
 
         for (auto &script: scripts) {
-            if (script.second->getType() != ArDisabled) {
+            if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
                 script.second->drawScript(drawCmdBuffers[i], i);
             }
         }
@@ -160,7 +160,7 @@ void Renderer::render() {
     // Create/delete scripts after use
     // Run update function on active camera scripts
     for (auto &dev: *guiManager->handles.devices) {
-        if (dev.state != ArActiveState)
+        if (dev.state != AR_STATE_ACTIVE)
             continue;
 
         for (const auto& i : dev.streams){
@@ -236,7 +236,7 @@ void Renderer::render() {
 
     // Run update function on scripts
     for (auto &script: scripts) {
-        if (script.second->getType() != ArDisabled) {
+        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
             script.second->updateUniformBufferData(&renderData);
         }
     }

@@ -25,11 +25,11 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(GuiObjectHandles uiHandle) override;
+    void onUIUpdate(AR::GuiObjectHandles uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = ArDisabled;
+    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     void *selection = (void *) "0";
 

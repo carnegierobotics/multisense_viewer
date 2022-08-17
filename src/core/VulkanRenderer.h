@@ -97,7 +97,7 @@ public:
 
 
     /** @brief Handle for UI updates and overlay */
-    GuiManager* guiManager;
+    AR::GuiManager* guiManager;
 
     /** @brief (Virtual) Creates the application wide Vulkan instance */
     virtual VkResult createInstance(bool enableValidation);
@@ -108,7 +108,7 @@ public:
     /** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
     virtual void keyPressed(uint32_t);
     /** @brief (Virtual) Called once a update on the UI is detected */
-    virtual void UIUpdate(GuiObjectHandles *uiSettings);
+    virtual void UIUpdate(AR::GuiObjectHandles *uiSettings);
     /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is firstUpdate */
     virtual void mouseMoved(double x, double y, bool &handled);
     /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */

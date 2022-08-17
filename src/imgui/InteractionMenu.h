@@ -8,7 +8,7 @@
 #include "Layer.h"
 #include "imgui_user.h"
 
-class InteractionMenu : public Layer {
+class InteractionMenu : public AR::Layer {
 public:
 
 // Create global object for convenience in other functions
@@ -18,11 +18,11 @@ public:
     }
 
 
-    void OnUIRender(GuiObjectHandles *handles) override {
+    void OnUIRender(AR::GuiObjectHandles *handles) override {
         if (handles->devices->empty()) return;
         bool allUnavailable = true;
         for (auto &d: *handles->devices) {
-            if (d.state == ArActiveState)
+            if (d.state == AR_STATE_ACTIVE)
                 allUnavailable = false;
         }
 
@@ -102,7 +102,7 @@ public:
     }
 
 
-    void addDropDown(GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, StreamingModes *stream) {
+    void addDropDown(AR::GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, AR::StreamingModes *stream) {
 
         if (stream->modes.empty() || stream->sources.empty())
             return;
@@ -221,7 +221,7 @@ private:
     bool openDropDown[6] = {false};
     float animationLength[6] = {false};
 
-    void openDropDownMenu(GuiObjectHandles *handles, ImVec2 position) {
+    void openDropDownMenu(AR::GuiObjectHandles *handles, ImVec2 position) {
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.17, 0.157, 0.271, 1.0f));
         position.y += 30.0f;
@@ -280,7 +280,7 @@ private:
         ImGui::PopStyleColor();
     }
 
-    void buildDeviceInformation(GuiObjectHandles *handles) {
+    void buildDeviceInformation(AR::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
@@ -301,7 +301,7 @@ private:
         ImGui::End();
     }
 
-    void buildPreview(GuiObjectHandles *handles) {
+    void buildPreview(AR::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
@@ -333,9 +333,9 @@ private:
     }
 
 
-    void buildConfigurationPreview(GuiObjectHandles *handles) {
+    void buildConfigurationPreview(AR::GuiObjectHandles *handles) {
         for (auto &dev: *handles->devices) {
-            if (dev.state != ArActiveState)
+            if (dev.state != AR_STATE_ACTIVE)
                 continue;
 
             // Control page
@@ -353,7 +353,7 @@ private:
         //ImGui::End();
     }
 
-    void createViewingArea(GuiObjectHandles *handles, Element &dev) {
+    void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -377,9 +377,9 @@ private:
         ImGui::SameLine();
 
         if (dev.selectedPreviewTab == TAB_2D_PREVIEW)
-            ImGui::PushStyleColor(ImGuiCol_Button, green);
+            ImGui::PushStyleColor(ImGuiCol_Button, AR::green);
         else
-            ImGui::PushStyleColor(ImGuiCol_Button, red);
+            ImGui::PushStyleColor(ImGuiCol_Button, AR::red);
 
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
@@ -388,9 +388,9 @@ private:
         ImGui::PopStyleColor();
 
         if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD)
-            ImGui::PushStyleColor(ImGuiCol_Button, green);
+            ImGui::PushStyleColor(ImGuiCol_Button, AR::green);
         else
-            ImGui::PushStyleColor(ImGuiCol_Button, red);
+            ImGui::PushStyleColor(ImGuiCol_Button, AR::red);
 
         ImGui::SameLine();
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
@@ -405,7 +405,7 @@ private:
         ImGui::PopStyleColor();
     }
 
-    void createControlArea(GuiObjectHandles *handles, Element &dev) {
+    void createControlArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -422,7 +422,7 @@ private:
 
         for (auto &d: *handles->devices) {
             // Create dropdown
-            if (d.state == ArActiveState) {
+            if (d.state == AR_STATE_ACTIVE) {
 
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
@@ -444,7 +444,7 @@ private:
                                           false, ImGuiCond_Always);
 
                         for (auto &d: *handles->devices) {
-                            if (d.state == ArActiveState) {
+                            if (d.state == AR_STATE_ACTIVE) {
                                 addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
                                 addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
                                 addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,
@@ -491,7 +491,7 @@ private:
     }
 
 
-    void addStreamPlaybackControls(CameraStreamInfoFlag streamIndex, std::string label, Element *d) {
+    void addStreamPlaybackControls(CameraStreamInfoFlag streamIndex, std::string label, AR::Element *d) {
         ImGui::BeginGroup();
         ImGui::Text("%s", label.c_str());
         auto &stream = d->streams[streamIndex];

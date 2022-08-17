@@ -15,12 +15,11 @@
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
-    ArDisabled,
-    ArDefault,
-    AR_POINT_CLOUD,
-    ArCameraScript,
-    AR_CAMERA_SETUP_ONLY
-
+    AR_SCRIPT_TYPE_DISABLED,
+    AR_SCRIPT_TYPE_DEFAULT,
+    AR_SCRIPT_TYPE_CRL_CAMERA,
+    AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY,
+    AR_SCRIPT_TYPE_POINT_CLOUD
 } ScriptType;
 
 
@@ -85,7 +84,7 @@ public:
         std::string scriptName;
         std::unique_ptr<CameraConnection> *crlCamera = nullptr;
         ScriptType type;
-        std::vector<Element> gui;
+        std::vector<AR::Element> gui;
         Log::Logger *pLogger;
 
     } renderData{};
@@ -112,9 +111,9 @@ public:
     virtual void setup(Render r) {};
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(GuiObjectHandles uiHandle) = 0;
+    virtual void onUIUpdate(AR::GuiObjectHandles uiHandle) = 0;
 
-    void uiUpdate(GuiObjectHandles uiHandle) {
+    void uiUpdate(AR::GuiObjectHandles uiHandle) {
 
         if (renderData.finishedSetup)
             onUIUpdate(uiHandle);
@@ -123,7 +122,7 @@ public:
 
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
-    virtual ScriptType getType() { return ArDisabled; }
+    virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
     void drawScript(VkCommandBuffer commandBuffer, uint32_t i) {
 
@@ -159,7 +158,7 @@ public:
         renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
 
         // Default update function is called for updating models. Else CRL extension
-        if (renderData.type == ArDefault || renderData.type == AR_CAMERA_SETUP_ONLY)
+        if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
         else if (renderData.crlCamera->get()->camPtr != nullptr)
             update(renderData.crlCamera->get());
@@ -172,7 +171,7 @@ public:
             return;
 
         UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
-        if (renderData.type != ArDisabled) {
+        if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
             memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
@@ -182,7 +181,7 @@ public:
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
 
-            if (renderData.type != AR_POINT_CLOUD) return;
+            if (renderData.type != AR_SCRIPT_TYPE_POINT_CLOUD) return;
             currentUB.bufferThree.map();
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
@@ -191,7 +190,7 @@ public:
     }
 
     void createUniformBuffers(RenderUtils utils, Base::Render rData) {
-        if (this->getType() == ArDisabled)
+        if (this->getType() == AR_SCRIPT_TYPE_DISABLED)
             return;
         renderData = std::move(rData);
 
@@ -227,7 +226,7 @@ public:
 
 
         renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
-        if (getType() == ArCameraScript || getType() == AR_CAMERA_SETUP_ONLY || getType() == AR_POINT_CLOUD)
+        if (getType() == AR_SCRIPT_TYPE_CRL_CAMERA || getType() == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY || getType() == AR_SCRIPT_TYPE_POINT_CLOUD)
             setup(renderData);
         else
             setup();

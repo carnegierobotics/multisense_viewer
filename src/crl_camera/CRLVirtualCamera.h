@@ -30,6 +30,7 @@ public:
     std::string description;
     std::string data;
     int point = 0;
+    glm::mat4 kInverseMatrix;
     int width = 0, height = 0;
 
     bool connect(const std::string &ip) override;
@@ -46,6 +47,7 @@ public:
 
     void getCameraStream(crl::multisense::image::Header *stream) override;
     bool getCameraStream(ArEngine::MP4Frame* frame) override;
+    void getCameraStream(std::string src, crl::multisense::image::Header *stream, crl::multisense::image::Header **src2) override;
 
 
 private:
@@ -59,7 +61,7 @@ private:
     bool decoded = false;
 
     int r1, items = 0;
-#ifdef WIN32
+#ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
     HANDLE notEmpty;
     HANDLE notFull;
     //HANDLE producer;

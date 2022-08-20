@@ -24,7 +24,7 @@
 #include <MultiSense/src/imgui/InteractionMenu.h>
 
 // Include scripts
-//#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
+//
 //#include <MultiSense/src/scripts/Example.h>
 
 #include <MultiSense/src/scripts/objects/LightSource.h>
@@ -34,7 +34,7 @@
 #include <MultiSense/src/scripts/video/DecodeVideo.h>
 #include <MultiSense/src/scripts/video/RightPreview.h>
 #include <MultiSense/src/scripts/video/AuxiliaryPreview.h>
-
+#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
 
 class Renderer : VulkanRenderer {
 

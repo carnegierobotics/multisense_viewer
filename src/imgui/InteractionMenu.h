@@ -218,8 +218,8 @@ public:
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
-    bool openDropDown[6] = {false};
-    float animationLength[6] = {false};
+    bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
+    float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
 
     void openDropDownMenu(AR::GuiObjectHandles *handles, ImVec2 position) {
 
@@ -435,8 +435,6 @@ private:
                         }
 
                         // Create Control Area
-
-
                         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->tabAreaHeight),
                                                 ImGuiCond_Always);
                         ImGui::BeginChild("Dropdown Area", ImVec2(handles->info->controlAreaWidth,
@@ -445,6 +443,10 @@ private:
 
                         for (auto &d: *handles->devices) {
                             if (d.state == AR_STATE_ACTIVE) {
+                                // TODO DRAW DROPDOWNS BASED ON MODES FOUND IN CAMERACONNECTION.CPP during initialization
+                                addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL]);
+                                addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL, &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
+
                                 addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
                                 addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
                                 addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,

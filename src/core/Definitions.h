@@ -71,14 +71,15 @@ typedef enum ArConnectionState{
 } ArConnectionState;
 
 typedef enum StreamIndex {
-    // First 0 - 5 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
+    // First 0 - 6 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
     AR_PREVIEW_LEFT = 0,
     AR_PREVIEW_RIGHT = 1,
     AR_PREVIEW_DISPARITY = 2,
     AR_PREVIEW_AUXILIARY = 3,
     AR_PREVIEW_POINT_CLOUD = 4,
     AR_PREVIEW_VIRTUAL = 5,
-
+    AR_PREVIEW_POINT_CLOUD_VIRTUAL = 6,
+    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD_VIRTUAL,
     // Other flags
     AR_PREVIEW_PLAYING = 10,
     AR_PREVIEW_PAUSED = 11,

@@ -160,7 +160,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
         }
 
         for (int i = 0; i < streamOne->imageLength / 2; ++i) {
-            float intermediate = (float) ((float) p[i] / (float) max) * 65536.0f;
+            float intermediate = (float) ((float) p[i] / (float) max);
             p[i] = (uint16_t) intermediate;
         }
 

@@ -165,7 +165,7 @@ public:
                         // than usually reported by a typical string class.
                         if (inputName.empty())
                             inputName.push_back(0);
-                        Funcs::MyInputText("Profile name##1", &inputName);
+                        Funcs::MyInputText("Profile Name##1", &inputName);
                     }
 
 
@@ -228,9 +228,75 @@ public:
                 if (ImGui::BeginTabItem("Advanced Options")) {
                     ImGui::Text("NOT IMPLEMENTED YET\n\nConnect to your MultiSense Device");
                     ImGui::Separator();
-                    ImGui::InputText("Profile name##2", inputName.data(),
-                                     inputFieldNameLength);
-                    ImGui::InputText("Camera ip##1", inputIP.data(), inputFieldNameLength);
+                    /** INPUT PROFILE NAME FIELD **/
+                    {
+                        // To wire InputText() with std::string or any other custom string type,
+                        // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
+                        // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
+                        struct Funcs
+                        {
+                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
+                            {
+                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+                                {
+                                    auto* my_str = (std::string *)data->UserData;
+                                    IM_ASSERT(my_str->data() == data->Buf);
+                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                    data->Buf = my_str->data();
+                                }
+                                return 0;
+                            }
+
+                            // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+                            // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
+                            {
+                                IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
+                            }
+                        };
+
+                        // Note that because we need to store a terminating zero character, our size/capacity are 1 more
+                        // than usually reported by a typical string class.
+                        if (inputName.empty())
+                            inputName.push_back(0);
+                        Funcs::MyInputText("Profile Name##2", &inputName);
+                    }
+                    /** INPUT IP FIELD **/
+                    {
+                        // To wire InputText() with std::string or any other custom string type,
+                        // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
+                        // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
+                        struct Funcs
+                        {
+                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
+                            {
+                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+                                {
+                                    auto* my_str = (std::string *)data->UserData;
+                                    IM_ASSERT(my_str->data() == data->Buf);
+                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                    data->Buf = my_str->data();
+                                }
+                                return 0;
+                            }
+
+                            // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+                            // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
+                            {
+                                IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
+                            }
+                        };
+
+                        // Note that because we need to store a terminating zero character, our size/capacity are 1 more
+                        // than usually reported by a typical string class.
+                        if (inputIP.empty())
+                            inputIP.push_back(0);
+                        Funcs::MyInputText("Camera Ip##1", &inputIP);
+                    }
+
                     ImGui::Spacing();
                     ImGui::Spacing();
 

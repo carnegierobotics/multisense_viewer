@@ -101,6 +101,13 @@ void Renderer::buildScript(std::string scriptName){
     scriptNames.emplace_back(scriptName);
 
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
+
+    if (scripts[scriptName].get() == nullptr){
+        pLogger->error("Failed to register script. Did you remember to include it in renderer.h?");
+        scriptNames.erase(std::find(scriptNames.begin(), scriptNames.end(), scriptName));
+        return;
+    }
+
     pLogger->info("Registered script: {} in factory", scriptName.c_str());
 
     // Run Once
@@ -194,6 +201,9 @@ void Renderer::render() {
                     case AR_PREVIEW_POINT_CLOUD:
                         buildScript("PointCloud");
                         break;
+                    case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
+                        buildScript("VirtualPointCloud");
+                        break;
                 }
             }
 
@@ -226,6 +236,9 @@ void Renderer::render() {
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
                         deleteScript("PointCloud");
+                        break;
+                    case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
+                        deleteScript("VirtualPointCloud");
                         break;
                 }
             }

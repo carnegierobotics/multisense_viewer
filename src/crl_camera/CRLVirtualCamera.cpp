@@ -69,7 +69,24 @@ void CRLVirtualCamera::update() {
 }
 
 void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
+    this->width = width;
+    this->height = height;
 
+    float fx = width / 2;
+    float fy = height / 2;
+    float cx = width / 2;
+    float cy = height / 2;
+
+    kInverseMatrix =
+            glm::mat4(
+                    glm::vec4(1 / fx, 0, -(cx * fx) / (fx * fy), 0),
+                    glm::vec4(0, 1 / fy, -(cy) / fy, 0),
+                    glm::vec4(0, 0, 1, 0),
+                    glm::vec4(0, 0, 0, 1));
+
+    kInverseMatrix = glm::transpose(kInverseMatrix);
+
+    info.kInverseMatrix = kInverseMatrix;
 }
 
 
@@ -77,7 +94,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     pauseThread = false;
     assert(frame != nullptr);
 
-#ifdef WIN32
+#ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
     if (!decoded) {
         SetEvent(notFull);
         return false;
@@ -167,6 +184,17 @@ void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
 
 }
 
+
+void CRLVirtualCamera::getCameraStream(std::string src, crl::multisense::image::Header *stream, crl::multisense::image::Header **src2) {
+        stream->source = crl::multisense::Source_Disparity_Left;
+        stream->imageLength = 960 * 600 * sizeof(uint16_t) * 2;
+        stream->imageDataP = malloc(stream->imageLength);
+
+        auto* p = (uint16_t*) stream->imageDataP;
+        for (int i = 0; i <= stream->imageLength / 2; ++i) {
+            p[i] = 127;
+        }
+}
 
 int CRLVirtualCamera::childProcessDecode() {
 // thread declaration
@@ -351,7 +379,7 @@ void *CRLVirtualCamera::decode(void *arg) {
                     // TODO REMOVE THIS STOPS AFTER 593 frames
                     if (frame->coded_picture_number > 593)
                         continue;
-#ifdef WIN32
+#ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
                     DWORD dwWaitResult;
                     WaitForSingleObject(instance->notFull,INFINITE);
 #else

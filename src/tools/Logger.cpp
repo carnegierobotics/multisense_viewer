@@ -91,35 +91,6 @@ namespace Log {
         }
     }
 
-    void Logger::error(std::string &text) throw() {
-        _error(text.data());
-    }
-
-    void Logger::error(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        _error(text.data());
-    }
-
-    void Logger::error(const char *fmt, ...)
-    {
-        // determine required buffer size
-        va_list args;
-        va_start(args, fmt);
-        int len = vsnprintf(NULL, 0, fmt, args);
-        va_end(args);
-        if(len < 0) return;
-
-        // format message
-        std::vector<char> msg;
-        msg.resize(len + 1);
-        //char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
-        va_start(args, fmt);
-        vsnprintf(msg.data(), len + 1, fmt, args);
-        va_end(args);
-
-        // call myFunction
-        _error(msg.data());
-    }
 
 // Interface for Alarm Log 
     void Logger::alarm(const char *text) throw() {

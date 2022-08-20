@@ -100,6 +100,17 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL] = virtualCam;
 
+            AR::StreamingModes virutalPC{};
+            virutalPC.sources.emplace_back("None");
+            virutalPC.sources.emplace_back("depth");
+            virutalPC.streamIndex = AR_PREVIEW_POINT_CLOUD_VIRTUAL;
+            modeName = "1920x1080";
+            virutalPC.modes.emplace_back(modeName);
+            virutalPC.selectedStreamingMode = virutalPC.modes.front();
+            virutalPC.selectedStreamingSource = virutalPC.sources.front();
+            dev.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL] = virutalPC;
+
+
             Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
 
 

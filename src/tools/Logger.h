@@ -43,9 +43,7 @@
 #ifdef __cpp_lib_format
 // Code with std::format
 #else
-
 #include <fmt/core.h>
-
 #endif
 
 #ifdef WIN32
@@ -86,6 +84,15 @@ namespace Log {
         FILE_LOG = 3,
     } LogType;
 
+    struct FormatString {
+        fmt::string_view str;
+        std::source_location loc;
+
+        FormatString(const char *str,
+                     const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
+
+    };
+
     class Logger {
     public:
         static Logger *getInstance() throw();
@@ -93,11 +100,28 @@ namespace Log {
         // Interface for Error Log
         void _error(const char *text) throw();
 
-        void error(std::string &text) throw();
+        /**@brief Using templates to allow user to use formattet logging.
+     * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */
+        template<typename... Args>
+        void error(const FormatString &format, Args &&... args) {
+            vinfo(format, fmt::make_format_args(args...));
 
-        void error(std::ostringstream &stream) throw();
+        }
 
-        void error(const char *fmt, ...);
+        void error(const FormatString &format, fmt::format_args args) {
+            const auto &loc = format.loc;
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), format.str, args);
+
+            std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            preText.append(s);
+
+
+            std::size_t found = preText.find_last_of('/');
+            std::string msg = preText.substr(found + 1);
+
+            _error(msg.c_str());
+        }
 
         // Interface for Alarm Log
         void alarm(const char *text) throw();
@@ -125,16 +149,7 @@ namespace Log {
         //void info(std::ostringstream& stream) throw();
 
 
-        struct FormatString {
-            fmt::string_view str;
-            std::source_location loc;
-
-            FormatString(const char *str,
-                         const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
-
-        };
-
-        void info(std::string &text, const std::source_location &loc = std::source_location::current()) throw();
+        void info(std::string &text, const std::source_location &loc = std::source_location::current()) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
          * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */

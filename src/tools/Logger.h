@@ -40,11 +40,9 @@
 #include <format>
 #endif
 
-#ifdef __cpp_lib_format
-// Code with std::format
-#else
+
 #include <fmt/core.h>
-#endif
+
 
 #ifdef WIN32
 // Win Socket Header File(s)

@@ -75,7 +75,7 @@ public:
     } renderUtils;
 
     struct Render {
-        uint32_t index = -1;
+        uint32_t index;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
         bool finishedSetup = false;
@@ -155,7 +155,7 @@ public:
 
         this->renderData.type = getType();
 
-        renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
+        renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
@@ -197,8 +197,8 @@ public:
         renderUtils = std::move(utils);
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
-        startTime = std::chrono::high_resolution_clock::now();
-        lastLogTime = std::chrono::high_resolution_clock::now();
+        startTime = std::chrono::steady_clock::now();
+        lastLogTime = std::chrono::steady_clock::now();
 
 
         bufferOneData = new UBOMatrix();
@@ -225,7 +225,7 @@ public:
         }
 
 
-        renderData.scriptRuntime = (float) (std::chrono::system_clock::now() - startTime).count();
+        renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
         if (getType() == AR_SCRIPT_TYPE_CRL_CAMERA || getType() == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY || getType() == AR_SCRIPT_TYPE_POINT_CLOUD)
             setup(renderData);
         else

@@ -3,6 +3,7 @@
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/model_loaders/glTFModel.h>
+#include "MultiSense/src/Renderer/Renderer.h"
 
 class LightSource: public Base, public RegisteredInFactory<LightSource>, glTFModel
 {
@@ -28,7 +29,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
+    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     void *selection = (void *) "0";
 

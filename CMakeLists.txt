@@ -58,7 +58,7 @@ add_subdirectory(${AUTOCONNECT_SRC})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 
 # FMT
-# USed for logging purposes
+# Used for logging purposes
 set(FMT_DIR external/fmt) 
 add_subdirectory(${FMT_DIR})
 

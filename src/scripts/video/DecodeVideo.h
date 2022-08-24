@@ -9,6 +9,7 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
 
 
 class DecodeVideo : public Base, public RegisteredInFactory<DecodeVideo>, CRLCameraModels {
@@ -46,8 +47,18 @@ public:
 
     int width = 0, height = 0;
     std::string src;
-    uint32_t playbackSate = 1;
+    CameraPlaybackFlags playbackSate;
     CameraConnection* camHandle;
+    float posY = 0.0f;
+    float posXMin = 0.0f;
+    float posXMax = 0.0f;
+    float posYMin = 0.0f;
+    float posYMax = 0.0f;
+    float speed = 1.0f;
+    float scaleHorizontal = 1.0f;
+    float scaleVertical = 1.0f;
+
+    std::chrono::steady_clock::time_point start, end;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
@@ -57,6 +68,8 @@ public:
     void prepareTextureAfterDecode();
 
     int childProcessDecode();
+
+    void transformToUISpace();
 };
 
 

@@ -5,6 +5,7 @@
 
 #include <execution>
 #include "DecodeVideo.h"
+#include "GLFW/glfw3.h"
 
 
 void DecodeVideo::setup(Base::Render r) {
@@ -14,10 +15,10 @@ void DecodeVideo::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
     // Don't draw it before we create the texture in update()
-
     model->draw = false;
     this->camHandle = r.crlCamera->get();
 
+    start = std::chrono::steady_clock::now();
 
 }
 
@@ -26,7 +27,15 @@ void DecodeVideo::update() {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
-    if (model->draw){
+    auto time = std::chrono::steady_clock::now();
+    std::chrono::duration<float> time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - start);
+    if ((time_span.count() < 0.015f)){
+        return;
+    }
+    start = std::chrono::steady_clock::now();
+
+
+    if (model->draw) {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
@@ -40,9 +49,10 @@ void DecodeVideo::update() {
         free(frame.plane2);
     }
 
+    transformToUISpace();
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(-1.3, 0.4, -5));
+
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -68,7 +78,7 @@ void DecodeVideo::prepareTextureAfterDecode() {
     height = inf.imgConf.height();
 
     model->prepareTextureImage(width, height, AR_YUV_PLANAR_FRAME);
-    auto *imgData = new ImageData(((float) width / (float) height), 1);
+    auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
 
     // Load shaders
@@ -90,7 +100,7 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL)== dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;
@@ -99,16 +109,39 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
+
+        switch (uiHandle.keypress) {
+            case GLFW_KEY_M:
+                speed -= 0.01;
+                break;
+            case GLFW_KEY_N:
+                speed += 0.01;
+                break;
+        }
+
+
+        posY -= uiHandle.mouseBtns.wheel * 0.1f * (1/ speed);
+
+        // center of viewing area box.
+
+        //posX =  2*;
+
         for (auto &dev: *uiHandle.devices) {
             if (dev.cameraName == "Virtual Camera" && !model->draw) {
 
-                camHandle->camPtr->start(src + ".mp4", " ");
+                camHandle->camPtr->start(src, " ");
+                posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
+                posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
+
+                posYMin = -1.0f + 2*(75.0f / (float) renderData.height);
+                posYMax = -1.0f + 2*((75.0f + 300.0f) / (float) renderData.height);
+                // left anchor
                 prepareTextureAfterDecode();
-                model->draw = true;
+
 
             }
+            model->draw = true;
         }
-
     } else if (playbackSate == AR_PREVIEW_STOPPED && model->draw == true) {
         model->draw = false;
         camHandle->camPtr->stop("");
@@ -118,138 +151,20 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 
+void DecodeVideo::transformToUISpace(){
+
+
+    int width = 1280;
+    int height = 720;
+
+    //scaleHorizontal = renderData.width / width;
+    //scaleVertical = renderData.height / height;
+
+}
+
+
 void DecodeVideo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (model->draw)
+
+    if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 }
-
-/*
-
-int DecodeVideo::childProcessDecode() {
-// thread declaration
-    int N = 5;
-
-    // Declaration of attribute......
-    pthread_attr_t attr;
-
-    // semaphore initialization
-    sem_init(&notEmpty, 0, 0);
-    sem_init(&notFull, 0, N);
-
-    // pthread_attr_t initialization
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr,
-                                PTHREAD_CREATE_JOINABLE);
-
-    // Creation of process
-    r1 = pthread_create(&producer, &attr, DecodeVideo::decode, this);
-    if (r1) {
-        std::cout <<
-                  "Error in creating thread" << std::endl;
-        exit(-1);
-    }
-    return EXIT_SUCCESS;
-}
-/*
-void *DecodeVideo::decode(void *arg) {
-    auto *instance = (DecodeVideo *) arg;
-    while (instance->runDecodeThread) {
-
-
-        AVFormatContext *ctx_format = nullptr;
-        AVCodecContext *ctx_codec = nullptr;
-        AVCodec *codec = nullptr;
-        AVFrame *frame = av_frame_alloc();
-        int stream_idx;
-        SwsContext *ctx_sws = nullptr;
-        std::string fileName = Utils::getTexturePath() + "Video/pixels.mp4";
-        AVStream *vid_stream = nullptr;
-        AVPacket *pkt = av_packet_alloc();
-
-        av_register_all();
-
-        if (int ret = avformat_open_input(&ctx_format, fileName.c_str(), nullptr, nullptr) != 0) {
-            std::cout << 1 << std::endl;
-
-        }
-        if (avformat_find_stream_info(ctx_format, nullptr) < 0) {
-            std::cout << 2 << std::endl;
-
-        }
-        av_dump_format(ctx_format, 0, fileName.c_str(), false);
-
-        for (int i = 0; i < ctx_format->nb_streams; i++)
-            if (ctx_format->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-                stream_idx = i;
-                vid_stream = ctx_format->streams[i];
-                break;
-            }
-        if (vid_stream == nullptr) {
-            std::cout << 4 << std::endl;
-        }
-
-        codec = avcodec_find_decoder(vid_stream->codecpar->codec_id);
-        if (!codec) {
-            fprintf(stderr, "codec not found\n");
-            exit(1);
-        }
-        ctx_codec = avcodec_alloc_context3(codec);
-
-        if (avcodec_parameters_to_context(ctx_codec, vid_stream->codecpar) < 0)
-            std::cout << 512;
-        if (avcodec_open2(ctx_codec, codec, nullptr) < 0) {
-            std::cout << 5;
-        }
-
-        instance->width = ctx_codec->width;
-        instance->height = ctx_codec->height;
-
-        //av_new_packet(pkt, pic_size);
-        int index = 0;
-
-        while (av_read_frame(ctx_format, pkt) >= 0 && instance->runDecodeThread) {
-            if (pkt->stream_index == stream_idx) {
-                int ret = avcodec_send_packet(ctx_codec, pkt);
-                if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    std::cout << "avcodec_send_packet: " << ret << std::endl;
-                    break;
-                }
-                while (ret >= 0 && instance->runDecodeThread) {
-                    ret = avcodec_receive_frame(ctx_codec, frame);
-                    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                        //std::cout << "avcodec_receive_frame: " << ret << std::endl;
-                        break;
-                    }
-
-                    sem_wait(&instance->notFull);
-                    usleep(33);
-                    std::cout <<
-                              "Producer produces item.Items Present = "
-                              << ++instance->items << std::endl;
-                    //std::cout << "frame: " << ctx_codec->frame_number << std::endl;
-                    instance->videoFrame[index] = *frame;
-                    instance->bufferSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, ctx_codec->width,
-                                                                    ctx_codec->height, 1);
-                    index++;
-                    if (index == 5)
-                        index = 0;
-                    sem_post(&instance->notEmpty);
-
-                    //saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);
-
-                }
-            }
-            av_packet_unref(pkt);
-        }
-
-
-        avformat_close_input(&ctx_format);
-        av_packet_unref(pkt);
-        avcodec_free_context(&ctx_codec);
-        avformat_free_context(ctx_format);
-    }
-
-    pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
-}
- */
-

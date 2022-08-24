@@ -2,36 +2,16 @@
 // Created by magnus on 3/21/22.
 //
 
-#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
-#include <MultiSense/src/tools/Logger.h>
+
 
 #include "CameraConnection.h"
-
+#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
+#include <MultiSense/src/tools/Logger.h>
 CameraConnection::CameraConnection() {
 
 }
 
 void CameraConnection::updateActiveDevice(AR::Element dev) {
-
-    for (auto d: dev.streams) {
-
-
-        // TODO REMOVE
-        if (d.second.playbackStatus == AR_PREVIEW_PLAYING) {
-            //camPtr->start(d.second.selectedStreamingMode, d.second.selectedStreamingSource);
-        }
-    }
-
-    //camPtr->start(dev.selectedStreamingMode, "Color Rectified Aux");
-
-
-    if (dev.button && !camPreviewBar.active) {
-        camPreviewBar.active = true;
-    } else if (dev.button && !camPreviewBar.active) {
-        camPreviewBar.active = false;
-    }
-
-
 }
 
 void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
@@ -91,8 +71,8 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             lastActiveDevice = dev.name;
 
             AR::StreamingModes virtualCam{};
-            virtualCam.sources.emplace_back("None");
-            virtualCam.sources.emplace_back("pixels");
+            virtualCam.sources.emplace_back("pixels.mp4");
+            virtualCam.sources.emplace_back("rowbot_short.mpg");
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);
@@ -101,7 +81,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             dev.streams[AR_PREVIEW_VIRTUAL] = virtualCam;
 
             AR::StreamingModes virutalPC{};
-            virutalPC.sources.emplace_back("None");
             virutalPC.sources.emplace_back("depth");
             virutalPC.streamIndex = AR_PREVIEW_POINT_CLOUD_VIRTUAL;
             modeName = "1920x1080";

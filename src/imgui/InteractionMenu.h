@@ -72,11 +72,12 @@ public:
             const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
                 float offset = 150;
-                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + (i * offset),
-                                           (handles->info->height / 2) - (imageButtonHeight / 2)));
+                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + ((float) i * offset),
+                                           (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
 
                 ImGui::PushID(i);
-                ImVec2 size = ImVec2(100.0f, 100.0f);                     // Size of the image we want to make visible
+                ImVec2 size = ImVec2(100.0f,
+                                     100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -87,8 +88,8 @@ public:
                     page[i] = true;
                 ImGui::PopID();
 
-                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + (i * offset),
-                                           (handles->info->height / 2) + (imageButtonHeight / 2) + 8));
+                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + ((float) i * offset),
+                                           (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
 
                 ImGui::Text("%s", labels[i]);
 
@@ -102,7 +103,8 @@ public:
     }
 
 
-    void addDropDown(AR::GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, AR::StreamingModes *stream) {
+    void
+    addDropDown(AR::GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, AR::StreamingModes *stream) {
 
         if (stream->modes.empty() || stream->sources.empty())
             return;
@@ -132,7 +134,8 @@ public:
 
         if (openDropDown[streamIndex]) {
 
-            ImVec2 sourceComboPos((handles->info->controlAreaWidth / 2) - (handles->info->dropDownWidth / 2), ImGui::GetCursorPosY());
+            ImVec2 sourceComboPos((handles->info->controlAreaWidth / 2) - (handles->info->dropDownWidth / 2),
+                                  ImGui::GetCursorPosY());
             ImGui::SetCursorPos(sourceComboPos);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
@@ -221,65 +224,6 @@ private:
     bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
     float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
 
-    void openDropDownMenu(AR::GuiObjectHandles *handles, ImVec2 position) {
-
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.17, 0.157, 0.271, 1.0f));
-        position.y += 30.0f;
-        position.x += 200.0f;
-        ImGui::SetNextWindowPos(position, 0);
-        ImGui::BeginChild("child", ImVec2(200.0f, 150.0f));
-
-        ImGui::Text("Select data source");
-
-        const char *items[] = {"AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ",
-                               "KKKK", "LLLLLLL", "MMMM", "OOOOOOO"};
-        static int item_current_idx = 0; // Here we store our selection data as an index.
-        const char *combo_preview_value = items[item_current_idx];  // Pass in the preview value visible before opening the combo (it could be anything)
-
-        if (ImGui::BeginCombo("Custom", combo_preview_value, 0)) {
-            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-
-                const bool is_selected = (item_current_idx == n);
-                if (ImGui::Selectable(items[n], is_selected)) {
-                    item_current_idx = n;
-
-                }
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::Text("Select resolution");
-
-        const char *items2[] = {"AAAA", "BBBB", "CCCC", "DDDD", "EEEE", "FFFF", "GGGG", "HHHH", "IIII", "JJJJ",
-                                "KKKK", "LLLLLLL", "MMMM", "OOOOOOO"};
-        static int item_current_idx2 = 0; // Here we store our selection data as an index.
-        const char *combo_preview_value2 = items2[item_current_idx2];  // Pass in the preview value visible before opening the combo (it could be anything)
-
-        if (ImGui::BeginCombo("Custom2", combo_preview_value2, 0)) {
-            for (int n = 0; n < IM_ARRAYSIZE(items2); n++) {
-
-                const bool is_selected = (item_current_idx2 == n);
-                if (ImGui::Selectable(items2[n], is_selected)) {
-                    item_current_idx2 = n;
-
-                }
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-    }
-
     void buildDeviceInformation(AR::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -356,14 +300,19 @@ private:
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
 
         bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                       ImGuiWindowFlags_NoScrollWithMouse;
+        ImGuiWindowFlags window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                ImGuiWindowFlags_NoScrollWithMouse;;
+
         ImGui::SetNextWindowPos(
-                ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth , 0), ImGuiCond_Always);
+                ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
-        handles->info->viewingAreaWidth = handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
-        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight));
+
+        handles->info->viewingAreaWidth =
+                handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
+
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight),
+                                 ImGuiCond_Always);
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
 
@@ -398,11 +347,95 @@ private:
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
         }
         ImGui::PopStyleColor();
+        ImGui::End();
 
+        ImGui::PopStyleColor(); // Bg color
+
+        for (const auto &d: *handles->devices) {
+            if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
+                for (auto str: d.streams) {
+                    if (str.second.playbackStatus == AR_PREVIEW_PLAYING) {
+                        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 0.2f));
+                        createPreviewArea(handles, AR_PREVIEW_VIRTUAL, 0);
+                        ImGui::PopStyleColor(); // Bg color
+                    }
+
+
+                }
+                /*
+                float y =  ImGui::GetCursorScreenPos().y;
+                float x =  ImGui::GetCursorPos().y;
+                createPreviewArea(handles, AR_PREVIEW_VIRTUAL);
+                ImGui::Dummy(ImVec2(0.0f, 40.0f));
+                float y1 =  ImGui::GetCursorScreenPos().y;
+                float x1 =  ImGui::GetCursorPos().y;
+
+                createPreviewArea(handles, AR_PREVIEW_LEFT);
+                float y2 =  ImGui::GetCursorScreenPos().y;
+                float y3 =  ImGui::GetCursorScreenPos().y;
+                */
+
+            }
+        }
+
+    }
+
+    bool firstSetup[9] = {true, true, true};
+
+    void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex,
+                           int i) {
+
+
+        float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
+
+
+        //TODO remove hardcoded positions and sizes from this function
+        if (firstSetup[i]) {
+            handles->info->viewAreaElementPositionsY[i] = ((float) i * 20) + 75.0f + ((float) i * 300);
+            firstSetup[i] = false;
+        } else
+            handles->info->viewAreaElementPositionsY[i] -= handles->mouseBtns.wheel * 20.0f;
+
+        ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
+                                ImGuiCond_Always); // TODO REMOVE HARDCODED VALUE
+
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, 300.0f),
+                                 ImGuiCond_Always);  // TODO REMOVE HARDCODED VALUES
+        static bool open = true;
+        ImGuiWindowFlags window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                ImGuiWindowFlags_NoScrollWithMouse;;
+        std::string windowName = std::to_string(streamIndex);
+        ImGui::Begin((std::string("View Area##") + windowName).c_str(), &open, window_flags);
+
+        std::string text;
+        switch (streamIndex) {
+            case AR_PREVIEW_LEFT:
+                break;
+            case AR_PREVIEW_RIGHT:
+                break;
+            case AR_PREVIEW_DISPARITY:
+                break;
+            case AR_PREVIEW_AUXILIARY:
+                break;
+            case AR_PREVIEW_POINT_CLOUD:
+                break;
+            case AR_PREVIEW_VIRTUAL:
+                break;
+            case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
+                break;
+        }
+        ImGui::Text("Left Stereo Imager");
+        ImGui::SameLine();
+        ImGui::Text("| Monochrome");
+        ImGui::SameLine();
+        ImGui::Text("| 30 FPS");
+
+
+        ImGui::Dummy(ImVec2(300.0f, 350.0f));
 
 
         ImGui::End();
-        ImGui::PopStyleColor();
     }
 
     void createControlArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
@@ -445,7 +478,8 @@ private:
                             if (d.state == AR_STATE_ACTIVE) {
                                 // TODO DRAW DROPDOWNS BASED ON MODES FOUND IN CAMERACONNECTION.CPP during initialization
                                 addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL]);
-                                addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL, &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
+                                addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL,
+                                            &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
 
                                 addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
                                 addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);

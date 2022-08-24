@@ -455,12 +455,13 @@ namespace AR {
 
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png");
         handles.info->imageButtonTextureDescriptor[2] = reinterpret_cast<void *>(imageIconDescriptor);
+
     }
 
-    void GuiManager::loadImGuiTextureFromFileName(std::string file) {
+    ArEngine::ImageElement GuiManager::loadImGuiTextureFromFileName(const std::string& file) {
 
 
-        {
+
             int texWidth, texHeight, texChannels;
             stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
             VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -473,7 +474,7 @@ namespace AR {
                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
-        }
+
 
         // Descriptor Layout
 
@@ -487,6 +488,7 @@ namespace AR {
             VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                     setLayoutBindings.data(),
                     setLayoutBindings.size());
+
             CHECK_RESULT(
                     vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
                                                 &descriptorSetLayout));
@@ -506,7 +508,7 @@ namespace AR {
         }
 
         // descriptors
-        {
+
             // Create Descriptor Set:
             {
                 VkDescriptorSetAllocateInfo alloc_info = {};
@@ -528,7 +530,9 @@ namespace AR {
                 write_desc[0].pImageInfo = &iconTexture.descriptor;
                 vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
             }
-        }
+
+
+        return {imageIconDescriptor, texWidth, texHeight};
     }
 
 

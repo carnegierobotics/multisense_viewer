@@ -17,12 +17,14 @@ layout(set = 0, binding = 2) uniform SELECT {
     float map;
 } select ;
 
+layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
+
 
 layout (location = 0) out vec4 outFragColor;
 
 void main()
 {
-
-    outFragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    outFragColor = vec4(tex, 1.0f);
 
 }

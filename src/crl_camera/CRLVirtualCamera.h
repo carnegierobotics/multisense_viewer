@@ -55,7 +55,7 @@ private:
     void update();
 
     CameraInfo info{};
-    AVFrame videoFrame[5];
+    AVFrame* videoFrame;
     int bufferSize = 0;
     std::string videoName = "None";
     bool decoded = false;
@@ -78,9 +78,12 @@ private:
 #endif    
     bool runDecodeThread = false;
 
-    int frameIndex = 0;
-    bool pauseThread = false;
 
+    int frameIndex = 0;
+    std::vector<uint32_t> frameIDs;
+    bool pauseThread = false;
+    uint32_t lastFrame = 0;
+    uint32_t idx = 0;
 
     int childProcessDecode();
 

@@ -10,7 +10,7 @@ void Renderer::prepareRenderer() {
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
     camera.rotationSpeed = 0.2f;
     camera.movementSpeed = 10.0f;
-    camera.setPosition({0.0f, 0.0f, 0.0f});
+    camera.setPosition({2.0f, 1.2f, -5.0f});
     camera.setRotation({0.0f, 0.0f, 0.0f});
 
 
@@ -78,7 +78,7 @@ void Renderer::buildCommandBuffers() {
 
         for (auto &script: scripts) {
             if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
-                script.second->drawScript(drawCmdBuffers[i], i);
+                script.second->drawScript(drawCmdBuffers[i], i, drawDataExt);
             }
         }
         guiManager->drawFrame(drawCmdBuffers[i]);
@@ -144,8 +144,15 @@ void Renderer::deleteScript(const std::string& scriptName){
 
 }
 
+
+
 void Renderer::render() {
     VulkanRenderer::prepareFrame();
+
+    if (keypress == GLFW_KEY_SPACE){
+        camera.setPosition({-2.0f, 1.2f, -5.0f});
+        camera.setRotation({0.0f, 0.0f, 0.0f});
+    }
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
@@ -154,8 +161,17 @@ void Renderer::render() {
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
     renderData.pLogger = pLogger;
+    renderData.height = height;
+    renderData.width = width;
 
     guiManager->handles.keypress = keypress;
+    guiManager->handles.mouseBtns.wheel = mouseButtons.wheel;
+    guiManager->handles.mouseBtns.left = mouseButtons.left;
+    guiManager->handles.mouseBtns.right = mouseButtons.right;
+
+
+
+    drawDataExt.texInfo = &guiManager->handles.info->imageElements;
 
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, width, height);
@@ -165,6 +181,8 @@ void Renderer::render() {
     renderData.crlCamera = &cameraConnection;
 
     // Create/delete scripts after use
+    buildScript("LightSource");
+
     // Run update function on active camera scripts
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state != AR_STATE_ACTIVE)
@@ -187,16 +205,6 @@ void Renderer::render() {
                         break;
                     case AR_PREVIEW_VIRTUAL:
                         buildScript("DecodeVideo");
-                        break;
-                    case AR_PREVIEW_PLAYING:
-                        break;
-                    case AR_PREVIEW_PAUSED:
-                        break;
-                    case AR_PREVIEW_STOPPED:
-                        break;
-                    case AR_PREVIEW_NONE:
-                        break;
-                    case AR_PREVIEW_RESET:
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
                         buildScript("PointCloud");
@@ -223,16 +231,6 @@ void Renderer::render() {
                         break;
                     case AR_PREVIEW_VIRTUAL:
                         deleteScript("DecodeVideo");
-                        break;
-                    case AR_PREVIEW_PLAYING:
-                        break;
-                    case AR_PREVIEW_PAUSED:
-                        break;
-                    case AR_PREVIEW_STOPPED:
-                        break;
-                    case AR_PREVIEW_NONE:
-                        break;
-                    case AR_PREVIEW_RESET:
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
                         deleteScript("PointCloud");

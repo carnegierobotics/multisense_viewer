@@ -10,6 +10,7 @@
 #include <MultiSense/src/model_loaders/MeshModel.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
 
 class PointCloud: public Base, public RegisteredInFactory<PointCloud>, CRLCameraModels
 {
@@ -42,7 +43,7 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
 
     CRLCameraModels::Model* model;
-    CameraStreamInfoFlag playbackSate;
+    CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

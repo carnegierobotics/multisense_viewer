@@ -7,6 +7,7 @@
 
 #define IMGUI_INCLUDE_IMGUI_USER_H
 
+
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include "imgui.h"
 #include <array>
@@ -35,6 +36,13 @@ namespace AR {
         ImFont *font13{}, *font18{}, *font24{};
 
         ImTextureID imageButtonTextureDescriptor[9];
+
+        float viewAreaElementPositionsY[9] = {0};
+
+        std::unordered_map<ImageElementIndex, ArEngine::ImageElement> img;
+
+        std::vector<ArEngine::ImageElement> imageElements;
+
         float offset5px = 5.0f;
 
         /** @brief add device button params */
@@ -68,7 +76,7 @@ namespace AR {
         /** @brief Which gui index is selected */
         CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
         /** @brief Current camera streaming state  */
-        CameraStreamInfoFlag playbackStatus = AR_PREVIEW_NONE;
+        CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
 
         /** @brief Camera streaming modes  */
         std::vector<std::string> modes;
@@ -120,6 +128,9 @@ namespace AR {
         GuiLayerUpdateInfo *info{};
 
         int keypress;
+
+        ArEngine::MouseButtons mouseBtns;
+
         float sliderOne = -1.77f;
         float sliderTwo = 0.986f;
         float sliderThree = -0.718;

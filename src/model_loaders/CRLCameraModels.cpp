@@ -264,22 +264,7 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
 
 }
 
-void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                            &descriptors[i], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
-
-    if (model->mesh.indexCount > 0) {
-        vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
-    } else {
-        vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
-    }
-
-}
 
 
 void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo,
@@ -573,5 +558,21 @@ void CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
     createDescriptors(utils.UBCount, utils.uniformBuffers, model);
 
     createPipeline(*utils.renderPass, std::move(vector), type);
+
+}
+void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                            &descriptors[i], 0, nullptr);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    const VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
+
+    if (model->mesh.indexCount > 0) {
+        vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
+    } else {
+        vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
+    }
 
 }

@@ -117,16 +117,18 @@ set(ENGINE_SRC
         src/scripts/pointcloud/PointCloud.h
         src/scripts/pointcloud/VirtualPointCloud.cpp
         src/scripts/pointcloud/VirtualPointCloud.h
-        src/scripts/video/DefaultPreview.cpp
-        src/scripts/video/DefaultPreview.h
-        src/scripts/video/RightPreview.cpp
-        src/scripts/video/RightPreview.h
-        src/scripts/video/DisparityPreview.cpp
-        src/scripts/video/DisparityPreview.h
-        src/scripts/video/AuxiliaryPreview.cpp
-        src/scripts/video/AuxiliaryPreview.h
-        src/scripts/video/DecodeVideo.cpp
-        src/scripts/video/DecodeVideo.h
+        src/scripts/video/physical/DefaultPreview.cpp
+        src/scripts/video/physical/DefaultPreview.h
+        src/scripts/video/physical/RightPreview.cpp
+        src/scripts/video/physical/RightPreview.h
+        src/scripts/video/physical/DisparityPreview.cpp
+        src/scripts/video/physical/DisparityPreview.h
+        src/scripts/video/physical/AuxiliaryPreview.cpp
+        src/scripts/video/physical/AuxiliaryPreview.h
+        src/scripts/video/virtual/LeftImager.cpp
+        src/scripts/video/virtual/LeftImager.h
+        src/scripts/video/virtual/RightImager.cpp
+        src/scripts/video/virtual/RightImager.h
         src/tools/Macros.h
         src/tools/Populate.h
         src/tools/Utils.h

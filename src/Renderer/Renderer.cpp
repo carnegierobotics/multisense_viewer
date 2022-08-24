@@ -10,8 +10,8 @@ void Renderer::prepareRenderer() {
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
     camera.rotationSpeed = 0.2f;
     camera.movementSpeed = 10.0f;
-    camera.setPosition({2.0f, 1.2f, -5.0f});
-    camera.setRotation({0.0f, 0.0f, 0.0f});
+    camera.setPosition(defaultCameraPosition);
+    camera.setRotation(defaultCameraRotation);
 
 
     //generateScriptClasses();
@@ -66,7 +66,7 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.pClearValues = clearValues;
 
     const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
-    const VkRect2D scissor = Populate::rect2D(width, height, 0, 0);
+    const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
 
     for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i) {
         renderPassBeginInfo.framebuffer = frameBuffers[i];
@@ -90,7 +90,7 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(std::string scriptName){
+void Renderer::buildScript(const std::string &scriptName) {
 
     // Do not recreate script if already created
 
@@ -102,7 +102,7 @@ void Renderer::buildScript(std::string scriptName){
 
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
 
-    if (scripts[scriptName].get() == nullptr){
+    if (scripts[scriptName].get() == nullptr) {
         pLogger->error("Failed to register script. Did you remember to include it in renderer.h?");
         scriptNames.erase(std::find(scriptNames.begin(), scriptNames.end(), scriptName));
         return;
@@ -128,7 +128,7 @@ void Renderer::buildScript(std::string scriptName){
 
 }
 
-void Renderer::deleteScript(const std::string& scriptName){
+void Renderer::deleteScript(const std::string &scriptName) {
     if (scriptNames.empty())
         return;
 
@@ -145,13 +145,12 @@ void Renderer::deleteScript(const std::string& scriptName){
 }
 
 
-
 void Renderer::render() {
     VulkanRenderer::prepareFrame();
 
-    if (keypress == GLFW_KEY_SPACE){
-        camera.setPosition({-2.0f, 1.2f, -5.0f});
-        camera.setRotation({0.0f, 0.0f, 0.0f});
+    if (keypress == GLFW_KEY_SPACE) {
+        camera.setPosition(defaultCameraPosition);
+        camera.setRotation(defaultCameraRotation);
     }
 
     submitInfo.commandBufferCount = 1;
@@ -168,7 +167,6 @@ void Renderer::render() {
     guiManager->handles.mouseBtns.wheel = mouseButtons.wheel;
     guiManager->handles.mouseBtns.left = mouseButtons.left;
     guiManager->handles.mouseBtns.right = mouseButtons.right;
-
 
 
     drawDataExt.texInfo = &guiManager->handles.info->imageElements;
@@ -188,8 +186,8 @@ void Renderer::render() {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
-        for (const auto& i : dev.streams){
-            if(i.second.playbackStatus == AR_PREVIEW_PLAYING){
+        for (const auto &i: dev.streams) {
+            if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
                 switch (i.second.streamIndex) {
                     case AR_PREVIEW_LEFT:
                         buildScript("DefaultPreview");
@@ -203,8 +201,8 @@ void Renderer::render() {
                     case AR_PREVIEW_AUXILIARY:
                         buildScript("AuxiliaryPreview");
                         break;
-                    case AR_PREVIEW_VIRTUAL:
-                        buildScript("DecodeVideo");
+                    case AR_PREVIEW_VIRTUAL_LEFT:
+                        buildScript("LeftImager");
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
                         buildScript("PointCloud");
@@ -212,10 +210,13 @@ void Renderer::render() {
                     case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
                         buildScript("VirtualPointCloud");
                         break;
+                    case AR_PREVIEW_VIRTUAL_RIGHT:
+                        buildScript("RightImager");
+                        break;
                 }
             }
 
-            if (i.second.playbackStatus == AR_PREVIEW_NONE){
+            if (i.second.playbackStatus == AR_PREVIEW_NONE) {
                 switch (i.second.streamIndex) {
                     case AR_PREVIEW_LEFT:
                         deleteScript("DefaultPreview");
@@ -229,14 +230,17 @@ void Renderer::render() {
                     case AR_PREVIEW_AUXILIARY:
                         deleteScript("AuxiliaryPreview");
                         break;
-                    case AR_PREVIEW_VIRTUAL:
-                        deleteScript("DecodeVideo");
+                    case AR_PREVIEW_VIRTUAL_LEFT:
+                        deleteScript("LeftImager");
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
                         deleteScript("PointCloud");
                         break;
                     case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
                         deleteScript("VirtualPointCloud");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_RIGHT:
+                        deleteScript("RightImager");
                         break;
                 }
             }

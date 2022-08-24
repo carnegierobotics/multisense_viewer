@@ -34,48 +34,93 @@ bool CRLVirtualCamera::connect(const std::string &ip) {
 
 void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
 
-    videoFrame = new AVFrame[20]; // TODO Optimized approach is to use a sliding window to store frames and discard drawn
-    pauseThread = false;
-    videoName = string;
-    getVideoMetadata();
 
-    if (!runDecodeThread) {
-        runDecodeThread = true;
-        childProcessDecode();
+}
+
+void CRLVirtualCamera::start(std::string src, StreamIndex parent) {
+
+    auto it = parentKeyMap.find(parent);
+    if (it != parentKeyMap.end()) {
+        Log::Logger::getInstance()->info("Tried to start decode stream with an already used parent key");
+        return;
     }
 
-    updateCameraInfo();
+    parentKeyMap[parent] = (key % MAX_STREAMS);
+
+
+    container[parentKeyMap[parent]].videoFrame = new AVFrame[20]; // TODO Optimized approach is to use a sliding window to store frames and discard drawn
+    container[parentKeyMap[parent]].pauseThread = false;
+    container[parentKeyMap[parent]].videoName = src;
+    getVideoMetadata(parentKeyMap[parent]);
+    Log::Logger::getInstance()->info("Started virtual stream. Parent {} got Key {}", (uint32_t) parent,
+                                     (key % MAX_STREAMS));
+    if (!container[parentKeyMap[parent]].runDecodeThread) {
+        container[parentKeyMap[parent]].runDecodeThread = true;
+        childProcessDecode(parentKeyMap[parent]);
+    }
+
+    updateCameraInfo(parentKeyMap[parent]);
+    key++;
 }
+
 
 void CRLVirtualCamera::stop(std::string dataSourceStr) {
 
-    pauseThread = true;
-    runDecodeThread = false;
-    delete[] videoFrame;
-    lastFrame = 1;
-    idx = 0;
-    idxFrame = 0;
-    frameIDs = std::array<uint32_t , 20>{};
 
-    sem_post(&notFull);
+}
 
-    pthread_join(producer, nullptr);
-    Log::Logger::getInstance()->info("Joined producer thread for video decoer");
+void CRLVirtualCamera::stop(StreamIndex parent) {
+    auto it = parentKeyMap.find(parent);
+    if (it == parentKeyMap.end()) {
+        Log::Logger::getInstance()->info("Tried to stop decode stream with a parent key that was not used to start the stream");
+        return;
+    }
 
+    uint32_t idx = parentKeyMap[parent];
+
+    container[idx].pauseThread = true;
+    container[idx].runDecodeThread = false;
+    delete[] container[idx].videoFrame;
+    container[idx].lastFrame = 1;
+    container[idx].idx = 0;
+    container[idx].idxFrame = 0;
+    container[idx].frameIDs = std::array<uint32_t, 20>{};
+
+    sem_post(&container[idx].notFull);
+
+    Log::Logger::getInstance()->info("Joining producer thread for video decoder. Parent {} using key {}",
+                                     (uint32_t) parent, parentKeyMap[parent]);
+    pthread_join(container[idx].producer, nullptr);
+
+    size_t ret = parentKeyMap.erase(parent);
+
+    Log::Logger::getInstance()->info("Erased {}", ret);
 }
 
 void CRLVirtualCamera::updateCameraInfo() {
     // Just populating it with some hardcoded data
     // - DevInfo
-
+    /*
     info.devInfo.name = "CRL Virtual Camera";
     info.devInfo.imagerName = "Virtual";
     info.devInfo.serialNumber = "25.8069758011"; // Root of all evil
     // - getImageCalibration
     info.netConfig.ipv4Address = "Knock knock";
 
-    info.imgConf.setWidth(width);
-    info.imgConf.setHeight(height);
+     */
+}
+
+
+void CRLVirtualCamera::updateCameraInfo(uint32_t index) {
+    // Just populating it with some hardcoded data
+    // - DevInfo
+
+    info.devInfo.name = "CRL Virtual Camera";
+    info.devInfo.imagerName = "Virtual";
+    info.devInfo.serialNumber = "25.8069758011"; // Root of all evil
+    info.netConfig.ipv4Address = "Knock knock";
+    info.imgConf.setWidth(container[index].width);
+    info.imgConf.setHeight(container[index].height);
 
 }
 
@@ -85,8 +130,8 @@ void CRLVirtualCamera::update() {
 }
 
 void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
-    this->width = width;
-    this->height = height;
+    //this->width = width;
+    //this->height = height;
 
     float fx = width / 2;
     float fy = height / 2;
@@ -106,8 +151,10 @@ void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
 }
 
 
-bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
-    pauseThread = false;
+bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame, StreamIndex parent) {
+    uint32_t index = parentKeyMap[parent];
+
+    container[index].pauseThread = false;
     assert(frame != nullptr);
 
 #ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
@@ -124,7 +171,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     WaitForSingleObject(notEmpty, INFINITE);
 
 #else
-    sem_wait(&notEmpty);
+    sem_wait(&container[index].notEmpty);
 #endif
 
 /*
@@ -133,35 +180,41 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     frame->plane2Size = videoFrame[0].linesize[2] * videoFrame[0].height;
  */
     bool found = false;
-    for (int i = 0; i < frameIDs.size(); ++i) {
-        if (frameIDs[i] == (lastFrame % 20)) {
-            idx = i;
-            lastFrame++;
+    for (int i = 0; i < container[index].frameIDs.size(); ++i) {
+        uint32_t val = container[index].frameIDs[i];
+        uint32_t searchVal = container[index].lastFrame % 20;
+        if (val == searchVal) {
+            container[index].idx = i;
+            container[index].lastFrame++;
             found = true;
         }
     }
     if (!found) {
-        sem_post(&notFull);
+        sem_post(&container[index].notFull);
         return false;
     }
 
     // TODO Please optimize. Painful to see this
-    if (videoFrame[idx].width != width){
-        sem_post(&notFull);
+    uint32_t w = container[index].videoFrame[container[index].idx].width;
+    if (w != container[index].width) {
+        sem_post(&container[index].notFull);
         return false;
     }
-    frame->plane0Size = videoFrame[idx].width * videoFrame[idx].height;
-    frame->plane1Size = (videoFrame[idx].width * videoFrame[idx].height) / 4;
-    frame->plane2Size = (videoFrame[idx].width * videoFrame[idx].height) / 4;
+
+    frame->plane0Size = container[index].videoFrame[container[index].idx].width *
+                        container[index].videoFrame[container[index].idx].height;
+    frame->plane1Size = (container[index].videoFrame[container[index].idx].width *
+                         container[index].videoFrame[container[index].idx].height) / 4;
+    frame->plane2Size = (container[index].videoFrame[container[index].idx].width *
+                         container[index].videoFrame[container[index].idx].height) / 4;
 
     frame->plane0 = malloc(frame->plane0Size + 10);
     frame->plane1 = malloc(frame->plane1Size + 10);
     frame->plane2 = malloc(frame->plane2Size + 10);
 
-    memcpy(frame->plane0, videoFrame[idx].data[0], frame->plane0Size);
-    memcpy(frame->plane1, videoFrame[idx].data[1], frame->plane1Size);
-    memcpy(frame->plane2, videoFrame[idx].data[2], frame->plane2Size);
-
+    memcpy(frame->plane0, container[index].videoFrame[container[index].idx].data[0], frame->plane0Size);
+    memcpy(frame->plane1, container[index].videoFrame[container[index].idx].data[1], frame->plane1Size);
+    memcpy(frame->plane2, container[index].videoFrame[container[index].idx].data[2], frame->plane2Size);
 
 
 #ifdef WIN32
@@ -176,7 +229,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
     SetEvent(notFull);
 
 #else
-    sem_post(&notFull);
+    sem_post(&container[index].notFull);
 #endif
     return true;
 
@@ -184,11 +237,11 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame) {
 
 
 void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
+    /*
     pauseThread = false;
     assert(stream != nullptr);
 
     //sem_wait(&notEmpty);
-    std::cout << "Consumer consumes item. Items Present = " << --items << std::endl;
     auto *str = stream;
 
     auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
@@ -218,6 +271,7 @@ void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
 
     //sem_post(&notFull);
 
+     */
 }
 
 
@@ -234,9 +288,9 @@ void CRLVirtualCamera::getCameraStream(std::string src, crl::multisense::image::
     }
 }
 
-int CRLVirtualCamera::childProcessDecode() {
+int CRLVirtualCamera::childProcessDecode(uint32_t index) {
 // thread declaration
-    int N = 30;
+    int N = 20;
 #ifdef WIN32
     /*
     notEmpty = CreateSemaphore(
@@ -266,12 +320,12 @@ int CRLVirtualCamera::childProcessDecode() {
 
     // semaphore initialization
     int err = -1;
-    err = sem_init(&notEmpty, 0, 0);
+    err = sem_init(&container[index].notEmpty, 0, 0);
     if (err != 0) {
         Log::Logger::getInstance()->error("Failed to initialize producer notEmpty semaphore");
     }
 
-    err = sem_init(&notFull, 0, N);
+    err = sem_init(&container[index].notFull, 0, N);
     if (err != 0) {
         Log::Logger::getInstance()->error("Failed to initialize producer notFull semaphore");
     }
@@ -280,8 +334,10 @@ int CRLVirtualCamera::childProcessDecode() {
     pthread_attr_setdetachstate(&attr,
                                 PTHREAD_CREATE_JOINABLE);
 
+    args[index].ctx = this;
+    args[index].index = index;
     // Creation of process
-    r1 = pthread_create(&producer, &attr, CRLVirtualCamera::decode, this);
+    int r1 = pthread_create(&container[index].producer, &attr, CRLVirtualCamera::DecodeContainer::decode, &args[index]);
     if (r1) {
         std::cout <<
                   "Error in creating thread" << std::endl;
@@ -291,14 +347,14 @@ int CRLVirtualCamera::childProcessDecode() {
     return EXIT_SUCCESS;
 }
 
-void CRLVirtualCamera::getVideoMetadata() {
+void CRLVirtualCamera::getVideoMetadata(uint32_t i) {
     AVFormatContext *ctx_format = nullptr;
     AVCodecContext *ctx_codec = nullptr;
     const AVCodec *codec = nullptr;
     AVFrame *frame = av_frame_alloc();
     int stream_idx;
     SwsContext *ctx_sws = nullptr;
-    std::string fileName = Utils::getTexturePath() + "Video/" + videoName;
+    std::string fileName = Utils::getTexturePath() + "Video/" + container[i].videoName;
     AVStream *vid_stream = nullptr;
     AVPacket *pkt = av_packet_alloc();
 
@@ -338,8 +394,8 @@ void CRLVirtualCamera::getVideoMetadata() {
         std::cout << 5;
     }
 
-    width = ctx_codec->width;
-    height = ctx_codec->height;
+    container[i].width = ctx_codec->width;
+    container[i].height = ctx_codec->height;
 
     avformat_close_input(&ctx_format);
     av_packet_unref(pkt);
@@ -347,12 +403,14 @@ void CRLVirtualCamera::getVideoMetadata() {
     avformat_free_context(ctx_format);
 }
 
-void *CRLVirtualCamera::decode(void *arg) {
-    auto *instance = (CRLVirtualCamera *) arg;
-    while (instance->runDecodeThread) {
+void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
+    auto *args = (DecodeThreadArgs *) arg;
+    CRLVirtualCamera *instance = args->ctx;
+    uint32_t idx = args->index;
+    while (instance->container[idx].runDecodeThread) {
 
         // If paused or we haven't specificed any video
-        if (instance->pauseThread, instance->videoName == "None") {
+        if (instance->container[idx].pauseThread || instance->container[idx].videoName == "None") {
             std::chrono::milliseconds ten_ms(10);
             std::this_thread::sleep_for(ten_ms);
             continue;
@@ -364,7 +422,7 @@ void *CRLVirtualCamera::decode(void *arg) {
         AVFrame *frame = av_frame_alloc();
         int stream_idx;
         SwsContext *ctx_sws = nullptr;
-        std::string fileName = Utils::getTexturePath() + "Video/" + instance->videoName;
+        std::string fileName = Utils::getTexturePath() + "Video/" + instance->container[idx].videoName;
         AVStream *vid_stream = nullptr;
         AVPacket *pkt = av_packet_alloc();
 
@@ -405,20 +463,18 @@ void *CRLVirtualCamera::decode(void *arg) {
 
 
         //av_new_packet(pkt, pic_size);
-        int index = 0;
 
-        while (av_read_frame(ctx_format, pkt) >= 0 && instance->runDecodeThread) {
+        while (av_read_frame(ctx_format, pkt) >= 0 && instance->container[idx].runDecodeThread) {
             if (pkt->stream_index == stream_idx) {
                 int ret = avcodec_send_packet(ctx_codec, pkt);
                 if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     std::cout << "avcodec_send_packet: " << ret << std::endl;
                     break;
                 }
-                while (ret >= 0 && instance->runDecodeThread) {
+                while (ret >= 0 && instance->container[idx].runDecodeThread) {
                     ret = avcodec_receive_frame(ctx_codec, frame);
                     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                        std::cout << "avcodec_receive_frame: " << ret << std::endl;
-                        //instance->badFrames[ frame->coded_picture_number % 20] = true;
+                        //std::cout << "avcodec_receive_frame: " << ret << std::endl;
                         break;
                     }
 
@@ -426,19 +482,19 @@ void *CRLVirtualCamera::decode(void *arg) {
                     DWORD dwWaitResult;
                     WaitForSingleObject(instance->notFull,INFINITE);
 #else
-                    sem_wait(&instance->notFull);
+                    sem_wait(&instance->container[idx].notFull);
 #endif
                     uint32_t sequenceNumber = frame->coded_picture_number;
 
                     uint32_t indexSlot = sequenceNumber % 20;
 
-                    instance->videoFrame[indexSlot] = *frame;
-                    instance->bufferSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, ctx_codec->width,
-                                                                    ctx_codec->height, 1);
-                    instance->frameIDs[ instance->idxFrame % 20] = indexSlot;
+                    instance->container[idx].videoFrame[indexSlot] = *frame;
+                    instance->container[idx].bufferSize = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, ctx_codec->width,
+                                                                                   ctx_codec->height, 1);
+                    instance->container[idx].frameIDs[instance->container[idx].idxFrame % 20] = indexSlot;
 
 
-                    instance->idxFrame++;
+                    instance->container[idx].idxFrame++;
 #ifdef WIN32
                     /*
                     if (!ReleaseSemaphore(
@@ -452,7 +508,8 @@ void *CRLVirtualCamera::decode(void *arg) {
                     SetEvent(instance->notEmpty);
 
 #else
-                    sem_post(&instance->notEmpty);
+                    if (sequenceNumber > 10)
+                        sem_post(&instance->container[idx].notEmpty);
 #endif
                     //instance->saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);
 
@@ -495,3 +552,4 @@ void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, 
 CRLBaseInterface::CameraInfo CRLVirtualCamera::getCameraInfo() {
     return info;
 }
+

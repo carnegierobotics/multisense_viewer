@@ -2,8 +2,8 @@
 // Created by magnus on 6/27/22.
 //
 
-#ifndef MULTISENSE_VIEWER_DECODEVIDEO_H
-#define MULTISENSE_VIEWER_DECODEVIDEO_H
+#ifndef MULTISENSE_VIEWER_LEFTIMAGER_H
+#define MULTISENSE_VIEWER_LEFTIMAGER_H
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
@@ -12,22 +12,22 @@
 #include "MultiSense/src/Renderer/Renderer.h"
 
 
-class DecodeVideo : public Base, public RegisteredInFactory<DecodeVideo>, CRLCameraModels {
+class LeftImager : public Base, public RegisteredInFactory<LeftImager>, CRLCameraModels {
 
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    DecodeVideo() {
+    LeftImager() {
         s_bRegistered;
     }
 
-    ~DecodeVideo();
+    ~LeftImager();
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DecodeVideo>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<LeftImager>(); }
 
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "DecodeVideo"; }
+    static std::string GetFactoryName() { return "LeftImager"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
@@ -75,4 +75,4 @@ public:
 };
 
 
-#endif //MULTISENSE_VIEWER_DECODEVIDEO_H
+#endif //MULTISENSE_VIEWER_LEFTIMAGER_H

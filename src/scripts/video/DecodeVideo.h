@@ -21,6 +21,8 @@ public:
         s_bRegistered;
     }
 
+    ~DecodeVideo();
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DecodeVideo>(); }
 
@@ -45,7 +47,7 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY;
     CRLCameraModels::Model *model{};
 
-    int width = 0, height = 0;
+    uint32_t width = 0, height = 0;
     std::string src;
     CameraPlaybackFlags playbackSate;
     CameraConnection* camHandle;

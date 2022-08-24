@@ -10,6 +10,8 @@
 #include <thread>
 #else
 #include <semaphore.h>
+#include <queue>
+
 #endif
 
 #include "CRLBaseInterface.h"
@@ -80,10 +82,14 @@ private:
 
 
     int frameIndex = 0;
-    std::vector<uint32_t> frameIDs;
+    std::array<uint32_t, 20> frameIDs {0};
+
+
+    std::array<bool, 20> occupiedSlot{};
     bool pauseThread = false;
     uint32_t lastFrame = 0;
     uint32_t idx = 0;
+    uint32_t idxFrame = 0;
 
     int childProcessDecode();
 

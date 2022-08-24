@@ -37,8 +37,10 @@ public:
     virtual void updateCameraInfo() = 0;
 
     virtual void start(std::string string, std::string dataSourceStr) = 0;
+    virtual void start(std::string src, StreamIndex parent){};
 
     virtual void stop(std::string dataSourceStr) = 0;
+    virtual void stop(StreamIndex parent)  {};
 
     virtual void preparePointCloud(uint32_t width, uint32_t height) = 0;
 
@@ -48,7 +50,7 @@ public:
     virtual void getCameraStream(std::string stringSrc, crl::multisense::image::Header *src,
                                  crl::multisense::image::Header **src2 = nullptr) {};
     virtual void getCameraStream(crl::multisense::image::Header *stream) {};
-    virtual bool getCameraStream(ArEngine::MP4Frame* frame) { return false; };
+    virtual bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) { return false; };
 
 };
 

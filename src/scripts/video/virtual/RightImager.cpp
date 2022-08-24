@@ -1,14 +1,14 @@
 //
-// Created by magnus on 6/27/22.
+// Created by magnus on 8/24/22.
 //
 
 
 #include <execution>
-#include "DecodeVideo.h"
+#include "RightImager.h"
 #include "GLFW/glfw3.h"
 
 
-void DecodeVideo::setup(Base::Render r) {
+void RightImager::setup(Base::Render r) {
     /**
      * Create and load Mesh elements
      */
@@ -23,7 +23,7 @@ void DecodeVideo::setup(Base::Render r) {
 }
 
 
-void DecodeVideo::update() {
+void RightImager::update() {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -39,7 +39,7 @@ void DecodeVideo::update() {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
-        bool ret = camHandle->camPtr->getCameraStream(&frame);
+        bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_RIGHT);
 
         if (ret)
             model->setColorTexture(&frame);
@@ -52,7 +52,7 @@ void DecodeVideo::update() {
     transformToUISpace();
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -66,7 +66,7 @@ void DecodeVideo::update() {
     d2->viewPos = renderData.camera->viewPos;
 }
 
-void DecodeVideo::prepareTextureAfterDecode() {
+void RightImager::prepareTextureAfterDecode() {
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
     vertexShaderFileName = "myScene/spv/quad.vert";
@@ -95,16 +95,16 @@ void DecodeVideo::prepareTextureAfterDecode() {
 
 }
 
-void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
-        src = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.playbackStatus;
 
     }
 
@@ -120,8 +120,7 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         }
 
 
-        posY -= uiHandle.mouseBtns.wheel * 0.1f * (1/ speed);
-
+        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float)renderData.height);
         // center of viewing area box.
 
         //posX =  2*;
@@ -129,12 +128,12 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         for (auto &dev: *uiHandle.devices) {
             if (dev.cameraName == "Virtual Camera" && !model->draw) {
 
-                camHandle->camPtr->start(src, " ");
+                camHandle->camPtr->start(src, AR_PREVIEW_VIRTUAL_RIGHT);
                 posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
                 posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
-                posYMin = -1.0f + 2*(75.0f / (float) renderData.height);
-                posYMax = -1.0f + 2*((75.0f + 300.0f) / (float) renderData.height);
+                posYMin = -1.0f + 2*(75.0f  / (float) renderData.height);
+                posYMax = -1.0f + 2*((75.0f + 300.0f + ((float)renderData.height * 0.1f)) / (float) renderData.height);
                 // left anchor
                 prepareTextureAfterDecode();
 
@@ -142,16 +141,11 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
             }
             model->draw = true;
         }
-    } else if (playbackSate == AR_PREVIEW_NONE && model->draw == true) {
-        model->draw = false;
-        camHandle->camPtr->stop("");
-
     }
-
 }
 
 
-void DecodeVideo::transformToUISpace(){
+void RightImager::transformToUISpace(){
 
 
     int width = 1280;
@@ -163,13 +157,13 @@ void DecodeVideo::transformToUISpace(){
 }
 
 
-void DecodeVideo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
-DecodeVideo::~DecodeVideo() {
-    camHandle->camPtr->stop("");
+RightImager::~RightImager() {
+    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_RIGHT);
 
 }

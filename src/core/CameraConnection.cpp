@@ -71,16 +71,18 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             lastActiveDevice = dev.name;
 
             AR::StreamingModes virtualCam{};
+            virtualCam.name = "1. Virtual Left";
             virtualCam.sources.emplace_back("pixels.mp4");
             virtualCam.sources.emplace_back("rowbot_short.mpg");
-            virtualCam.streamIndex = AR_PREVIEW_VIRTUAL;
+            virtualCam.streamIndex = AR_PREVIEW_VIRTUAL_LEFT;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);
             virtualCam.selectedStreamingMode = virtualCam.modes.front();
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
-            dev.streams[AR_PREVIEW_VIRTUAL] = virtualCam;
+            dev.streams[AR_PREVIEW_VIRTUAL_LEFT] = virtualCam;
 
             AR::StreamingModes virutalPC{};
+            virutalPC.name = "2. Virtual Point cloud";
             virutalPC.sources.emplace_back("depth");
             virutalPC.streamIndex = AR_PREVIEW_POINT_CLOUD_VIRTUAL;
             modeName = "1920x1080";
@@ -88,6 +90,17 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             virutalPC.selectedStreamingMode = virutalPC.modes.front();
             virutalPC.selectedStreamingSource = virutalPC.sources.front();
             dev.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL] = virutalPC;
+
+            AR::StreamingModes virtualRight{};
+            virtualRight.name = "3. Virtual Right";
+            virtualRight.sources.emplace_back("pixels.mp4");
+            virtualRight.sources.emplace_back("rowbot_short.mpg");
+            virtualRight.streamIndex = AR_PREVIEW_VIRTUAL_RIGHT;
+            modeName = "1920x1080";
+            virtualRight.modes.emplace_back(modeName);
+            virtualRight.selectedStreamingMode = virtualRight.modes.front();
+            virtualRight.selectedStreamingSource = virtualRight.sources.front();
+            dev.streams[AR_PREVIEW_VIRTUAL_RIGHT] = virtualRight;
 
 
             Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
@@ -122,6 +135,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     // Start with left
     // TODO USE camPtr to fetch these values dynamically
     AR::StreamingModes left{};
+    left.name = "1. Left Sensor";
     left.sources.emplace_back("None");
     left.sources.emplace_back("Raw Left");
     left.sources.emplace_back("Luma Left");
@@ -139,6 +153,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     left.selectedStreamingSource = left.sources.front();
 
     AR::StreamingModes right{};
+    right.name = "2. Right Sensor";
     right.sources.emplace_back("None");
     right.sources.emplace_back("Raw Right");
     right.sources.emplace_back("Luma Right");
@@ -158,6 +173,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     right.selectedStreamingSource = right.sources.front();
 
     AR::StreamingModes disparity{};
+    disparity.name = "3. Disparity image";
     disparity.sources.emplace_back("None");
     disparity.sources.emplace_back("Disparity Left");
     disparity.sources.emplace_back("Disparity Cost");
@@ -176,6 +192,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     disparity.selectedStreamingSource = disparity.sources.front();
 
     AR::StreamingModes auxiliary{};
+    auxiliary.name = "4. Auxiliary Sensor";
     auxiliary.sources.emplace_back("None");
     auxiliary.sources.emplace_back("Color Rectified Aux");
     auxiliary.sources.emplace_back("Luma Rectified Aux");
@@ -194,6 +211,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     auxiliary.selectedStreamingSource = auxiliary.sources.front();
 
     AR::StreamingModes pointCloud{};
+    pointCloud.name = "5. Point Cloud";
     pointCloud.sources.emplace_back("None");
     pointCloud.sources.emplace_back("S19");
     pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;

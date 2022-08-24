@@ -104,10 +104,13 @@ public:
 
 
     void
-    addDropDown(AR::GuiObjectHandles *handles, std::string id, StreamIndex streamIndex, AR::StreamingModes *stream) {
+    addDropDown(AR::GuiObjectHandles *handles, AR::StreamingModes *stream) {
 
         if (stream->modes.empty() || stream->sources.empty())
             return;
+
+        StreamIndex streamIndex = stream->streamIndex;
+        std::string id = stream->name;
 
         ImVec2 position = ImGui::GetCursorScreenPos();
         position.x += (handles->info->controlAreaWidth / 2) - (handles->info->controlDropDownWidth / 2);
@@ -197,6 +200,7 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PLAYING;
                 Log::Logger::getInstance()->info("Pressed Play for preview {}", id.c_str());
+                firstSetup[0] = true; // TODO index correctly compared to which preview is open
             }
             ImGui::SameLine();
             btnLabel = "Pause##" + std::to_string(streamIndex);
@@ -268,7 +272,7 @@ private:
 
         for (auto &d: *handles->devices) {
             if (d.cameraName == "Virtual Camera") {
-                addStreamPlaybackControls(AR_PREVIEW_VIRTUAL, "Virtual preview", &d);
+                addStreamPlaybackControls(AR_PREVIEW_VIRTUAL_LEFT, "Virtual preview", &d);
             }
         }
         ImGui::NewLine();
@@ -356,7 +360,7 @@ private:
                 for (auto str: d.streams) {
                     if (str.second.playbackStatus == AR_PREVIEW_PLAYING) {
                         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 0.2f));
-                        createPreviewArea(handles, AR_PREVIEW_VIRTUAL, 0);
+                        createPreviewArea(handles, AR_PREVIEW_VIRTUAL_LEFT, 0);
                         ImGui::PopStyleColor(); // Bg color
                     }
 
@@ -391,7 +395,7 @@ private:
 
         //TODO remove hardcoded positions and sizes from this function
         if (firstSetup[i]) {
-            handles->info->viewAreaElementPositionsY[i] = ((float) i * 20) + 75.0f + ((float) i * 300);
+            handles->info->viewAreaElementPositionsY[i] = ((float) i * 20) + 75.0f + ((float) i * 300.0f);
             firstSetup[i] = false;
         } else
             handles->info->viewAreaElementPositionsY[i] -= handles->mouseBtns.wheel * 20.0f;
@@ -399,7 +403,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
                                 ImGuiCond_Always); // TODO REMOVE HARDCODED VALUE
 
-        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, 300.0f),
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, 300.0f + ((float)handles->info->height * 0.1f)),
                                  ImGuiCond_Always);  // TODO REMOVE HARDCODED VALUES
         static bool open = true;
         ImGuiWindowFlags window_flags =
@@ -420,7 +424,7 @@ private:
                 break;
             case AR_PREVIEW_POINT_CLOUD:
                 break;
-            case AR_PREVIEW_VIRTUAL:
+            case AR_PREVIEW_VIRTUAL_LEFT:
                 break;
             case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
                 break;
@@ -477,7 +481,10 @@ private:
                         for (auto &d: *handles->devices) {
                             if (d.state == AR_STATE_ACTIVE) {
                                 // TODO DRAW DROPDOWNS BASED ON MODES FOUND IN CAMERACONNECTION.CPP during initialization
-                                addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL]);
+                                for(int i = 0 ; i < AR_PREVIEW_TOTAL_MODES + 1; i++){
+                                    addDropDown(handles, &d.streams[i]);
+                                }
+                              /*  addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL_LEFT]);
                                 addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL,
                                             &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
 
@@ -490,7 +497,7 @@ private:
 
                                 addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
                                             &d.streams[AR_PREVIEW_POINT_CLOUD]);
-
+*/
 
                             }
                         }

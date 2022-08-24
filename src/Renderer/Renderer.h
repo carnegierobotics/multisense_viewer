@@ -28,13 +28,14 @@
 //#include <MultiSense/src/scripts/Example.h>
 
 #include <MultiSense/src/scripts/objects/LightSource.h>
-#include <MultiSense/src/scripts/video/DefaultPreview.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
-#include <MultiSense/src/scripts/video/DisparityPreview.h>
-#include <MultiSense/src/scripts/video/DecodeVideo.h>
-#include <MultiSense/src/scripts/video/RightPreview.h>
-#include <MultiSense/src/scripts/video/AuxiliaryPreview.h>
 #include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
+#include <MultiSense/src/scripts/video/virtual/LeftImager.h>
+#include <MultiSense/src/scripts/video/virtual/RightImager.h>
+#include <MultiSense/src/scripts/video/physical/DefaultPreview.h>
+#include <MultiSense/src/scripts/video/physical/DisparityPreview.h>
+#include <MultiSense/src/scripts/video/physical/RightPreview.h>
+#include <MultiSense/src/scripts/video/physical/AuxiliaryPreview.h>
 
 class Renderer : VulkanRenderer {
 
@@ -87,6 +88,9 @@ private:
 
 protected:
 
+    glm::vec3 defaultCameraPosition = glm::vec3(2.0f, 1.2f, -5.0f);
+    glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f, 0.0f);
+
     void updateUniformBuffers();
 
     void viewChanged() override;
@@ -109,7 +113,7 @@ protected:
 
     void deleteScript(const std::string &scriptName);
 
-    void buildScript(std::string scriptName);
+    void buildScript(const std::string& scriptName);
 };
 
 

@@ -105,6 +105,7 @@ public:
         } quad;
 
         /**@brief Generates a Quad with texture coordinates */
+
         ImageData(float widthScale, float heightScale) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
@@ -122,6 +123,46 @@ public:
             vertex[1].pos = glm::vec3(1.0f * widthScale, -1.0f, 0.0f);
             vertex[2].pos = glm::vec3(1.0f * widthScale, 1.0f, 0.0f);
             vertex[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f);
+
+            vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
+
+            vertex[0].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[1].uv0 = glm::vec2(0.0f, 0.0f);
+            vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
+            vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
+            vP[0] = vertex[0];
+            vP[1] = vertex[1];
+            vP[2] = vertex[2];
+            vP[3] = vertex[3];
+            // indices
+            iP[0] = 0;
+            iP[1] = 1;
+            iP[2] = 2;
+            iP[3] = 2;
+            iP[4] = 3;
+            iP[5] = 0;
+        }
+
+        ImageData(float minX, float maxX, float minY, float maxY) {
+            int vertexCount = 4;
+            int indexCount = 2 * 3;
+            quad.vertexCount = vertexCount;
+            quad.indexCount = indexCount;
+            // Virtual class can generate some mesh data here
+            quad.vertices = calloc(vertexCount, sizeof(ArEngine::Vertex));
+            quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
+
+            auto *vP = (ArEngine::Vertex *) quad.vertices;
+            auto *iP = (uint32_t *) quad.indices;
+
+            ArEngine::Vertex vertex[4];
+            vertex[0].pos = glm::vec3(minX, minY, 0.0f);
+            vertex[1].pos = glm::vec3(maxX, minY, 0.0f);
+            vertex[2].pos = glm::vec3(maxX, maxY, 0.0f);
+            vertex[3].pos = glm::vec3(minX, maxY, 0.0f);
 
             vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);

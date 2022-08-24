@@ -408,7 +408,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(const std::string &fi
     shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(), device);
     shaderStage.pName = "main";
     assert(shaderStage.module != VK_NULL_HANDLE);
-    // TODO CLEANUP SHADERMODULES WHEN UNUSED
+    // TODO CLEANUP SHADERMODULES WHEN UNUSED AND ON EXITING VIEWER APP
     return shaderStage;
 }
 
@@ -794,6 +794,7 @@ void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, dou
 
     double scrollSpeed = 0.80f;
     myApp->mouseButtons.wheel += (float) (yoffset * scrollSpeed);
+
 }
 
 VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) {

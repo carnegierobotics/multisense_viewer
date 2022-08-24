@@ -10,6 +10,7 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
 
 class DefaultPreview: public Base, public RegisteredInFactory<DefaultPreview>, CRLCameraModels
 {
@@ -48,7 +49,7 @@ public:
     Page selectedPreviewTab = TAB_NONE;
 
     std::string src = "source";
-    uint32_t playbackSate = -1;
+    CameraPlaybackFlags playbackSate;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

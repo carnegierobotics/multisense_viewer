@@ -5,8 +5,8 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include <MultiSense/src/imgui/Layer.h>
 #include <MultiSense/src/crl_camera/CRLBaseInterface.h>
+#include <MultiSense/src/imgui/Layer.h>
 
 /**
  * Class handles the bridge between the GUI interaction and actual communication to camera

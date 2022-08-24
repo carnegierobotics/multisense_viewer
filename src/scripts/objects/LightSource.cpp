@@ -5,7 +5,7 @@ void LightSource::setup() {
 
     std::string fileName;
     //loadFromFile(fileName);
-    model.loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", renderUtils.device,
+    model.loadFromFile(Utils::getAssetsPath() + "Models/coordinates.gltf", renderUtils.device,
                        renderUtils.device->transferQueue, 1.0f);
 
 
@@ -27,8 +27,9 @@ void LightSource::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 void LightSource::update() {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::scale(mat.model, glm::vec3(10.0f, 10.0f, 10.0f));
-    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -10.0f));
+    mat.model = glm::scale(mat.model, glm::vec3(0.04f, 0.04f, 0.04f));
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
+    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;

@@ -47,8 +47,6 @@ struct PointCloudShader {
     glm::vec4 col[NUM_POINTS];
 };
 
-// PreDeclare
-struct GuiObjectHandles;
 
 class Base {
 public:
@@ -87,6 +85,8 @@ public:
         std::vector<AR::Element> gui;
         Log::Logger *pLogger;
 
+        uint32_t height;
+        uint32_t width;
     } renderData{};
 
 
@@ -124,16 +124,16 @@ public:
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
-    void drawScript(VkCommandBuffer commandBuffer, uint32_t i) {
+    void drawScript(VkCommandBuffer commandBuffer, uint32_t i, ArEngine::DrawDataExt ext) {
 
         if (!renderData.finishedSetup)
             return;
 
-        auto time = std::chrono::high_resolution_clock::now();
+        auto time = std::chrono::steady_clock::now();
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
         if (time_span.count() > 2.0f) {
-            lastLogTime = std::chrono::high_resolution_clock::now();
+            lastLogTime = std::chrono::steady_clock::now();
             renderData.pLogger->info("Draw-count: {} | Script: {} |", renderData.scriptDrawCount, renderData.scriptName.c_str());
         }
 
@@ -152,6 +152,8 @@ public:
         this->renderData.deltaT = data->deltaT;
         this->renderData.index = data->index;
         this->renderData.pLogger = data->pLogger;
+        this->renderData.height = data->height;
+        this->renderData.width = data->width;
 
         this->renderData.type = getType();
 
@@ -257,8 +259,8 @@ public:
 protected:
 
 private:
-    std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<float>> startTime;
-    std::chrono::high_resolution_clock::time_point lastLogTime;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
+    std::chrono::steady_clock::time_point lastLogTime;
 
 };
 

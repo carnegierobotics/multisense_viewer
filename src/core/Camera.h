@@ -237,7 +237,7 @@ public:
         }
         else
         {
-            // todo: move code from example base class for look-at
+
         }
 
         if (retVal)

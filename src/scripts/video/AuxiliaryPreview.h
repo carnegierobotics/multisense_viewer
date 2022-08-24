@@ -10,6 +10,7 @@
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
 
 class AuxiliaryPreview: public Base, public RegisteredInFactory<AuxiliaryPreview>, CRLCameraModels
 {
@@ -47,7 +48,7 @@ public:
     float up = 1.3f;
     void *selection = (void *) "0";
     std::string src;
-    CameraStreamInfoFlag playbackSate;
+    CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;

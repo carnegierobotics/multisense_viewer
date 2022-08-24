@@ -91,7 +91,7 @@ namespace AR {
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);
 
-        void loadImGuiTextureFromFileName(std::string file);
+        ArEngine::ImageElement loadImGuiTextureFromFileName(const std::string& file);
 
     };
 };

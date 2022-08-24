@@ -21,8 +21,8 @@ public:
     }
 
     ~CRLPhysicalCamera() override {
-        // TODO FREE RESOURCES AS THIS CLASS IS REUSED
-        stop("All");
+        // TODO FREE RESOURCES MEMBER VARIABLES
+         stop("All");
         printf("BaseInterface destructor\n");
 
     }

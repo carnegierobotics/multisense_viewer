@@ -5,6 +5,7 @@
 #include <MultiSense/src/model_loaders/MeshModel.h>
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include "MultiSense/src/model_loaders/CRLCameraModels.h"
+#include "MultiSense/src/Renderer/Renderer.h"
 
 
 class VirtualPointCloud: public Base, public RegisteredInFactory<VirtualPointCloud>, CRLCameraModels
@@ -37,12 +38,12 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
 
-    CRLCameraModels::Model* model;
-    CameraStreamInfoFlag playbackSate;
+    CRLCameraModels::Model* model{};
+    CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
 
     const int vertexCount = 960 * 600;
-    ArEngine::Vertex *meshData; // Don't forget to de
+    ArEngine::Vertex *meshData{}; // Don't forget to de
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

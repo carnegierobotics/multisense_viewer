@@ -8,11 +8,6 @@ void VirtualPointCloud::setup(Base::Render r) {
     model = new CRLCameraModels::Model(renderUtils.device, AR_POINT_CLOUD);
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
-    for (auto dev: r.gui) {
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD_VIRTUAL) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
-            continue;
-    }
-
 
     r.crlCamera->get()->camPtr->preparePointCloud(960, 600);
     model->prepareTextureImage(960, 600, AR_POINT_CLOUD);
@@ -27,8 +22,8 @@ void VirtualPointCloud::setup(Base::Render r) {
 
     auto *buf = (PointCloudParam *) bufferThreeData;
     buf->kInverse = r.crlCamera->get()->camPtr->getCameraInfo().kInverseMatrix;
-    buf->height = static_cast<float>(960);
-    buf->width = static_cast<float>(600);
+    buf->height = static_cast<float>(960.0f);
+    buf->width = static_cast<float>(600.0f);
     std::cout << glm::to_string(buf->kInverse) << std::endl;
 
     meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!

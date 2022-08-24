@@ -6,44 +6,8 @@
 #define MULTISENSE_DEFINITIONS_H
 
 #include "glm/glm.hpp"
+#include "imgui.h"
 
-namespace ArEngine{
-    struct VideoTexture {
-        std::vector<unsigned char*> pixels{};
-        uint64_t imageSize{};
-        uint32_t width{};
-        uint32_t height{};
-    };
-
-
-    struct Vertex {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec2 uv0;
-        glm::vec2 uv1;
-        glm::vec4 joint0;
-        glm::vec4 weight0;
-    };
-
-    struct Primitive {
-        uint32_t firstIndex{};
-        uint32_t indexCount{};
-        uint32_t vertexCount{};
-        bool hasIndices{};
-        //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
-        //void setBoundingBox(glm::vec3 min, glm::vec3 max);
-    };
-
-    struct MP4Frame {
-        void* plane0;
-        void* plane1;
-        void* plane2;
-
-        uint32_t plane0Size;
-        uint32_t plane1Size;
-        uint32_t plane2Size;
-    };
-}
 
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
@@ -81,12 +45,16 @@ typedef enum StreamIndex {
     AR_PREVIEW_POINT_CLOUD_VIRTUAL = 6,
     AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD_VIRTUAL,
     // Other flags
+
+} CameraStreamInfoFlag;
+
+typedef enum CameraPlaybackFlags {
     AR_PREVIEW_PLAYING = 10,
     AR_PREVIEW_PAUSED = 11,
     AR_PREVIEW_STOPPED = 12,
     AR_PREVIEW_NONE = 13,
     AR_PREVIEW_RESET = 14,
-} CameraStreamInfoFlag;
+}CameraPlaybackFlags;
 
 typedef enum page {
     PAGE_PREVIEW_DEVICES = 0,
@@ -97,6 +65,86 @@ typedef enum page {
     TAB_2D_PREVIEW = 11,
     TAB_3D_POINT_CLOUD = 12,
 } Page;
+
+typedef enum ImageElementIndex {
+    IMAGE_PREVIEW_ONE = 0,
+    IMAGE_INTERACTION_PREVIEW_DEVICE = 1,
+    IMAGE_INTERACTION_DEVICE_INFORMATION = 2,
+    IMAGE_INTERACTION_CONFIGURE_DEVICE = 3,
+    IMAGE_CONFIGURE_DEVICE_PLACEHOLDER = 4,
+} ImageElementIndex;
+
+namespace ArEngine{
+    struct VideoTexture {
+        std::vector<unsigned char*> pixels{};
+        uint64_t imageSize{};
+        uint32_t width{};
+        uint32_t height{};
+    };
+
+
+    struct Vertex {
+        glm::vec3 pos;
+        glm::vec3 normal;
+        glm::vec2 uv0;
+        glm::vec2 uv1;
+        glm::vec4 joint0;
+        glm::vec4 weight0;
+    };
+
+    struct Primitive {
+        uint32_t firstIndex{};
+        uint32_t indexCount{};
+        uint32_t vertexCount{};
+        bool hasIndices{};
+        //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
+        //void setBoundingBox(glm::vec3 min, glm::vec3 max);
+    };
+
+    struct MP4Frame {
+        void* plane0;
+        void* plane1;
+        void* plane2;
+
+        uint32_t plane0Size;
+        uint32_t plane1Size;
+        uint32_t plane2Size;
+    };
+
+    struct MouseButtons {
+        bool left = false;
+        bool right = false;
+        bool middle = false;
+        float wheel = 0.0f;
+    };
+    struct ImageElement {
+        ImTextureID texDescriptor{};
+        int width{};
+        int height{};
+        CameraStreamInfoFlag streamInfo;
+
+        ImVec2 uv0{};
+        ImVec2 uv1{};
+        ImVec4 bgCol{};
+        ImVec4 tintCol{};
+
+        ImageElement(void * texID, int width, int height, ImVec2 uv0 = ImVec2(0.0f, 0.0f), ImVec2 uv1 = ImVec2(1.0f, 1.0f)){
+            texDescriptor = texID;
+            this->width = width;
+            this->height = height;
+            this->uv0 = uv0;
+            this->uv1 = uv1;
+        };
+
+        ImageElement() = default;
+
+    };
+
+
+    struct DrawDataExt {
+        std::vector<ImageElement>* texInfo;
+    };
+}
 
 
 #endif //MULTISENSE_DEFINITIONS_H

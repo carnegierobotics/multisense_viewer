@@ -83,14 +83,9 @@ public:
     Camera camera;
     glm::vec2 mousePos{};
 
-    struct {
-        bool left = false;
-        bool right = false;
-        bool middle = false;
-        float wheel = 0.0f;
-    } mouseButtons;
+    ArEngine::MouseButtons mouseButtons{};
 
-    int keypress = 0;
+    int keypress = 0; // TODO REWORK
 
     /** @brief Handle for Logging*/
     Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class

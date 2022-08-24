@@ -75,11 +75,14 @@ public:
 
     void draw();
 
+
 private:
 
     std::map<std::string, std::unique_ptr<Base>> scripts;
     std::unique_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
+
+    ArEngine::DrawDataExt drawDataExt{};
 
 
 protected:

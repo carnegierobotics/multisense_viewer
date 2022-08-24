@@ -29,7 +29,7 @@ layout(location = 2) out vec3 fragPos;
 
 void main()
 {
-    gl_PointSize = 100.0f;
+    gl_PointSize = 10.0f;
     float width = matrix.width;
     float height = matrix.height;
     float depth = texture(depthMap, inUV).r * 100.0f;

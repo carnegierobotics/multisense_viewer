@@ -142,7 +142,7 @@ void DecodeVideo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
             }
             model->draw = true;
         }
-    } else if (playbackSate == AR_PREVIEW_STOPPED && model->draw == true) {
+    } else if (playbackSate == AR_PREVIEW_NONE && model->draw == true) {
         model->draw = false;
         camHandle->camPtr->stop("");
 
@@ -167,4 +167,9 @@ void DecodeVideo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
+}
+
+DecodeVideo::~DecodeVideo() {
+    camHandle->camPtr->stop("");
+
 }

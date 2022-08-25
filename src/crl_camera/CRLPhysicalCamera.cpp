@@ -401,6 +401,7 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
 
 void CRLPhysicalCamera::addCallbacks() {
+
     for (auto e: info.supportedDeviceModes)
         info.supportedSources |= e.supportedDataSources;
 

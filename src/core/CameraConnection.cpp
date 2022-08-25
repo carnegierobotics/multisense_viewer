@@ -7,6 +7,7 @@
 #include "CameraConnection.h"
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include <MultiSense/src/tools/Logger.h>
+
 CameraConnection::CameraConnection() {
 
 }
@@ -143,112 +144,80 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 }
 
 void CameraConnection::setStreamingModes(AR::Element &dev) {
-    // Find sources for each imager and and set these correspondly in element
-    // Start with left
-    // TODO USE camPtr to fetch these values dynamically
+
+    auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
+
     AR::StreamingModes left{};
     left.name = "1. Left Sensor";
-    left.sources.emplace_back("None");
-    left.sources.emplace_back("Raw Left");
-    left.sources.emplace_back("Luma Left");
-    left.sources.emplace_back("Luma Rectified Left");
-    left.sources.emplace_back("Compressed");
     left.streamIndex = AR_PREVIEW_LEFT;
-
-    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                               std::to_string(mode.disparities) + "x";
-        left.modes.emplace_back(modeName);
-    }
+    initCameraModes(&left.modes, supportedModes);
+    filterAvailableSources(&left.sources, maskArrayLeft);
     left.selectedStreamingMode = left.modes.front();
     left.selectedStreamingSource = left.sources.front();
 
     AR::StreamingModes right{};
     right.name = "2. Right Sensor";
-    right.sources.emplace_back("None");
-    right.sources.emplace_back("Raw Right");
-    right.sources.emplace_back("Luma Right");
-    right.sources.emplace_back("Luma Rectified Right");
-    right.sources.emplace_back("Compressed");
     right.streamIndex = AR_PREVIEW_RIGHT;
-
-    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                               std::to_string(mode.disparities) + "x";
-
-        right.modes.emplace_back(modeName);
-
-    }
+    initCameraModes(&right.modes, supportedModes);
+    filterAvailableSources(&right.sources, maskArrayRight);
     right.selectedStreamingMode = right.modes.front();
     right.selectedStreamingSource = right.sources.front();
 
     AR::StreamingModes disparity{};
-    disparity.name = "3. Disparity image";
-    disparity.sources.emplace_back("None");
-    disparity.sources.emplace_back("Disparity Left");
-    disparity.sources.emplace_back("Disparity Cost");
-    disparity.sources.emplace_back("Disparity Cost");
+    disparity.name = "3. Disparity Image";
     disparity.streamIndex = AR_PREVIEW_DISPARITY;
-
-    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                               std::to_string(mode.disparities) + "x";
-
-        disparity.modes.emplace_back(modeName);
-
-    }
+    initCameraModes(&disparity.modes, supportedModes);
+    filterAvailableSources(&disparity.sources, maskArrayDisparity);
     disparity.selectedStreamingMode = disparity.modes.front();
     disparity.selectedStreamingSource = disparity.sources.front();
 
-    AR::StreamingModes auxiliary{};
-    auxiliary.name = "4. Auxiliary Sensor";
-    auxiliary.sources.emplace_back("None");
-    auxiliary.sources.emplace_back("Color Rectified Aux");
-    auxiliary.sources.emplace_back("Luma Rectified Aux");
-    auxiliary.sources.emplace_back("Color + Luma Rectified Aux");
-    auxiliary.streamIndex = AR_PREVIEW_AUXILIARY;
-
-    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                               std::to_string(mode.disparities) + "x";
-
-        auxiliary.modes.emplace_back(modeName);
-
-    }
-    auxiliary.selectedStreamingMode = auxiliary.modes.front();
-    auxiliary.selectedStreamingSource = auxiliary.sources.front();
+    AR::StreamingModes aux{};
+    aux.name = "4. Aux Sensor";
+    aux.streamIndex = AR_PREVIEW_AUXILIARY;
+    initCameraModes(&aux.modes, supportedModes);
+    filterAvailableSources(&aux.sources, maskArrayAux);
+    aux.selectedStreamingMode = aux.modes.front();
+    aux.selectedStreamingSource = aux.sources.front();
 
     AR::StreamingModes pointCloud{};
     pointCloud.name = "5. Point Cloud";
-    pointCloud.sources.emplace_back("None");
-    pointCloud.sources.emplace_back("S19");
-    pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
-
-    for (int i = 0; i < camPtr->getCameraInfo().supportedDeviceModes.size(); ++i) {
-        auto mode = camPtr->getCameraInfo().supportedDeviceModes[i];
-        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-                               std::to_string(mode.disparities) + "x";
-
-        pointCloud.modes.emplace_back(modeName);
-
-    }
+    pointCloud.streamIndex = AR_PREVIEW_AUXILIARY;
+    initCameraModes(&pointCloud.modes, supportedModes);
+    filterAvailableSources(&pointCloud.sources, maskArrayDisparity);
     pointCloud.selectedStreamingMode = pointCloud.modes.front();
     pointCloud.selectedStreamingSource = pointCloud.sources.front();
 
     dev.streams[AR_PREVIEW_LEFT] = left;
     dev.streams[AR_PREVIEW_RIGHT] = right;
     dev.streams[AR_PREVIEW_DISPARITY] = disparity;
-    dev.streams[AR_PREVIEW_AUXILIARY] = auxiliary;
+    dev.streams[AR_PREVIEW_AUXILIARY] = aux;
     dev.streams[AR_PREVIEW_POINT_CLOUD] = pointCloud;
 
     Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
 
 
 }
+
+void CameraConnection::initCameraModes(std::vector<std::string> *modes,
+                                       std::vector<crl::multisense::system::DeviceMode> deviceModes) {
+    for (auto mode : deviceModes) {
+        std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                               std::to_string(mode.disparities) + "x";
+        modes->emplace_back(modeName);
+    }
+}
+void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec) {
+    uint32_t bits = camPtr->getCameraInfo().supportedSources;
+
+    for (auto mask: maskVec) {
+        bool enabled = (bits & mask);
+        if (enabled) {
+            sources->emplace_back(dataSourceToString(mask));
+        }
+        std::cout << dataSourceToString(mask) << " " << ((bits & mask) ? "on\n" : "off\n");
+    }
+}
+
 
 void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
@@ -285,4 +254,59 @@ CameraConnection::~CameraConnection() {
     // stops all streams on the camera
     if (camPtr != nullptr)
         delete camPtr;
+}
+
+std::string CameraConnection::dataSourceToString(crl::multisense::DataSource d) {
+    switch (d) {
+        case crl::multisense::Source_Raw_Left:
+            return "Raw Left";
+        case crl::multisense::Source_Raw_Right:
+            return "Raw Right";
+        case crl::multisense::Source_Luma_Left:
+            return "Luma Left";
+        case crl::multisense::Source_Luma_Right:
+            return "Luma Right";
+        case crl::multisense::Source_Luma_Rectified_Left:
+            return "Luma Rectified Left";
+        case crl::multisense::Source_Luma_Rectified_Right:
+            return "Luma Rectified Right";
+        case crl::multisense::Source_Chroma_Left:
+            return "Color Left";
+        case crl::multisense::Source_Chroma_Right:
+            return "Source Color Right";
+        case crl::multisense::Source_Compressed_Right:
+            return "Source Compressed Right";
+        case crl::multisense::Source_Compressed_Rectified_Right:
+            return "Source Compressed Rectified Right | Jpeg Left";
+        case crl::multisense::Source_Disparity_Left:
+            return "Disparity Left";
+        case crl::multisense::Source_Disparity_Cost:
+            return "Disparity Cost";
+        case crl::multisense::Source_Disparity_Right:
+            return "Disparity Right";
+        case crl::multisense::Source_Rgb_Left:
+            return "Source Rgb Left | Source Compressed Rectified Aux";
+        case crl::multisense::Source_Compressed_Left:
+            return "Source Compressed Left";
+        case crl::multisense::Source_Compressed_Rectified_Left:
+            return "Source Compressed Rectified Left";
+        case crl::multisense::Source_Lidar_Scan:
+            return "Source Lidar Scan";
+        case crl::multisense::Source_Raw_Aux:
+            return "Raw Aux";
+        case crl::multisense::Source_Luma_Aux:
+            return "Luma Aux";
+        case crl::multisense::Source_Luma_Rectified_Aux:
+            return "Luma Rectified Aux";
+        case crl::multisense::Source_Chroma_Aux:
+            return "Color Aux";
+        case crl::multisense::Source_Chroma_Rectified_Aux:
+            return "Color Rectified Aux";
+        case crl::multisense::Source_Disparity_Aux:
+            return "Disparity Aux";
+        case crl::multisense::Source_Compressed_Aux:
+            return "Source Compressed Aux";
+        default:
+            return "Unknown";
+    }
 }

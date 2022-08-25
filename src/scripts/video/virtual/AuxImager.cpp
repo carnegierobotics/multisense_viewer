@@ -1,14 +1,14 @@
 //
-// Created by magnus on 6/27/22.
+// Created by magnus on 8/25/22.
 //
 
+#include "AuxImager.h"
 
 #include <execution>
-#include "LeftImager.h"
 #include "GLFW/glfw3.h"
 
 
-void LeftImager::setup(Base::Render r) {
+void AuxImager::setup(Base::Render r) {
     /**
      * Create and load Mesh elements
      */
@@ -23,7 +23,7 @@ void LeftImager::setup(Base::Render r) {
 }
 
 
-void LeftImager::update() {
+void AuxImager::update() {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -39,7 +39,7 @@ void LeftImager::update() {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
-        bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_LEFT);
+        bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_AUX);
 
         if (ret)
             model->setColorTexture(&frame);
@@ -65,7 +65,7 @@ void LeftImager::update() {
     d2->viewPos = renderData.camera->viewPos;
 }
 
-void LeftImager::prepareTextureAfterDecode() {
+void AuxImager::prepareTextureAfterDecode() {
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
     vertexShaderFileName = "myScene/spv/quad.vert";
@@ -95,16 +95,16 @@ void LeftImager::prepareTextureAfterDecode() {
 }
 
 
-void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void AuxImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL_AUX) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
-        src = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.playbackStatus;
 
     }
 
@@ -126,14 +126,14 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         //posX =  2*;
 
         for (auto &dev: *uiHandle.devices) {
-            if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder) {
+            if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
                 prepareTextureAfterDecode();
             }
-            prevOrder = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder;
+            prevOrder = dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.streamingOrder;
 
             if (dev.cameraName == "Virtual Camera" && !model->draw) {
-                camHandle->camPtr->start(src, AR_PREVIEW_VIRTUAL_LEFT);
+                camHandle->camPtr->start(src, AR_PREVIEW_VIRTUAL_AUX);
 
                 transformToUISpace(uiHandle, dev);
 
@@ -148,11 +148,11 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 
-void LeftImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+void AuxImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
     posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
-    int order = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder;
+    int order = dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.streamingOrder;
     float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
 
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
@@ -161,13 +161,13 @@ void LeftImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element d
 }
 
 
-void LeftImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void AuxImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
-LeftImager::~LeftImager() {
-    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_LEFT);
+AuxImager::~AuxImager() {
+    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_AUX);
 
 }

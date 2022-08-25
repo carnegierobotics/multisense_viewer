@@ -13,7 +13,7 @@ void DefaultPreview::setup(Base::Render r) {
     model->draw = false;
 
 
-    for (auto dev : renderData.gui){
+    for (auto dev : *renderData.gui){
         if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 

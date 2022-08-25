@@ -16,9 +16,8 @@ void VirtualPointCloud::setup(Base::Render r) {
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
-    renderUtils.shaders = shaders;
 
-    CRLCameraModels::createRenderPipeline(renderUtils, renderUtils.shaders, model, type);
+    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
     auto *buf = (PointCloudParam *) bufferThreeData;
     buf->kInverse = r.crlCamera->get()->camPtr->getCameraInfo().kInverseMatrix;
@@ -81,10 +80,10 @@ void VirtualPointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD_VIRTUAL) == dev.streams.end())
+        if (dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD) == dev.streams.end())
             continue;
 
-        playbackSate = dev.streams.find(AR_PREVIEW_POINT_CLOUD_VIRTUAL)->second.playbackStatus;
+        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
     }
 

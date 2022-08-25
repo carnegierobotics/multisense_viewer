@@ -119,7 +119,7 @@ void Renderer::buildScript(const std::string &scriptName) {
 
     Base::Render renderData{};
     renderData.crlCamera = &cameraConnection;
-    renderData.gui = *guiManager->handles.devices;
+    renderData.gui = guiManager->handles.devices;
     renderData.scriptName = scriptName;
 
     // Run script setup function
@@ -207,11 +207,14 @@ void Renderer::render() {
                     case AR_PREVIEW_POINT_CLOUD:
                         buildScript("PointCloud");
                         break;
-                    case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
+                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
                         buildScript("VirtualPointCloud");
                         break;
                     case AR_PREVIEW_VIRTUAL_RIGHT:
                         buildScript("RightImager");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_AUX:
+                        buildScript("AuxImager");
                         break;
                 }
             }
@@ -236,11 +239,14 @@ void Renderer::render() {
                     case AR_PREVIEW_POINT_CLOUD:
                         deleteScript("PointCloud");
                         break;
-                    case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
+                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
                         deleteScript("VirtualPointCloud");
                         break;
                     case AR_PREVIEW_VIRTUAL_RIGHT:
                         deleteScript("RightImager");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_AUX:
+                        deleteScript("AuxImager");
                         break;
                 }
             }

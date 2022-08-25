@@ -200,7 +200,6 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_PLAYING;
                 Log::Logger::getInstance()->info("Pressed Play for preview {}", id.c_str());
-                firstSetup[0] = true; // TODO index correctly compared to which preview is open
             }
             ImGui::SameLine();
             btnLabel = "Pause##" + std::to_string(streamIndex);
@@ -213,6 +212,7 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_NONE;
                 Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
+                firstSetup[stream->streamingOrder] = true; // TODO index correctly compared to which preview is open
             }
 
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
@@ -227,6 +227,7 @@ private:
     bool drawActionPage = true;
     bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
     float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
+    bool firstSetup[9] = {true, true, true, true, true, true, true, true, true};
 
     void buildDeviceInformation(AR::GuiObjectHandles *handles) {
         bool pOpen = true;
@@ -235,7 +236,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f)); // TODO USE named colors
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -303,6 +304,24 @@ private:
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
 
+        /** CREATE VIEWING PREVIEWS **/
+        uint32_t previewWindowCount = 0;
+        for (auto &d: *handles->devices) {
+            if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
+                for (auto &stream: d.streams) {
+                    if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
+                        stream.second.streamingOrder = previewWindowCount;
+                        ImGui::PushStyleColor(ImGuiCol_WindowBg,
+                                              ImVec4(0.034, 0.107, 0.201, 0.05f)); // TODO use named colors
+                        createPreviewArea(handles, stream.second.streamIndex, previewWindowCount, d);
+                        previewWindowCount++;
+                        ImGui::PopStyleColor(); // Bg color
+                    }
+                }
+            }
+        }
+
+        /** CREATE TOP NAVIGATION BAR **/
         bool pOpen = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
@@ -355,88 +374,46 @@ private:
 
         ImGui::PopStyleColor(); // Bg color
 
-        for (const auto &d: *handles->devices) {
-            if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
-                for (auto str: d.streams) {
-                    if (str.second.playbackStatus == AR_PREVIEW_PLAYING) {
-                        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 0.2f));
-                        createPreviewArea(handles, AR_PREVIEW_VIRTUAL_LEFT, 0);
-                        ImGui::PopStyleColor(); // Bg color
-                    }
 
-
-                }
-                /*
-                float y =  ImGui::GetCursorScreenPos().y;
-                float x =  ImGui::GetCursorPos().y;
-                createPreviewArea(handles, AR_PREVIEW_VIRTUAL);
-                ImGui::Dummy(ImVec2(0.0f, 40.0f));
-                float y1 =  ImGui::GetCursorScreenPos().y;
-                float x1 =  ImGui::GetCursorPos().y;
-
-                createPreviewArea(handles, AR_PREVIEW_LEFT);
-                float y2 =  ImGui::GetCursorScreenPos().y;
-                float y3 =  ImGui::GetCursorScreenPos().y;
-                */
-
-            }
-        }
 
     }
 
-    bool firstSetup[9] = {true, true, true};
 
-    void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex,
-                           int i) {
-
-
+    void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex, uint32_t i, AR::Element d) {
         float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
-
 
         //TODO remove hardcoded positions and sizes from this function
         if (firstSetup[i]) {
-            handles->info->viewAreaElementPositionsY[i] = ((float) i * 20) + 75.0f + ((float) i * 300.0f);
+            handles->info->viewAreaElementPositionsY[i] =
+                    75.0f + ((float) i * (320.0f + ((float) handles->info->height * 0.13f)));
             firstSetup[i] = false;
+            Log::Logger::getInstance()->info("Created preview for {} in order {}", (uint32_t) streamIndex, i);
+
         } else
             handles->info->viewAreaElementPositionsY[i] -= handles->mouseBtns.wheel * 20.0f;
 
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
                                 ImGuiCond_Always); // TODO REMOVE HARDCODED VALUE
 
-        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, 300.0f + ((float)handles->info->height * 0.1f)),
+        handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
+
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, handles->info->viewAreaElementSizeY),
                                  ImGuiCond_Always);  // TODO REMOVE HARDCODED VALUES
         static bool open = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse;;
+                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
         std::string windowName = std::to_string(streamIndex);
         ImGui::Begin((std::string("View Area##") + windowName).c_str(), &open, window_flags);
 
-        std::string text;
-        switch (streamIndex) {
-            case AR_PREVIEW_LEFT:
-                break;
-            case AR_PREVIEW_RIGHT:
-                break;
-            case AR_PREVIEW_DISPARITY:
-                break;
-            case AR_PREVIEW_AUXILIARY:
-                break;
-            case AR_PREVIEW_POINT_CLOUD:
-                break;
-            case AR_PREVIEW_VIRTUAL_LEFT:
-                break;
-            case AR_PREVIEW_POINT_CLOUD_VIRTUAL:
-                break;
-        }
-        ImGui::Text("Left Stereo Imager");
-        ImGui::SameLine();
-        ImGui::Text("| Monochrome");
-        ImGui::SameLine();
-        ImGui::Text("| 30 FPS");
 
-
-        ImGui::Dummy(ImVec2(300.0f, 350.0f));
+        ImGui::Text("%s", d.streams.find(streamIndex)->second.name.c_str());
+        ImGui::SameLine();
+        std::string info1 = "| Monochrome##";
+        ImGui::Text("%s", (info1 + std::to_string((int) streamIndex)).c_str());
+        ImGui::SameLine();
+        std::string info2 = "| FPS##";
+        ImGui::Text("%s", (info2 + std::to_string((int) streamIndex)).c_str());
 
 
         ImGui::End();
@@ -481,23 +458,24 @@ private:
                         for (auto &d: *handles->devices) {
                             if (d.state == AR_STATE_ACTIVE) {
                                 // TODO DRAW DROPDOWNS BASED ON MODES FOUND IN CAMERACONNECTION.CPP during initialization
-                                for(int i = 0 ; i < AR_PREVIEW_TOTAL_MODES + 1; i++){
-                                    addDropDown(handles, &d.streams[i]);
+                                for (int i = 0; i < AR_PREVIEW_TOTAL_MODES + 1; i++) {
+                                    if (d.streams.find(i) != d.streams.end())
+                                        addDropDown(handles, &d.streams[i]);
                                 }
-                              /*  addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL_LEFT]);
-                                addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL,
-                                            &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
+                                /*  addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL_LEFT]);
+                                  addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL,
+                                              &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
 
-                                addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
-                                addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
-                                addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,
-                                            &d.streams[AR_PREVIEW_AUXILIARY]);
-                                addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY,
-                                            &d.streams[AR_PREVIEW_DISPARITY]);
+                                  addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
+                                  addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
+                                  addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,
+                                              &d.streams[AR_PREVIEW_AUXILIARY]);
+                                  addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY,
+                                              &d.streams[AR_PREVIEW_DISPARITY]);
 
-                                addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
-                                            &d.streams[AR_PREVIEW_POINT_CLOUD]);
-*/
+                                  addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
+                                              &d.streams[AR_PREVIEW_POINT_CLOUD]);
+  */
 
                             }
                         }

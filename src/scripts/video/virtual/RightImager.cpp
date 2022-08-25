@@ -29,7 +29,7 @@ void RightImager::update() {
 
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - start);
-    if ((time_span.count() < 0.015f)){
+    if ((time_span.count() < 0.015f)) {
         return;
     }
     start = std::chrono::steady_clock::now();
@@ -39,6 +39,7 @@ void RightImager::update() {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
+        // Todo On destructor of connected device in sidebar, camPtr is set to nullptr. This function update() should not get called then.
         bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_RIGHT);
 
         if (ret)
@@ -49,7 +50,6 @@ void RightImager::update() {
         free(frame.plane2);
     }
 
-    transformToUISpace();
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
@@ -95,6 +95,7 @@ void RightImager::prepareTextureAfterDecode() {
 
 }
 
+
 void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
@@ -106,9 +107,11 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         src = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.playbackStatus;
 
+
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
+        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float) renderData.height);
 
         switch (uiHandle.keypress) {
             case GLFW_KEY_M:
@@ -117,24 +120,29 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
             case GLFW_KEY_N:
                 speed += 0.01;
                 break;
+
         }
 
 
-        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float)renderData.height);
         // center of viewing area box.
-
+        // Update the Model if the preview order changes
         //posX =  2*;
 
+
+
         for (auto &dev: *uiHandle.devices) {
+            if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder) {
+                transformToUISpace(uiHandle, dev);
+
+                prepareTextureAfterDecode();
+            }
+            prevOrder = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder;
+
             if (dev.cameraName == "Virtual Camera" && !model->draw) {
-
                 camHandle->camPtr->start(src, AR_PREVIEW_VIRTUAL_RIGHT);
-                posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
-                posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
-                posYMin = -1.0f + 2*(75.0f  / (float) renderData.height);
-                posYMax = -1.0f + 2*((75.0f + 300.0f + ((float)renderData.height * 0.1f)) / (float) renderData.height);
-                // left anchor
+                transformToUISpace(uiHandle, dev);
+
                 prepareTextureAfterDecode();
 
 
@@ -145,14 +153,15 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 
-void RightImager::transformToUISpace(){
+void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+    posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
+    posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
+    int order = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder;
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
 
-    int width = 1280;
-    int height = 720;
-
-    //scaleHorizontal = renderData.width / width;
-    //scaleVertical = renderData.height / height;
+    posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
+    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
 
 }
 

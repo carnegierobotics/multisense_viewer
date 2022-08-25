@@ -18,6 +18,7 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     DefaultPreview() {
+        s_bRegistered;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DefaultPreview>(); }
@@ -46,20 +47,24 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
+    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
-
+    float posY = 0.0f;
+    float posXMin = 0.0f;
+    float posXMax = 0.0f;
+    float posYMin = 0.0f;
+    float posYMax = 0.0f;
+    float speed = 1.0f;
+    int prevOrder = 0;
     std::string src = "source";
     CameraPlaybackFlags playbackSate;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    float posX{}, posY{}, posZ{};
-
-
+    /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
+    void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);
 
 };
-template bool RegisteredInFactory<DefaultPreview>::s_bRegistered;
-
 
 
 #endif //MULTISENSE_DEFAULTPREVIEW_H

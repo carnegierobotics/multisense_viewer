@@ -287,7 +287,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
      */
 
     switch (model->modelType) {
-        case AR_CAMERA_DATA_COLOR_IMAGE:
+        case AR_CAMERA_DATA_IMAGE:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
@@ -406,7 +406,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std:
 void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
     switch (pModel->modelType) {
-        case AR_CAMERA_DATA_COLOR_IMAGE:
+        case AR_CAMERA_DATA_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},

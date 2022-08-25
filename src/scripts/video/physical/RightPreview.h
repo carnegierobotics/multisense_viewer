@@ -45,9 +45,13 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
 
     CRLCameraModels::Model* model;
-
-    int count = 1;
-    float up = 4.0f;
+    float posY = 0.0f;
+    float posXMin = 0.0f;
+    float posXMax = 0.0f;
+    float posYMin = 0.0f;
+    float posYMax = 0.0f;
+    int prevOrder = 0;
+    bool coordinateTransformed = false;
     void *selection = (void *) "0";
     std::string src;
     CameraPlaybackFlags playbackSate;
@@ -55,8 +59,8 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    float posX, posY, posZ;
-
+    /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
+    void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);
 };
 
 

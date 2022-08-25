@@ -13,7 +13,7 @@ void RightImager::setup(Base::Render r) {
      * Create and load Mesh elements
      */
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
     // Don't draw it before we create the texture in update()
     model->draw = false;
     this->camHandle = r.crlCamera->get();

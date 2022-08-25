@@ -73,8 +73,8 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             AR::StreamingModes virtualCam{};
             virtualCam.name = "1. Virtual Left";
             virtualCam.sources.emplace_back("rowbot_short.mpg");
-            virtualCam.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
             virtualCam.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
+            virtualCam.sources.emplace_back("jeep_disparity.mp4");
 
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL_LEFT;
             std::string modeName = "1920x1080";
@@ -86,7 +86,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             AR::StreamingModes virtualRight{};
             virtualRight.name = "2. Virtual Right";
             virtualRight.sources.emplace_back("rowbot_short.mpg");
-            virtualRight.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
             virtualRight.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
             virtualRight.streamIndex = AR_PREVIEW_VIRTUAL_RIGHT;
             modeName = "1920x1080";
@@ -98,7 +97,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             aux.name = "3. Virtual Auxiliary";
             aux.sources.emplace_back("rowbot_short.mpg");
             aux.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
-            aux.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
             aux.streamIndex = AR_PREVIEW_VIRTUAL_AUX;
             modeName = "1920x1080";
             aux.modes.emplace_back(modeName);

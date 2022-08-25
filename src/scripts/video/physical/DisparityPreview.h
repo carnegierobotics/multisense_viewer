@@ -46,17 +46,23 @@ public:
 
     int count = 1;
     void *selection = (void *) "0";
-    std::string src;
-    CameraPlaybackFlags playbackSate;
-    float posX, posY, posZ;
+    float up = -1.3f;
+    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
-
-    float up = 3.6f;
+    float posY = 0.0f;
+    float posXMin = 0.0f;
+    float posXMax = 0.0f;
+    float posYMin = 0.0f;
+    float posYMax = 0.0f;
+    float speed = 1.0f;
+    int prevOrder = 0;
+    std::string src = "source";
+    CameraPlaybackFlags playbackSate;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    void createRenderResource(CRLPhysicalCamera *pCamera);
+    /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
+    void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);
 };
-
 
 #endif //MULTISENSE_PREVIEWBAR_H

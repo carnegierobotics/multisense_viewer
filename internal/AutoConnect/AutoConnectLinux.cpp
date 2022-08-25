@@ -214,7 +214,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
 // Set the host ip address to the same subnet but with *.1 at the end.
     std::string hostAddress = address;
     std::string last_element(hostAddress.substr(hostAddress.rfind(".")));
-    auto ptr = hostAddress.rfind(".");
+    auto ptr = hostAddress.rfind('.');
     hostAddress.replace(ptr, last_element.length(), ".2");
     Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to: {}", hostAddress.c_str());
 

@@ -55,7 +55,7 @@ public:
         crl::multisense::system::DeviceInfo info;
         ptr->getDeviceInfo(info);
         Log::Logger::getInstance()->info(
-                "AUTOCONNECT: Found Camera on IP: %s, using Adapter: %s, adapter long name: %s, Camera returned name %s",
+                "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
                 result.cameraIpv4Address.c_str(), result.networkAdapter.c_str(), result.networkAdapterLongName.c_str(),
                 info.name.c_str());
 
@@ -190,8 +190,6 @@ public:
                     // Set the IP according to which profile is set.
                     if (strcmp(selectedVal, "Virtual Camera") == 0){
                         inputIP = "Local Ip";
-                    } else {
-                        inputIP = "10.66.171.21";
                     }
 
                     btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));

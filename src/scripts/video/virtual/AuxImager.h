@@ -64,12 +64,7 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    static void *decode(void *arg);
-
-
     void prepareTextureAfterDecode();
-
-    int childProcessDecode();
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
     void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);

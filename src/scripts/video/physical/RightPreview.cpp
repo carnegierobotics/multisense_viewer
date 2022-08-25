@@ -7,7 +7,7 @@
 
 void RightPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
@@ -22,7 +22,6 @@ void RightPreview::setup(Base::Render r) {
 
 
 void RightPreview::update(CameraConnection *conn) {
-
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -30,17 +29,21 @@ void RightPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw) {
+    if (!model->draw && coordinateTransformed) {
         auto imgConf = camera->getCameraInfo().imgConf;
+
 
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
+
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
         model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
-        auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
+
+        //auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
 
         // Load shaders
@@ -48,7 +51,7 @@ void RightPreview::update(CameraConnection *conn) {
         VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
-        // Create a quad and store it locally on the GPU
+        // Create quad and store it locally on the GPU
         model->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
                                      imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
 
@@ -60,19 +63,17 @@ void RightPreview::update(CameraConnection *conn) {
     }
 
     if (model->draw) {
-        crl::multisense::image::Header *disp;
-        camera->getCameraStream(src, disp);
+        auto* image = new crl::multisense::image::Header();
+        camera->getCameraStream(src, image);
+        model->setGrayscaleTexture(image);
 
-        model->setGrayscaleTexture(disp);
-
+        delete image;
     }
 
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-
-    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
-    mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -88,20 +89,9 @@ void RightPreview::update(CameraConnection *conn) {
 
 
 void RightPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
-    posX = uiHandle.sliderOne;
-    posY = uiHandle.sliderTwo;
-    posZ = uiHandle.sliderThree;
-
-    if (uiHandle.keypress == GLFW_KEY_I) {
-        up += 0.1;
-    }
-    if (uiHandle.keypress == GLFW_KEY_K) {
-        up -= 0.1;
-    }
 
     for (const auto &dev: *uiHandle.devices) {
-        if (dev.button)
-            model->draw = false;
+
         if (dev.streams.find(AR_PREVIEW_RIGHT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
@@ -109,7 +99,47 @@ void RightPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         playbackSate = dev.streams.find(AR_PREVIEW_RIGHT)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
 
+
     }
+
+    if (playbackSate == AR_PREVIEW_PLAYING) {
+        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        // center of viewing area box.
+
+        //posX =  2*;
+
+        for (auto &dev: *uiHandle.devices) {
+            if (prevOrder != dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder) {
+                transformToUISpace(uiHandle, dev);
+
+            }
+            prevOrder = dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder;
+
+            if (!model->draw && !coordinateTransformed) {
+                renderData.crlCamera->get()->camPtr->start(src, AR_PREVIEW_RIGHT);
+
+                transformToUISpace(uiHandle, dev);
+                coordinateTransformed = true;
+
+            }
+        }
+    }
+
+
+    //printf("Pos %f, %f, %f\n", posX, posY, posZ);
+
+}
+
+void RightPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+    posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
+    posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
+
+    int order = dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder;
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
+
+    posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
+    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
+
 }
 
 
@@ -118,3 +148,4 @@ void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }
+

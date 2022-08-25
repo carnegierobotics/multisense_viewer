@@ -15,7 +15,7 @@ typedef enum CRLCameraDataType {
     AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
     AR_COLOR_IMAGE,
-    CrlNone, AR_DISPARITY_IMAGE, AR_CAMERA_DATA_COLOR_IMAGE
+    CrlNone, AR_DISPARITY_IMAGE, AR_CAMERA_DATA_IMAGE
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {

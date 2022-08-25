@@ -7,7 +7,7 @@
 
 void DefaultPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_COLOR_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
@@ -33,7 +33,7 @@ void DefaultPreview::update(CameraConnection *conn) {
     assert(camera != nullptr);
 
 
-    if (!model->draw) {
+    if (!model->draw && coordinateTransformed) {
         auto imgConf = camera->getCameraInfo().imgConf;
 
 
@@ -45,7 +45,9 @@ void DefaultPreview::update(CameraConnection *conn) {
 
         model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
-        auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
+
+        //auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
 
         // Load shaders
@@ -65,7 +67,7 @@ void DefaultPreview::update(CameraConnection *conn) {
     }
 
     if (model->draw) {
-        crl::multisense::image::Header* image = new crl::multisense::image::Header();
+        auto* image = new crl::multisense::image::Header();
         camera->getCameraStream(src, image);
         model->setGrayscaleTexture(image);
 
@@ -75,8 +77,7 @@ void DefaultPreview::update(CameraConnection *conn) {
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(2.3, up, -5));
-    mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -92,33 +93,67 @@ void DefaultPreview::update(CameraConnection *conn) {
 
 
 void DefaultPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
-    posX = uiHandle.sliderOne;
-    posY = uiHandle.sliderTwo;
-    posZ = uiHandle.sliderThree;
-
-    if (uiHandle.keypress == GLFW_KEY_I){
-        up += 0.1;
-    }
-    if (uiHandle.keypress == GLFW_KEY_K){
-        up -= 0.1;
-    }
 
     for (const auto &dev: *uiHandle.devices) {
-        if (dev.button)
-            model->draw = false;
 
         if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
-        std::string s =  dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
-        src = s;
+        src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
 
+
+    }
+
+    if (playbackSate == AR_PREVIEW_PLAYING) {
+
+        switch (uiHandle.keypress) {
+            case GLFW_KEY_M:
+                speed -= 0.01;
+                break;
+            case GLFW_KEY_N:
+                speed += 0.01;
+                break;
+        }
+
+
+        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float)renderData.height);
+        // center of viewing area box.
+
+        //posX =  2*;
+
+        for (auto &dev: *uiHandle.devices) {
+            if (prevOrder != dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder) {
+                transformToUISpace(uiHandle, dev);
+
+            }
+            prevOrder = dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder;
+
+            if (!model->draw && !coordinateTransformed) {
+                renderData.crlCamera->get()->camPtr->start(src, AR_PREVIEW_LEFT);
+
+                transformToUISpace(uiHandle, dev);
+                coordinateTransformed = true;
+
+            }
+        }
     }
 
 
     //printf("Pos %f, %f, %f\n", posX, posY, posZ);
+
+}
+
+void DefaultPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+    posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
+    posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
+
+    int order = dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder;
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
+
+    posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
+    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
 
 }
 

@@ -57,8 +57,8 @@ public:
     float posYMin = 0.0f;
     float posYMax = 0.0f;
     float speed = 1.0f;
-    float scaleHorizontal = 1.0f;
-    float scaleVertical = 1.0f;
+    int prevOrder = 0;
+
 
     std::chrono::steady_clock::time_point start, end;
 
@@ -71,7 +71,8 @@ public:
 
     int childProcessDecode();
 
-    void transformToUISpace();
+    /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
+    void transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev);
 };
 
 

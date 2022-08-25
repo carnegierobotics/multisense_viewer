@@ -70,6 +70,7 @@ public:
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         std::vector<UniformBufferSet> uniformBuffers;
 
+
     } renderUtils;
 
     struct Render {
@@ -82,7 +83,7 @@ public:
         std::string scriptName;
         std::unique_ptr<CameraConnection> *crlCamera = nullptr;
         ScriptType type;
-        std::vector<AR::Element> gui;
+        const std::vector<AR::Element> *gui;
         Log::Logger *pLogger;
 
         uint32_t height;
@@ -191,12 +192,12 @@ public:
         }
     }
 
-    void createUniformBuffers(RenderUtils utils, Base::Render rData) {
+    void createUniformBuffers(const RenderUtils& utils, Base::Render rData) {
         if (this->getType() == AR_SCRIPT_TYPE_DISABLED)
             return;
         renderData = std::move(rData);
 
-        renderUtils = std::move(utils);
+        renderUtils = utils;
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
 
         startTime = std::chrono::steady_clock::now();

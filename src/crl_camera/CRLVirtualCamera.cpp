@@ -72,7 +72,8 @@ void CRLVirtualCamera::stop(std::string dataSourceStr) {
 void CRLVirtualCamera::stop(StreamIndex parent) {
     auto it = parentKeyMap.find(parent);
     if (it == parentKeyMap.end()) {
-        Log::Logger::getInstance()->info("Tried to stop decode stream with a parent key that was not used to start the stream");
+        Log::Logger::getInstance()->info(
+                "Tried to stop decode stream with a parent key that was not used to start the stream");
         return;
     }
 
@@ -508,8 +509,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
                     SetEvent(instance->notEmpty);
 
 #else
-                    if (sequenceNumber > 10)
-                        sem_post(&instance->container[idx].notEmpty);
+                    sem_post(&instance->container[idx].notEmpty);
 #endif
                     //instance->saveFrameYUV420P(frame, frame->width, frame->height, ctx_codec->frame_number);
 

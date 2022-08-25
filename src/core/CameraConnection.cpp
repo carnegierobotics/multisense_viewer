@@ -72,8 +72,10 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
             AR::StreamingModes virtualCam{};
             virtualCam.name = "1. Virtual Left";
-            virtualCam.sources.emplace_back("pixels.mp4");
             virtualCam.sources.emplace_back("rowbot_short.mpg");
+            virtualCam.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
+            virtualCam.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
+
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL_LEFT;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);
@@ -81,26 +83,38 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_LEFT] = virtualCam;
 
-            AR::StreamingModes virutalPC{};
-            virutalPC.name = "2. Virtual Point cloud";
-            virutalPC.sources.emplace_back("depth");
-            virutalPC.streamIndex = AR_PREVIEW_POINT_CLOUD_VIRTUAL;
-            modeName = "1920x1080";
-            virutalPC.modes.emplace_back(modeName);
-            virutalPC.selectedStreamingMode = virutalPC.modes.front();
-            virutalPC.selectedStreamingSource = virutalPC.sources.front();
-            dev.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL] = virutalPC;
-
             AR::StreamingModes virtualRight{};
-            virtualRight.name = "3. Virtual Right";
-            virtualRight.sources.emplace_back("pixels.mp4");
+            virtualRight.name = "2. Virtual Right";
             virtualRight.sources.emplace_back("rowbot_short.mpg");
+            virtualRight.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
+            virtualRight.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
             virtualRight.streamIndex = AR_PREVIEW_VIRTUAL_RIGHT;
             modeName = "1920x1080";
             virtualRight.modes.emplace_back(modeName);
             virtualRight.selectedStreamingMode = virtualRight.modes.front();
             virtualRight.selectedStreamingSource = virtualRight.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_RIGHT] = virtualRight;
+            AR::StreamingModes aux{};
+            aux.name = "3. Virtual Auxiliary";
+            aux.sources.emplace_back("rowbot_short.mpg");
+            aux.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
+            aux.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
+            aux.streamIndex = AR_PREVIEW_VIRTUAL_AUX;
+            modeName = "1920x1080";
+            aux.modes.emplace_back(modeName);
+            aux.selectedStreamingMode = aux.modes.front();
+            aux.selectedStreamingSource = aux.sources.front();
+            dev.streams[AR_PREVIEW_VIRTUAL_AUX] = aux;
+
+            AR::StreamingModes virutalPC{};
+            virutalPC.name = "4. Virtual Point cloud";
+            virutalPC.sources.emplace_back("depth");
+            virutalPC.streamIndex = AR_PREVIEW_VIRTUAL_POINT_CLOUD;
+            modeName = "1920x1080";
+            virutalPC.modes.emplace_back(modeName);
+            virutalPC.selectedStreamingMode = virutalPC.modes.front();
+            virutalPC.selectedStreamingSource = virutalPC.sources.front();
+            dev.streams[AR_PREVIEW_VIRTUAL_POINT_CLOUD] = virutalPC;
 
 
             Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");

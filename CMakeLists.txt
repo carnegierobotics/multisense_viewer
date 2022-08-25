@@ -129,6 +129,8 @@ set(ENGINE_SRC
         src/scripts/video/virtual/LeftImager.h
         src/scripts/video/virtual/RightImager.cpp
         src/scripts/video/virtual/RightImager.h
+        src/scripts/video/virtual/AuxImager.cpp
+        src/scripts/video/virtual/AuxImager.h
         src/tools/Macros.h
         src/tools/Populate.h
         src/tools/Utils.h

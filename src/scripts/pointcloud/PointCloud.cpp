@@ -12,7 +12,7 @@ void PointCloud::setup(Base::Render r) {
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
-    for (auto dev: r.gui) {
+    for (auto dev: *r.gui) {
         if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end()  || dev.state != AR_STATE_ACTIVE )
             continue;
 
@@ -39,9 +39,7 @@ void PointCloud::update(CameraConnection *conn) {
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
-        renderUtils.shaders = shaders;
-
-        CRLCameraModels::createRenderPipeline(renderUtils, renderUtils.shaders, model, type);
+        CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
         auto *buf = (PointCloudParam *) bufferThreeData;
         buf->kInverse = camPtr->getCameraInfo().kInverseMatrix;

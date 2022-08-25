@@ -1,9 +1,10 @@
 //
-// Created by magnus on 6/27/22.
+// Created by magnus on 8/25/22.
 //
 
-#ifndef MULTISENSE_VIEWER_LEFTIMAGER_H
-#define MULTISENSE_VIEWER_LEFTIMAGER_H
+
+#ifndef MULTISENSE_VIEWER_AUXIMAGER_H
+#define MULTISENSE_VIEWER_AUXIMAGER_H
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
@@ -12,22 +13,22 @@
 #include "MultiSense/src/Renderer/Renderer.h"
 
 
-class LeftImager : public Base, public RegisteredInFactory<LeftImager>, CRLCameraModels {
+class AuxImager : public Base, public RegisteredInFactory<AuxImager>, CRLCameraModels {
 
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    LeftImager() {
+    AuxImager() {
         s_bRegistered;
     }
 
-    ~LeftImager();
+    ~AuxImager();
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<LeftImager>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<AuxImager>(); }
 
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "LeftImager"; }
+    static std::string GetFactoryName() { return "AuxImager"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
@@ -50,7 +51,7 @@ public:
     uint32_t width = 0, height = 0;
     std::string src;
     CameraPlaybackFlags playbackSate;
-    CameraConnection* camHandle{};
+    CameraConnection* camHandle;
     float posY = 0.0f;
     float posXMin = 0.0f;
     float posXMax = 0.0f;
@@ -75,4 +76,4 @@ public:
 };
 
 
-#endif //MULTISENSE_VIEWER_LEFTIMAGER_H
+#endif //MULTISENSE_VIEWER_AUXIMAGER_H

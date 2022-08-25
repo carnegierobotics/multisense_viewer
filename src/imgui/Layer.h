@@ -11,6 +11,7 @@
 #include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include "imgui.h"
 #include <array>
+#include "map"
 
 namespace AR {
 
@@ -38,6 +39,7 @@ namespace AR {
         ImTextureID imageButtonTextureDescriptor[9];
 
         float viewAreaElementPositionsY[9] = {0};
+        float viewAreaElementSizeY = {0};
 
         std::unordered_map<ImageElementIndex, ArEngine::ImageElement> img;
 
@@ -79,7 +81,8 @@ namespace AR {
         CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
         /** @brief Current camera streaming state  */
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-
+        /** @brief In which order is this streaming mode presented in the viewing area  */
+        uint32_t streamingOrder = 0;
         /** @brief Camera streaming modes  */
         std::vector<std::string> modes;
         /** @brief Camera streaming sources  */
@@ -108,7 +111,7 @@ namespace AR {
         /** @brief Current connection state for this device */
         ArConnectionState state;
 
-        std::unordered_map<int, StreamingModes> streams;
+        std::map<int, StreamingModes> streams;
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         /** @brief  Showing point cloud view*/

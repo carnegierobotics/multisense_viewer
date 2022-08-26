@@ -161,13 +161,17 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
         case crl::multisense::Source_Disparity_Left:
             tex->type = AR_DISPARITY_IMAGE;
             break;
+        case crl::multisense::Source_Unknown:
+            Log::Logger::getInstance()->info("Could not get camera stream. Source unknown");
+            return false;
         default:
             tex->type = AR_GRAYSCALE_IMAGE;
     }
 
 
     auto header = imagePointers[src];
-    if (header.imageDataP != nullptr) {
+    // TODO Fix with proper conditions
+    if (header.imageDataP != nullptr && header.imageLength != 0 && header.imageLength < 11520000) {
         tex->data = (void *) header.imageDataP;
         tex->len = header.imageLength;
         return true;

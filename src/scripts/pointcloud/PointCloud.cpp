@@ -13,19 +13,33 @@ void PointCloud::setup(Base::Render r) {
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
     for (auto dev: *r.gui) {
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end()  || dev.state != AR_STATE_ACTIVE )
+        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
         auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Disparity Left");
     }
 
+    const int vertexCount = 960 * 600;
+    meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
+
+    int v = 0;
+    for (int i = 0; i < 960; ++i) {
+        for (int j = 0; j < 600; ++j) {
+            meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
+            meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float) j / 600.0f));
+            v++;
+        }
+    }
+
+    model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
 
 }
 
 
 void PointCloud::update(CameraConnection *conn) {
-    if (playbackSate != AR_PREVIEW_PLAYING && TAB_3D_POINT_CLOUD == selectedPreviewTab) return;
+    if (playbackSate != AR_PREVIEW_PLAYING || TAB_3D_POINT_CLOUD != selectedPreviewTab)
+        return;
     CRLBaseInterface *camPtr = conn->camPtr;
 
     if (model->draw == false) {
@@ -45,39 +59,24 @@ void PointCloud::update(CameraConnection *conn) {
         buf->kInverse = camPtr->getCameraInfo().kInverseMatrix;
         buf->height = static_cast<float>(imgConf.height());
         buf->width = static_cast<float>(imgConf.width());
-        std::cout << glm::to_string( buf->kInverse) << std::endl;
+        std::cout << glm::to_string(buf->kInverse) << std::endl;
         model->draw = true;
 
     }
 
 
     if (model->draw) {
-        //CRLBaseCamera::PointCloudData *meshData = camera->getStream();
-        crl::multisense::image::Header disp;
-        //camPtr->getCameraStream(nullptr);
-        model->setGrayscaleTexture(&disp);
+        ArEngine::TextureData *tex = new ArEngine::TextureData();
+        if (camPtr->getCameraStream(src, tex))
+            model->setGrayscaleTexture(tex);
+        delete tex;
 
-        const int vertexCount = 960 * 600;
-        auto *meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
-
-        int v = 0;
-        for (int i = 0; i < 960; ++i) {
-            for (int j = 0; j < 600; ++j) {
-                meshData[v].pos = glm::vec3((float) i / 100.0f, (float) j / 100.0f, 0.0f);
-                meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float) j / 600.0f));
-                v++;
-            }
-        }
-
-        model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
-
-        delete[] meshData;
     }
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -5.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
     auto *d = (UBOMatrix *) bufferOneData;
@@ -102,6 +101,8 @@ void PointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end())
             continue;
 
+        src = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second.selectedStreamingSource;
+
         playbackSate = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
     }
@@ -112,4 +113,9 @@ void PointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_3D_POINT_CLOUD)
         CRLCameraModels::draw(commandBuffer, i, model);
+}
+
+PointCloud::~PointCloud(){
+
+    delete[] meshData;
 }

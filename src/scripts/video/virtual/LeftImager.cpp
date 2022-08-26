@@ -96,17 +96,16 @@ void LeftImager::prepareTextureAfterDecode() {
 
 
 void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+    bool found = false;
     for (const auto &dev: *uiHandle.devices) {
-        if (dev.button)
-            model->draw = false;
-
         if (dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
-
         src = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.selectedStreamingSource;
         playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.playbackStatus;
-
+        found = true;
     }
+    if (!found)
+        return;
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
@@ -126,6 +125,9 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         //posX =  2*;
 
         for (auto &dev: *uiHandle.devices) {
+            if (dev.state != AR_STATE_ACTIVE)
+                continue;
+
             if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
                 prepareTextureAfterDecode();

@@ -67,6 +67,8 @@ public:
         VulkanDevice *device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
+
+        // TODO Some error happening on destruction on these vectors. Identify or made change to use pointers and free the later
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         std::vector<UniformBufferSet> uniformBuffers;
 
@@ -77,7 +79,7 @@ public:
         uint32_t index;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
-        bool finishedSetup = false;
+        bool drawThisScript = false;
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
@@ -115,19 +117,25 @@ public:
     virtual void onUIUpdate(AR::GuiObjectHandles uiHandle) = 0;
 
     void uiUpdate(AR::GuiObjectHandles uiHandle) {
+        auto p = this->renderData;
 
-        if (renderData.finishedSetup)
-            onUIUpdate(uiHandle);
+        if (!this->renderData.drawThisScript)
+            return;
 
+        for (auto &dev: *uiHandle.devices) {
+            if (dev.state == AR_STATE_ACTIVE) {
+                onUIUpdate(uiHandle);
+            }
+        }
     }
 
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
-    void drawScript(VkCommandBuffer commandBuffer, uint32_t i, ArEngine::DrawDataExt ext) {
+    void drawScript(VkCommandBuffer commandBuffer, uint32_t i) {
 
-        if (!renderData.finishedSetup)
+        if (!renderData.drawThisScript)
             return;
 
         auto time = std::chrono::steady_clock::now();
@@ -135,8 +143,10 @@ public:
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
         if (time_span.count() > 2.0f) {
             lastLogTime = std::chrono::steady_clock::now();
-            renderData.pLogger->info("Draw-count: {} | Script: {} |", renderData.scriptDrawCount, renderData.scriptName.c_str());
+            renderData.pLogger->info("Draw-count: {} | Script: {} |", renderData.scriptDrawCount,
+                                     renderData.scriptName.c_str());
         }
+
 
         draw(commandBuffer, i);
         renderData.scriptDrawCount++;
@@ -192,7 +202,7 @@ public:
         }
     }
 
-    void createUniformBuffers(const RenderUtils& utils, Base::Render rData) {
+    void createUniformBuffers(const RenderUtils &utils, Base::Render rData) {
         if (this->getType() == AR_SCRIPT_TYPE_DISABLED)
             return;
         renderData = std::move(rData);
@@ -229,12 +239,13 @@ public:
 
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
-        if (getType() == AR_SCRIPT_TYPE_CRL_CAMERA || getType() == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY || getType() == AR_SCRIPT_TYPE_POINT_CLOUD)
+        if (getType() == AR_SCRIPT_TYPE_CRL_CAMERA || getType() == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY ||
+            getType() == AR_SCRIPT_TYPE_POINT_CLOUD)
             setup(renderData);
         else
             setup();
 
-        renderData.finishedSetup = true;
+        renderData.drawThisScript = true;
     }
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo

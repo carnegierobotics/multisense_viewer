@@ -126,6 +126,8 @@ void AuxImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         //posX =  2*;
 
         for (auto &dev: *uiHandle.devices) {
+            if (dev.state != AR_STATE_ACTIVE)
+                continue;
             if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
                 prepareTextureAfterDecode();

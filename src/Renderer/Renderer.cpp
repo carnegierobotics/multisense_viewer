@@ -78,7 +78,7 @@ void Renderer::buildCommandBuffers() {
 
         for (auto &script: scripts) {
             if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
-                script.second->drawScript(drawCmdBuffers[i], i, drawDataExt);
+                script.second->drawScript(drawCmdBuffers[i], i);
             }
         }
         guiManager->drawFrame(drawCmdBuffers[i]);
@@ -181,43 +181,41 @@ void Renderer::render() {
     // Create/delete scripts after use
     buildScript("LightSource");
 
-    // Run update function on active camera scripts
+    // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
-        if (dev.state != AR_STATE_ACTIVE)
-            continue;
-
-        for (const auto &i: dev.streams) {
-            if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
-                switch (i.second.streamIndex) {
-                    case AR_PREVIEW_LEFT:
-                        buildScript("DefaultPreview");
-                        break;
-                    case AR_PREVIEW_RIGHT:
-                        buildScript("RightPreview");
-                        break;
-                    case AR_PREVIEW_DISPARITY:
-                        buildScript("DisparityPreview");
-                        break;
-                    case AR_PREVIEW_AUXILIARY:
-                        buildScript("AuxiliaryPreview");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_LEFT:
-                        buildScript("LeftImager");
-                        break;
-                    case AR_PREVIEW_POINT_CLOUD:
-                        buildScript("PointCloud");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
-                        buildScript("VirtualPointCloud");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_RIGHT:
-                        buildScript("RightImager");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_AUX:
-                        buildScript("AuxImager");
-                        break;
+            for (const auto &i: dev.streams) {
+                if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
+                    switch (i.second.streamIndex) {
+                        case AR_PREVIEW_LEFT:
+                            buildScript("DefaultPreview");
+                            break;
+                        case AR_PREVIEW_RIGHT:
+                            buildScript("RightPreview");
+                            break;
+                        case AR_PREVIEW_DISPARITY:
+                            buildScript("DisparityPreview");
+                            break;
+                        case AR_PREVIEW_AUXILIARY:
+                            buildScript("AuxiliaryPreview");
+                            break;
+                        case AR_PREVIEW_VIRTUAL_LEFT:
+                            buildScript("LeftImager");
+                            break;
+                        case AR_PREVIEW_POINT_CLOUD:
+                            buildScript("PointCloud");
+                            break;
+                        case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
+                            buildScript("VirtualPointCloud");
+                            break;
+                        case AR_PREVIEW_VIRTUAL_RIGHT:
+                            buildScript("RightImager");
+                            break;
+                        case AR_PREVIEW_VIRTUAL_AUX:
+                            buildScript("AuxImager");
+                            break;
+                    }
                 }
-            }
+
 
             if (i.second.playbackStatus == AR_PREVIEW_NONE) {
                 switch (i.second.streamIndex) {
@@ -251,7 +249,6 @@ void Renderer::render() {
                 }
             }
         }
-
     }
 
 
@@ -264,7 +261,8 @@ void Renderer::render() {
 
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {
-        script.second->uiUpdate(guiManager->handles);
+        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
+            script.second->uiUpdate(guiManager->handles);
     }
 
     // Generate draw commands

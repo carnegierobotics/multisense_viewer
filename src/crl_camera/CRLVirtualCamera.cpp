@@ -237,49 +237,11 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame, StreamIndex pa
 }
 
 
-void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
-    /*
-    pauseThread = false;
-    assert(stream != nullptr);
-
-    //sem_wait(&notEmpty);
-    auto *str = stream;
-
-    auto *yuv420pBuffer = (uint8_t *) malloc(bufferSize);
-    str->imageDataP = malloc(bufferSize);
-
-    if (videoFrame->coded_picture_number > 593) // TODO REMOVE MAGIC NUMBER
-        return;
-
-    uint32_t size = videoFrame[0].width * videoFrame[0].height;
-    memcpy(yuv420pBuffer, videoFrame[0].data[0], size);
-    memcpy(yuv420pBuffer + size, videoFrame[0].data[1], (videoFrame[0].width * videoFrame[0].height) / 2);
-
-    uint32_t totalSize = size + (videoFrame[0].width * videoFrame[0].height) / 2;
-
-    memcpy((void *) str->imageDataP, yuv420pBuffer, totalSize);
-
-    free(yuv420pBuffer);
-
-    str->imageLength = (uint32_t) bufferSize;
-    str->frameId = frameIndex;
-    str->width = videoFrame[0].width;
-    str->height = videoFrame[0].height;
-
-    frameIndex++;
-    if (frameIndex == 5)
-        frameIndex = 0;
-
-    //sem_post(&notFull);
-
-     */
-}
-
 
 // TODO COMPLETE IMPLEMENTATION
 bool CRLVirtualCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 
-
+    return false;
 }
 
 int CRLVirtualCamera::childProcessDecode(uint32_t index) {
@@ -519,7 +481,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
         avformat_free_context(ctx_format);
     }
 
-    //pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
+    pthread_exit((void *) (intptr_t) EXIT_SUCCESS);
 }
 
 void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {

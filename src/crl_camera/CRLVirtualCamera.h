@@ -51,7 +51,6 @@ public:
 
     CameraInfo getCameraInfo() override;
 
-    void getCameraStream(crl::multisense::image::Header *stream) override;
     bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) override;
     bool getCameraStream(ArEngine::YUVTexture *tex) override;
 

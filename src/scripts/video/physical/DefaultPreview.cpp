@@ -40,8 +40,8 @@ void DefaultPreview::update(CameraConnection *conn) {
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
 
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
+        vertexShaderFileName = "myScene/spv/preview.vert";
+        fragmentShaderFileName = "myScene/spv/preview.frag";
 
         model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
@@ -123,6 +123,9 @@ void DefaultPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         //posX =  2*;
 
         for (auto &dev: *uiHandle.devices) {
+            if (dev.state != AR_STATE_ACTIVE)
+                continue;
+
             if (prevOrder != dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
                 model->draw = false;
@@ -149,8 +152,6 @@ void DefaultPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Eleme
     posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
-
-
     if (!Utils::findValIfExists(dev.streams, AR_PREVIEW_LEFT)){
 
     }
@@ -168,4 +169,15 @@ void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 
+}
+
+void DefaultPreview::onWindowResize(AR::GuiObjectHandles uiHandle) {
+    for (auto &dev: *uiHandle.devices) {
+        if (dev.state != AR_STATE_ACTIVE)
+            continue;
+
+        transformToUISpace(uiHandle, dev);
+        model->draw = false;
+        coordinateTransformed = true;
+    }
 }

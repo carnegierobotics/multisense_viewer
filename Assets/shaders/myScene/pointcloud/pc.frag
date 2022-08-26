@@ -14,6 +14,6 @@ layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 void main()
 {
 
-    outColor = vec4(0.5, 0.5, 0.5, 1.0);
+    outColor = vec4(0.5, 0.5, 0.5, 0.5);
 
 }

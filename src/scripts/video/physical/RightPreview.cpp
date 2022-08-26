@@ -36,8 +36,8 @@ void RightPreview::update(CameraConnection *conn) {
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
 
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
+        vertexShaderFileName = "myScene/spv/preview.vert";
+        fragmentShaderFileName = "myScene/spv/preview.frag";
 
         model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
@@ -151,3 +151,13 @@ void RightPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
 }
 
+void RightPreview::onWindowResize(AR::GuiObjectHandles uiHandle) {
+    for (auto &dev: *uiHandle.devices) {
+        if (dev.state != AR_STATE_ACTIVE)
+            continue;
+
+        transformToUISpace(uiHandle, dev);
+        model->draw = false;
+        coordinateTransformed = true;
+    }
+}

@@ -486,6 +486,7 @@ void VulkanRenderer::windowResize() {
     if ((width > 0.0f) && (height > 0.0f)) {
         camera.updateAspectRatio((float) width / (float) height);
     }
+    pLogger->info("Window Resized. New size is: {} x {}", width, height);
 
     // Notify derived class
     windowResized();

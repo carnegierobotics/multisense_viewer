@@ -163,6 +163,8 @@ namespace AR {
 
         ArEngine::MouseButtons mouseBtns;
 
+        float accumulatedMouseScroll = 0.0f;
+
         float sliderOne = -1.77f;
         float sliderTwo = 0.986f;
         float sliderThree = -0.718;

@@ -63,11 +63,10 @@ void RightPreview::update(CameraConnection *conn) {
     }
 
     if (model->draw) {
-        auto* image = new crl::multisense::image::Header();
-        camera->getCameraStream(src, image);
-        model->setGrayscaleTexture(image);
-
-        delete image;
+        ArEngine::TextureData *tex = new ArEngine::TextureData();
+        if (camera->getCameraStream(src, tex))
+            model->setGrayscaleTexture(tex);
+        delete tex;
     }
 
 
@@ -103,7 +102,7 @@ void RightPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
-        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
         // center of viewing area box.
 
         //posX =  2*;
@@ -111,7 +110,8 @@ void RightPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         for (auto &dev: *uiHandle.devices) {
             if (prevOrder != dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
-
+                model->draw = false;
+                coordinateTransformed = true;
             }
             prevOrder = dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder;
 
@@ -135,7 +135,7 @@ void RightPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
     int order = dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder;
-    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedMouseScroll;
 
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor

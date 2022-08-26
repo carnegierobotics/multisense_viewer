@@ -111,7 +111,7 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
-        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float) renderData.height);
+        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
 
         switch (uiHandle.keypress) {
             case GLFW_KEY_M:

@@ -93,6 +93,10 @@ public:
         void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
 
         void setColorTexture(ArEngine::MP4Frame* frame);
+
+        void setColorTexture(ArEngine::YUVTexture tex);
+
+        void setGrayscaleTexture(ArEngine::TextureData *tex);
     };
 
     /**@brief Primitive for a surface */

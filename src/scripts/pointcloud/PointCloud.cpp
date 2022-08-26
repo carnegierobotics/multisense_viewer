@@ -54,7 +54,7 @@ void PointCloud::update(CameraConnection *conn) {
     if (model->draw) {
         //CRLBaseCamera::PointCloudData *meshData = camera->getStream();
         crl::multisense::image::Header disp;
-        camPtr->getCameraStream("Disparity Left", &disp);
+        //camPtr->getCameraStream(nullptr);
         model->setGrayscaleTexture(&disp);
 
         const int vertexCount = 960 * 600;

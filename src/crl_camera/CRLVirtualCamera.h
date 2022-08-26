@@ -53,7 +53,7 @@ public:
 
     void getCameraStream(crl::multisense::image::Header *stream) override;
     bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) override;
-    void getCameraStream(std::string src, crl::multisense::image::Header *stream, crl::multisense::image::Header **src2) override;
+    bool getCameraStream(ArEngine::YUVTexture *tex) override;
 
 
 private:

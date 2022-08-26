@@ -8,7 +8,9 @@
 #include "glm/glm.hpp"
 #include "imgui.h"
 #include "MultiSense/MultiSenseTypes.hh"
+#include "vulkan/vulkan_core.h"
 
+#define NUM_YUV_DATA_POINTERS 3
 
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
@@ -110,6 +112,18 @@ namespace ArEngine{
         uint32_t height{};
     };
 
+    struct YUVTexture{
+        void *data[NUM_YUV_DATA_POINTERS]{};
+        uint32_t len[NUM_YUV_DATA_POINTERS]{};
+        VkFlags * formats[NUM_YUV_DATA_POINTERS];
+        VkFormat format{};
+    };
+
+    struct TextureData{
+        void *data;
+        uint32_t len;
+        CRLCameraDataType type;
+    };
 
     struct Vertex {
         glm::vec3 pos;

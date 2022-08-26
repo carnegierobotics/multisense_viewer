@@ -66,10 +66,11 @@ void DisparityPreview::update(CameraConnection *conn) {
     }
 
     if (model->draw) {
-        crl::multisense::image::Header *disp;
-        camera->getCameraStream(src, disp);
+        ArEngine::TextureData *tex = new ArEngine::TextureData();
+        if (camera->getCameraStream(src, tex))
+            model->setGrayscaleTexture(tex);
 
-        model->setGrayscaleTexture(disp);
+        delete tex;
 
     }
 
@@ -92,7 +93,6 @@ void DisparityPreview::update(CameraConnection *conn) {
 
 
 void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
-
     for (const auto &dev: *uiHandle.devices) {
 
         if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
@@ -106,7 +106,8 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
-        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+
+        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
         // center of viewing area box.
 
         //posX =  2*;
@@ -114,7 +115,8 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         for (auto &dev: *uiHandle.devices) {
             if (prevOrder != dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
-
+                model->draw = false;
+                coordinateTransformed = true;
             }
             prevOrder = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
 
@@ -138,7 +140,7 @@ void DisparityPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
     int order = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
-    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );
 
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor

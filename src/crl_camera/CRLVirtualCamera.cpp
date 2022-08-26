@@ -277,16 +277,9 @@ void CRLVirtualCamera::getCameraStream(crl::multisense::image::Header *stream) {
 
 
 // TODO COMPLETE IMPLEMENTATION
-void CRLVirtualCamera::getCameraStream(std::string src, crl::multisense::image::Header *stream,
-                                       crl::multisense::image::Header **src2) {
-    stream->source = crl::multisense::Source_Disparity_Left;
-    stream->imageLength = 960 * 600 * sizeof(uint16_t) * 2;
-    stream->imageDataP = malloc(stream->imageLength);
+bool CRLVirtualCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 
-    auto *p = (uint16_t *) stream->imageDataP;
-    for (int i = 0; i <= stream->imageLength / 2; ++i) {
-        p[i] = 127;
-    }
+
 }
 
 int CRLVirtualCamera::childProcessDecode(uint32_t index) {

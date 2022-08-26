@@ -303,13 +303,15 @@ private:
     }
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
-
         /** CREATE VIEWING PREVIEWS **/
         uint32_t previewWindowCount = 0;
         for (auto &d: *handles->devices) {
             if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
+                handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * 20.0f;
+
                 for (auto &stream: d.streams) {
                     if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
+
                         stream.second.streamingOrder = previewWindowCount;
                         ImGui::PushStyleColor(ImGuiCol_WindowBg,
                                               ImVec4(0.034, 0.107, 0.201, 0.05f)); // TODO use named colors
@@ -384,13 +386,12 @@ private:
 
         //TODO remove hardcoded positions and sizes from this function
         if (firstSetup[i]) {
-            handles->info->viewAreaElementPositionsY[i] =
+            handles->info->viewAreaElementPositionsY[i] = handles->accumulatedMouseScroll +
                     75.0f + ((float) i * (320.0f + ((float) handles->info->height * 0.13f)));
-            firstSetup[i] = false;
-            Log::Logger::getInstance()->info("Created preview for {} in order {}", (uint32_t) streamIndex, i);
+            //firstSetup[i] = false;
+            //Log::Logger::getInstance()->info("Created preview for {} in order {}", (uint32_t) streamIndex, i);
 
-        } else
-            handles->info->viewAreaElementPositionsY[i] -= handles->mouseBtns.wheel * 20.0f;
+        }
 
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
                                 ImGuiCond_Always); // TODO REMOVE HARDCODED VALUE

@@ -127,6 +127,37 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 }
 
 
+void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData* tex) {
+
+    if (tex->type == AR_GRAYSCALE_IMAGE){
+        textureVideo.updateTextureFromBuffer(tex);
+    } if (tex->type == AR_DISPARITY_IMAGE){
+
+        auto *p = (uint16_t *) tex->data;
+
+        // Normalize image
+        uint32_t min = 100000, max = 0;
+        for (int i = 0; i < tex->len / 2; ++i) {
+            uint16_t val = p[i];
+            if (val > max)
+                max = val;
+            if (val < min)
+                min = val;
+        }
+
+        for (int i = 0; i < tex->len / 2; ++i) {
+            float intermediate = (float) ((float) p[i] / (float) max) * 65535;
+            p[i] = (uint16_t) intermediate;
+        }
+
+
+        textureVideo.updateTextureFromBuffer(static_cast<void *>(p), tex->len);
+
+    }
+
+
+}
+
 void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header *streamOne) {
     // TODO Make sure the data from StreamOne is good. Dont to validity checking here, do it in CRLPhysicalCamera..
     if (streamOne == nullptr) {
@@ -176,7 +207,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
 }
 
-
+/**@deprecated function*/
 void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *streamOne,
                                              crl::multisense::image::Header *streamTwo) {
     if (streamOne == nullptr || streamTwo == nullptr || streamOne->source < 1)
@@ -194,6 +225,12 @@ void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *str
 
     free(chromaBuffer);
     free(lumaBuffer);
+
+}
+
+void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture tex) {
+
+    textureVideo.updateTextureFromBufferYUV(tex);
 
 }
 

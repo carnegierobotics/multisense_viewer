@@ -47,7 +47,7 @@ void VirtualPointCloud::update(CameraConnection *conn) {
 
 
     crl::multisense::image::Header disp;
-    camPtr->getCameraStream("Depth", &disp);
+    //camPtr->getCameraStream(nullptr);
     model->setGrayscaleTexture(&disp);
 
     free((void *)disp.imageDataP);

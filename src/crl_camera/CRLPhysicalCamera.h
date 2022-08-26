@@ -34,8 +34,9 @@ public:
     void start(std::string string, std::string dataSourceStr) override;
     void stop( std::string dataSourceStr) override;
     void updateCameraInfo() override;
-    void getCameraStream(std::string stringSrc, crl::multisense::image::Header *stream,
-                         crl::multisense::image::Header **stream2 = nullptr) override;
+    bool getCameraStream(ArEngine::YUVTexture *tex) override;
+    bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) override;
+
     CameraInfo getCameraInfo() override;
     void preparePointCloud(uint32_t i, uint32_t i1) override;
 

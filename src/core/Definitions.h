@@ -7,6 +7,7 @@
 
 #include "glm/glm.hpp"
 #include "imgui.h"
+#include "MultiSense/MultiSenseTypes.hh"
 
 
 typedef enum CRLCameraDataType {
@@ -77,6 +78,29 @@ typedef enum ImageElementIndex {
     IMAGE_INTERACTION_CONFIGURE_DEVICE = 3,
     IMAGE_CONFIGURE_DEVICE_PLACEHOLDER = 4,
 } ImageElementIndex;
+
+struct WhiteBalanceParams {
+    float whiteBalanceRed = 1.0f;
+    float whiteBalanceBlue = 1.0f;
+    bool autoWhiteBalance = true;
+    uint32_t autoWhiteBalanceDecay = 3;
+    float autoWhiteBalanceThresh = 0.5f;
+};
+
+struct ExposureParams {
+    bool autoExposure{};
+    uint32_t exposure = 10000;
+    uint32_t autoExposureMax = 5000000;
+    uint32_t autoExposureDecay = 7;
+    float autoExposureTargetIntensity = 0.5f;
+    float autoExposureThresh = 0.9f;
+    uint16_t autoExposureRoiX = 0;
+    uint16_t autoExposureRoiY = 0;
+    uint16_t autoExposureRoiWidth = crl::multisense::Roi_Full_Image;
+    uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
+    crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
+
+};
 
 namespace ArEngine{
     struct VideoTexture {

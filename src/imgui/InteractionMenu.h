@@ -488,6 +488,58 @@ private:
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Configuration")) {
 
+                        bool active = false;
+
+                        active |= ImGui::Checkbox("Auto Exposure", &d.parameters.ep.autoExposure);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        if (!d.parameters.ep.autoExposure){
+                            active |= ImGui::SliderInt("Exposure", reinterpret_cast<int *>(&d.parameters.ep.exposure), 10, 30000);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        } else {
+                            active |= ImGui::SliderInt("Auto exposure max value", reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10, 35000);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderInt("Auto exposure decay", reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 1, 100);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderFloat("Auto exposure intensity",  &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderFloat("Auto exposure threshold", &d.parameters.ep.autoExposureThresh, 0, 1);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        }
+
+                        ImGui::Dummy(ImVec2(0.0f, 20.0f));
+                        active |= ImGui::Checkbox("Auto White Balance", &d.parameters.wb.autoWhiteBalance);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        if (!d.parameters.wb.autoWhiteBalance){
+                            active |= ImGui::SliderFloat("White balance red", &d.parameters.wb.whiteBalanceRed, 1, 100);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderFloat("White balance blue", &d.parameters.wb.whiteBalanceBlue, 1, 100);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        } else {
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderFloat("Auto white balance threshold", &d.parameters.wb.autoWhiteBalanceThresh, 1, 100);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                            active |= ImGui::SliderInt("Auto white balance decay",
+                                                       reinterpret_cast<int *>(&d.parameters.wb.autoWhiteBalanceDecay), 1, 100);
+                            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        }
+
+                        active |= ImGui::SliderFloat("Stereo Post Filter Strength", &d.parameters.stereoPostFilterStrength, 0, 1);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        active |= ImGui::SliderFloat("Gamma", &d.parameters.gamma, 0, 10);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        active |= ImGui::SliderFloat("Gain", &d.parameters.gain, 0, 10);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        active |= ImGui::SliderFloat("FPS", &d.parameters.fps, 0, 60);
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+                        ImGui::Dummy(ImVec2(0.0f, handles->info->height - ImGui::GetCursorScreenPos().y));
+
+                        if (active) {
+                            Log::Logger::getInstance()->info("A config was pressed");
+                        }
+
+                        d.parameters.update = active;
+
                         ImGui::EndTabItem();
                     }
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);

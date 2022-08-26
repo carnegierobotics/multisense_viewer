@@ -34,25 +34,7 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
     return false;
 }
 
-void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t depth = 64) {
 
-    crl::multisense::image::Config cfg;
-    int ret = cameraInterface->getImageConfig(cfg);
-    if (ret != crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->error("CRLPhysicalCamera:: failed to get image config");
-    }
-    cfg.setResolution(width, height);
-    cfg.setDisparities(depth);
-
-    ret = cameraInterface->setImageConfig(cfg);
-    if (ret != crl::multisense::Status_Ok) {
-
-    } else
-        printf("Set resolution successfully\n");
-
-    this->updateCameraInfo();
-
-}
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
@@ -104,8 +86,8 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
             Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {}",
                                              dataSourceToString(src).c_str());
         else
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {} ",
-                                             dataSourceToString(src).c_str());
+            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {}  status code {}",
+                                             dataSourceToString(src).c_str(), status);
 
     }
 
@@ -172,74 +154,6 @@ void CRLPhysicalCamera::getCameraStream(std::string stringSrc, crl::multisense::
 }
 
 
-/*
-CRLBaseCamera::PointCloudData *CRLPhysicalCamera::getStream() {
-    return meshData;
-}
-
-std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> CRLPhysicalCamera::getImage() {
-    return imagePointers;
-}
-
-CRLPhysicalCamera::~CRLPhysicalCamera() {
-
-    if (meshData != nullptr && meshData->vertices != nullptr)
-        free(meshData->vertices);
-
-}
-
-CRLBaseCamera::CameraInfo CRLPhysicalCamera::getInfo() {
-    return CRLBaseCamera::cameraInfo;
-}
-
-// Pick an image size
-crl::multisense::image::Config CRLPhysicalCamera::getImageConfig() const {
-    // Configure the sensor.
-    crl::multisense::image::Config cfg;
-    bool status = cameraInterface->getImageConfig(cfg);
-    if (crl::multisense::Status_Ok != status) {
-        printf("Failed to query image config: %d\n", status);
-    }
-
-    return cfg;
-}
-
-std::unordered_set<crl::multisense::DataSource> CRLPhysicalCamera::supportedSources() {
-    // this method effectively restrics the supported sources for the classice libmultisense api
-    std::unordered_set<crl::multisense::DataSource> ret;
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Left) ret.insert(crl::multisense::Source_Raw_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Right) ret.insert(crl::multisense::Source_Raw_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Left) ret.insert(crl::multisense::Source_Luma_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Right)
-        ret.insert(crl::multisense::Source_Luma_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Left)
-        ret.insert(crl::multisense::Source_Luma_Rectified_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Right)
-        ret.insert(crl::multisense::Source_Luma_Rectified_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Aux)
-        ret.insert(crl::multisense::Source_Chroma_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Left)
-        ret.insert(crl::multisense::Source_Chroma_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Right)
-        ret.insert(crl::multisense::Source_Chroma_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Left)
-        ret.insert(crl::multisense::Source_Disparity_Left);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Right)
-        ret.insert(crl::multisense::Source_Disparity_Right);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Cost)
-        ret.insert(crl::multisense::Source_Disparity_Cost);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Raw_Aux) ret.insert(crl::multisense::Source_Raw_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Aux) ret.insert(crl::multisense::Source_Luma_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Luma_Rectified_Aux)
-        ret.insert(crl::multisense::Source_Luma_Rectified_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Chroma_Rectified_Aux)
-        ret.insert(crl::multisense::Source_Chroma_Rectified_Aux);
-    if (cameraInfo.supportedSources & crl::multisense::Source_Disparity_Aux)
-        ret.insert(crl::multisense::Source_Disparity_Aux);
-    return ret;
-}
-
- */
 std::string CRLPhysicalCamera::dataSourceToString(crl::multisense::DataSource d) {
     switch (d) {
         case crl::multisense::Source_Raw_Left:
@@ -443,3 +357,205 @@ CRLBaseInterface::CameraInfo CRLPhysicalCamera::getCameraInfo() {
     return info;
 }
 
+void CRLPhysicalCamera::setGamma(float gamma) {
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    info.imgConf.setGamma(gamma);
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+}
+
+void CRLPhysicalCamera::setFps(float fps) {
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    info.imgConf.setFps(fps);
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+}
+
+void CRLPhysicalCamera::setGain(float gain) {
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    info.imgConf.setGain(gain);
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+}
+
+
+
+void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t depth = 64) {
+
+    crl::multisense::image::Config cfg;
+    int ret = cameraInterface->getImageConfig(cfg);
+    if (ret != crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->error("CRLPhysicalCamera:: failed to get image config");
+    }
+    cfg.setResolution(width, height);
+    cfg.setDisparities(depth);
+
+    ret = cameraInterface->setImageConfig(cfg);
+    ret = cameraInterface->setImageConfig(cfg);
+    if (ret != crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Set resolution to {}x{}x{}", width, height, depth);
+    } else
+        Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}", width, height, depth);
+    this->updateCameraInfo();
+
+
+    crl::multisense::lighting::Config c;
+}
+
+void CRLPhysicalCamera::setExposure(uint32_t exp){
+    crl::multisense::image::Config cfg = info.imgConf;
+
+    cfg.setExposure(exp);
+    int ret = cameraInterface->setImageConfig(cfg);
+    if (ret == crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Set exposure to {}", exp);
+    } else
+        Log::Logger::getInstance()->info("failed setting exposure to {}", exp);
+
+    this->updateCameraInfo();
+}
+
+void CRLPhysicalCamera::setExposureParams(ExposureParams p){
+
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    if (p.autoExposure){
+        info.imgConf.setAutoExposure(p.autoExposure);
+        info.imgConf.setAutoExposureMax(p.autoExposureMax);
+        info.imgConf.setAutoExposureDecay(p.autoExposureDecay);
+        info.imgConf.setAutoExposureTargetIntensity(p.autoExposureTargetIntensity);
+        info.imgConf.setAutoExposureThresh(p.autoExposureThresh);
+    }else {
+        info.imgConf.setAutoExposure(p.autoExposure);
+        info.imgConf.setExposure(p.exposure);
+    }
+
+    info.imgConf.setExposureSource(p.exposureSource);
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+}
+
+void CRLPhysicalCamera::setPostFilterStrength(float filter) {
+
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    info.imgConf.setStereoPostFilterStrength(filter);
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+}
+
+void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
+    crl::multisense::Status status  = cameraInterface->getImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration query succeeded
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to query image configuration");
+    }
+    //
+    // Modify image configuration parameters
+    // Here we increase the frame rate to 30 FPS
+    if (param.autoWhiteBalance){
+        info.imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
+        info.imgConf.setAutoWhiteBalanceThresh(param.autoWhiteBalanceThresh);
+        info.imgConf.setAutoWhiteBalanceDecay(param.autoWhiteBalanceDecay);
+
+    } else {
+        info.imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
+        info.imgConf.setWhiteBalance(param.whiteBalanceRed, param.whiteBalanceBlue);
+    }
+    //
+    // Send the new image configuration to the sensor
+    status = cameraInterface->setImageConfig(info.imgConf);
+    //
+    // Check to see if the configuration was successfully received by the
+    // sensor
+    if(crl::multisense::Status_Ok != status) {
+        throw std::runtime_error("Unable to set image configuration");
+    }
+
+    this->updateCameraInfo();
+
+}

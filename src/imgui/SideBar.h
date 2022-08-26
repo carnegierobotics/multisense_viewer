@@ -354,7 +354,7 @@ private:
 
     static const uint32_t inputFieldNameLength = 32;
     uint32_t presetItemIdIndex = 0;
-    std::string inputIP = "";
+    std::string inputIP = "10.66.176.21";
     std::string inputName = "Profile Name";
 
     void createDefaultElement(char *name, char *ip, const char *cameraName) {

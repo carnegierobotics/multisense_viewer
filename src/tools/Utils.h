@@ -8,10 +8,14 @@
 
 #include <fstream>
 #include <vector>
+#include <map>
 #include "cassert"
 #include "iostream"
 
 #include "vulkan/vulkan.h"
+#include "MultiSense/src/core/Definitions.h"
+#include "Logger.h"
+#include "MultiSense/src/imgui/Layer.h"
 
 namespace Utils {
 
@@ -28,6 +32,14 @@ namespace Utils {
     }
     static std::string getScriptsPath() {
         return "scripts/";
+    }
+
+    inline bool findValIfExists(std::map<int, AR::StreamingModes> map, StreamIndex streamIndex){
+        if (map.find(streamIndex) == map.end()){
+            Log::Logger::getInstance()->info("Could not find {} in stream map", (uint32_t) streamIndex);
+            return  false;
+        }
+        return  true;
     }
 
     inline VkFormat

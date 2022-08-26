@@ -312,6 +312,10 @@ private:
                 for (auto &stream: d.streams) {
                     if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
 
+                        // Skip preview window for point cloud because it is displayed in the 3D tab
+                        if (stream.second.streamIndex == AR_PREVIEW_POINT_CLOUD || stream.second.streamIndex == AR_PREVIEW_VIRTUAL_POINT_CLOUD)
+                            continue;
+
                         stream.second.streamingOrder = previewWindowCount;
                         ImGui::PushStyleColor(ImGuiCol_WindowBg,
                                               ImVec4(0.034, 0.107, 0.201, 0.05f)); // TODO use named colors

@@ -70,7 +70,6 @@ void DefaultPreview::update(CameraConnection *conn) {
         ArEngine::TextureData *tex = new ArEngine::TextureData();
         if (camera->getCameraStream(src, tex))
             model->setGrayscaleTexture(tex);
-
         delete tex;
     }
 
@@ -96,7 +95,7 @@ void DefaultPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
     for (const auto &dev: *uiHandle.devices) {
 
-        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
             continue;
 
         src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;

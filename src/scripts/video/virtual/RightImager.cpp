@@ -131,6 +131,8 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
 
         for (auto &dev: *uiHandle.devices) {
+            if (dev.state != AR_STATE_ACTIVE)
+                continue;
             if (prevOrder != dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
 

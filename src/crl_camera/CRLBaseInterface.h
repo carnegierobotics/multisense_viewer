@@ -47,9 +47,8 @@ public:
     virtual CameraInfo getCameraInfo() = 0;
 
 
-    virtual bool getCameraStream(ArEngine::YUVTexture *tex) {};
-    virtual bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) {};
-    virtual void getCameraStream(crl::multisense::image::Header *stream) {};
+    virtual bool getCameraStream(ArEngine::YUVTexture *tex) { return false;};
+    virtual bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) { return  false;};
     virtual bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) { return false; };
 
 

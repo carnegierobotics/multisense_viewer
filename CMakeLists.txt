@@ -208,10 +208,10 @@ endif ()
 ## TODO: COPY dependencies with executables (shaders etc..)
 ## TODO COPY FFMPEG DLLs for windows build
 # Copy dependency folders to output directory
-#add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
-#add_dependencies(MultiSense-viewer copy_assets)
-file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
-file(COPY ${ASSETS} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+add_dependencies(MultiSense-viewer copy_assets)
+#file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
+#file(COPY ${ASSETS} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 # Copy DLLs
 if (WIN32)

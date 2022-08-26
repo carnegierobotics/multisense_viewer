@@ -84,9 +84,9 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
 
         // Make sure inactive devices' preview are not drawn.
         if (dev.state != AR_STATE_ACTIVE) {
-            for (auto &s: dev.streams)
+            for (auto &s: dev.streams) {
                 s.second.playbackStatus = AR_PREVIEW_NONE;
-            continue;
+            }            continue;
         }
 
 

@@ -20,6 +20,7 @@ public:
     PointCloud() {
         s_bRegistered;
     }
+    ~PointCloud();
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PointCloud>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
@@ -41,12 +42,14 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
+    std::string src;
 
     CRLCameraModels::Model* model;
     CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
+    ArEngine::Vertex* meshData;
     int point = 0;
 };
 

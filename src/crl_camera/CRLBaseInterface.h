@@ -52,6 +52,16 @@ public:
     virtual void getCameraStream(crl::multisense::image::Header *stream) {};
     virtual bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) { return false; };
 
+
+    virtual void setExposure(uint32_t e){}
+    virtual void setExposureParams(ExposureParams p){}
+
+    virtual void setWhiteBalance(WhiteBalanceParams param) {}
+    virtual void setPostFilterStrength(float filterStrength) {}
+    virtual void setGamma(float gamma) {}
+    virtual void setFps(float fps) {}
+    virtual void setGain(float gain) {}
+
 };
 
 

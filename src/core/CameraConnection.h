@@ -36,7 +36,7 @@ private:
 
     AR::Element *currentActiveDevice = nullptr; // handle to current device
 
-    void updateActiveDevice(AR::Element element);
+    void updateActiveDevice(AR::Element *dev);
 
     void connectCrlCamera(AR::Element &element);
 

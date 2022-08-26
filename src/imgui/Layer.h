@@ -97,6 +97,31 @@ namespace AR {
 
     };
 
+
+/** @brief  */
+    struct Parameters {
+        bool initialized = false;
+
+
+        float gain = 1.0f;
+        float fps = 30.0f;
+
+
+        ExposureParams ep;
+        WhiteBalanceParams wb;
+
+
+        float stereoPostFilterStrength = 0.5f;
+        bool hdrEnabled;
+        bool storeSettingsInFlash;
+
+        crl::multisense::CameraProfile cameraProfile;
+        float gamma = 2.0f;
+
+
+        bool update = false;
+    };
+
     struct Element {
         /** @brief Profile Name information  */
         std::string name = "Profile #1"; // TODO Remove if remains Unused
@@ -112,6 +137,8 @@ namespace AR {
         ArConnectionState state;
 
         std::map<int, StreamingModes> streams;
+        /** @brief object containing all adjustable parameters to the camera */
+        Parameters parameters{};
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         /** @brief  Showing point cloud view*/

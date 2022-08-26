@@ -39,6 +39,7 @@ public:
     CameraInfo getCameraInfo() override;
     void preparePointCloud(uint32_t i, uint32_t i1) override;
 
+
 private:
     struct Image
     {
@@ -92,6 +93,16 @@ private:
     void streamCallback(const crl::multisense::image::Header &image);
 
     void setResolution(uint32_t width, uint32_t height, uint32_t depth);
+
+    void setExposure(uint32_t exp) override;
+
+    void setExposureParams(ExposureParams p) override;
+    void setWhiteBalance(WhiteBalanceParams param) override;
+    void setPostFilterStrength(float filterStrength) override;
+    void setGamma(float gamma) override;
+    void setFps(float fps) override;
+    void setGain(float gain) override;
+
 };
 
 

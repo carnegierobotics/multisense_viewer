@@ -12,7 +12,59 @@ CameraConnection::CameraConnection() {
 
 }
 
-void CameraConnection::updateActiveDevice(AR::Element dev) {
+void CameraConnection::updateActiveDevice(AR::Element *dev) {
+
+    if (!dev->parameters.initialized){
+        auto* p = &dev->parameters;
+
+        auto conf = camPtr->getCameraInfo().imgConf;
+
+        {
+            p->ep.exposure = conf.exposure();
+            p->ep.autoExposure = conf.autoExposure();
+            p->ep.exposureSource = conf.exposureSource();
+            p->ep.autoExposureThresh = conf.autoExposureThresh();
+            p->ep.autoExposureDecay = conf.autoExposureDecay();
+            p->ep.autoExposureMax = conf.autoExposureMax();
+            p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+
+            p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+            p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+            p->ep.autoExposureRoiX = conf.autoExposureRoiX();
+            p->ep.autoExposureRoiY = conf.autoExposureRoiY();
+        }
+
+        p->gain = conf.gain();
+        p->fps = conf.fps();
+        p->gamma = conf.gamma();
+
+
+        p->wb.autoWhiteBalance = conf.autoWhiteBalance();
+        p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
+        p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
+
+        p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
+        p->wb.whiteBalanceRed = conf.whiteBalanceRed();
+
+        p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
+
+        auto cal = camPtr->getCameraInfo().camCal;
+
+        p->initialized = true;
+    }
+
+    if (dev->parameters.update){
+        auto p = dev->parameters;
+
+        camPtr->setExposureParams(p.ep);
+        camPtr->setWhiteBalance(p.wb);
+        camPtr->setPostFilterStrength(p.stereoPostFilterStrength);
+        camPtr->setGamma(p.gamma);
+        camPtr->setFps(p.fps);
+        camPtr->setGain(p.gain);
+
+    }
+
 }
 
 void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
@@ -38,7 +90,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
         }
 
 
-        updateActiveDevice(dev);
+        updateActiveDevice(&dev);
 
         // Disable if we click a device already connected
         if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
@@ -181,7 +233,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
 
     AR::StreamingModes pointCloud{};
     pointCloud.name = "5. Point Cloud";
-    pointCloud.streamIndex = AR_PREVIEW_AUXILIARY;
+    pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
     initCameraModes(&pointCloud.modes, supportedModes);
     filterAvailableSources(&pointCloud.sources, maskArrayDisparity);
     pointCloud.selectedStreamingMode = pointCloud.modes.front();

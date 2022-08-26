@@ -149,6 +149,12 @@ void DefaultPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Eleme
     posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
 
+
+
+    if (!Utils::findValIfExists(dev.streams, AR_PREVIEW_LEFT)){
+
+    }
+
     int order = dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder;
     float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order];
 

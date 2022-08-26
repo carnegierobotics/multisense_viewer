@@ -24,11 +24,6 @@ void Renderer::prepareRenderer() {
 }
 
 
-void Renderer::viewChanged() {
-    updateUniformBuffers();
-}
-
-
 void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
 
@@ -168,9 +163,6 @@ void Renderer::render() {
     guiManager->handles.mouseBtns.left = mouseButtons.left;
     guiManager->handles.mouseBtns.right = mouseButtons.right;
 
-
-    drawDataExt.texInfo = &guiManager->handles.info->imageElements;
-
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, width, height);
 
@@ -274,20 +266,31 @@ void Renderer::render() {
 
 }
 
-void Renderer::draw() {
+void Renderer::windowResized() {
+    Base::Render renderData{};
+    renderData.camera = &camera;
+    renderData.deltaT = frameTimer;
+    renderData.index = currentBuffer;
+    renderData.pLogger = pLogger;
+    renderData.height = height;
+    renderData.width = width;
 
+    // Update general scripts with handle to GUI
+    for (auto &script: scripts) {
+        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
+            script.second->windowResize(&renderData, guiManager->handles);
+    }
 
 }
 
 
-void Renderer::updateUniformBuffers() {
 
-
-}
 
 void Renderer::cleanUp() {
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
     cameraConnection.reset();
 
 }
+
+
 

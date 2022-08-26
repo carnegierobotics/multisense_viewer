@@ -174,3 +174,14 @@ void AuxiliaryPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }
+
+void AuxiliaryPreview::onWindowResize(AR::GuiObjectHandles uiHandle) {
+    for (auto &dev: *uiHandle.devices) {
+        if (dev.state != AR_STATE_ACTIVE)
+            continue;
+
+        transformToUISpace(uiHandle, dev);
+        model->draw = false;
+        coordinateTransformed = true;
+    }
+}

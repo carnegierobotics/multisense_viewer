@@ -75,26 +75,18 @@ public:
         cleanUp();
     }
 
-    void draw();
-
-
 private:
 
     std::map<std::string, std::unique_ptr<Base>> scripts;
     std::unique_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
 
-    ArEngine::DrawDataExt drawDataExt{};
-
-
 protected:
 
     glm::vec3 defaultCameraPosition = glm::vec3(2.0f, 1.2f, -5.0f);
     glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    void updateUniformBuffers();
-
-    void viewChanged() override;
+    void windowResized() override;
 
     void addDeviceFeatures() override;
 

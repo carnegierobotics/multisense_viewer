@@ -35,12 +35,13 @@ void main()
     float depth = texture(depthMap, inUV).r * 1000.0f;
 
     vec4 coords = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-    vec2 uvCoords = vec2(width- (inUV.x * width), height - (inUV.y * height));
+    vec2 uvCoords = vec2((inUV.x * width), (inUV.y * height));
+
+    //mat4 kInv = transpose(matrix.kInverse);
 
     vec4 imgCoords = vec4(uvCoords, 1.0f, 1.0f / depth);
-    coords = depth * (matrix.kInverse * imgCoords);
-    coords.y *= -1;
-    coords.z *= -1;
+    coords = depth * kInv * imgCoords;
+
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(coords.xyz, 1.0f);
     //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos.xyz, 1.0f);
     //gl_Position = vec4(inPos.xyz, 1.0f);

@@ -113,6 +113,16 @@ public:
      * the cameraHandle has been initialized by the CameraConnection Class */
     virtual void setup(Render r) {};
 
+    virtual void onWindowResize(AR::GuiObjectHandles uiHandle) {
+
+    };
+
+    void windowResize(Render* data, AR::GuiObjectHandles uiHandle){
+        updateRenderData(data);
+
+        onWindowResize(uiHandle);
+    }
+
     /**@brief Pure virtual function called on every UI update, also each frame*/
     virtual void onUIUpdate(AR::GuiObjectHandles uiHandle) = 0;
 
@@ -157,16 +167,7 @@ public:
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     void updateUniformBufferData(Render *data) {
-        this->renderData.camera = data->camera;
-        this->renderData.crlCamera = data->crlCamera;
-        this->renderData.gui = data->gui;
-        this->renderData.deltaT = data->deltaT;
-        this->renderData.index = data->index;
-        this->renderData.pLogger = data->pLogger;
-        this->renderData.height = data->height;
-        this->renderData.width = data->width;
-
-        this->renderData.type = getType();
+        updateRenderData(data);
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
@@ -274,6 +275,19 @@ private:
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
     std::chrono::steady_clock::time_point lastLogTime;
 
+
+    void updateRenderData(Render* data){
+        this->renderData.camera = data->camera;
+        this->renderData.crlCamera = data->crlCamera;
+        this->renderData.gui = data->gui;
+        this->renderData.deltaT = data->deltaT;
+        this->renderData.index = data->index;
+        this->renderData.pLogger = data->pLogger;
+        this->renderData.height = data->height;
+        this->renderData.width = data->width;
+        this->renderData.type = getType();
+
+    }
 };
 
 #endif //MULTISENSE_BASE_H

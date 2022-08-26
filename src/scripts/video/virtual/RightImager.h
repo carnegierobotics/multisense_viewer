@@ -39,6 +39,9 @@ public:
 
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
+    /** @brief called after renderer has handled a window resize event **/
+    void onWindowResize(AR::GuiObjectHandles uiHandle) override;
+
 
     void onUIUpdate(AR::GuiObjectHandles uiHandle) override;
 

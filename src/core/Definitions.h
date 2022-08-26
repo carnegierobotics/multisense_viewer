@@ -183,9 +183,6 @@ namespace ArEngine{
     };
 
 
-    struct DrawDataExt {
-        std::vector<ImageElement>* texInfo;
-    };
 }
 
 

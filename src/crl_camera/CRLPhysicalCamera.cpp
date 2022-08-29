@@ -269,14 +269,39 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
     crl::multisense::image::Config c = info.imgConf;
 
-    kInverseMatrix =
+    crl::multisense::image::Calibration calibration;
+    cameraInterface->getImageCalibration(calibration);
+
+
+    const double xScale = 1.0 / ((static_cast<double>(info.devInfo.imagerWidth) /
+                                  static_cast<double>(width)));
+
+
+    /*
+         kInverseMatrix =
             glm::mat4(
                     glm::vec4(1 / c.fx(), 0, -(c.cx() * c.fy()) / (c.fx() * c.fy()), 0),
                     glm::vec4(0, 1 / c.fy(), -c.cy() / c.fy(), 0),
                     glm::vec4(0, 0, 1, 0),
                     glm::vec4(0, 0, 0, 1));
 
+     */
+    const double fx = c.fx();
+    const double fy = c.fy();
+    const double cx = c.cx();
+    const double cy = c.cy();
+    const double tx = c.tx();
+    const double cxRight = calibration.right.P[0][2] * xScale;
+
+    kInverseMatrix =
+            glm::mat4(
+                    glm::vec4(fy * tx, 0, 0, -fy*cx*tx),
+                    glm::vec4(0, fx*tx, 0, -fx*cy*tx),
+                    glm::vec4(0, 0, 0, fx*fy*tx),
+                    glm::vec4(0, 0, -fy, fy*(cx - cxRight)));
+
     //kInverseMatrix = glm::transpose(kInverseMatrix);
+
     crl::multisense::image::Config params = info.imgConf;
     crl::multisense::image::Calibration cal = info.camCal;
 
@@ -290,7 +315,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
     start("960 x 600 x 64x", "Disparity Left");
 
     info.kInverseMatrix = kInverseMatrix;
-    info.kInverseMatrix = Q;
+    //info.kInverseMatrix = Q;
     /*
    kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
                   glm::vec4(0, c.fx() * c.tx(), 0, -c.fx() * c.cy() * c.tx()),

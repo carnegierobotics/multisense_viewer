@@ -25,7 +25,8 @@ layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 void main()
 {
 
-    vec3 tex = texture(samplerColorMap, inUV).rgb * 65535 / 4096;
+    vec3 tex = texture(samplerColorMap, inUV).rgb * 65535 / 4096 * 2;
+
     outColor = vec4(tex.r, tex.r, tex.r, 1.0);
 
 }

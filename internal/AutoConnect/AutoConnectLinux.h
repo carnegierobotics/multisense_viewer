@@ -17,10 +17,8 @@ public:
     void start(std::vector<AdapterSupportResult> vector) override;
     /** @Brief Function to search for network adapters **/
     std::vector<AdapterSupportResult> findEthernetAdapters() override;
-
     /** @Brief cleans up thread**/
     void stop() override;
-
     /** @Brief Function called after a search of adapters and at least one adapter was found **/
     void onFoundAdapters(std::vector<AdapterSupportResult> vector) override;
     /** @Brief Function called when a new IP is found. Return false if you want to keep searching or true to stop further IP searching **/
@@ -32,6 +30,20 @@ public:
 
     AutoConnect::Result getResult();
     crl::multisense::Channel* getCameraChannel();
+
+    void setDetectedCallback(void (*param)(Result result1, void* ctx), void* context);
+    void setEventCallback(void (*param)(std::string result1, void* ctx));
+
+    void (*callback)(AutoConnect::Result, void*) = nullptr;
+    void (*eventCallback)(std::string, void*) = nullptr;
+
+
+    void* context = nullptr;
+    bool running = false;
+    bool shouldProgramClose() override;
+    void setProgramClose(bool close) override;
+
+
 private:
     static void run(void* instance, std::vector<AdapterSupportResult> adapters);
 };

@@ -9,10 +9,12 @@
 
 #ifdef WIN32
 #include "AutoConnectWindows.h"
+#define AutoConnectHandle AutoConnectWindows
 #else
 
 #include "AutoConnectLinux.h"
 
+#define AutoConnectHandle AutoConnectLinux
 #endif
 
 
@@ -21,55 +23,142 @@
 #include "imgui.h"
 #include "Layer.h"
 
+#ifdef WIN32
+#else
+
+#include <linux/if_ether.h>
+#include <netinet/ip.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+
+#endif
+
 class SideBar : public AR::Layer {
 public:
 
     // Create global object for convenience in other functions
     AR::GuiObjectHandles *handles;
+    AutoConnectHandle connect{};
+
+    void OnAttach() override {
+        Buf.clear();
+        LineOffsets.clear();
+        LineOffsets.push_back(0);
+    }
 
     void onFinishedRender() override {
 
     }
 
-    void autoDetectCamera() {
+    static void onEvent(std::string event, void *ctx) {
+        auto *app = static_cast<SideBar *>(ctx);
 
-        Log::Logger::getInstance()->info("Start looking for ethernet adapters");
-#ifdef WIN32
-        AutoConnectWindows connect{};
-    std::vector<AutoConnect::AdapterSupportResult> res =  connect.findEthernetAdapters();
-#else
-        AutoConnectLinux connect{};
-        std::vector<AutoConnect::AdapterSupportResult> res = connect.findEthernetAdapters();
-#endif
+        app->AddLog("%s\n", event.c_str());
+    }
 
-        connect.start(res);
+    static void onCameraDetected(AutoConnect::Result res, void *ctx) {
+        auto *app = static_cast<SideBar *>(ctx);
 
-        // TODO DONT BLOCK UI THREAD WHILE LOOKING FOR ADAPTERS
-        while (true) {
-            if (connect.isConnected())
-                break;
+        std::string hostAddress = res.cameraIpv4Address;
+        std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
+        hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
+
+        /** SET NETWORK PARAMETERS FOR THE ADAPTER */
+        int sd = -1;
+        if ((sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+            fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
         }
-        connect.stop();
-        AutoConnect::Result result = connect.getResult();
-        crl::multisense::Channel *ptr = connect.getCameraChannel();
+        // Specify interface name
+        const char *interface = res.networkAdapter.c_str();
+        setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
+
+        struct ifreq ifr{};
+        /// note: no pointer here
+        struct sockaddr_in inet_addr{}, subnet_mask{};
+        /* get interface name */
+        /* Prepare the struct ifreq */
+        bzero(ifr.ifr_name, IFNAMSIZ);
+        strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+        /// note: prepare the two struct sockaddr_in
+        inet_addr.sin_family = AF_INET;
+        int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+
+        subnet_mask.sin_family = AF_INET;
+        int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+
+        /* Call ioctl to configure network devices */
+        /// put addr in ifr structure
+        memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+        int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+        }
+
+        /// put mask in ifr structure
+        memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+        ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+        }
+
+        strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+        ifr.ifr_mtu = 7200; //your MTU size here
+        if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+            Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size {} on adapter {}", 7200,
+                                              res.networkAdapter.c_str());
+        }
+
+        Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200,
+                                          res.networkAdapter.c_str());
+
+        crl::multisense::Channel *ptr = app->connect.getCameraChannel();
         crl::multisense::system::DeviceInfo info;
         ptr->getDeviceInfo(info);
         Log::Logger::getInstance()->info(
                 "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
-                result.cameraIpv4Address.c_str(), result.networkAdapter.c_str(), result.networkAdapterLongName.c_str(),
+                res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
                 info.name.c_str());
 
-        inputIP = result.cameraIpv4Address;
-        inputName = info.name;
+        app->inputIP = res.cameraIpv4Address;
+        app->inputName = info.name;
 
-        if (inputName == "Multisense S30") // TODO: Avoid hardcoded if-cond here
-            presetItemIdIndex = 1;
-        else if (inputName == "MultiSense S21")
-            presetItemIdIndex = 2;
+        if (app->inputName == "Multisense S30") // TODO: Avoid hardcoded if-cond here
+            app->presetItemIdIndex = 1;
+        else if (app->inputName == "MultiSense S21")
+            app->presetItemIdIndex = 2;
         else
-            presetItemIdIndex = 0;
+            app->presetItemIdIndex = 0;
+
+        app->connect.setProgramClose(true);
 
     }
+
+    void autoDetectCamera() {
+        // If already running just check if we should close it
+        if (connect.running) {
+            if (connect.shouldProgramClose())
+                connect.stop();
+            return;
+        }
+
+
+        // Check for root privileges before launching
+        if (getuid()) {
+            Log::Logger::getInstance()->info(
+                    "Program is not run as root. This is required to use the auto connect feature");
+            return;
+        }
+
+        Log::Logger::getInstance()->info("Start looking for ethernet adapters");
+        connect.setDetectedCallback(SideBar::onCameraDetected, this);
+        connect.setEventCallback(SideBar::onEvent);
+
+        std::vector<AutoConnect::AdapterSupportResult> res = connect.findEthernetAdapters();
+        connect.start(res);
+    }
+
 
     void OnUIRender(AR::GuiObjectHandles *_handles) override {
         this->handles = _handles;
@@ -117,129 +206,321 @@ public:
         ImGui::PlotLines("Frame Times", &info->frameTimes[0], 50, 0, "", info->frameTimeMin,
                          info->frameTimeMax, ImVec2(0, 80));
 
-        ImGui::SetNextWindowSize(ImVec2(info->popupWidth, info->popupHeight), ImGuiCond_Once);
+        ImGui::SetNextWindowSize(ImVec2(info->popupWidth, info->popupHeight), ImGuiCond_Always);
 
-        if (ImGui::BeginPopupModal("add_device_modal", NULL,
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, AR::PopupBackground);
+
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        if (ImGui::BeginPopupModal("add_device_modal", nullptr,
                                    ImGuiWindowFlags_NoTitleBar)) {
 
             bool ipAlreadyInUse = false;
             bool profileNameTaken = false;
 
-            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyResizeDown;
-            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags)) {
-                if (ImGui::BeginTabItem("Select Premade Profile")) {
-                    ImGui::Text("Connect to your MultiSense Device");
-                    ImGui::Separator();
-                    //ImGui::InputText("Profile name##1", inputName.data(),inputFieldNameLength);
+
+            ImGui::PushFont(handles->info->font24);
+            std::string title = "Connect to MultiSense";
+            ImVec2 size = ImGui::CalcTextSize(title.c_str());
+            float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a title in center of popup window
 
 
-                    // Create input field with resizable data structure
-                    {
-                        // To wire InputText() with std::string or any other custom string type,
-                        // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
-                        // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
-                        struct Funcs
-                        {
-                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
-                            {
-                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-                                {
-                                    auto* my_str = (std::string *)data->UserData;
-                                    IM_ASSERT(my_str->data() == data->Buf);
-                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
-                                    data->Buf = my_str->data();
-                                }
-                                return 0;
-                            }
+            ImGui::Dummy(ImVec2(0, (size.y - 40.0f) / 2.0f));
 
-                            // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
-                            // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
-                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
-                            {
-                                IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
-                            }
-                        };
+            ImGui::SetCursorPosX(anchorPoint);
+            ImGui::Text("%s", title.c_str());
+            ImGui::PopFont();
+            //ImGui::Separator();
+            //ImGui::InputText("Profile name##1", inputName.data(),inputFieldNameLength);
 
-                        // Note that because we need to store a terminating zero character, our size/capacity are 1 more
-                        // than usually reported by a typical string class.
-                        if (inputName.empty())
-                            inputName.push_back(0);
-                        Funcs::MyInputText("Profile Name##1", &inputName);
-                    }
+            ImGui::Dummy(ImVec2(0.0f, 40.0f));
 
-
-
-                    const char *items[] = {"Select Preset", "MultiSense S30", "MultiSense S21", "Virtual Camera"};
-                    const char *selectedVal = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
-                    static ImGuiComboFlags flags = 0;
-
-                    if (ImGui::BeginCombo("Select Default Configuration", selectedVal, flags)) {
-                        for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-                            const bool is_selected = (presetItemIdIndex == n);
-                            if (ImGui::Selectable(items[n], is_selected))
-                                presetItemIdIndex = n;
-
-                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
+            ImGui::Dummy(ImVec2(20.0f, 0.0f));
+            ImGui::SameLine();
+            ImGui::Text("Profile Name:");
+            // Create input field with resizable data structure
+            {
+                // To wire InputText() with std::string or any other custom string type,
+                // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
+                // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
+                struct Funcs {
+                    static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                            auto *my_str = (std::string *) data->UserData;
+                            IM_ASSERT(my_str->data() == data->Buf);
+                            my_str->resize(
+                                    data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                            data->Buf = my_str->data();
                         }
-                        ImGui::EndCombo();
+                        return 0;
                     }
 
-                    // Set the IP according to which profile is set.
-                    if (strcmp(selectedVal, "Virtual Camera") == 0){
-                        inputIP = "Local Ip";
+                    // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+                    // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+                    static bool
+                    MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
+                        IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+                        return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
+                                                flags | ImGuiInputTextFlags_CallbackResize |
+                                                ImGuiInputTextFlags_AutoSelectAll,
+                                                Funcs::MyResizeCallback, (void *) my_str);
                     }
+                };
 
-                    btnConnect = ImGui::Button("connect", ImVec2(175.0f, 30.0f));
-                    bool btnCancel = ImGui::Button("cancel", ImVec2(175.0f, 30.0f));
-                    btnAutoConnect = ImGui::Button("Automatic configuration", ImVec2(175.0f, 30.0f));
+                // Note that because we need to store a terminating zero character, our size/capacity are 1 more
+                // than usually reported by a typical string class.
+                if (inputName.empty())
+                    inputName.push_back(0);
 
-                    if (btnCancel) {
-                        ImGui::CloseCurrentPopup();
-                    }
-
-                    if (btnAutoConnect) {
-                        // Attempt to search for camera
-                        autoDetectCamera();
-                    }
-
-                    if (btnConnect) {
-                        // Loop through devices and check that it doesn't exist already.
-                        for (auto &d: devices) {
-                            if (d.IP == inputIP)
-                                ipAlreadyInUse = true;
-                            if (d.name == inputName)
-                                profileNameTaken = true;
-                        }
-
-                        if (!ipAlreadyInUse && !profileNameTaken) {
-                            createDefaultElement(inputName.data(), inputIP.data(), items[presetItemIdIndex]);
-                        }
-
-                    }
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                Funcs::MyInputText("##inputProfileName", &inputName);
+                ImGui::Dummy(ImVec2(0.0f, 30.0f));
+            }
 
 
-                    ImGui::EndTabItem();
+            {
+                ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::Text("Find Camera:");
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+            }
+
+            {
+                ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 0.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(10.0f, 0.0f));
+
+                ImGui::RadioButton("Automatic", &autoOrManual, 1);
+                ImGui::SameLine();
+                ImGui::RadioButton("Manual", &autoOrManual, 2);
+
+                /*
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
+                autoOrManual |= ImGui::Button("Automatic", ImVec2(150.0f, 35.0f));
+                ImGui::SameLine(0, 10.0f);
+                if (ImGui::Button("Manual", ImVec2(150.0f, 35.0f))){
+                    AddLog("[%05d] Hello, current time is %.1f\n",
+                           ImGui::GetFrameCount(), ImGui::GetTime());
                 }
+                ImGui::PopStyleVar();
+                */
+                ImGui::Dummy(ImVec2(0.0f, 25.0f));
+
+                ImGui::PopStyleColor(); // ImGuiCol_FrameBg
+                ImGui::PopStyleVar(2); // RadioButton
+
+            }
+
+
+            if (autoOrManual == 1) {
+
+                ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                ImGui::SameLine();
+                if (ImGui::Button("Start")){
+                    AddLog("Auto detection service log\n");
+                    autoDetectCamera();
+                }
+
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::PopupTextInputBackground);
+                const char *id = "Log Window";
+                ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::BeginChild(id, ImVec2(handles->info->popupWidth - 40.0f, 85.0f), false, 0);
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                const char *buf = Buf.begin();
+                const char *buf_end = Buf.end();
+                // The simplest and easy way to display the entire buffer:
+                //   ImGui::TextUnformatted(buf_begin, buf_end);
+                // And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward
+                // to skip non-visible lines. Here we instead demonstrate using the clipper to only process lines that are
+                // within the visible area.
+                // If you have tens of thousands of items and their processing cost is non-negligible, coarse clipping them
+                // on your side is recommended. Using ImGuiListClipper requires
+                // - A) random access into your data
+                // - B) items all being the  same height,
+                // both of which we can handle since we an array pointing to the beginning of each line of text.
+                // When using the filter (in the block of code above) we don't have random access into the data to display
+                // anymore, which is why we don't use the clipper. Storing or skimming through the search result would make
+                // it possible (and would be recommended if you want to search through tens of thousands of entries).
+                ImGuiListClipper clipper;
+                clipper.Begin(LineOffsets.Size);
+                while (clipper.Step()) {
+                    for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++) {
+                        const char *line_start = buf + LineOffsets[line_no];
+                        const char *line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1)
+                                                                                : buf_end;
+                        ImGui::TextUnformatted(line_start, line_end);
+                    }
+                }
+                clipper.End();
+
+
+                ImGui::PopStyleVar();
+                if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+                    ImGui::SetScrollHereY(1.0f);
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+
+            } else if (autoOrManual == 2) {
+                {
+                    ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("Camera IP:");
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                }
+                // To wire InputText() with std::string or any other custom string type,
+                // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
+                // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
+                struct Funcs {
+                    static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                            auto *my_str = (std::string *) data->UserData;
+                            IM_ASSERT(my_str->data() == data->Buf);
+                            my_str->resize(
+                                    data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                            data->Buf = my_str->data();
+                        }
+                        return 0;
+                    }
+
+                    // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
+                    // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
+                    static bool
+                    MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
+                        IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+                        return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
+                                                flags | ImGuiInputTextFlags_CallbackResize,
+                                                Funcs::MyResizeCallback, (void *) my_str);
+                    }
+                };
+
+                // Note that because we need to store a terminating zero character, our size/capacity are 1 more
+                // than usually reported by a typical string class.
+                if (inputIP.empty())
+                    inputIP.push_back(0);
+
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                Funcs::MyInputText("##inputIP", &inputIP);
+                ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+                const char *items[] = {"Adapter 1", "Adapter 2", "Adapter 3"};
+                const char *selectedVal = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                static ImGuiComboFlags flags = 0;
+
+                {
+                    ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("Select network adapter:");
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                }
+
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                if (ImGui::BeginCombo("##SelectAdapter", selectedVal, flags)) {
+                    for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                        const bool is_selected = (presetItemIdIndex == n);
+                        if (ImGui::Selectable(items[n], is_selected))
+                            presetItemIdIndex = n;
+
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                ImGui::PopStyleColor(); // ImGuiCol_FrameBg
+
+            }
+
+            /*
+            const char *items[] = {"Select Preset", "MultiSense S30", "MultiSense S21", "Virtual Camera"};
+            const char *selectedVal = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+            static ImGuiComboFlags flags = 0;
+
+            if (ImGui::BeginCombo("Select Default Configuration", selectedVal, flags)) {
+                for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                    const bool is_selected = (presetItemIdIndex == n);
+                    if (ImGui::Selectable(items[n], is_selected))
+                        presetItemIdIndex = n;
+
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            // Set the IP according to which profile is set.
+            if (strcmp(selectedVal, "Virtual Camera") == 0) {
+                inputIP = "Local Ip";
+            }
+             */
+            ImGui::Dummy(ImVec2(20.0f, 40.0f));
+
+
+            ImGui::Dummy(ImVec2(20.0f, 0.0f));
+            ImGui::SameLine();
+            bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
+            ImGui::SameLine(0, 10.0f);
+            btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+
+            //btnAutoConnect = ImGui::Button("Automatic configuration", ImVec2(175.0f, 30.0f));
+
+            if (btnCancel) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (autoOrManual) {
+                // Attempt to search for camera
+                //autoDetectCamera();
+            }
+
+            if (btnConnect) {
+                // Loop through devices and check that it doesn't exist already.
+                for (auto &d: devices) {
+                    if (d.IP == inputIP)
+                        ipAlreadyInUse = true;
+                    if (d.name == inputName)
+                        profileNameTaken = true;
+                }
+
+                if (!ipAlreadyInUse && !profileNameTaken) {
+                    createDefaultElement(inputName.data(), inputIP.data());
+                }
+
+                //}
+                // ImGui::EndTabItem();
+                // }
+                /*
                 if (ImGui::BeginTabItem("Advanced Options")) {
                     ImGui::Text("NOT IMPLEMENTED YET\n\nConnect to your MultiSense Device");
                     ImGui::Separator();
-                    /** INPUT PROFILE NAME FIELD **/
                     {
                         // To wire InputText() with std::string or any other custom string type,
                         // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
                         // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
-                        struct Funcs
-                        {
-                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
-                            {
-                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-                                {
-                                    auto* my_str = (std::string *)data->UserData;
+                        struct Funcs {
+                            static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                                    auto *my_str = (std::string *) data->UserData;
                                     IM_ASSERT(my_str->data() == data->Buf);
-                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                    my_str->resize(
+                                            data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
                                     data->Buf = my_str->data();
                                 }
                                 return 0;
@@ -247,10 +528,12 @@ public:
 
                             // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
                             // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
-                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
-                            {
+                            static bool
+                            MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
                                 IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
+                                return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
+                                                        flags | ImGuiInputTextFlags_CallbackResize,
+                                                        Funcs::MyResizeCallback, (void *) my_str);
                             }
                         };
 
@@ -260,20 +543,18 @@ public:
                             inputName.push_back(0);
                         Funcs::MyInputText("Profile Name##2", &inputName);
                     }
-                    /** INPUT IP FIELD **/
+
                     {
                         // To wire InputText() with std::string or any other custom string type,
                         // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
                         // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
-                        struct Funcs
-                        {
-                            static int MyResizeCallback(ImGuiInputTextCallbackData* data)
-                            {
-                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-                                {
-                                    auto* my_str = (std::string *)data->UserData;
+                        struct Funcs {
+                            static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                                if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                                    auto *my_str = (std::string *) data->UserData;
                                     IM_ASSERT(my_str->data() == data->Buf);
-                                    my_str->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                    my_str->resize(
+                                            data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
                                     data->Buf = my_str->data();
                                 }
                                 return 0;
@@ -281,10 +562,12 @@ public:
 
                             // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
                             // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
-                            static bool MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0)
-                            {
+                            static bool
+                            MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
                                 IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-                                return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(), flags | ImGuiInputTextFlags_CallbackResize, Funcs::MyResizeCallback, (void*)my_str);
+                                return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
+                                                        flags | ImGuiInputTextFlags_CallbackResize,
+                                                        Funcs::MyResizeCallback, (void *) my_str);
                             }
                         };
 
@@ -310,7 +593,8 @@ public:
 
                     ImGui::EndTabItem();
                 }
-                ImGui::EndTabBar();
+                */
+                //ImGui::EndTabBar();
             }
 
             // On connect button click
@@ -332,6 +616,8 @@ public:
             ImGui::EndPopup();
 
         }
+        ImGui::PopStyleVar(4); // popup style vars
+        ImGui::PopStyleColor(); // popup bg color
 
         ImGui::Spacing();
         ImGui::Spacing();
@@ -345,25 +631,40 @@ public:
         ImGui::PopStyleVar();
     }
 
+    void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
+        int old_size = Buf.size();
+        va_list args;
+        va_start(args, fmt);
+        Buf.appendfv(fmt, args);
+        va_end(args);
+        for (int new_size = Buf.size(); old_size < new_size; old_size++)
+            if (Buf[old_size] == '\n')
+                LineOffsets.push_back(old_size + 1);
+    }
+
+
 private:
     std::vector<AR::Element> devices;
 
     bool btnConnect = false;
     bool btnAdd = false;
-    bool btnAutoConnect = false;
+
+    int autoOrManual = 0; // 0 == nothing | 1 = auto | 2 = manual
+    ImGuiTextBuffer Buf;
+    ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
 
     static const uint32_t inputFieldNameLength = 32;
     uint32_t presetItemIdIndex = 0;
     std::string inputIP = "10.66.176.21";
-    std::string inputName = "Profile Name";
+    std::string inputName = "Front Name ";
 
-    void createDefaultElement(char *name, char *ip, const char *cameraName) {
+    void createDefaultElement(char *name, char *ip) {
         AR::Element el;
 
         el.name = name;
         el.IP = ip;
         el.state = AR_STATE_JUST_ADDED;
-        el.cameraName = cameraName;
+        el.cameraName = "cameraName";
         el.clicked = true;
 
         devices.emplace_back(el);
@@ -519,8 +820,9 @@ private:
 
     void addDeviceButton(AR::GuiObjectHandles *handles) {
 
-        ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding, handles->info->height - handles->info->addDeviceBottomPadding));
-        btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth,handles->info->addDeviceHeight));
+        ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding,
+                                   handles->info->height - handles->info->addDeviceBottomPadding));
+        btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
 
         if (btnAdd) {
             ImGui::OpenPopup("add_device_modal");

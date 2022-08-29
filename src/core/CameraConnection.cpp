@@ -8,6 +8,8 @@
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include <MultiSense/src/tools/Logger.h>
 
+
+
 CameraConnection::CameraConnection() {
 
 }
@@ -272,7 +274,6 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 
 
 void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
-
 
 }
 

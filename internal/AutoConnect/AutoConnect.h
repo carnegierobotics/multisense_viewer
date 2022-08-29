@@ -45,8 +45,8 @@ public:
     bool success = false;
     bool loopAdapters = true;
     bool listenOnAdapter = true;
-    time_t startTime;
-    crl::multisense::Channel* cameraInterface;
+    time_t startTime{};
+    crl::multisense::Channel* cameraInterface{};
 
     virtual std::vector<AdapterSupportResult> findEthernetAdapters() = 0;
     virtual void start(std::vector<AdapterSupportResult> vector) = 0;
@@ -54,6 +54,12 @@ public:
     virtual FoundCameraOnIp onFoundIp(std::string string, AdapterSupportResult adapter) = 0;
     virtual void onFoundCamera(AdapterSupportResult supportResult) = 0;
     virtual void stop() = 0;
+
+    bool closeProgram = false;
+
+    virtual bool shouldProgramClose() = 0;
+
+    virtual void setProgramClose(bool exit) = 0;
 
 private:
     struct CameraInfo {

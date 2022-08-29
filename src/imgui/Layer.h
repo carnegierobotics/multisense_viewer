@@ -52,9 +52,9 @@ namespace AR {
         float addDeviceWidth = 200.0f, addDeviceHeight = 35.0f;
 
         /** @brief Height of popupModal*/
-        float popupHeight = 250.0f;
+        float popupHeight = 400.0f;
         /** @brief Width of popupModal*/
-        float popupWidth = 500.0f;
+        float popupWidth = 350.0f;
 
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
@@ -173,8 +173,9 @@ namespace AR {
     static ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
     static ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
     static ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
-    static ImVec4 darkGray(0.1f, 0.1f, 0.1f, 1.0f);
-
+    static ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
+    static ImVec4 PopupBackground(0.184f, 0.331f, 0.489f, 1.0f);
+    static ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
 
     class Layer {
 

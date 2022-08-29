@@ -20,7 +20,7 @@
 namespace Utils {
 
     static std::string getShadersPath() {
-        return "Assets/shaders/";
+        return "Assets/Shaders/";
     }
 
     static std::string getAssetsPath() {

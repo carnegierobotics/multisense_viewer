@@ -5,6 +5,8 @@
 layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
+layout(location = 3) in vec4 fragPos2;
+layout(location = 4) in vec4 fragPos3;
 
 layout(location = 0) out vec4 outColor;
 

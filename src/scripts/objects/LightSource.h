@@ -31,6 +31,8 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
+    Page previewTab;
+
     void *selection = (void *) "0";
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;

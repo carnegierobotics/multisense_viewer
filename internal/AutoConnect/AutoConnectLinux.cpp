@@ -95,6 +95,9 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         Log::Logger::getInstance()->info("AUTOCONNECT: Testing Adapter {} for camera connection", adapter.name.c_str());
         Log::Logger::getInstance()->info("{} fmt", adapter.supports);
 
+        std::string str = "Testing Adapter. Name: " + adapter.name;
+        app->eventCallback(str, app->context, 0);
+
         app->startTime = time(nullptr);
 
 
@@ -124,7 +127,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         }
 
         Log::Logger::getInstance()->info("AUTOCONNECT: {} Enabled Promiscuous mode", adapter.name.c_str());
-
+        str = "Set adapter to listen for all activity";
+        app->eventCallback(str, app->context, 0);
 
         int saddr_size, data_size;
         struct sockaddr saddr{};
@@ -143,7 +147,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         }
 
 
-        printf("Listening for a IGMP packet\n");
+        str = "Waiting for packet at: " + adapter.name;
+        app->eventCallback(str, app->context, 0);
         Log::Logger::getInstance()->info("AUTOCONNECT: Listening for a IGMP packet");
         while (app->listenOnAdapter) {
             // Timeout handler
@@ -151,7 +156,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
                 app->startTime = time(nullptr);
                 printf("\n");
                 Log::Logger::getInstance()->info("AUTOCONNECT: Timeout reached. switching adapter");
-
+                str = "Timeout reached. switching to next supported adapter ";
+                app->eventCallback(str, app->context, 2);
                 break;
             }
 
@@ -174,6 +180,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
                 ip_addr.s_addr = iph->saddr;
                 address = inet_ntoa(ip_addr);
                 Log::Logger::getInstance()->info("AUTOCONNECT: Packet found. Source address: {}", address.c_str());
+                str = "Packet found. Source address: " + address;
+                app->eventCallback(str, app->context, 0);
 
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter);
 
@@ -210,7 +218,7 @@ void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapter
         if (adapter.supports) {
             std::string str;
             str = "Found supported adapter: " + adapter.name;
-            eventCallback(str, context);
+            eventCallback(str, context, 1);
         }
     }
 
@@ -222,9 +230,10 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     std::string last_element(hostAddress.substr(hostAddress.rfind(".")));
     auto ptr = hostAddress.rfind('.');
     hostAddress.replace(ptr, last_element.length(), ".2");
-    Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to: {}", hostAddress.c_str());
+    Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to the same subnet at: {}", hostAddress.c_str());
 
-
+    std::string str = "Setting host address to: " + hostAddress;
+    eventCallback(str, context, 0);
 
     /*** CALL IOCTL Operations to set the address of the adapter/socket  ***/
     // Create the socket.
@@ -278,37 +287,34 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     /*** END **/
 
     // Attempt to connect to camera and post some info
+    str = "Checking for camera at: " + address;
+    eventCallback(str, context, 0);
+
     cameraInterface = crl::multisense::Channel::Create(address);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;
+        // Attempt to connect to camera and post some info
+        str = "Did not detect camera at: " + address + ". Switching adapter...";
+        eventCallback(str, context, 2);
         return NO_CAMERA;
     } else if (cameraInterface == nullptr) {
         connectAttemptCounter++;
+        str = "Did not detect camera at: " + address + ". Retrying...";
+        eventCallback(str, context, 2);
         return NO_CAMERA_RETRY;
     } else {
         result.networkAdapter = adapter.name;
         result.networkAdapterLongName = adapter.lName;
         result.cameraIpv4Address = address;
+        str = "Found camera at: " + address + "";
+        eventCallback(str, context, 1);
         return FOUND_CAMERA;
     }
 }
 
 void AutoConnectLinux::onFoundCamera(AdapterSupportResult supportResult) {
     success = true;
-
-    auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-
-    struct ifreq ifr;
-    ifr.ifr_addr.sa_family = AF_INET;//address family
-    strncpy(ifr.ifr_name, supportResult.name.c_str(),
-            sizeof(ifr.ifr_name));//interface name where you want to set the MTU
-    ifr.ifr_mtu = 7200; //your MTU size here
-
-    std::string str;
-
-    // Modify adapter. Set  mtu size and such.
-    // call callback function
     callback(result, context);
 
 }
@@ -321,7 +327,7 @@ void AutoConnectLinux::stop() {
     t->join();
     closeProgram = false;
     running = false;
-    eventCallback("Stopped detection service", context);
+    eventCallback("Stopped detection service\n", context, 0);
 }
 
 void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
@@ -329,7 +335,7 @@ void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
     Log::Logger::getInstance()->info("AUTOCONNECT: Starting new thread, {}",
                                      std::hash<std::thread::id>{}(std::this_thread::get_id()));
-    eventCallback("Started detection service", context);
+    eventCallback("Started detection service", context, 0);
 }
 
 AutoConnect::Result AutoConnectLinux::getResult() {
@@ -354,6 +360,7 @@ void AutoConnectLinux::setProgramClose(bool close) {
     this->closeProgram = close;
 }
 
-void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *)) {
+void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *, int)) {
     eventCallback = param;
+
 }

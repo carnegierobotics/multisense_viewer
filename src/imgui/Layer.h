@@ -54,7 +54,7 @@ namespace AR {
         /** @brief Height of popupModal*/
         float popupHeight = 400.0f;
         /** @brief Width of popupModal*/
-        float popupWidth = 350.0f;
+        float popupWidth = 450.0f;
 
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
@@ -131,6 +131,8 @@ namespace AR {
         std::string IP;
         /** @brief Default IP of the connected camera  */
         std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
+        /** @brief Name of the network adapter this camera is connected to  */
+        std::string interfaceName;
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked;
         /** @brief Current connection state for this device */
@@ -159,23 +161,22 @@ namespace AR {
         /** @brief Static info used in creation of gui */
         GuiLayerUpdateInfo *info{};
 
+        /** Keypress and mouse events */
         int keypress;
-
         ArEngine::MouseButtons mouseBtns;
-
         float accumulatedMouseScroll = 0.0f;
-
-        float sliderOne = -1.77f;
-        float sliderTwo = 0.986f;
-        float sliderThree = -0.718;
     };
 
     static ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
     static ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+    static ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
+    static ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
+
     static ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
     static ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
-    static ImVec4 PopupBackground(0.184f, 0.331f, 0.489f, 1.0f);
+    static ImVec4 PopupBackground(0.084f, 0.231f, 0.389f, 1.0f);
     static ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
+    static ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
 
     class Layer {
 

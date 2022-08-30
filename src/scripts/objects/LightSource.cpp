@@ -21,14 +21,15 @@ void LightSource::setup() {
 }
 
 void LightSource::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    glTFModel::draw(commandBuffer, i);
+    if (previewTab == TAB_3D_POINT_CLOUD)
+        glTFModel::draw(commandBuffer, i);
 }
 
 void LightSource::update() {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::scale(mat.model, glm::vec3(0.04f, 0.04f, 0.04f));
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
+    mat.model = glm::scale(mat.model, glm::vec3(0.01f, 0.01f, 0.01f));
     mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     auto *d = (UBOMatrix *) bufferOneData;
@@ -45,7 +46,14 @@ void LightSource::update() {
 }
 
 
-
 void LightSource::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+
+    for (const auto &d: *uiHandle.devices) {
+        if (d.state != AR_STATE_ACTIVE)
+            continue;
+
+        previewTab = d.selectedPreviewTab;
+
+    }
 
 }

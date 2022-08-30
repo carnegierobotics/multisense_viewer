@@ -312,8 +312,6 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
                             glm::vec4(0, 0, 0, params.fx() * params.fy() * params.tx()),
                             glm::vec4(0, 0, -params.fx(), params.fy() * (dcx)));
 
-    start("960 x 600 x 64x", "Disparity Left");
-
     info.kInverseMatrix = kInverseMatrix;
     //info.kInverseMatrix = Q;
     /*

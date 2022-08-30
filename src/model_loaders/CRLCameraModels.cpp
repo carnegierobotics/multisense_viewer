@@ -127,9 +127,19 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 }
 
 
-void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData* tex) {
+void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type) {
 
-    textureVideo.updateTextureFromBuffer(tex);
+    switch (type) {
+
+        case AR_POINT_CLOUD:
+            textureVideoDepthMap.updateTextureFromBuffer(tex);
+            break;
+        case AR_GRAYSCALE_IMAGE:
+        case AR_CAMERA_DATA_IMAGE:
+        case AR_DISPARITY_IMAGE:
+            textureVideo.updateTextureFromBuffer(tex);
+            break;
+    }
 
 }
 
@@ -173,8 +183,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header 
 
         textureVideo.updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
 
-    }
-    else if (streamOne->width < 2000){
+    } else if (streamOne->width < 2000) {
         textureVideo.updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
 
     }
@@ -209,7 +218,7 @@ void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture tex) {
 
 }
 
-void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame* frame) {
+void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame *frame) {
 
     textureVideo.updateTextureFromBufferYUV(frame);
 
@@ -243,40 +252,44 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
     videos.height = height;
     videos.width = width;
 
-    TextureVideo texture;
+    TextureVideo textureVideoTmp;
+    TextureVideo textureVideoTmp2;
+
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
-            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
+            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                           VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
             break;
         case AR_GRAYSCALE_IMAGE:
-            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
             break;
         case AR_DISPARITY_IMAGE:
-            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
             break;
         case AR_COLOR_IMAGE:
 
             break;
         case AR_POINT_CLOUD:
-            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            textureVideoTmp2 = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
             break;
         case AR_YUV_PLANAR_FRAME:
-            texture = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM);
+            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                           VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM);
             break;
         default:
             std::cerr << "Texture type not supported yet" << std::endl;
             break;
     }
-    textureVideo = texture;
-
+    textureVideo = textureVideoTmp;
+    textureVideoDepthMap = textureVideoTmp2;
 }
-
-
 
 
 void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo,
@@ -407,7 +420,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std:
         writeDescriptorSets[3].descriptorCount = 1;
         writeDescriptorSets[3].dstSet = descriptors[i];
         writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->texture.descriptor;
+        writeDescriptorSets[3].pImageInfo = &model->textureVideoDepthMap.descriptor;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -572,6 +585,7 @@ void CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
     createPipeline(*utils.renderPass, std::move(vector), type);
 
 }
+
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);

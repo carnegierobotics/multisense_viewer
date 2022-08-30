@@ -21,7 +21,7 @@ void PointCloud::setup(Base::Render r) {
     }
 
     const int vertexCount = 960 * 600;
-    meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
+    meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] when you're done!
 
     int v = 0;
     for (int i = 0; i < 960; ++i) {
@@ -66,16 +66,23 @@ void PointCloud::update(CameraConnection *conn) {
 
 
     if (model->draw) {
-        ArEngine::TextureData *tex = new ArEngine::TextureData();
+        auto *tex = new ArEngine::TextureData();
         if (camPtr->getCameraStream(src, tex))
-            model->setGrayscaleTexture(tex);
+            model->setGrayscaleTexture(tex, AR_GRAYSCALE_IMAGE);
+
+        if (camPtr->getCameraStream("Luma Rectified Left", tex))
+            model->setGrayscaleTexture(tex, AR_POINT_CLOUD);
+
         delete tex;
 
     }
 
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -5.0f));
+    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
+
+    // 24 degree rotation to compensate for MultiSense S27 24 degree camera slant.
+    mat.model = glm::rotate(mat.model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));

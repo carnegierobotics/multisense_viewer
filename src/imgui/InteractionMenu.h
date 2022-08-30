@@ -266,6 +266,7 @@ private:
             drawActionPage = true;
         }
 
+        /*
         ImVec2 pos = ImGui::GetCursorPos();
         pos.y += 5;
         pos.x += 50;
@@ -277,9 +278,12 @@ private:
             }
         }
         ImGui::NewLine();
+        */
+
         ImGui::PopStyleColor(); // bg color
         ImGui::End();
-    }
+
+         }
 
 
     void buildConfigurationPreview(AR::GuiObjectHandles *handles) {

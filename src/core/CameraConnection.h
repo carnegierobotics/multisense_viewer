@@ -44,7 +44,7 @@ private:
 
     void disableCrlCamera(AR::Element &element);
 
-    void setNetworkAdapterParameters(AR::Element &dev);
+    bool setNetworkAdapterParameters(AR::Element &dev);
 
     void setStreamingModes(AR::Element &dev);
 

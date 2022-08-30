@@ -49,6 +49,10 @@ public:
 
     CRLCameraModels::Model* model;
     float posY = 0.0f;
+    float scaleX = 0.25f;
+    float scaleY = 0.25f;
+    float centerX = 0.0f;
+    float centerY = 0.0f;
     float posXMin = 0.0f;
     float posXMax = 0.0f;
     float posYMin = 0.0f;

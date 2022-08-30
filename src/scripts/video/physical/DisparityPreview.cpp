@@ -44,9 +44,11 @@ void DisparityPreview::update(CameraConnection *conn) {
 
         model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_DISPARITY_IMAGE);
 
-        auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
+        aspectRatio = (float) imgConf.width() / (float) imgConf.height();
 
-        //auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
+
+        auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
 
         // Load shaders
@@ -78,6 +80,9 @@ void DisparityPreview::update(CameraConnection *conn) {
     UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
+    mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
+    mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 /scaleX), centerY * (1 /scaleY), 0.0f));
+
 
     auto *d = (UBOMatrix *) bufferOneData;
     d->model = mat.model;
@@ -138,14 +143,21 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 void DisparityPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
-    posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + 40.0f) / (float) renderData.width);
-    posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth - 80.0f) / (float) renderData.width;
+    posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth) / (float) renderData.width);
+    posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth) / (float) renderData.width;
+
+    // 1280x 720 is the original aspect
+
+    float scaleUniform = ((float) renderData.width/ 1280.0f); // Scale by width of screen.
+    centerX = (posXMax - posXMin) / 2 + posXMin; // center of the quad in the given view area.
+    scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
+    scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
 
     int order = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
     float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );
-
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
+    centerY = (posYMax - posYMin) / 2 + posYMin;
 
 }
 

@@ -40,6 +40,7 @@ namespace AR {
 
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
+        float viewAreaElementSizeX = {0};
 
         std::unordered_map<ImageElementIndex, ArEngine::ImageElement> img;
 
@@ -162,9 +163,11 @@ namespace AR {
         GuiLayerUpdateInfo *info{};
 
         /** Keypress and mouse events */
-        int keypress;
+        int keypress; // TODO Redo usage of keypress. Was only meant for quick debugging
         ArEngine::MouseButtons mouseBtns;
         float accumulatedMouseScroll = 0.0f;
+        float mouseScrollSpeed = 50.0f;
+
     };
 
     static ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);

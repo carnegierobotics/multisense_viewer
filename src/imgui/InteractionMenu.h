@@ -307,13 +307,14 @@ private:
         uint32_t previewWindowCount = 0;
         for (auto &d: *handles->devices) {
             if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
-                handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * 20.0f;
+                handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * handles->mouseScrollSpeed;
 
                 for (auto &stream: d.streams) {
                     if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
 
                         // Skip preview window for point cloud because it is displayed in the 3D tab
-                        if (stream.second.streamIndex == AR_PREVIEW_POINT_CLOUD || stream.second.streamIndex == AR_PREVIEW_VIRTUAL_POINT_CLOUD)
+                        if (stream.second.streamIndex == AR_PREVIEW_POINT_CLOUD ||
+                            stream.second.streamIndex == AR_PREVIEW_VIRTUAL_POINT_CLOUD)
                             continue;
 
                         stream.second.streamingOrder = previewWindowCount;
@@ -386,24 +387,38 @@ private:
 
 
     void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex, uint32_t i, AR::Element d) {
-        float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
+        //float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
+        float viewAreaElementPosX = (((handles->info->viewingAreaWidth / 2.0f) + handles->info->sidebarWidth +
+                                      handles->info->controlAreaWidth - ((0.25f * handles->info->width) / 2.0f)));
+
+
+        // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
+        // Equation is
+        float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedMouseScroll +
+                                    ((float) i * (200.0f * (handles->info->width / 1280.0f)));
+
+
+        handles->info->viewAreaElementPositionsY[i] = viewAreaElementPosY;
 
         //TODO remove hardcoded positions and sizes from this function
         if (firstSetup[i]) {
-            handles->info->viewAreaElementPositionsY[i] = handles->accumulatedMouseScroll +
-                    75.0f + ((float) i * (320.0f + ((float) handles->info->height * 0.13f)));
+
             //firstSetup[i] = false;
             //Log::Logger::getInstance()->info("Created preview for {} in order {}", (uint32_t) streamIndex, i);
 
         }
 
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
-                                ImGuiCond_Always); // TODO REMOVE HARDCODED VALUE
+                                ImGuiCond_Always);
 
-        handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
+        handles->info->viewAreaElementSizeX =
+                0.25f * handles->info->width * 1.3f; // Half of aspect ratio (magic number?)
+        handles->info->viewAreaElementSizeY = 0.25f * 720.0f * (handles->info->width / 1280.0f);// handles->info->height;
 
-        ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth - 80.0f, handles->info->viewAreaElementSizeY),
-                                 ImGuiCond_Always);  // TODO REMOVE HARDCODED VALUES
+        //handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
+
+        ImGui::SetNextWindowSize(ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
+                                 ImGuiCond_Always);
         static bool open = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
@@ -480,7 +495,7 @@ private:
 
                                   addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
                                               &d.streams[AR_PREVIEW_POINT_CLOUD]);
-  */
+                                */
 
                             }
                         }
@@ -497,38 +512,49 @@ private:
 
                         active |= ImGui::Checkbox("Auto Exposure", &d.parameters.ep.autoExposure);
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                        if (!d.parameters.ep.autoExposure){
-                            active |= ImGui::SliderInt("Exposure", reinterpret_cast<int *>(&d.parameters.ep.exposure), 10, 30000);
+                        if (!d.parameters.ep.autoExposure) {
+                            active |= ImGui::SliderInt("Exposure", reinterpret_cast<int *>(&d.parameters.ep.exposure),
+                                                       10, 30000);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         } else {
-                            active |= ImGui::SliderInt("Auto exposure max value", reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10, 35000);
+                            active |= ImGui::SliderInt("Auto exposure max value",
+                                                       reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10,
+                                                       35000);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                            active |= ImGui::SliderInt("Auto exposure decay", reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 1, 100);
+                            active |= ImGui::SliderInt("Auto exposure decay",
+                                                       reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 1,
+                                                       100);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                            active |= ImGui::SliderFloat("Auto exposure intensity",  &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
+                            active |= ImGui::SliderFloat("Auto exposure intensity",
+                                                         &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                            active |= ImGui::SliderFloat("Auto exposure threshold", &d.parameters.ep.autoExposureThresh, 0, 1);
+                            active |= ImGui::SliderFloat("Auto exposure threshold", &d.parameters.ep.autoExposureThresh,
+                                                         0, 1);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         }
 
                         ImGui::Dummy(ImVec2(0.0f, 20.0f));
                         active |= ImGui::Checkbox("Auto White Balance", &d.parameters.wb.autoWhiteBalance);
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                        if (!d.parameters.wb.autoWhiteBalance){
+                        if (!d.parameters.wb.autoWhiteBalance) {
                             active |= ImGui::SliderFloat("White balance red", &d.parameters.wb.whiteBalanceRed, 1, 100);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                            active |= ImGui::SliderFloat("White balance blue", &d.parameters.wb.whiteBalanceBlue, 1, 100);
+                            active |= ImGui::SliderFloat("White balance blue", &d.parameters.wb.whiteBalanceBlue, 1,
+                                                         100);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         } else {
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                            active |= ImGui::SliderFloat("Auto white balance threshold", &d.parameters.wb.autoWhiteBalanceThresh, 1, 100);
+                            active |= ImGui::SliderFloat("Auto white balance threshold",
+                                                         &d.parameters.wb.autoWhiteBalanceThresh, 1, 100);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             active |= ImGui::SliderInt("Auto white balance decay",
-                                                       reinterpret_cast<int *>(&d.parameters.wb.autoWhiteBalanceDecay), 1, 100);
+                                                       reinterpret_cast<int *>(&d.parameters.wb.autoWhiteBalanceDecay),
+                                                       1, 100);
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         }
 
-                        active |= ImGui::SliderFloat("Stereo Post Filter Strength", &d.parameters.stereoPostFilterStrength, 0, 1);
+                        active |= ImGui::SliderFloat("Stereo Post Filter Strength",
+                                                     &d.parameters.stereoPostFilterStrength, 0, 1);
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         active |= ImGui::SliderFloat("Gamma", &d.parameters.gamma, 0, 10);
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));

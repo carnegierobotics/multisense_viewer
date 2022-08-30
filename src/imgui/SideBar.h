@@ -186,7 +186,8 @@ public:
                 ImGui::RadioButton("Automatic", &autoOrManual, 1);
                 ImGui::SameLine();
                 ImGui::RadioButton("Manual", &autoOrManual, 2);
-
+                ImGui::SameLine();
+                ImGui::RadioButton("Use Virtual", &autoOrManual, 3);
                 /*
                                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
                 autoOrManual |= ImGui::Button("Automatic", ImVec2(150.0f, 35.0f));
@@ -283,6 +284,9 @@ public:
                     ImGui::SetScrollHereY(1.0f);
                 ImGui::EndChild();
 
+                cameraName = "Automatic Entry";
+
+
             } else if (autoOrManual == 2) {
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -354,6 +358,13 @@ public:
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
+                cameraName = "Manual Entry";
+
+            } else if (autoOrManual == 3) {
+                inputName = "Virtual Camera";
+                inputIP = "Virtual Camera";
+                interfaceName = "lol";
+                cameraName = "Virtual Camera";
             }
 
             ImGui::Dummy(ImVec2(20.0f, 40.0f));
@@ -377,34 +388,27 @@ public:
                         ipAlreadyInUse = true;
                     if (d.name == inputName)
                         profileNameTaken = true;
-                    if (d.interfaceName == interfaceName)
+                    if (d.interfaceName ==
+                        interfaceName) // Todo should be possible to have multiple profiles using the same interface name
                         profileNameTaken = true;
                 }
 
                 if (!ipAlreadyInUse && !profileNameTaken) {
-                    createDefaultElement(inputName.data(), inputIP.data(), interfaceName.data());
+                    createDefaultElement(inputName.data(), inputIP.data(), interfaceName.data(), cameraName.data());
+
+                    inputName = "";
+                    inputIP = "";
+                    interfaceName = "";
+                    ImGui::CloseCurrentPopup();
+                } else {
+
                 }
+
 
             }
 
-            // On connect button click
-            if (btnConnect) {
-                for (auto &d: devices) {
-                    if (d.IP == inputIP)
-                        ipAlreadyInUse = true;
-                    if (d.name == inputName)
-                        profileNameTaken = true;
-                }
-
-                if (!ipAlreadyInUse && !profileNameTaken)
-                    createAdvancedElement(inputName.data(), inputIP.data());
-
-                ImGui::CloseCurrentPopup();
-
-            }
 
             ImGui::EndPopup();
-
         }
         ImGui::PopStyleVar(4); // popup style vars
         ImGui::PopStyleColor(); // popup bg color
@@ -453,6 +457,7 @@ private:
     std::string inputIP = "10.66.176.21";
     std::string inputName = "Front Name ";
     std::string interfaceName;
+    std::string cameraName;
 
 
     static void onEvent(std::string event, void *ctx, int color = 0) {
@@ -481,6 +486,7 @@ private:
         app->inputIP = res.cameraIpv4Address;
         app->inputName = info.name;
         app->interfaceName = res.networkAdapter;
+        app->cameraName = info.name;
 
         if (app->inputName == "Multisense S30") // TODO: Avoid hardcoded if-cond here
             app->presetItemIdIndex = 1;
@@ -518,14 +524,14 @@ private:
     }
 
 
-    void createDefaultElement(char *name, char *ip, char *interfaceName) {
+    void createDefaultElement(char *name, char *ip, char *interface, const char* camName = "empty") {
         AR::Element el;
 
         el.name = name;
         el.IP = ip;
         el.state = AR_STATE_JUST_ADDED;
-        el.cameraName = "cameraName";
-        el.interfaceName = interfaceName;
+        el.cameraName = camName;
+        el.interfaceName = interface;
         el.clicked = true;
 
         devices.emplace_back(el);
@@ -534,28 +540,8 @@ private:
 
         Log::Logger::getInstance()->info("GUI:: Connect clicked for Default Device");
         Log::Logger::getInstance()->info("GUI:: Using: Ip: {}, and preset: {}", ip, name);
-
-
     }
 
-    void createAdvancedElement(char *name, char *ip) {
-        AR::Element el;
-
-        el.name = name;
-        el.IP = ip;
-        el.state = AR_STATE_JUST_ADDED;
-        el.cameraName = "Unknown";
-        el.clicked = true;
-
-        devices.emplace_back(el);
-
-        handles->devices = &devices;
-
-        Log::Logger::getInstance()->info("GUI:: Connect clicked for Advanced Device");
-        Log::Logger::getInstance()->info("GUI:: Using: Ip: {}", ip);
-
-
-    }
 
     void sidebarElements() {
         for (int i = 0; i < devices.size(); ++i) {

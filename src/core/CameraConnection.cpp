@@ -25,8 +25,8 @@ CameraConnection::CameraConnection() {
 
 void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
-    if (!dev->parameters.initialized){
-        auto* p = &dev->parameters;
+    if (!dev->parameters.initialized) {
+        auto *p = &dev->parameters;
 
         auto conf = camPtr->getCameraInfo().imgConf;
 
@@ -64,7 +64,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
         p->initialized = true;
     }
 
-    if (dev->parameters.update){
+    if (dev->parameters.update) {
         auto p = dev->parameters;
 
         camPtr->setExposureParams(p.ep);
@@ -97,7 +97,8 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
         if (dev.state != AR_STATE_ACTIVE) {
             for (auto &s: dev.streams) {
                 s.second.playbackStatus = AR_PREVIEW_NONE;
-            }            continue;
+            }
+            continue;
         }
 
 
@@ -123,6 +124,12 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
     bool connected = false;
 
     Log::Logger::getInstance()->info("CameraConnection:: Connect.");
+
+    if (camPtr != nullptr) {
+        // Free camPtr memory and point it to null for a reset.
+        delete camPtr;
+        camPtr = nullptr;
+    }
 
 
     if (dev.cameraName == "Virtual Camera") {
@@ -186,7 +193,12 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             dev.state = AR_STATE_UNAVAILABLE;
 
     } else {
-        setNetworkAdapterParameters(dev);
+
+        if (!setNetworkAdapterParameters(dev)) {
+            dev.state = AR_STATE_UNAVAILABLE;
+            return;
+        }
+
         Log::Logger::getInstance()->info("CameraConnection:: Creating new physical camera.");
 
         camPtr = new CRLPhysicalCamera();
@@ -263,12 +275,13 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
 
 void CameraConnection::initCameraModes(std::vector<std::string> *modes,
                                        std::vector<crl::multisense::system::DeviceMode> deviceModes) {
-    for (auto mode : deviceModes) {
+    for (auto mode: deviceModes) {
         std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
                                std::to_string(mode.disparities) + "x";
         modes->emplace_back(modeName);
     }
 }
+
 void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec) {
     uint32_t bits = camPtr->getCameraInfo().supportedSources;
 
@@ -282,11 +295,20 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 }
 
 
-void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
+bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
     std::string hostAddress = dev.IP;
-    std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
-    hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
+
+    // TODO recheck if we want to start using exceptions for stuff or if this is fine
+    try {
+        std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
+        hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
+    } catch (std::out_of_range &exception) {
+        Log::Logger::getInstance()->error(
+                "Trying to configure adapter '{}' with source IP: '{}', but address does not seem like an ipv4 address", dev.interfaceName, dev.IP);
+        Log::Logger::getInstance()->error("Exception message: '{}'", exception.what());
+        return false;
+    }
 
     /** SET NETWORK PARAMETERS FOR THE ADAPTER */
     if ((sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
@@ -336,6 +358,7 @@ void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200,
                                       dev.interfaceName.c_str());
 
+    return true;
 }
 
 void CameraConnection::updateDeviceState(AR::Element *dev) {
@@ -357,9 +380,6 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
                                      dev.cameraName.c_str());
 
-    // Free camPtr memory and point it to null for a reset.
-    delete camPtr;
-    camPtr = nullptr;
 
 }
 

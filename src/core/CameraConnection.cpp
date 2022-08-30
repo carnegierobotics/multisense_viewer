@@ -8,7 +8,16 @@
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include <MultiSense/src/tools/Logger.h>
 
+#ifdef WIN32
+#else
 
+#include <linux/if_ether.h>
+#include <netinet/ip.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+
+#endif
 
 CameraConnection::CameraConnection() {
 
@@ -275,6 +284,58 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 
 void CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
+    std::string hostAddress = dev.IP;
+    std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
+    hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
+
+    /** SET NETWORK PARAMETERS FOR THE ADAPTER */
+    if ((sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+        fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
+    }
+    // Specify interface name
+    const char *interface = dev.interfaceName.c_str();
+    setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
+
+    struct ifreq ifr{};
+    /// note: no pointer here
+    struct sockaddr_in inet_addr{}, subnet_mask{};
+    /* get interface name */
+    /* Prepare the struct ifreq */
+    bzero(ifr.ifr_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+    /// note: prepare the two struct sockaddr_in
+    inet_addr.sin_family = AF_INET;
+    int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+
+    subnet_mask.sin_family = AF_INET;
+    int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+
+    /* Call ioctl to configure network devices */
+    /// put addr in ifr structure
+    memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+    int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+    }
+
+    /// put mask in ifr structure
+    memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+    ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+    }
+
+    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+    ifr.ifr_mtu = 7200; //your MTU size here
+    if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+        Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size {} on adapter {}", 7200,
+                                          dev.interfaceName.c_str());
+    }
+
+    Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200,
+                                      dev.interfaceName.c_str());
+
 }
 
 void CameraConnection::updateDeviceState(AR::Element *dev) {
@@ -307,6 +368,10 @@ CameraConnection::~CameraConnection() {
     // stops all streams on the camera
     if (camPtr != nullptr)
         delete camPtr;
+
+    if (sd != -1)
+        close(sd);
+
 }
 
 std::string CameraConnection::dataSourceToString(crl::multisense::DataSource d) {

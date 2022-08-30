@@ -29,7 +29,7 @@ void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
 
 
 
-    camera.setMovementSpeed(20.0f * 100);
+    camera.setMovementSpeed(200.0f);
 
 }
 

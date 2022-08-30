@@ -70,7 +70,7 @@ void DisparityPreview::update(CameraConnection *conn) {
     if (model->draw) {
         ArEngine::TextureData *tex = new ArEngine::TextureData();
         if (camera->getCameraStream(src, tex))
-            model->setGrayscaleTexture(tex);
+            model->setGrayscaleTexture(tex, AR_CAMERA_DATA_IMAGE);
 
         delete tex;
 

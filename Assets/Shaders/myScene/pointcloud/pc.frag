@@ -5,17 +5,16 @@
 layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
-layout(location = 3) in vec4 fragPos2;
-layout(location = 4) in vec4 fragPos3;
+layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
+
 
 layout(location = 0) out vec4 outColor;
-
-layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 
 
 void main()
 {
 
-    outColor = vec4(0.5, 0.5, 0.5, 0.5);
+    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    outColor = vec4(tex.r, tex.r, tex.r, 1.0);
 
 }

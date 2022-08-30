@@ -69,6 +69,7 @@ public:
         std::vector<std::string> extensions;
         Texture2D texture;
         TextureVideo textureVideo;
+        TextureVideo textureVideoDepthMap;
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
@@ -96,7 +97,7 @@ public:
 
         void setColorTexture(ArEngine::YUVTexture tex);
 
-        void setGrayscaleTexture(ArEngine::TextureData *tex);
+        void setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type);
     };
 
     /**@brief Primitive for a surface */

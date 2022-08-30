@@ -25,8 +25,6 @@ layout (set = 0, binding = 2) uniform sampler2D depthMap;
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 fragPos;
-layout(location = 3) out vec4 fragPos2;
-layout(location = 4) out vec3 outCoords;
 
 void main()
 {
@@ -37,34 +35,22 @@ void main()
     float depth = texture(depthMap, inUV).r  * 64;// Values scaled to inbetween [0, 1] --
     //this is because the camera is using 12 bit of resolution but the data is stored in a 16 bit texture image
 
-    depth *= 255;
-
-
+    depth *= 255; // Scale values furter up to 255
 
     vec4 coords = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     vec2 uvCoords = vec2(int((1 - inUV.x) * width), int((1 - inUV.y) * height));
-    if (uvCoords.x < 40 || uvCoords.y < 40 || depth < 5){
+    if (uvCoords.x < 20 || uvCoords.y < 20 || depth < 2){
         gl_Position = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         return;
     }
 
-
-    //mat4 kInv = transpose(matrix.kInverse);
-
     vec4 imgCoords = vec4(uvCoords, depth, 1.0f);
     coords = transpose(matrix.kInverse) * imgCoords;
 
-    fragPos = imgCoords.xyz;
-    fragPos2 = coords.xyzw;
-
     float invB = 1.0f / (-600.0f * depth);
-
-    outUV.x = invB;
-
     vec3 outCoordinates = vec3(coords.x * invB, coords.y * invB, coords.z * invB);
-
-    outNormal = coords.xyz;
-    outCoords = outCoordinates;
+    outCoordinates.z *= -1;
+    outCoordinates.y *= -1;
 
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
     //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos.xyz, 1.0f);

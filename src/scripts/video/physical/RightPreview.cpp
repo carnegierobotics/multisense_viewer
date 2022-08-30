@@ -65,7 +65,7 @@ void RightPreview::update(CameraConnection *conn) {
     if (model->draw) {
         ArEngine::TextureData *tex = new ArEngine::TextureData();
         if (camera->getCameraStream(src, tex))
-            model->setGrayscaleTexture(tex);
+            model->setGrayscaleTexture(tex, AR_GRAYSCALE_IMAGE);
         delete tex;
     }
 

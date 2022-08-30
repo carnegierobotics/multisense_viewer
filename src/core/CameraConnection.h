@@ -32,7 +32,7 @@ public:
     void onUIUpdate(std::vector<AR::Element> *pVector);
 
 private:
-    int sd = 0;
+    int sd = -1;
 
     AR::Element *currentActiveDevice = nullptr; // handle to current device
 

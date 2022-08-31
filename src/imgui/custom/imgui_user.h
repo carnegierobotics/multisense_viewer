@@ -12,7 +12,7 @@ namespace ImGui{
 //IMGUI_API bool          CustomSelectable(const char* label, bool* p_selected, ImGuiSelectableFlags flags = 0, const ImVec2& size = ImVec2(0, 0));      // "bool* p_selected" point to the selection state (read-write), as a convenient helper.
 //IMGUI_API bool          CustomSelectable(const char *label, bool selected, ImGuiSelectableFlags flags, const ImVec2 &size_arg);
 
-    inline bool CustomSelectable(const char *label, bool selected, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
+    inline bool CustomSelectable(const char *label, bool selected, bool highlight, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
         ImGuiWindow *window = GetCurrentWindow();
         if (window->SkipItems)
             return false;
@@ -124,9 +124,9 @@ namespace ImGui{
         // Render
         if (held && (flags & ImGuiSelectableFlags_DrawHoveredWhenHeld))
             hovered = true;
-        if (hovered || selected) {
-            const ImU32 col = GetColorU32(
-                    (held && hovered) ? ImGuiCol_Header : hovered ? ImGuiCol_Header : ImGuiCol_Header);
+
+        if (hovered || highlight) {
+            const ImU32 col = GetColorU32(ImGuiCol_Header);
             RenderFrame(bb.Min, bb.Max, col, false, 10.0f);
         }
         RenderNavHighlight(bb, id, ImGuiNavHighlightFlags_TypeThin | ImGuiNavHighlightFlags_NoRounding);
@@ -151,8 +151,8 @@ namespace ImGui{
     }
 
 
-    inline bool CustomSelectable(const char *label, bool *p_selected, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
-        if (CustomSelectable(label, *p_selected, flags, size_arg)) {
+    inline bool CustomSelectable(const char *label, bool *p_selected, bool highlight, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
+        if (CustomSelectable(label, *p_selected,highlight, flags, size_arg)) {
             *p_selected = !*p_selected;
             return true;
         }

@@ -123,7 +123,7 @@ void AuxImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         }
 
 
-        posY -= (float) uiHandle.mouseBtns.wheel * 0.1f * 0.557 * speed * (720.0f / (float)renderData.height);
+        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
         // center of viewing area box.
 
         //posX =  2*;

@@ -12,6 +12,7 @@
 #include "MultiSense/src/tools/Utils.h"
 #include "MultiSense/src/tools/Logger.h"
 
+#define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 typedef enum ScriptType {
@@ -151,7 +152,7 @@ public:
         auto time = std::chrono::steady_clock::now();
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
-        if (time_span.count() > 2.0f) {
+        if (time_span.count() > INTERVAL_10_SECONDS_LOG_DRAW_COUNT) {
             lastLogTime = std::chrono::steady_clock::now();
             renderData.pLogger->info("Draw-count: {} | Script: {} |", renderData.scriptDrawCount,
                                      renderData.scriptName.c_str());

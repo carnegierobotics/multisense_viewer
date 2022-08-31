@@ -46,8 +46,6 @@ namespace AR {
 
         std::vector<ArEngine::ImageElement> imageElements;
 
-        float offset5px = 5.0f;
-
         /** @brief add device button params */
         float addDeviceBottomPadding = 70.0f, addDeviceLeftPadding = 20.0f;
         float addDeviceWidth = 200.0f, addDeviceHeight = 35.0f;

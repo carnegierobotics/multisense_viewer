@@ -37,8 +37,6 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 
 
 void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
-
-
     // Set mode first
     std::string delimiter = "x";
 
@@ -57,11 +55,8 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
 
     // If res changed then set it again.
     if (info.imgConf.disparities() != widthHeightDepth[2]) {
-        Log::Logger::getInstance()->info("CRLPhysicalCamera:: Setting resolution {} x {} x {}", widthHeightDepth[0],
-                                         widthHeightDepth[1], widthHeightDepth[2]);
         setResolution(widthHeightDepth[0], widthHeightDepth[1], widthHeightDepth[2]);
     }
-
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
     if (source == false)
@@ -88,13 +83,7 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
         else
             Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {}  status code {}",
                                              dataSourceToString(src).c_str(), status);
-
     }
-
-    for (auto src: enabledSources) {
-
-    }
-
 }
 
 
@@ -126,7 +115,7 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
     */
     bool status = cameraInterface->stopStreams(src);
-    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}", dataSourceStr.c_str());
+    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}, return code {}", dataSourceStr.c_str(), status);
 }
 
 bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
@@ -172,7 +161,9 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     auto header = imagePointers[src];
     // TODO Fix with proper conditions
     if (header.imageDataP != nullptr && header.imageLength != 0 && header.imageLength < 11520000) {
-        tex->data = (void *) header.imageDataP;
+        tex->data = malloc(header.imageLength);
+        memcpy(tex->data, header.imageDataP, header.imageLength);
+        //tex->data = (void *) header.imageDataP;
         tex->len = header.imageLength;
         return true;
     }
@@ -182,110 +173,16 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
 
 
 
-std::string CRLPhysicalCamera::dataSourceToString(crl::multisense::DataSource d) {
-    switch (d) {
-        case crl::multisense::Source_Raw_Left:
-            return "Raw Left";
-        case crl::multisense::Source_Raw_Right:
-            return "Raw Right";
-        case crl::multisense::Source_Luma_Left:
-            return "Luma Left";
-        case crl::multisense::Source_Luma_Right:
-            return "Luma Right";
-        case crl::multisense::Source_Luma_Rectified_Left:
-            return "Luma Rectified Left";
-        case crl::multisense::Source_Luma_Rectified_Right:
-            return "Luma Rectified Right";
-        case crl::multisense::Source_Chroma_Left:
-            return "Color Left";
-        case crl::multisense::Source_Chroma_Right:
-            return "Source Color Right";
-        case crl::multisense::Source_Disparity_Left:
-            return "Disparity Left";
-        case crl::multisense::Source_Disparity_Cost:
-            return "Disparity Cost";
-        case crl::multisense::Source_Jpeg_Left:
-            return "Jpeg Left";
-        case crl::multisense::Source_Rgb_Left:
-            return "Source Rgb Left";
-        case crl::multisense::Source_Lidar_Scan:
-            return "Source Lidar Scan";
-        case crl::multisense::Source_Raw_Aux:
-            return "Raw Aux";
-        case crl::multisense::Source_Luma_Aux:
-            return "Luma Aux";
-        case crl::multisense::Source_Luma_Rectified_Aux:
-            return "Luma Rectified Aux";
-        case crl::multisense::Source_Chroma_Aux:
-            return "Color Aux";
-        case crl::multisense::Source_Chroma_Rectified_Aux:
-            return "Color Rectified Aux";
-        case crl::multisense::Source_Disparity_Aux:
-            return "Disparity Aux";
-        default:
-            return "Unknown";
-    }
-}
-
-crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::string &d) {
-    if (d == "Raw Left") return crl::multisense::Source_Raw_Left;
-    if (d == "Raw Right") return crl::multisense::Source_Raw_Right;
-    if (d == "Luma Left") return crl::multisense::Source_Luma_Left;
-    if (d == "Luma Right") return crl::multisense::Source_Luma_Right;
-    if (d == "Luma Rectified Left") return crl::multisense::Source_Luma_Rectified_Left;
-    if (d == "Luma Rectified Right") return crl::multisense::Source_Luma_Rectified_Right;
-    if (d == "Color Left") return crl::multisense::Source_Chroma_Left;
-    if (d == "Source Color Right") return crl::multisense::Source_Chroma_Right;
-    if (d == "Disparity Left") return crl::multisense::Source_Disparity_Left;
-    if (d == "Disparity Cost") return crl::multisense::Source_Disparity_Cost;
-    if (d == "Jpeg Left") return crl::multisense::Source_Jpeg_Left;
-    if (d == "Source Rgb Left") return crl::multisense::Source_Rgb_Left;
-    if (d == "Source Lidar Scan") return crl::multisense::Source_Lidar_Scan;
-    if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
-    if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
-    if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
-    if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
-    if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
-    if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
-    if (d == "Color + Luma Rectified Aux")
-        return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;
-    if (d == "All") return crl::multisense::Source_All;
-    return false;
-}
-
-void CRLPhysicalCamera::update() {
-
-    for (auto src: enabledSources) {
-        if (src == crl::multisense::Source_Disparity_Left) {
-            // Reproject camera to 3D
-            //stream = &imagePointers[crl::multisense::Source_Disparity_Left];
-
-        }
-    }
-
-}
-
 void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
-    crl::multisense::image::Config c = info.imgConf;
 
-    crl::multisense::image::Calibration calibration;
+    crl::multisense::image::Calibration calibration{};
     cameraInterface->getImageCalibration(calibration);
-
 
     const double xScale = 1.0 / ((static_cast<double>(info.devInfo.imagerWidth) /
                                   static_cast<double>(width)));
 
-
-    /*
-         kInverseMatrix =
-            glm::mat4(
-                    glm::vec4(1 / c.fx(), 0, -(c.cx() * c.fy()) / (c.fx() * c.fy()), 0),
-                    glm::vec4(0, 1 / c.fy(), -c.cy() / c.fy(), 0),
-                    glm::vec4(0, 0, 1, 0),
-                    glm::vec4(0, 0, 0, 1));
-
-     */
+    crl::multisense::image::Config c = info.imgConf;
     const double fx = c.fx();
     const double fy = c.fy();
     const double cx = c.cx();
@@ -300,17 +197,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
                     glm::vec4(0, 0, 0, fx*fy*tx),
                     glm::vec4(0, 0, -fy, fy*(cx - cxRight)));
 
-    //kInverseMatrix = glm::transpose(kInverseMatrix);
-
-    crl::multisense::image::Config params = info.imgConf;
-    crl::multisense::image::Calibration cal = info.camCal;
-
-    float dcx = (cal.right.P[0][2] - cal.left.P[0][2]) *
-                (1.0f / static_cast<float>(info.devInfo.imagerWidth * params.width()));
-    glm::mat4 Q = glm::mat4(glm::vec4(params.fy() * params.tx(), 0, 0, -params.fy() * params.cx() * params.tx()),
-                            glm::vec4(0, params.fx() * params.tx(), 0, -params.fx() * params.cy() * params.tx()),
-                            glm::vec4(0, 0, 0, params.fx() * params.fy() * params.tx()),
-                            glm::vec4(0, 0, -params.fx(), params.fy() * (dcx)));
+    //kInverseMatrix = glm::transpose(kInverseMatrix); // TODO uncomment here and remove in shader code
 
     info.kInverseMatrix = kInverseMatrix;
     //info.kInverseMatrix = Q;
@@ -341,6 +228,7 @@ void CRLPhysicalCamera::updateCameraInfo() {
     cameraInterface->getMtu(info.sensorMTU);
 }
 
+// Copied from opengl multisense-viewer example
 void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &image) {
     auto &buf = buffers_[image.source];
 
@@ -369,7 +257,6 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
 
 void CRLPhysicalCamera::addCallbacks() {
-
     for (auto e: info.supportedDeviceModes)
         info.supportedSources |= e.supportedDataSources;
 
@@ -495,11 +382,10 @@ void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t 
     cfg.setDisparities(depth);
 
     ret = cameraInterface->setImageConfig(cfg);
-    ret = cameraInterface->setImageConfig(cfg);
-    if (ret != crl::multisense::Status_Ok) {
+    if (ret == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Set resolution to {}x{}x{}", width, height, depth);
     } else
-        Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}", width, height, depth);
+        Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
     this->updateCameraInfo();
 
 
@@ -613,3 +499,74 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
 
 }
 
+
+std::string CRLPhysicalCamera::dataSourceToString(crl::multisense::DataSource d) {
+    switch (d) {
+        case crl::multisense::Source_Raw_Left:
+            return "Raw Left";
+        case crl::multisense::Source_Raw_Right:
+            return "Raw Right";
+        case crl::multisense::Source_Luma_Left:
+            return "Luma Left";
+        case crl::multisense::Source_Luma_Right:
+            return "Luma Right";
+        case crl::multisense::Source_Luma_Rectified_Left:
+            return "Luma Rectified Left";
+        case crl::multisense::Source_Luma_Rectified_Right:
+            return "Luma Rectified Right";
+        case crl::multisense::Source_Chroma_Left:
+            return "Color Left";
+        case crl::multisense::Source_Chroma_Right:
+            return "Source Color Right";
+        case crl::multisense::Source_Disparity_Left:
+            return "Disparity Left";
+        case crl::multisense::Source_Disparity_Cost:
+            return "Disparity Cost";
+        case crl::multisense::Source_Jpeg_Left:
+            return "Jpeg Left";
+        case crl::multisense::Source_Rgb_Left:
+            return "Source Rgb Left";
+        case crl::multisense::Source_Lidar_Scan:
+            return "Source Lidar Scan";
+        case crl::multisense::Source_Raw_Aux:
+            return "Raw Aux";
+        case crl::multisense::Source_Luma_Aux:
+            return "Luma Aux";
+        case crl::multisense::Source_Luma_Rectified_Aux:
+            return "Luma Rectified Aux";
+        case crl::multisense::Source_Chroma_Aux:
+            return "Color Aux";
+        case crl::multisense::Source_Chroma_Rectified_Aux:
+            return "Color Rectified Aux";
+        case crl::multisense::Source_Disparity_Aux:
+            return "Disparity Aux";
+        default:
+            return "Unknown";
+    }
+}
+
+crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::string &d) {
+    if (d == "Raw Left") return crl::multisense::Source_Raw_Left;
+    if (d == "Raw Right") return crl::multisense::Source_Raw_Right;
+    if (d == "Luma Left") return crl::multisense::Source_Luma_Left;
+    if (d == "Luma Right") return crl::multisense::Source_Luma_Right;
+    if (d == "Luma Rectified Left") return crl::multisense::Source_Luma_Rectified_Left;
+    if (d == "Luma Rectified Right") return crl::multisense::Source_Luma_Rectified_Right;
+    if (d == "Color Left") return crl::multisense::Source_Chroma_Left;
+    if (d == "Source Color Right") return crl::multisense::Source_Chroma_Right;
+    if (d == "Disparity Left") return crl::multisense::Source_Disparity_Left;
+    if (d == "Disparity Cost") return crl::multisense::Source_Disparity_Cost;
+    if (d == "Jpeg Left") return crl::multisense::Source_Jpeg_Left;
+    if (d == "Source Rgb Left") return crl::multisense::Source_Rgb_Left;
+    if (d == "Source Lidar Scan") return crl::multisense::Source_Lidar_Scan;
+    if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
+    if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
+    if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
+    if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
+    if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
+    if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
+    if (d == "Color + Luma Rectified Aux")
+        return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;
+    if (d == "All") return crl::multisense::Source_All;
+    return false;
+}

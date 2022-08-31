@@ -71,8 +71,17 @@ public:
             int imageButtonHeight = 100;
             const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
-                float offset = 150;
-                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + ((float) i * offset),
+                float imageSpacing = 150.0f;
+
+                // width of menu buttons layout. Needed to draw on center of screen.
+                float xOffset = ((handles->info->width - handles->info->sidebarWidth) / 2) -
+                                (((float) imageSpacing * (float) PAGE_CONFIGURE_DEVICE) +
+                                 ((float) PAGE_TOTAL_PAGES * 100.0f) / 2) +
+                                handles->info->sidebarWidth +
+                                ((float) i * imageSpacing);
+
+                ImGui::SetCursorPos(ImVec2(xOffset,
+
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
 
                 ImGui::PushID(i);
@@ -86,10 +95,10 @@ public:
                 if (ImGui::ImageButton(handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, 0, bg_col,
                                        tint_col))
                     page[i] = true;
+
                 ImGui::PopID();
 
-                ImGui::SetCursorPos(ImVec2(handles->info->sidebarWidth + ((float) i * offset),
-                                           (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
+                ImGui::SetCursorPos(ImVec2(xOffset, (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
 
                 ImGui::Text("%s", labels[i]);
 
@@ -132,7 +141,12 @@ public:
         ImGui::GetWindowDrawList()->AddRectFilled(position, pos, ImColor(0.17, 0.157, 0.271, 1.0f), 10.0f, 0);
 
         ImGui::SetCursorScreenPos(position);
-        ImGui::CustomSelectable(id.c_str(), &openDropDown[streamIndex], 0,
+
+        bool highlight = false;
+        if (stream->playbackStatus == AR_PREVIEW_PLAYING)
+            highlight = true;
+
+        ImGui::CustomSelectable(id.c_str(), &openDropDown[streamIndex], highlight, 0,
                                 ImVec2(handles->info->controlDropDownWidth, handles->info->controlDropDownHeight));
 
         if (openDropDown[streamIndex]) {
@@ -283,7 +297,7 @@ private:
         ImGui::PopStyleColor(); // bg color
         ImGui::End();
 
-         }
+    }
 
 
     void buildConfigurationPreview(AR::GuiObjectHandles *handles) {
@@ -311,6 +325,13 @@ private:
         uint32_t previewWindowCount = 0;
         for (auto &d: *handles->devices) {
             if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
+
+                /*
+                printf("ID: %u | %d | %d\n", ImGui::GetHoveredID(), ImGui::IsWindowHovered(),
+                       ImGui::IsMouseHoveringRect(ImVec2(handles->info->sidebarWidth, 0.0f), ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth,handles->info->controlAreaHeight)));
+
+                 */
+                
                 handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * handles->mouseScrollSpeed;
 
                 for (auto &stream: d.streams) {
@@ -329,6 +350,8 @@ private:
                         ImGui::PopStyleColor(); // Bg color
                     }
                 }
+
+
             }
         }
 
@@ -417,7 +440,8 @@ private:
 
         handles->info->viewAreaElementSizeX =
                 0.25f * handles->info->width * 1.3f; // Half of aspect ratio (magic number?)
-        handles->info->viewAreaElementSizeY = 0.25f * 720.0f * (handles->info->width / 1280.0f);// handles->info->height;
+        handles->info->viewAreaElementSizeY =
+                0.25f * 720.0f * (handles->info->width / 1280.0f);// handles->info->height;
 
         //handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
 
@@ -479,29 +503,10 @@ private:
                                                                   handles->info->height - handles->info->tabAreaHeight),
                                           false, ImGuiCond_Always);
 
-                        for (auto &d: *handles->devices) {
-                            if (d.state == AR_STATE_ACTIVE) {
-                                // TODO DRAW DROPDOWNS BASED ON MODES FOUND IN CAMERACONNECTION.CPP during initialization
-                                for (int i = 0; i < AR_PREVIEW_TOTAL_MODES + 1; i++) {
-                                    if (d.streams.find(i) != d.streams.end())
-                                        addDropDown(handles, &d.streams[i]);
-                                }
-                                /*  addDropDown(handles, "1. Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_VIRTUAL_LEFT]);
-                                  addDropDown(handles, "2. Point Cloud", AR_PREVIEW_POINT_CLOUD_VIRTUAL,
-                                              &d.streams[AR_PREVIEW_POINT_CLOUD_VIRTUAL]);
 
-                                  addDropDown(handles, "1. Left Camera", AR_PREVIEW_LEFT, &d.streams[AR_PREVIEW_LEFT]);
-                                  addDropDown(handles, "2. Right Camera", AR_PREVIEW_RIGHT, &d.streams[AR_PREVIEW_RIGHT]);
-                                  addDropDown(handles, "3. Auxiliary Camera", AR_PREVIEW_AUXILIARY,
-                                              &d.streams[AR_PREVIEW_AUXILIARY]);
-                                  addDropDown(handles, "4. Disparity", AR_PREVIEW_DISPARITY,
-                                              &d.streams[AR_PREVIEW_DISPARITY]);
-
-                                  addDropDown(handles, "5. Point Cloud", AR_PREVIEW_POINT_CLOUD,
-                                              &d.streams[AR_PREVIEW_POINT_CLOUD]);
-                                */
-
-                            }
+                        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES + 1; i++) {
+                            if (d.streams.find(i) != d.streams.end())
+                                addDropDown(handles, &d.streams[i]);
                         }
 
 

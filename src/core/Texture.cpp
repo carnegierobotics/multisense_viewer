@@ -1268,6 +1268,7 @@ void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
     VkDeviceMemory stagingMemory;
 
 
+    // TODO Allocate only on changing buffer sizes i.e. bigger sizes
     CHECK_RESULT(device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1284,8 +1285,8 @@ void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
 
 
     // Copy texture data into staging buffer
+    // TODO Map and UnMap only once.
     uint8_t *data;
-
     CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, tex->data, tex->len);
     vkUnmapMemory(device->logicalDevice, stagingMemory);

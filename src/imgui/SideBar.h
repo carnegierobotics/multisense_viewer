@@ -30,13 +30,13 @@ public:
 
     // Create global object for convenience in other functions
     AR::GuiObjectHandles *handles;
-    AutoConnectHandle connect{};
+    AutoConnectHandle autoConnect{};
+    bool refreshAdapterList = true; // Set to true to find adapters on next call
+    std::vector<AutoConnect::AdapterSupportResult> adapters;
 
     void OnAttach() override {
-        Buf.clear();
-        LineOffsets.clear();
-        LineOffsets.push_back(0);
-        colors.push_back(0);
+        autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
+        autoConnect.setEventCallback(SideBar::onEvent);
     }
 
     void onFinishedRender() override {
@@ -164,7 +164,7 @@ public:
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
                 Funcs::MyInputText("##inputProfileName", &inputName);
                 ImGui::Dummy(ImVec2(0.0f, 30.0f));
             }
@@ -183,9 +183,9 @@ public:
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 0.0f));
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(10.0f, 0.0f));
 
-                ImGui::RadioButton("Automatic", &autoOrManual, 1);
+                ImGui::RadioButton("Manual", &autoOrManual, 1);
                 ImGui::SameLine();
-                ImGui::RadioButton("Manual", &autoOrManual, 2);
+                ImGui::RadioButton("Automatic", &autoOrManual, 2);
                 ImGui::SameLine();
                 ImGui::RadioButton("Use Virtual", &autoOrManual, 3);
                 /*
@@ -205,13 +205,12 @@ public:
 
             }
 
-
-            if (autoOrManual == 1) {
+            ImVec2();
+            if (autoOrManual == 2) {
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
                 if (ImGui::Button("Start")) {
-                    AddLog(0, "Auto detection service log\n");
                     autoDetectCamera();
                 }
 
@@ -287,7 +286,7 @@ public:
                 cameraName = "Automatic Entry";
 
 
-            } else if (autoOrManual == 2) {
+            } else if (autoOrManual == 1) {
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
@@ -328,27 +327,44 @@ public:
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
-                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
                 Funcs::MyInputText("##inputIP", &inputIP);
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
-                    ImGui::SameLine();
+                    ImGui::SameLine(0.0f, 10.0f);
                     ImGui::Text("Select network adapter:");
-                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::SameLine(0.0f, 10.0f);
                 }
 
-                const char *items[] = {"Adapter 1", "Adapter 2", "Adapter 3"};
+                if (ImGui::SmallButton("Refresh list") || refreshAdapterList) {
+                    skipUserFriendlySleepDelay = true;
+                    adapters = autoConnect.findEthernetAdapters(false);
+                    skipUserFriendlySleepDelay = false;
+                    refreshAdapterList = false;
+                }
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+                std::vector<std::string> items;
+                if (adapters.empty()) {
+                    items.emplace_back("No adapters found");
+                }
+
+                for (const auto &a: adapters) {
+                    if (a.supports)
+                        items.push_back(a.name);
+                }
+
                 interfaceName = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
-                ImGui::SetNextItemWidth(handles->info->popupWidth - 80.0f);
+                ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
                 if (ImGui::BeginCombo("##SelectAdapter", interfaceName.c_str(), flags)) {
-                    for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                    for (int n = 0; n < items.size(); n++) {
                         const bool is_selected = (presetItemIdIndex == n);
-                        if (ImGui::Selectable(items[n], is_selected))
+                        if (ImGui::Selectable(items[n].c_str(), is_selected))
                             presetItemIdIndex = n;
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -366,14 +382,14 @@ public:
                 interfaceName = "lol";
                 cameraName = "Virtual Camera";
             }
+            ImGui::Dummy(ImVec2(0.0f, 40.0f));
 
-            ImGui::Dummy(ImVec2(20.0f, 40.0f));
 
-
+            ImGui::SetCursorPos(ImVec2(0.0f, handles->info->popupHeight - 50.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
-            ImGui::SameLine(0, 10.0f);
+            ImGui::SameLine(0, 110.0f);
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
@@ -387,9 +403,6 @@ public:
                     if (d.IP == inputIP)
                         ipAlreadyInUse = true;
                     if (d.name == inputName)
-                        profileNameTaken = true;
-                    if (d.interfaceName ==
-                        interfaceName) // Todo should be possible to have multiple profiles using the same interface name
                         profileNameTaken = true;
                 }
 
@@ -445,8 +458,9 @@ private:
 
     bool btnConnect = false;
     bool btnAdd = false;
+    bool skipUserFriendlySleepDelay = false;
 
-    int autoOrManual = 1; // 0 == nothing | 1 = auto | 2 = manual
+    int autoOrManual = 1; // 0 == nothing | 2 = auto | 1 = manual
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<int> colors;
@@ -465,7 +479,10 @@ private:
 
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        if (!app->skipUserFriendlySleepDelay) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+
         app->AddLog(color, "[INFO] %s\n", event.c_str());
 
 
@@ -475,7 +492,7 @@ private:
         auto *app = static_cast<SideBar *>(ctx);
 
 
-        crl::multisense::Channel *ptr = app->connect.getCameraChannel();
+        crl::multisense::Channel *ptr = app->autoConnect.getCameraChannel();
         crl::multisense::system::DeviceInfo info;
         ptr->getDeviceInfo(info);
         Log::Logger::getInstance()->info(
@@ -495,36 +512,53 @@ private:
         else
             app->presetItemIdIndex = 0;
 
-        app->connect.setProgramClose(true);
+        app->autoConnect.setProgramClose(true);
 
     }
 
     void autoDetectCamera() {
-        // If already running just check if we should close it
-        if (connect.running) {
-            if (connect.shouldProgramClose())
-                connect.stop();
-            return;
-        }
+        // If already running just check if we should close it before opening it again.
+        if (autoConnect.shouldProgramClose())
+            autoConnect.stop();
+
+        Buf.clear();
+        LineOffsets.clear();
+        LineOffsets.push_back(0);
+        colors.clear();
+        colors.push_back(0);
+
+        AddLog(0, "Auto detection service log\n");
 
 
         // Check for root privileges before launching
         if (getuid()) {
             Log::Logger::getInstance()->info(
                     "Program is not run as root. This is required to use the auto connect feature");
+            AddLog(2, "Admin privileges is required to run the Auto-Connect feature");
+
             return;
         }
 
         Log::Logger::getInstance()->info("Start looking for ethernet adapters");
-        connect.setDetectedCallback(SideBar::onCameraDetected, this);
-        connect.setEventCallback(SideBar::onEvent);
 
-        std::vector<AutoConnect::AdapterSupportResult> res = connect.findEthernetAdapters();
-        connect.start(res);
+        skipUserFriendlySleepDelay = true;
+        std::vector<AutoConnect::AdapterSupportResult> res = autoConnect.findEthernetAdapters(false);
+        skipUserFriendlySleepDelay = false;
+
+        bool foundSupportedAdapter = false;
+        for (const auto &r: res) {
+            if (r.supports)
+                foundSupportedAdapter = true;
+        }
+
+        if (foundSupportedAdapter)
+            autoConnect.start(res);
+        else
+            AddLog(2, "Did not find any supported network adapters");
     }
 
 
-    void createDefaultElement(char *name, char *ip, char *interface, const char* camName = "empty") {
+    void createDefaultElement(char *name, char *ip, char *interface, const char *camName = "empty") {
         AR::Element el;
 
         el.name = name;

@@ -67,12 +67,12 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
 
     if (model->draw) {
 
-        ArEngine::YUVTexture *tex = new ArEngine::YUVTexture();
-        if (camera->getCameraStream(tex))
-            model->setColorTexture(*tex);
-
+        auto *tex = new ArEngine::TextureData();
+        if (camera->getCameraStream(src, tex)) {
+            model->setGrayscaleTexture(tex, AR_CAMERA_DATA_IMAGE);
+            free(tex->data);
+        }
         delete tex;
-
     }
 
 

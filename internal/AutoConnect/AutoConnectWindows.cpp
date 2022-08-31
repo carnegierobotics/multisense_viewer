@@ -45,7 +45,7 @@ struct iphdr {
 
 };
 
-std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetAdapters() {
+std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool b) {
     std::vector<AutoConnect::AdapterSupportResult> adapters;
     pcap_if_t *alldevs;
     pcap_if_t *d;

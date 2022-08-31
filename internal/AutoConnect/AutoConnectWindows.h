@@ -16,7 +16,7 @@ public:
     /** @Brief Starts the search for camera given a list containing network adapters Search is done in another thread**/
     void start(std::vector<AdapterSupportResult> vector) override;
     /** @Brief Function to search for network adapters **/
-    std::vector<AdapterSupportResult> findEthernetAdapters() override;
+    std::vector<AdapterSupportResult> findEthernetAdapters(bool b) override;
 
     /** @Brief cleans up thread**/
     void stop() override;

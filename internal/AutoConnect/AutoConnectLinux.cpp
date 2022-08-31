@@ -16,7 +16,7 @@
 #include "AutoConnectLinux.h"
 
 
-std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAdapters() {
+std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAdapters(bool logEvent) {
     std::vector<AdapterSupportResult> adapterSupportResult;
     auto ifn = if_nameindex();
     auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -28,11 +28,6 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
         } ecmd{};
 
         adapterSupportResult.emplace_back(i->if_name, false);
-
-        // Skip the loopback
-        //if (i->if_index == 1) {
-        //continue;
-        //}
 
         auto ifr = ifreq{};
         std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
@@ -70,13 +65,15 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
         adapterSupportResult.back().supports = true;
     }
 
+
     if (!adapterSupportResult.empty())
-        onFoundAdapters(adapterSupportResult);
+        onFoundAdapters(adapterSupportResult, logEvent);
     return adapterSupportResult;
 }
 
 void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> adapters) {
     AutoConnectLinux *app = (AutoConnectLinux *) instance;
+    app->eventCallback("Started detection service", app->context, 0);
 
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
@@ -209,7 +206,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
     printf("Exited thread\n");
 }
 
-void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapters) {
+void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapters, bool logEvent) {
 
     for (auto &adapter: adapters) {
         Log::Logger::getInstance()->info("AUTOCONNECT: Found Adapter {}, supports {}, 0 = false, 1 = true",
@@ -218,7 +215,8 @@ void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapter
         if (adapter.supports) {
             std::string str;
             str = "Found supported adapter: " + adapter.name;
-            eventCallback(str, context, 1);
+            if (logEvent)
+                eventCallback(str, context, 1);
         }
     }
 
@@ -324,18 +322,23 @@ void AutoConnectLinux::stop() {
     listenOnAdapter = false;
     Log::Logger::getInstance()->info("AUTOCONNECT: stopping.. Joining thread {} and exiting",
                                      std::hash<std::thread::id>{}(std::this_thread::get_id()));
-    t->join();
-    closeProgram = false;
+    shouldProgramRun = false;
     running = false;
-    eventCallback("Stopped detection service\n", context, 0);
+
+    t->join();
 }
 
 void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
+
+    // TODO Clean up public booleans. 4 member booleans might be exaggerated use?
     running = true;
+    loopAdapters = true;
+    listenOnAdapter = true;
+    shouldProgramRun = true;
+
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
     Log::Logger::getInstance()->info("AUTOCONNECT: Starting new thread, {}",
                                      std::hash<std::thread::id>{}(std::this_thread::get_id()));
-    eventCallback("Started detection service", context, 0);
 }
 
 AutoConnect::Result AutoConnectLinux::getResult() {
@@ -353,11 +356,11 @@ void AutoConnectLinux::setDetectedCallback(void (*param)(Result result1, void *c
 }
 
 bool AutoConnectLinux::shouldProgramClose() {
-    return closeProgram;
+    return shouldProgramRun;
 }
 
 void AutoConnectLinux::setProgramClose(bool close) {
-    this->closeProgram = close;
+    this->shouldProgramRun = close;
 }
 
 void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *, int)) {

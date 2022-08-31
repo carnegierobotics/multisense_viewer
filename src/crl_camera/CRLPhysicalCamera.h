@@ -22,12 +22,10 @@ public:
 
     ~CRLPhysicalCamera() override {
         // TODO FREE RESOURCES MEMBER VARIABLES
-         stop("All");
+        stop("All");
         printf("BaseInterface destructor\n");
 
     }
-
-    void update();
 
 
     bool connect(const std::string& ip) override;

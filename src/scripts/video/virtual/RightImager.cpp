@@ -114,7 +114,7 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
-        posY = uiHandle.accumulatedMouseScroll * (1 / uiHandle.mouseScrollSpeed) * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
 
         for (auto &dev: *uiHandle.devices) {
             if (dev.state != AR_STATE_ACTIVE)
@@ -162,7 +162,6 @@ void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element 
 
 
 void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-
     if (model->draw && playbackSate != AR_PREVIEW_NONE)
         CRLCameraModels::draw(commandBuffer, i, model);
 }

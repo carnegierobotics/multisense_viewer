@@ -48,14 +48,14 @@ public:
     time_t startTime{};
     crl::multisense::Channel* cameraInterface{};
 
-    virtual std::vector<AdapterSupportResult> findEthernetAdapters() = 0;
+    virtual std::vector<AdapterSupportResult> findEthernetAdapters(bool b) = 0;
     virtual void start(std::vector<AdapterSupportResult> vector) = 0;
-    virtual void onFoundAdapters(std::vector<AdapterSupportResult> vector) = 0;
+    virtual void onFoundAdapters(std::vector<AdapterSupportResult> vector, bool logEvent) = 0;
     virtual FoundCameraOnIp onFoundIp(std::string string, AdapterSupportResult adapter) = 0;
     virtual void onFoundCamera(AdapterSupportResult supportResult) = 0;
     virtual void stop() = 0;
 
-    bool closeProgram = false;
+    bool shouldProgramRun = false;
 
     virtual bool shouldProgramClose() = 0;
 

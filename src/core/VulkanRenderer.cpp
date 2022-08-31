@@ -517,9 +517,8 @@ void VulkanRenderer::renderLoop() {
         ImGuiIO &io = ImGui::GetIO();
         io.DisplaySize = ImVec2((float) width, (float) height);
         io.DeltaTime = frameTimer;
+        io.WantCaptureMouse = true;
         io.MousePos = ImVec2(mousePos.x, mousePos.y);
-
-
         io.MouseWheel = mouseButtons.wheel;
 
         io.MouseDown[0] = mouseButtons.left;
@@ -732,8 +731,8 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
     bool handled = false;
 
     if (settings.overlay) {
-        //ImGuiIO& io = ImGui::GetIO();
-        //firstUpdate = io.WantCaptureMouse;
+        ImGuiIO& io = ImGui::GetIO();
+        io.WantCaptureMouse = true;
     }
     mouseMoved((float) x, (float) y, handled);
 

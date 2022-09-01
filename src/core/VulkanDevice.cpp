@@ -507,13 +507,16 @@ void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue que
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
     VkFence fence;
-    if (vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence) != VK_SUCCESS)
+    VkResult res = vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
+    if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create fence");
     // Submit to the queue
-    if (vkQueueSubmit(queue, 1, &submitInfo, fence) != VK_SUCCESS)
+    res = vkQueueSubmit(queue, 1, &submitInfo, fence);
+    if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to submit to queue");
     // Wait for the fence to signal that command buffer has finished executing
-    if (vkWaitForFences(logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+    res = vkWaitForFences(logicalDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+    if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to wait for fence");
     vkDestroyFence(logicalDevice, fence, nullptr);
     if (free) {

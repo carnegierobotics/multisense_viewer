@@ -226,13 +226,15 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_NONE;
                 Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
-                firstSetup[stream->streamingOrder] = true; // TODO index correctly compared to which preview is open
+                firstSetup[stream->streamingOrder] = true;
+            }
+
+            if (streamIndex == AR_PREVIEW_POINT_CLOUD){
+                ImGui::SameLine(0, 200.0f); // TODO Hardcoded positioning values
+                ImGui::HelpMarker("  Why is my point cloud black?\n   Solution: start 'Luma Rectified Left' data source in 1. Left Sensor  \n\n");
             }
 
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
-
-
-            //openDropDownMenu(handles, position);
         }
     }
 

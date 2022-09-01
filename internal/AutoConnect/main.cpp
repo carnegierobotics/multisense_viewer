@@ -19,7 +19,7 @@ int main() {
 
 #ifdef WIN32
     AutoConnectWindows connect{};
-    std::vector<AutoConnect::AdapterSupportResult> res =  connect.findEthernetAdapters();
+    std::vector<AutoConnect::AdapterSupportResult> res =  connect.findEthernetAdapters(false);
 #else
     AutoConnectLinux connect{};
     std::vector<AutoConnect::AdapterSupportResult> res = connect.findEthernetAdapters();

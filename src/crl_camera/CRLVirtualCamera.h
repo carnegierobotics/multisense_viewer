@@ -8,6 +8,9 @@
 #ifdef WIN32
 #include <windows.h>
 #include <thread>
+#include <array>
+#define semaphore HANDLE
+
 #else
 #include <semaphore.h>
 #include <queue>
@@ -18,7 +21,7 @@
 #include "CRLBaseInterface.h"
 
 extern "C" {
-    #include <libavutil/frame.h>
+#include <libavutil/frame.h>
 };
 
 class CRLVirtualCamera : public CRLBaseInterface {
@@ -35,7 +38,7 @@ public:
     int point = 0;
     glm::mat4 kInverseMatrix;
 
-    bool connect(const std::string &ip) override;
+    bool connect(const std::string& ip) override;
 
     void updateCameraInfo() override;
     void updateCameraInfo(uint32_t index);
@@ -52,10 +55,9 @@ public:
     CameraInfo getCameraInfo() override;
 
     bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) override;
-    bool getCameraStream(ArEngine::YUVTexture *tex) override;
+    bool getCameraStream(ArEngine::YUVTexture* tex) override;
 
 
-private:
 
     void update();
 
@@ -68,32 +70,24 @@ private:
     };
     DecodeThreadArgs args[MAX_STREAMS];
 
-    struct DecodeContainer{
-#ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
-        HANDLE notEmpty;
-        HANDLE notFull;
+    struct DecodeContainer {
         //HANDLE producer;
         DWORD ThreadID;
         //static void decode(LPVOID);
+        std::thread* producer = nullptr;
+
+        semaphore notEmpty{}, notFull{};
         static void* decode(void* arg);
-        std::thread* producer;
 
-#else
-        sem_t notEmpty{}, notFull{};
-        pthread_t producer{};
-
-        static void *decode(void* args);
-
-#endif
         bool runDecodeThread = false;
-        AVFrame *videoFrame{};
+        AVFrame* videoFrame{};
         int bufferSize = 0;
         std::string videoName = "None";
         int width = 0, height = 0;
 
 
         int frameIndex = 0;
-        std::array<uint32_t, 20> frameIDs{0};
+        std::array<uint32_t, 20> frameIDs{ 0 };
 
 
         std::array<bool, 20> occupiedSlot{};
@@ -109,9 +103,9 @@ private:
     int childProcessDecode(uint32_t index);
 
 
-    void getVideoMetadata(uint32_t i);
+    bool getVideoMetadata(uint32_t i);
 
-    void saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame);
+    void saveFrameYUV420P(AVFrame* pFrame, int width, int height, int iFrame);
 };
 
 

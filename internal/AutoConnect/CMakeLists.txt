@@ -9,7 +9,8 @@ option(LIBMULTISENSE_PATH "Path to LibMultiSense Source directory" None)
 option(LIBMULTISENSE_SKIP "Skip looking for LibMultiSense" False)
 option(BUILD_AUTOCONNECT_LIB FALSE)
 
-
+set(LIBMULTISENSE_PATH "../../external/LibMultiSense")
+set(BUILD_AUTOCONNECT_LIB True)
 
 if(NOT DEFINED LIBMULTISENSE_PATH)
     message(FATAL_ERROR "You must set LIBMULTISENSE_PATH environment variable")
@@ -49,7 +50,7 @@ if (WIN32)
     message(CURRENT PATH: ${CMAKE_CURRENT_SOURCE_DIR} | ${BUILD_AUTOCONNECT_LIB})
 
     if (${BUILD_AUTOCONNECT_LIB})
-        add_library(LibAutoConnect AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h)
+        add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h)
         target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi)
     else()
         add_executable(AutoConnect WIN32 AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h main.cpp)

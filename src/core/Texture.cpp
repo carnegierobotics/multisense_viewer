@@ -1,18 +1,18 @@
 //
 // Created by magnus on 9/13/21.
-//
+// Based of Sascha Willems vulkan texture loading
+// Copyright(C) by Sascha Willems - www.saschawillems.de
+// This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
+
+
+#ifdef WIN32
+#define NOMINMAX
+#endif
 
 #include <MultiSense/src/tools/Utils.h>
 #include <MultiSense/src/tools/Macros.h>
 #include "Texture.h"
 
-/*
-* Vulkan texture loader
-*
-* Copyright(C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
-*/
 
 
 void Texture::updateDescriptor() {

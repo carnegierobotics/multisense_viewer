@@ -1,3 +1,4 @@
+#include "AutoConnectWindows.h"
 //
 // Created by mgjer on 14/07/2022.
 //
@@ -13,20 +14,18 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
-
-
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 #define ADAPTER_HEX_NAME_LENGTH 38
 #define UNNAMED_ADAPTER "Unnamed"
 
-#include <winsock2.h>
+#include <WinSock2.h>
 #include <iphlpapi.h>
-#include <stdio.h>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <iprtrmib.h>
-#include <time.h>
+#include <Iprtrmib.h>
+#include <ctime>
 
 #include "AutoConnectWindows.h"
 #include "pcap.h"
@@ -45,10 +44,10 @@ struct iphdr {
 
 };
 
-std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool b) {
+std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool logEvent) {
     std::vector<AutoConnect::AdapterSupportResult> adapters;
-    pcap_if_t *alldevs;
-    pcap_if_t *d;
+    pcap_if_t* alldevs;
+    pcap_if_t* d;
     char errbuf[PCAP_ERRBUF_SIZE];
 
     /* Retrieve the device list */
@@ -83,8 +82,8 @@ std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool 
     std::string powershell;
     powershell = "getmac /v /fo csv > " + tmpTxtFile + " \n";
     powershell +=
-            "((Get-Content " + tmpTxtFile + ")  -replace '`n','\n' -replace '`r','\n')  | Set-Content " + tmpTxtFile +
-            "\n";
+        "((Get-Content " + tmpTxtFile + ")  -replace '`n','\n' -replace '`r','\n')  | Set-Content " + tmpTxtFile +
+        "\n";
     psFile << powershell << std::endl;
     psFile.close();
 
@@ -97,7 +96,7 @@ std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool 
     std::string line;
     if (resfile.is_open()) {
         while (getline(resfile, line)) {
-            char *token = strtok(line.data(), ",");
+            char* token = strtok(line.data(), ",");
             int i = 0;
             PowerShellOutput psOutput;
             while (token != nullptr) {
@@ -122,12 +121,12 @@ std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool 
     // Loop through the found adapters and cross check if any of the hex strings are simillar to the getmacs commands from powershell
 
 
-    for (auto &psOut: names) {
+    for (auto& psOut : names) {
         if (psOut.tplName.length() < ADAPTER_HEX_NAME_LENGTH)
             continue;
         std::string tplName = psOut.tplName.substr(psOut.tplName.size() - ADAPTER_HEX_NAME_LENGTH);
 
-        for (auto &adapter: adapters) {
+        for (auto& adapter : adapters) {
             if (adapter.lName.length() < ADAPTER_HEX_NAME_LENGTH && adapter.name != UNNAMED_ADAPTER)
                 continue;
             std::string hexString = adapter.lName.substr(adapter.lName.size() - ADAPTER_HEX_NAME_LENGTH);
@@ -142,7 +141,7 @@ std::vector<AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool 
     }
 
     if (!adapters.empty())
-        onFoundAdapters(adapters);
+        onFoundAdapters(adapters, logEvent);
 
     return adapters;
 }
@@ -153,7 +152,17 @@ void AutoConnectWindows::start(std::vector<AdapterSupportResult> adapters) {
     printf("Started thread\n");
 }
 
-void AutoConnectWindows::onFoundAdapters(std::vector<AdapterSupportResult> vector) {
+void AutoConnectWindows::onFoundAdapters(std::vector<AdapterSupportResult> adapters, bool logEvent) {
+
+    for (auto& adapter : adapters) {
+
+        if (adapter.supports) {
+            std::string str;
+            str = "Found supported adapter: " + adapter.name;
+            if (logEvent)
+                eventCallback(str, context, 1);
+        }
+    }
 
 }
 
@@ -163,18 +172,19 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     DWORD dwSize = 0, dwRetVal = 0;
     // Before calling AddIPAddress we use GetIpAddrTable to get
     // an adapter to which we can add the IP.
-    PMIB_IPADDRTABLE pIPAddrTable = (MIB_IPADDRTABLE *) MALLOC(sizeof(MIB_IPADDRTABLE));
+    PMIB_IPADDRTABLE pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(sizeof(MIB_IPADDRTABLE));
     if (pIPAddrTable == NULL) {
         printf("Error allocating memory needed to call GetIpAddrTable\n");
         exit(1);
-    } else {
+    }
+    else {
         dwSize = 0;
         // Make an initial call to GetIpAddrTable to get the
         // necessary size into the dwSize variable
         if (GetIpAddrTable(pIPAddrTable, &dwSize, 0) ==
             ERROR_INSUFFICIENT_BUFFER) {
             FREE(pIPAddrTable);
-            pIPAddrTable = (MIB_IPADDRTABLE *) MALLOC(dwSize);
+            pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(dwSize);
 
         }
         if (pIPAddrTable == NULL) {
@@ -182,8 +192,13 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
             exit(1);
         }
     }
-    std::string hostAddress = cameraAddress;
-    hostAddress.replace(cameraAddress.rfind("."), cameraAddress.length(), ".2");
+    std::string hostAddress(cameraAddress);
+
+    size_t it = hostAddress.rfind('.', hostAddress.length());
+    hostAddress.replace(it, hostAddress.length(), ".2");
+
+    std::string str = "Setting host address to: " + hostAddress;
+    eventCallback(str, context, 0);
 
     DWORD ifIndex;
     IN_ADDR IPAddr;
@@ -193,22 +208,23 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
         // Save the interface index to use for adding an IP address
         ifIndex = pIPAddrTable->table[0].dwIndex;
         printf("\n\tInterface Index:\t%ld\n", ifIndex);
-        IPAddr.S_un.S_addr = (u_long) pIPAddrTable->table[0].dwAddr;
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
 
-        if (inet_ntoa(IPAddr) == hostAddress) { hostAddress = "10.66.171.20"; }
+
 
         printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
-               pIPAddrTable->table[0].dwAddr);
-        IPAddr.S_un.S_addr = (u_long) pIPAddrTable->table[0].dwMask;
+            pIPAddrTable->table[0].dwAddr);
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
         printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
-               pIPAddrTable->table[0].dwMask);
-        IPAddr.S_un.S_addr = (u_long) pIPAddrTable->table[0].dwBCastAddr;
+            pIPAddrTable->table[0].dwMask);
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
         printf("\tBroadCast Address:\t%s (%lu%)\n", inet_ntoa(IPAddr),
-               pIPAddrTable->table[0].dwBCastAddr);
+            pIPAddrTable->table[0].dwBCastAddr);
         printf("\tReassembly size:  \t%lu\n\n",
-               pIPAddrTable->table[0].dwReasmSize);
+            pIPAddrTable->table[0].dwReasmSize);
 
-    } else {
+    }
+    else {
         printf("Call to GetIpAddrTable failed with error %d.\n", dwRetVal);
         if (pIPAddrTable)
             FREE(pIPAddrTable);
@@ -230,34 +246,41 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     LPVOID lpMsgBuf;
 
     if ((dwRetVal = AddIPAddress(ulAddr,
-                                 ulMask,
-                                 ifIndex,
-                                 &NTEContext, &NTEInstance)) == NO_ERROR) {
+        ulMask,
+        ifIndex,
+        &NTEContext, &NTEInstance)) == NO_ERROR) {
         printf("\tIPv4 address %s was successfully added.\n", hostAddress.c_str());
-    } else {
+    }
+    else {
         printf("AddIPAddress failed with error: %d\n", dwRetVal);
         if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-                          (LPTSTR) &lpMsgBuf, 0, NULL)) {
+            NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+            (LPTSTR)&lpMsgBuf, 0, NULL)) {
             printf("\tError: %s", lpMsgBuf);
             LocalFree(lpMsgBuf);
         }
     }
+
+    // Attempt to connect to camera and post some info
+    str = "Checking for camera at: " + cameraAddress;
+    eventCallback(str, context, 0);
+
     cameraInterface = crl::multisense::Channel::Create(cameraAddress);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;
         return NO_CAMERA;
-    } else if (cameraInterface == nullptr) {
+    }
+    else if (cameraInterface == nullptr) {
         connectAttemptCounter++;
         return NO_CAMERA_RETRY;
-    } else {
+    }
+    else {
         result.networkAdapter = adapter.name;
         result.networkAdapterLongName = adapter.lName;
         result.cameraIpv4Address = cameraAddress;
         return FOUND_CAMERA;
     }
-
 
 }
 
@@ -272,8 +295,9 @@ void AutoConnectWindows::stop() {
 
 }
 
-void AutoConnectWindows::run(void *instance, std::vector<AdapterSupportResult> adapters) {
+void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> adapters) {
     auto *app = (AutoConnectWindows *) instance;
+    app->eventCallback("Started detection service", app->context, 0);
 
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
@@ -289,95 +313,96 @@ void AutoConnectWindows::run(void *instance, std::vector<AdapterSupportResult> a
         if (!adapter.supports) {
             continue;
         }
-        printf("\nTesting Adapter: %s\n", adapter.name.c_str());
-        app->startTime = time(nullptr);
+            std::string str = "Testing Adapter. Name: " + adapter.name;
+            app->eventCallback(str, app->context, 0);
 
-        pcap_if_t *alldevs;
-        pcap_t *adhandle;
-        int res;
-        char errbuf[PCAP_ERRBUF_SIZE];
-        struct tm *ltime;
-        char timestr[16];
-        struct pcap_pkthdr *header;
-        const u_char *pkt_data;
-        time_t local_tv_sec;
+            app->startTime = time(nullptr);
 
-        /* Open the adapter */
-        if ((adhandle = pcap_open_live(adapter.lName.c_str(),    // name of the device
-                                       65536,            // portion of the packet to capture.
-                // 65536 grants that the whole packet will be captured on all the MACs.
-                                       1,                // promiscuous mode (nonzero means promiscuous)
-                                       1000,            // read timeout
-                                       errbuf            // error buffer
-        )) == NULL) {
-            fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.name.c_str());
-            /* Free the device list */
-            return;
-        }
+            pcap_if_t *alldevs;
+            pcap_t *adhandle;
+            int res;
+            char errbuf[PCAP_ERRBUF_SIZE];
+            struct tm *ltime;
+            char timestr[16];
+            struct pcap_pkthdr *header;
+            const u_char *pkt_data;
+            time_t local_tv_sec;
 
-        printf("\nlistening on %s...\n", adapter.name.c_str());
-
-        std::string ip;
-
-        while (app->listenOnAdapter) {
-
-            // Timeout handler
-            if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS){
-                app->startTime = time(nullptr);
-                printf("Timeout reached. Switching adapter\n");
-                break;
+            /* Open the adapter */
+            if ((adhandle = pcap_open_live(adapter.lName.c_str(),    // name of the device
+                                           65536,            // portion of the packet to capture.
+// 65536 grants that the whole packet will be captured on all the MACs.
+                                           1,                // promiscuous mode (nonzero means promiscuous)
+                                           1000,            // read timeout
+                                           errbuf            // error buffer
+            )) == NULL) {
+                fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.name.c_str());
+                /* Free the device list */
+                return;
             }
 
-            res = pcap_next_ex(adhandle, &header, &pkt_data);
+            str = "Set adapter to listen for all activity";
+            app->eventCallback(str, app->context, 0);
 
-            if (res == 0)
-                /* Timeout elapsed */
-                continue;
-            /* convert the timestamp to readable format */
-            local_tv_sec = header->ts.tv_sec;
-            ltime = localtime(&local_tv_sec);
-            strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
+            str = "Waiting for packet at: " + adapter.name;
+            app->eventCallback(str, app->context, 0);
+            while (app->listenOnAdapter) {
 
-            /* retireve the position of the ip header */
-            auto *ih = (iphdr *) (pkt_data +
-                                   14); //length of ethernet header
-
-            char ips[16];
-            sprintf(ips, "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,
-                    (ih->saddr >> (8 * 1)) & 0xff,
-                    (ih->saddr >> (8 * 2)) & 0xff,
-                    (ih->saddr >> (8 * 3)) & 0xff);
-
-            ip = ips;
-
-            if (ih->protocol == 2) {
-                printf("%s: Source ip: %d.%d.%d.%d, Protocol: %d, Len:%d --> ", timestr, (ih->saddr >> (8 * 0)) & 0xff,
-                       (ih->saddr >> (8 * 1)) & 0xff,
-                       (ih->saddr >> (8 * 2)) & 0xff,
-                       (ih->saddr >> (8 * 3)) & 0xff, ih->protocol, header->len);
-
-                printf("Found IGMP packet. Source IP could be camera\n ");
-                FoundCameraOnIp ret = app->onFoundIp(ips, adapter);
-
-                if (ret == FOUND_CAMERA) {
-                    std::cout << "Found camera. quitting..." << std::endl;
-                    app->listenOnAdapter = false;
-                    app->loopAdapters = false;
-                    app->success = true;
-                    break;
-                } else if (ret == NO_CAMERA_RETRY) {
-                    std::cout << "No camera retrying on same adapter" << std::endl;
-                    continue;
-                } else if (ret == NO_CAMERA) {
-                    std::cout << "No camera trying other adapter" << std::endl;
+                // Timeout handler
+                if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS) {
+                    app->startTime = time(nullptr);
+                    printf("Timeout reached. Switching adapter\n");
                     break;
                 }
+
+                res = pcap_next_ex(adhandle, &header, &pkt_data);
+
+                if (res == 0)
+                    /* Timeout elapsed */
+                    continue;
+                /* convert the timestamp to readable format */
+                local_tv_sec = header->ts.tv_sec;
+                ltime = localtime(&local_tv_sec);
+                strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
+
+                /* retireve the position of the ip header */
+                auto *ih = (iphdr *) (pkt_data +
+                                      14); //length of ethernet header
+
+                std::string ips;
+                sprintf(ips.data(), "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,
+                        (ih->saddr >> (8 * 1)) & 0xff,
+                        (ih->saddr >> (8 * 2)) & 0xff,
+                        (ih->saddr >> (8 * 3)) & 0xff);
+
+                char ip[15 + 1];
+
+                strcpy_s(ip, _countof(ip), ips.c_str());
+
+                if (ih->protocol == 2) {
+
+                    str = "Packet found. Source address: " + *ip;
+                    app->eventCallback(str, app->context, 0);
+
+                    FoundCameraOnIp ret = app->onFoundIp(ip, adapter);
+
+                    if (ret == FOUND_CAMERA) {
+                        app->listenOnAdapter = false;
+                        app->loopAdapters = false;
+                        app->success = true;
+                        break;
+                    } else if (ret == NO_CAMERA_RETRY) {
+                        continue;
+                    } else if (ret == NO_CAMERA) {
+                        break;
+                    }
+                }
             }
-        }
     }
 }
 
-AutoConnect::Result AutoConnectWindows::getResult() {
+AutoConnect::Result AutoConnectWindows::getResult()
+{
     return result;
 }
 
@@ -385,3 +410,22 @@ crl::multisense::Channel* AutoConnectWindows::getCameraChannel() {
     return cameraInterface;
 }
 
+
+void AutoConnectWindows::setDetectedCallback(void (*param)(Result result1, void* ctx), void* context) {
+    callback = param;
+    this->context = context;
+
+}
+
+bool AutoConnectWindows::shouldProgramClose() {
+    return shouldProgramRun;
+}
+
+void AutoConnectWindows::setProgramClose(bool close) {
+    this->shouldProgramRun = close;
+}
+
+void AutoConnectWindows::setEventCallback(void (*param)(std::string str, void*, int)) {
+    eventCallback = param;
+
+}

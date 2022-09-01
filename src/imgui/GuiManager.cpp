@@ -6,6 +6,13 @@
 // Adapted from Dear ImGui Vulkan example and from TheCherno's Walnut application
 //
 
+
+#ifdef WIN32
+#define NOMINMAX
+#endif
+
+
+
 #include <MultiSense/src/tools/Macros.h>
 #include "GuiManager.h"
 #include "stb_image.h"

@@ -10,11 +10,12 @@
 #ifdef WIN32
 #include "AutoConnectWindows.h"
 #define AutoConnectHandle AutoConnectWindows
+#define elevated() Utils::hasAdminRights()
 #else
 
 #include "AutoConnectLinux.h"
-
 #define AutoConnectHandle AutoConnectLinux
+#define elevated() getuid()
 #endif
 
 
@@ -30,7 +31,7 @@ class SideBar : public AR::Layer {
 public:
 
     // Create global object for convenience in other functions
-    AR::GuiObjectHandles *handles;
+    AR::GuiObjectHandles* handles;
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::AdapterSupportResult> adapters;
@@ -47,9 +48,9 @@ public:
     }
 
 
-    void OnUIRender(AR::GuiObjectHandles *_handles) override {
+    void OnUIRender(AR::GuiObjectHandles* _handles) override {
         this->handles = _handles;
-        AR::GuiLayerUpdateInfo *info = handles->info;
+        AR::GuiLayerUpdateInfo* info = handles->info;
 
 
         bool pOpen = true;
@@ -63,7 +64,7 @@ public:
 
 
         // Docking
-        auto *wnd = ImGui::FindWindowByName("GUI");
+        auto* wnd = ImGui::FindWindowByName("GUI");
         /*
         if (wnd) {
             ImGuiDockNode *node = wnd->DockNode;
@@ -79,7 +80,7 @@ public:
         // Update frame time display
         if (info->firstFrame) {
             std::rotate(info->frameTimes.begin(), info->frameTimes.begin() + 1,
-                        info->frameTimes.end());
+                info->frameTimes.end());
             float frameTime = 1000.0f / (info->frameTimer * 1000.0f);
             info->frameTimes.back() = frameTime;
             if (frameTime < info->frameTimeMin) {
@@ -91,7 +92,7 @@ public:
         }
 
         ImGui::PlotLines("Frame Times", &info->frameTimes[0], 50, 0, "", info->frameTimeMin,
-                         info->frameTimeMax, ImVec2(0, 80));
+            info->frameTimeMax, ImVec2(0, 80));
 
         ImGui::SetNextWindowSize(ImVec2(info->popupWidth, info->popupHeight), ImGuiCond_Always);
 
@@ -104,7 +105,7 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
-                                   ImGuiWindowFlags_NoTitleBar)) {
+            ImGuiWindowFlags_NoTitleBar)) {
 
             bool ipAlreadyInUse = false;
             bool profileNameTaken = false;
@@ -135,12 +136,12 @@ public:
                 // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
                 // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
                 struct Funcs {
-                    static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                    static int MyResizeCallback(ImGuiInputTextCallbackData* data) {
                         if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-                            auto *my_str = (std::string *) data->UserData;
+                            auto* my_str = (std::string*)data->UserData;
                             IM_ASSERT(my_str->data() == data->Buf);
                             my_str->resize(
-                                    data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
                             data->Buf = my_str->data();
                         }
                         return 0;
@@ -149,12 +150,12 @@ public:
                     // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
                     // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
                     static bool
-                    MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
+                        MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0) {
                         IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-                        return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
-                                                flags | ImGuiInputTextFlags_CallbackResize |
-                                                ImGuiInputTextFlags_AutoSelectAll,
-                                                Funcs::MyResizeCallback, (void *) my_str);
+                        return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(),
+                            flags | ImGuiInputTextFlags_CallbackResize |
+                            ImGuiInputTextFlags_AutoSelectAll,
+                            Funcs::MyResizeCallback, (void*)my_str);
                     }
                 };
 
@@ -217,13 +218,13 @@ public:
                 }
                 ImGui::SameLine(0, 350.0f);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
-                                  " 1. Reconnect ethernet cables \n "
-                                  " 2. Power cycle the camera \n "
-                                  " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
+                    " 1. Reconnect ethernet cables \n "
+                    " 2. Power cycle the camera \n "
+                    " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::PopupTextInputBackground);
-                const char *id = "Log Window";
+                const char* id = "Log Window";
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
 
                 ImGui::SameLine();
@@ -231,8 +232,8 @@ public:
 
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0));
 
-                const char *buf = Buf.begin();
-                const char *buf_end = Buf.end();
+                const char* buf = Buf.begin();
+                const char* buf_end = Buf.end();
                 // The simplest and easy way to display the entire buffer:
                 //   ImGui::TextUnformatted(buf_begin, buf_end);
                 // And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward
@@ -253,23 +254,23 @@ public:
                 clipper.Begin(LineOffsets.Size);
                 while (clipper.Step()) {
                     for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++) {
-                        const char *line_start = buf + LineOffsets[line_no];
-                        const char *line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1)
-                                                                                : buf_end;
+                        const char* line_start = buf + LineOffsets[line_no];
+                        const char* line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1)
+                            : buf_end;
 
                         // Weird index magic. colors is an ImGui vector.
                         if (line_no > 0 && line_no < colors.size() - 1) {
                             int col = colors[line_no + 1];
                             switch (col) {
-                                case 0:
-                                    lastLogTextColor = AR::TextColorGray;
-                                    break;
-                                case 1:
-                                    lastLogTextColor = AR::TextGreenColor;
-                                    break;
-                                case 2:
-                                    lastLogTextColor = AR::TextRedColor;
-                                    break;
+                            case 0:
+                                lastLogTextColor = AR::TextColorGray;
+                                break;
+                            case 1:
+                                lastLogTextColor = AR::TextGreenColor;
+                                break;
+                            case 2:
+                                lastLogTextColor = AR::TextRedColor;
+                                break;
                             }
                         }
                         ImGui::PushStyleColor(ImGuiCol_Text, lastLogTextColor);
@@ -294,7 +295,8 @@ public:
                 cameraName = "Automatic Entry";
 
 
-            } else if (autoOrManual == 1) {
+            }
+            else if (autoOrManual == 1) {
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
@@ -305,12 +307,12 @@ public:
                 // you can use the ImGuiInputTextFlags_CallbackResize flag + create a custom ImGui::InputText() wrapper
                 // using your preferred type. See misc/cpp/imgui_stdlib.h for an implementation of this using std::string.
                 struct Funcs {
-                    static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+                    static int MyResizeCallback(ImGuiInputTextCallbackData* data) {
                         if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-                            auto *my_str = (std::string *) data->UserData;
+                            auto* my_str = (std::string*)data->UserData;
                             IM_ASSERT(my_str->data() == data->Buf);
                             my_str->resize(
-                                    data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                                data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
                             data->Buf = my_str->data();
                         }
                         return 0;
@@ -319,11 +321,11 @@ public:
                     // Note: Because ImGui:: is a namespace you would typically add your own function into the namespace.
                     // For example, you code may declare a function 'ImGui::InputText(const char* label, MyString* my_str)'
                     static bool
-                    MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
+                        MyInputText(const char* label, std::string* my_str, ImGuiInputTextFlags flags = 0) {
                         IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-                        return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
-                                                flags | ImGuiInputTextFlags_CallbackResize,
-                                                Funcs::MyResizeCallback, (void *) my_str);
+                        return ImGui::InputText(label, my_str->data(), (size_t)my_str->size(),
+                            flags | ImGuiInputTextFlags_CallbackResize,
+                            Funcs::MyResizeCallback, (void*)my_str);
                     }
                 };
 
@@ -364,7 +366,7 @@ public:
                 // if push back other items then remove base item
                 // No identical items
 
-                for (const auto &a: adapters) {
+                for (const auto& a : adapters) {
                     if (a.supports && !Utils::isInVector(interfaceNameList, a.name)) {
                         interfaceNameList.push_back(a.name);
                         if (Utils::isInVector(interfaceNameList, "No adapters found"))
@@ -396,7 +398,8 @@ public:
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
                 cameraName = "Manual Entry";
 
-            } else if (autoOrManual == 3) {
+            }
+            else if (autoOrManual == 3) {
                 inputName = "Virtual Camera";
                 interfaceName = "lol";
                 cameraName = "Virtual Camera";
@@ -419,7 +422,7 @@ public:
 
             if (btnConnect) {
                 // Loop through devices and check that it doesn't exist already.
-                for (auto &d: devices) {
+                for (auto& d : devices) {
                     if (d.IP == inputIP)
                         ipAlreadyInUse = true;
                     if (d.name == inputName)
@@ -433,7 +436,8 @@ public:
                     inputIP = "";
                     interfaceName = "";
                     ImGui::CloseCurrentPopup();
-                } else {
+                }
+                else {
 
                 }
 
@@ -458,7 +462,7 @@ public:
         ImGui::PopStyleVar();
     }
 
-    void AddLog(int color, const char *fmt, ...) IM_FMTARGS(3) {
+    void AddLog(int color, const char* fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
         va_start(args, fmt);
@@ -494,8 +498,8 @@ private:
     std::string cameraName;
 
 
-    static void onEvent(std::string event, void *ctx, int color = 0) {
-        auto *app = static_cast<SideBar *>(ctx);
+    static void onEvent(std::string event, void* ctx, int color = 0) {
+        auto* app = static_cast<SideBar*>(ctx);
 
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
@@ -508,17 +512,17 @@ private:
 
     }
 
-    static void onCameraDetected(AutoConnect::Result res, void *ctx) {
-        auto *app = static_cast<SideBar *>(ctx);
+    static void onCameraDetected(AutoConnect::Result res, void* ctx) {
+        auto* app = static_cast<SideBar*>(ctx);
 
 
-        crl::multisense::Channel *ptr = app->autoConnect.getCameraChannel();
+        crl::multisense::Channel* ptr = app->autoConnect.getCameraChannel();
         crl::multisense::system::DeviceInfo info;
         ptr->getDeviceInfo(info);
         Log::Logger::getInstance()->info(
-                "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
-                res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
-                info.name.c_str());
+            "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
+            res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
+            info.name.c_str());
 
         app->inputIP = res.cameraIpv4Address;
         app->inputName = info.name;
@@ -551,9 +555,10 @@ private:
 
 
         // Check for root privileges before launching
-        if (getuid()) {
+        bool admin = elevated();
+        if (admin) {
             Log::Logger::getInstance()->info(
-                    "Program is not run as root. This is required to use the auto connect feature");
+                "Program is not run as root. This is required to use the auto connect feature");
             AddLog(2, "Admin privileges is required to run the Auto-Connect feature");
 
             return;
@@ -566,7 +571,7 @@ private:
         skipUserFriendlySleepDelay = false;
 
         bool foundSupportedAdapter = false;
-        for (const auto &r: res) {
+        for (const auto& r : res) {
             if (r.supports)
                 foundSupportedAdapter = true;
         }
@@ -578,14 +583,14 @@ private:
     }
 
 
-    void createDefaultElement(char *name, char *ip, char *interface, const char *camName = "empty") {
+    void createDefaultElement(char* name, char* ip, char* interfaceName, const char* camName = "empty") {
         AR::Element el;
 
         el.name = name;
         el.IP = ip;
         el.state = AR_STATE_JUST_ADDED;
         el.cameraName = camName;
-        el.interfaceName = interface;
+        el.interfaceName = interfaceName;
         el.clicked = true;
 
         devices.emplace_back(el);
@@ -599,40 +604,40 @@ private:
 
     void sidebarElements() {
         for (int i = 0; i < devices.size(); ++i) {
-            auto &e = devices[i];
+            auto& e = devices[i];
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
-                case AR_STATE_CONNECTED:
-                    break;
-                case AR_STATE_CONNECTING:
-                    buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
-                    break;
-                case AR_STATE_ACTIVE:
-                    buttonIdentifier = "Active";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
-                    break;
-                case AR_STATE_INACTIVE:
-                    buttonIdentifier = "Inactive";
-                    break;
-                case AR_STATE_DISCONNECTED:
-                    buttonIdentifier = "Disconnected";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
-                    break;
-                case AR_STATE_UNAVAILABLE:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    buttonIdentifier = "Unavailable";
-                    break;
-                case AR_STATE_JUST_ADDED:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    buttonIdentifier = "Added...";
-                    break;
+            case AR_STATE_CONNECTED:
+                break;
+            case AR_STATE_CONNECTING:
+                buttonIdentifier = "Connecting";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
+                break;
+            case AR_STATE_ACTIVE:
+                buttonIdentifier = "Active";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                break;
+            case AR_STATE_INACTIVE:
+                buttonIdentifier = "Inactive";
+                break;
+            case AR_STATE_DISCONNECTED:
+                buttonIdentifier = "Disconnected";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
+                break;
+            case AR_STATE_UNAVAILABLE:
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                buttonIdentifier = "Unavailable";
+                break;
+            case AR_STATE_JUST_ADDED:
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                buttonIdentifier = "Added...";
+                break;
             }
 
             ImGui::SetCursorPos(ImVec2(5.0f, ImGui::GetCursorPosY()));
@@ -640,7 +645,7 @@ private:
 
             std::string winId = e.name + "Child";
             ImGui::BeginChild(winId.c_str(), ImVec2(handles->info->sidebarWidth, handles->info->elementHeight),
-                              false, ImGuiWindowFlags_NoDecoration);
+                false, ImGuiWindowFlags_NoDecoration);
 
 
             if (ImGui::SmallButton("X")) {
@@ -702,7 +707,7 @@ private:
 
             buttonIdentifier += "##" + e.IP;
             e.clicked = ImGui::Button(buttonIdentifier.c_str(),
-                                      ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+                ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
 
             ImGui::PopFont();
             ImGui::PopStyleVar();
@@ -717,10 +722,10 @@ private:
         }
     }
 
-    void addDeviceButton(AR::GuiObjectHandles *handles) {
+    void addDeviceButton(AR::GuiObjectHandles* handles) {
 
         ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding,
-                                   handles->info->height - handles->info->addDeviceBottomPadding));
+            handles->info->height - handles->info->addDeviceBottomPadding));
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
 
         if (btnAdd) {

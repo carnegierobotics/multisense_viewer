@@ -252,8 +252,8 @@ void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height
     videos.height = height;
     videos.width = width;
 
-    TextureVideo textureVideoTmp;
-    TextureVideo textureVideoTmp2;
+    TextureVideo textureVideoTmp{};
+    TextureVideo textureVideoTmp2{};
 
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:

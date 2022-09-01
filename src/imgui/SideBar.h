@@ -23,6 +23,7 @@
 #include "imgui_internal.h"
 #include "imgui.h"
 #include "Layer.h"
+#include "imgui_user.h"
 
 
 class SideBar : public AR::Layer {
@@ -33,6 +34,8 @@ public:
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::AdapterSupportResult> adapters;
+    std::vector<std::string> interfaceNameList;
+
 
     void OnAttach() override {
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
@@ -205,14 +208,19 @@ public:
 
             }
 
-            ImVec2();
             if (autoOrManual == 2) {
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
-                if (ImGui::Button("Start")) {
+                if (ImGui::Button("Start", ImVec2(40.0f, 0.0f))) {
                     autoDetectCamera();
                 }
+                ImGui::SameLine(0, 350.0f);
+                ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
+                                  " 1. Reconnect ethernet cables \n "
+                                  " 2. Power cycle the camera \n "
+                                  " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
+
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::PopupTextInputBackground);
                 const char *id = "Log Window";
@@ -343,28 +351,40 @@ public:
                     adapters = autoConnect.findEthernetAdapters(false);
                     skipUserFriendlySleepDelay = false;
                     refreshAdapterList = false;
+
+                    // Reset list of adapters
+                    interfaceNameList.clear();
                 }
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-                std::vector<std::string> items;
-                if (adapters.empty()) {
-                    items.emplace_back("No adapters found");
-                }
+
+                // immediate mode vector item ordering
+                // -- requirements --
+                // Always have a base item in it.
+                // if push back other items then remove base item
+                // No identical items
 
                 for (const auto &a: adapters) {
-                    if (a.supports)
-                        items.push_back(a.name);
+                    if (a.supports && !Utils::isInVector(interfaceNameList, a.name)) {
+                        interfaceNameList.push_back(a.name);
+                        if (Utils::isInVector(interfaceNameList, "No adapters found"))
+                            Utils::delFromVector(interfaceNameList, "No adapters found");
+                    }
                 }
 
-                interfaceName = items[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                if (!Utils::isInVector(interfaceNameList, "No adapters found") && interfaceNameList.empty())
+                    interfaceNameList.emplace_back("No adapters found");
+
+
+                interfaceName = interfaceNameList[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
                 if (ImGui::BeginCombo("##SelectAdapter", interfaceName.c_str(), flags)) {
-                    for (int n = 0; n < items.size(); n++) {
+                    for (int n = 0; n < interfaceNameList.size(); n++) {
                         const bool is_selected = (presetItemIdIndex == n);
-                        if (ImGui::Selectable(items[n].c_str(), is_selected))
+                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected))
                             presetItemIdIndex = n;
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -378,9 +398,9 @@ public:
 
             } else if (autoOrManual == 3) {
                 inputName = "Virtual Camera";
-                inputIP = "Virtual Camera";
                 interfaceName = "lol";
                 cameraName = "Virtual Camera";
+                inputIP = "";
             }
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
 

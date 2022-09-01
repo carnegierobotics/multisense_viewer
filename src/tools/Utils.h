@@ -30,16 +30,35 @@ namespace Utils {
     static std::string getTexturePath() {
         return "Assets/Textures/";
     }
+
     static std::string getScriptsPath() {
         return "scripts/";
     }
 
-    inline bool findValIfExists(std::map<int, AR::StreamingModes> map, StreamIndex streamIndex){
-        if (map.find(streamIndex) == map.end()){
+    inline bool findValIfExists(std::map<int, AR::StreamingModes> map, StreamIndex streamIndex) {
+        if (map.find(streamIndex) == map.end()) {
             Log::Logger::getInstance()->info("Could not find {} in stream map", (uint32_t) streamIndex);
-            return  false;
+            return false;
         }
-        return  true;
+        return true;
+    }
+
+    /**@brief small utility function. Usage of this makes other code more readable */
+    inline bool isInVector(std::vector<std::string> v, const std::string& str) {
+        if (std::find(v.begin(), v.end(), str) != v.end())
+            return true;
+        return false;
+
+    }
+
+    /**@brief small utility function. Usage of this makes other code more readable */
+    inline bool delFromVector(std::vector<std::string> v, const std::string& str) {
+        auto itr = std::find(v.begin(), v.end(), str);
+        if (itr != v.end()) {
+            v.erase(itr);
+            return true;
+        }
+        return false;
     }
 
     inline VkFormat
@@ -77,10 +96,9 @@ namespace Utils {
             VkImageLayout newImageLayout,
             VkImageSubresourceRange subresourceRange,
             VkPipelineStageFlags srcStageMask,
-            VkPipelineStageFlags dstStageMask)
-    {
+            VkPipelineStageFlags dstStageMask) {
         // Create an image barrier object
-        VkImageMemoryBarrier imageMemoryBarrier {};
+        VkImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -93,8 +111,7 @@ namespace Utils {
         // Source layouts (old)
         // Source access mask controls actions that have to be finished on the old layout
         // before it will be transitioned to the new layout
-        switch (oldImageLayout)
-        {
+        switch (oldImageLayout) {
             case VK_IMAGE_LAYOUT_UNDEFINED:
                 // Image layout is undefined (or does not matter)
                 // Only valid as initial layout
@@ -145,8 +162,7 @@ namespace Utils {
 
         // Target layouts (new)
         // Destination access mask controls the dependency for the new image layout
-        switch (newImageLayout)
-        {
+        switch (newImageLayout) {
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
                 // Image will be used as a transfer destination
                 // Make sure any writes to the image have been finished
@@ -168,14 +184,14 @@ namespace Utils {
             case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
                 // Image layout will be used as a depth/stencil attachment
                 // Make sure any writes to depth/stencil buffer have been finished
-                imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                imageMemoryBarrier.dstAccessMask =
+                        imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
                 // Image will be read in a shader (sampler, input attachment)
                 // Make sure any writes to the image have been finished
-                if (imageMemoryBarrier.srcAccessMask == 0)
-                {
+                if (imageMemoryBarrier.srcAccessMask == 0) {
                     imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
                 }
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -204,8 +220,7 @@ namespace Utils {
             VkImageLayout oldImageLayout,
             VkImageLayout newImageLayout,
             VkPipelineStageFlags srcStageMask,
-            VkPipelineStageFlags dstStageMask)
-    {
+            VkPipelineStageFlags dstStageMask) {
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = aspectMask;
         subresourceRange.baseMipLevel = 0;
@@ -214,7 +229,9 @@ namespace Utils {
         setImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
     }
 
-    inline void copyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageAspectFlagBits aspectFlagBits){
+    inline void
+    copyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,
+                      VkImageAspectFlagBits aspectFlagBits) {
         VkBufferImageCopy bufferCopyRegion = {};
         bufferCopyRegion.imageSubresource.aspectMask = aspectFlagBits;
         bufferCopyRegion.imageSubresource.layerCount = 1;

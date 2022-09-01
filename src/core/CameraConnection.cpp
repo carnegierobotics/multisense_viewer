@@ -386,8 +386,6 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
 CameraConnection::~CameraConnection() {
     // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
     // stops all streams on the camera
-    if (camPtr != nullptr)
-        delete camPtr;
 
     if (sd != -1)
         close(sd);

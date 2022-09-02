@@ -175,7 +175,7 @@ public:
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
-        else if (renderData.crlCamera->get()->camPtr != nullptr)
+        else if (renderData.crlCamera->get()->lastActiveDevice != "")
             update(renderData.crlCamera->get());
         else
             update();

@@ -141,12 +141,6 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
 
     Log::Logger::getInstance()->info("CameraConnection:: Connect.");
 
-    if (camPtr != nullptr) {
-        // Free camPtr memory and point it to null for a reset.
-        //delete camPtr;
-        //camPtr = nullptr;
-    }
-
 
     if (dev.cameraName == "Virtual Camera") {
         camPtr = new CRLVirtualCamera();
@@ -492,8 +486,8 @@ void CameraConnection::disableCrlCamera(AR::Element& dev) {
 
     Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
         dev.cameraName.c_str());
-
-
+    // Free camPtr memory
+    delete camPtr;
 }
 
 CameraConnection::~CameraConnection() {

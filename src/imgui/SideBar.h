@@ -25,6 +25,7 @@
 #include "imgui.h"
 #include "Layer.h"
 #include "imgui_user.h"
+#include <multisense/src/tools/Utils.h>
 
 
 class SideBar : public AR::Layer {
@@ -367,8 +368,10 @@ public:
                 // No identical items
 
                 for (const auto& a : adapters) {
-                    if (a.supports && !Utils::isInVector(interfaceNameList, a.name)) {
-                        interfaceNameList.push_back(a.name);
+
+
+                    if (a.supports && !Utils::isInVector(interfaceNameList, a.description)) {
+                        interfaceNameList.push_back(a.description);
                         if (Utils::isInVector(interfaceNameList, "No adapters found"))
                             Utils::delFromVector(interfaceNameList, "No adapters found");
                     }

@@ -46,6 +46,8 @@ struct iphdr {
 
 std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool logEvent) {
     std::vector<AutoConnect::AdapterSupportResult> adapters;
+   
+    
     pcap_if_t* alldevs;
     pcap_if_t* d;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -55,7 +57,7 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
         fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
     }
 
-    /* Print the list */
+    // Print the list
     int i = 0;
     for (d = alldevs; d; d = d->next) {
         AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
@@ -66,8 +68,9 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
         adapters.emplace_back(adapter);
 
     }
-
-    /** REST OF FUNCTION TRIES TO RENAME THE ADAPTERS FOUND INTO USABLE NAMES **/
+    
+    //
+    /** REST OF FUNCTION TRIES TO RENAME THE ADAPTERS FOUND INTO USABLE NAMES 
     struct PowerShellOutput {
         std::string name;
         std::string tplName;
@@ -139,6 +142,61 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
         }
 
     }
+    */
+    /* Another attempt at making the windows hex string user readable*/
+
+
+    PIP_ADAPTER_INFO AdapterInfo;
+    DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
+    char* mac_addr = (char*)malloc(18);
+
+    AdapterInfo = (IP_ADAPTER_INFO*)malloc(sizeof(IP_ADAPTER_INFO));
+    if (AdapterInfo == NULL) {
+        printf("Error allocating memory needed to call GetAdaptersinfo\n");
+        free(mac_addr);
+    }
+
+    // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
+    if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
+        free(AdapterInfo);
+        AdapterInfo = (IP_ADAPTER_INFO*)malloc(dwBufLen);
+        if (AdapterInfo == NULL) {
+            printf("Error allocating memory needed to call GetAdaptersinfo\n");
+            free(mac_addr);
+        }
+    }
+
+    if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
+        // Contains pointer to current adapter info
+        PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+        do {
+            AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
+            adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
+            adapter.description = pAdapterInfo->Description;
+            
+            /*CONCATENATE two strings safely*/
+            const char* prefix = "\\Device\\NPF_";
+            int lenA = strlen(prefix);
+            int lenB = strlen(pAdapterInfo->AdapterName);
+            char* con = (char *) malloc(lenA + lenB + 1);
+            memcpy(con, prefix, lenA);
+            memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
+            adapter.name = con;
+
+            adapters.push_back(adapter);
+            free(con);
+            // technically should look at pAdapterInfo->AddressLength
+            //   and not assume it is 6.
+            /*sprintf(mac_addr, "%02X:%02X:%02X:%02X:%02X:%02X",
+                pAdapterInfo->Address[0], pAdapterInfo->Address[1],
+                pAdapterInfo->Address[2], pAdapterInfo->Address[3],
+                pAdapterInfo->Address[4], pAdapterInfo->Address[5]);
+            printf("Address: %s, mac: %s : %s : %s : Type: %d\n", pAdapterInfo->IpAddressList.IpAddress.String, mac_addr, pAdapterInfo->AdapterName, pAdapterInfo->Description, pAdapterInfo->Type);
+            */
+            pAdapterInfo = pAdapterInfo->Next;
+        } while (pAdapterInfo);
+    }
+    free(AdapterInfo);
 
     if (!adapters.empty())
         onFoundAdapters(adapters, logEvent);
@@ -212,10 +270,10 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
 
 
 
-        printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
+        printf("\tIP Address:       \t%s (%lu)\n", inet_ntoa(IPAddr),
             pIPAddrTable->table[0].dwAddr);
         IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
-        printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
+        printf("\tSubnet Mask:      \t%s (%lu)\n", inet_ntoa(IPAddr),
             pIPAddrTable->table[0].dwMask);
         IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
         printf("\tBroadCast Address:\t%s (%lu%)\n", inet_ntoa(IPAddr),
@@ -252,13 +310,19 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
         printf("\tIPv4 address %s was successfully added.\n", hostAddress.c_str());
     }
     else {
-        printf("AddIPAddress failed with error: %d\n", dwRetVal);
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-            (LPTSTR)&lpMsgBuf, 0, NULL)) {
-            printf("\tError: %s", lpMsgBuf);
-            LocalFree(lpMsgBuf);
+        // 5010 might be ERROR_DUP_DOMAINNAME according to description of error, but 5010 means address already exists at that adapter
+        if (dwRetVal == 5010) {
+            printf("Ip: already set to: %s\n", cameraAddress);
+        } else {
+            printf("AddIPAddress failed with error: %d\n", dwRetVal);
+            if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+                (LPTSTR)&lpMsgBuf, 0, NULL)) {
+                printf("\tError: %s", lpMsgBuf);
+                LocalFree(lpMsgBuf);
+            }
         }
+
     }
 
     // Attempt to connect to camera and post some info
@@ -279,6 +343,8 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
         result.networkAdapter = adapter.name;
         result.networkAdapterLongName = adapter.lName;
         result.cameraIpv4Address = cameraAddress;
+        str = "Found camera at: " + cameraAddress + "";
+        eventCallback(str, context, 1);
         return FOUND_CAMERA;
     }
 
@@ -313,7 +379,7 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
         if (!adapter.supports) {
             continue;
         }
-            std::string str = "Testing Adapter. Name: " + adapter.name;
+            std::string str = "Testing Adapter. Name: " + adapter.description;
             app->eventCallback(str, app->context, 0);
 
             app->startTime = time(nullptr);
@@ -329,7 +395,7 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
             time_t local_tv_sec;
 
             /* Open the adapter */
-            if ((adhandle = pcap_open_live(adapter.lName.c_str(),    // name of the device
+            if ((adhandle = pcap_open_live(adapter.name.c_str(),    // name of the device
                                            65536,            // portion of the packet to capture.
 // 65536 grants that the whole packet will be captured on all the MACs.
                                            1,                // promiscuous mode (nonzero means promiscuous)
@@ -369,22 +435,23 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
                 auto *ih = (iphdr *) (pkt_data +
                                       14); //length of ethernet header
 
-                std::string ips;
-                sprintf(ips.data(), "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,
+                char ips[255];
+                //std::string ips;
+                sprintf(ips, "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,
                         (ih->saddr >> (8 * 1)) & 0xff,
                         (ih->saddr >> (8 * 2)) & 0xff,
                         (ih->saddr >> (8 * 3)) & 0xff);
 
-                char ip[15 + 1];
-
-                strcpy_s(ip, _countof(ip), ips.c_str());
+                // TODO: fix this, otherwise a good reason for a crash in the future I would assume
+                //char ip[15 + 1];
+                //strcpy_s(ip, _countof(ip), ips.c_str());
 
                 if (ih->protocol == 2) {
 
-                    str = "Packet found. Source address: " + *ip;
+                    str = "Packet found. Source address: " + std::string(ips);
                     app->eventCallback(str, app->context, 0);
 
-                    FoundCameraOnIp ret = app->onFoundIp(ip, adapter);
+                    FoundCameraOnIp ret = app->onFoundIp(ips, adapter);
 
                     if (ret == FOUND_CAMERA) {
                         app->listenOnAdapter = false;

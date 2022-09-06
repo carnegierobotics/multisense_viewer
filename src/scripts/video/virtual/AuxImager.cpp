@@ -24,7 +24,7 @@ void AuxImager::setup(Base::Render r) {
 
 
 void AuxImager::update() {
-    if (playbackSate != AR_PREVIEW_PLAYING)
+    if (playbackSate != AR_PREVIEW_PLAYING || camHandle->camPtr == nullptr)
         return;
 
     auto time = std::chrono::steady_clock::now();

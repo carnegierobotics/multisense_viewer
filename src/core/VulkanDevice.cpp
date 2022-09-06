@@ -374,7 +374,8 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
 
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = Populate::bufferCreateInfo(usageFlags, size);
-    if (vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer) != VK_SUCCESS)
+    VkResult res = vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer);
+    if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create Buffer");
 
     // Create the memory backing up the buffer handle
@@ -391,7 +392,8 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
         memAlloc.pNext = &allocFlagsInfo;
     }
-    if (vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory) != VK_SUCCESS)
+    res = vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory);
+    if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate memory");
 
     buffer->alignment = memReqs.alignment;

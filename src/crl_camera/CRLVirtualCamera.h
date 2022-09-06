@@ -16,7 +16,7 @@
 #include <thread>
 #include <array>
 
-#define MAX_STREAMS 5
+#define MAX_STREAMS 6
 #include "CRLBaseInterface.h"
 
 extern "C" {

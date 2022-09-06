@@ -126,7 +126,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
         auto cal = camPtr->getCameraInfo().camCal;
 
-        p->initialized = true;
+        dev->parameters.update = false;
     }
 
 }
@@ -140,6 +140,10 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
 
         if (dev.state == AR_STATE_RESET) {
             disableCrlCamera(dev);
+            dev.state = AR_STATE_UNAVAILABLE;
+            for (auto &s: dev.streams) {
+                s.second.playbackStatus = AR_PREVIEW_NONE;
+            }
             return;
         }
 
@@ -155,9 +159,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
 
         // Make sure inactive devices' preview are not drawn.
         if (dev.state != AR_STATE_ACTIVE) {
-            for (auto &s: dev.streams) {
-                s.second.playbackStatus = AR_PREVIEW_NONE;
-            }
+
             continue;
         }
 

@@ -77,6 +77,7 @@ namespace AR {
     struct StreamingModes {
         /** @brief Name of this streaming mode (i.e: front camera) */
         std::string name;
+        std::string attachedScript;
         /** @brief Which gui index is selected */
         CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
         /** @brief Current camera streaming state  */

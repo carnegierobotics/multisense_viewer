@@ -178,81 +178,69 @@ void Renderer::render() {
 
     // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
-        if (dev.state != AR_STATE_ACTIVE)
-            continue;
 
-        for (const auto &i: dev.streams) {
+        for (auto &i: dev.streams) {
             if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
+                std::string name;
                 switch (i.second.streamIndex) {
                     case AR_PREVIEW_LEFT:
-                        buildScript("DefaultPreview");
+                        name = "DefaultPreview";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_RIGHT:
-                        buildScript("RightPreview");
+                        name = "RightPreview";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_DISPARITY:
-                        buildScript("DisparityPreview");
+                        name = "DisparityPreview";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_AUXILIARY:
-                        buildScript("AuxiliaryPreview");
+                        name = "AuxiliaryPreview";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_VIRTUAL_LEFT:
-                        buildScript("LeftImager");
+                        name = "LeftImager";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_POINT_CLOUD:
-                        buildScript("PointCloud");
+                        name = "PointCloud";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
-                        buildScript("VirtualPointCloud");
+                        name = "VirtualPointCloud";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_VIRTUAL_RIGHT:
-                        buildScript("RightImager");
+                        name = "RightImager";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                     case AR_PREVIEW_VIRTUAL_AUX:
-                        buildScript("AuxImager");
+                        name = "AuxImager";
+                        buildScript(name);
+                        i.second.attachedScript = name;
                         break;
                 }
             }
-
-
+            // Delete non playing scripts
             if (i.second.playbackStatus == AR_PREVIEW_NONE) {
-                switch (i.second.streamIndex) {
-                    case AR_PREVIEW_LEFT:
-                        deleteScript("DefaultPreview");
-                        break;
-                    case AR_PREVIEW_RIGHT:
-                        deleteScript("RightPreview");
-                        break;
-                    case AR_PREVIEW_DISPARITY:
-                        deleteScript("DisparityPreview");
-                        break;
-                    case AR_PREVIEW_AUXILIARY:
-                        deleteScript("AuxiliaryPreview");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_LEFT:
-                        deleteScript("LeftImager");
-                        break;
-                    case AR_PREVIEW_POINT_CLOUD:
-                        deleteScript("PointCloud");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
-                        deleteScript("VirtualPointCloud");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_RIGHT:
-                        deleteScript("RightImager");
-                        break;
-                    case AR_PREVIEW_VIRTUAL_AUX:
-                        deleteScript("AuxImager");
-                        break;
-                }
+                deleteScript(i.second.attachedScript);
             }
         }
 
         // Check if camera connection was AR RESET and disable all scripts
         if (dev.state == AR_STATE_RESET) {
-            // delete all scripts
-            for (const auto &name: scriptNames)
-                deleteScript(name);
+            // delete all scripts attached to device
+            for (const auto &name: dev.streams)
+                deleteScript(name.second.attachedScript);
             break;
         }
     }

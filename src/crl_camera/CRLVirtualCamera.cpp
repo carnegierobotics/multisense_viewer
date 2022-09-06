@@ -47,7 +47,7 @@ void CRLVirtualCamera::start(std::string src, StreamIndex parent) {
 
     parentKeyMap[parent] = (key % MAX_STREAMS);
 
-    int idx = parentKeyMap[parent];
+    uint32_t idx = parentKeyMap[parent];
 
     container[idx].videoFrame = new AVFrame[20]; // TODO Optimized approach is to use a sliding window to store frames and discard drawn
     container[idx].pauseThread = false;
@@ -260,7 +260,7 @@ int CRLVirtualCamera::childProcessDecode(uint32_t index) {
 #endif
     args[index].ctx = this;
     args[index].index = index;
-    container[index].producer = new std::thread(CRLVirtualCamera::DecodeContainer::decode, this);
+    container[index].producer = new std::thread(CRLVirtualCamera::DecodeContainer::decode, &args[index]);
 
     return EXIT_SUCCESS;
 }

@@ -32,6 +32,7 @@ typedef enum ArConnectionState{
     AR_STATE_CONNECTING,
     AR_STATE_ACTIVE,
     AR_STATE_INACTIVE,
+    AR_STATE_RESET,
     AR_STATE_DISCONNECTED,
     AR_STATE_UNAVAILABLE,
     AR_STATE_JUST_ADDED
@@ -81,6 +82,16 @@ typedef enum ImageElementIndex {
     IMAGE_CONFIGURE_DEVICE_PLACEHOLDER = 4,
 } ImageElementIndex;
 
+typedef enum CRLCameraResolution {
+    CRL_RESOLUTION_NONE = 0,
+    CRL_RESOLUTION_960_600_64 = 1,
+    CRL_RESOLUTION_960_600_128 = 2,
+    CRL_RESOLUTION_960_600_256 = 3,
+    CRL_RESOLUTION_1920_1200_64 = 4,
+    CRL_RESOLUTION_1920_1200_128 = 5,
+    CRL_RESOLUTION_1920_1200_256 = 6
+} CRLCameraResolution;
+
 struct WhiteBalanceParams {
     float whiteBalanceRed = 1.0f;
     float whiteBalanceBlue = 1.0f;
@@ -105,13 +116,6 @@ struct ExposureParams {
 };
 
 namespace ArEngine{
-    struct VideoTexture {
-        std::vector<unsigned char*> pixels{};
-        uint64_t imageSize{};
-        uint32_t width{};
-        uint32_t height{};
-    };
-
     struct YUVTexture{
         void *data[NUM_YUV_DATA_POINTERS]{};
         uint32_t len[NUM_YUV_DATA_POINTERS]{};

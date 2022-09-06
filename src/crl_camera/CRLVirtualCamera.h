@@ -7,15 +7,14 @@
 
 #ifdef WIN32
 #include <windows.h>
+#define semaphore HANDLE
+#else
+#define semaphore sem_t
+#include <semaphore.h>
+#endif
+
 #include <thread>
 #include <array>
-#define semaphore HANDLE
-
-#else
-#include <semaphore.h>
-#include <queue>
-
-#endif
 
 #define MAX_STREAMS 5
 #include "CRLBaseInterface.h"
@@ -45,7 +44,7 @@ public:
 
     void preparePointCloud(uint32_t width, uint32_t height) override;
 
-    void start(std::string string, std::string dataSourceStr) override;
+    void start(CRLCameraResolution resolution, std::string dataSourceStr) override;
 
     void start(std::string src, StreamIndex parent) override;
 
@@ -71,8 +70,6 @@ public:
     DecodeThreadArgs args[MAX_STREAMS];
 
     struct DecodeContainer {
-        //HANDLE producer;
-        DWORD ThreadID;
         //static void decode(LPVOID);
         std::thread* producer = nullptr;
 

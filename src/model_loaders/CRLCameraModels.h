@@ -26,12 +26,10 @@ public:
 
     struct Model {
         Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type);
-
+        ~Model();
 /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
         CRLCameraDataType modelType;
-
-        ArEngine::VideoTexture videos;
 
         struct Mesh {
             VulkanDevice *device;
@@ -68,30 +66,22 @@ public:
         VulkanDevice *device{};
         std::vector<std::string> extensions;
         Texture2D texture;
-        TextureVideo textureVideo;
-        TextureVideo textureVideoDepthMap;
+
+        std::unique_ptr<TextureVideo> textureVideo;
+        std::unique_ptr<TextureVideo> textureVideoDepthMap;
+
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
         void createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount);
 
-        void loadTextureSamplers();
-
-        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName);
-
-
-        Model(VulkanDevice *_vulkanDevice);
+        void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& fileName);
 
         void
         createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices,
                               uint32_t indexCount);
 
-        void prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType);
-
-        void setColorTexture(crl::multisense::image::Header *streamOne = nullptr,
-                             crl::multisense::image::Header *streamTwo = nullptr);
-
-        void setGrayscaleTexture(crl::multisense::image::Header *streamOne);
+        void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
         void setColorTexture(ArEngine::MP4Frame* frame);
 
@@ -110,7 +100,6 @@ public:
         } quad;
 
         /**@brief Generates a Quad with texture coordinates */
-
         ImageData(float widthScale, float heightScale) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
@@ -128,46 +117,6 @@ public:
             vertex[1].pos = glm::vec3(1.0f * widthScale, -1.0f, 0.0f);
             vertex[2].pos = glm::vec3(1.0f * widthScale, 1.0f, 0.0f);
             vertex[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f);
-
-            vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
-
-            vertex[0].uv0 = glm::vec2(1.0f, 0.0f);
-            vertex[1].uv0 = glm::vec2(0.0f, 0.0f);
-            vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
-            vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
-            vP[0] = vertex[0];
-            vP[1] = vertex[1];
-            vP[2] = vertex[2];
-            vP[3] = vertex[3];
-            // indices
-            iP[0] = 0;
-            iP[1] = 1;
-            iP[2] = 2;
-            iP[3] = 2;
-            iP[4] = 3;
-            iP[5] = 0;
-        }
-
-        ImageData(float minX, float maxX, float minY, float maxY) {
-            int vertexCount = 4;
-            int indexCount = 2 * 3;
-            quad.vertexCount = vertexCount;
-            quad.indexCount = indexCount;
-            // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(ArEngine::Vertex));
-            quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
-
-            auto *vP = (ArEngine::Vertex *) quad.vertices;
-            auto *iP = (uint32_t *) quad.indices;
-
-            ArEngine::Vertex vertex[4];
-            vertex[0].pos = glm::vec3(minX, minY, 0.0f);
-            vertex[1].pos = glm::vec3(maxX, minY, 0.0f);
-            vertex[2].pos = glm::vec3(maxX, maxY, 0.0f);
-            vertex[3].pos = glm::vec3(minX, maxY, 0.0f);
 
             vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -215,17 +164,6 @@ public:
 protected:
 
     VulkanDevice *vulkanDevice{};
-
-    //void transferDataStaging(Basil::Vertex*_vertices, uint32_t vertexCount, unsigned int *_indices, uint32_t indexCount);
-
-    //void createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
-    //                          Model *model, ScriptType type);
-
-    void createImageDescriptors(Model *model);
-
-    void createPointCloudDescriptors(Model *model);
-
-    void createImageDescriptors(Model *model, uint32_t i);
 
     void createImageDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
 

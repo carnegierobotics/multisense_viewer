@@ -31,12 +31,10 @@ public:
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: *handles->devices) {
-            for (auto &s: d.streams)
-                if (s.second.playbackStatus == AR_PREVIEW_RESET) {
-                    s.second.playbackStatus = AR_PREVIEW_NONE;
-                    std::fill_n(page, PAGE_TOTAL_PAGES, false);
-                    drawActionPage = true;
-                }
+            if (d.state == AR_STATE_RESET) {
+                std::fill_n(page, PAGE_TOTAL_PAGES, false);
+                drawActionPage = true;
+            }
         }
 
         for (int i = 0; i < PAGE_TOTAL_PAGES; ++i) {
@@ -195,7 +193,8 @@ public:
                     const bool is_selected = (stream->selectedModeIndex == n);
                     if (ImGui::Selectable(stream->modes[n].c_str(), is_selected)) {
                         stream->selectedModeIndex = n;
-                        stream->selectedStreamingMode = stream->modes[stream->selectedModeIndex];
+                        stream->selectedStreamingMode = Utils::stringToCameraResolution(
+                                stream->modes[stream->selectedModeIndex]);
 
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -229,9 +228,10 @@ public:
                 firstSetup[stream->streamingOrder] = true;
             }
 
-            if (streamIndex == AR_PREVIEW_POINT_CLOUD){
-                ImGui::SameLine(0, 200.0f); // TODO Hardcoded positioning values
-                ImGui::HelpMarker("  Why is my point cloud black?\n   Solution: start 'Luma Rectified Left' data source in 1. Left Sensor  \n\n");
+            if (streamIndex == AR_PREVIEW_POINT_CLOUD) {
+                ImGui::SameLine(0, 150.0f); // TODO Hardcoded positioning values
+                ImGui::HelpMarker(
+                        "  Why is my point cloud black?\n   Solution: start 'Luma Rectified Left' data source in 1. Left Sensor  \n\n");
             }
 
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
@@ -333,7 +333,7 @@ private:
                        ImGui::IsMouseHoveringRect(ImVec2(handles->info->sidebarWidth, 0.0f), ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth,handles->info->controlAreaHeight)));
 
                  */
-                
+
                 handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * handles->mouseScrollSpeed;
 
                 for (auto &stream: d.streams) {
@@ -640,7 +640,8 @@ private:
                 const bool is_selected = (stream.selectedModeIndex == n);
                 if (ImGui::Selectable(stream.modes[n].c_str(), is_selected)) {
                     stream.selectedModeIndex = n;
-                    stream.selectedStreamingMode = stream.modes[stream.selectedModeIndex];
+                    stream.selectedStreamingMode = Utils::stringToCameraResolution(
+                            stream.modes[stream.selectedModeIndex]);
 
                 }
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

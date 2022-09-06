@@ -21,8 +21,8 @@ extern "C" {
 #include<pthread.h>
 #include<semaphore.h>
 #define semaphore sem_t
-#define semWait(x) sem_wait(x)
-#define semPost(x, y) sem_post(x)
+#define semWait(x, y) sem_wait(x)
+#define semPost(x) sem_post(x)
 #define INFINITE nullptr
 #endif
 
@@ -36,10 +36,6 @@ bool CRLVirtualCamera::connect(const std::string &ip) {
     return true;
 }
 
-void CRLVirtualCamera::start(std::string string, std::string dataSourceStr) {
-
-
-}
 
 void CRLVirtualCamera::start(std::string src, StreamIndex parent) {
 
@@ -224,7 +220,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame, StreamIndex pa
     memcpy(frame->plane1, container[index].videoFrame[container[index].idx].data[1], frame->plane1Size);
     memcpy(frame->plane2, container[index].videoFrame[container[index].idx].data[2], frame->plane2Size);
 
-    semPost(container[index].notFull);
+    semPost(&container[index].notFull);
 
     return true;
 
@@ -248,15 +244,8 @@ int CRLVirtualCamera::childProcessDecode(uint32_t index) {
     container[index].notFull = CreateEvent(NULL, FALSE, FALSE, NULL);
     semPost(container[index].notFull);
 
-    args[index].ctx = this;
-    args[index].index = index;
-
-    container[index].producer = new std::thread(CRLVirtualCamera::DecodeContainer::decode, this);
 
 #else
-    // Declaration of attribute......
-    pthread_attr_t attr;
-
     // semaphore initialization
     int err = -1;
     err = sem_init(&container[index].notEmpty, 0, 0);
@@ -268,21 +257,11 @@ int CRLVirtualCamera::childProcessDecode(uint32_t index) {
     if (err != 0) {
         Log::Logger::getInstance()->error("Failed to initialize producer notFull semaphore");
     }
-    // pthread_attr_t initialization
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr,
-                                PTHREAD_CREATE_JOINABLE);
-
+#endif
     args[index].ctx = this;
     args[index].index = index;
-    // Creation of process
-    int r1 = pthread_create(&container[index].producer, &attr, CRLVirtualCamera::DecodeContainer::decode, &args[index]);
-    if (r1) {
-        std::cout <<
-                  "Error in creating thread" << std::endl;
-        exit(-1);
-    }
-#endif
+    container[index].producer = new std::thread(CRLVirtualCamera::DecodeContainer::decode, this);
+
     return EXIT_SUCCESS;
 }
 
@@ -348,6 +327,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
     auto *args = (DecodeThreadArgs *) arg;
     CRLVirtualCamera *instance = args->ctx;
     uint32_t idx = args->index;
+    // TODO fix segfault here
     while (instance->container[idx].runDecodeThread) {
 
         // If paused or we haven't specificed any video
@@ -467,7 +447,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
         avformat_free_context(ctx_format);
     }
 
-    //pthread_exit((void *) (intptr_t) EXIT_SUCCESS); // TODO SOLVE
+    return 0;
 }
 
 void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -492,5 +472,9 @@ void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, 
 
 CRLBaseInterface::CameraInfo CRLVirtualCamera::getCameraInfo() {
     return info;
+}
+
+void CRLVirtualCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
+
 }
 

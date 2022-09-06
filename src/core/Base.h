@@ -118,7 +118,7 @@ public:
 
     };
 
-    void windowResize(Render* data, AR::GuiObjectHandles uiHandle){
+    void windowResize(Render *data, AR::GuiObjectHandles uiHandle) {
         updateRenderData(data);
 
         onWindowResize(uiHandle);
@@ -175,7 +175,7 @@ public:
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
-        else if (renderData.crlCamera->get()->lastActiveDevice != "")
+        else if (!(renderData.crlCamera->get()->lastActiveDevice == "-1"))
             update(renderData.crlCamera->get());
         else
             update();
@@ -250,6 +250,15 @@ public:
         renderData.drawThisScript = true;
     }
 
+
+    /**@brief Called once script is deleted */
+    virtual void onDestroy() {};
+
+    /**@brief Call to delete the attached script. */
+    void onDestroyScript() {
+        onDestroy();
+    }
+
     [[nodiscard]] VkPipelineShaderStageCreateInfo
     loadShader(std::string fileName, VkShaderStageFlagBits stage) const {
 
@@ -277,7 +286,7 @@ private:
     std::chrono::steady_clock::time_point lastLogTime;
 
 
-    void updateRenderData(Render* data){
+    void updateRenderData(Render *data) {
         this->renderData.camera = data->camera;
         this->renderData.crlCamera = data->crlCamera;
         this->renderData.gui = data->gui;

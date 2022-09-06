@@ -10,7 +10,7 @@ void VirtualPointCloud::setup(Base::Render r) {
 
 
     r.crlCamera->get()->camPtr->preparePointCloud(960, 600);
-    model->prepareTextureImage(960, 600, AR_POINT_CLOUD);
+    model->createEmtpyTexture(960, 600, AR_POINT_CLOUD);
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -48,7 +48,7 @@ void VirtualPointCloud::update(CameraConnection *conn) {
 
     crl::multisense::image::Header disp;
     //camPtr->getCameraStream(nullptr);
-    model->setGrayscaleTexture(&disp);
+    //model->setGrayscaleTexture(&disp);
 
     free((void *)disp.imageDataP);
 

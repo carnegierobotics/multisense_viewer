@@ -17,6 +17,8 @@ void RightPreview::setup(Base::Render r) {
 
         auto opt = dev.streams.find(AR_PREVIEW_RIGHT)->second;
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+        startedSources.push_back(opt.selectedStreamingSource);
+
     }
 }
 
@@ -39,11 +41,11 @@ void RightPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/preview.vert";
         fragmentShaderFileName = "myScene/spv/preview.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
+        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
 
         //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
-        auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
 
         // Load shaders
@@ -52,8 +54,8 @@ void RightPreview::update(CameraConnection *conn) {
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
         // Create quad and store it locally on the GPU
-        model->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
-                                     imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
+        model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
+                                     imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
 
         // Create graphics render pipeline

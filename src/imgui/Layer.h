@@ -89,10 +89,11 @@ namespace AR {
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
         /** @brief Which mode is currently selected */
-        std::string selectedStreamingMode = "Select sensor resolution";
+        std::string selectedStreamingModeString = "Select sensor resolution";
         /** @brief Which source is currently selected */
         std::string selectedStreamingSource = "Select sensor resolution";
 
+        CRLCameraResolution selectedStreamingMode;
 
     };
 

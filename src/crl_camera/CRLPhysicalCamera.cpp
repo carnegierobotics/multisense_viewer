@@ -36,27 +36,10 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 }
 
 
-void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
-    // Set mode first
-    std::string delimiter = "x";
+void CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
 
-    size_t pos = 0;
-    std::string token;
-    std::vector<uint32_t> widthHeightDepth;
-    while ((pos = string.find(delimiter)) != std::string::npos) {
-        token = string.substr(0, pos);
-        widthHeightDepth.push_back(std::stoi(token));
-        string.erase(0, pos + delimiter.length());
-    }
-    if (widthHeightDepth.size() != 3) {
-        std::cerr << "Select valid resolution\n";
-        return;
-    }
+    setResolution(resolution);
 
-    // If res changed then set it again.
-    if (info.imgConf.disparities() != widthHeightDepth[2]) {
-        setResolution(widthHeightDepth[0], widthHeightDepth[1], widthHeightDepth[2]);
-    }
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
     if (source == false)
@@ -77,9 +60,11 @@ void CRLPhysicalCamera::start(std::string string, std::string dataSourceStr) {
     for (auto src: enabledSources) {
         bool status = cameraInterface->startStreams(src);
 
-        if (status == crl::multisense::Status_Ok)
+        if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {}",
                                              dataSourceToString(src).c_str());
+            stopForDestruction = false;
+        }
         else
             Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {}  status code {}",
                                              dataSourceToString(src).c_str(), status);
@@ -115,7 +100,8 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
     */
     bool status = cameraInterface->stopStreams(src);
-    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}, return code {}", dataSourceStr.c_str(), status);
+    if (status == crl::multisense::Status_Ok)
+        Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}", dataSourceStr.c_str());
 }
 
 bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
@@ -144,6 +130,8 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) {
     assert(tex != nullptr);
 
+    auto p = this;
+
     auto src = stringToDataSource(stringSrc);
 
     switch (src) {
@@ -158,8 +146,13 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     }
 
 
+
     auto header = imagePointers[src];
-    // TODO Fix with proper conditions
+
+    // TODO Fix with proper conditions for checking if a frame is good or not
+    if (header.source != src)
+        return false;
+
     if (header.imageDataP != nullptr && header.imageLength != 0 && header.imageLength < 11520000) {
         tex->data = malloc(header.imageLength);
         memcpy(tex->data, header.imageDataP, header.imageLength);
@@ -230,6 +223,7 @@ void CRLPhysicalCamera::updateCameraInfo() {
 
 // Copied from opengl multisense-viewer example
 void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &image) {
+
     auto &buf = buffers_[image.source];
 
     // TODO: make this a method of the BufferPair or something
@@ -252,7 +246,18 @@ void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &ima
 
 void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto cam = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
-    cam->streamCallback(header);
+
+
+    auto time = std::chrono::steady_clock::now();
+    std::chrono::duration<float> time_span =
+            std::chrono::duration_cast<std::chrono::duration<float>>(time - cam->startTime);
+
+    Log::Logger::getInstance()->info("Source id: {} time since last call: {}s",header.source, time_span.count());
+
+    cam->startTime = std::chrono::steady_clock::now();
+
+    if (!cam->stopForDestruction)
+        cam->streamCallback(header);
 }
 
 
@@ -372,6 +377,44 @@ void CRLPhysicalCamera::setGain(float gain) {
 
 
 void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t depth = 64) {
+
+    crl::multisense::image::Config cfg;
+    int ret = cameraInterface->getImageConfig(cfg);
+    if (ret != crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->error("CRLPhysicalCamera:: failed to get image config");
+    }
+    cfg.setResolution(width, height);
+    cfg.setDisparities(depth);
+
+    ret = cameraInterface->setImageConfig(cfg);
+    if (ret == crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Set resolution to {}x{}x{}", width, height, depth);
+    } else
+        Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
+    this->updateCameraInfo();
+
+
+    crl::multisense::lighting::Config c;
+}
+
+void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
+    uint32_t width, height, depth;
+    switch (resolution) {
+        case CRL_RESOLUTION_NONE:
+            break;
+        case CRL_RESOLUTION_960_600_64:
+            break;
+        case CRL_RESOLUTION_960_600_128:
+            break;
+        case CRL_RESOLUTION_960_600_256:
+            break;
+        case CRL_RESOLUTION_1920_1200_64:
+            break;
+        case CRL_RESOLUTION_1920_1200_128:
+            break;
+        case CRL_RESOLUTION_1920_1200_256:
+            break;
+    }
 
     crl::multisense::image::Config cfg;
     int ret = cameraInterface->getImageConfig(cfg);

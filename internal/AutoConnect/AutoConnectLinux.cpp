@@ -26,8 +26,7 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
             struct ethtool_link_settings req;
             __u32 link_mode_data[3 * 127];
         } ecmd{};
-
-        adapterSupportResult.emplace_back(i->if_name, false);
+        AdapterSupportResult adapter(i->if_name, false);
 
         auto ifr = ifreq{};
         std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
@@ -36,33 +35,21 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
         ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
 
         if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
-            std::cerr << "Skipping Adapter: " << i->if_name << "| Reason: ioctl fail | " << strerror(errno)
-                      << std::endl;
             continue;
 
         }
-
         if (ecmd.req.link_mode_masks_nwords >= 0 || ecmd.req.cmd != ETHTOOL_GLINKSETTINGS) {
-            std::cerr << "Skipping Adapter: " << i->if_name << "| Reason: link_mode != ETHTOOL_GLINKSETTINGS | "
-                      << std::endl;
             continue;
         }
-
         ecmd.req.link_mode_masks_nwords = -ecmd.req.link_mode_masks_nwords;
-
         if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
-            std::cerr << "Skipping Adapter: " << i->if_name << "| Reason: ioctl fail | " << strerror(errno)
-                      << std::endl;
             continue;
         }
 
-        std::cout << "\n\n\tFound Adapter: " << i->if_name
-                  << "\n\tSpeed: " << ecmd.req.speed
-                  << "\n\tDuplex: " << static_cast<int>(ecmd.req.duplex)
-                  << "\n\tPort: " << static_cast<int>(ecmd.req.port)
-                  << std::endl;
+        adapter.supports = true;
+        adapter.description = adapter.name; // Copy name to description
 
-        adapterSupportResult.back().supports = true;
+        adapterSupportResult.emplace_back(adapter);
     }
 
 

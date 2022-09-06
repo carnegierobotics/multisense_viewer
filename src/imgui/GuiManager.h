@@ -62,10 +62,6 @@ namespace AR {
         std::function<void()> m_MenubarCallback;
 
         ImGuiIO *io{};
-        ImVec4 clearColor;
-        std::array<float, 50> frameTimes{};
-        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-
         Texture2D fontTexture{};
         Texture2D iconTexture{};
 

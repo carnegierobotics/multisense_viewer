@@ -423,6 +423,7 @@ private:
 
 
     void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex, uint32_t i, AR::Element d) {
+        // Calculate window position
         //float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
         float viewAreaElementPosX = (((handles->info->viewingAreaWidth / 2.0f) + handles->info->sidebarWidth +
                                       handles->info->controlAreaWidth - ((0.25f * handles->info->width) / 2.0f)) -
@@ -430,35 +431,24 @@ private:
 
 
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
-        // Equation is
+        // Equation is a (to-do)
         float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedMouseScroll +
                                     ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
 
         handles->info->viewAreaElementPositionsY[i] = viewAreaElementPosY;
 
-        //TODO remove hardcoded positions and sizes from this function
-        if (firstSetup[i]) {
-
-            //firstSetup[i] = false;
-            //Log::Logger::getInstance()->info("Created preview for {} in order {}", (uint32_t) streamIndex, i);
-
-        }
 
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
                                 ImGuiCond_Always);
 
+        // Calculate window size
         handles->info->viewAreaElementSizeX =
                 0.25f * handles->info->width + (handles->info->previewBorderPadding * 2);
 
         handles->info->viewAreaElementSizeY =
                 ((handles->info->previewBorderPadding) + 0.25f * 720.0f * (handles->info->width / 1280.0f)) * 1.11f;
 
-
-
-
-
-        //handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
 
         ImGui::SetNextWindowSize(ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
                                  ImGuiCond_Always);
@@ -472,7 +462,7 @@ private:
         std::string windowName = std::to_string(streamIndex);
         ImGui::Begin((std::string("View Area##") + windowName).c_str(), &open, window_flags);
 
-
+        // The colored bars around the preview window is made up of rectangles
         // Top bar
         ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
         ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
@@ -483,50 +473,54 @@ private:
         // extension of top bar in different color
         ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
         ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-        topBarRectMax.y + 5.0f);
+                                     topBarRectMax.y + 5.0f);
 
-        ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
+        ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
+                                                  ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
                                                   0);
 
         // Left bar
 
         ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMaxExtended.y);
         ImVec2 leftBarMax(viewAreaElementPosX + handles->info->previewBorderPadding,
-        topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5f));
+                          topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY -
+                          (handles->info->previewBorderPadding * 0.5f));
 
         ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
                                                   0);
 
         // Right bar
-        ImVec2 rightBarMin(viewAreaElementPosX + handles->info->viewAreaElementSizeX - handles->info->previewBorderPadding, topBarRectMaxExtended.y);
+        ImVec2 rightBarMin(
+                viewAreaElementPosX + handles->info->viewAreaElementSizeX - handles->info->previewBorderPadding,
+                topBarRectMaxExtended.y);
         ImVec2 rightBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                           topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5f));
+                           topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY -
+                           (handles->info->previewBorderPadding * 0.5f));
 
         ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
                                                   0);
 
         // Bottom bar
-        ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding) - 13.0f);
+        ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY -
+                                                 (handles->info->previewBorderPadding) - 13.0f);
         ImVec2 bottomBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                            topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5));
+                            topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY -
+                            (handles->info->previewBorderPadding * 0.5));
 
         ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
                                                   0);
 
-
+        // Text
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
         ImGui::Dummy(ImVec2(20.0f, 0.0f));
         ImGui::SameLine();
         ImGui::Text("%s", d.streams.find(streamIndex)->second.name.c_str());
-        ImGui::SameLine();
-        std::string info1 = "| Monochrome##";
-        ImGui::Text("%s", (info1 + std::to_string((int) streamIndex)).c_str());
-        ImGui::SameLine();
-        std::string info2 = "| FPS##";
-        ImGui::Text("%s", (info2 + std::to_string((int) streamIndex)).c_str());
+        ImGui::SameLine(0, handles->info->width);
+        ImGui::PushID(streamIndex);
+        ImGui::Text("Fps: %.2f", d.parameters.fps);
+        ImGui::PopID();
         ImGui::End();
         ImGui::PopStyleVar(); // Window padding
-
     }
 
     void createControlArea(AR::GuiObjectHandles *handles, AR::Element &dev) {

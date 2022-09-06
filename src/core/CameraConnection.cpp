@@ -40,27 +40,27 @@ CameraConnection::CameraConnection() {
 
 }
 
-void CameraConnection::updateActiveDevice(AR::Element* dev) {
+void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
     if (!dev->parameters.initialized) {
-        auto* p = &dev->parameters;
+        auto *p = &dev->parameters;
 
         auto conf = camPtr->getCameraInfo().imgConf;
 
-        {
-            p->ep.exposure = conf.exposure();
-            p->ep.autoExposure = conf.autoExposure();
-            p->ep.exposureSource = conf.exposureSource();
-            p->ep.autoExposureThresh = conf.autoExposureThresh();
-            p->ep.autoExposureDecay = conf.autoExposureDecay();
-            p->ep.autoExposureMax = conf.autoExposureMax();
-            p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
 
-            p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
-            p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
-            p->ep.autoExposureRoiX = conf.autoExposureRoiX();
-            p->ep.autoExposureRoiY = conf.autoExposureRoiY();
-        }
+        p->ep.exposure = conf.exposure();
+        p->ep.autoExposure = conf.autoExposure();
+        p->ep.exposureSource = conf.exposureSource();
+        p->ep.autoExposureThresh = conf.autoExposureThresh();
+        p->ep.autoExposureDecay = conf.autoExposureDecay();
+        p->ep.autoExposureMax = conf.autoExposureMax();
+        p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+
+        p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+        p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+        p->ep.autoExposureRoiX = conf.autoExposureRoiX();
+        p->ep.autoExposureRoiY = conf.autoExposureRoiY();
+
 
         p->gain = conf.gain();
         p->fps = conf.fps();
@@ -74,6 +74,7 @@ void CameraConnection::updateActiveDevice(AR::Element* dev) {
         p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
         p->wb.whiteBalanceRed = conf.whiteBalanceRed();
 
+
         p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
 
         auto cal = camPtr->getCameraInfo().camCal;
@@ -82,25 +83,60 @@ void CameraConnection::updateActiveDevice(AR::Element* dev) {
     }
 
     if (dev->parameters.update) {
-        auto p = dev->parameters;
+        auto *p = &dev->parameters;
 
-        camPtr->setExposureParams(p.ep);
-        camPtr->setWhiteBalance(p.wb);
-        camPtr->setPostFilterStrength(p.stereoPostFilterStrength);
-        camPtr->setGamma(p.gamma);
-        camPtr->setFps(p.fps);
-        camPtr->setGain(p.gain);
+        camPtr->setExposureParams(p->ep);
+        camPtr->setWhiteBalance(p->wb);
+        camPtr->setPostFilterStrength(p->stereoPostFilterStrength);
+        camPtr->setGamma(p->gamma);
+        camPtr->setFps(p->fps);
+        camPtr->setGain(p->gain);
 
+        auto conf = camPtr->getCameraInfo().imgConf;
+
+
+        p->ep.exposure = conf.exposure();
+        p->ep.autoExposure = conf.autoExposure();
+        p->ep.exposureSource = conf.exposureSource();
+        p->ep.autoExposureThresh = conf.autoExposureThresh();
+        p->ep.autoExposureDecay = conf.autoExposureDecay();
+        p->ep.autoExposureMax = conf.autoExposureMax();
+        p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+
+        p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+        p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+        p->ep.autoExposureRoiX = conf.autoExposureRoiX();
+        p->ep.autoExposureRoiY = conf.autoExposureRoiY();
+
+
+        p->gain = conf.gain();
+        p->fps = conf.fps();
+        p->gamma = conf.gamma();
+
+
+        p->wb.autoWhiteBalance = conf.autoWhiteBalance();
+        p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
+        p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
+
+        p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
+        p->wb.whiteBalanceRed = conf.whiteBalanceRed();
+
+
+        p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
+
+        auto cal = camPtr->getCameraInfo().camCal;
+
+        p->initialized = true;
     }
 
 }
 
-void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
+void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
     // If no device is connected then return
     if (devices == nullptr)
         return;
     // Check for actions on each element
-    for (auto& dev : *devices) {
+    for (auto &dev: *devices) {
 
         if (dev.state == AR_STATE_RESET) {
             disableCrlCamera(dev);
@@ -109,7 +145,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
 
 
 
-            // Connect if we click a device or if it is just added
+        // Connect if we click a device or if it is just added
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
             connectCrlCamera(dev);
             continue;
@@ -119,7 +155,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
 
         // Make sure inactive devices' preview are not drawn.
         if (dev.state != AR_STATE_ACTIVE) {
-            for (auto& s : dev.streams) {
+            for (auto &s: dev.streams) {
                 s.second.playbackStatus = AR_PREVIEW_NONE;
             }
             continue;
@@ -138,7 +174,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
 
 }
 
-void CameraConnection::connectCrlCamera(AR::Element& dev) {
+void CameraConnection::connectCrlCamera(AR::Element &dev) {
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
     bool connected{};
@@ -203,12 +239,10 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
 
 
-        }
-        else
+        } else
             dev.state = AR_STATE_UNAVAILABLE;
 
-    }
-    else {
+    } else {
 
         if (!setNetworkAdapterParameters(dev)) {
             dev.state = AR_STATE_UNAVAILABLE;
@@ -225,8 +259,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             setStreamingModes(dev);
             lastActiveDevice = dev.name;
 
-        }
-        else {
+        } else {
             delete camPtr;
             dev.state = AR_STATE_UNAVAILABLE;
             lastActiveDevice = "-1";
@@ -235,7 +268,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
     }
 }
 
-void CameraConnection::setStreamingModes(AR::Element& dev) {
+void CameraConnection::setStreamingModes(AR::Element &dev) {
 
     auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
 
@@ -292,19 +325,19 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
 
 }
 
-void CameraConnection::initCameraModes(std::vector<std::string>* modes,
-    std::vector<crl::multisense::system::DeviceMode> deviceModes) {
-    for (auto mode : deviceModes) {
+void CameraConnection::initCameraModes(std::vector<std::string> *modes,
+                                       std::vector<crl::multisense::system::DeviceMode> deviceModes) {
+    for (auto mode: deviceModes) {
         std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
-            std::to_string(mode.disparities) + "x";
+                               std::to_string(mode.disparities) + "x";
         modes->emplace_back(modeName);
     }
 
 }
 
-void CameraConnection::filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec) {
+void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec) {
     uint32_t bits = camPtr->getCameraInfo().supportedSources;
-    for (auto mask : maskVec) {
+    for (auto mask: maskVec) {
         bool enabled = (bits & mask);
         if (enabled) {
             sources->emplace_back(dataSourceToString(mask));
@@ -313,7 +346,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string>* sources,
 }
 
 
-bool CameraConnection::setNetworkAdapterParameters(AR::Element& dev) {
+bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
     std::string hostAddress = dev.IP;
 
@@ -322,9 +355,10 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element& dev) {
         std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
         hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
     }
-    catch (std::out_of_range& exception) {
+    catch (std::out_of_range &exception) {
         Log::Logger::getInstance()->error(
-            "Trying to configure adapter '{}' with source IP: '{}', but address does not seem like an ipv4 address", dev.interfaceName, dev.IP);
+                "Trying to configure adapter '{}' with source IP: '{}', but address does not seem like an ipv4 address",
+                dev.interfaceName, dev.IP);
         Log::Logger::getInstance()->error("Exception message: '{}'", exception.what());
         return false;
     }
@@ -426,12 +460,12 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element& dev) {
         fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
     }
     // Specify interface name
-    const char* interface = dev.interfaceName.c_str();
+    const char *interface = dev.interfaceName.c_str();
     setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
 
-    struct ifreq ifr {};
+    struct ifreq ifr{};
     /// note: no pointer here
-    struct sockaddr_in inet_addr {}, subnet_mask{};
+    struct sockaddr_in inet_addr{}, subnet_mask{};
     /* get interface name */
     /* Prepare the struct ifreq */
     bzero(ifr.ifr_name, IFNAMSIZ);
@@ -461,19 +495,19 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element& dev) {
 
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
     ifr.ifr_mtu = 7200; //your MTU size here
-    if (ioctl(sd, SIOCSIFMTU, (caddr_t)&ifr) < 0) {
+    if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
         Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size {} on adapter {}", 7200,
-            dev.interfaceName.c_str());
+                                          dev.interfaceName.c_str());
     }
 
     Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200,
-        dev.interfaceName.c_str());
+                                      dev.interfaceName.c_str());
 
 #endif
     return true;
 }
 
-void CameraConnection::updateDeviceState(AR::Element* dev) {
+void CameraConnection::updateDeviceState(AR::Element *dev) {
 
     dev->state = AR_STATE_UNAVAILABLE;
 
@@ -485,12 +519,12 @@ void CameraConnection::updateDeviceState(AR::Element* dev) {
 
 }
 
-void CameraConnection::disableCrlCamera(AR::Element& dev) {
+void CameraConnection::disableCrlCamera(AR::Element &dev) {
     dev.state = AR_STATE_DISCONNECTED;
     lastActiveDevice = "-1";
 
     Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
-        dev.cameraName.c_str());
+                                     dev.cameraName.c_str());
     // Free camPtr memory
     delete camPtr;
 }
@@ -509,55 +543,55 @@ CameraConnection::~CameraConnection() {
 
 std::string CameraConnection::dataSourceToString(crl::multisense::DataSource d) {
     switch (d) {
-    case crl::multisense::Source_Raw_Left:
-        return "Raw Left";
-    case crl::multisense::Source_Raw_Right:
-        return "Raw Right";
-    case crl::multisense::Source_Luma_Left:
-        return "Luma Left";
-    case crl::multisense::Source_Luma_Right:
-        return "Luma Right";
-    case crl::multisense::Source_Luma_Rectified_Left:
-        return "Luma Rectified Left";
-    case crl::multisense::Source_Luma_Rectified_Right:
-        return "Luma Rectified Right";
-    case crl::multisense::Source_Chroma_Left:
-        return "Color Left";
-    case crl::multisense::Source_Chroma_Right:
-        return "Source Color Right";
-    case crl::multisense::Source_Compressed_Right:
-        return "Source Compressed Right";
-    case crl::multisense::Source_Compressed_Rectified_Right:
-        return "Source Compressed Rectified Right | Jpeg Left";
-    case crl::multisense::Source_Disparity_Left:
-        return "Disparity Left";
-    case crl::multisense::Source_Disparity_Cost:
-        return "Disparity Cost";
-    case crl::multisense::Source_Disparity_Right:
-        return "Disparity Right";
-    case crl::multisense::Source_Rgb_Left:
-        return "Source Rgb Left | Source Compressed Rectified Aux";
-    case crl::multisense::Source_Compressed_Left:
-        return "Source Compressed Left";
-    case crl::multisense::Source_Compressed_Rectified_Left:
-        return "Source Compressed Rectified Left";
-    case crl::multisense::Source_Lidar_Scan:
-        return "Source Lidar Scan";
-    case crl::multisense::Source_Raw_Aux:
-        return "Raw Aux";
-    case crl::multisense::Source_Luma_Aux:
-        return "Luma Aux";
-    case crl::multisense::Source_Luma_Rectified_Aux:
-        return "Luma Rectified Aux";
-    case crl::multisense::Source_Chroma_Aux:
-        return "Color Aux";
-    case crl::multisense::Source_Chroma_Rectified_Aux:
-        return "Color Rectified Aux";
-    case crl::multisense::Source_Disparity_Aux:
-        return "Disparity Aux";
-    case crl::multisense::Source_Compressed_Aux:
-        return "Source Compressed Aux";
-    default:
-        return "Unknown";
+        case crl::multisense::Source_Raw_Left:
+            return "Raw Left";
+        case crl::multisense::Source_Raw_Right:
+            return "Raw Right";
+        case crl::multisense::Source_Luma_Left:
+            return "Luma Left";
+        case crl::multisense::Source_Luma_Right:
+            return "Luma Right";
+        case crl::multisense::Source_Luma_Rectified_Left:
+            return "Luma Rectified Left";
+        case crl::multisense::Source_Luma_Rectified_Right:
+            return "Luma Rectified Right";
+        case crl::multisense::Source_Chroma_Left:
+            return "Color Left";
+        case crl::multisense::Source_Chroma_Right:
+            return "Source Color Right";
+        case crl::multisense::Source_Compressed_Right:
+            return "Source Compressed Right";
+        case crl::multisense::Source_Compressed_Rectified_Right:
+            return "Source Compressed Rectified Right | Jpeg Left";
+        case crl::multisense::Source_Disparity_Left:
+            return "Disparity Left";
+        case crl::multisense::Source_Disparity_Cost:
+            return "Disparity Cost";
+        case crl::multisense::Source_Disparity_Right:
+            return "Disparity Right";
+        case crl::multisense::Source_Rgb_Left:
+            return "Source Rgb Left | Source Compressed Rectified Aux";
+        case crl::multisense::Source_Compressed_Left:
+            return "Source Compressed Left";
+        case crl::multisense::Source_Compressed_Rectified_Left:
+            return "Source Compressed Rectified Left";
+        case crl::multisense::Source_Lidar_Scan:
+            return "Source Lidar Scan";
+        case crl::multisense::Source_Raw_Aux:
+            return "Raw Aux";
+        case crl::multisense::Source_Luma_Aux:
+            return "Luma Aux";
+        case crl::multisense::Source_Luma_Rectified_Aux:
+            return "Luma Rectified Aux";
+        case crl::multisense::Source_Chroma_Aux:
+            return "Color Aux";
+        case crl::multisense::Source_Chroma_Rectified_Aux:
+            return "Color Rectified Aux";
+        case crl::multisense::Source_Disparity_Aux:
+            return "Disparity Aux";
+        case crl::multisense::Source_Compressed_Aux:
+            return "Source Compressed Aux";
+        default:
+            return "Unknown";
     }
 }

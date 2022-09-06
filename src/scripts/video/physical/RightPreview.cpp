@@ -45,7 +45,7 @@ void RightPreview::update(CameraConnection *conn) {
 
         //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
-        ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        ImageData imgData;
 
 
         // Load shaders
@@ -147,7 +147,7 @@ void RightPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element
     float scaleUniform = ((float) renderData.width/ 1280.0f); // Scale by width of screen.
     centerX = (posXMax - posXMin) / 2 + posXMin; // center of the quad in the given view area.
     scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
-    scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
+    scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
     int order = dev.streams.find(AR_PREVIEW_RIGHT)->second.streamingOrder;
     float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );

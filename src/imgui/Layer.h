@@ -41,6 +41,7 @@ namespace AR {
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
+        float previewBorderPadding = 60.0f;
 
         std::unordered_map<ImageElementIndex, ArEngine::ImageElement> img;
 
@@ -89,11 +90,9 @@ namespace AR {
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
         /** @brief Which mode is currently selected */
-        std::string selectedStreamingModeString = "Select sensor resolution";
+        CRLCameraResolution selectedStreamingMode;
         /** @brief Which source is currently selected */
         std::string selectedStreamingSource = "Select sensor resolution";
-
-        CRLCameraResolution selectedStreamingMode;
 
     };
 

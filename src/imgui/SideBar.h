@@ -109,8 +109,7 @@ public:
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
                                    ImGuiWindowFlags_NoTitleBar)) {
 
-            bool ipAlreadyInUse = false;
-            bool profileNameTaken = false;
+
 
 
             ImGui::PushFont(handles->info->font24);
@@ -424,6 +423,8 @@ public:
             }
 
             if (btnConnect) {
+                bool ipAlreadyInUse = false;
+                bool profileNameTaken = false;
                 // Loop through devices and check that it doesn't exist already.
                 for (auto &d: devices) {
                     if (d.IP == inputIP)

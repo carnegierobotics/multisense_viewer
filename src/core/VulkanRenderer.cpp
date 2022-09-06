@@ -612,7 +612,7 @@ void VulkanRenderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
 
 void VulkanRenderer::updateOverlay() {
     // Update imGui
-
+    /*
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float) width, (float) height);
     io.DeltaTime = frameTimer;
@@ -627,7 +627,7 @@ void VulkanRenderer::updateOverlay() {
 
     UIUpdate(&guiManager->handles);
 
-    /*
+
     UIOverlay->newFrame((frameCounter == 0), frameTimer, width, height);
     if (UIOverlay->updateBuffers()) {
         buildCommandBuffers();

@@ -151,6 +151,7 @@ public:
 
             ImVec2 sourceComboPos((handles->info->controlAreaWidth / 2) - (handles->info->dropDownWidth / 2),
                                   ImGui::GetCursorPosY());
+
             ImGui::SetCursorPos(sourceComboPos);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
@@ -183,10 +184,17 @@ public:
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::Text("Resolution:");
 
+            /*
+            ImGui::Dummy(ImVec2(sourceComboPos.x - 30.0f, 0.0f));
+            ImGui::SameLine();
+            ImGui::HelpMarker("\n  HelpMarker  \n\n");
+            ImGui::SameLine();
+             */
+
 
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::SetNextItemWidth(handles->info->dropDownWidth);
-            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(streamIndex)).c_str(),
+            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(stream->streamIndex)).c_str(),
                                   stream->modes[stream->selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (int n = 0; n < stream->modes.size(); n++) {
@@ -195,7 +203,6 @@ public:
                         stream->selectedModeIndex = n;
                         stream->selectedStreamingMode = Utils::stringToCameraResolution(
                                 stream->modes[stream->selectedModeIndex]);
-
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -318,8 +325,8 @@ private:
             ImGui::EndGroup();
 
         }
-        //ImGui::PopStyleColor(); // bg color
-        //ImGui::End();
+
+        ImGui::ShowDemoWindow();
     }
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
@@ -346,7 +353,7 @@ private:
 
                         stream.second.streamingOrder = previewWindowCount;
                         ImGui::PushStyleColor(ImGuiCol_WindowBg,
-                                              ImVec4(0.034, 0.107, 0.201, 0.05f)); // TODO use named colors
+                                              ImVec4(0.0f, 0.0f, 0.0, 0.0f)); // TODO use named colors
                         createPreviewArea(handles, stream.second.streamIndex, previewWindowCount, d);
                         previewWindowCount++;
                         ImGui::PopStyleColor(); // Bg color
@@ -418,13 +425,14 @@ private:
     void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex, uint32_t i, AR::Element d) {
         //float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
         float viewAreaElementPosX = (((handles->info->viewingAreaWidth / 2.0f) + handles->info->sidebarWidth +
-                                      handles->info->controlAreaWidth - ((0.25f * handles->info->width) / 2.0f)));
+                                      handles->info->controlAreaWidth - ((0.25f * handles->info->width) / 2.0f)) -
+                                     handles->info->previewBorderPadding);
 
 
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is
         float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedMouseScroll +
-                                    ((float) i * (200.0f * (handles->info->width / 1280.0f)));
+                                    ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
 
         handles->info->viewAreaElementPositionsY[i] = viewAreaElementPosY;
@@ -441,14 +449,22 @@ private:
                                 ImGuiCond_Always);
 
         handles->info->viewAreaElementSizeX =
-                0.25f * handles->info->width * 1.3f; // Half of aspect ratio (magic number?)
+                0.25f * handles->info->width + (handles->info->previewBorderPadding * 2);
+
         handles->info->viewAreaElementSizeY =
-                0.25f * 720.0f * (handles->info->width / 1280.0f);// handles->info->height;
+                ((handles->info->previewBorderPadding) + 0.25f * 720.0f * (handles->info->width / 1280.0f)) * 1.11f;
+
+
+
+
 
         //handles->info->viewAreaElementSizeY = 250.0f + ((float) handles->info->height * 0.10f);
 
         ImGui::SetNextWindowSize(ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
                                  ImGuiCond_Always);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
         static bool open = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
@@ -457,6 +473,50 @@ private:
         ImGui::Begin((std::string("View Area##") + windowName).c_str(), &open, window_flags);
 
 
+        // Top bar
+        ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
+        ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                             viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
+        ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(0.11, 0.215, 0.33, 1.0f), 0.0f,
+                                                  0);
+
+        // extension of top bar in different color
+        ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
+        ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+        topBarRectMax.y + 5.0f);
+
+        ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
+                                                  0);
+
+        // Left bar
+
+        ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMaxExtended.y);
+        ImVec2 leftBarMax(viewAreaElementPosX + handles->info->previewBorderPadding,
+        topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5f));
+
+        ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
+                                                  0);
+
+        // Right bar
+        ImVec2 rightBarMin(viewAreaElementPosX + handles->info->viewAreaElementSizeX - handles->info->previewBorderPadding, topBarRectMaxExtended.y);
+        ImVec2 rightBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                           topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5f));
+
+        ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
+                                                  0);
+
+        // Bottom bar
+        ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMaxExtended.y + handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding) - 13.0f);
+        ImVec2 bottomBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                            topBarRectMaxExtended.y +  handles->info->viewAreaElementSizeY - (handles->info->previewBorderPadding * 0.5));
+
+        ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(0.21, 0.283, 0.36, 1.0f), 0.0f,
+                                                  0);
+
+
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::Dummy(ImVec2(20.0f, 0.0f));
+        ImGui::SameLine();
         ImGui::Text("%s", d.streams.find(streamIndex)->second.name.c_str());
         ImGui::SameLine();
         std::string info1 = "| Monochrome##";
@@ -464,9 +524,9 @@ private:
         ImGui::SameLine();
         std::string info2 = "| FPS##";
         ImGui::Text("%s", (info2 + std::to_string((int) streamIndex)).c_str());
-
-
         ImGui::End();
+        ImGui::PopStyleVar(); // Window padding
+
     }
 
     void createControlArea(AR::GuiObjectHandles *handles, AR::Element &dev) {

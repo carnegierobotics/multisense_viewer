@@ -90,6 +90,52 @@ namespace Utils {
         return CRL_RESOLUTION_NONE;
     }
 
+    /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
+    inline void cameraResolutionToValue(CRLCameraResolution resolution, uint32_t* _width, uint32_t* _height, uint32_t* _depth){
+        uint32_t width, height, depth;
+        switch (resolution) {
+            case CRL_RESOLUTION_NONE:
+                width = 0;
+                height = 0;
+                depth = 0;
+                break;
+            case CRL_RESOLUTION_960_600_64:
+                width = 960;
+                height = 600;
+                depth = 64;
+                break;
+            case CRL_RESOLUTION_960_600_128:
+                width = 960;
+                height = 600;
+                depth = 128;
+                break;
+            case CRL_RESOLUTION_960_600_256:
+                width = 960;
+                height = 600;
+                depth = 256;
+                break;
+            case CRL_RESOLUTION_1920_1200_64:
+                width = 1920;
+                height = 1200;
+                depth = 64;
+                break;
+            case CRL_RESOLUTION_1920_1200_128:
+                width = 1920;
+                height = 1200;
+                depth = 128;
+                break;
+            case CRL_RESOLUTION_1920_1200_256:
+                width = 1920;
+                height = 1200;
+                depth = 256;
+                break;
+        }
+
+        *_width = width;
+        *_height = height;
+        *_depth = depth;
+    }
+
     inline VkFormat
     findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                         VkFormatFeatureFlags features) {

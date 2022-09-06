@@ -25,6 +25,7 @@ layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 void main()
 {
 
+    /*
     float ambientStrength = 0.9;
     vec3 ambient = ambientStrength * colors.lightColor.xyz;
     // diffuse
@@ -39,8 +40,8 @@ void main()
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
     vec3 specular = specularStrength * spec * colors.lightColor.xyz;
-
     vec3 result = (ambient + diffuse + specular) * colors.objectColor.xyz;
+    */
     vec3 tex = texture(samplerColorMap, inUV).rgb;
     outColor = vec4(tex, 1.0);
 

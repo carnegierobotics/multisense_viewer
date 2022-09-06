@@ -21,5 +21,5 @@ void main()
 {
 	outUV = inUV;
 	outColor = inColor;
-	gl_Position = vec4(inPos * pushConstants.scale + pushConstants.translate, 0.0, 1.0);
+	gl_Position = vec4(inPos * pushConstants.scale + pushConstants.translate, 1.0f, 1.0);
 }

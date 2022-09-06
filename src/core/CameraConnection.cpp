@@ -247,6 +247,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     left.selectedStreamingMode = Utils::stringToCameraResolution(left.modes.front());
     left.selectedStreamingSource = left.sources.front();
 
+
     AR::StreamingModes right{};
     right.name = "2. Right Sensor";
     right.streamIndex = AR_PREVIEW_RIGHT;
@@ -278,6 +279,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     filterAvailableSources(&pointCloud.sources, maskArrayDisparity);
     pointCloud.selectedStreamingMode = Utils::stringToCameraResolution(pointCloud.modes.front());
     pointCloud.selectedStreamingSource = pointCloud.sources.front();
+
 
     dev.streams[AR_PREVIEW_LEFT] = left;
     dev.streams[AR_PREVIEW_RIGHT] = right;

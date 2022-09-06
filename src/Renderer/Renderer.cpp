@@ -167,7 +167,7 @@ void Renderer::render() {
     guiManager->handles.mouseBtns.right = mouseButtons.right;
 
     // Update GUI
-    guiManager->update((frameCounter == 0), frameTimer, width, height);
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height);
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
@@ -181,38 +181,38 @@ void Renderer::render() {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
-            for (const auto &i: dev.streams) {
-                if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
-                    switch (i.second.streamIndex) {
-                        case AR_PREVIEW_LEFT:
-                            buildScript("DefaultPreview");
-                            break;
-                        case AR_PREVIEW_RIGHT:
-                            buildScript("RightPreview");
-                            break;
-                        case AR_PREVIEW_DISPARITY:
-                            buildScript("DisparityPreview");
-                            break;
-                        case AR_PREVIEW_AUXILIARY:
-                            buildScript("AuxiliaryPreview");
-                            break;
-                        case AR_PREVIEW_VIRTUAL_LEFT:
-                            buildScript("LeftImager");
-                            break;
-                        case AR_PREVIEW_POINT_CLOUD:
-                            buildScript("PointCloud");
-                            break;
-                        case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
-                            buildScript("VirtualPointCloud");
-                            break;
-                        case AR_PREVIEW_VIRTUAL_RIGHT:
-                            buildScript("RightImager");
-                            break;
-                        case AR_PREVIEW_VIRTUAL_AUX:
-                            buildScript("AuxImager");
-                            break;
-                    }
+        for (const auto &i: dev.streams) {
+            if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
+                switch (i.second.streamIndex) {
+                    case AR_PREVIEW_LEFT:
+                        buildScript("DefaultPreview");
+                        break;
+                    case AR_PREVIEW_RIGHT:
+                        buildScript("RightPreview");
+                        break;
+                    case AR_PREVIEW_DISPARITY:
+                        buildScript("DisparityPreview");
+                        break;
+                    case AR_PREVIEW_AUXILIARY:
+                        buildScript("AuxiliaryPreview");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_LEFT:
+                        buildScript("LeftImager");
+                        break;
+                    case AR_PREVIEW_POINT_CLOUD:
+                        buildScript("PointCloud");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
+                        buildScript("VirtualPointCloud");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_RIGHT:
+                        buildScript("RightImager");
+                        break;
+                    case AR_PREVIEW_VIRTUAL_AUX:
+                        buildScript("AuxImager");
+                        break;
                 }
+            }
 
 
             if (i.second.playbackStatus == AR_PREVIEW_NONE) {
@@ -249,9 +249,9 @@ void Renderer::render() {
         }
 
         // Check if camera connection was AR RESET and disable all scripts
-        if (dev.state == AR_STATE_RESET){
+        if (dev.state == AR_STATE_RESET) {
             // delete all scripts
-            for (const auto& name : scriptNames)
+            for (const auto &name: scriptNames)
                 deleteScript(name);
             break;
         }
@@ -287,15 +287,15 @@ void Renderer::windowResized() {
     renderData.height = height;
     renderData.width = width;
 
+    // Update gui with new res
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height);
+
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->windowResize(&renderData, guiManager->handles);
     }
-
 }
-
-
 
 
 void Renderer::cleanUp() {

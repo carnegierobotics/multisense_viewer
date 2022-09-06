@@ -1424,7 +1424,7 @@ void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
 }
 
-void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture tex) {
+void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
 
 
     // Create a host-visible staging buffer that contains the raw image data
@@ -1434,10 +1434,10 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture tex) {
     // Create a host-visible staging buffer that contains the raw image data
     VkBuffer lumaStagingBuffer;
     VkDeviceMemory lumaStagingMemory;
-    VkDeviceSize plane0Size = tex.len[0];
-    VkDeviceSize plane1Size = tex.len[1];
+    VkDeviceSize plane0Size = tex->len[0];
+    VkDeviceSize plane1Size = tex->len[1];
 
-    if (tex.format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM){
+    if (tex->format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM){
 
     }
 
@@ -1446,14 +1446,14 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture tex) {
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             plane0Size,
             &chromaStagingBuffer,
-            &chromaStagingMemory, tex.data[0]));
+            &chromaStagingMemory, tex->data[0]));
 
     CHECK_RESULT(device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             plane1Size,
             &lumaStagingBuffer,
-            &lumaStagingMemory, tex.data[1]));
+            &lumaStagingMemory, tex->data[1]));
 
 
     VkImageSubresourceRange subresourceRange = {};

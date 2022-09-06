@@ -56,6 +56,13 @@ typedef enum StreamIndex {
 
 } CameraStreamInfoFlag;
 
+typedef enum CameraResolutionGroup {
+    AR_GROUP_ONE,
+    AR_GROUP_TWO,
+
+
+}CameraResolutionGroup;
+
 typedef enum CameraPlaybackFlags {
     AR_PREVIEW_PLAYING = 10,
     AR_PREVIEW_PAUSED = 11,
@@ -118,7 +125,7 @@ struct ExposureParams {
 namespace ArEngine{
     struct YUVTexture{
         void *data[NUM_YUV_DATA_POINTERS]{};
-        uint32_t len[NUM_YUV_DATA_POINTERS]{};
+        uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
         VkFlags * formats[NUM_YUV_DATA_POINTERS];
         VkFormat format{};
     };

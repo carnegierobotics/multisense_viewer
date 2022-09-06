@@ -148,7 +148,7 @@ void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData *tex, CRL
 
 }
 
-void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture tex) {
+void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture *tex) {
 
     textureVideo->updateTextureFromBufferYUV(tex);
 

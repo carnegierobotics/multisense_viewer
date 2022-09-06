@@ -6,6 +6,7 @@
 #include <MultiSense/src/tools/Logger.h>
 #include <vulkan/vulkan_core.h>
 #include "CRLPhysicalCamera.h"
+#include "MultiSense/src/tools/Utils.h"
 
 
 bool CRLPhysicalCamera::connect(const std::string &ip) {
@@ -109,18 +110,20 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
     tex->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
 
     auto chroma = imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
-    if (chroma.imageDataP != nullptr) {
-        tex->data[0] = (void *) chroma.imageDataP;
+    if (chroma.imageDataP != nullptr && chroma.source == crl::multisense::Source_Chroma_Rectified_Aux) {
+        tex->data[0] = malloc(chroma.imageLength);
+        memcpy(tex->data[0], chroma.imageDataP, chroma.imageLength);
         tex->len[0] = chroma.imageLength;
     }
 
     auto luma = imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
-    if (luma.imageDataP != nullptr) {
-        tex->data[1] = (void *) luma.imageDataP;
+    if (luma.imageDataP != nullptr && luma.source == crl::multisense::Source_Luma_Rectified_Aux) {
+        tex->data[1] = malloc(luma.imageLength);
+        memcpy(tex->data[1], luma.imageDataP, luma.imageLength);
         tex->len[1] = luma.imageLength;
     }
 
-    if (luma.imageDataP != nullptr && chroma.imageDataP != nullptr)
+    if (tex->len[0] > 0 && luma.source == crl::multisense::Source_Luma_Rectified_Aux && tex->len[1] > 0 && chroma.source == crl::multisense::Source_Chroma_Rectified_Aux)
         return true;
     else
         return false;
@@ -129,9 +132,6 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) {
     assert(tex != nullptr);
-
-    auto p = this;
-
     auto src = stringToDataSource(stringSrc);
 
     switch (src) {
@@ -252,7 +252,7 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
     std::chrono::duration<float> time_span =
             std::chrono::duration_cast<std::chrono::duration<float>>(time - cam->startTime);
 
-    Log::Logger::getInstance()->info("Source id: {} time since last call: {}s",header.source, time_span.count());
+    //Log::Logger::getInstance()->info("Source id: {} time since last call: {}s",header.source, time_span.count());
 
     cam->startTime = std::chrono::steady_clock::now();
 
@@ -399,22 +399,7 @@ void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t 
 
 void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
     uint32_t width, height, depth;
-    switch (resolution) {
-        case CRL_RESOLUTION_NONE:
-            break;
-        case CRL_RESOLUTION_960_600_64:
-            break;
-        case CRL_RESOLUTION_960_600_128:
-            break;
-        case CRL_RESOLUTION_960_600_256:
-            break;
-        case CRL_RESOLUTION_1920_1200_64:
-            break;
-        case CRL_RESOLUTION_1920_1200_128:
-            break;
-        case CRL_RESOLUTION_1920_1200_256:
-            break;
-    }
+    Utils::cameraResolutionToValue(resolution, &width, &height, &depth);
 
     crl::multisense::image::Config cfg;
     int ret = cameraInterface->getImageConfig(cfg);
@@ -606,7 +591,7 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
     if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
     if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
-    if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
+    if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux; ;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
     if (d == "Color + Luma Rectified Aux")
         return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;

@@ -81,7 +81,7 @@ void LeftImager::prepareTextureAfterDecode() {
     model->createEmtpyTexture(width, height, AR_YUV_PLANAR_FRAME);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
-    ImageData imgData(((float) width / (float) height), 1);
+    ImageData imgData;
 
 
     // Load shaders

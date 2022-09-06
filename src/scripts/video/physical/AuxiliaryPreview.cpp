@@ -46,10 +46,8 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
 
         model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_COLOR_IMAGE_YUV420);
 
-        //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
-
-        ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
-
+        //ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        ImageData imgData;
 
         // Load shaders
         VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -69,10 +67,12 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
 
     if (model->draw) {
 
-        auto *tex = new ArEngine::TextureData();
-        if (camera->getCameraStream(src, tex)) {
-            model->setGrayscaleTexture(tex, AR_CAMERA_DATA_IMAGE);
-            free(tex->data);
+        auto *tex = new ArEngine::YUVTexture();
+        if (camera->getCameraStream(tex)) {
+            model->setColorTexture(tex);
+            free(tex->data[0]);
+            free(tex->data[1]);
+
         }
         delete tex;
     }
@@ -163,7 +163,7 @@ void AuxiliaryPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     float scaleUniform = ((float) renderData.width/ 1280.0f); // Scale by width of screen.
     centerX = (posXMax - posXMin) / 2 + posXMin; // center of the quad in the given view area.
     scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
-    scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
+    scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
     int order = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.streamingOrder;
     float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );

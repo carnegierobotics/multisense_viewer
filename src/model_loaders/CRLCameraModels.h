@@ -85,7 +85,7 @@ public:
 
         void setColorTexture(ArEngine::MP4Frame* frame);
 
-        void setColorTexture(ArEngine::YUVTexture tex);
+        void setColorTexture(ArEngine::YUVTexture *tex);
 
         void setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type);
     };
@@ -100,7 +100,7 @@ public:
         } quad;
 
         /**@brief Generates a Quad with texture coordinates */
-        ImageData(float widthScale, float heightScale) {
+        ImageData(float widthScale = 1.0f, float heightScale = 1.0f) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
             quad.vertexCount = vertexCount;
@@ -123,10 +123,10 @@ public:
             vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 
-            vertex[0].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[0].uv0 = glm::vec2(1.0f * widthScale, 0.0f);
             vertex[1].uv0 = glm::vec2(0.0f, 0.0f);
             vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
-            vertex[3].uv0 = glm::vec2(1.0f, 1.0f);
+            vertex[3].uv0 = glm::vec2(1.0f * widthScale, 1.0f);
             vP[0] = vertex[0];
             vP[1] = vertex[1];
             vP[2] = vertex[2];

@@ -154,13 +154,15 @@ public:
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
         if (time_span.count() > INTERVAL_10_SECONDS_LOG_DRAW_COUNT) {
             lastLogTime = std::chrono::steady_clock::now();
-            renderData.pLogger->info("Draw-number: {} for script: {}", renderData.scriptDrawCount,
+            renderData.pLogger->info("Draw-number: {} for script: {}", (int) renderData.scriptDrawCount,
                                      renderData.scriptName.c_str());
         }
 
 
         draw(commandBuffer, i);
-        renderData.scriptDrawCount++;
+
+        if (i == 0)
+            renderData.scriptDrawCount++;
 
     };
 

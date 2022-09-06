@@ -19,20 +19,8 @@ namespace Log {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
         m_LogLevel = LOG_LEVEL_TRACE;
         m_LogType = FILE_LOG;
-        /*
-        int ret = 0;
-        ret = pthread_mutexattr_settype(&m_Attr, PTHREAD_MUTEX_ERRORCHECK_NP);
-        if (ret != 0) {
-            printf("Logger::Logger() -- Mutex attribute not initialize!!\n");
-            exit(0);
-        }
-        ret = pthread_mutex_init(&m_Mutex, &m_Attr);
-        if (ret != 0) {
-            printf("Logger::Logger() -- Mutex not initialize!!\n");
-            exit(0);
-        }
-        */
     }
+
 
     Logger::~Logger() {
         m_File.close();

@@ -21,7 +21,11 @@ public:
         s_bRegistered;
     }
 
-    ~LeftImager();
+    void onDestroy() override{
+        delete model;
+        camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_RIGHT);
+    }
+
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<LeftImager>(); }

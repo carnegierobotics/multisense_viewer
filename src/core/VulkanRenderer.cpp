@@ -505,7 +505,10 @@ void VulkanRenderer::renderLoop() {
 
     while (!glfwWindowShouldClose(window)) {
         auto tStart = std::chrono::high_resolution_clock::now();
+        frameID++; // First frame will have id 1.
+
         glfwPollEvents();
+
         if (viewUpdated) {
             viewUpdated = false;
             viewChanged();

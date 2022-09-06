@@ -42,7 +42,7 @@ private:
 
     void updateDeviceState(AR::Element *element);
 
-    void disableCrlCamera(AR::Element &element);
+    void disableCrlCamera(AR::Element &dev);
 
     bool setNetworkAdapterParameters(AR::Element &dev);
 

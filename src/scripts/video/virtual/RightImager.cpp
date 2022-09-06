@@ -79,10 +79,11 @@ void RightImager::prepareTextureAfterDecode() {
     width = inf.imgConf.width();
     height = inf.imgConf.height();
 
-    model->prepareTextureImage(width, height, AR_YUV_PLANAR_FRAME);
+    model->createEmtpyTexture(width, height, AR_YUV_PLANAR_FRAME);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
-    auto *imgData = new ImageData(((float) width / (float) height), 1);
+    ImageData imgData(((float) width / (float) height), 1);
+
 
     // Load shaders
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -90,8 +91,8 @@ void RightImager::prepareTextureAfterDecode() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
-    model->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
-                                 imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
+    model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
+                                 imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);

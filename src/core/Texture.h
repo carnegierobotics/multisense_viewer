@@ -114,8 +114,23 @@ public:
 class TextureVideo : public Texture {
 
 public:
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer stagingBuffer{};
+    VkDeviceMemory stagingMemory{};
+    VkDeviceSize size{};
+    uint8_t *data{};
+    bool hasEmptyTexture = false;
 
     TextureVideo() = default;
+
+    ~TextureVideo() {
+        if (hasEmptyTexture){
+            vkUnmapMemory(device->logicalDevice, stagingMemory);
+            vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+            vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+            hasEmptyTexture = false;
+        }
+    }
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
                  VkFormat format);
 

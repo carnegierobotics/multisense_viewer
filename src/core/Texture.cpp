@@ -1257,40 +1257,24 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     // Update descriptor image info member that can be used for setting up descriptor sets
     updateDescriptor();
 
+    // Create empty buffers we can copy our texture data to
+    size =  width * height * 2;
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            size,
+            &stagingBuffer,
+            &stagingMemory));
 
+    CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+
+    hasEmptyTexture = true;
 }
 
 
 void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
 
-    // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingMemory;
-
-
-    // TODO Allocate only on changing buffer sizes i.e. bigger sizes
-    CHECK_RESULT(device->createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            tex->len,
-            &stagingBuffer,
-            &stagingMemory, tex->data));
-
-
-    // Create the memory backing up the buffer handle
-    VkMemoryRequirements memReqs;
-    vkGetBufferMemoryRequirements(device->logicalDevice, stagingBuffer, &memReqs);
-    VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
-    memAlloc.allocationSize = memReqs.size;
-
-
-    // Copy texture data into staging buffer
-    // TODO Map and UnMap only once.
-    uint8_t *data;
-    CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, tex->data, tex->len);
-    vkUnmapMemory(device->logicalDevice, stagingMemory);
-
 
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1346,9 +1330,6 @@ void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
 
     device->flushCommandBuffer(copyCmd, device->transferQueue);
 
-    // Clean up staging resources
-    vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-    vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
 }
 

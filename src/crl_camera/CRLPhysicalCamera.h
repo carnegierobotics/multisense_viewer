@@ -16,20 +16,21 @@
 class CRLPhysicalCamera : public CRLBaseInterface {
 public:
 
-    CRLPhysicalCamera() : CRLBaseInterface() {
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
 
+    CRLPhysicalCamera() : CRLBaseInterface() {
+        startTime = std::chrono::steady_clock::now();
     }
 
     ~CRLPhysicalCamera() override {
         // TODO FREE RESOURCES MEMBER VARIABLES
         stop("All");
-        printf("BaseInterface destructor\n");
-
+        stopForDestruction = true;
     }
 
 
     bool connect(const std::string& ip) override;
-    void start(std::string string, std::string dataSourceStr) override;
+    void start(CRLCameraResolution resolution, std::string string) override;
     void stop( std::string dataSourceStr) override;
     void updateCameraInfo() override;
     bool getCameraStream(ArEngine::YUVTexture *tex) override;
@@ -82,6 +83,8 @@ private:
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
     glm::mat4 kInverseMatrix{};
 
+    /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
+    bool stopForDestruction = false;
 
     std::string dataSourceToString(unsigned int d);
     unsigned int stringToDataSource(const std::string &d);
@@ -102,6 +105,7 @@ private:
     void setFps(float fps) override;
     void setGain(float gain) override;
 
+    void setResolution(CRLCameraResolution resolution);
 };
 
 

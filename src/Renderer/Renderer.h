@@ -21,7 +21,6 @@
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/CameraConnection.h>
 #include <MultiSense/src/imgui/SideBar.h>
-#include <MultiSense/src/imgui/InteractionMenu.h>
 
 // Include scripts
 //
@@ -62,7 +61,9 @@ public:
 
     };
 
-    ~Renderer() override = default;
+    ~Renderer() override{
+        delete guiManager;
+    }
 
     void render() override;
 

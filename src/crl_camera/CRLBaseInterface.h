@@ -36,7 +36,7 @@ public:
 
     virtual void updateCameraInfo() = 0;
 
-    virtual void start(std::string string, std::string dataSourceStr) = 0;
+    virtual void start(CRLCameraResolution resolution, std::string string) = 0;
     virtual void start(std::string src, StreamIndex parent){};
 
     virtual void stop(std::string dataSourceStr) = 0;

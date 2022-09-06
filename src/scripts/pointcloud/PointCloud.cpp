@@ -18,6 +18,11 @@ void PointCloud::setup(Base::Render r) {
 
         auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Disparity Left");
+        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Luma Rectified Left");
+
+        startedSources.emplace_back("Disparity Left");
+        startedSources.emplace_back("Luma Rectified Left");
+
     }
 
     const int vertexCount = 960 * 600;
@@ -47,7 +52,7 @@ void PointCloud::update(CameraConnection *conn) {
         auto imgConf = camPtr->getCameraInfo().imgConf;
         camPtr->preparePointCloud(imgConf.width(), imgConf.height());
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_POINT_CLOUD);
+        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_POINT_CLOUD);
 
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -67,12 +72,15 @@ void PointCloud::update(CameraConnection *conn) {
 
     if (model->draw) {
         auto *tex = new ArEngine::TextureData();
-        if (camPtr->getCameraStream(src, tex))
+        if (camPtr->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, AR_GRAYSCALE_IMAGE);
+            free(tex->data);
+        }
 
-        if (camPtr->getCameraStream("Luma Rectified Left", tex))
+        if (camPtr->getCameraStream("Luma Rectified Left", tex)) {
             model->setGrayscaleTexture(tex, AR_POINT_CLOUD);
-
+            free(tex->data);
+        }
         delete tex;
 
     }
@@ -120,9 +128,4 @@ void PointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_3D_POINT_CLOUD)
         CRLCameraModels::draw(commandBuffer, i, model);
-}
-
-PointCloud::~PointCloud(){
-
-    delete[] meshData;
 }

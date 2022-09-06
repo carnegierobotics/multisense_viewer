@@ -3,6 +3,7 @@
 //
 
 #include "Renderer.h"
+#include "MultiSense/src/imgui/InteractionMenu.h"
 
 
 void Renderer::prepareRenderer() {
@@ -133,7 +134,9 @@ void Renderer::deleteScript(const std::string &scriptName) {
     else
         return;
 
-    pLogger->info("RENDERER::deleted Script: {}", scriptName.c_str());
+    scripts[scriptName].get()->onDestroyScript();
+
+    pLogger->info("deleted Script: {}", scriptName.c_str());
 
     scripts.erase(scriptName);
 
@@ -175,6 +178,9 @@ void Renderer::render() {
 
     // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
+        if (dev.state != AR_STATE_ACTIVE)
+            continue;
+
             for (const auto &i: dev.streams) {
                 if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
                     switch (i.second.streamIndex) {
@@ -241,8 +247,15 @@ void Renderer::render() {
                 }
             }
         }
-    }
 
+        // Check if camera connection was AR RESET and disable all scripts
+        if (dev.state == AR_STATE_RESET){
+            // delete all scripts
+            for (const auto& name : scriptNames)
+                deleteScript(name);
+            break;
+        }
+    }
 
     // Run update function on scripts
     for (auto &script: scripts) {
@@ -261,7 +274,6 @@ void Renderer::render() {
     guiManager->updateBuffers();
     buildCommandBuffers();
 
-    vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
     VulkanRenderer::submitFrame();
 
 }

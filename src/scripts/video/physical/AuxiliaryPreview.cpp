@@ -18,6 +18,8 @@ void AuxiliaryPreview::setup(Base::Render r) {
 
         auto opt = dev.streams.find(AR_PREVIEW_AUXILIARY)->second;
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+        startedSources.push_back(opt.selectedStreamingSource);
+
     }
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -42,11 +44,11 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/quad.vert";
         fragmentShaderFileName = "myScene/spv/quad.frag";
 
-        model->prepareTextureImage(imgConf.width(), imgConf.height(), AR_COLOR_IMAGE_YUV420);
+        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_COLOR_IMAGE_YUV420);
 
         //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
-        auto *imgData = new ImageData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
 
 
         // Load shaders
@@ -55,8 +57,8 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                                 {fs}};
         // Create quad and store it locally on the GPU
-        model->createMeshDeviceLocal((ArEngine::Vertex *) imgData->quad.vertices,
-                                     imgData->quad.vertexCount, imgData->quad.indices, imgData->quad.indexCount);
+        model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
+                                     imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
 
         // Create graphics render pipeline

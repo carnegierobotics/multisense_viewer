@@ -27,7 +27,7 @@ public:
     /** @brief Handle to the current camera object */
     CRLBaseInterface *camPtr = nullptr;
     bool preview = false;
-    std::string lastActiveDevice{};
+    std::string lastActiveDevice = "-1";
 
     void onUIUpdate(std::vector<AR::Element> *pVector);
 

@@ -33,6 +33,7 @@
 #include "CameraConnection.h"
 #include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include <MultiSense/src/tools/Logger.h>
+#include <MultiSense/src/tools/Utils.h>
 
 
 CameraConnection::CameraConnection() {
@@ -98,10 +99,17 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
     // If no device is connected then return
     if (devices == nullptr)
         return;
-
     // Check for actions on each element
     for (auto& dev : *devices) {
-        // Connect if we click a device or if it is just added
+
+        if (dev.state == AR_STATE_RESET) {
+            disableCrlCamera(dev);
+            return;
+        }
+
+
+
+            // Connect if we click a device or if it is just added
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
             connectCrlCamera(dev);
             continue;
@@ -122,12 +130,8 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
 
         // Disable if we click a device already connected
         if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
-            // Disable all streams
-            for (auto& s : dev.streams)
-                s.second.playbackStatus = AR_PREVIEW_RESET;
-
-            disableCrlCamera(dev);
-            continue;
+            // Disable all streams and delete camPtr on next update
+            dev.state = AR_STATE_RESET;
         }
     }
 
@@ -137,7 +141,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element>* devices) {
 void CameraConnection::connectCrlCamera(AR::Element& dev) {
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
-    bool connected = false;
+    bool connected{};
 
     Log::Logger::getInstance()->info("CameraConnection:: Connect.");
 
@@ -160,7 +164,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             virtualCam.streamIndex = AR_PREVIEW_VIRTUAL_LEFT;
             std::string modeName = "1920x1080";
             virtualCam.modes.emplace_back(modeName);
-            virtualCam.selectedStreamingMode = virtualCam.modes.front();
+            virtualCam.selectedStreamingMode = Utils::stringToCameraResolution(virtualCam.modes.front());
             virtualCam.selectedStreamingSource = virtualCam.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_LEFT] = virtualCam;
 
@@ -171,7 +175,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             virtualRight.streamIndex = AR_PREVIEW_VIRTUAL_RIGHT;
             modeName = "1920x1080";
             virtualRight.modes.emplace_back(modeName);
-            virtualRight.selectedStreamingMode = virtualRight.modes.front();
+            virtualRight.selectedStreamingMode = Utils::stringToCameraResolution(virtualRight.modes.front());
             virtualRight.selectedStreamingSource = virtualRight.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_RIGHT] = virtualRight;
             AR::StreamingModes aux{};
@@ -181,7 +185,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             aux.streamIndex = AR_PREVIEW_VIRTUAL_AUX;
             modeName = "1920x1080";
             aux.modes.emplace_back(modeName);
-            aux.selectedStreamingMode = aux.modes.front();
+            aux.selectedStreamingMode = Utils::stringToCameraResolution(aux.modes.front());
             aux.selectedStreamingSource = aux.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_AUX] = aux;
 
@@ -191,7 +195,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
             virutalPC.streamIndex = AR_PREVIEW_VIRTUAL_POINT_CLOUD;
             modeName = "1920x1080";
             virutalPC.modes.emplace_back(modeName);
-            virutalPC.selectedStreamingMode = virutalPC.modes.front();
+            virutalPC.selectedStreamingMode = Utils::stringToCameraResolution(virutalPC.modes.front());
             virutalPC.selectedStreamingSource = virutalPC.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_POINT_CLOUD] = virutalPC;
 
@@ -225,7 +229,7 @@ void CameraConnection::connectCrlCamera(AR::Element& dev) {
         else {
             delete camPtr;
             dev.state = AR_STATE_UNAVAILABLE;
-            lastActiveDevice = "";
+            lastActiveDevice = "-1";
 
         }
     }
@@ -240,7 +244,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     left.streamIndex = AR_PREVIEW_LEFT;
     initCameraModes(&left.modes, supportedModes);
     filterAvailableSources(&left.sources, maskArrayLeft);
-    left.selectedStreamingMode = left.modes.front();
+    left.selectedStreamingMode = Utils::stringToCameraResolution(left.modes.front());
     left.selectedStreamingSource = left.sources.front();
 
     AR::StreamingModes right{};
@@ -248,7 +252,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     right.streamIndex = AR_PREVIEW_RIGHT;
     initCameraModes(&right.modes, supportedModes);
     filterAvailableSources(&right.sources, maskArrayRight);
-    right.selectedStreamingMode = right.modes.front();
+    right.selectedStreamingMode = Utils::stringToCameraResolution(right.modes.front());
     right.selectedStreamingSource = right.sources.front();
 
     AR::StreamingModes disparity{};
@@ -256,7 +260,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     disparity.streamIndex = AR_PREVIEW_DISPARITY;
     initCameraModes(&disparity.modes, supportedModes);
     filterAvailableSources(&disparity.sources, maskArrayDisparity);
-    disparity.selectedStreamingMode = disparity.modes.front();
+    disparity.selectedStreamingMode = Utils::stringToCameraResolution(disparity.modes.front());
     disparity.selectedStreamingSource = disparity.sources.front();
 
     AR::StreamingModes aux{};
@@ -264,7 +268,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     aux.streamIndex = AR_PREVIEW_AUXILIARY;
     initCameraModes(&aux.modes, supportedModes);
     filterAvailableSources(&aux.sources, maskArrayAux);
-    aux.selectedStreamingMode = aux.modes.front();
+    aux.selectedStreamingMode = Utils::stringToCameraResolution(aux.modes.front());
     aux.selectedStreamingSource = aux.sources.front();
 
     AR::StreamingModes pointCloud{};
@@ -272,7 +276,7 @@ void CameraConnection::setStreamingModes(AR::Element& dev) {
     pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
     initCameraModes(&pointCloud.modes, supportedModes);
     filterAvailableSources(&pointCloud.sources, maskArrayDisparity);
-    pointCloud.selectedStreamingMode = pointCloud.modes.front();
+    pointCloud.selectedStreamingMode = Utils::stringToCameraResolution(pointCloud.modes.front());
     pointCloud.selectedStreamingSource = pointCloud.sources.front();
 
     dev.streams[AR_PREVIEW_LEFT] = left;
@@ -293,17 +297,16 @@ void CameraConnection::initCameraModes(std::vector<std::string>* modes,
             std::to_string(mode.disparities) + "x";
         modes->emplace_back(modeName);
     }
+
 }
 
 void CameraConnection::filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec) {
     uint32_t bits = camPtr->getCameraInfo().supportedSources;
-
     for (auto mask : maskVec) {
         bool enabled = (bits & mask);
         if (enabled) {
             sources->emplace_back(dataSourceToString(mask));
         }
-        std::cout << dataSourceToString(mask) << " " << ((bits & mask) ? "on\n" : "off\n");
     }
 }
 
@@ -482,7 +485,7 @@ void CameraConnection::updateDeviceState(AR::Element* dev) {
 
 void CameraConnection::disableCrlCamera(AR::Element& dev) {
     dev.state = AR_STATE_DISCONNECTED;
-    lastActiveDevice = "";
+    lastActiveDevice = "-1";
 
     Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
         dev.cameraName.c_str());

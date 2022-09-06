@@ -20,6 +20,15 @@ public:
     AuxiliaryPreview() {
         s_bRegistered;
     }
+
+    void onDestroy() override{
+        delete model;
+        for(const auto& source : startedSources){
+            auto* ptr = dynamic_cast<CRLPhysicalCamera *>(renderData.crlCamera->get()->camPtr);
+            ptr->stop(source);
+        }
+    }
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<AuxiliaryPreview>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
@@ -61,6 +70,9 @@ public:
     float up = 1.3f;
     void *selection = (void *) "0";
     std::string src;
+    std::vector<std::string> startedSources;
+
+
     CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
 

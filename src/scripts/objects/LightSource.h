@@ -31,7 +31,7 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
-    Page previewTab;
+    Page previewTab{};
 
     void *selection = (void *) "0";
 

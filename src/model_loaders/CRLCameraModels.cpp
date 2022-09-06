@@ -20,6 +20,11 @@ CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType typ
     this->modelType = type;
 }
 
+CRLCameraModels::Model::~Model() {
+
+}
+
+
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount) {
     size_t vertexBufferSize = vertexCount * sizeof(ArEngine::Vertex);
@@ -132,100 +137,32 @@ void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData *tex, CRL
     switch (type) {
 
         case AR_POINT_CLOUD:
-            textureVideoDepthMap.updateTextureFromBuffer(tex);
+            textureVideoDepthMap->updateTextureFromBuffer(tex);
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_CAMERA_DATA_IMAGE:
         case AR_DISPARITY_IMAGE:
-            textureVideo.updateTextureFromBuffer(tex);
+            textureVideo->updateTextureFromBuffer(tex);
             break;
     }
-
-}
-
-void CRLCameraModels::Model::setGrayscaleTexture(crl::multisense::image::Header *streamOne) {
-    // TODO Make sure the data from StreamOne is good. Dont to validity checking here, do it in CRLPhysicalCamera..
-    if (streamOne == nullptr) {
-        uint32_t size = 1920 * 1080 * 2;
-        auto *p = malloc(size);
-        memset(p, 0xff, size);
-        textureVideo.updateTextureFromBuffer(static_cast<void *>(p), size);
-        free(p);
-        return;
-    }
-
-    if (streamOne->imageDataP == nullptr || streamOne->source < 1) {
-        return;
-
-    }
-
-
-    if (streamOne->source == crl::multisense::Source_Disparity_Left) {
-
-
-        auto *p = (uint16_t *) streamOne->imageDataP;
-
-        // Normalize image
-        uint32_t min = 100000, max = 0;
-        for (int i = 0; i < streamOne->imageLength / 2; ++i) {
-            uint16_t val = p[i];
-            if (val > max)
-                max = val;
-            if (val < min)
-                min = val;
-        }
-
-        for (int i = 0; i < streamOne->imageLength / 2; ++i) {
-            float intermediate = (float) ((float) p[i] / (float) max);
-            p[i] = (uint16_t) intermediate;
-        }
-
-
-        textureVideo.updateTextureFromBuffer(static_cast<void *>(p), streamOne->imageLength);
-
-    } else if (streamOne->width < 2000) {
-        textureVideo.updateTextureFromBuffer(const_cast<void *>(streamOne->imageDataP), streamOne->imageLength);
-
-    }
-
-
-}
-
-/**@deprecated function*/
-void CRLCameraModels::Model::setColorTexture(crl::multisense::image::Header *streamOne,
-                                             crl::multisense::image::Header *streamTwo) {
-    if (streamOne == nullptr || streamTwo == nullptr || streamOne->source < 1)
-        return;
-
-    auto *chromaBuffer = malloc(streamOne->imageLength);
-    auto *lumaBuffer = malloc(streamTwo->imageLength);
-
-    memcpy(chromaBuffer, streamOne->imageDataP, streamOne->imageLength);
-    memcpy(lumaBuffer, streamTwo->imageDataP, streamTwo->imageLength);
-
-    textureVideo.updateTextureFromBufferYUV(chromaBuffer, streamOne->imageLength, lumaBuffer,
-                                            streamTwo->imageLength);
-
-
-    free(chromaBuffer);
-    free(lumaBuffer);
 
 }
 
 void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture tex) {
 
-    textureVideo.updateTextureFromBufferYUV(tex);
+    textureVideo->updateTextureFromBufferYUV(tex);
 
 }
 
 void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame *frame) {
 
-    textureVideo.updateTextureFromBufferYUV(frame);
+    textureVideo->updateTextureFromBufferYUV(frame);
 
 }
 
 void
-CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
+CRLCameraModels::Model::setTexture(
+        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName) {
     // Create texture image if not created
 
     int texWidth, texHeight, texChannels;
@@ -235,60 +172,56 @@ CRLCameraModels::Model::setTexture(std::basic_string<char, std::char_traits<char
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture{};
+    Texture2D tex{};
 
-    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
-                       vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    tex.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
+                   vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
     textureIndices.baseColor = 0;
-    this->texture = texture;
+    this->texture = tex;
 
 }
 
-void CRLCameraModels::Model::prepareTextureImage(uint32_t width, uint32_t height, CRLCameraDataType texType) {
+void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
+    Log::Logger::getInstance()->info("Preparing Texture image {}, {}, with type {}", width, height, (int) texType);
 
-    videos.height = height;
-    videos.width = width;
-
-    TextureVideo textureVideoTmp{};
-    TextureVideo textureVideoTmp2{};
+    VkFormat format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
 
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
-            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                           VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
+            format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
             break;
         case AR_GRAYSCALE_IMAGE:
-            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+            format = VK_FORMAT_R8_UNORM;
             break;
         case AR_DISPARITY_IMAGE:
-            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
+            format = VK_FORMAT_R16_UNORM;
             break;
         case AR_COLOR_IMAGE:
 
             break;
         case AR_POINT_CLOUD:
-            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R16_UNORM);
-            textureVideoTmp2 = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM);
+            format = VK_FORMAT_R16_UNORM;
+            // two textures are needed for point clouds. this one for coloring and other for displacement
+            textureVideoDepthMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                                  VK_FORMAT_R8_UNORM);
+
             break;
         case AR_YUV_PLANAR_FRAME:
-            textureVideoTmp = TextureVideo(videos.width, videos.height, vulkanDevice,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                           VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM);
+            format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
             break;
         default:
             std::cerr << "Texture type not supported yet" << std::endl;
             break;
     }
-    textureVideo = textureVideoTmp;
-    textureVideoDepthMap = textureVideoTmp2;
+
+    textureVideo = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                  format);
+
 }
 
 
@@ -359,7 +292,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
 
-        if (model->textureVideo.device == nullptr) {
+        if (model->textureVideo->device == nullptr) {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             writeDescriptorSets[3].descriptorCount = 1;
@@ -372,7 +305,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
             writeDescriptorSets[3].descriptorCount = 1;
             writeDescriptorSets[3].dstSet = descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
-            writeDescriptorSets[3].pImageInfo = &model->textureVideo.descriptor;
+            writeDescriptorSets[3].pImageInfo = &model->textureVideo->descriptor;
         }
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -413,14 +346,14 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std:
         writeDescriptorSets[2].descriptorCount = 1;
         writeDescriptorSets[2].dstSet = descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pImageInfo = &model->textureVideo.descriptor;
+        writeDescriptorSets[2].pImageInfo = &model->textureVideo->descriptor;
 
         writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptorSets[3].descriptorCount = 1;
         writeDescriptorSets[3].dstSet = descriptors[i];
         writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->textureVideoDepthMap.descriptor;
+        writeDescriptorSets[3].pImageInfo = &model->textureVideoDepthMap->descriptor;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -455,9 +388,9 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     }
 
     // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-    if (pModel->textureVideo.sampler != nullptr) {
+    if (nullptr != pModel->textureVideo->sampler) {
         VkDescriptorSetLayoutBinding binding{};
-        setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo.sampler;
+        setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo->sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
                                                                                                setLayoutBindings.size());

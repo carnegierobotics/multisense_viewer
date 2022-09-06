@@ -140,7 +140,7 @@ bool VulkanRenderer::initVulkan() {
     if (features.samplerYcbcrConversion) {
         enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         pLogger->info("Enabling YCBCR Sampler Extension");
-    }else {
+    } else {
         pLogger->error("YCBCR Sampler support not found!");
     }
 
@@ -161,8 +161,9 @@ bool VulkanRenderer::initVulkan() {
     swapchain.connect(instance, physicalDevice, device);
     // Create synchronization objects
     VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-    // Create a semaphore used to synchronize image presentation
-    // Ensures that the image is displayed before we start submitting new commands to the queue
+    semaphoreCreateInfo.flags =
+            // Create a semaphore used to synchronize image presentation
+            // Ensures that the image is displayed before we start submitting new commands to the queue
     err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
     if (err)
         throw std::runtime_error("Failed to create semaphore");
@@ -587,6 +588,8 @@ void VulkanRenderer::prepareFrame() {
 }
 
 void VulkanRenderer::submitFrame() {
+    vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
+
     VkResult result = swapchain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -596,6 +599,7 @@ void VulkanRenderer::submitFrame() {
         }
     } else if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to acquire next image");
+
 
     if (vkQueueWaitIdle(queue) != VK_SUCCESS)
         throw std::runtime_error("Failed to wait for Queue Idle");
@@ -731,7 +735,7 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
     bool handled = false;
 
     if (settings.overlay) {
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         io.WantCaptureMouse = true;
     }
     mouseMoved((float) x, (float) y, handled);

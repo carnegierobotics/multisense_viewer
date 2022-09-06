@@ -34,6 +34,9 @@ void DefaultPreview::update(CameraConnection *conn) {
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
+    if (camera->getCameraInfo().imgConf.width() != width){
+        model->draw = false;
+    }
 
     if (!model->draw && coordinateTransformed) {
         auto imgConf = camera->getCameraInfo().imgConf;
@@ -45,7 +48,10 @@ void DefaultPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/preview.vert";
         fragmentShaderFileName = "myScene/spv/preview.frag";
 
-        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_GRAYSCALE_IMAGE);
+        width = imgConf.width();
+        height = imgConf.height();
+
+        model->createEmtpyTexture(width, height, AR_GRAYSCALE_IMAGE);
 
         //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 

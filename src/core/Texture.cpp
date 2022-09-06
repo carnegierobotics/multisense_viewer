@@ -14,7 +14,6 @@
 #include "Texture.h"
 
 
-
 void Texture::updateDescriptor() {
     descriptor.sampler = sampler;
     descriptor.imageView = view;
@@ -1258,17 +1257,49 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     updateDescriptor();
 
     // Create empty buffers we can copy our texture data to
-    size =  width * height * 2;
-    CHECK_RESULT(device->createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            size,
-            &stagingBuffer,
-            &stagingMemory));
+    size = width * height * 2;
 
-    CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+
+    // Create sampler dependt on image format
+    switch (format) {
+        case VK_FORMAT_R16_UNORM:
+        case VK_FORMAT_R8_UNORM:
+        case VK_FORMAT_R16_UINT:
+        CHECK_RESULT(device->createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                size,
+                &stagingBuffer,
+                &stagingMemory));
+
+            CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+            break;
+        case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+        case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+            CHECK_RESULT(device->createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    size,
+                    &stagingBuffer,
+                    &stagingMemory));
+            CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+
+            CHECK_RESULT(device->createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    size,
+                    &stagingBuffer2,
+                    &stagingMemory2));
+            CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory2, 0, size, 0, (void **) &data2));
+            hasEmptyYUVTexture = true;
+            break;
+        default:
+            std::cerr << "No video texture type for that format yet\n";
+            break;
+    }
 
     hasEmptyTexture = true;
+
 }
 
 
@@ -1426,34 +1457,8 @@ void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
 void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
 
-
-    // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer chromaStagingBuffer;
-    VkDeviceMemory chromaStagingMemory;
-
-    // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer lumaStagingBuffer;
-    VkDeviceMemory lumaStagingMemory;
-    VkDeviceSize plane0Size = tex->len[0];
-    VkDeviceSize plane1Size = tex->len[1];
-
-    if (tex->format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM){
-
-    }
-
-    CHECK_RESULT(device->createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            plane0Size,
-            &chromaStagingBuffer,
-            &chromaStagingMemory, tex->data[0]));
-
-    CHECK_RESULT(device->createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            plane1Size,
-            &lumaStagingBuffer,
-            &lumaStagingMemory, tex->data[1]));
+    memcpy(data, tex->data[1], tex->len[1]);
+    memcpy(data2, tex->data[0], tex->len[0]);
 
 
     VkImageSubresourceRange subresourceRange = {};
@@ -1501,7 +1506,7 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
     // Copy data from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            lumaStagingBuffer,
+            stagingBuffer,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -1512,7 +1517,7 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
     // Copy data from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            chromaStagingBuffer,
+            stagingBuffer2,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -1532,12 +1537,6 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
 
     device->flushCommandBuffer(copyCmd, device->transferQueue);
 
-    // Clean up staging resources
-    vkFreeMemory(device->logicalDevice, chromaStagingMemory, nullptr);
-    vkDestroyBuffer(device->logicalDevice, chromaStagingBuffer, nullptr);
-
-    vkFreeMemory(device->logicalDevice, lumaStagingMemory, nullptr);
-    vkDestroyBuffer(device->logicalDevice, lumaStagingBuffer, nullptr);
 
 }
 
@@ -1699,7 +1698,7 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::MP4Frame *frame) {
     bufferCopyRegion.imageExtent.depth = 1;
     bufferCopyRegion.bufferOffset = 0;
 
-    VkBufferImageCopy bufferCopyRegionPlane1= {};
+    VkBufferImageCopy bufferCopyRegionPlane1 = {};
     bufferCopyRegionPlane1.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
     bufferCopyRegionPlane1.imageSubresource.mipLevel = 0;
     bufferCopyRegionPlane1.imageSubresource.baseArrayLayer = 0;

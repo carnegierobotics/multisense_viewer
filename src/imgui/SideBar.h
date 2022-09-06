@@ -110,8 +110,6 @@ public:
                                    ImGuiWindowFlags_NoTitleBar)) {
 
 
-
-
             ImGui::PushFont(handles->info->font24);
             std::string title = "Connect to MultiSense";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
@@ -162,8 +160,8 @@ public:
 
                 // Note that because we need to store a terminating zero character, our size/capacity are 1 more
                 // than usually reported by a typical string class.
-                if (inputName.empty())
-                    inputName.push_back(0);
+                //if (inputName.empty())
+                //    inputName.push_back(0);
 
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -188,11 +186,11 @@ public:
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 0.0f));
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(10.0f, 0.0f));
 
-                ImGui::RadioButton("Manual", &autoOrManual, 1);
+                ImGui::RadioButton("Manual", &connectMethodSelector, 1);
                 ImGui::SameLine();
-                ImGui::RadioButton("Automatic", &autoOrManual, 2);
+                ImGui::RadioButton("Automatic", &connectMethodSelector, 2);
                 ImGui::SameLine();
-                ImGui::RadioButton("Use Virtual", &autoOrManual, 3);
+                ImGui::RadioButton("Use Virtual", &connectMethodSelector, 0);
                 /*
                                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
                 autoOrManual |= ImGui::Button("Automatic", ImVec2(150.0f, 35.0f));
@@ -210,7 +208,7 @@ public:
 
             }
 
-            if (autoOrManual == 2) {
+            if (connectMethodSelector == AUTO_CONNECT) {
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
@@ -296,7 +294,7 @@ public:
                 cameraName = "Automatic Entry";
 
 
-            } else if (autoOrManual == 1) {
+            } else if (connectMethodSelector == MANUAL_CONNECT) {
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
@@ -331,8 +329,7 @@ public:
 
                 // Note that because we need to store a terminating zero character, our size/capacity are 1 more
                 // than usually reported by a typical string class.
-                if (inputIP.empty())
-                    inputIP.push_back(0);
+
 
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
@@ -400,11 +397,11 @@ public:
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
                 cameraName = "Manual Entry";
 
-            } else if (autoOrManual == 3) {
+            } else if (connectMethodSelector == VIRTUAL_CONNECT) {
                 inputName = "Virtual Camera";
                 interfaceName = "lol";
                 cameraName = "Virtual Camera";
-                inputIP = "local";
+                inputIP = "Local";
             }
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
 
@@ -425,15 +422,32 @@ public:
             if (btnConnect) {
                 bool ipAlreadyInUse = false;
                 bool profileNameTaken = false;
+                bool virtualCameraTaken = false;
+                bool profileNameEmpty = false;
+                bool IpEmptyOrLocal = false;
+
+                if (inputName.empty())
+                    profileNameEmpty = true;
+
                 // Loop through devices and check that it doesn't exist already.
                 for (auto &d: devices) {
-                    if (d.IP == inputIP)
+                    if (d.IP == inputIP) {
                         ipAlreadyInUse = true;
-                    if (d.name == inputName)
+                        Log::Logger::getInstance()->info("Ip in use");
+
+                    }
+                    if (d.name == inputName) {
                         profileNameTaken = true;
+                        Log::Logger::getInstance()->info("Profile name not valid");
+                    }
+
+                    if (d.name == "Virtual Camera" && inputName == "Virtual Camera") {
+                        virtualCameraTaken = true;
+                        Log::Logger::getInstance()->info("Virtual camera occupied");
+                    }
                 }
 
-                if (!ipAlreadyInUse && !profileNameTaken) {
+                if (!ipAlreadyInUse && !profileNameTaken && !virtualCameraTaken && !profileNameEmpty) {
                     createDefaultElement(inputName.data(), inputIP.data(), interfaceName.data(), cameraName.data());
 
                     inputName = "";
@@ -487,16 +501,20 @@ private:
     bool btnAdd = false;
     bool skipUserFriendlySleepDelay = false;
 
-    int autoOrManual = 1; // 0 == nothing | 2 = auto | 1 = manual
+    enum {
+        VIRTUAL_CONNECT = 0,
+        MANUAL_CONNECT = 1,
+        AUTO_CONNECT = 2
+    };
+    int connectMethodSelector = 1;
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<int> colors;
     ImVec4 lastLogTextColor = AR::TextColorGray;
 
-    static const uint32_t inputFieldNameLength = 32;
     uint32_t presetItemIdIndex = 0;
-    std::string inputIP = "10.66.176.21";
-    std::string inputName = "Front Name ";
+    std::string inputIP = "10.66.171.21";
+    std::string inputName = "MultiSense";
     std::string interfaceName;
     std::string cameraName;
 

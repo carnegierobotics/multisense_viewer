@@ -312,7 +312,13 @@ void AutoConnectLinux::stop() {
     shouldProgramRun = false;
     running = false;
 
-    t->join();
+    if (t != nullptr)
+        t->join();
+
+
+    delete(t); //instantiated in start func
+    t = nullptr;
+
 }
 
 void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {

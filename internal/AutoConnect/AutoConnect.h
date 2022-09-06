@@ -75,7 +75,7 @@ private:
 
     } cameraInfo;
 protected:
-    std::thread *t{};
+    std::thread *t = nullptr;
     int connectAttemptCounter = 0;
 
 };

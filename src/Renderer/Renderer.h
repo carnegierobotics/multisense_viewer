@@ -48,8 +48,8 @@ public:
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
         this->title = title;
         // Create Log C++ Interface
-        Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
         pLogger = Log::Logger::getInstance();
+        Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
 
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();

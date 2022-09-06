@@ -134,10 +134,9 @@ void Renderer::deleteScript(const std::string &scriptName) {
     else
         return;
 
+    pLogger->info("Deleting Script: {}", scriptName.c_str());
+
     scripts[scriptName].get()->onDestroyScript();
-
-    pLogger->info("deleted Script: {}", scriptName.c_str());
-
     scripts.erase(scriptName);
 
 }
@@ -146,6 +145,7 @@ void Renderer::deleteScript(const std::string &scriptName) {
 void Renderer::render() {
     VulkanRenderer::prepareFrame();
 
+    pLogger->frameNumber = frameID;
     if (keypress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);
         camera.setRotation(defaultCameraRotation);
@@ -239,8 +239,9 @@ void Renderer::render() {
         // Check if camera connection was AR RESET and disable all scripts
         if (dev.state == AR_STATE_RESET) {
             // delete all scripts attached to device
-            for (const auto &name: dev.streams)
+            for (const auto &name: dev.streams) {
                 deleteScript(name.second.attachedScript);
+            }
             break;
         }
     }

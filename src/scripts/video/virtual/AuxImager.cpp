@@ -179,10 +179,6 @@ void AuxImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
-AuxImager::~AuxImager() {
-    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_AUX);
-
-}
 
 void AuxImager::onWindowResize(AR::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {

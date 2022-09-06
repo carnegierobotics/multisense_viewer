@@ -179,10 +179,6 @@ void LeftImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
-LeftImager::~LeftImager() {
-    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_LEFT);
-}
-
 void LeftImager::onWindowResize(AR::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)

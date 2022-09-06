@@ -513,7 +513,7 @@ private:
     ImVec4 lastLogTextColor = AR::TextColorGray;
 
     uint32_t presetItemIdIndex = 0;
-    std::string inputIP = "10.66.171.21";
+    std::string inputIP = "10.66.176.21";
     std::string inputName = "MultiSense";
     std::string interfaceName;
     std::string cameraName;

@@ -131,12 +131,12 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
 }
 
-void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
+void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
     // If no device is connected then return
-    if (devices == nullptr)
+    if (pVector == nullptr)
         return;
     // Check for actions on each element
-    for (auto &dev: *devices) {
+    for (auto &dev: *pVector) {
 
         if (dev.state == AR_STATE_RESET) {
             disableCrlCamera(dev);
@@ -151,8 +151,23 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
 
         // Connect if we click a device or if it is just added
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
-            connectCrlCamera(dev);
-            continue;
+
+            // reset other active device if present. So loop over all devices again. quick hack is to updaet state for the newly connect device/clicked device ot just added to enter this if statement on next render loop
+            bool resetOtherDeviceFirst = false;
+            for (auto &d: *pVector) {
+                if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
+                    d.state = AR_STATE_RESET;
+                    Log::Logger::getInstance()->info("Call to reset state requested for profile {}", d.name);
+                    resetOtherDeviceFirst = true;
+                }
+            }
+
+            if (!resetOtherDeviceFirst)
+                connectCrlCamera(dev);
+            else
+                dev.state = AR_STATE_JUST_ADDED;
+
+            break;
         }
 
         updateDeviceState(&dev);
@@ -169,6 +184,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *devices) {
         // Disable if we click a device already connected
         if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
             // Disable all streams and delete camPtr on next update
+            Log::Logger::getInstance()->info("Call to reset state requested for profile {}", dev.name);
             dev.state = AR_STATE_RESET;
         }
     }
@@ -525,7 +541,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     dev.state = AR_STATE_DISCONNECTED;
     lastActiveDevice = "-1";
 
-    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile %s using camera %s", dev.name.c_str(),
+    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile {} using camera {}", dev.name.c_str(),
                                      dev.cameraName.c_str());
     // Free camPtr memory
     delete camPtr;

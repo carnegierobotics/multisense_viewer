@@ -167,10 +167,6 @@ void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
         CRLCameraModels::draw(commandBuffer, i, model);
 }
 
-RightImager::~RightImager() {
-    camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_RIGHT);
-
-}
 
 void RightImager::onWindowResize(AR::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {

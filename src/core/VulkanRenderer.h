@@ -190,6 +190,8 @@ protected:
     VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 
     int frameCounter = 0;
+    int frameID = 0;
+
 private:
     bool viewUpdated = false;
     uint32_t destWidth;

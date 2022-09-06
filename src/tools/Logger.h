@@ -93,7 +93,8 @@ namespace Log {
 
     class Logger {
     public:
-        static Logger *getInstance() throw();
+        static Logger *getInstance() noexcept;
+        static Logger *getInstance(uint32_t frame) noexcept;
 
         // Interface for Error Log
         void _error(const char *text) throw();
@@ -163,13 +164,14 @@ namespace Log {
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.str, args);
 
-            std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            std::string preText = fmt::format(" {}:{}: ", loc.file_name(), loc.line());
             preText.append(s);
 
 
             std::size_t found = preText.find_last_of('/');
             std::string msg = preText.substr(found + 1);
 
+            msg = msg.insert(0, (std::to_string(frameNumber) + "  ")) ;
             _info(msg.c_str());
         }
 
@@ -204,6 +206,7 @@ namespace Log {
 
         void enableFileLogging();
 
+        uint32_t frameNumber = 0;
     protected:
         Logger();
 
@@ -245,6 +248,7 @@ namespace Log {
 
         LogLevel m_LogLevel;
         LogType m_LogType;
+
     };
 
 } // End of namespace

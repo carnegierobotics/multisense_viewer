@@ -75,6 +75,7 @@ public:
 
     CameraPlaybackFlags playbackSate;
     Page selectedPreviewTab = TAB_NONE;
+    uint32_t width, height;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

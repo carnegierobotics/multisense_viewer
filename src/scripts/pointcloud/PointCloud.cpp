@@ -47,12 +47,17 @@ void PointCloud::update(CameraConnection *conn) {
         return;
     CRLBaseInterface *camPtr = conn->camPtr;
 
+    if (camPtr->getCameraInfo().imgConf.width() != width){
+        model->draw = false;
+    }
+
     if (model->draw == false) {
-
         auto imgConf = camPtr->getCameraInfo().imgConf;
-        camPtr->preparePointCloud(imgConf.width(), imgConf.height());
+        width = imgConf.width();
+        height = imgConf.height();
 
-        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_POINT_CLOUD);
+        camPtr->preparePointCloud(width, height);
+        model->createEmtpyTexture(width, height, AR_POINT_CLOUD);
 
         VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
         VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -62,8 +67,8 @@ void PointCloud::update(CameraConnection *conn) {
 
         auto *buf = (PointCloudParam *) bufferThreeData;
         buf->kInverse = camPtr->getCameraInfo().kInverseMatrix;
-        buf->height = static_cast<float>(imgConf.height());
-        buf->width = static_cast<float>(imgConf.width());
+        buf->height = static_cast<float>(height);
+        buf->width = static_cast<float>(width);
         std::cout << glm::to_string(buf->kInverse) << std::endl;
         model->draw = true;
 

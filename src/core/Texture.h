@@ -121,6 +121,12 @@ public:
     uint8_t *data{};
     bool hasEmptyTexture = false;
 
+    VkBuffer stagingBuffer2{};
+    VkDeviceMemory stagingMemory2{};
+    VkDeviceSize size2{};
+    uint8_t *data2{};
+    bool hasEmptyYUVTexture = false;
+
     TextureVideo() = default;
 
     ~TextureVideo() {
@@ -128,7 +134,11 @@ public:
             vkUnmapMemory(device->logicalDevice, stagingMemory);
             vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
             vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
-            hasEmptyTexture = false;
+        }
+        if (hasEmptyYUVTexture){
+            vkUnmapMemory(device->logicalDevice, stagingMemory2);
+            vkFreeMemory(device->logicalDevice, stagingMemory2, nullptr);
+            vkDestroyBuffer(device->logicalDevice, stagingBuffer2, nullptr);
         }
     }
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,

@@ -74,7 +74,7 @@ public:
     std::string resolution = "resolution";
     std::vector<std::string> startedSources;
     CameraPlaybackFlags playbackSate{};
-    float aspectRatio = 1.0f;
+    uint32_t width, height;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 

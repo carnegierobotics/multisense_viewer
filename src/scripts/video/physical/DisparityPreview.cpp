@@ -34,6 +34,9 @@ void DisparityPreview::update(CameraConnection *conn) {
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
+    if (camera->getCameraInfo().imgConf.width() != width){
+        model->draw = false;
+    }
 
     if (!model->draw && coordinateTransformed) {
         auto imgConf = camera->getCameraInfo().imgConf;
@@ -45,9 +48,10 @@ void DisparityPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
 
-        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_DISPARITY_IMAGE);
+        width = imgConf.width();
+        height = imgConf.height();
 
-        aspectRatio = (float) imgConf.width() / (float) imgConf.height();
+        model->createEmtpyTexture(width, height, AR_DISPARITY_IMAGE);
 
         //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
@@ -72,7 +76,7 @@ void DisparityPreview::update(CameraConnection *conn) {
         auto *tex = new ArEngine::TextureData();
 
         if (camera->getCameraStream(src, tex)) {
-            model->setGrayscaleTexture(tex, AR_CAMERA_DATA_IMAGE);
+            model->setGrayscaleTexture(tex, AR_DISPARITY_IMAGE);
             free(tex->data);
         }
         delete tex;

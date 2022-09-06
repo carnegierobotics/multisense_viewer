@@ -73,6 +73,7 @@ public:
     int prevOrder = 0;
     std::string src = "source";
     std::vector<std::string> startedSources;
+    uint32_t width, height;
 
     CameraPlaybackFlags playbackSate;
 

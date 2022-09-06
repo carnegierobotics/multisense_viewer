@@ -33,6 +33,9 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
     auto *camera = conn->camPtr;
     assert(camera != nullptr);
 
+    if (camera->getCameraInfo().imgConf.width() != width){
+        model->draw = false;
+    }
 
     if (!model->draw && coordinateTransformed) {
         auto imgConf = camera->getCameraInfo().imgConf;
@@ -44,7 +47,10 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         vertexShaderFileName = "myScene/spv/quad.vert";
         fragmentShaderFileName = "myScene/spv/quad.frag";
 
-        model->createEmtpyTexture(imgConf.width(), imgConf.height(), AR_COLOR_IMAGE_YUV420);
+        width = imgConf.width();
+        height = imgConf.height();
+
+        model->createEmtpyTexture(width, height, AR_COLOR_IMAGE_YUV420);
 
         //ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
         ImageData imgData;

@@ -90,6 +90,13 @@ private:
                                              crl::multisense::Source_Compressed_Right,
                                              crl::multisense::Source_Compressed_Rectified_Right,}
     };
+
+#ifdef WIN32
+    unsigned long dwRetVal = 0;
+    unsigned long NTEContext = 0;
+#endif
+    std::string hostAddress;
+
 };
 
 

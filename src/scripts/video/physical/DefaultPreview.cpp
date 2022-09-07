@@ -23,7 +23,7 @@ void DefaultPreview::setup(Base::Render r) {
 
     }
 
-    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
+    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName);
 }
 
 

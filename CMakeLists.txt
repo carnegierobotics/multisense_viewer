@@ -43,10 +43,11 @@ set(KTX_FEATURE_TESTS OFF)
 set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 
-# LIBMULTISENSE
+#include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
+add_subdirectory(internal/LibMultiSenseWindows)
+
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
-add_subdirectory(${MULTISENSE_SRC})
 
 # Internal Library
 set(LIBMULTISENSE_SKIP True)
@@ -64,7 +65,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 set(FMT_DIR external/fmt) 
 add_subdirectory(${FMT_DIR})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;MultiSense;LibAutoConnect;fmt::fmt")
+set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;LibAutoConnect;fmt::fmt")
 
 # add source files
 set(IMGUI_SRC
@@ -182,24 +183,40 @@ if (WIN32)
     IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
 
-    add_library(VulkanRenderer SHARED ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
+    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
+    target_link_libraries(VulkanRenderer MultiSenseWindows ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
+    # LibMultiSense on Windows. Use precompiled library from a manual step
+    add_custom_command(TARGET VulkanRenderer
+            PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.lib  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+
+            )
+
 
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)
+
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
         else ()
             set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-viewer)
+            set_property(TARGET MultiSense-viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
 
+    # install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
+
 
 else () ## Linux
+
+    # LIBMULTISENSE
+    add_subdirectory(${MULTISENSE_SRC})
+
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense)
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil -ltbb)

@@ -38,6 +38,7 @@ public:
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::AdapterSupportResult> adapters;
     std::vector<std::string> interfaceNameList;
+    std::vector<uint32_t> indexList;
 
 
     void OnAttach() override {
@@ -368,6 +369,7 @@ public:
 
                     if (a.supports && !Utils::isInVector(interfaceNameList, a.description)) {
                         interfaceNameList.push_back(a.description);
+                        indexList.push_back(a.index);
                         if (Utils::isInVector(interfaceNameList, "No adapters found"))
                             Utils::delFromVector(interfaceNameList, "No adapters found");
                     }
@@ -378,6 +380,7 @@ public:
 
 
                 interfaceName = interfaceNameList[presetItemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                interfaceIndex = indexList[presetItemIdIndex];
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
@@ -448,7 +451,7 @@ public:
                 }
 
                 if (!ipAlreadyInUse && !profileNameTaken && !virtualCameraTaken && !profileNameEmpty) {
-                    createDefaultElement(inputName.data(), inputIP.data(), interfaceName.data(), cameraName.data());
+                    createDefaultElement(inputName.data(), inputIP.data(), interfaceName.data(), interfaceIndex, cameraName.data());
 
                     inputName = "";
                     inputIP = "";
@@ -517,6 +520,7 @@ private:
     std::string inputName = "MultiSense";
     std::string interfaceName;
     std::string cameraName;
+    uint32_t interfaceIndex;
 
 
     static void onEvent(std::string event, void *ctx, int color = 0) {
@@ -548,6 +552,7 @@ private:
         app->inputIP = res.cameraIpv4Address;
         app->inputName = info.name;
         app->interfaceName = res.networkAdapter;
+        app->interfaceIndex = res.index;
         app->cameraName = info.name;
 
         if (app->inputName == "Multisense S30") // TODO: Avoid hardcoded if-cond here
@@ -604,7 +609,7 @@ private:
     }
 
 
-    void createDefaultElement(char *name, char *ip, char *interfaceName, const char *camName = "empty") {
+    void createDefaultElement(char *name, char *ip, char *interfaceName, uint32_t idx, const char *camName = "empty") {
         AR::Element el;
 
         el.name = name;
@@ -613,6 +618,7 @@ private:
         el.cameraName = camName;
         el.interfaceName = interfaceName;
         el.clicked = true;
+        el.interfaceIndex = idx;
 
         devices.emplace_back(el);
 

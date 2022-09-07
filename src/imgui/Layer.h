@@ -133,6 +133,7 @@ namespace AR {
         std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
         /** @brief Name of the network adapter this camera is connected to  */
         std::string interfaceName;
+        uint32_t interfaceIndex = 0;
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked;
         /** @brief Current connection state for this device */

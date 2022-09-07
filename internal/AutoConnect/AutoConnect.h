@@ -28,12 +28,14 @@ public:
         std::string cameraIpv4Address;
         std::string networkAdapter;
         std::string networkAdapterLongName;
+        uint32_t index;
     }result;
 
     struct AdapterSupportResult {
         std::string name; // Name of network adapter tested
         std::string description = "No description available";
         std::string lName;
+        uint32_t index;
         bool supports; // 0: for bad, 1: for good
 
         AdapterSupportResult(const char *name, uint8_t supports) {

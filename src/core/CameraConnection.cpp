@@ -380,63 +380,6 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
 #ifdef WIN32
 
-
-    DWORD dwSize = 0, dwRetVal = 0;
-    // Before calling AddIPAddress we use GetIpAddrTable to get
-    // an adapter to which we can add the IP.
-    PMIB_IPADDRTABLE pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(sizeof(MIB_IPADDRTABLE));
-    if (pIPAddrTable == NULL) {
-        printf("Error allocating memory needed to call GetIpAddrTable\n");
-        exit(1);
-    }
-    else {
-        dwSize = 0;
-        // Make an initial call to GetIpAddrTable to get the
-        // necessary size into the dwSize variable
-        if (GetIpAddrTable(pIPAddrTable, &dwSize, 0) ==
-            ERROR_INSUFFICIENT_BUFFER) {
-            FREE(pIPAddrTable);
-            pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(dwSize);
-
-        }
-        if (pIPAddrTable == NULL) {
-            printf("Memory allocation failed for GetIpAddrTable\n");
-            exit(1);
-        }
-    }
-
-
-
-    DWORD ifIndex;
-    IN_ADDR IPAddr;
-    // Make a second call to GetIpAddrTable to get the
-    // actual data we want
-    if ((dwRetVal = GetIpAddrTable(pIPAddrTable, &dwSize, 0)) == NO_ERROR) {
-        // Save the interface index to use for adding an IP address
-        ifIndex = pIPAddrTable->table[0].dwIndex;
-        printf("\n\tInterface Index:\t%ld\n", ifIndex);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
-
-        printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
-        pIPAddrTable->table[0].dwAddr);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
-        printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
-        pIPAddrTable->table[0].dwMask);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
-
-
-    }
-    else {
-        printf("Call to GetIpAddrTable failed with error %d.\n", dwRetVal);
-        if (pIPAddrTable)
-            FREE(pIPAddrTable);
-        exit(1);
-    }
-
-
-
-
-
     /* Variables where handles to the added IP are returned */
     ULONG NTEInstance = 0;
     // Attempt to connect to camera and post some info
@@ -448,7 +391,7 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     unsigned long ulMask = inet_addr("255.255.255.0");
     if ((dwRetVal = AddIPAddress(ulAddr,
         ulMask,
-        ifIndex,
+        dev.interfaceIndex,
         &NTEContext, &NTEInstance)) == NO_ERROR) {
         printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
     }
@@ -463,34 +406,6 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
     }
 
-
-    if ((dwRetVal = GetIpAddrTable(pIPAddrTable, &dwSize, 0)) == NO_ERROR) {
-        // Save the interface index to use for adding an IP address
-        ifIndex = pIPAddrTable->table[0].dwIndex;
-        printf("\n\tInterface Index:\t%ld\n", ifIndex);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
-
-        printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwAddr);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
-        printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwMask);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
-
-
-    }
-    else {
-        printf("Call to GetIpAddrTable failed with error %d.\n", dwRetVal);
-        if (pIPAddrTable)
-            FREE(pIPAddrTable);
-        exit(1);
-    }
-
-
-    if (pIPAddrTable) {
-        FREE(pIPAddrTable);
-        pIPAddrTable = NULL;
-    }
 
 #else
     /** SET NETWORK PARAMETERS FOR THE ADAPTER */
@@ -566,6 +481,8 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     // Free camPtr memory
     delete camPtr;
 
+   
+    /*
 #ifdef WIN32
 
     if ((dwRetVal = DeleteIPAddress(NTEContext)) == NO_ERROR) {
@@ -583,6 +500,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
         }
     }
 #endif
+*/
 }
 
 CameraConnection::~CameraConnection() {

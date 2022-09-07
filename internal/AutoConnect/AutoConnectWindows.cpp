@@ -54,20 +54,32 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
 
     /* Retrieve the device list */
     if (pcap_findalldevs(&alldevs, errbuf) == -1) {
-        fprintf(stderr, "Error in pcap_findalldevs: %s\n", errbuf);
+        std::cout << "Error in pcap_findalldevs: " << errbuf << std::endl;
     }
+
 
     // Print the list
     int i = 0;
+    std::string prefix = "\\Device\\Tcpip_";
+    const char* token = "{";
+    // Find { token in order to find correct prefix
     for (d = alldevs; d; d = d->next) {
         AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
         adapter.lName = d->name;
         if (d->description)
             adapter.description = d->description;
 
-        adapters.emplace_back(adapter);
+        std::cout << d->name << std::endl;
+
+        size_t found = std::string(d->name).find(token);
+
+        if (found != std::string::npos)
+            prefix = std::string(d->name).substr(0, found);
+
 
     }
+
+    std::cout << "prefix: " << prefix << std::endl;
     
     //
     /** REST OF FUNCTION TRIES TO RENAME THE ADAPTERS FOUND INTO USABLE NAMES 
@@ -145,7 +157,7 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
     */
     /* Another attempt at making the windows hex string user readable*/
 
-
+    
     PIP_ADAPTER_INFO AdapterInfo;
     DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
     char* mac_addr = (char*)malloc(18);
@@ -170,34 +182,35 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
         // Contains pointer to current adapter info
         PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
         do {
+
+            if (pAdapterInfo->Index == 1)
+                continue;
+
             AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
             adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
             adapter.description = pAdapterInfo->Description;
             
             /*CONCATENATE two strings safely*/
-            const char* prefix = "\\Device\\NPF_";
-            int lenA = strlen(prefix);
+            int lenA = strlen(prefix.c_str());
             int lenB = strlen(pAdapterInfo->AdapterName);
             char* con = (char *) malloc(lenA + lenB + 1);
-            memcpy(con, prefix, lenA);
+            memcpy(con, prefix.c_str(), lenA);
             memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
             adapter.name = con;
+            adapter.index = pAdapterInfo->Index;
 
             adapters.push_back(adapter);
             free(con);
             // technically should look at pAdapterInfo->AddressLength
             //   and not assume it is 6.
-            /*sprintf(mac_addr, "%02X:%02X:%02X:%02X:%02X:%02X",
-                pAdapterInfo->Address[0], pAdapterInfo->Address[1],
-                pAdapterInfo->Address[2], pAdapterInfo->Address[3],
-                pAdapterInfo->Address[4], pAdapterInfo->Address[5]);
-            printf("Address: %s, mac: %s : %s : %s : Type: %d\n", pAdapterInfo->IpAddressList.IpAddress.String, mac_addr, pAdapterInfo->AdapterName, pAdapterInfo->Description, pAdapterInfo->Type);
-            */
+
+            printf("Address: %s, : %s : %s : Type: %d\n", pAdapterInfo->IpAddressList.IpAddress.String, pAdapterInfo->AdapterName, pAdapterInfo->Description, pAdapterInfo->Type);
+            
             pAdapterInfo = pAdapterInfo->Next;
         } while (pAdapterInfo);
     }
     free(AdapterInfo);
-
+    
     if (!adapters.empty())
         onFoundAdapters(adapters, logEvent);
 
@@ -232,29 +245,8 @@ void AutoConnectWindows::onFoundAdapters(std::vector<AdapterSupportResult> adapt
 
 AutoConnect::FoundCameraOnIp
 AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSupportResult adapter) {
-    DWORD dwSize = 0, dwRetVal = 0;
-    // Before calling AddIPAddress we use GetIpAddrTable to get
-    // an adapter to which we can add the IP.
-    PMIB_IPADDRTABLE pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(sizeof(MIB_IPADDRTABLE));
-    if (pIPAddrTable == NULL) {
-        printf("Error allocating memory needed to call GetIpAddrTable\n");
-        exit(1);
-    }
-    else {
-        dwSize = 0;
-        // Make an initial call to GetIpAddrTable to get the
-        // necessary size into the dwSize variable
-        if (GetIpAddrTable(pIPAddrTable, &dwSize, 0) ==
-            ERROR_INSUFFICIENT_BUFFER) {
-            FREE(pIPAddrTable);
-            pIPAddrTable = (MIB_IPADDRTABLE*)MALLOC(dwSize);
-
-        }
-        if (pIPAddrTable == NULL) {
-            printf("Memory allocation failed for GetIpAddrTable\n");
-            exit(1);
-        }
-    }
+  
+  
     std::string hostAddress(cameraAddress);
 
     size_t it = hostAddress.rfind('.', hostAddress.length());
@@ -263,41 +255,7 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     std::string str = "Setting host address to: " + hostAddress;
     eventCallback(str, context, 0);
 
-    DWORD ifIndex;
-    IN_ADDR IPAddr;
-    // Make a second call to GetIpAddrTable to get the
-    // actual data we want
-    if ((dwRetVal = GetIpAddrTable(pIPAddrTable, &dwSize, 0)) == NO_ERROR) {
-        // Save the interface index to use for adding an IP address
-        ifIndex = pIPAddrTable->table[0].dwIndex;
-        printf("\n\tInterface Index:\t%ld\n", ifIndex);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
 
-
-
-        printf("\tIP Address:       \t%s (%lu)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwAddr);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
-        printf("\tSubnet Mask:      \t%s (%lu)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwMask);
-        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
-        printf("\tBroadCast Address:\t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwBCastAddr);
-        printf("\tReassembly size:  \t%lu\n\n",
-            pIPAddrTable->table[0].dwReasmSize);
-
-    }
-    else {
-        printf("Call to GetIpAddrTable failed with error %d.\n", dwRetVal);
-        if (pIPAddrTable)
-            FREE(pIPAddrTable);
-        exit(1);
-    }
-
-    if (pIPAddrTable) {
-        FREE(pIPAddrTable);
-        pIPAddrTable = NULL;
-    }
 
     /* Variables where handles to the added IP are returned */
     ULONG NTEContext = 0;
@@ -307,10 +265,11 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     unsigned long ulAddr = inet_addr(hostAddress.c_str());
     unsigned long ulMask = inet_addr("255.255.255.0");
     LPVOID lpMsgBuf;
+    DWORD dwRetVal;
 
     if ((dwRetVal = AddIPAddress(ulAddr,
         ulMask,
-        ifIndex,
+        adapter.index,
         &NTEContext, &NTEInstance)) == NO_ERROR) {
         printf("\tIPv4 address %s was successfully added.\n", hostAddress.c_str());
     }
@@ -348,6 +307,7 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
         result.networkAdapter = adapter.name;
         result.networkAdapterLongName = adapter.lName;
         result.cameraIpv4Address = cameraAddress;
+        result.index = adapter.index;
         str = "Found camera at: " + cameraAddress + "";
         eventCallback(str, context, 1);
         return FOUND_CAMERA;
@@ -430,6 +390,8 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
                 if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS) {
                     app->startTime = time(nullptr);
                     printf("Timeout reached. Switching adapter\n");
+                    app->eventCallback("Timeout reached. Switching adapter", app->context, 0);
+
                     break;
                 }
 
@@ -473,8 +435,10 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
                         app->onFoundCamera(adapter);
                         break;
                     } else if (ret == NO_CAMERA_RETRY) {
+                        app->eventCallback("Did not find a camera. Retrying...", app->context, 2);
                         continue;
                     } else if (ret == NO_CAMERA) {
+                        app->eventCallback("Did not find a camera. Retrying...",app->context, 2);
                         break;
                     }
                 }

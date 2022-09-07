@@ -44,8 +44,6 @@ set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
-add_subdirectory(internal/LibMultiSenseWindows)
-
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
 
@@ -182,14 +180,19 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
+    add_subdirectory(internal/LibMultiSenseWindows)
+    add_subdirectory(internal/winpcap)
+
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer MultiSenseWindows ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
+    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
     # LibMultiSense on Windows. Use precompiled library from a manual step
     add_custom_command(TARGET VulkanRenderer
             PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.lib  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
 
             )
 

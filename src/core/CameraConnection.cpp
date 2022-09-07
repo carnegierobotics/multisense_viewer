@@ -5,14 +5,13 @@
 
 
 #ifdef WIN32
-
 #define _WINSOCKAPI_    // stops windows.h including winsock.h
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
 #include <ipmib.h>
-#include <iphlpapi.h>
+#include <iphlpapi.h> 
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
@@ -278,9 +277,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             lastActiveDevice = dev.name;
 
         } else {
-            delete camPtr;
-            dev.state = AR_STATE_UNAVAILABLE;
-            lastActiveDevice = "-1";
+            disableCrlCamera(dev);
 
         }
     }
@@ -366,7 +363,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 
 bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
-    std::string hostAddress = dev.IP;
+     hostAddress = dev.IP;
 
     // TODO recheck if we want to start using exceptions for stuff or if this is fine
     try {
@@ -420,18 +417,13 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
         printf("\n\tInterface Index:\t%ld\n", ifIndex);
         IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
 
-        if (inet_ntoa(IPAddr) == hostAddress) { hostAddress = "10.66.171.20"; }
-
         printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwAddr);
+        pIPAddrTable->table[0].dwAddr);
         IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
         printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwMask);
+        pIPAddrTable->table[0].dwMask);
         IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
-        printf("\tBroadCast Address:\t%s (%lu%)\n", inet_ntoa(IPAddr),
-            pIPAddrTable->table[0].dwBCastAddr);
-        printf("\tReassembly size:  \t%lu\n\n",
-            pIPAddrTable->table[0].dwReasmSize);
+
 
     }
     else {
@@ -441,26 +433,24 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
         exit(1);
     }
 
-    if (pIPAddrTable) {
-        FREE(pIPAddrTable);
-        pIPAddrTable = NULL;
-    }
+
+
 
 
     /* Variables where handles to the added IP are returned */
-    ULONG NTEContext = 0;
     ULONG NTEInstance = 0;
     // Attempt to connect to camera and post some info
 
-    unsigned long ulAddr = inet_addr(hostAddress.c_str());
-    unsigned long ulMask = inet_addr("255.255.255.0");
+
     LPVOID lpMsgBuf;
 
+    unsigned long ulAddr = inet_addr(hostAddress.c_str());
+    unsigned long ulMask = inet_addr("255.255.255.0");
     if ((dwRetVal = AddIPAddress(ulAddr,
         ulMask,
         ifIndex,
         &NTEContext, &NTEInstance)) == NO_ERROR) {
-        printf("\tIPv4 address %s was successfully added.\n", hostAddress.c_str());
+        printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
     }
     else {
         printf("AddIPAddress failed with error: %d\n", dwRetVal);
@@ -470,6 +460,36 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
             printf("\tError: %s", lpMsgBuf);
             LocalFree(lpMsgBuf);
         }
+
+    }
+
+
+    if ((dwRetVal = GetIpAddrTable(pIPAddrTable, &dwSize, 0)) == NO_ERROR) {
+        // Save the interface index to use for adding an IP address
+        ifIndex = pIPAddrTable->table[0].dwIndex;
+        printf("\n\tInterface Index:\t%ld\n", ifIndex);
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwAddr;
+
+        printf("\tIP Address:       \t%s (%lu%)\n", inet_ntoa(IPAddr),
+            pIPAddrTable->table[0].dwAddr);
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwMask;
+        printf("\tSubnet Mask:      \t%s (%lu%)\n", inet_ntoa(IPAddr),
+            pIPAddrTable->table[0].dwMask);
+        IPAddr.S_un.S_addr = (u_long)pIPAddrTable->table[0].dwBCastAddr;
+
+
+    }
+    else {
+        printf("Call to GetIpAddrTable failed with error %d.\n", dwRetVal);
+        if (pIPAddrTable)
+            FREE(pIPAddrTable);
+        exit(1);
+    }
+
+
+    if (pIPAddrTable) {
+        FREE(pIPAddrTable);
+        pIPAddrTable = NULL;
     }
 
 #else
@@ -545,6 +565,24 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
                                      dev.cameraName.c_str());
     // Free camPtr memory
     delete camPtr;
+
+#ifdef WIN32
+
+    if ((dwRetVal = DeleteIPAddress(NTEContext)) == NO_ERROR) {
+        printf("\tIPv4 address %s was successfully deleted.\n", hostAddress.c_str());
+    }
+    else {
+        printf("\tDeleteIPAddress failed with error: %d\n", dwRetVal);
+        LPVOID lpMsgBuf;
+
+        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+            (LPTSTR)&lpMsgBuf, 0, NULL)) {
+            printf("\tError: %s", lpMsgBuf);
+            LocalFree(lpMsgBuf);
+        }
+    }
+#endif
 }
 
 CameraConnection::~CameraConnection() {

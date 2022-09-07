@@ -205,7 +205,12 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetA
 }
 
 void AutoConnectWindows::start(std::vector<AdapterSupportResult> adapters) {
-    //run(this, adapters);
+    // TODO Clean up public booleans. 4 member booleans might be exaggerated use?
+    running = true;
+    loopAdapters = true;
+    listenOnAdapter = true;
+    shouldProgramRun = true;
+
     t = new std::thread(&AutoConnectWindows::run, this, adapters);
     printf("Started thread\n");
 }
@@ -351,14 +356,21 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
 }
 
 void AutoConnectWindows::onFoundCamera(AdapterSupportResult supportResult) {
-
+    callback(result, context);
 }
 
 void AutoConnectWindows::stop() {
-    printf("Joining Thread\n");
-    t->join();
+    loopAdapters = false;
+    listenOnAdapter = false;
+    shouldProgramRun = false;
+    running = false;
+
+    if (t != nullptr)
+        t->join();
 
 
+    delete(t); //instantiated in start func
+    t = nullptr;
 }
 
 void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> adapters) {
@@ -453,10 +465,12 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
 
                     FoundCameraOnIp ret = app->onFoundIp(ips, adapter);
 
+                    printf("Ip returned %d\n", ret);
                     if (ret == FOUND_CAMERA) {
                         app->listenOnAdapter = false;
                         app->loopAdapters = false;
                         app->success = true;
+                        app->onFoundCamera(adapter);
                         break;
                     } else if (ret == NO_CAMERA_RETRY) {
                         continue;

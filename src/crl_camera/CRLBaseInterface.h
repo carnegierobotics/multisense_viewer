@@ -5,9 +5,10 @@
 #ifndef MULTISENSE_VIEWER_CRLBASEINTERFACE_H
 #define MULTISENSE_VIEWER_CRLBASEINTERFACE_H
 
-#include <MultiSense/MultiSenseChannel.hh>
-#include <unordered_map>
 #include <MultiSense/src/core/Definitions.h>
+
+#include <include/MultiSense/MultiSenseChannel.hh>
+#include <unordered_map>
 #include "glm/glm.hpp"
 
 class CRLBaseInterface {

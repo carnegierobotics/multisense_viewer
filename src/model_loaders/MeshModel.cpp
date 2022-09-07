@@ -4,7 +4,6 @@
 
 #include "MeshModel.h"
 #include "stb_image.h"
-#include "MultiSense/MultiSenseTypes.hh"
 
 #include <utility>
 

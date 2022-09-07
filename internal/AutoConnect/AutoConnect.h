@@ -8,8 +8,8 @@
 #define MAX_CONNECTION_ATTEMPTS 4
 #define TIMEOUT_INTERVAL_SECONDS 30
 
-#include <MultiSense/MultiSenseTypes.hh>
-#include "MultiSense/MultiSenseChannel.hh"
+#include <include/MultiSense/MultiSenseTypes.hh>
+#include "include/MultiSense/MultiSenseChannel.hh"
 
 #include <string>
 #include <vector>
@@ -19,9 +19,9 @@ class AutoConnect {
 public:
 
     enum FoundCameraOnIp {
-        FOUND_CAMERA = 1,
-        NO_CAMERA_RETRY = 0,
-        NO_CAMERA = -1
+        FOUND_CAMERA = 0,
+        NO_CAMERA_RETRY = 1,
+        NO_CAMERA = 2
     };
 
     struct Result {

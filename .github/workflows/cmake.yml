@@ -36,6 +36,10 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --target install --config ${{env.BUILD_TYPE}}
 
+    - name: Install
+      working-directory: ${{github.workspace}}/build
+      run: cmake --install . --config ${{env.BUILD_TYPE}}
+
     - name: Prepare package step
       working-directory: ${{github.workspace}}/build
       run: mkdir multisense_1.0-0_amd64/DEBIAN && cp ${{github.workspace}}/Assets/Tools/control multisense_1.0-0_amd64/DEBIAN/

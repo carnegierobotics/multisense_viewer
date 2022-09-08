@@ -196,7 +196,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
     // 2. If successful: Disable any other available camera
     bool connected{};
 
-    Log::Logger::getInstance()->info("CameraConnection:: Connect.");
+    Log::Logger::getInstance()->info("Connect.");
 
 
     if (dev.cameraName == "Virtual Camera") {
@@ -253,7 +253,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             dev.streams[AR_PREVIEW_VIRTUAL_POINT_CLOUD] = virutalPC;
 
 
-            Log::Logger::getInstance()->info("CameraConnection:: Creating new Virtual Camera.");
+            Log::Logger::getInstance()->info("Creating new Virtual Camera.");
 
 
         } else
@@ -266,7 +266,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             return;
         }
 
-        Log::Logger::getInstance()->info("CameraConnection:: Creating new physical camera.");
+        Log::Logger::getInstance()->info("Creating new physical camera.");
 
         camPtr = new CRLPhysicalCamera();
         connected = camPtr->connect(dev.IP);
@@ -335,7 +335,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     dev.streams[AR_PREVIEW_AUXILIARY] = aux;
     dev.streams[AR_PREVIEW_POINT_CLOUD] = pointCloud;
 
-    Log::Logger::getInstance()->info("CameraConnection:: setting available streaming modes");
+    Log::Logger::getInstance()->info("setting available streaming modes");
 
 
 }
@@ -449,12 +449,14 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
     ifr.ifr_mtu = 7200; //your MTU size here
     if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
-        Log::Logger::getInstance()->error("AUTOCONNECT: Failed to set mtu size {} on adapter {}", 7200,
+        Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
+                                          dev.interfaceName.c_str());
+    } else {
+        Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                           dev.interfaceName.c_str());
     }
 
-    Log::Logger::getInstance()->error("AUTOCONNECT: Set Mtu size to {} on adapter {}", 7200,
-                                      dev.interfaceName.c_str());
+
 
 #endif
     return true;
@@ -476,7 +478,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     dev.state = AR_STATE_DISCONNECTED;
     lastActiveDevice = "-1";
 
-    Log::Logger::getInstance()->info("CameraConnection:: Disconnecting profile {} using camera {}", dev.name.c_str(),
+    Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev.name.c_str(),
                                      dev.cameraName.c_str());
     // Free camPtr memory
     delete camPtr;

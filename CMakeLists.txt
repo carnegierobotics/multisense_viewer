@@ -39,7 +39,6 @@ if (WIN32)
     set(KTX_FEATURE_STATIC_LIBRARY ON )
 endif ()
 set(KTX_FEATURE_TESTS OFF)
-
 set(KTX_DIR external/KTX-Software)
 add_subdirectory(${KTX_DIR})
 
@@ -47,12 +46,11 @@ add_subdirectory(${KTX_DIR})
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
 
-# Internal Library
+# Internal Library # Parameter for Autoconnect Library
 set(LIBMULTISENSE_SKIP True)
 set(TOP_LEVEL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(AUTOCONNECT_SRC internal/AutoConnect/)
 include_directories(${AUTOCONNECT_SRC})
-# Parameter for Autoconnect Library
 add_subdirectory(${AUTOCONNECT_SRC})
 
 ## FFMPEG
@@ -223,6 +221,10 @@ else () ## Linux
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil -ltbb)
+
+
+    MESSAGE(INFO  ${CMAKE_INSTALL_PREFIX})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/Release/bin)
 
 endif ()
 

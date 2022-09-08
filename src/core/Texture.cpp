@@ -29,13 +29,14 @@ void Texture::destroy() const {
     vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
 }
 
+/*
 ktxResult Texture::loadKTXFile(std::string filename, ktxTexture **target) {
     ktxResult result = KTX_SUCCESS;
 
     result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, target);
     return result;
 }
-
+*/
 void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler textureSampler, VulkanDevice *device,
                               VkQueue copyQueue) {
     this->device = device;
@@ -228,7 +229,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
 
 }
 
-/**
+/*
 * Load a 2D texture including all mip levels
 *
 * @param filename File to load (supports .ktx)
@@ -239,7 +240,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
 * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 * @param (Optional) forceLinear Force linear tiling (not advised, defaults to false)
 *
-*/
+
 void Texture2D::loadFromFile(std::string filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
                              VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout, bool forceLinear) {
     ktxTexture *ktxTexture;
@@ -573,7 +574,7 @@ Texture2D::updateTexture(void *buffer, VkDeviceSize bufferSize, VkFormat format,
 
 }
 
-/**
+
 * Creates a 2D texture from a buffer
 *
 * @param buffer Buffer containing texture data to upload
@@ -586,7 +587,8 @@ Texture2D::updateTexture(void *buffer, VkDeviceSize bufferSize, VkFormat format,
 * @param (Optional) filter Texture filtering for the sampler (defaults to VK_FILTER_LINEAR)
 * @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-*/
+
+ */
 void
 Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
                       VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
@@ -744,7 +746,7 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     updateDescriptor();
 }
 
-/**
+/*
 * Load a 2D texture array including all mip levels
 *
 * @param filename File to load (supports .ktx)
@@ -754,7 +756,7 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
 * @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 *
-*/
+*
 void Texture2DArray::loadFromFile(std::string filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
                                   VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout) {
     ktxTexture *ktxTexture;
@@ -942,7 +944,7 @@ void Texture2DArray::loadFromFile(std::string filename, VkFormat format, VulkanD
     updateDescriptor();
 }
 
-/**
+
 * Load a cubemap texture including all mip levels from a single file
 *
 * @param filename File to load (supports .ktx)
@@ -952,7 +954,7 @@ void Texture2DArray::loadFromFile(std::string filename, VkFormat format, VulkanD
 * @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 *
-*/
+
 void TextureCubeMap::loadFromFile(std::string filename, VulkanDevice *device, VkQueue copyQueue,
                                   VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout) {
     ktxTexture *ktxTexture;
@@ -1133,6 +1135,7 @@ void TextureCubeMap::loadFromFile(std::string filename, VulkanDevice *device, Vk
     // Update descriptor image info member that can be used for setting up descriptor sets
     updateDescriptor();
 }
+*/
 
 
 /**

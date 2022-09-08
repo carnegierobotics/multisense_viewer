@@ -34,14 +34,6 @@ set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
-# VULKAN KTX TOOLS
-if (WIN32)
-    set(KTX_FEATURE_STATIC_LIBRARY ON )
-endif ()
-set(KTX_FEATURE_TESTS OFF)
-set(KTX_DIR external/KTX-Software)
-add_subdirectory(${KTX_DIR})
-
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
@@ -61,7 +53,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 set(FMT_DIR external/fmt) 
 add_subdirectory(${FMT_DIR})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;ktx;LibAutoConnect;fmt::fmt")
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt")
 
 # add source files
 set(IMGUI_SRC

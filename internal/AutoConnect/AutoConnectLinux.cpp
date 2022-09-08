@@ -12,7 +12,6 @@
 #include <sys/ioctl.h>
 #include <MultiSense/details/channel.hh>
 #include <arpa/inet.h>
-#include <MultiSense/src/tools/Logger.h>
 #include "AutoConnectLinux.h"
 
 
@@ -76,8 +75,6 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         if (!adapter.supports) {
             continue;
         }
-        Log::Logger::getInstance()->info("AUTOCONNECT: Testing Adapter {} for camera connection", adapter.name.c_str());
-        Log::Logger::getInstance()->info("{} fmt", adapter.supports);
 
         std::string str = "Testing Adapter. Name: " + adapter.name;
         app->eventCallback(str, app->context, 0);
@@ -110,7 +107,6 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
             exit(1);
         }
 
-        Log::Logger::getInstance()->info("AUTOCONNECT: {} Enabled Promiscuous mode", adapter.name.c_str());
         str = "Set adapter to listen for all activity";
         app->eventCallback(str, app->context, 0);
 
@@ -133,13 +129,11 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
 
         str = "Waiting for packet at: " + adapter.name;
         app->eventCallback(str, app->context, 0);
-        Log::Logger::getInstance()->info("AUTOCONNECT: Listening for a IGMP packet");
         while (app->listenOnAdapter) {
             // Timeout handler
             if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS) {
                 app->startTime = time(nullptr);
                 printf("\n");
-                Log::Logger::getInstance()->info("AUTOCONNECT: Timeout reached. switching adapter");
                 str = "Timeout reached. switching to next supported adapter ";
                 app->eventCallback(str, app->context, 2);
                 break;
@@ -163,24 +157,20 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
             {
                 ip_addr.s_addr = iph->saddr;
                 address = inet_ntoa(ip_addr);
-                Log::Logger::getInstance()->info("AUTOCONNECT: Packet found. Source address: {}", address.c_str());
                 str = "Packet found. Source address: " + address;
                 app->eventCallback(str, app->context, 0);
 
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter);
 
                 if (ret == FOUND_CAMERA) {
-                    Log::Logger::getInstance()->info("AUTOCONNECT: Found camera");
                     app->onFoundCamera(adapter);
                     app->listenOnAdapter = false;
                     app->loopAdapters = false;
                     app->success = true;
                     break;
                 } else if (ret == NO_CAMERA_RETRY) {
-                    Log::Logger::getInstance()->info("AUTOCONNECT: No camera, retrying on same adapter");
                     continue;
                 } else if (ret == NO_CAMERA) {
-                    Log::Logger::getInstance()->info("AUTOCONNECT: No camera trying other adapter");
 
                     break;
                 }
@@ -196,8 +186,6 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
 void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapters, bool logEvent) {
 
     for (auto &adapter: adapters) {
-        Log::Logger::getInstance()->info("AUTOCONNECT: Found Adapter {}, supports {}, 0 = false, 1 = true",
-                                         adapter.name.c_str(), adapter.supports);
 
         if (adapter.supports) {
             std::string str;
@@ -215,7 +203,6 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     std::string last_element(hostAddress.substr(hostAddress.rfind(".")));
     auto ptr = hostAddress.rfind('.');
     hostAddress.replace(ptr, last_element.length(), ".2");
-    Log::Logger::getInstance()->info("AUTOCONNECT: Setting host address to the same subnet at: {}", hostAddress.c_str());
 
     std::string str = "Setting host address to: " + hostAddress;
     eventCallback(str, context, 0);
@@ -307,8 +294,6 @@ void AutoConnectLinux::onFoundCamera(AdapterSupportResult supportResult) {
 void AutoConnectLinux::stop() {
     loopAdapters = false;
     listenOnAdapter = false;
-    Log::Logger::getInstance()->info("AUTOCONNECT: stopping.. Joining thread {} and exiting",
-                                     std::hash<std::thread::id>{}(std::this_thread::get_id()));
     shouldProgramRun = false;
     running = false;
 
@@ -330,8 +315,6 @@ void AutoConnectLinux::start(std::vector<AdapterSupportResult> adapters) {
     shouldProgramRun = true;
 
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
-    Log::Logger::getInstance()->info("AUTOCONNECT: Starting new thread, {}",
-                                     std::hash<std::thread::id>{}(std::this_thread::get_id()));
 }
 
 AutoConnect::Result AutoConnectLinux::getResult() {

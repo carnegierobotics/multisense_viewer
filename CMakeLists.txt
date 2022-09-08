@@ -212,7 +212,7 @@ if (WIN32)
 else () ## Linux
 
     # LIBMULTISENSE
-    add_subdirectory(${MULTISENSE_SRC})
+    add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense)
@@ -227,6 +227,7 @@ else () ## Linux
 
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
 
 
     MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${ASSETS_DESTINATION}")

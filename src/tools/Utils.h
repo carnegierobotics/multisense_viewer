@@ -12,7 +12,7 @@
 #include "cassert"
 #include "iostream"
 
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 #include "MultiSense/src/core/Definitions.h"
 #include "Logger.h"
 #include "MultiSense/src/imgui/Layer.h"

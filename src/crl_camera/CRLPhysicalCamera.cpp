@@ -16,17 +16,12 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
             updateCameraInfo();
             addCallbacks();
 
-            /*
-            crl::multisense::system::NetworkConfig config;
-            bool status = cameraInterface->getNetworkConfig(config); // TODO Move and error check this line. Failed on Windows if Jumbo frames is disabled on ethernet device
-            if (status != crl::multisense::Status_Ok){
-                std::cerr << "Failed to set MTU 7200\n";
-            }
-             */
-
-            int status = cameraInterface->setMtu(7200);
+            int mtuSize = 7200;
+            int status = cameraInterface->setMtu(mtuSize);
             if (status != crl::multisense::Status_Ok) {
-                std::cerr << "Failed to set MTU 7200\n";
+                Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
+            } else {
+                Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
             }
             return true;
         }
@@ -62,22 +57,19 @@ void CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSo
         bool status = cameraInterface->startStreams(src);
 
         if (status == crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Enabled stream: {}",
+            Log::Logger::getInstance()->info("Enabled stream: {}",
                                              dataSourceToString(src).c_str());
             stopForDestruction = false;
-        }
-        else
-            Log::Logger::getInstance()->info("CRLPhysicalCamera:: Failed to enable stream: {}  status code {}",
+        } else
+            Log::Logger::getInstance()->info("Failed to enable stream: {}  status code {}",
                                              dataSourceToString(src).c_str(), status);
     }
 }
 
 
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
-    Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopping camera streams {}", dataSourceStr.c_str());
+    Log::Logger::getInstance()->info("Stopping camera streams {}", dataSourceStr.c_str());
 
-    if (cameraInterface == nullptr)
-        return;
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
     // Check if the stream has been enabled before we attempt to stop it
     if (dataSourceStr != "All") {
@@ -102,7 +94,10 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     */
     bool status = cameraInterface->stopStreams(src);
     if (status == crl::multisense::Status_Ok)
-        Log::Logger::getInstance()->info("CRLPhysicalCamera:: Stopped camera streams {}", dataSourceStr.c_str());
+        Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
+    else
+        Log::Logger::getInstance()->info("Failed to stop stream {}", dataSourceStr.c_str());
+
 }
 
 bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
@@ -123,7 +118,8 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
         tex->len[1] = luma.imageLength;
     }
 
-    if (tex->len[0] > 0 && luma.source == crl::multisense::Source_Luma_Rectified_Aux && tex->len[1] > 0 && chroma.source == crl::multisense::Source_Chroma_Rectified_Aux)
+    if (tex->len[0] > 0 && luma.source == crl::multisense::Source_Luma_Rectified_Aux && tex->len[1] > 0 &&
+        chroma.source == crl::multisense::Source_Chroma_Rectified_Aux)
         return true;
     else
         return false;
@@ -146,7 +142,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     }
 
 
-
     auto header = imagePointers[src];
 
     // TODO Fix with proper conditions for checking if a frame is good or not
@@ -163,7 +158,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     return false;
 
 }
-
 
 
 void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
@@ -185,10 +179,10 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
     kInverseMatrix =
             glm::mat4(
-                    glm::vec4(fy * tx, 0, 0, -fy*cx*tx),
-                    glm::vec4(0, fx*tx, 0, -fx*cy*tx),
-                    glm::vec4(0, 0, 0, fx*fy*tx),
-                    glm::vec4(0, 0, -fy, fy*(cx - cxRight)));
+                    glm::vec4(fy * tx, 0, 0, -fy * cx * tx),
+                    glm::vec4(0, fx * tx, 0, -fx * cy * tx),
+                    glm::vec4(0, 0, 0, fx * fy * tx),
+                    glm::vec4(0, 0, -fy, fy * (cx - cxRight)));
 
     //kInverseMatrix = glm::transpose(kInverseMatrix); // TODO uncomment here and remove in shader code
 
@@ -381,7 +375,7 @@ void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t 
     crl::multisense::image::Config cfg;
     int ret = cameraInterface->getImageConfig(cfg);
     if (ret != crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->error("CRLPhysicalCamera:: failed to get image config");
+        Log::Logger::getInstance()->error("failed to get image config");
     }
     cfg.setResolution(width, height);
     cfg.setDisparities(depth);
@@ -404,7 +398,7 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
     crl::multisense::image::Config cfg;
     int ret = cameraInterface->getImageConfig(cfg);
     if (ret != crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->error("CRLPhysicalCamera:: failed to get image config");
+        Log::Logger::getInstance()->error("failed to get image config");
     }
     cfg.setResolution(width, height);
     cfg.setDisparities(depth);
@@ -591,7 +585,8 @@ crl::multisense::DataSource CRLPhysicalCamera::stringToDataSource(const std::str
     if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
     if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
     if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
-    if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux; ;
+    if (d == "Color Rectified Aux")
+        return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;;
     if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
     if (d == "Color + Luma Rectified Aux")
         return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;

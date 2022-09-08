@@ -1,0 +1,10 @@
+Package: com.example.package
+Name: Example Package
+Description: An example package.
+This longer description will load when a depiction URL is not specified.
+Author: Ms. Example <example@example.com>
+Maintainer: Example, Inc. <example-inc@example.com>
+Version: 1.0-0
+Section: Addons (SpringBoard)
+Homepage: https://example.com
+Website: https://example.com

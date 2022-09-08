@@ -2,10 +2,10 @@
 // Created by magnus on 3/1/22.
 //
 
+#include "CRLPhysicalCamera.h"
 
 #include <MultiSense/src/tools/Logger.h>
 #include <vulkan/vulkan_core.h>
-#include "CRLPhysicalCamera.h"
 #include "MultiSense/src/tools/Utils.h"
 
 

@@ -130,7 +130,9 @@ set(ENGINE_SRC
         src/tools/Populate.h
         src/tools/Utils.h
         src/tools/Logger.h
-        src/tools/Logger.cpp)
+        src/tools/Logger.cpp
+        src/scripts/video/physical/ScriptHeader.h
+        )
 
 
 if (WIN32)

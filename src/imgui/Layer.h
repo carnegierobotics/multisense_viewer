@@ -8,10 +8,12 @@
 #define IMGUI_INCLUDE_IMGUI_USER_H
 
 
-#include <MultiSense/src/crl_camera/CRLPhysicalCamera.h>
 #include "imgui.h"
 #include <array>
 #include "map"
+#include "unordered_map"
+#include "string"
+#include "MultiSense/src/core/Definitions.h"
 
 namespace AR {
 

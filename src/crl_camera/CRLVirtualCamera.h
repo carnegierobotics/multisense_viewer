@@ -17,7 +17,7 @@
 #include <array>
 
 #define MAX_STREAMS 6
-#include "CRLBaseInterface.h"
+#include <MultiSense/src/crl_camera/CRLBaseInterface.h>
 
 extern "C" {
 #include <libavutil/frame.h>

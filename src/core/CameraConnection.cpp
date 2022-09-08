@@ -2,6 +2,7 @@
 // Created by magnus on 3/21/22.
 //
 
+#include "CameraConnection.h"
 
 
 #ifdef WIN32
@@ -29,10 +30,10 @@
 #endif
 
 
-#include "CameraConnection.h"
-#include <MultiSense/src/crl_camera/CRLVirtualCamera.h>
 #include <MultiSense/src/tools/Logger.h>
 #include <MultiSense/src/tools/Utils.h>
+#include "MultiSense/src/crl_camera/CRLVirtualCamera.h"
+#include "MultiSense/src/crl_camera/CRLPhysicalCamera.h"
 
 
 CameraConnection::CameraConnection() {

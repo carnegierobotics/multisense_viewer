@@ -21,8 +21,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        token: ${{ secrets.PAT_TOKEN }}
 
-    - name: Install xmllint
+    - name: Install dependencies
       run: sudo apt-get install -y cmake libvulkan-dev libx11-dev build-essential xorg-dev libtbb-dev libavformat-dev libavcodec-dev libavutil-dev
 
     - name: Configure CMake

@@ -473,7 +473,7 @@ namespace AR {
             stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
             VkDeviceSize imageSize = texWidth * texHeight * 4;
             if (!pixels) {
-                throw std::runtime_error("failed to load texture image!");
+                throw std::runtime_error("failed to load texture image: " + file);
             }
 
             iconTexture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device,

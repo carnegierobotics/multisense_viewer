@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_POPULATE_H
 #define MULTISENSE_POPULATE_H
 
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 #include <vector>
 
 namespace Populate {

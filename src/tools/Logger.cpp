@@ -1,12 +1,12 @@
+#include "Logger.h"
+
 // C++ Header File(s)
 #include <iostream>
-#include <cstdlib>
+#include <stdarg.h>
 #include <ctime>
 #include <vector>
 
 // Code Specific Header Files(s)
-#include "Logger.h"
-#include <stdarg.h>
 using namespace std;
 namespace Log {
 

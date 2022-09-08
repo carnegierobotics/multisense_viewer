@@ -69,13 +69,13 @@ set(IMGUI_SRC
 INCLUDE_DIRECTORIES(src/imgui/custom)
 
 set(ENGINE_SRC
+        src/core/Definitions.h
         src/core/Base.h
         src/core/Buffer.cpp
         src/core/Buffer.h
         src/core/Camera.h
         src/core/CameraConnection.cpp
         src/core/CameraConnection.h
-        src/core/Definitions.h
         src/core/ScriptBuilder.h
         src/core/Texture.cpp
         src/core/Texture.h

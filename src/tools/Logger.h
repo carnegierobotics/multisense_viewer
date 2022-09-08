@@ -25,8 +25,8 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _LOGGER_H_
-#define _LOGGER_H_
+#ifndef LOGGER_H_
+#define LOGGER_H_
 
 // C++ Header File(s)
 #include <iostream>
@@ -50,7 +50,7 @@
 #include <process.h>
 #else
 // POSIX Socket Header File(s)
-#include <errno.h>
+#include <cerrno>
 #include <pthread.h>
 
 #endif

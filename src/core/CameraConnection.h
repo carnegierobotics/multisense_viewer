@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include <MultiSense/src/crl_camera/CRLBaseInterface.h>
+#include "../crl_camera/CRLBaseInterface.h"
 #include <MultiSense/src/imgui/Layer.h>
 
 /**

@@ -174,9 +174,11 @@ CRLCameraModels::Model::setTexture(
 
     Texture2D tex{};
 
+    /*
     tex.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                    vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+     */
 
 
     textureIndices.baseColor = 0;

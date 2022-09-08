@@ -22,10 +22,6 @@
 
 #include "vulkan/vulkan.h"
 
-#include <ktx.h>
-
-#include <ktxvulkan.h>
-
 #include "Buffer.h"
 #include "VulkanDevice.h"
 #include "tiny_gltf.h"
@@ -58,14 +54,16 @@ public:
     void updateDescriptor();
     void destroy() const;
 
-    ktxResult loadKTXFile(std::string filename, ktxTexture **target);
+    //ktxResult loadKTXFile(std::string filename, ktxTexture **target);
     // Load a texture from a glTF image (stored as vector of chars loaded via stb_image) and generate a full mip chaing for it
 
 };
 
+
 class Texture2D : public Texture {
 public:
-    void loadFromFile(
+/*
+     void loadFromFile(
             std::string filename,
             VkFormat format,
             VulkanDevice *device,
@@ -73,7 +71,7 @@ public:
             VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
             VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             bool forceLinear = false);
-
+ */
     void fromBuffer(
             void *buffer,
             VkDeviceSize bufferSize,
@@ -86,13 +84,17 @@ public:
             VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
             VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+
     void fromglTfImage(tinygltf::Image& gltfimage, TextureSampler textureSampler, VulkanDevice* device, VkQueue copyQueue);
 
+    /*
     void updateTexture(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
                        VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
                        VkImageLayout imageLayout);
-};
+*/
+     };
 
+/*
 class Texture2DArray : public Texture {
 public:
     void loadFromFile(
@@ -110,7 +112,7 @@ public:
                       VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout);
 };
 
-
+*/
 class TextureVideo : public Texture {
 
 public:

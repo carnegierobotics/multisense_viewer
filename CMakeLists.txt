@@ -11,6 +11,10 @@ set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 
 set(ARCHITECTURE "amd64")
+
+set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_EXE_LINKER_FLAGS "-static")
+
 # Libraries
 find_package(Vulkan REQUIRED)
 

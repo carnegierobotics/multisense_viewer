@@ -33,8 +33,14 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <source_location>
 #include <string_view>
+
+#if __has_include(<source_location>)
+    #include <source_location>
+#elif __has_include(<experimental/filesystem>)
+    #include <experimental/source_location>
+#endif
+
 
 #if __has_include(<format>)
 #include <format>

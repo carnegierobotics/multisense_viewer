@@ -215,7 +215,7 @@ else () ## Linux
     add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense  -static-libstdc++ -lavformat -lavcodec -lavutil  -ltbb)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb)
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

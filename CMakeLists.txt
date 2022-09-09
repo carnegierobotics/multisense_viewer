@@ -11,10 +11,6 @@ set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 
 set(ARCHITECTURE "amd64")
-
-set(BUILD_SHARED_LIBS OFF)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-
 # Libraries
 find_package(Vulkan REQUIRED)
 
@@ -219,10 +215,11 @@ else () ## Linux
     add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense  -lavformat -lavcodec -lavutil  -ltbb)
+    set_property(TARGET VulkanRenderer PROPERTY CXX_STANDARD 20)
 
     add_executable(MultiSense-viewer main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer -lavformat -lavcodec -lavutil -ltbb)
+    target_link_libraries(MultiSense-viewer VulkanRenderer)
 
 
     set(RUNTIME_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)

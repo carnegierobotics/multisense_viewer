@@ -2,7 +2,6 @@
 
 // C++ Header File(s)
 #include <iostream>
-#include <stdarg.h>
 #include <ctime>
 #include <vector>
 

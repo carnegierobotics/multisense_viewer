@@ -36,9 +36,11 @@
 #include <string_view>
 
 #if __has_include(<source_location>)
-    #include <source_location>
+#   include <source_location>
+#   define HAS_SOURCE_LOCATION
 #elif __has_include(<experimental/filesystem>)
-    #include <experimental/source_location>
+#   include <experimental/source_location>
+#   #define HAS_SOURCE_LOCATION
 #endif
 
 
@@ -90,18 +92,21 @@ namespace Log {
 
     struct FormatString {
         fmt::string_view str;
+#ifdef HAS_SOURCE_LOCATION
         std::source_location loc;
+        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
+#else
 
-        FormatString(const char *str,
-                     const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
+        FormatString(const char *str) : str(str) {}
+#endif
+
+
 
     };
 
     class Logger {
     public:
         static Logger *getInstance() noexcept;
-        static Logger *getInstance(uint32_t frame) noexcept;
-
         // Interface for Error Log
         void _error(const char *text) throw();
 
@@ -114,18 +119,24 @@ namespace Log {
         }
 
         void error(const FormatString &format, fmt::format_args args) {
+#ifdef HAS_SOURCE_LOCATION
             const auto &loc = format.loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.str, args);
 
             std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
             preText.append(s);
-
-
             std::size_t found = preText.find_last_of('/');
             std::string msg = preText.substr(found + 1);
 
             _error(msg.c_str());
+#else
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            _error(s.c_str());
+
+#endif
+
         }
 
         // Interface for Alarm Log
@@ -166,6 +177,8 @@ namespace Log {
         }
 
         void vinfo(const FormatString &format, fmt::format_args args) {
+#ifdef HAS_SOURCE_LOCATION
+
             const auto &loc = format.loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.str, args);
@@ -179,6 +192,13 @@ namespace Log {
 
             msg = msg.insert(0, (std::to_string(frameNumber) + "  ")) ;
             _info(msg.c_str());
+#else
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            s = s.insert(0, (std::to_string(frameNumber) + "  ")) ;
+            _info(s.c_str());
+#endif
+
         }
 
 

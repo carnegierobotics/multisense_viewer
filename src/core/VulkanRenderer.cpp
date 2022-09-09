@@ -753,7 +753,6 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
         viewUpdated = true;
     }
     if (mouseButtons.right) {
-        camera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
         viewUpdated = true;
     }
     if (mouseButtons.middle) {
@@ -776,10 +775,13 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
         switch (button) {
             case GLFW_MOUSE_BUTTON_RIGHT:
                 myApp->mouseButtons.right = true;
+                break;
             case GLFW_MOUSE_BUTTON_MIDDLE:
                 myApp->mouseButtons.middle = true;
+                break;
             case GLFW_MOUSE_BUTTON_LEFT:
                 myApp->mouseButtons.left = true;
+                break;
         }
     }
 
@@ -787,10 +789,13 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
         switch (button) {
             case GLFW_MOUSE_BUTTON_RIGHT:
                 myApp->mouseButtons.right = false;
+                break;
             case GLFW_MOUSE_BUTTON_MIDDLE:
                 myApp->mouseButtons.middle = false;
+                break;
             case GLFW_MOUSE_BUTTON_LEFT:
                 myApp->mouseButtons.left = false;
+                break;
         }
     }
 }

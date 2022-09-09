@@ -37,13 +37,12 @@
 
 #if __has_include(<source_location>)
 #   include <source_location>
-#   define HAS_SOURCE_LOCATION
-#   define source std
+#   define HAS_SOURCE_LOCATION_EXPERIMENTAL
 #elif __has_include(<experimental/filesystem>)
 #   include <experimental/source_location>
-#   define HAS_SOURCE_LOCATION
-#   define source std::experimental
+#   define HAS_SOURCE_LOCATION_EXPERIMENTAL
 #endif
+#include <experimental/source_location>
 
 
 #if __has_include(<format>)
@@ -97,8 +96,10 @@ namespace Log {
 #ifdef HAS_SOURCE_LOCATION
         source::source_location loc;
         FormatString(const char *str, const source::source_location &loc = source::source_location::current()) : str(str), loc(loc) {}
+#elifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
+        std::experimental::source_location loc;
+        FormatString(const char *str, const  std::experimental::source_location &loc =  std::experimental::source_location::current()) : str(str), loc(loc) {}
 #else
-
         FormatString(const char *str) : str(str) {}
 #endif
 
@@ -167,7 +168,7 @@ namespace Log {
         //void info(std::ostringstream& stream) throw();
 
 
-        void info(std::string &text, const source::source_location &loc = source::source_location::current()) noexcept;
+        //void info(std::string &text, const source::source_location &loc = source::source_location::current()) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
          * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */

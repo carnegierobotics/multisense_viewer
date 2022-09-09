@@ -15,13 +15,18 @@ Badges just for visuals, not correctly implemented
 ## Background
 Quickly test your MultiSense device by using this application. The application will automatically find the camera and configure your network device. Additionally, the app provides a rich 2D/3D viewer and options to set certain sensor parameters.
 
-> MultiSense Viewer
-
 ## Installation
+### Ubuntu:
 Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Tested on a clean Ubuntu 20.04 LTS.
+A runnable executable located at 
+> /opt/multisense/MultiSense-viewer
+
+### Windows
+No passing build yet.
+
+<br>
 
 ### Setting up development environment
-
 #### Linux/Ubuntu packages
 Install Dependencies:
 

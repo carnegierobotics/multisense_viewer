@@ -40,6 +40,20 @@ namespace AR {
 
         ImTextureID imageButtonTextureDescriptor[9];
 
+        // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+        struct {
+            unsigned char* pixels;
+            ImTextureID image[20];
+            uint32_t lastFrame = 0;
+            uint32_t width;
+            uint32_t height;
+            uint32_t imageSize;
+            uint32_t totalFrames;
+            uint32_t* delay;
+
+        } gif;
+        uint32_t gifFrame = 0;
+
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};

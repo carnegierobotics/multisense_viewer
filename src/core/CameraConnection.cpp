@@ -411,12 +411,17 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
 #else
     /** SET NETWORK PARAMETERS FOR THE ADAPTER */
-    if ((sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
-        fprintf(stderr, "socket SOCK_RAW: %s", strerror(errno));
+    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
+        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",strerror(errno));
+
+        return false;
     }
     // Specify interface name
     const char *interface = dev.interfaceName.c_str();
-    setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15);
+    if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
+        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName, strerror(errno));
+    };
 
     struct ifreq ifr{};
     /// note: no pointer here
@@ -439,6 +444,8 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName, strerror(errno));
+
     }
 
     /// put mask in ifr structure
@@ -446,6 +453,7 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}", dev.interfaceName, strerror(errno));
     }
 
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU

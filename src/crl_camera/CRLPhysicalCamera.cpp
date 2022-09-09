@@ -70,6 +70,9 @@ void CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSo
 void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     Log::Logger::getInstance()->info("Stopping camera streams {}", dataSourceStr.c_str());
 
+    if (cameraInterface == nullptr)
+        return;
+
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
     // Check if the stream has been enabled before we attempt to stop it
     if (dataSourceStr != "All") {

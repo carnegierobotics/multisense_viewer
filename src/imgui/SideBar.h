@@ -41,10 +41,13 @@ public:
     std::vector<std::string> interfaceNameList;
     std::vector<uint32_t> indexList;
 
+    uint32_t gifFrameIndex = 0;
+    std::chrono::steady_clock::time_point gifFrameTimer;
 
     void OnAttach() override {
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
         autoConnect.setEventCallback(SideBar::onEvent);
+        gifFrameTimer = std::chrono::steady_clock::now();
     }
 
     void onFinishedRender() override {
@@ -291,11 +294,31 @@ public:
                 ImGui::PopStyleVar();
                 if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
                     ImGui::SetScrollHereY(1.0f);
+
+                ImVec2 size = ImVec2(124.0f,
+                                     124.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+                ImVec2 uv1 = ImVec2(1.0f, 1.0f);
+
+                ImVec4 bg_col = ImVec4(0.054, 0.137, 0.231, 1.0f);         // Match bg color
+                ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
+
+                ImGui::Image(handles->info->gif.image[gifFrameIndex], size, uv0, uv1, bg_col, tint_col);
+
+                auto time = std::chrono::steady_clock::now();
+                std::chrono::duration<float> time_span =
+                        std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer);
+
+                if (time_span.count() >  ((float) *handles->info->gif.delay) / 1000.0f) {
+                    gifFrameTimer = std::chrono::steady_clock::now();
+                    gifFrameIndex++;
+                }
+
+                if (gifFrameIndex == handles->info->gif.totalFrames)
+                    gifFrameIndex = 0;
+
                 ImGui::EndChild();
-
                 cameraName = "Automatic Entry";
-
-
             } else if (connectMethodSelector == MANUAL_CONNECT) {
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));

@@ -12,7 +12,6 @@
 #endif
 
 
-
 #include <MultiSense/src/tools/Macros.h>
 #include "GuiManager.h"
 #include "stb_image.h"
@@ -186,153 +185,6 @@ namespace AR {
 
         io->ConfigFlags |= ImGuiConfigFlags_None;
 
-        /*
-        // Create font texture
-        unsigned char *fontData;
-        int texWidth, texHeight;
-        io->Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-        VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
-
-        // Create Target Image for copy
-        VkImageCreateInfo imageInfo = Populate::imageCreateInfo();
-        imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-        imageInfo.extent.width = texWidth;
-        imageInfo.extent.height = texHeight;
-        imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
-        imageInfo.arrayLayers = 1;
-        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        if (vkCreateImage(device->logicalDevice, &imageInfo, nullptr, &fontImage) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create ImGUI image");
-        VkMemoryRequirements memReqs;
-        vkGetImageMemoryRequirements(device->logicalDevice, fontImage, &memReqs);
-        VkMemoryAllocateInfo memAllocInfo = Populate::memoryAllocateInfo();
-        memAllocInfo.allocationSize = memReqs.size;
-        memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits,
-                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        if (vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &fontMemory) != VK_SUCCESS)
-            throw std::runtime_error("Failed to allocate image IMGUI memory");
-        if (vkBindImageMemory(device->logicalDevice, fontImage, fontMemory, 0))
-            throw std::runtime_error("Failed to bind imgui image with its memory");
-
-        // Create Image view to interface with image.
-        // Image view
-        VkImageViewCreateInfo viewInfo = Populate::imageViewCreateInfo();
-        viewInfo.image = fontImage;
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        viewInfo.subresourceRange.levelCount = 1;
-        viewInfo.subresourceRange.layerCount = 1;
-        if (vkCreateImageView(device->logicalDevice, &viewInfo, nullptr, &fontView) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create image view for imgui image");
-        // Staging buffers for font upload
-        Buffer stagingBuffer;
-        // Copy data to staging buffers
-        if (device->createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                 &stagingBuffer, uploadSize) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create staging buffer");
-        stagingBuffer.map();
-        memcpy(stagingBuffer.mapped, fontData, uploadSize);
-        stagingBuffer.unmap();
-
-        // Transition image layout to transfer and specify copy region
-        // Copy buffer data to font image
-        VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-        // Prepare for transfer
-        Utils::setImageLayout(
-                copyCmd,
-                fontImage,
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_HOST_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-        // Copy
-        // Copy staging buffer to image
-        Utils::copyBufferToImage(copyCmd, stagingBuffer.buffer, fontImage, texWidth, texHeight,
-                                 VK_IMAGE_ASPECT_COLOR_BIT);
-
-        // Prepare image for shader read
-        // Prepare for shader read
-        Utils::setImageLayout(
-                copyCmd,
-                fontImage,
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-        device->flushCommandBuffer(copyCmd, copyQueue, true);
-
-        stagingBuffer.destroy();
-        // submit cmd buffer and destroy staging buffer
-
-        // Texture sampler
-        // Font texture Sampler
-        VkSamplerCreateInfo samplerInfo = Populate::samplerCreateInfo();
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-        if (vkCreateSampler(device->logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create texture sampler IMGUI");
-        // Descriptor pool
-        // Descriptor layout
-        // Descriptor set
-
-        // Descriptor pool
-        std::vector<VkDescriptorPoolSize> poolSizes = {
-                Populate::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
-        };
-        VkDescriptorPoolCreateInfo descriptorPoolInfo = Populate::descriptorPoolCreateInfo(poolSizes, 2);
-        if (vkCreateDescriptorPool(device->logicalDevice, &descriptorPoolInfo, nullptr, &descriptorPool) !=
-            VK_SUCCESS)
-            throw std::runtime_error("Failed to create descriptor pool");
-
-        // Descriptor set layout
-        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-                Populate::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                     VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-        };
-        VkDescriptorSetLayoutCreateInfo descriptorLayout = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings);
-        if (vkCreateDescriptorSetLayout(device->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout) !=
-            VK_SUCCESS)
-            throw std::runtime_error("Failed to create descriptor set layout");
-
-        // Descriptor set
-        VkDescriptorSetAllocateInfo allocInfo = Populate::descriptorSetAllocateInfo(descriptorPool,
-                                                                                    &descriptorSetLayout, 1);
-        if (vkAllocateDescriptorSets(device->logicalDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create descriptor set");
-        VkDescriptorImageInfo fontDescriptor = Populate::descriptorImageInfo(
-                sampler,
-                fontView,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        );
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-                Populate::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0,
-                                             &fontDescriptor)
-        };
-        vkUpdateDescriptorSets(device->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
-                               writeDescriptorSets.data(), 0, nullptr);
-
-        */
-        // Pipeline ---------
-
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -463,22 +315,122 @@ namespace AR {
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png");
         handles.info->imageButtonTextureDescriptor[2] = reinterpret_cast<void *>(imageIconDescriptor);
 
+        loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
+
     }
 
-    ArEngine::ImageElement GuiManager::loadImGuiTextureFromFileName(const std::string& file) {
 
+    // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+    void GuiManager::loadAnimatedGif(const std::string &file) {
+        int width, height, depth, comp;
+        int *delays;
+        int channels = 4;
 
+        std::ifstream input(file, std::ios::binary | std::ios::ate);
+        std::streamsize size = input.tellg();
+        input.seekg(0, std::ios::beg);
 
-            int texWidth, texHeight, texChannels;
-            stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-            VkDeviceSize imageSize = texWidth * texHeight * 4;
-            if (!pixels) {
+        stbi_uc *pixels;
+        std::vector<stbi_uc> buffer(size);
+        if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
+            pixels = stbi_load_gif_from_memory(buffer.data(), size, &delays, &width, &height, &depth, &comp, channels);
+            if (!pixels)
                 throw std::runtime_error("failed to load texture image: " + file);
+        }
+        VkDeviceSize imageSize = width * height * channels;
+
+        handles.info->gif.pixels = (unsigned char *) malloc(imageSize * depth);
+        memcpy(handles.info->gif.pixels, pixels, imageSize * depth);
+
+        handles.info->gif.width = width;
+        handles.info->gif.height = height;
+        handles.info->gif.totalFrames = depth;
+        handles.info->gif.imageSize = imageSize;
+        handles.info->gif.delay = (uint32_t *)delays;
+
+
+        for (int i = 0; i < depth; ++i) {
+
+            gifTexture[i].fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
+                                     handles.info->gif.width, handles.info->gif.height, device,
+                                     device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+            // Descriptor Layout
+
+            {
+                std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+                setLayoutBindings = {
+                        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                };
+
+
+                VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                        setLayoutBindings.data(),
+                        setLayoutBindings.size());
+
+                CHECK_RESULT(
+                        vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                                                    &descriptorSetLayout));
             }
 
-            iconTexture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device,
-                                   device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            // Descriptor Pool
+            {
+                uint32_t imageDescriptorSamplerCount = (3 * 5);
+                std::vector<VkDescriptorPoolSize> poolSizes = {
+                        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+
+                };
+                VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
+                CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+
+
+            }
+
+            // descriptors
+
+            // Create Descriptor Set:
+            {
+                VkDescriptorSetAllocateInfo alloc_info = {};
+                alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                alloc_info.descriptorPool = descriptorPool;
+                alloc_info.descriptorSetCount = 1;
+                alloc_info.pSetLayouts = &descriptorSetLayout;
+                CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &gifImageDescriptors[i]));
+            }
+
+            // Update the Descriptor Set:
+            {
+
+                VkWriteDescriptorSet write_desc[1] = {};
+                write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                write_desc[0].dstSet = gifImageDescriptors[i];
+                write_desc[0].descriptorCount = 1;
+                write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                write_desc[0].pImageInfo = &gifTexture[i].descriptor;
+                vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            }
+
+            handles.info->gif.image[i] = reinterpret_cast<void *>(gifImageDescriptors[i]);
+            handles.info->gif.pixels += handles.info->gif.imageSize;
+        }
+
+    }
+
+    ArEngine::ImageElement GuiManager::loadImGuiTextureFromFileName(const std::string &file) {
+
+
+        int texWidth, texHeight, texChannels;
+        stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture image: " + file);
+        }
+
+        iconTexture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device,
+                               device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
 
@@ -516,27 +468,27 @@ namespace AR {
 
         // descriptors
 
-            // Create Descriptor Set:
-            {
-                VkDescriptorSetAllocateInfo alloc_info = {};
-                alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                alloc_info.descriptorPool = descriptorPool;
-                alloc_info.descriptorSetCount = 1;
-                alloc_info.pSetLayouts = &descriptorSetLayout;
-                CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptor));
-            }
+        // Create Descriptor Set:
+        {
+            VkDescriptorSetAllocateInfo alloc_info = {};
+            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            alloc_info.descriptorPool = descriptorPool;
+            alloc_info.descriptorSetCount = 1;
+            alloc_info.pSetLayouts = &descriptorSetLayout;
+            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptor));
+        }
 
-            // Update the Descriptor Set:
-            {
+        // Update the Descriptor Set:
+        {
 
-                VkWriteDescriptorSet write_desc[1] = {};
-                write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                write_desc[0].dstSet = imageIconDescriptor;
-                write_desc[0].descriptorCount = 1;
-                write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                write_desc[0].pImageInfo = &iconTexture.descriptor;
-                vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
-            }
+            VkWriteDescriptorSet write_desc[1] = {};
+            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_desc[0].dstSet = imageIconDescriptor;
+            write_desc[0].descriptorCount = 1;
+            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write_desc[0].pImageInfo = &iconTexture.descriptor;
+            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+        }
 
 
         return {imageIconDescriptor, texWidth, texHeight};

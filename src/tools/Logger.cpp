@@ -159,11 +159,11 @@ namespace Log {
             logOnConsole(data);
         }
     }
-
+    /*
     void Logger::info(std::string &text, const std::source_location& loc) throw() {
         _info(text.data());
     }
-/*
+
     void Logger::info(std::ostringstream &stream) throw() {
         string text = stream.str();
         _info(text.data());

@@ -13,7 +13,7 @@ jobs:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v3
@@ -23,10 +23,13 @@ jobs:
     - name: Install dependencies
       run: sudo apt-get install -y cmake libvulkan-dev libx11-dev build-essential xorg-dev libtbb-dev libavformat-dev libavcodec-dev libavutil-dev
 
+    - name: update gcc11
+      run: add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt upadte && sudo apt install -y gcc-11 g++-11
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
 
     - name: Build
       # Build your program with the given configuration

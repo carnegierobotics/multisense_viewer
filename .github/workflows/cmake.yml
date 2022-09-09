@@ -52,7 +52,7 @@ jobs:
       run: |
         mkdir ${{env.OUTPUT_DEB_PATH}}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/ubuntu/control ${{env.OUTPUT_DEB_PATH}}/DEBIAN/
         mkdir -p ${{env.OUTPUT_DEB_PATH}}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/ubuntu/multisense.desktop ${{env.OUTPUT_DEB_PATH}}/usr/share/applications/
-        cp ${{github.workspace}}/Assets/Tools/ubuntu/start.sh ${{env.OUTPUT_DEB_PATH}/opt/multisense/
+        cp ${{github.workspace}}/Assets/Tools/ubuntu/start.sh ${{env.OUTPUT_DEB_PATH}}/opt/multisense/
 
     - name: Package
       working-directory: ${{github.workspace}}/build

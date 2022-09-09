@@ -7,6 +7,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  OUTPUT_DEB_PATH: multisense_1.0-0_amd64
 
 jobs:
   build:
@@ -48,11 +49,11 @@ jobs:
 
     - name: Prepare package step
       working-directory: ${{github.workspace}}/build
-      run: mkdir multisense_1.0-0_amd64/DEBIAN && cp ${{github.workspace}}/Assets/Tools/control multisense_1.0-0_amd64/DEBIAN/
+      run: mkdir ${{env.OUTPUT_DEB_PATH}}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/control ${{env.OUTPUT_DEB_PATH}}/DEBIAN/
 
     - name: Package
       working-directory: ${{github.workspace}}/build
-      run: dpkg-deb --build --root-owner-group multisense_1.0-0_amd64
+      run: dpkg-deb --build --root-owner-group ${{env.OUTPUT_DEB_PATH}}
       
     - name: Create Release
       id: create_release
@@ -76,7 +77,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ./build/multisense_1.0-0_amd64.deb
-        asset_name: multisense_1.0-0_amd64.deb
+        asset_path: ./build/${{env.OUTPUT_DEB_PATH}}.deb
+        asset_name: ${{env.OUTPUT_DEB_PATH}}.deb
         asset_content_type: application/zip
         

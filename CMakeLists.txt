@@ -216,7 +216,6 @@ else () ## Linux
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense  -lavformat -lavcodec -lavutil  -ltbb)
-    set_property(TARGET VulkanRenderer PROPERTY CXX_STANDARD 20)
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

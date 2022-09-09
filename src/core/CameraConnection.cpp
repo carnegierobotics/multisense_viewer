@@ -34,6 +34,7 @@
 #include <MultiSense/src/tools/Utils.h>
 #include "MultiSense/src/crl_camera/CRLVirtualCamera.h"
 #include "MultiSense/src/crl_camera/CRLPhysicalCamera.h"
+#include <unistd.h>
 
 
 CameraConnection::CameraConnection() {

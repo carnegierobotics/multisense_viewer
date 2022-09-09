@@ -1,5 +1,5 @@
 # Run from build folder
-echo "Make sure to run this from build folder"
+echo "Make sure to run this from a {source}/build folder"
 mkdir multisense_1.0-0_amd64/DEBIAN
 mkdir -p multisense_1.0-0_amd64/usr/share/applications
 cp ../Assets/Tools/ubuntu/start.sh multisense_1.0-0_amd64/opt/multisense/

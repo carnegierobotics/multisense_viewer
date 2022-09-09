@@ -1,6 +1,6 @@
 Package: com.carnegierobotics.multisense
 Name: MultiSense Viewer
-Description: An example package.
+Description: A MultiSense interface tool
  This longer description will load when a depiction URL is not specified.
 Author: Mr. Magnus mgjerde@carnegierobotics.com
 Maintainer: Carnegie Robotics LLC mgjerde@carnegierobotics.com

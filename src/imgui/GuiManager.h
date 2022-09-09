@@ -64,6 +64,7 @@ namespace AR {
         ImGuiIO *io{};
         Texture2D fontTexture{};
         Texture2D iconTexture{};
+        Texture2D gifTexture[99];
 
         // Vulkan resources for rendering the UI
         VkSampler sampler{};
@@ -79,6 +80,9 @@ namespace AR {
         VkDescriptorSet fontDescriptor{};
         VkDescriptorSet imageIconDescriptor{};
 
+        VkDescriptorSet gifImageDescriptors[20];     // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+
+
         VulkanDevice *device;
 
         void initializeFonts();
@@ -89,6 +93,9 @@ namespace AR {
 
         ArEngine::ImageElement loadImGuiTextureFromFileName(const std::string& file);
 
+        void loadAnimatedGif(const std::string &file);
+
+        void loadNextGifFrame();
     };
 };
 #endif //MULTISENSE_GUIMANAGER_H

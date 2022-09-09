@@ -37,12 +37,13 @@
 
 #if __has_include(<source_location>)
 #   include <source_location>
-#   define HAS_SOURCE_LOCATION_EXPERIMENTAL
+#   define HAS_SOURCE_LOCATION
 #elif __has_include(<experimental/filesystem>)
 #   include <experimental/source_location>
 #   define HAS_SOURCE_LOCATION_EXPERIMENTAL
+#else
+#   define NO_SOURCE_LOCATION
 #endif
-#include <experimental/source_location>
 
 
 #if __has_include(<format>)
@@ -94,12 +95,16 @@ namespace Log {
     struct FormatString {
         fmt::string_view str;
 #ifdef HAS_SOURCE_LOCATION
-        source::source_location loc;
-        FormatString(const char *str, const source::source_location &loc = source::source_location::current()) : str(str), loc(loc) {}
-#elifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
+        std::source_location loc;
+        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
+#endif
+
+#ifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
         std::experimental::source_location loc;
         FormatString(const char *str, const  std::experimental::source_location &loc =  std::experimental::source_location::current()) : str(str), loc(loc) {}
-#else
+#endif
+
+#ifdef  NO_SOURCE_LOCATION
         FormatString(const char *str) : str(str) {}
 #endif
 
@@ -122,7 +127,7 @@ namespace Log {
         }
 
         void error(const FormatString &format, fmt::format_args args) {
-#ifdef HAS_SOURCE_LOCATION
+#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
             const auto &loc = format.loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.str, args);
@@ -180,7 +185,7 @@ namespace Log {
         }
 
         void vinfo(const FormatString &format, fmt::format_args args) {
-#ifdef HAS_SOURCE_LOCATION
+#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
 
             const auto &loc = format.loc;
             std::string s;

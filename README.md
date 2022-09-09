@@ -17,9 +17,11 @@ Quickly test your MultiSense device by using this application. The application w
 
 ## Installation
 ### Ubuntu:
-Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Tested on a clean Ubuntu 20.04 LTS.
+Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Compiled with gcc-9, tested on a clean Ubuntu 20.04 LTS.
 A runnable executable located at 
 > /opt/multisense/MultiSense-viewer
+
+Run with root privileges to let the application configure the network for you.
 
 ### Windows
 No passing build yet.

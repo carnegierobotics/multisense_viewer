@@ -232,7 +232,6 @@ public:
             if (ImGui::Button(btnLabel.c_str())) {
                 stream->playbackStatus = AR_PREVIEW_NONE;
                 Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
-                firstSetup[stream->streamingOrder] = true;
             }
 
             if (streamIndex == AR_PREVIEW_POINT_CLOUD) {
@@ -250,7 +249,6 @@ private:
     bool drawActionPage = true;
     bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
     float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
-    bool firstSetup[9] = {true, true, true, true, true, true, true, true, true};
 
     void buildDeviceInformation(AR::GuiObjectHandles *handles) {
         bool pOpen = true;

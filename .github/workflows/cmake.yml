@@ -1,4 +1,4 @@
-name: CMake
+name: Build for Ubuntu 20.04
 
 on:
   push:

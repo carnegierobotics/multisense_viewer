@@ -19,6 +19,7 @@
 #define elevated() getuid()
 #endif
 
+#include <MultiSense/src/tools/Utils.h>
 
 #include <algorithm>
 #include <queue>
@@ -26,8 +27,8 @@
 #include "imgui.h"
 #include "Layer.h"
 #include "imgui_user.h"
-#include <MultiSense/src/tools/Utils.h>
-
+#include <unistd.h>
+#include <sys/types.h>
 
 class SideBar : public AR::Layer {
 public:

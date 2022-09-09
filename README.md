@@ -28,17 +28,11 @@ No passing build yet.
 
 ## How to use
 
-
-[**Build Instructions -- for developers**](https://github.com/M-Gjerde/MultiSense/tree/master/docs)
-
-## Bugs
-
+[**Build Instructions -- for developers**](https://github.com/M-Gjerde/MultiSense/blob/master/docs/BUILD.md)
 
 ## Author(s)
 
 * [**Magnus Gjerde**](https://github.com/M-Gjerde/)
-
-## Support
 
 ## License
 

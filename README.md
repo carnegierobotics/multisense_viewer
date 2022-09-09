@@ -5,16 +5,24 @@
 <!---
  [![Backers on Patreon](https://img.shields.io/badge/backer-Patreon-orange.svg)](https://www.patreon.com/yilber) [![Backers on Paypal](https://img.shields.io/badge/backer-Paypal-blue.svg)](https://www.paypal.me/Yilber) -->
 
+Badges just for visuals, not correctly implemented
 
-Boilerplate for creating github compatible readme files
+| Platform | CI Status                                                                                                                                                                    |
+|----------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Linux    | [![Linux Build Status](https://ci.appveyor.com/api/projects/status/abynv8xd75m26qo9/branch/master?svg=true)](https://ci.appveyor.com/project/ianfixes/arduino-ci)            |
+| Windows  | [![Windows Build status](http://badges.herokuapp.com/travis/Arduino-CI/arduino_ci?env=BADGE=linux&label=build&branch=master)](https://travis-ci.org/Arduino-CI/arduino_ci)   |
 
 ## Background
+Quickly test your MultiSense device by using this application. The application will automatically find the camera and configure your network device. Additionally, the app provides a rich 2D/3D viewer and options to set certain sensor parameters.
 
 > MultiSense Viewer
 
 ## Installation
+Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Tested on a clean Ubuntu 20.04 LTS.
 
-### Linux/Ubuntu packages
+### Setting up development environment
+
+#### Linux/Ubuntu packages
 Install Dependencies:
 
 Open your terminal and type in
@@ -42,7 +50,7 @@ $ make -j12 # j-parallell jobs (Same number as cores on your cpu for faster comp
 In your build folder there is a executable called Multisense-viewer. Launch this to start the application.
 To be able to use the auto connect feature, launch with root/admin privileges.
 
-### Windows
+#### Windows
 <b> Prerequisites: </b>
 
 Have Microsoft's Visual studio with c++ desktop environment tools installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>

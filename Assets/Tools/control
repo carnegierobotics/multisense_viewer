@@ -1,13 +1,12 @@
-Package: com.example.package
-Name: Example Package
+Package: com.carnegierobotics.multisense
+Name: MultiSense Viewer
 Description: An example package.
  This longer description will load when a depiction URL is not specified.
-Author: Ms. Example <example@example.com>
-Maintainer: Example, Inc. <example-inc@example.com>
+Author: Mr. Magnus mgjerde@carnegierobotics.com
+Maintainer: Carnegie Robotics LLC mgjerde@carnegierobotics.com
 Version: 1.0-0
-Section: Addons (SpringBoard)
-Homepage: https://example.com
-Website: https://example.com
+Homepage: https://github.com/M-Gjerde/MultiSense
+Website: https://github.com/M-Gjerde/MultiSense
 Architecture: amd64
 
 

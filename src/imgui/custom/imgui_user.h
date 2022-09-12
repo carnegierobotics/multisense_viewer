@@ -6,13 +6,14 @@
 #define MULTISENSE_VIEWER_IMGUI_USER_H
 
 #include "imgui_internal.h"
-
-namespace ImGui{
+#include "string"
+namespace ImGui {
 
 //IMGUI_API bool          CustomSelectable(const char* label, bool* p_selected, ImGuiSelectableFlags flags = 0, const ImVec2& size = ImVec2(0, 0));      // "bool* p_selected" point to the selection state (read-write), as a convenient helper.
 //IMGUI_API bool          CustomSelectable(const char *label, bool selected, ImGuiSelectableFlags flags, const ImVec2 &size_arg);
 
-    inline bool CustomSelectable(const char *label, bool selected, bool highlight, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
+    inline bool CustomSelectable(const char *label, bool selected, bool highlight, ImGuiSelectableFlags flags,
+                                 const ImVec2 &size_arg) {
         ImGuiWindow *window = GetCurrentWindow();
         if (window->SkipItems)
             return false;
@@ -151,8 +152,9 @@ namespace ImGui{
     }
 
 
-    inline bool CustomSelectable(const char *label, bool *p_selected, bool highlight, ImGuiSelectableFlags flags, const ImVec2 &size_arg) {
-        if (CustomSelectable(label, *p_selected,highlight, flags, size_arg)) {
+    inline bool CustomSelectable(const char *label, bool *p_selected, bool highlight, ImGuiSelectableFlags flags,
+                                 const ImVec2 &size_arg) {
+        if (CustomSelectable(label, *p_selected, highlight, flags, size_arg)) {
             *p_selected = !*p_selected;
             return true;
         }
@@ -161,11 +163,9 @@ namespace ImGui{
 
     // Helper to display a little (?) mark which shows a tooltip when hovered.
 // In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
-    static void HelpMarker(const char* desc)
-    {
+    static void HelpMarker(const char *desc) {
         ImGui::TextDisabled("(?)");
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-        {
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
             ImGui::TextUnformatted(desc);
@@ -173,6 +173,74 @@ namespace ImGui{
             ImGui::EndTooltip();
         }
     }
+
+    inline void
+    ImageButtonText(const char *str_id, int* idx, int defaultValue, const ImVec2 btnSize, ImTextureID user_texture_id, const ImVec2 &size,
+                    const ImVec2 &uv0,
+                    const ImVec2 &uv1,
+                    const ImVec4 &bg_col, const ImVec4 &tint_col) {
+        ImGuiContext &g = *GImGui;
+        ImGuiWindow *window = g.CurrentWindow;
+        if (window->SkipItems)
+            return;
+
+        ImVec2 posMinScreen = ImGui::GetCursorScreenPos();
+        ImVec2 posMin = ImGui::GetCursorPos();
+
+        ImGui::SetCursorScreenPos(posMinScreen);
+        ImGui::PushID(1);
+        if (ImGui::InvisibleButton(str_id, btnSize)){
+            if (*idx != defaultValue)
+                *idx = defaultValue;
+            else if (*idx == defaultValue)
+                *idx = -1; // reset variable
+
+        }
+        ImGui::PopID();
+        ImGui::SameLine();
+        // Screen pos for adding to windowDrawList rects
+        ImVec2 posMax = posMinScreen;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+        ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
+                                                  (*idx == defaultValue) ? ImColor(0.52f, 0.64, 0.75f, 1.0f) : ImColor(0.15f, 0.25, 0.4f, 1.0f), 10.0f, 0);
+
+
+        // Window relative pos for text and img element
+        posMax = posMin;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+        ImVec2 txtSize = ImGui::CalcTextSize(str_id);
+        ImGui::SetCursorPos(ImVec2(posMin.x + 10.0f, posMin.y + ((posMax.y - posMin.y) / 2) - (txtSize.y / 2)));
+        ImGui::Text("%s", str_id);
+        ImGui::SameLine();
+        ImGui::PushID(0);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ((btnSize.y - size.y)/2));
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 30.0f)));
+        ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, bg_col, tint_col);
+        ImGui::PopID();
+    };
+
+    struct Funcs {
+        static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
+            if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+                auto *my_str = (std::string *) data->UserData;
+                IM_ASSERT(my_str->data() == data->Buf);
+                my_str->resize(
+                        data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
+                data->Buf = my_str->data();
+            }
+            return 0;
+        }
+
+        static bool
+        MyInputText(const char *label, std::string *my_str, ImGuiInputTextFlags flags = 0) {
+            IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+            return ImGui::InputText(label, my_str->data(), (size_t) my_str->size(),
+                                    flags | ImGuiInputTextFlags_CallbackResize,
+                                    Funcs::MyResizeCallback, (void *) my_str);
+        }
+    };
 
 }
 #endif //MULTISENSE_VIEWER_IMGUI_USER_H

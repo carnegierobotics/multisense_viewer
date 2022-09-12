@@ -68,6 +68,8 @@ public:
 
             int imageButtonHeight = 100;
             const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
                 float imageSpacing = 150.0f;
 
@@ -82,7 +84,6 @@ public:
 
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
 
-                ImGui::PushID(i);
                 ImVec2 size = ImVec2(100.0f,
                                      100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
@@ -90,11 +91,8 @@ public:
 
                 ImVec4 bg_col = ImVec4(0.054, 0.137, 0.231, 1.0f);         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
-                if (ImGui::ImageButton(handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, 0, bg_col,
-                                       tint_col))
+                if (ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, bg_col,tint_col))
                     page[i] = true;
-
-                ImGui::PopID();
 
                 ImGui::SetCursorPos(ImVec2(xOffset, (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
 
@@ -102,6 +100,8 @@ public:
 
                 ImGui::SameLine();
             }
+
+            ImGui::PopStyleVar();
             ImGui::NewLine();
             //ImGui::ShowDemoWindow();
             ImGui::End();

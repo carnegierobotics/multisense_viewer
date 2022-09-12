@@ -8,12 +8,14 @@
 #include <filesystem>
 #include <utility>
 #include "Camera.h"
-#include "CameraConnection.h"
 #include "MultiSense/src/tools/Utils.h"
 #include "MultiSense/src/tools/Logger.h"
 
 #define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
+
+
+class CameraConnection; // forward declaration of this class to speed up compile time. Separate scripts/model_loaders from ImGui source recompile
 
 typedef enum ScriptType {
     AR_SCRIPT_TYPE_DISABLED,
@@ -177,10 +179,9 @@ public:
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
-        else if (!(renderData.crlCamera->get()->lastActiveDevice == "-1"))
-            update(renderData.crlCamera->get());
         else
-            update();
+            update(renderData.crlCamera->get());
+
 
 
         // If initialized

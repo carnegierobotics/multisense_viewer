@@ -17,10 +17,6 @@ void Renderer::prepareRenderer() {
 
     //generateScriptClasses();
 
-    // Generate UI from Layers
-    guiManager->pushLayer<SideBar>();
-    guiManager->pushLayer<InteractionMenu>();
-
     cameraConnection = std::make_unique<CameraConnection>();
 }
 

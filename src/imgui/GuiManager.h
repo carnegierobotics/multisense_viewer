@@ -16,7 +16,6 @@
 #include <MultiSense/src/tools/Utils.h>
 #include <MultiSense/src/core/VulkanDevice.h>
 #include "MultiSense/src/imgui/Layer.h"
-#include <MultiSense/external/imgui/imgui.h>
 #include <MultiSense/src/core/Texture.h>
 #include "imgui_internal.h"
 
@@ -91,7 +90,7 @@ namespace AR {
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);
 
-        ArEngine::ImageElement loadImGuiTextureFromFileName(const std::string& file);
+        void loadImGuiTextureFromFileName(const std::string& file);
 
         void loadAnimatedGif(const std::string &file);
 

@@ -6,7 +6,7 @@
 #define MULTISENSE_LAYER_H
 
 #define IMGUI_INCLUDE_IMGUI_USER_H
-
+#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 
 #include "imgui.h"
 #include <array>
@@ -44,31 +44,26 @@ namespace AR {
         struct {
             unsigned char* pixels;
             ImTextureID image[20];
+            uint32_t id;
             uint32_t lastFrame = 0;
             uint32_t width;
             uint32_t height;
             uint32_t imageSize;
             uint32_t totalFrames;
             uint32_t* delay;
-
         } gif;
-        uint32_t gifFrame = 0;
 
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
         float previewBorderPadding = 60.0f;
 
-        std::unordered_map<ImageElementIndex, ArEngine::ImageElement> img;
-
-        std::vector<ArEngine::ImageElement> imageElements;
-
         /** @brief add device button params */
         float addDeviceBottomPadding = 70.0f, addDeviceLeftPadding = 20.0f;
         float addDeviceWidth = 200.0f, addDeviceHeight = 35.0f;
 
         /** @brief Height of popupModal*/
-        float popupHeight = 400.0f;
+        float popupHeight = 500.0f;
         /** @brief Width of popupModal*/
         float popupWidth = 450.0f;
 
@@ -186,16 +181,20 @@ namespace AR {
 
     };
 
-    static ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
-    static ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
-    static ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
-    static ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
+    static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
+    static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+    static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
+    static const ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
 
-    static ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
-    static ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
-    static ImVec4 PopupBackground(0.084f, 0.231f, 0.389f, 1.0f);
-    static ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
-    static ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
+    static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
+    static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
+
+    static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
+    static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
+
+    static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
+    static const ImVec4 PopupBackground(0.183, 0.33, 0.47f, 1.0f);
+
 
     class Layer {
 

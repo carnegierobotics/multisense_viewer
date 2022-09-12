@@ -20,7 +20,6 @@
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/tools/Macros.h>
 #include <MultiSense/src/core/CameraConnection.h>
-#include <MultiSense/src/imgui/SideBar.h>
 
 // Include scripts
 //

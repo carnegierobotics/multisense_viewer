@@ -15,7 +15,7 @@
 #include "AutoConnectLinux.h"
 
 
-std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAdapters(bool logEvent) {
+std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     std::vector<AdapterSupportResult> adapterSupportResult;
     auto ifn = if_nameindex();
     auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -26,6 +26,12 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
             __u32 link_mode_data[3 * 127];
         } ecmd{};
         AdapterSupportResult adapter(i->if_name, false);
+
+
+        // Filter out docker adapters.
+        if (strstr(i->if_name, "docker") != NULL)
+            continue;
+
 
         auto ifr = ifreq{};
         std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
@@ -47,6 +53,21 @@ std::vector<AutoConnect::AdapterSupportResult> AutoConnectLinux::findEthernetAda
 
         adapter.supports = true;
         adapter.description = adapter.name; // Copy name to description
+        adapter.index = i->if_index;
+
+        // If a camera has al ready been found on the adapter then ignore it. Remove it from adapters list
+        bool ignore = false;
+        for (const auto &found: ignoreAdapters) {
+            if (found.index == adapter.index) {
+                ignore = true;
+                std::string str = "Found already searched adapter: " + adapter.name + ". Ignoring...";
+                eventCallback(str, context, 0);
+            }
+        }
+
+        if (ignore && !skipIgnored) {
+            adapter.searched = true;
+        }
 
         adapterSupportResult.emplace_back(adapter);
     }
@@ -64,18 +85,47 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
     int i = 0;
-
     // Loop keeps retrying to connect on supported network adapters.
     while (app->loopAdapters) {
-        auto adapter = adapters[i];
-        i++;
-        if (i == adapters.size())
-            i = 0;
 
+        if (i >= adapters.size()) {
+            i = 0;
+            app->eventCallback("Tested all adapters. rerunning adapter search", app->context, 0);
+            adapters = app->findEthernetAdapters(true, false);
+
+            bool testedAllAdapters = true;
+
+            for (const auto& a : adapters){
+                if (a.supports && !a.searched)
+                    testedAllAdapters = false;
+            }
+
+            if (testedAllAdapters) {
+                app->eventCallback("No other adapters found", app->context, 0);
+                app->eventCallback("Finished", app->context, 0);
+                break;
+            }
+        }
+        auto adapter = adapters[i];
+
+        // If it doesn't support a camera then dont loop it
         if (!adapter.supports) {
             continue;
         }
 
+        // If a camera has al ready been found on the adapter then dont re-run a search on it. Remove it from adapters list
+        bool isAlreadySearched = false;
+        for (const auto &found: app->ignoreAdapters) {
+            if (found.index == adapter.index)
+                isAlreadySearched = true;
+        }
+
+        if (isAlreadySearched) {
+            adapters.erase(adapters.begin() + i);
+            continue;
+        }
+
+        i++;
         std::string str = "Testing Adapter. Name: " + adapter.name;
         app->eventCallback(str, app->context, 0);
 
@@ -86,7 +136,8 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         // Submit request for a socket descriptor to look up interface.
         if ((sd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
             perror("socket() failed to get socket descriptor for using ioctl() ");
-            exit(EXIT_FAILURE);
+            app->eventCallback("Error", app->context, 2);
+            continue;
         }
 
         /* set the network card in promiscuos mode*/
@@ -96,15 +147,17 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         struct ifreq ethreq;
         strncpy(ethreq.ifr_name, adapter.name.c_str(), IF_NAMESIZE);
         if (ioctl(sd, SIOCGIFFLAGS, &ethreq) == -1) {
-            perror("ioctl");
+            perror("SIOCGIFFLAGS: ioctl");
             close(sd);
-            exit(1);
+            app->eventCallback("Error", app->context, 2);
+            continue;
         }
         ethreq.ifr_flags |= IFF_PROMISC;
         if (ioctl(sd, SIOCSIFFLAGS, &ethreq) == -1) {
-            perror("ioctl");
+            perror("SIOCSIFFLAGS: ioctl");
             close(sd);
-            exit(1);
+            app->eventCallback("Error", app->context, 2);
+            continue;
         }
 
         str = "Set adapter to listen for all activity";
@@ -116,13 +169,15 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
 
         int sock_raw = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
         if (sock_raw < 0) {
-            //Print the error with proper message
+            app->eventCallback("Error", app->context, 2);
             perror("Socket Error");
-            return;
+            continue;
         }
         int ret = setsockopt(sock_raw, SOL_SOCKET, SO_BINDTODEVICE, adapter.name.c_str(), adapter.name.length() + 1);
         if (ret != 0) {
-            std::cerr << "Failed to bind to network adapter" << std::endl;
+            std::cerr << "Failed to bind to network adapter: " << adapter.name.c_str() << std::endl;
+            app->eventCallback("Error", app->context, 2);
+            close(sock_raw);
             continue;
         }
 
@@ -163,21 +218,17 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter);
 
                 if (ret == FOUND_CAMERA) {
+                    app->ignoreAdapters.push_back(adapter);
                     app->onFoundCamera(adapter);
-                    app->listenOnAdapter = false;
-                    app->loopAdapters = false;
-                    app->success = true;
                     break;
                 } else if (ret == NO_CAMERA_RETRY) {
                     continue;
                 } else if (ret == NO_CAMERA) {
-
                     break;
                 }
 
             }
         }
-
     }
 
     printf("Exited thread\n");
@@ -186,8 +237,7 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
 void AutoConnectLinux::onFoundAdapters(std::vector<AdapterSupportResult> adapters, bool logEvent) {
 
     for (auto &adapter: adapters) {
-
-        if (adapter.supports) {
+        if (adapter.supports && !adapter.searched) {
             std::string str;
             str = "Found supported adapter: " + adapter.name;
             if (logEvent)
@@ -211,9 +261,12 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     // Create the socket.
     int camera_fd = -1;
     camera_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (camera_fd < 0)
+    if (camera_fd < 0) {
         fprintf(stderr, "failed to create the UDP socket: %s",
                 strerror(errno));
+        eventCallback("Error", context, 0);
+        return NO_CAMERA;
+    }
 
     // Bind Camera FD to the ethernet device
     const char *interface = adapter.name.c_str();
@@ -221,6 +274,9 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
                          IFNAMSIZ); // 15 is max length for an adapter name.
     if (ret != 0) {
         fprintf(stderr, "Error binding to: %s, %s", interface, strerror(errno));
+        eventCallback("Error", context, 0);
+        return NO_CAMERA;
+
     }
 
     struct ifreq ifr{};
@@ -245,7 +301,8 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     int ioctl_result = ioctl(camera_fd, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFADDR: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+        eventCallback("Error", context, 0);
+        return NO_CAMERA;
     }
 
     /// put mask in ifr structure
@@ -253,8 +310,8 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     ioctl_result = ioctl(camera_fd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFNETMASK: ");
-        perror("");
-        exit(EXIT_FAILURE);
+        eventCallback("Error", context, 0);
+        return NO_CAMERA;
     }
     /*** END **/
 
@@ -279,6 +336,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
         result.networkAdapter = adapter.name;
         result.networkAdapterLongName = adapter.lName;
         result.cameraIpv4Address = address;
+        result.index = adapter.index;
         str = "Found camera at: " + address + "";
         eventCallback(str, context, 1);
         return FOUND_CAMERA;
@@ -301,7 +359,7 @@ void AutoConnectLinux::stop() {
         t->join();
 
 
-    delete(t); //instantiated in start func
+    delete (t); //instantiated in start func
     t = nullptr;
 
 }
@@ -332,11 +390,11 @@ void AutoConnectLinux::setDetectedCallback(void (*param)(Result result1, void *c
 }
 
 bool AutoConnectLinux::shouldProgramClose() {
-    return shouldProgramRun;
+    return !shouldProgramRun; // Note: This is just confusing usage... future technical debt right here
 }
 
-void AutoConnectLinux::setProgramClose(bool close) {
-    this->shouldProgramRun = close;
+void AutoConnectLinux::setShouldProgramClose(bool close) {
+    this->shouldProgramRun = !close; // Note: This is just confusing usage... future technical debt right here
 }
 
 void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *, int)) {

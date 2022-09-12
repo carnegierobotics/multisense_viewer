@@ -16,7 +16,7 @@ public:
     /** @Brief Starts the search for camera given a list containing network adapters Search is done in another thread**/
     void start(std::vector<AdapterSupportResult> vector) override;
     /** @Brief Function to search for network adapters **/
-    std::vector<AdapterSupportResult> findEthernetAdapters(bool logEvent = true) override;
+    std::vector<AutoConnect::AdapterSupportResult> findEthernetAdapters(bool logEvent, bool skipIgnored) override;
     /** @Brief cleans up thread**/
     void stop() override;
     /** @Brief Function called after a search of adapters and at least one adapter was found **/
@@ -41,7 +41,7 @@ public:
     void* context = nullptr;
     bool running = false;
     bool shouldProgramClose() override;
-    void setProgramClose(bool close) override;
+    void setShouldProgramClose(bool close) override;
 
 
 private:

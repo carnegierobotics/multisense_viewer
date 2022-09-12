@@ -5,8 +5,8 @@
 #ifndef AUTOCONNECT_AUTOCONNECT_H
 #define AUTOCONNECT_AUTOCONNECT_H
 
-#define MAX_CONNECTION_ATTEMPTS 4
-#define TIMEOUT_INTERVAL_SECONDS 30
+#define MAX_CONNECTION_ATTEMPTS 3
+#define TIMEOUT_INTERVAL_SECONDS 10
 
 #include <include/MultiSense/MultiSenseTypes.hh>
 #include "include/MultiSense/MultiSenseChannel.hh"
@@ -42,6 +42,8 @@ public:
             this->name = name;
             this->supports = supports;
         }
+
+        bool searched = false;
     };
 
     bool success = false;
@@ -50,7 +52,9 @@ public:
     time_t startTime{};
     crl::multisense::Channel* cameraInterface{};
 
-    virtual std::vector<AdapterSupportResult> findEthernetAdapters(bool b) = 0;
+    std::vector<AdapterSupportResult> ignoreAdapters;
+
+    virtual std::vector<AutoConnect::AdapterSupportResult> findEthernetAdapters(bool b, bool skipIgnored) = 0;
     virtual void start(std::vector<AdapterSupportResult> vector) = 0;
     virtual void onFoundAdapters(std::vector<AdapterSupportResult> vector, bool logEvent) = 0;
     virtual FoundCameraOnIp onFoundIp(std::string string, AdapterSupportResult adapter) = 0;
@@ -61,7 +65,7 @@ public:
 
     virtual bool shouldProgramClose() = 0;
 
-    virtual void setProgramClose(bool exit) = 0;
+    virtual void setShouldProgramClose(bool exit) = 0;
 
 private:
     struct CameraInfo {

@@ -15,6 +15,8 @@
 #include <MultiSense/src/tools/Macros.h>
 #include "GuiManager.h"
 #include "stb_image.h"
+#include "SideBar.h"
+#include "InteractionMenu.h"
 
 namespace AR {
     GuiManager::GuiManager(VulkanDevice *vulkanDevice) {
@@ -28,6 +30,8 @@ namespace AR {
 
         initializeFonts();
 
+        pushLayer<SideBar>();
+        pushLayer<InteractionMenu>();
     }
 
     void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height) {
@@ -175,6 +179,7 @@ namespace AR {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+        style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
         // Dimensions
         io = &ImGui::GetIO();
         io->DisplaySize = ImVec2(width, height);
@@ -315,6 +320,17 @@ namespace AR {
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png");
         handles.info->imageButtonTextureDescriptor[2] = reinterpret_cast<void *>(imageIconDescriptor);
 
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_auto_configure.png");
+        handles.info->imageButtonTextureDescriptor[3] = reinterpret_cast<void *>(imageIconDescriptor);
+
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_manual_configure.png");
+        handles.info->imageButtonTextureDescriptor[4] = reinterpret_cast<void *>(imageIconDescriptor);
+
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_playback.png");
+        handles.info->imageButtonTextureDescriptor[5] = reinterpret_cast<void *>(imageIconDescriptor);
+
+
+
         loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
 
     }
@@ -418,9 +434,7 @@ namespace AR {
 
     }
 
-    ArEngine::ImageElement GuiManager::loadImGuiTextureFromFileName(const std::string &file) {
-
-
+    void GuiManager::loadImGuiTextureFromFileName(const std::string &file) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -489,9 +503,6 @@ namespace AR {
             write_desc[0].pImageInfo = &iconTexture.descriptor;
             vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
         }
-
-
-        return {imageIconDescriptor, texWidth, texHeight};
     }
 
 

@@ -5,8 +5,9 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
+#include <utility>
+
 #include "glm/glm.hpp"
-#include "imgui.h"
 #include "vulkan/vulkan_core.h"
 #include "include/MultiSense/MultiSenseTypes.hh"
 
@@ -27,7 +28,7 @@ typedef enum CRLCameraType {
     VIRTUAL_CAMERA
 } CRLCameraType;
 
-typedef enum ArConnectionState{
+typedef enum ArConnectionState {
     AR_STATE_CONNECTED,
     AR_STATE_CONNECTING,
     AR_STATE_ACTIVE,
@@ -61,7 +62,7 @@ typedef enum CameraResolutionGroup {
     AR_GROUP_TWO,
 
 
-}CameraResolutionGroup;
+} CameraResolutionGroup;
 
 typedef enum CameraPlaybackFlags {
     AR_PREVIEW_PLAYING = 10,
@@ -69,7 +70,7 @@ typedef enum CameraPlaybackFlags {
     AR_PREVIEW_STOPPED = 12,
     AR_PREVIEW_NONE = 13,
     AR_PREVIEW_RESET = 14,
-}CameraPlaybackFlags;
+} CameraPlaybackFlags;
 
 typedef enum page {
     PAGE_PREVIEW_DEVICES = 0,
@@ -122,15 +123,37 @@ struct ExposureParams {
 
 };
 
-namespace ArEngine{
-    struct YUVTexture{
+struct EntryConnectDevice {
+    std::string profileName;
+    std::string IP;
+    std::string interfaceName;
+    uint32_t interfaceIndex{};
+
+    std::string cameraName;
+
+    EntryConnectDevice()= default;
+
+    EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx) : IP(std::move(ip)),
+                                                                                              interfaceName(std::move(iName)),
+                                                                                              cameraName(std::move(camera)),
+                                                                                              interfaceIndex(idx) {
+    }
+
+    bool ready(){
+        return (!IP.empty() && !profileName.empty() && !interfaceName.empty() && interfaceIndex != 0);
+    }
+
+};
+
+namespace ArEngine {
+    struct YUVTexture {
         void *data[NUM_YUV_DATA_POINTERS]{};
         uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
-        VkFlags * formats[NUM_YUV_DATA_POINTERS];
+        VkFlags *formats[NUM_YUV_DATA_POINTERS];
         VkFormat format{};
     };
 
-    struct TextureData{
+    struct TextureData {
         void *data;
         uint32_t len;
         CRLCameraDataType type;
@@ -155,9 +178,9 @@ namespace ArEngine{
     };
 
     struct MP4Frame {
-        void* plane0;
-        void* plane1;
-        void* plane2;
+        void *plane0;
+        void *plane1;
+        void *plane2;
 
         uint32_t plane0Size;
         uint32_t plane1Size;
@@ -169,28 +192,6 @@ namespace ArEngine{
         bool right = false;
         bool middle = false;
         float wheel = 0.0f;
-    };
-    struct ImageElement {
-        ImTextureID texDescriptor{};
-        int width{};
-        int height{};
-        CameraStreamInfoFlag streamInfo;
-
-        ImVec2 uv0{};
-        ImVec2 uv1{};
-        ImVec4 bgCol{};
-        ImVec4 tintCol{};
-
-        ImageElement(void * texID, int width, int height, ImVec2 uv0 = ImVec2(0.0f, 0.0f), ImVec2 uv1 = ImVec2(1.0f, 1.0f)){
-            texDescriptor = texID;
-            this->width = width;
-            this->height = height;
-            this->uv0 = uv0;
-            this->uv1 = uv1;
-        };
-
-        ImageElement() = default;
-
     };
 
 

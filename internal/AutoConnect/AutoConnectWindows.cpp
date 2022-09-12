@@ -44,7 +44,8 @@ struct iphdr {
 
 };
 
-std::vector<AutoConnect::AdapterSupportResult> AutoConnectWindows::findEthernetAdapters(bool logEvent) {
+std::vector<AutoConnect::AdapterSupportResult>
+AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     std::vector<AutoConnect::AdapterSupportResult> adapters;
    
     
@@ -466,7 +467,7 @@ bool AutoConnectWindows::shouldProgramClose() {
     return shouldProgramRun;
 }
 
-void AutoConnectWindows::setProgramClose(bool close) {
+void AutoConnectWindows::setShouldProgramClose(bool close) {
     this->shouldProgramRun = close;
 }
 

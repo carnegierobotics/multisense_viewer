@@ -172,6 +172,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
     const double xScale = 1.0 / ((static_cast<double>(info.devInfo.imagerWidth) /
                                   static_cast<double>(width)));
 
+    // From LibMultisenseUtility
     crl::multisense::image::Config c = info.imgConf;
     const double fx = c.fx();
     const double fy = c.fy();

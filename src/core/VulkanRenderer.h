@@ -88,6 +88,7 @@ public:
 
     int keyPress = -1;
     int keyAction = -1;
+    Input input;
 
     /** @brief Handle for Logging*/
     Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class

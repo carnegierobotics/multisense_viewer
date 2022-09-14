@@ -50,18 +50,18 @@ void RightImager::update() {
         free(frame.plane2);
     }
 
-    UBOMatrix mat{};
+    ArEngine::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 /scaleX), centerY * (1 /scaleY), 0.0f));
 
-    auto *d = (UBOMatrix *) bufferOneData;
+    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (FragShaderParams *) bufferTwoData;
+    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);

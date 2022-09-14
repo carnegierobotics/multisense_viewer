@@ -44,6 +44,8 @@ public:
     void setShouldProgramClose(bool close) override;
 
 
+    void clearSearchedAdapters();
+
 private:
     static void run(void* instance, std::vector<AdapterSupportResult> adapters);
 };

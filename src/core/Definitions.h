@@ -12,6 +12,18 @@
 #include "include/MultiSense/MultiSenseTypes.hh"
 
 #define NUM_YUV_DATA_POINTERS 3
+#define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
+#define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
+
+typedef enum ScriptType {
+    AR_SCRIPT_TYPE_DISABLED,
+    AR_SCRIPT_TYPE_DEFAULT,
+    AR_SCRIPT_TYPE_CRL_CAMERA,
+    AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY,
+    AR_SCRIPT_TYPE_POINT_CLOUD
+} ScriptType;
+
+
 
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
@@ -192,6 +204,31 @@ namespace ArEngine {
         bool right = false;
         bool middle = false;
         float wheel = 0.0f;
+    };
+
+
+    struct UBOMatrix {
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::mat4 model;
+    };
+
+    struct FragShaderParams {
+        glm::vec4 lightColor;
+        glm::vec4 objectColor;
+        glm::vec4 lightPos;
+        glm::vec4 viewPos;
+    };
+
+    struct PointCloudParam {
+        glm::mat4 kInverse;
+        float width;
+        float height;
+    };
+
+    struct PointCloudShader {
+        glm::vec4 pos[NUM_POINTS];
+        glm::vec4 col[NUM_POINTS];
     };
 
 

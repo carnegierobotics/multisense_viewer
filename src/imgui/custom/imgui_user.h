@@ -278,6 +278,45 @@ namespace ImGui {
         ImGui::PopID();
     };
 
+    static inline bool isHoverable(ImGuiWindow* window, ImGuiHoveredFlags flags)
+    {
+        // An active popup disable hovering on other windows (apart from its own children)
+        // FIXME-OPT: This could be cached/stored within the window.
+        ImGuiContext& g = *GImGui;
+        if (g.NavWindow)
+            if (ImGuiWindow* focused_root_window = g.NavWindow->RootWindow)
+                if (focused_root_window->WasActive && focused_root_window != window->RootWindow)
+                {
+                    // For the purpose of those flags we differentiate "standard popup" from "modal popup"
+                    // NB: The order of those two tests is important because Modal windows are also Popups.
+                    if (focused_root_window->Flags & ImGuiWindowFlags_Modal)
+                        return false;
+                    if ((focused_root_window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+                        return false;
+                }
+        return true;
+    }
+
+    inline bool IsWindowHovered(std::string name, ImGuiHoveredFlags flags)
+    {
+        IM_ASSERT((flags & (ImGuiHoveredFlags_AllowWhenOverlapped | ImGuiHoveredFlags_AllowWhenDisabled)) == 0);   // Flags not supported by this function
+        ImGuiContext& g = *GImGui;
+        ImGuiWindow* ref_window = g.HoveredWindow;
+        ImGuiWindow* cur_window = g.CurrentWindow;
+        if (ref_window == NULL)
+            return false;
+
+        if (g.HoveredWindow->RootWindow->Name != name)
+            return false;
+
+        if (!isHoverable(ref_window, flags))
+            return false;
+        if (!(flags & ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+            if (g.ActiveId != 0 && !g.ActiveIdAllowOverlap && g.ActiveId != ref_window->MoveId)
+                return false;
+
+        return true;
+    }
 
 }
 #endif //MULTISENSE_VIEWER_IMGUI_USER_H

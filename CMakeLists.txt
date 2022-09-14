@@ -70,6 +70,7 @@ INCLUDE_DIRECTORIES(src/imgui/custom)
 
 set(ENGINE_SRC
         src/core/Definitions.h
+        src/core/KeyInput.h
         src/core/Base.h
         src/core/Buffer.cpp
         src/core/Buffer.h

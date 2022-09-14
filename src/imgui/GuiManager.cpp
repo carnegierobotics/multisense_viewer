@@ -34,12 +34,13 @@ namespace AR {
         pushLayer<InteractionMenu>();
     }
 
-    void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height) {
+    void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput) {
 
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
         handles.info->width = width;
         handles.info->height = height;
+        handles.input = pInput;
 
         ImGui::NewFrame();
 

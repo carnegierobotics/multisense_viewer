@@ -118,13 +118,13 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
-        if (input.getButtonDown(GLFW_KEY_LEFT_CONTROL)){
+        if (input->getButton(GLFW_KEY_LEFT_CONTROL)){
+            std::cout << "Btn down\n";
             auto * d2 = (float *) bufferFourData;
-            auto* btns = ( ArEngine::MouseButtons *) uiHandle.mouseBtns;
-            d2 = &btns->wheel;
+            d2 = 10.0f;
 
-        } else {
-            posY = uiHandle.mouseBtns->wheel * 0.05 * 0.1f * 0.557 * (720.0f / (float) renderData.height);
+        } else if (!uiHandle.info->hoverState ) {
+            posY = uiHandle.accumulatedActiveScroll * 0.05f * 0.1f * 0.557 * (720.0f / (float) renderData.height);
         }
 
         // center of viewing area box.

@@ -14,6 +14,7 @@
 #include "unordered_map"
 #include "string"
 #include "MultiSense/src/core/Definitions.h"
+#include "MultiSense/src/core/KeyInput.h"
 
 namespace AR {
 
@@ -81,6 +82,7 @@ namespace AR {
         float controlDropDownWidth = 350.0, controlDropDownHeight = 40.0f;
         float dropDownWidth = 300.0f, dropDownHeightOpen = 220.0f;
 
+        bool hoverState = false;
     };
 
 
@@ -175,6 +177,8 @@ namespace AR {
 
         /** Keypress and mouse events */
         const ArEngine::MouseButtons* mouseBtns;
+        float accumulatedActiveScroll = 0.0f;
+        const Input* input;
 
     };
 

@@ -330,6 +330,7 @@ private:
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
         /** CREATE VIEWING PREVIEWS **/
+        ImGui::ShowDemoWindow();
         uint32_t previewWindowCount = 0;
         for (auto &d: *handles->devices) {
             if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
@@ -429,12 +430,16 @@ private:
 
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
-        float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->mouseBtns->wheel +
-                                    ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
+        handles->info->hoverState = ImGui::IsWindowHovered("ControlArea", ImGuiHoveredFlags_AnyWindow);
+        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)){
+            handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
+        }
+
+        float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedActiveScroll +
+                ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
         handles->info->viewAreaElementPositionsY[i] = viewAreaElementPosY;
-
 
         ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]),
                                 ImGuiCond_Always);
@@ -461,9 +466,9 @@ private:
 
         // The colored bars around the preview window is made up of rectangles
         // Top bar
-        ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
+        ImVec2 topBarRectMin(viewAreaElementPosX, handles->info->viewAreaElementPositionsY[i]);
         ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                             viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
+                             handles->info->viewAreaElementPositionsY[i] + (handles->info->previewBorderPadding / 2));
         ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(0.11, 0.215, 0.33, 1.0f), 0.0f,
                                                   0);
 

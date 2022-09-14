@@ -25,26 +25,23 @@ public:
     };
 
     struct Result {
-        std::string cameraIpv4Address;
-        std::string networkAdapter;
-        std::string networkAdapterLongName;
-        uint32_t index;
-    }result;
 
-    struct AdapterSupportResult {
-        std::string name; // Name of network adapter tested
-        std::string description = "No description available";
-        std::string lName;
-        uint32_t index;
-        bool supports; // 0: for bad, 1: for good
+        Result() = default;
 
-        AdapterSupportResult(const char *name, uint8_t supports) {
-            this->name = name;
+        Result(const char *name, uint8_t supports) {
+            this->networkAdapter = name;
             this->supports = supports;
         }
-
+        bool supports{}; // 0: for bad, 1: for good
         bool searched = false;
-    };
+        std::string cameraIpv4Address;
+        std::string description = "No description available";
+        std::string networkAdapter;
+        std::string networkAdapterLongName;
+        uint32_t index{};
+
+    }result;
+
 
     bool success = false;
     bool loopAdapters = true;
@@ -52,13 +49,13 @@ public:
     time_t startTime{};
     crl::multisense::Channel* cameraInterface{};
 
-    std::vector<AdapterSupportResult> ignoreAdapters;
+    std::vector<Result> ignoreAdapters;
 
-    virtual std::vector<AutoConnect::AdapterSupportResult> findEthernetAdapters(bool b, bool skipIgnored) = 0;
-    virtual void start(std::vector<AdapterSupportResult> vector) = 0;
-    virtual void onFoundAdapters(std::vector<AdapterSupportResult> vector, bool logEvent) = 0;
-    virtual FoundCameraOnIp onFoundIp(std::string string, AdapterSupportResult adapter) = 0;
-    virtual void onFoundCamera(AdapterSupportResult supportResult) = 0;
+    virtual std::vector<AutoConnect::Result> findEthernetAdapters(bool b, bool skipIgnored) = 0;
+    virtual void start(std::vector<Result> vector) = 0;
+    virtual void onFoundAdapters(std::vector<Result> vector, bool logEvent) = 0;
+    virtual AutoConnect::FoundCameraOnIp onFoundIp(std::string string, Result adapter, int camera_fd) = 0;
+    virtual void onFoundCamera(Result supportResult) = 0;
     virtual void stop() = 0;
 
     bool shouldProgramRun = false;

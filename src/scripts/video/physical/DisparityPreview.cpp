@@ -83,22 +83,23 @@ void DisparityPreview::update(CameraConnection *conn) {
         delete tex;
     }
 
-    UBOMatrix mat{};
+    ArEngine::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 / scaleX), centerY * (1 / scaleY), 0.0f));
 
-    auto *d = (UBOMatrix *) bufferOneData;
+    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (FragShaderParams *) bufferTwoData;
+    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->viewPos;
+
 }
 
 void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
@@ -119,9 +120,9 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
         if (input->getButton(GLFW_KEY_LEFT_CONTROL)){
-            std::cout << "Btn down\n";
-            auto * d2 = (float *) bufferFourData;
-            d2 = 10.0f;
+            std::cout << "Btn down: " << uiHandle.mouseBtns->wheel / 100.0f << std::endl;
+            auto * d2 = (ArEngine::ZoomParam *) bufferFourData;
+            d2->zoom = uiHandle.mouseBtns->wheel / 1000.0f;
 
         } else if (!uiHandle.info->hoverState ) {
             posY = uiHandle.accumulatedActiveScroll * 0.05f * 0.1f * 0.557 * (720.0f / (float) renderData.height);
@@ -169,7 +170,7 @@ void DisparityPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
     int order = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
-    float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.mouseBtns->wheel);
+    float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2 * (orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2 * ((uiHandle.info->viewAreaElementSizeY + (orderOffset)) /
                            (float) renderData.height);                // left anchor

@@ -45,7 +45,7 @@ void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
     VkClearValue clearValues[2];
-    clearValues[0].color = {{0.054, 0.137, 0.231, 1.0f}};
+    clearValues[0].color = {{0.870f, 0.878, 0.862, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -271,7 +271,7 @@ void Renderer::windowResized() {
     renderData.width = width;
 
     // Update gui with new res
-    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, nullptr);
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
 
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {

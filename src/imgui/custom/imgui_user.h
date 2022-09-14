@@ -256,11 +256,11 @@ namespace ImGui {
         ImVec2 posMax = posMinScreen;
         posMax.x += btnSize.x;
         posMax.y += btnSize.y;
+        ImVec4 color = (*idx == defaultValue) ? ImColor(0.666, 0.674, 0.658, 1.0f) :
+                       hovered ? ImColor(0.462, 0.474, 0.494, 1.0f) :
+                       ImColor(0.411, 0.419, 0.407, 1.0f);
         ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
-                                                  (*idx == defaultValue) ? ImColor(0.52f, 0.64, 0.75f, 1.0f) : hovered
-                                                                                                               ? ImColor(
-                                                                  0.2f, 0.45, 0.65f, 1.0f) : ImColor(0.15f, 0.25, 0.4f,
-                                                                                                    1.0f), 10.0f, 0);
+                                                  ImColor(color), 10.0f, 0);
 
 
         // Window relative pos for text and img element
@@ -274,35 +274,34 @@ namespace ImGui {
         ImGui::PushID(0);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ((btnSize.y - size.y) / 2));
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 30.0f)));
-        ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, bg_col, tint_col);
+        ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, color, tint_col);
         ImGui::PopID();
     };
 
-    static inline bool isHoverable(ImGuiWindow* window, ImGuiHoveredFlags flags)
-    {
+    static inline bool isHoverable(ImGuiWindow *window, ImGuiHoveredFlags flags) {
         // An active popup disable hovering on other windows (apart from its own children)
         // FIXME-OPT: This could be cached/stored within the window.
-        ImGuiContext& g = *GImGui;
+        ImGuiContext &g = *GImGui;
         if (g.NavWindow)
-            if (ImGuiWindow* focused_root_window = g.NavWindow->RootWindow)
-                if (focused_root_window->WasActive && focused_root_window != window->RootWindow)
-                {
+            if (ImGuiWindow *focused_root_window = g.NavWindow->RootWindow)
+                if (focused_root_window->WasActive && focused_root_window != window->RootWindow) {
                     // For the purpose of those flags we differentiate "standard popup" from "modal popup"
                     // NB: The order of those two tests is important because Modal windows are also Popups.
                     if (focused_root_window->Flags & ImGuiWindowFlags_Modal)
                         return false;
-                    if ((focused_root_window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+                    if ((focused_root_window->Flags & ImGuiWindowFlags_Popup) &&
+                        !(flags & ImGuiHoveredFlags_AllowWhenBlockedByPopup))
                         return false;
                 }
         return true;
     }
 
-    inline bool IsWindowHovered(std::string name, ImGuiHoveredFlags flags)
-    {
-        IM_ASSERT((flags & (ImGuiHoveredFlags_AllowWhenOverlapped | ImGuiHoveredFlags_AllowWhenDisabled)) == 0);   // Flags not supported by this function
-        ImGuiContext& g = *GImGui;
-        ImGuiWindow* ref_window = g.HoveredWindow;
-        ImGuiWindow* cur_window = g.CurrentWindow;
+    inline bool IsWindowHovered(std::string name, ImGuiHoveredFlags flags) {
+        IM_ASSERT((flags & (ImGuiHoveredFlags_AllowWhenOverlapped | ImGuiHoveredFlags_AllowWhenDisabled)) ==
+                  0);   // Flags not supported by this function
+        ImGuiContext &g = *GImGui;
+        ImGuiWindow *ref_window = g.HoveredWindow;
+        ImGuiWindow *cur_window = g.CurrentWindow;
         if (ref_window == NULL)
             return false;
 

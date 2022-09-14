@@ -196,6 +196,14 @@ namespace AR {
     static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
     static const ImVec4 PopupBackground(0.183, 0.33, 0.47f, 1.0f);
 
+    static const ImVec4 CRLGray421(0.666, 0.674, 0.658, 1.0f);
+    static const ImVec4 CRLGray424(0.411, 0.419, 0.407, 1.0f);
+    static const ImVec4 CRLCoolGray(0.870f, 0.878, 0.862, 1.0f);
+    static const ImVec4 CRLGray424Main(0.462, 0.474, 0.494, 1.0f);
+    static const ImVec4 CRLDarkGray425(0.301, 0.313, 0.309, 1.0f);
+    static const ImVec4 CRLRed(0.768f, 0.125, 0.203, 1.0f);
+    static const ImVec4 CRLBlueIsh(0.313, 0.415, 0.474, 1.0f);
+
 
     class Layer {
 

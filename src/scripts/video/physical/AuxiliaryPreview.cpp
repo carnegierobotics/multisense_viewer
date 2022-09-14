@@ -120,7 +120,14 @@ void AuxiliaryPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
 
-        posY = uiHandle.mouseBtns->wheel * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        if (input->getButton(GLFW_KEY_LEFT_CONTROL)){
+            std::cout << "Btn down: " << uiHandle.mouseBtns->wheel / 100.0f << std::endl;
+            auto * d2 = (ArEngine::ZoomParam *) bufferFourData;
+            d2->zoom = uiHandle.mouseBtns->wheel / 1000.0f;
+
+        } else if (!uiHandle.info->hoverState ) {
+            posY = uiHandle.accumulatedActiveScroll * 0.05f * 0.1f * 0.557 * (720.0f / (float) renderData.height);
+        }
         // center of viewing area box.
 
         //posX =  2*;
@@ -163,7 +170,7 @@ void AuxiliaryPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
     int order = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.streamingOrder;
-    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.mouseBtns->wheel );
+    float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;

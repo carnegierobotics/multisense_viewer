@@ -235,7 +235,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
                                         CRLCameraModels::Model *model) {
     descriptors.resize(count);
 
-    uint32_t uniformDescriptorCount = (3 * count);
+    uint32_t uniformDescriptorCount = (4 * count);
     uint32_t imageDescriptorSamplerCount = (3 * count);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
@@ -321,7 +321,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
             writeDescriptorSets[4].descriptorCount = 1;
             writeDescriptorSets[4].dstSet = descriptors[i];
             writeDescriptorSets[4].dstBinding = 4;
-            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.descriptorBufferInfo;
         }
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),

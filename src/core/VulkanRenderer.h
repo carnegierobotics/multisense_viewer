@@ -60,7 +60,7 @@ public:
 
     std::string title = "-1";
     std::string name = "VulkanRenderer";
-    uint32_t apiVersion = VK_API_VERSION_1_3;
+    uint32_t apiVersion = VK_API_VERSION_1_2;
     bool backendInitialized = false;
     bool resized = false;
     uint32_t width = 1280;

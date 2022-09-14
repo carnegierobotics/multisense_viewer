@@ -8,7 +8,7 @@
 
 void DisparityPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_DISPARITY_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
@@ -77,6 +77,7 @@ void DisparityPreview::update(CameraConnection *conn) {
 
         if (camera->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, AR_DISPARITY_IMAGE);
+            model->setZoom();
             free(tex->data);
         }
         delete tex;
@@ -101,6 +102,8 @@ void DisparityPreview::update(CameraConnection *conn) {
 }
 
 void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+
+
     for (const auto &dev: *uiHandle.devices) {
 
         if (dev.streams.find(AR_PREVIEW_DISPARITY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
@@ -115,7 +118,15 @@ void DisparityPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
-        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float) renderData.height);
+        if (input.getButtonDown(GLFW_KEY_LEFT_CONTROL)){
+            auto * d2 = (float *) bufferFourData;
+            auto* btns = ( ArEngine::MouseButtons *) uiHandle.mouseBtns;
+            d2 = &btns->wheel;
+
+        } else {
+            posY = uiHandle.mouseBtns->wheel * 0.05 * 0.1f * 0.557 * (720.0f / (float) renderData.height);
+        }
+
         // center of viewing area box.
 
         //posX =  2*;
@@ -158,7 +169,7 @@ void DisparityPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
     int order = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
-    float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll);
+    float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.mouseBtns->wheel);
     posYMin = -1.0f + 2 * (orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2 * ((uiHandle.info->viewAreaElementSizeY + (orderOffset)) /
                            (float) renderData.height);                // left anchor

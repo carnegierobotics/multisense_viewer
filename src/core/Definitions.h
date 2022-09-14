@@ -124,8 +124,8 @@ struct ExposureParams {
 };
 
 struct EntryConnectDevice {
-    std::string profileName;
-    std::string IP;
+    std::string profileName = "MultiSense";
+    std::string IP = "10.66.176.21";
     std::string interfaceName;
     uint32_t interfaceIndex{};
 
@@ -139,8 +139,8 @@ struct EntryConnectDevice {
                                                                                               interfaceIndex(idx) {
     }
 
-    bool ready(){
-        return (!IP.empty() && !profileName.empty() && !interfaceName.empty() && interfaceIndex != 0);
+    bool ready() const{
+        return ((!IP.empty() && !profileName.empty() && !interfaceName.empty() && interfaceIndex != 0) || cameraName == "Virtual Camera");
     }
 
 };

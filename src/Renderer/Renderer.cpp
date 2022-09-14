@@ -142,7 +142,7 @@ void Renderer::render() {
     VulkanRenderer::prepareFrame();
 
     pLogger->frameNumber = frameID;
-    if (keypress == GLFW_KEY_SPACE) {
+    if (keyPress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);
         camera.setRotation(defaultCameraRotation);
     }
@@ -156,11 +156,10 @@ void Renderer::render() {
     renderData.pLogger = pLogger;
     renderData.height = height;
     renderData.width = width;
+    renderData.lastKeyPress = &keyPress;
+    renderData.lastKeyAction = &keyAction;
 
-    guiManager->handles.keypress = keypress;
-    guiManager->handles.mouseBtns.wheel = mouseButtons.wheel;
-    guiManager->handles.mouseBtns.left = mouseButtons.left;
-    guiManager->handles.mouseBtns.right = mouseButtons.right;
+    guiManager->handles.mouseBtns = &mouseButtons;
 
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height);

@@ -84,8 +84,10 @@ public:
     glm::vec2 mousePos{};
 
     ArEngine::MouseButtons mouseButtons{};
+    float mouseScrollSpeed = 50.0f;
 
-    int keypress = 0; // TODO REWORK
+    int keyPress = -1;
+    int keyAction = -1;
 
     /** @brief Handle for Logging*/
     Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class

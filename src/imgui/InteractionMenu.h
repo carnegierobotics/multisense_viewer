@@ -7,6 +7,7 @@
 
 #include "Layer.h"
 #include "imgui_user.h"
+#include "GLFW/glfw3.h"
 
 class InteractionMenu : public AR::Layer {
 public:
@@ -339,8 +340,6 @@ private:
 
                  */
 
-                handles->accumulatedMouseScroll -= handles->mouseBtns.wheel * handles->mouseScrollSpeed;
-
                 for (auto &stream: d.streams) {
                     if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
 
@@ -430,7 +429,7 @@ private:
 
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
-        float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedMouseScroll +
+        float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->mouseBtns->wheel +
                                     ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
 

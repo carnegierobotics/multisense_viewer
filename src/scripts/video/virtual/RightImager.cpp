@@ -115,7 +115,7 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
-        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        posY = uiHandle.mouseBtns->wheel * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
 
         for (auto &dev: *uiHandle.devices) {
             if (dev.state != AR_STATE_ACTIVE)
@@ -154,7 +154,7 @@ void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element 
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
 
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder;
-    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.mouseBtns->wheel );
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;          // left anchor

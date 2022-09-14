@@ -21,11 +21,16 @@ layout(set = 0, binding = 2) uniform SELECT {
 
 layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 
+layout(set = 0, binding = 4) uniform ZOOM {
+    float zoom;
+
+} zoom;
+
 
 void main()
 {
-
-    vec3 tex = texture(samplerColorMap, inUV).rgb * 65535 / 4096 * 2;
+    vec2 uv = inUV * zoom;
+    vec3 tex = texture(samplerColorMap, uv).rgb * 65535 / 4096 * 2; // magic number that makes it work
 
     outColor = vec4(tex.r, tex.r, tex.r, 1.0);
 

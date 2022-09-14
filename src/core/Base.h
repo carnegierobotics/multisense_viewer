@@ -10,6 +10,7 @@
 #include "Camera.h"
 #include "MultiSense/src/tools/Utils.h"
 #include "MultiSense/src/tools/Logger.h"
+#include "GLFW/glfw3.h"
 
 #define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
@@ -59,12 +60,14 @@ public:
         Buffer bufferOne;
         Buffer bufferTwo;
         Buffer bufferThree;
+        Buffer bufferFour;
     };
 
     // TODO DELETE POINTERS AS WELL
     void *bufferOneData{};
     void *bufferTwoData{};
     void *bufferThreeData{};
+    void *bufferFourData{};
 
     struct RenderUtils {
         VulkanDevice *device{};
@@ -93,6 +96,8 @@ public:
 
         uint32_t height;
         uint32_t width;
+        const int *lastKeyPress;
+        const int* lastKeyAction;
     } renderData{};
 
 
@@ -176,6 +181,8 @@ public:
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
+
+
         // Default update function is called for updating models. Else CRL extension
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
@@ -199,10 +206,14 @@ public:
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
             currentUB.bufferTwo.unmap();
 
-            if (renderData.type != AR_SCRIPT_TYPE_POINT_CLOUD) return;
             currentUB.bufferThree.map();
             memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
             currentUB.bufferThree.unmap();
+
+            currentUB.bufferFour.map();
+            memcpy(currentUB.bufferFour.mapped, bufferFourData, sizeof(float));
+            currentUB.bufferFour.unmap();
+
 
         }
     }
@@ -222,6 +233,7 @@ public:
         bufferOneData = new UBOMatrix();
         bufferTwoData = new FragShaderParams();
         bufferThreeData = new PointCloudParam();
+        bufferFourData = new PointCloudParam();
 
         for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
@@ -239,6 +251,11 @@ public:
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                              &uniformBuffer.bufferThree, sizeof(PointCloudParam));
+
+            renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                             &uniformBuffer.bufferFour, sizeof(float));
 
         }
 
@@ -283,8 +300,6 @@ public:
     }
 
 protected:
-
-private:
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
     std::chrono::steady_clock::time_point lastLogTime;
 
@@ -299,8 +314,39 @@ private:
         this->renderData.height = data->height;
         this->renderData.width = data->width;
         this->renderData.type = getType();
+        this->input.lastKeyPress = data->lastKeyPress;
+        this->input.action = data->lastKeyAction;
 
     }
+
+
+    struct Input {
+
+        [[nodiscard]] bool getButtonDown(int key) const {
+            if (key == *lastKeyPress && *action == GLFW_PRESS)
+                return true;
+
+            return false;
+        }
+
+        [[nodiscard]] bool getButtonUp(int key) const {
+            if (key == *lastKeyPress && *action == GLFW_RELEASE)
+                return true;
+
+            return false;
+        }
+
+        [[nodiscard]] bool getButton(int key) const {
+            if (key == *lastKeyPress)
+                return true;
+
+            return false;
+        }
+
+        const int* action;
+        const int* lastKeyPress;
+
+    } input;
 };
 
 #endif //MULTISENSE_BASE_H

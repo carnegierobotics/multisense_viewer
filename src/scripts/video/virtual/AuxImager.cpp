@@ -114,17 +114,8 @@ void AuxImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
     if (playbackSate == AR_PREVIEW_PLAYING) {
 
-        switch (uiHandle.keypress) {
-            case GLFW_KEY_M:
-                speed -= 0.01;
-                break;
-            case GLFW_KEY_N:
-                speed += 0.01;
-                break;
-        }
 
-
-        posY = uiHandle.accumulatedMouseScroll * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
+        posY = uiHandle.mouseBtns->wheel * 0.05 * 0.1f * 0.557 * (720.0f / (float)renderData.height);
         // center of viewing area box.
 
         //posX =  2*;
@@ -166,7 +157,7 @@ void AuxImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element de
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
 
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_AUX)->second.streamingOrder;
-    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.accumulatedMouseScroll );
+    float orderOffset =  uiHandle.info->viewAreaElementPositionsY[order] - (uiHandle.mouseBtns->wheel );
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;

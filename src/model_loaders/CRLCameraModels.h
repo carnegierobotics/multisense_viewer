@@ -88,6 +88,8 @@ public:
         void setColorTexture(ArEngine::YUVTexture *tex);
 
         void setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type);
+
+        void setZoom();
     };
 
     /**@brief Primitive for a surface */

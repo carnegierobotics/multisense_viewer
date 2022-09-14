@@ -290,25 +290,6 @@ private:
     }
 
 
-    void createDefaultElement(char *name, char *ip, char *interfaceName, uint32_t idx, const char *camName = "empty") {
-        AR::Element el;
-
-        el.name = name;
-        el.IP = ip;
-        el.state = AR_STATE_JUST_ADDED;
-        el.cameraName = camName;
-        el.interfaceName = interfaceName;
-        el.clicked = true;
-        el.interfaceIndex = idx;
-
-        devices.emplace_back(el);
-
-        handles->devices = &devices;
-
-        Log::Logger::getInstance()->info("Connect clicked for Default Device");
-        Log::Logger::getInstance()->info("Using: Ip: {}, and preset: {}", ip, name);
-    }
-
 
     void sidebarElements() {
         for (int i = 0; i < devices.size(); ++i) {
@@ -546,6 +527,7 @@ private:
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
+                entry.cameraName = "AutoConnect";
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
@@ -750,6 +732,7 @@ private:
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
+                entry.cameraName = "Manual";
             }
                 /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
 

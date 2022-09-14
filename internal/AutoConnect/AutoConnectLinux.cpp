@@ -147,16 +147,15 @@ void AutoConnectLinux::run(void *instance, std::vector<AdapterSupportResult> ada
         struct ifreq ethreq;
         strncpy(ethreq.ifr_name, adapter.name.c_str(), IF_NAMESIZE);
         if (ioctl(sd, SIOCGIFFLAGS, &ethreq) == -1) {
+            std::cout << "Error: " << adapter.name << "socket: " << sd << std::endl;
             perror("SIOCGIFFLAGS: ioctl");
-            close(sd);
-            app->eventCallback("Error", app->context, 2);
+            app->eventCallback(std::string(std::string("Error: ") + adapter.name), app->context, 2);
             continue;
         }
         ethreq.ifr_flags |= IFF_PROMISC;
         if (ioctl(sd, SIOCSIFFLAGS, &ethreq) == -1) {
             perror("SIOCSIFFLAGS: ioctl");
-            close(sd);
-            app->eventCallback("Error", app->context, 2);
+            app->eventCallback(std::string(std::string("Error: ") + adapter.name), app->context, 2);
             continue;
         }
 
@@ -319,6 +318,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Ad
     str = "Checking for camera at: " + address;
     eventCallback(str, context, 0);
 
+    std::cout << "Camera interface: " << adapter.index << " name: " << adapter.name << std::endl;
     cameraInterface = crl::multisense::Channel::Create(address);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {

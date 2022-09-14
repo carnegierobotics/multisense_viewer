@@ -7,6 +7,7 @@
 
 #include "imgui_internal.h"
 #include "string"
+
 namespace ImGui {
 
 //IMGUI_API bool          CustomSelectable(const char* label, bool* p_selected, ImGuiSelectableFlags flags = 0, const ImVec2& size = ImVec2(0, 0));      // "bool* p_selected" point to the selection state (read-write), as a convenient helper.
@@ -174,52 +175,6 @@ namespace ImGui {
         }
     }
 
-    inline void
-    ImageButtonText(const char *str_id, int* idx, int defaultValue, const ImVec2 btnSize, ImTextureID user_texture_id, const ImVec2 &size,
-                    const ImVec2 &uv0,
-                    const ImVec2 &uv1,
-                    const ImVec4 &bg_col, const ImVec4 &tint_col) {
-        ImGuiContext &g = *GImGui;
-        ImGuiWindow *window = g.CurrentWindow;
-        if (window->SkipItems)
-            return;
-
-        ImVec2 posMinScreen = ImGui::GetCursorScreenPos();
-        ImVec2 posMin = ImGui::GetCursorPos();
-
-        ImGui::SetCursorScreenPos(posMinScreen);
-        ImGui::PushID(1);
-        if (ImGui::InvisibleButton(str_id, btnSize)){
-            if (*idx != defaultValue)
-                *idx = defaultValue;
-            else if (*idx == defaultValue)
-                *idx = -1; // reset variable
-
-        }
-        ImGui::PopID();
-        ImGui::SameLine();
-        // Screen pos for adding to windowDrawList rects
-        ImVec2 posMax = posMinScreen;
-        posMax.x += btnSize.x;
-        posMax.y += btnSize.y;
-        ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
-                                                  (*idx == defaultValue) ? ImColor(0.52f, 0.64, 0.75f, 1.0f) : ImColor(0.15f, 0.25, 0.4f, 1.0f), 10.0f, 0);
-
-
-        // Window relative pos for text and img element
-        posMax = posMin;
-        posMax.x += btnSize.x;
-        posMax.y += btnSize.y;
-        ImVec2 txtSize = ImGui::CalcTextSize(str_id);
-        ImGui::SetCursorPos(ImVec2(posMin.x + 10.0f, posMin.y + ((posMax.y - posMin.y) / 2) - (txtSize.y / 2)));
-        ImGui::Text("%s", str_id);
-        ImGui::SameLine();
-        ImGui::PushID(0);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ((btnSize.y - size.y)/2));
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 30.0f)));
-        ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, bg_col, tint_col);
-        ImGui::PopID();
-    };
 
     struct Funcs {
         static int MyResizeCallback(ImGuiInputTextCallbackData *data) {
@@ -241,6 +196,88 @@ namespace ImGui {
                                     Funcs::MyResizeCallback, (void *) my_str);
         }
     };
+
+    // Tip: use ImGui::PushID()/PopID() to push indices or pointers in the ID stack.
+// Then you can keep 'str_id' empty or the same for all your buttons (instead of creating a string based on a non-string id)
+    inline bool
+    CustomInvisibleButton(const char *str_id, bool *hovered, const ImVec2 &size_arg, ImGuiButtonFlags flags) {
+        ImGuiContext &g = *GImGui;
+        ImGuiWindow *window = GetCurrentWindow();
+        if (window->SkipItems)
+            return false;
+
+        // Cannot use zero-size for InvisibleButton(). Unlike Button() there is not way to fallback using the label size.
+        IM_ASSERT(size_arg.x != 0.0f && size_arg.y != 0.0f);
+
+        const ImGuiID id = window->GetID(str_id);
+        ImVec2 size = CalcItemSize(size_arg, 0.0f, 0.0f);
+        ImVec2 bbMax = window->DC.CursorPos;
+        bbMax.x += size.x;
+        bbMax.y += size.y;
+        const ImRect bb(window->DC.CursorPos, bbMax);
+        ItemSize(size);
+        if (!ItemAdd(bb, id))
+            return false;
+
+        bool held;
+        bool pressed = ButtonBehavior(bb, id, hovered, &held, flags);
+
+        IMGUI_TEST_ENGINE_ITEM_INFO(id, str_id, g.LastItemData.StatusFlags);
+        return pressed;
+    }
+
+    inline void
+    ImageButtonText(const char *str_id, int *idx, int defaultValue, const ImVec2 btnSize, ImTextureID user_texture_id,
+                    const ImVec2 &size,
+                    const ImVec2 &uv0,
+                    const ImVec2 &uv1,
+                    const ImVec4 &bg_col, const ImVec4 &tint_col) {
+        ImGuiContext &g = *GImGui;
+        ImGuiWindow *window = g.CurrentWindow;
+        if (window->SkipItems)
+            return;
+
+        ImVec2 posMinScreen = ImGui::GetCursorScreenPos();
+        ImVec2 posMin = ImGui::GetCursorPos();
+
+        ImGui::SetCursorScreenPos(posMinScreen);
+        ImGui::PushID(1);
+        bool hovered = false;
+        if (CustomInvisibleButton(str_id, &hovered, btnSize, 0)) {
+            if (*idx != defaultValue)
+                *idx = defaultValue;
+            else if (*idx == defaultValue)
+                *idx = -1; // reset variable
+
+        }
+        ImGui::PopID();
+        ImGui::SameLine();
+        // Screen pos for adding to windowDrawList rects
+        ImVec2 posMax = posMinScreen;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+        ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
+                                                  (*idx == defaultValue) ? ImColor(0.52f, 0.64, 0.75f, 1.0f) : hovered
+                                                                                                               ? ImColor(
+                                                                  0.2f, 0.45, 0.65f, 1.0f) : ImColor(0.15f, 0.25, 0.4f,
+                                                                                                    1.0f), 10.0f, 0);
+
+
+        // Window relative pos for text and img element
+        posMax = posMin;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+        ImVec2 txtSize = ImGui::CalcTextSize(str_id);
+        ImGui::SetCursorPos(ImVec2(posMin.x + 10.0f, posMin.y + ((posMax.y - posMin.y) / 2) - (txtSize.y / 2)));
+        ImGui::Text("%s", str_id);
+        ImGui::SameLine();
+        ImGui::PushID(0);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ((btnSize.y - size.y) / 2));
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 30.0f)));
+        ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, bg_col, tint_col);
+        ImGui::PopID();
+    };
+
 
 }
 #endif //MULTISENSE_VIEWER_IMGUI_USER_H

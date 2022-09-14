@@ -135,7 +135,6 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type) {
 
     switch (type) {
-
         case AR_POINT_CLOUD:
             textureVideoDepthMap->updateTextureFromBuffer(tex);
             break;
@@ -208,7 +207,7 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
             format = VK_FORMAT_R16_UNORM;
             // two textures are needed for point clouds. this one for coloring and other for displacement
             textureVideoDepthMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
-                                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                   VK_FORMAT_R8_UNORM);
 
             break;
@@ -223,6 +222,11 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
     textureVideo = std::make_unique<TextureVideo>(width, height, vulkanDevice,
                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                   format);
+
+}
+
+void CRLCameraModels::Model::setZoom() {
+
 
 }
 
@@ -248,13 +252,14 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
 
     switch (model->modelType) {
         case AR_CAMERA_DATA_IMAGE:
+        case AR_DISPARITY_IMAGE:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
             createPointCloudDescriptors(model, ubo);
             break;
         default:
-            printf("Model type not supported yet\n");
+            std::cerr  << "Model type not supported yet\n";
             break;
     }
 
@@ -272,7 +277,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
 
 
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(model->modelType == AR_DISPARITY_IMAGE ? 5 : 4);
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[0].descriptorCount = 1;
@@ -308,6 +313,15 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
             writeDescriptorSets[3].dstSet = descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
             writeDescriptorSets[3].pImageInfo = &model->textureVideo->descriptor;
+        }
+
+        if (model->modelType == AR_DISPARITY_IMAGE) {
+            writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescriptorSets[4].descriptorCount = 1;
+            writeDescriptorSets[4].dstSet = descriptors[i];
+            writeDescriptorSets[4].dstBinding = 4;
+            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
         }
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -367,11 +381,14 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
     switch (pModel->modelType) {
         case AR_CAMERA_DATA_IMAGE:
+        case AR_DISPARITY_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+
             };
             break;
         case AR_POINT_CLOUD:
@@ -385,7 +402,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
             break;
 
         default:
-            printf("Model type not supported yet\n");
+            std::cerr << "Model type not supported yet\n";
             break;
     }
 

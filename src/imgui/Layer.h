@@ -174,10 +174,7 @@ namespace AR {
         GuiLayerUpdateInfo *info{};
 
         /** Keypress and mouse events */
-        int keypress; // TODO Redo usage of keypress. Was only meant for quick debugging
-        ArEngine::MouseButtons mouseBtns;
-        float accumulatedMouseScroll = 0.0f;
-        float mouseScrollSpeed = 50.0f;
+        const ArEngine::MouseButtons* mouseBtns;
 
     };
 

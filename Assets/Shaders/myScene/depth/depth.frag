@@ -29,7 +29,7 @@ layout(set = 0, binding = 4) uniform ZOOM {
 
 void main()
 {
-    vec2 uv = inUV * zoom;
+    vec2 uv = inUV * zoom.zoom;
     vec3 tex = texture(samplerColorMap, uv).rgb * 65535 / 4096 * 2; // magic number that makes it work
 
     outColor = vec4(tex.r, tex.r, tex.r, 1.0);

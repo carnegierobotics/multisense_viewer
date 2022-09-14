@@ -64,7 +64,7 @@ public:
             ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
             ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLCoolGray);
             ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
             int imageButtonHeight = 100;
@@ -90,7 +90,7 @@ public:
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
-                ImVec4 bg_col = ImVec4(0.054, 0.137, 0.231, 1.0f);         // Match bg color
+                ImVec4 bg_col = AR::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
                 if (ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, bg_col,tint_col))
                     page[i] = true;
@@ -258,7 +258,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 1.0f)); // TODO USE named colors
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLCoolGray); // TODO USE named colors
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -279,7 +279,7 @@ private:
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.054, 0.137, 0.231, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLCoolGray);
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -370,7 +370,7 @@ private:
 
         ImGui::SetNextWindowPos(
                 ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLCoolGray);
 
         handles->info->viewingAreaWidth =
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
@@ -536,7 +536,7 @@ private:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.034, 0.107, 0.201, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLCoolGray);
         ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
         ImGui::Begin("ControlArea", &pOpen, window_flags);
 

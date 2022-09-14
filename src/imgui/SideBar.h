@@ -37,7 +37,7 @@ public:
     AR::GuiObjectHandles *handles;
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
-    std::vector<AutoConnect::AdapterSupportResult> adapters;
+    std::vector<AutoConnect::Result> adapters;
     std::vector<std::string> interfaceNameList;
     std::vector<uint32_t> indexList;
 
@@ -91,21 +91,9 @@ public:
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, info->height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.031, 0.078, 0.129, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, AR::CRLGray424Main);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::Begin("SideBar", &pOpen, window_flags);
-
-
-        // Docking
-        auto *wnd = ImGui::FindWindowByName("GUI");
-        /*
-        if (wnd) {
-            ImGuiDockNode *node = wnd->DockNode;
-            if (node)
-                node->WantHiddenTabBarToggle = true;
-
-        }
-         */
 
         ImGui::TextUnformatted(info->title.c_str());
         ImGui::TextUnformatted(info->deviceName.c_str());
@@ -203,6 +191,12 @@ private:
 
     }
 
+    /**@brief Function to manage Auto connect with GUI updates
+     * Requirements:
+     * Should run once popup modal is opened
+     * Periodically check the status of connected ethernet devices
+     * - The GUI
+     * */
     void autoDetectCamera() {
         // If this method is not selected, and it is running then, run it otherwise stop it.
         // If already running just check if we should close it before opening it again.
@@ -246,7 +240,7 @@ private:
         Log::Logger::getInstance()->info("Start looking for ethernet adapters");
 
         skipUserFriendlySleepDelay = true;
-        std::vector<AutoConnect::AdapterSupportResult> res = autoConnect.findEthernetAdapters(false, false);
+        std::vector<AutoConnect::Result> res = autoConnect.findEthernetAdapters(false, false);
         skipUserFriendlySleepDelay = false;
 
         bool foundSupportedAdapter = false;
@@ -308,7 +302,7 @@ private:
                     break;
                 case AR_STATE_ACTIVE:
                     buttonIdentifier = "Active";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     break;
                 case AR_STATE_INACTIVE:
@@ -316,12 +310,12 @@ private:
                     break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
                     break;
                 case AR_STATE_UNAVAILABLE:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, AR::CRLDarkGray425);
                     buttonIdentifier = "Unavailable";
                     break;
                 case AR_STATE_JUST_ADDED:
@@ -421,8 +415,12 @@ private:
 
         ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding,
                                    handles->info->height - handles->info->addDeviceBottomPadding));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, AR::CRLBlueIsh);
+
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
 
+        ImGui::PopStyleColor();
         if (btnAdd) {
             ImGui::OpenPopup("add_device_modal");
 
@@ -433,7 +431,7 @@ private:
         ImGui::SetNextWindowSize(ImVec2(handles->info->popupWidth, handles->info->popupHeight), ImGuiCond_Always);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, AR::PopupBackground);
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.920f, 0.928, 0.912, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
@@ -448,7 +446,7 @@ private:
             headerPosMax.x += handles->info->popupWidth;
             headerPosMax.y += 50.0f;
             ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
-                                                      ImColor(AR::PopupHeaderBackgroundColor), 10.0f, 0);
+                                                      ImColor(AR::CRLRed), 10.0f, 0);
 
             ImGui::PushFont(handles->info->font24);
             std::string title = "Connect to MultiSense";
@@ -472,7 +470,7 @@ private:
             ImGui::SameLine();
             ImGui::Text("1. Profile name:");
 
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::CRLDarkGray425);
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
@@ -494,7 +492,7 @@ private:
 
             ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
             ImVec2 uv1 = ImVec2(1.0f, 1.0f);
-            ImVec4 bg_col = AR::PopupHeaderBackgroundColor;         // Match bg color
+            ImVec4 bg_col = AR::CRLGray424Main;         // Match bg color
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));

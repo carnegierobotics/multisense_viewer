@@ -226,6 +226,14 @@ namespace ArEngine {
         float height;
     };
 
+    struct ZoomParam {
+        float zoom;
+
+        ZoomParam(){
+            zoom = 1.0f;
+        }
+    };
+
     struct PointCloudShader {
         glm::vec4 pos[NUM_POINTS];
         glm::vec4 col[NUM_POINTS];

@@ -175,7 +175,7 @@ public:
             currentUB.bufferThree.unmap();
 
             currentUB.bufferFour.map();
-            memcpy(currentUB.bufferFour.mapped, bufferFourData, sizeof(float));
+            memcpy(currentUB.bufferFour.mapped, bufferFourData, sizeof(ArEngine::ZoomParam));
             currentUB.bufferFour.unmap();
 
 
@@ -197,7 +197,7 @@ public:
         bufferOneData = new ArEngine::UBOMatrix();
         bufferTwoData = new ArEngine::FragShaderParams();
         bufferThreeData = new ArEngine::PointCloudParam();
-        bufferFourData = new ArEngine::PointCloudParam();
+        bufferFourData = new ArEngine::ZoomParam();
 
         for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
@@ -219,7 +219,7 @@ public:
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                             &uniformBuffer.bufferFour, sizeof(float));
+                                             &uniformBuffer.bufferFour, sizeof(ArEngine::ZoomParam));
 
         }
 

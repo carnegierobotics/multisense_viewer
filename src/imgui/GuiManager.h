@@ -32,7 +32,7 @@ namespace AR {
         ~GuiManager() = default;
 
 
-        void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height);
+        void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
 
         void setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue,
                    std::vector<VkPipelineShaderStageCreateInfo> *shaders);

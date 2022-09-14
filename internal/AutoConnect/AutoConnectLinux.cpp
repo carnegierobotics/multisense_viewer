@@ -401,3 +401,7 @@ void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *, i
     eventCallback = param;
 
 }
+
+void AutoConnectLinux::clearSearchedAdapters() {
+    ignoreAdapters.clear();
+}

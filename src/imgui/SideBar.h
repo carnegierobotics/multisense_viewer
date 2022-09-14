@@ -213,8 +213,10 @@ private:
         }
 
         // Reset this variable by re-selecting auto connect button
+        // Also clear the searched adapter which will start a new search once the auto connect tab is selected again
         if (connectMethodSelector != AUTO_CONNECT){
             dontRunAutoConnect = false;
+            autoConnect.clearSearchedAdapters();
         }
 
 
@@ -250,7 +252,7 @@ private:
         bool foundSupportedAdapter = false;
         bool foundSearchedAdapter = false;
         for (const auto &r: res) {
-            if (r.supports && !r.searched)
+            if (r.supports)
                 foundSupportedAdapter = true;
 
             if (r.searched)

@@ -156,13 +156,12 @@ void Renderer::render() {
     renderData.pLogger = pLogger;
     renderData.height = height;
     renderData.width = width;
-    renderData.lastKeyPress = &keyPress;
-    renderData.lastKeyAction = &keyAction;
+    renderData.input = &input;
 
     guiManager->handles.mouseBtns = &mouseButtons;
 
     // Update GUI
-    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height);
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
@@ -272,7 +271,7 @@ void Renderer::windowResized() {
     renderData.width = width;
 
     // Update gui with new res
-    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height);
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, nullptr);
 
     // Update general scripts with handle to GUI
     for (auto &script: scripts) {

@@ -11,46 +11,11 @@
 #include "MultiSense/src/tools/Utils.h"
 #include "MultiSense/src/tools/Logger.h"
 #include "GLFW/glfw3.h"
+#include "KeyInput.h"
 
-#define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
-#define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate scripts/model_loaders from ImGui source recompile
-
-typedef enum ScriptType {
-    AR_SCRIPT_TYPE_DISABLED,
-    AR_SCRIPT_TYPE_DEFAULT,
-    AR_SCRIPT_TYPE_CRL_CAMERA,
-    AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY,
-    AR_SCRIPT_TYPE_POINT_CLOUD
-} ScriptType;
-
-
-struct UBOMatrix {
-    glm::mat4 projection;
-    glm::mat4 view;
-    glm::mat4 model;
-};
-
-struct FragShaderParams {
-    glm::vec4 lightColor;
-    glm::vec4 objectColor;
-    glm::vec4 lightPos;
-    glm::vec4 viewPos;
-};
-
-struct PointCloudParam {
-    glm::mat4 kInverse;
-    float width;
-    float height;
-};
-
-struct PointCloudShader {
-    glm::vec4 pos[NUM_POINTS];
-    glm::vec4 col[NUM_POINTS];
-};
-
 
 class Base {
 public:
@@ -96,8 +61,7 @@ public:
 
         uint32_t height;
         uint32_t width;
-        const int *lastKeyPress;
-        const int* lastKeyAction;
+        const Input* input;
     } renderData{};
 
 
@@ -199,15 +163,15 @@ public:
         if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();
-            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(UBOMatrix));
+            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(ArEngine::UBOMatrix));
             currentUB.bufferOne.unmap();
 
             currentUB.bufferTwo.map();
-            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(FragShaderParams));
+            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(ArEngine::FragShaderParams));
             currentUB.bufferTwo.unmap();
 
             currentUB.bufferThree.map();
-            memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(PointCloudParam));
+            memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(ArEngine::PointCloudParam));
             currentUB.bufferThree.unmap();
 
             currentUB.bufferFour.map();
@@ -230,27 +194,27 @@ public:
         lastLogTime = std::chrono::steady_clock::now();
 
 
-        bufferOneData = new UBOMatrix();
-        bufferTwoData = new FragShaderParams();
-        bufferThreeData = new PointCloudParam();
-        bufferFourData = new PointCloudParam();
+        bufferOneData = new ArEngine::UBOMatrix();
+        bufferTwoData = new ArEngine::FragShaderParams();
+        bufferThreeData = new ArEngine::PointCloudParam();
+        bufferFourData = new ArEngine::PointCloudParam();
 
         for (auto &uniformBuffer: renderUtils.uniformBuffers) {
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                             &uniformBuffer.bufferOne, sizeof(UBOMatrix));
+                                             &uniformBuffer.bufferOne, sizeof(ArEngine::UBOMatrix));
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                             &uniformBuffer.bufferTwo, sizeof(FragShaderParams));
+                                             &uniformBuffer.bufferTwo, sizeof(ArEngine::FragShaderParams));
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                             &uniformBuffer.bufferThree, sizeof(PointCloudParam));
+                                             &uniformBuffer.bufferThree, sizeof(ArEngine::PointCloudParam));
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -314,39 +278,10 @@ protected:
         this->renderData.height = data->height;
         this->renderData.width = data->width;
         this->renderData.type = getType();
-        this->input.lastKeyPress = data->lastKeyPress;
-        this->input.action = data->lastKeyAction;
-
+        input = data->input;
     }
 
-
-    struct Input {
-
-        [[nodiscard]] bool getButtonDown(int key) const {
-            if (key == *lastKeyPress && *action == GLFW_PRESS)
-                return true;
-
-            return false;
-        }
-
-        [[nodiscard]] bool getButtonUp(int key) const {
-            if (key == *lastKeyPress && *action == GLFW_RELEASE)
-                return true;
-
-            return false;
-        }
-
-        [[nodiscard]] bool getButton(int key) const {
-            if (key == *lastKeyPress)
-                return true;
-
-            return false;
-        }
-
-        const int* action;
-        const int* lastKeyPress;
-
-    } input;
+    const Input* input;
 };
 
 #endif //MULTISENSE_BASE_H

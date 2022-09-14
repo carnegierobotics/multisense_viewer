@@ -511,6 +511,7 @@ void VulkanRenderer::renderLoop() {
 
         glfwPollEvents();
 
+
         if (viewUpdated) {
             viewUpdated = false;
             viewChanged();
@@ -525,15 +526,17 @@ void VulkanRenderer::renderLoop() {
         io.DeltaTime = frameTimer;
         io.WantCaptureMouse = true;
         io.MousePos = ImVec2(mousePos.x, mousePos.y);
-        io.MouseWheel = mouseButtons.wheel;
 
         io.MouseDown[0] = mouseButtons.left;
         io.MouseDown[1] = mouseButtons.right;
 
+        input.lastKeyPress = &keyPress;
+        input.action = &keyAction;
+
         render();
 
-        keyPress = 0; // reset keypress
-        keyAction = 0;
+        io.MouseWheel = 0;
+
 
         auto tEnd = std::chrono::high_resolution_clock::now();
 
@@ -691,14 +694,10 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
     io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
 
 
-    // If we do not want to send key events to the Render engine but keem them in the UI.
-    //if (io.WantCaptureKeyboard)
-    //    return;
-    myApp->keyPress = key;
-    myApp->keyAction = action;
-
 
     if (action == GLFW_PRESS) {
+        myApp->keyAction = action;
+        myApp->keyPress = key;
 
         switch (key) {
             case GLFW_KEY_W:
@@ -717,6 +716,9 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
         }
     }
     if (action == GLFW_RELEASE) {
+        myApp->keyAction = action;
+        myApp->keyPress = 0; // TODO Disabled key release events
+
         switch (key) {
             case GLFW_KEY_W:
                 myApp->camera.keys.up = false;
@@ -804,10 +806,13 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
     }
 }
 
+
 void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
     ImGuiIO &io = ImGui::GetIO();
     myApp->mouseButtons.wheel -= (float) (yoffset * myApp->mouseScrollSpeed);
+
+    io.MouseWheel += 0.5f * (float) yoffset;
 
 }
 

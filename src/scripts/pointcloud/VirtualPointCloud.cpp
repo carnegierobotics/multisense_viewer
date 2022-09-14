@@ -19,7 +19,7 @@ void VirtualPointCloud::setup(Base::Render r) {
 
     CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
-    auto *buf = (PointCloudParam *) bufferThreeData;
+    auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
     buf->kInverse = r.crlCamera->get()->camPtr->getCameraInfo().kInverseMatrix;
     buf->height = static_cast<float>(960.0f);
     buf->width = static_cast<float>(600.0f);
@@ -55,18 +55,18 @@ void VirtualPointCloud::update(CameraConnection *conn) {
     model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
 
 
-    UBOMatrix mat{};
+    ArEngine::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -5.0f));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
-    auto *d = (UBOMatrix *) bufferOneData;
+    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (FragShaderParams *) bufferTwoData;
+    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);

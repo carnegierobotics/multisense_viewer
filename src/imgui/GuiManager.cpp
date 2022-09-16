@@ -163,9 +163,9 @@ namespace AR {
                     scissorRect.extent.width = (uint32_t) (pcmd->ClipRect.z - pcmd->ClipRect.x);
                     scissorRect.extent.height = (uint32_t) (pcmd->ClipRect.w - pcmd->ClipRect.y);
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-                    vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
-                    indexOffset += pcmd->ElemCount;
+                    vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset , pcmd->VtxOffset + vertexOffset, 0);
                 }
+                indexOffset += cmd_list->IdxBuffer.Size;
                 vertexOffset += cmd_list->VtxBuffer.Size;
             }
         }
@@ -180,7 +180,16 @@ namespace AR {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        style.Colors[ImGuiCol_PopupBg] = AR::CRLCoolGray;
+        style.Colors[ImGuiCol_WindowBg] = AR::CRLCoolGray;
+        style.Colors[ImGuiCol_Tab] = AR::CRLRed;
+        style.Colors[ImGuiCol_TabActive] = AR::CRLRedActive;
+        style.Colors[ImGuiCol_TabHovered] = AR::CRLRedHover;
+        style.Colors[ImGuiCol_Button] = AR::CRLBlueIsh;
+
+        style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
+
+
         // Dimensions
         io = &ImGui::GetIO();
         io->DisplaySize = ImVec2(width, height);

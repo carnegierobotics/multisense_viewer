@@ -437,7 +437,6 @@ private:
         ImGui::SetNextWindowSize(ImVec2(handles->info->popupWidth, handles->info->popupHeight), ImGuiCond_Always);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.920f, 0.928, 0.912, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
@@ -810,7 +809,6 @@ private:
         }
 
         ImGui::PopStyleVar(5); // popup style vars
-        ImGui::PopStyleColor(); // popup bg color
     }
 
     void addSpinnerGif(AR::GuiObjectHandles *handles) {

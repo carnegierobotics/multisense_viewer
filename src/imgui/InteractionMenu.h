@@ -555,21 +555,6 @@ private:
                             drawActionPage = true;
                         }
 
-                        // Create Control Area
-                        ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, handles->info->tabAreaHeight),
-                                                ImGuiCond_Always);
-                        ImGui::BeginChild("Dropdown Area", ImVec2(handles->info->controlAreaWidth,
-                                                                  handles->info->height - handles->info->tabAreaHeight),
-                                          false, ImGuiCond_Always);
-
-
-                        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES + 1; i++) {
-                            if (d.streams.find(i) != d.streams.end())
-                                addDropDown(handles, &d.streams[i]);
-                        }
-
-
-                        ImGui::EndChild();
 
                         ImGui::EndTabItem();
                     }

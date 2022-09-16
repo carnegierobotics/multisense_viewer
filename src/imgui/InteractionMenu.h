@@ -309,9 +309,12 @@ private:
 
 
     void buildConfigurationPreview(AR::GuiObjectHandles *handles) {
+        ImGui::ShowDemoWindow();
+
         for (auto &dev: *handles->devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
+
 
             // Control page
             ImGui::BeginGroup();
@@ -320,12 +323,10 @@ private:
 
             // Viewing page
             ImGui::BeginGroup();
-            createViewingArea(handles, dev);
+            //createViewingArea(handles, dev);
             ImGui::EndGroup();
 
         }
-
-        //ImGui::ShowDemoWindow();
     }
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {

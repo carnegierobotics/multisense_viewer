@@ -5,11 +5,13 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
-#include <utility>
 
 #include "glm/glm.hpp"
 #include "vulkan/vulkan_core.h"
 #include "include/MultiSense/MultiSenseTypes.hh"
+#include "MultiSense/src/tools/Logger.h"
+#include "map"
+#include <utility>
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
@@ -135,28 +137,150 @@ struct ExposureParams {
 
 };
 
-struct EntryConnectDevice {
-    std::string profileName = "MultiSense";
-    std::string IP = "10.66.176.21";
-    std::string interfaceName;
-    uint32_t interfaceIndex{};
 
-    std::string cameraName;
+namespace AR {
 
-    EntryConnectDevice()= default;
+/** @brief  */
+    struct StreamingModes {
+        /** @brief Name of this streaming mode (i.e: front camera) */
+        std::string name;
+        std::string attachedScript;
+        /** @brief Which gui index is selected */
+        CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
+        /** @brief Current camera streaming state  */
+        CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
+        /** @brief In which order is this streaming mode presented in the viewing area  */
+        uint32_t streamingOrder = 0;
+        /** @brief Camera streaming modes  */
+        std::vector<std::string> modes;
+        /** @brief Camera streaming sources  */
+        std::vector<std::string> sources;
+        uint32_t selectedModeIndex = 0;
+        uint32_t selectedSourceIndex = 0;
+        /** @brief Which mode is currently selected */
+        CRLCameraResolution selectedStreamingMode;
+        /** @brief Which source is currently selected */
+        std::string selectedStreamingSource = "Select sensor resolution";
 
-    EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx) : IP(std::move(ip)),
-                                                                                              interfaceName(std::move(iName)),
-                                                                                              cameraName(std::move(camera)),
-                                                                                              interfaceIndex(idx) {
-    }
+    };
 
-    bool ready() const{
-        return ((!IP.empty() && !profileName.empty() && !interfaceName.empty() && interfaceIndex != 0) || cameraName == "Virtual Camera");
-    }
 
-};
+/** @brief  */
+    struct Parameters {
+        bool initialized = false;
 
+
+        float gain = 1.0f;
+        float fps = 30.0f;
+
+
+        ExposureParams ep;
+        WhiteBalanceParams wb;
+
+
+        float stereoPostFilterStrength = 0.5f;
+        bool hdrEnabled;
+        bool storeSettingsInFlash;
+
+        crl::multisense::CameraProfile cameraProfile;
+        float gamma = 2.0f;
+
+
+        bool update = false;
+    };
+
+
+    struct Element {
+        /** @brief Profile Name information  */
+        std::string name = "Profile #1"; // TODO Remove if remains Unused
+        /** @brief Identifier of the camera connected  */
+        std::string cameraName;
+        /** @brief IP of the connected camera  */
+        std::string IP;
+        /** @brief Default IP of the connected camera  */
+        std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
+        /** @brief Name of the network adapter this camera is connected to  */
+        std::string interfaceName;
+        uint32_t interfaceIndex = 0;
+        /** @brief Flag for registering if device is clicked in sidebar */
+        bool clicked;
+        /** @brief Current connection state for this device */
+        ArConnectionState state;
+
+        std::map<int, StreamingModes> streams;
+        /** @brief object containing all adjustable parameters to the camera */
+        Parameters parameters{};
+
+        Page selectedPreviewTab = TAB_2D_PREVIEW;
+        /** @brief  Showing point cloud view*/
+        bool pointCloud = false;
+        /** @brief  Showing depth image stream*/
+        bool depthImage = false;
+        /** @brief  Showing color image stream*/
+        bool colorImage = false;
+
+        /** @brief Show a default preview with some selected streams*/
+        bool button = false;
+    };
+
+
+    struct EntryConnectDevice {
+        std::string profileName = "MultiSense";
+        std::string IP = "10.66.176.21";
+        std::string interfaceName;
+        uint32_t interfaceIndex{};
+
+        std::string cameraName;
+
+        EntryConnectDevice()= default;
+
+        EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx) : IP(std::move(ip)),
+                                                                                                  interfaceName(std::move(iName)),
+                                                                                                  cameraName(std::move(camera)),
+                                                                                                  interfaceIndex(idx) {
+        }
+
+        void reset(){
+            profileName = "";
+            IP = "";
+            interfaceName = "";
+            interfaceIndex = 0;
+        }
+
+        bool ready(const std::vector<AR::Element>& devices, const EntryConnectDevice& entry) const{
+
+            bool profileNameEmpty = entry.profileName.empty();
+            bool profileNameTaken = false;
+            bool IPEmpty = entry.IP.empty();
+            bool adapterNameEmpty = entry.interfaceName.empty();
+
+            bool AdapterAndIPInTaken = false;
+
+
+
+            // Loop through devices and check that it doesn't exist already.
+            for (auto &d: devices) {
+                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
+                    AdapterAndIPInTaken = true;
+                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
+
+                }
+                if (d.name == entry.profileName) {
+                    profileNameTaken = true;
+                    Log::Logger::getInstance()->info("Profile name '{}' already taken", entry.profileName);
+                }
+
+            }
+
+            bool ready = true;
+            if (profileNameEmpty || profileNameTaken || IPEmpty || adapterNameEmpty || AdapterAndIPInTaken)
+                ready = false;
+
+            return ready;
+        }
+    };
+
+}
 namespace ArEngine {
     struct YUVTexture {
         void *data[NUM_YUV_DATA_POINTERS]{};

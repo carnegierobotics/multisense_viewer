@@ -7,6 +7,7 @@
 
 #include "AutoConnect.h"
 
+
 #ifdef WIN32
 #include "AutoConnectWindows.h"
 #define AutoConnectHandle AutoConnectWindows
@@ -29,6 +30,9 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#define ONE_SECOND 1
+
+
 // TODO Really long and confusing class. But it handles the sidebar and the pop up modal connect device
 class SideBar : public AR::Layer {
 public:
@@ -41,12 +45,14 @@ public:
     std::vector<std::string> interfaceNameList;
     std::vector<uint32_t> indexList;
 
-    EntryConnectDevice entry;
-    std::vector<EntryConnectDevice> entryConnectDeviceList;
+    AR::EntryConnectDevice entry;
+    std::vector<AR::EntryConnectDevice> entryConnectDeviceList;
 
     uint32_t gifFrameIndex = 0;
     std::chrono::steady_clock::time_point gifFrameTimer;
     std::chrono::steady_clock::time_point searchingTextAnimTimer;
+    std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
+
     std::string dots;
 
     std::vector<AR::Element> devices;
@@ -55,7 +61,7 @@ public:
     bool btnAdd = false;
     bool skipUserFriendlySleepDelay = false;
     bool dontRunAutoConnect = false;
-
+    bool showRestartAutoButton = false;
     enum {
         VIRTUAL_CONNECT = 0,
         MANUAL_CONNECT = 1,
@@ -156,9 +162,10 @@ private:
         if (!app->skipUserFriendlySleepDelay) {
             std::this_thread::sleep_for(std::chrono::milliseconds(800));
         }
-        if (event == "Finished"){
+        if (event == "Finished") {
             app->autoConnect.setShouldProgramClose(true);
             app->dontRunAutoConnect = true;
+            app->showRestartAutoButton = true;
         }
         app->AddLog(color, "[INFO] %s\n", event.c_str());
     }
@@ -182,7 +189,7 @@ private:
         }
 
         if (!ipExists) {
-            EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index};
+            AR::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index};
             app->entryConnectDeviceList.push_back(entry);
 
 
@@ -208,7 +215,7 @@ private:
 
         // Reset this variable by re-selecting auto connect button
         // Also clear the searched adapter which will start a new search once the auto connect tab is selected again
-        if (connectMethodSelector != AUTO_CONNECT){
+        if (connectMethodSelector != AUTO_CONNECT) {
             dontRunAutoConnect = false;
             autoConnect.clearSearchedAdapters();
         }
@@ -266,7 +273,7 @@ private:
 
     }
 
-    void createDefaultElement(const EntryConnectDevice &entry) {
+    void createDefaultElement(const AR::EntryConnectDevice &entry) {
         AR::Element el;
 
         el.name = entry.profileName;
@@ -284,7 +291,6 @@ private:
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {}", entry.IP, entry.profileName);
     }
-
 
 
     void sidebarElements() {
@@ -468,8 +474,9 @@ private:
 
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::Text("1. Profile name:");
-
+            ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
+            ImGui::Text("1. Profile Name:");
+            ImGui::PopStyleColor();
             ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::CRLDarkGray425);
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -482,7 +489,9 @@ private:
             /** SELECT METHOD FOR CONNECTION FIELD */
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
             ImGui::Text("2. Select method for connection:");
+            ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -531,13 +540,30 @@ private:
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                 ImGui::Text("Status:");
+                if (dontRunAutoConnect) {
+                    ImGui::SameLine(0, 15.0f);
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
+                    if (ImGui::SmallButton("Restart?")) {
+                        dontRunAutoConnect = false;
+                        entryConnectDeviceList.clear();
+                        autoConnect.clearSearchedAdapters();
+                        entry.reset();
+                    }
+                    ImGui::PopStyleColor();
+                }
+                ImGui::PopStyleColor();
                 ImGui::SameLine();
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
+                // Create child window regardless of gif spinner state in order to keep cursor position constant
+                ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 if (autoConnect.running)
                     addSpinnerGif(handles);
+                ImGui::EndChild();
+
                 ImGui::SameLine(0, 250.0f);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
                                   " 1. Reconnect ethernet cables \n "
@@ -545,7 +571,7 @@ private:
                                   " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
 
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::PopupTextInputBackground);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLDarkGray425);
                 const char *id = "Log Window";
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
 
@@ -581,6 +607,7 @@ private:
                         ImGui::SameLine();
                         ImGui::TextUnformatted(line_start, line_end);
                         ImGui::PopStyleColor();
+
                     }
                 }
                 clipper.End();
@@ -609,6 +636,8 @@ private:
                 } else if (!autoConnect.running)
                     dots = ".";
 
+                ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
+
                 if (entryConnectDeviceList.empty() && autoConnect.running) {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
                 } else if (entryConnectDeviceList.empty())
@@ -616,22 +645,24 @@ private:
                 else {
                     ImGui::Text("Select:");
                 }
+                ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 static bool selected = false;
 
-                if (!selected){
+                if (!selected) {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4());
                 } else {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_Header]);
                 }
                 // Header
                 // HeaderHovered
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::PopupTextInputBackground);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 5.0f));
 
-                ImGui::Dummy(ImVec2(20.0f, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                ImGui::SameLine();
                 ImGui::BeginChild("ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true, 0);
                 for (int n = 0; n < entryConnectDeviceList.size(); n++) {
 
@@ -657,11 +688,13 @@ private:
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                     ImGui::Text("Camera IP:");
+                    ImGui::PopStyleColor();
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 }
 
-                ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::PopupTextInputBackground);
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, AR::CRLDarkGray425);
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
@@ -671,21 +704,25 @@ private:
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine(0.0f, 10.0f);
+                    ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                     ImGui::Text("Select network adapter:");
+                    ImGui::PopStyleColor();
                     ImGui::SameLine(0.0f, 10.0f);
                 }
 
-                if (ImGui::SmallButton("Refresh list") || refreshAdapterList) {
-                    skipUserFriendlySleepDelay = true;
-                    adapters = autoConnect.findEthernetAdapters(false, true); // Don't log it but dont ignore searched adapters
-                    skipUserFriendlySleepDelay = false;
-                    //refreshAdapterList = false;
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-                    // Reset list of adapters
+
+                // Call once a second
+                auto time = std::chrono::steady_clock::now();
+                std::chrono::duration<float> time_span =
+                        std::chrono::duration_cast<std::chrono::duration<float>>(time - searchNewAdaptersManualConnectTimer);
+                if (time_span.count() > ONE_SECOND) {
+                    searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
+                    adapters = autoConnect.findEthernetAdapters(false, true); // Don't log it but dont ignore searched adapters
                     interfaceNameList.clear();
                     indexList.clear();
                 }
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
                 // immediate mode vector item ordering
                 // -- requirements --
@@ -709,8 +746,6 @@ private:
                     interfaceNameList.emplace_back("No adapters found");
                     indexList.push_back(0);
                 }
-
-
 
 
                 entry.interfaceName = interfaceNameList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
@@ -750,12 +785,12 @@ private:
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
             ImGui::SameLine(0, 110.0f);
-            if (!entry.ready()) {
+            if (!entry.ready(devices, entry)) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, AR::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            if (!entry.ready()) {
+            if (!entry.ready(devices, entry)) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
@@ -767,41 +802,10 @@ private:
             }
 
             if (btnConnect) {
-                bool ipAlreadyInUse = false;
-                bool profileNameTaken = false;
-                bool virtualCameraTaken = false;
-                bool profileNameEmpty = false;
-                bool IpEmptyOrLocal = false;
-
-                if (entry.profileName.empty())
-                    profileNameEmpty = true;
-
-                // Loop through devices and check that it doesn't exist already.
-                for (auto &d: devices) {
-                    if (d.IP == entry.IP) {
-                        ipAlreadyInUse = true;
-                        Log::Logger::getInstance()->info("Ip in use");
-
-                    }
-                    if (d.name == entry.profileName) {
-                        profileNameTaken = true;
-                        Log::Logger::getInstance()->info("Profile name not valid");
-                    }
-
-                    if (d.name == "Virtual Camera" && entry.cameraName == "Virtual Camera") {
-                        virtualCameraTaken = true;
-                        Log::Logger::getInstance()->info("Virtual camera occupied");
-                    }
-                }
-
-
-                if (!ipAlreadyInUse && !profileNameTaken && !virtualCameraTaken && !profileNameEmpty) {
-                    createDefaultElement(entry);
-
-
-                    ImGui::CloseCurrentPopup();
-                }
+                createDefaultElement(entry);
+                ImGui::CloseCurrentPopup();
             }
+
             ImGui::EndPopup();
         }
 
@@ -810,7 +814,7 @@ private:
     }
 
     void addSpinnerGif(AR::GuiObjectHandles *handles) {
-        ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+
         ImVec2 size = ImVec2(40.0f,
                              40.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
         ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
@@ -831,7 +835,6 @@ private:
 
         if (gifFrameIndex == handles->info->gif.totalFrames)
             gifFrameIndex = 0;
-        ImGui::EndChild();
     }
 
 

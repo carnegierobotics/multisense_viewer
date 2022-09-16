@@ -92,7 +92,7 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
             app->eventCallback("Tested all adapters. rerunning adapter search", app->context, 0);
             adapters = app->findEthernetAdapters(true, false);
             bool testedAllAdapters = true;
-            for (const auto& a : adapters){
+            for (const auto &a: adapters) {
                 if (a.supports && !a.searched)
                     testedAllAdapters = false;
             }
@@ -129,13 +129,13 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
             continue;
         }
         std::cout << "Created socket: " << sd << ". Binding to device: " << adapter.networkAdapter << std::endl;
-        struct sockaddr_ll  addr;
+        struct sockaddr_ll addr;
         // Bind socket to interface
         memset(&addr, 0x00, sizeof(addr));
-        addr.sll_family   = AF_PACKET;
+        addr.sll_family = AF_PACKET;
         addr.sll_protocol = htons(ETH_P_ALL);
-        addr.sll_ifindex  = adapter.index;
-        if (bind(sd, (struct sockaddr*)&addr, sizeof(addr)) == -1){
+        addr.sll_ifindex = adapter.index;
+        if (bind(sd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
             std::cout << "ERROR IN BIND: " << strerror(errno) << std::endl;
             perror("Bind");
         }
@@ -170,12 +170,26 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
         app->eventCallback(str, app->context, 0);
         while (app->listenOnAdapter) {
             // Timeout handler
-            if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS) {
+            // Will timeout MAX_CONNECTION_ATTEMPTS times until retrying on new adapter
+            if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
+                app->connectAttemptCounter < MAX_CONNECTION_ATTEMPTS) {
                 app->startTime = time(nullptr);
                 printf("\n");
-                str = "Timeout reached. switching to next supported adapter ";
+                str = "Timeout reached. Retrying... (" + std::to_string(app->connectAttemptCounter + 1) + "/" + std::to_string(MAX_CONNECTION_ATTEMPTS) + ")";
+                app->eventCallback(str, app->context, 0);
+                app->connectAttemptCounter++;
+                str = "Waiting for packet at: " + adapter.networkAdapter;
+                app->eventCallback(str, app->context, 0);
+            } else if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
+                       app->connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
+                app->startTime = time(nullptr);
+                printf("\n");
+                str = "Timeout reached. Switching to next supported adapter";
                 app->eventCallback(str, app->context, 2);
+                app->connectAttemptCounter = 0;
+                app->ignoreAdapters.push_back(adapter);
                 break;
+
             }
 
             saddr_size = sizeof saddr;
@@ -184,7 +198,6 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
                                        (socklen_t *) &saddr_size);
 
             if (data_size < 0) {
-                //printf("Recvfrom error , failed to get packets %s\n", strerror(errno));
                 continue;
             }
 
@@ -300,6 +313,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
         eventCallback(str, context, 2);
         return NO_CAMERA_RETRY;
     } else {
+        connectAttemptCounter = 0;
         result.networkAdapter = adapter.networkAdapter;
         result.networkAdapterLongName = adapter.networkAdapterLongName;
         result.cameraIpv4Address = address;

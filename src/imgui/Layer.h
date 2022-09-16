@@ -86,87 +86,6 @@ namespace AR {
     };
 
 
-/** @brief  */
-    struct StreamingModes {
-        /** @brief Name of this streaming mode (i.e: front camera) */
-        std::string name;
-        std::string attachedScript;
-        /** @brief Which gui index is selected */
-        CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
-        /** @brief Current camera streaming state  */
-        CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-        /** @brief In which order is this streaming mode presented in the viewing area  */
-        uint32_t streamingOrder = 0;
-        /** @brief Camera streaming modes  */
-        std::vector<std::string> modes;
-        /** @brief Camera streaming sources  */
-        std::vector<std::string> sources;
-        uint32_t selectedModeIndex = 0;
-        uint32_t selectedSourceIndex = 0;
-        /** @brief Which mode is currently selected */
-        CRLCameraResolution selectedStreamingMode;
-        /** @brief Which source is currently selected */
-        std::string selectedStreamingSource = "Select sensor resolution";
-
-    };
-
-
-/** @brief  */
-    struct Parameters {
-        bool initialized = false;
-
-
-        float gain = 1.0f;
-        float fps = 30.0f;
-
-
-        ExposureParams ep;
-        WhiteBalanceParams wb;
-
-
-        float stereoPostFilterStrength = 0.5f;
-        bool hdrEnabled;
-        bool storeSettingsInFlash;
-
-        crl::multisense::CameraProfile cameraProfile;
-        float gamma = 2.0f;
-
-
-        bool update = false;
-    };
-
-    struct Element {
-        /** @brief Profile Name information  */
-        std::string name = "Profile #1"; // TODO Remove if remains Unused
-        /** @brief Identifier of the camera connected  */
-        std::string cameraName;
-        /** @brief IP of the connected camera  */
-        std::string IP;
-        /** @brief Default IP of the connected camera  */
-        std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
-        /** @brief Name of the network adapter this camera is connected to  */
-        std::string interfaceName;
-        uint32_t interfaceIndex = 0;
-        /** @brief Flag for registering if device is clicked in sidebar */
-        bool clicked;
-        /** @brief Current connection state for this device */
-        ArConnectionState state;
-
-        std::map<int, StreamingModes> streams;
-        /** @brief object containing all adjustable parameters to the camera */
-        Parameters parameters{};
-
-        Page selectedPreviewTab = TAB_2D_PREVIEW;
-        /** @brief  Showing point cloud view*/
-        bool pointCloud = false;
-        /** @brief  Showing depth image stream*/
-        bool depthImage = false;
-        /** @brief  Showing color image stream*/
-        bool colorImage = false;
-
-        /** @brief Show a default preview with some selected streams*/
-        bool button = false;
-    };
 
 /** @brief Handle which is the communication from GUI to Scripts */
     struct GuiObjectHandles {
@@ -196,13 +115,14 @@ namespace AR {
     static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
     static const ImVec4 PopupBackground(0.183, 0.33, 0.47f, 1.0f);
 
-    static const ImVec4 CRLGray421(0.666, 0.674, 0.658, 1.0f);
-    static const ImVec4 CRLGray424(0.411, 0.419, 0.407, 1.0f);
-    static const ImVec4 CRLCoolGray(0.870f, 0.878, 0.862, 1.0f);
-    static const ImVec4 CRLGray424Main(0.462, 0.474, 0.494, 1.0f);
-    static const ImVec4 CRLDarkGray425(0.301, 0.313, 0.309, 1.0f);
-    static const ImVec4 CRLRed(0.768f, 0.125, 0.203, 1.0f);
-    static const ImVec4 CRLBlueIsh(0.313, 0.415, 0.474, 1.0f);
+    static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
+    static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
+    static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
+    static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
+    static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
+    static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+    static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
+    static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
 
 
     class Layer {

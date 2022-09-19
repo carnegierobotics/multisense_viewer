@@ -646,9 +646,8 @@ private:
                         if (ImGui::Selectable(dev.sources[n].c_str(), is_selected)) {
 
                             if (dev.selectedSourceMap.contains(index)) {
-                                dev.sources[n];
-                                bool inUse = false;
 
+                                bool inUse = false;
                                 for (const auto &source: dev.selectedSourceMap) {
                                     if (dev.selectedSourceMap[index] == source.second && index != source.first)
                                         inUse = true;

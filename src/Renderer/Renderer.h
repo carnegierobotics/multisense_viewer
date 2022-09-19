@@ -77,8 +77,9 @@ public:
 private:
 
     std::map<std::string, std::unique_ptr<Base>> scripts;
-    std::shared_ptr<CameraConnection> cameraConnection{};
+    std::unique_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
+    Base::Render renderData{};
 
 protected:
 
@@ -105,7 +106,7 @@ protected:
 
     void deleteScript(const std::string &scriptName);
 
-    void buildScript(const std::string &scriptName, Base::Render render);
+    void buildScript(const std::string &scriptName);
 };
 
 

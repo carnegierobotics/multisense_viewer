@@ -9,7 +9,7 @@ void VirtualPointCloud::setup(Base::Render r) {
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
 
-    r.crlCamera->preparePointCloud(960, 600);
+    //r.crlCamera->preparePointCloud(960, 600);
     model->createEmtpyTexture(960, 600, AR_POINT_CLOUD);
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -20,7 +20,7 @@ void VirtualPointCloud::setup(Base::Render r) {
     CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
     auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
-    buf->kInverse = r.crlCamera->getCameraInfo().kInverseMatrix;
+    //buf->kInverse = r.crlCamera->getCameraInfo().kInverseMatrix;
     buf->height = static_cast<float>(960.0f);
     buf->width = static_cast<float>(600.0f);
     std::cout << glm::to_string(buf->kInverse) << std::endl;

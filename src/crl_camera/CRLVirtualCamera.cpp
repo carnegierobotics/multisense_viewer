@@ -470,7 +470,7 @@ void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, 
     fclose(pFile);
 }
 
-CRLBaseInterface::CameraInfo CRLVirtualCamera::getCameraInfo() {
+CRLVirtualCamera::CameraInfo CRLVirtualCamera::getCameraInfo() {
     return info;
 }
 

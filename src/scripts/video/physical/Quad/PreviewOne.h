@@ -16,7 +16,7 @@ public:
         s_bRegistered;
     }
     void onDestroy() override{
-
+        delete model;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PreviewOne>(); }
@@ -54,7 +54,7 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    CRLCameraResolution res;
+    CRLCameraResolution res{};
     CameraPlaybackFlags playbackSate{};
     uint32_t width{}, height{};
 

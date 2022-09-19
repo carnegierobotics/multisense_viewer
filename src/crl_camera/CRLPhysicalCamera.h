@@ -16,11 +16,11 @@
 class CRLPhysicalCamera : public CRLBaseInterface {
 public:
 
-    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime; // Timer to log every second
-    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> callbackTime; // Timer to see how long ago the callback was called
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime{}; // Timer to log every second
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> callbackTime{}; // Timer to see how long ago the callback was called
 
     CRLPhysicalCamera() : CRLBaseInterface() {
-        startTime = std::chrono::steady_clock::now();
+        //startTime = std::chrono::steady_clock::now();
     }
 
     ~CRLPhysicalCamera() override {
@@ -77,29 +77,23 @@ private:
     };
 
     CameraInfo info{};
-    std::vector<crl::multisense::DataSource> enabledSources;
+    std::vector<crl::multisense::DataSource> enabledSources{};
     crl::multisense::Channel * cameraInterface{};
-    std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_;
+    std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_{};
 
-    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
+    std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers{};
     glm::mat4 kInverseMatrix{};
-    CRLCameraResolution currentResolution;
+    CRLCameraResolution currentResolution{};
 
     /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
     bool stopForDestruction = false;
 
-    std::string dataSourceToString(unsigned int d);
-    unsigned int stringToDataSource(const std::string &d);
-    static void setDelayedPropertyThreadFunc(void * context);
     void addCallbacks();
     static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
 
     void streamCallback(const crl::multisense::image::Header &image);
 
-    void setResolution(uint32_t width, uint32_t height, uint32_t depth);
-
     void setExposure(uint32_t exp) override;
-
     void setExposureParams(ExposureParams p) override;
     void setWhiteBalance(WhiteBalanceParams param) override;
     void setPostFilterStrength(float filterStrength) override;

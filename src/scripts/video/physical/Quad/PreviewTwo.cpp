@@ -9,21 +9,21 @@
 void PreviewTwo::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
+    model = new CRLCameraModels::Model(renderUtils.device, AR_GRAYSCALE_IMAGE);
+    model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
 void PreviewTwo::update(){
-    if (playbackSate != AR_PREVIEW_PLAYING)
-        return;
-
     if (model->draw) {
-        if (renderData.crlCamera->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
+            return;
         }
 
         auto *tex = new ArEngine::TextureData();
-        if (renderData.crlCamera->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
             model->setZoom();
             free(tex->data);
@@ -52,12 +52,10 @@ void PreviewTwo::update(){
 
 
 void PreviewTwo::prepareTexture() {
-    Log::Logger::getInstance()->info("Creating new model for source: '{}'", src);
-    model = new CRLCameraModels::Model(renderUtils.device,
-                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
-    model->draw = false;
+    model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
 
-    auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
+
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -97,19 +95,18 @@ void PreviewTwo::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
+        playbackSate = dev.playbackStatus;
+        selectedPreviewTab = dev.selectedPreviewTab;
+
         if (!dev.selectedSourceMap.contains(AR_PREVIEW_TWO))
             break;
 
         if (dev.selectedSourceMap.at(AR_PREVIEW_TWO) == "None"){
-            // dont draw or update
-            if (model)
-                model->draw = false;
+            model->draw = false;
         }
 
         if ((src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_TWO);
-            selectedPreviewTab = dev.selectedPreviewTab;
-            playbackSate = dev.playbackStatus;
             res = dev.selectedMode;
             prepareTexture();
         }
@@ -132,8 +129,6 @@ void PreviewTwo::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element d
 
 
 void PreviewTwo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (!model)
-        return;
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);

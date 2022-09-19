@@ -14,16 +14,16 @@ void Three::setup(Base::Render r) {
 }
 
 void Three::update(){
-    if (playbackSate != AR_PREVIEW_PLAYING)
+    if (!model)
         return;
 
     if (model->draw) {
-        if (renderData.crlCamera->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
         }
 
         auto *tex = new ArEngine::TextureData();
-        if (renderData.crlCamera->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
             model->setZoom();
             free(tex->data);
@@ -57,7 +57,7 @@ void Three::prepareTexture() {
                                        src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     model->draw = false;
 
-    auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -96,6 +96,10 @@ void Three::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const AR::Element &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
+
+        selectedPreviewTab = dev.selectedPreviewTab;
+        playbackSate = dev.playbackStatus;
+
         if (!dev.selectedSourceMap.contains(AR_PREVIEW_THREE))
             break;
 

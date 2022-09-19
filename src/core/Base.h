@@ -54,13 +54,12 @@ public:
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::shared_ptr<CRLBaseInterface> crlCamera;
+        std::unique_ptr<CRLBaseInterface>* crlCamera;
         ScriptType type;
         Log::Logger *pLogger;
-
         uint32_t height;
         uint32_t width;
-        const Input* input;
+        const Input *input;
     } renderData{};
 
 
@@ -97,11 +96,9 @@ public:
         if (!this->renderData.drawThisScript)
             return;
 
-        for (auto &dev: *uiHandle.devices) {
-            if (dev.state == AR_STATE_ACTIVE) {
-                onUIUpdate(uiHandle);
-            }
-        }
+        if (renderData.crlCamera != NULL)
+            onUIUpdate(uiHandle);
+
     }
 
 
@@ -138,15 +135,8 @@ public:
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
-
-
-        // Default update function is called for updating models. Else CRL extension
-        if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
+        if (renderData.crlCamera != nullptr)
             update();
-        else
-            update();
-
-
 
         // If initialized
         if (renderUtils.uniformBuffers.empty())
@@ -273,7 +263,7 @@ protected:
         input = data->input;
     }
 
-    const Input* input;
+    const Input *input{};
 };
 
 #endif //MULTISENSE_BASE_H

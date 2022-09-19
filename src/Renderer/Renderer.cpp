@@ -82,7 +82,7 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(const std::string &scriptName, Base::Render renderData) {
+void Renderer::buildScript(const std::string &scriptName) {
 
     // Do not recreate script if already created
 
@@ -145,7 +145,7 @@ void Renderer::render() {
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-    Base::Render renderData{};
+
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
@@ -153,6 +153,7 @@ void Renderer::render() {
     renderData.height = height;
     renderData.width = width;
     renderData.input = &input;
+    renderData.crlCamera = &cameraConnection->camPtr;
 
     guiManager->handles.mouseBtns = &mouseButtons;
 
@@ -162,17 +163,15 @@ void Renderer::render() {
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
 
-    renderData.crlCamera = cameraConnection->camPtr;
-
     // Create/delete scripts after use
-    buildScript("LightSource", renderData);
+    buildScript("LightSource");
 
     // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
                 std::string scriptName = "SingleLayout";
-                buildScript(scriptName, renderData);
+                buildScript(scriptName);
                 dev.attachedScripts[0] = scriptName;
             } else {
                 deleteScript("SingleLayout");
@@ -180,26 +179,34 @@ void Renderer::render() {
 
             if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
                 std::string scriptName = "DoubleLayout";
-                buildScript(scriptName, renderData);
-                dev.attachedScripts[0] = scriptName;
+                buildScript(scriptName);
+
+                if (!Utils::isInVector(dev.attachedScripts, "DoubleLayout"))
+                    dev.attachedScripts.emplace_back("DoubleLayout");
                 scriptName = "DoubleLayoutBot";
-                buildScript(scriptName, renderData);
-                dev.attachedScripts[1] = scriptName;
+                buildScript(scriptName);
+
+                if (!Utils::isInVector(dev.attachedScripts, "DoubleLayoutBot"))
+                    dev.attachedScripts.emplace_back("DoubleLayoutBot");
             } else {
                 deleteScript("DoubleLayout");
                 deleteScript("DoubleLayoutBot");
 
             }
 
-            if (dev.layout == PREVIEW_LAYOUT_QUAD){
-                buildScript("PreviewOne", renderData);
-                buildScript("PreviewTwo", renderData);
-                buildScript("Three", renderData);
-                buildScript("Four", renderData);
-                dev.attachedScripts[0] = "PreviewOne";
-                dev.attachedScripts[1] = "PreviewTwo";
-                dev.attachedScripts[2] = "Three";
-                dev.attachedScripts[3] = "Four";
+            if (dev.layout == PREVIEW_LAYOUT_QUAD) {
+                buildScript("PreviewOne");
+                buildScript("PreviewTwo");
+                buildScript("Three");
+                buildScript("Four");
+                if (!Utils::isInVector(dev.attachedScripts, "PreviewOne"))
+                    dev.attachedScripts.emplace_back("PreviewOne");
+                if (!Utils::isInVector(dev.attachedScripts, "PreviewTwo"))
+                    dev.attachedScripts.emplace_back("PreviewTwo");
+                if (!Utils::isInVector(dev.attachedScripts, "Three"))
+                    dev.attachedScripts.emplace_back("Three");
+                if (!Utils::isInVector(dev.attachedScripts, "Four"))
+                    dev.attachedScripts.emplace_back("Four");
             } else {
                 deleteScript("PreviewOne");
                 deleteScript("PreviewTwo");
@@ -212,8 +219,8 @@ void Renderer::render() {
         // Check if camera connection was AR RESET and disable all scripts
         if (dev.state == AR_STATE_RESET) {
             // delete all scripts attached to device
-            deleteScript(dev.attachedScripts[0]);
-            break;
+            for (const std::string &script: dev.attachedScripts)
+                deleteScript(script);
         }
     }
 
@@ -245,7 +252,7 @@ void Renderer::windowResized() {
     renderData.pLogger = pLogger;
     renderData.height = height;
     renderData.width = width;
-    renderData.crlCamera = cameraConnection->camPtr;
+    renderData.crlCamera = &cameraConnection->camPtr;
 
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);

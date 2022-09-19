@@ -18,12 +18,12 @@ void DoubleLayoutBot::update(){
         return;
 
     if (model->draw) {
-        if (renderData.crlCamera->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
         }
 
         auto *tex = new ArEngine::TextureData();
-        if (renderData.crlCamera->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
             model->setZoom();
             free(tex->data);
@@ -56,7 +56,7 @@ void DoubleLayoutBot::prepareTexture() {
                                        src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     model->draw = false;
 
-    auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -95,11 +95,19 @@ void DoubleLayoutBot::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const AR::Element &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
+        selectedPreviewTab = dev.selectedPreviewTab;
+        playbackSate = dev.playbackStatus;
+        if (!dev.selectedSourceMap.contains(AR_PREVIEW_TWO))
+            break;
 
-        if (dev.selectedSourceMap.contains(AR_PREVIEW_TWO) && (src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
+        if (dev.selectedSourceMap.at(AR_PREVIEW_TWO) == "None"){
+            // dont draw or update
+            if (model)
+                model->draw = false;
+        }
+
+        if ((src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_TWO);
-            selectedPreviewTab = dev.selectedPreviewTab;
-            playbackSate = dev.playbackStatus;
             res = dev.selectedMode;
             prepareTexture();
         }

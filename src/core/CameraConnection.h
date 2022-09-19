@@ -26,11 +26,11 @@ public:
     } camPreviewBar;
 
     /** @brief Handle to the current camera object */
-    std::shared_ptr<CRLBaseInterface> camPtr = nullptr;
     bool preview = false;
     std::string lastActiveDevice = "-1";
-
     void onUIUpdate(std::vector<AR::Element> *pVector);
+
+    std::unique_ptr<CRLBaseInterface> camPtr;
 
 private:
     int sd = -1;

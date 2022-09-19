@@ -12,18 +12,6 @@ void PointCloud::setup(Base::Render r) {
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
-    for (auto dev: *r.gui) {
-        if (dev.streams.find(AR_PREVIEW_POINT_CLOUD) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
-            continue;
-
-        auto opt = dev.streams.find(AR_PREVIEW_POINT_CLOUD)->second;
-        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Disparity Left");
-        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, "Luma Rectified Left");
-
-        startedSources.emplace_back("Disparity Left");
-        startedSources.emplace_back("Luma Rectified Left");
-
-    }
 
     const int vertexCount = 960 * 600;
     meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] when you're done!
@@ -42,9 +30,10 @@ void PointCloud::setup(Base::Render r) {
 }
 
 
-void PointCloud::update(CameraConnection *conn) {
+void PointCloud::update() {
     if (playbackSate != AR_PREVIEW_PLAYING || TAB_3D_POINT_CLOUD != selectedPreviewTab)
         return;
+    /*
     CRLBaseInterface *camPtr = conn->camPtr;
 
     if (camPtr->getCameraInfo().imgConf.width() != width){
@@ -89,6 +78,7 @@ void PointCloud::update(CameraConnection *conn) {
         delete tex;
 
     }
+     */
 
     ArEngine::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);

@@ -15,6 +15,8 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
         if (cameraInterface != nullptr) {
             updateCameraInfo();
             addCallbacks();
+            callbackTime = std::chrono::steady_clock::now();
+            startTime = std::chrono::steady_clock::now();
 
             int mtuSize = 7200;
             int status = cameraInterface->setMtu(mtuSize);
@@ -40,7 +42,7 @@ bool CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSo
 
 
     // Start stream
-    bool status = cameraInterface->startStreams(source);
+    int32_t status = cameraInterface->startStreams(source);
 
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Enabled stream: {}",
@@ -110,6 +112,19 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 }
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) {
+
+    auto time = std::chrono::steady_clock::now();
+    std::chrono::duration<float> time_span =
+            std::chrono::duration_cast<std::chrono::duration<float>>(time - startTime);
+    if (time_span.count() > 1){
+        std::chrono::duration<float> callbackTimeSpan =
+                std::chrono::duration_cast<std::chrono::duration<float>>(time - callbackTime);
+
+        Log::Logger::getInstance()->info("Requesting image from camera stream. But it is {} seconds since the image stream callback was called.", callbackTimeSpan.count());
+        startTime = std::chrono::steady_clock::now();
+    }
+
+
     assert(tex != nullptr);
     auto src = stringToDataSource(stringSrc);
 
@@ -225,13 +240,7 @@ void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &ima
 void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto cam = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
 
-
-    auto time = std::chrono::steady_clock::now();
-    std::chrono::duration<float> time_span =
-            std::chrono::duration_cast<std::chrono::duration<float>>(time - cam->startTime);
-
-    //Log::Logger::getInstance()->info("Source id: {} time since last call: {}s",header.source, time_span.count());
-
+    cam->callbackTime = std::chrono::steady_clock::now();
     cam->startTime = std::chrono::steady_clock::now();
 
     if (!cam->stopForDestruction)
@@ -310,7 +319,7 @@ void CRLPhysicalCamera::setFps(float fps) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query image configuration");
     }
     //
     // Modify image configuration parameters
@@ -323,7 +332,7 @@ void CRLPhysicalCamera::setFps(float fps) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
     this->updateCameraInfo();
@@ -334,7 +343,7 @@ void CRLPhysicalCamera::setGain(float gain) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query image configuration");
     }
     //
     // Modify image configuration parameters
@@ -347,7 +356,7 @@ void CRLPhysicalCamera::setGain(float gain) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
     this->updateCameraInfo();
@@ -422,7 +431,7 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query image configuration");
     }
     //
     // Modify image configuration parameters
@@ -446,7 +455,7 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
     this->updateCameraInfo();
@@ -458,7 +467,7 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query image configuration");
     }
     //
     // Modify image configuration parameters
@@ -471,7 +480,7 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
     this->updateCameraInfo();
@@ -482,7 +491,7 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query image configuration");
     }
     //
     // Modify image configuration parameters
@@ -503,7 +512,7 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
     this->updateCameraInfo();

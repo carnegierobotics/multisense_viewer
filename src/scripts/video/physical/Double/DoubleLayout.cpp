@@ -13,19 +13,17 @@ void DoubleLayout::setup(Base::Render r) {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void DoubleLayout::update(CameraConnection *conn) {
+void DoubleLayout::update(){
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
-    auto *camera = conn->camPtr;
-
-    if (camera->getCameraInfo().imgConf.width() != width) {
-        model->draw = false;
-    }
-
     if (model->draw) {
+        if (renderData.crlCamera->getCameraInfo().imgConf.width() != width) {
+            model->draw = false;
+        }
+
         auto *tex = new ArEngine::TextureData();
-        if (camera->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
             model->setZoom();
             free(tex->data);
@@ -58,7 +56,7 @@ void DoubleLayout::prepareTexture() {
                                        src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     model->draw = false;
 
-    auto imgConf = renderData.crlCamera->get()->camPtr->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -98,9 +96,8 @@ void DoubleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
-
-        if (src != dev.selectedSource || res != dev.selectedMode) {
-            src = dev.selectedSource;
+        if (dev.selectedSourceMap.contains(AR_PREVIEW_ONE) && (src != dev.selectedSourceMap.at(AR_PREVIEW_ONE) || dev.selectedMode != res)) {
+            src = dev.selectedSourceMap.at(AR_PREVIEW_ONE);
             selectedPreviewTab = dev.selectedPreviewTab;
             playbackSate = dev.playbackStatus;
             res = dev.selectedMode;
@@ -121,6 +118,9 @@ void DoubleLayout::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element
 
 
 void DoubleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+    if (!model)
+        return;
+
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 

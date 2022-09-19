@@ -1,47 +1,37 @@
 //
-// Created by magnus on 8/25/22.
+// Created by magnus on 9/19/22.
 //
 
+#ifndef MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H
+#define MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H
 
-#ifndef MULTISENSE_VIEWER_AUXIMAGER_H
-#define MULTISENSE_VIEWER_AUXIMAGER_H
+#include <MultiSense/src/scripts/video/physical/ScriptHeader.h>
 
-#include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/model_loaders/CRLCameraModels.h>
-#include <MultiSense/src/imgui/Layer.h>
-#include "MultiSense/src/Renderer/Renderer.h"
-
-
-class AuxImager : public Base, public RegisteredInFactory<AuxImager>, CRLCameraModels {
-
+class Two: public Base, public RegisteredInFactory<Two>, CRLCameraModels
+{
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    AuxImager() {
+    Two() {
         s_bRegistered;
     }
-
     void onDestroy() override{
-        delete model;
-        //camHandle->camPtr->stop();
     }
-
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<AuxImager>(); }
-
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Two>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "AuxImager"; }
+    static std::string GetFactoryName() { return "Two"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override {};
     /** @brief Setup function called one during engine prepare **/
     void setup(Base::Render r) override;
-
     /** @brief update function called once per frame **/
-    void update() override;
-
+    void update() override {};
+    /** @brief update function called once per frame **/
+    void update(CameraConnection* conn) override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
-    ScriptType getType() override { return type; }
+    ScriptType getType() override {return type;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(AR::GuiObjectHandles uiHandle) override;
 
@@ -50,34 +40,32 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY;
-    CRLCameraModels::Model *model{};
+    ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
 
-    uint32_t width = 0, height = 0;
-    std::string src;
-    CameraPlaybackFlags playbackSate;
-    CameraConnection* camHandle;
+    CRLCameraModels::Model* model = nullptr;
+
+    int count = 1;
+    void *selection = (void *) "0";
+    float up = -1.3f;
+    bool coordinateTransformed = false;
+    Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
     float scaleY = 0.25f;
     float centerX = 0.0f;
     float centerY = 0.0f;
-    float posXMin = 0.0f;
-    float posXMax = 0.0f;
-    float posYMin = 0.0f;
-    float posYMax = 0.0f;
-    float speed = 1.0f;
-    int prevOrder = 0;
-
-    std::chrono::steady_clock::time_point start, end;
+    std::string src;
+    CRLCameraResolution res;
+    CameraPlaybackFlags playbackSate{};
+    uint32_t width, height;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
 
-    void prepareTextureAfterDecode();
-
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
     void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);
+
+    void prepareTexture();
 };
 
 
-#endif //MULTISENSE_VIEWER_AUXIMAGER_H
+#endif //MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H

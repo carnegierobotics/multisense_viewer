@@ -9,7 +9,7 @@ void VirtualPointCloud::setup(Base::Render r) {
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
 
-    r.crlCamera->get()->camPtr->preparePointCloud(960, 600);
+    r.crlCamera->preparePointCloud(960, 600);
     model->createEmtpyTexture(960, 600, AR_POINT_CLOUD);
 
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -20,7 +20,7 @@ void VirtualPointCloud::setup(Base::Render r) {
     CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
 
     auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
-    buf->kInverse = r.crlCamera->get()->camPtr->getCameraInfo().kInverseMatrix;
+    buf->kInverse = r.crlCamera->getCameraInfo().kInverseMatrix;
     buf->height = static_cast<float>(960.0f);
     buf->width = static_cast<float>(600.0f);
     std::cout << glm::to_string(buf->kInverse) << std::endl;
@@ -40,17 +40,17 @@ void VirtualPointCloud::setup(Base::Render r) {
 }
 
 
-void VirtualPointCloud::update(CameraConnection *conn) {
+void VirtualPointCloud::update() {
     if (playbackSate != AR_PREVIEW_PLAYING && TAB_3D_POINT_CLOUD == selectedPreviewTab)
         return;
-    CRLBaseInterface *camPtr = conn->camPtr;
+    //CRLBaseInterface *camPtr = conn->camPtr;
 
 
     crl::multisense::image::Header disp;
     //camPtr->getCameraStream(nullptr);
     //model->setGrayscaleTexture(&disp);
 
-    free((void *)disp.imageDataP);
+    free((void *) disp.imageDataP);
 
     model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
 
@@ -80,11 +80,13 @@ void VirtualPointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
+        /*
         if (dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD) == dev.streams.end())
             continue;
 
         playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
+    */
     }
 
 }

@@ -55,18 +55,19 @@ typedef enum ArConnectionState {
 
 typedef enum StreamIndex {
     // First 0 - 8 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
-    AR_PREVIEW_LEFT = 0,
-    AR_PREVIEW_RIGHT = 1,
-    AR_PREVIEW_DISPARITY = 2,
-    AR_PREVIEW_AUXILIARY = 3,
-    AR_PREVIEW_POINT_CLOUD = 4,
+    AR_PREVIEW_ONE = 0,
+    AR_PREVIEW_TWO = 1,
+    AR_PREVIEW_THREE = 2,
+    AR_PREVIEW_FOUR = 3,
+    AR_PREVIEW_FIVE = 5,
+    AR_PREVIEW_SIX = 6,
+    AR_PREVIEW_SEVEN = 7,
+    AR_PREVIEW_EIGHT = 8,
+    AR_PREVIEW_NINE = 9,
+    AR_PREVIEW_POINT_CLOUD = 10,
 
-    AR_PREVIEW_VIRTUAL_LEFT = 5,
-    AR_PREVIEW_VIRTUAL_RIGHT = 6,
-    AR_PREVIEW_VIRTUAL_AUX = 7,
-    AR_PREVIEW_VIRTUAL_POINT_CLOUD = 8,
 
-    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_VIRTUAL_POINT_CLOUD,
+    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD,
     // Other flags
 
 } CameraStreamInfoFlag;
@@ -155,7 +156,7 @@ namespace AR {
         std::string name;
         std::string attachedScript;
         /** @brief Which gui index is selected */
-        CameraStreamInfoFlag streamIndex = AR_PREVIEW_LEFT;
+        CameraStreamInfoFlag streamIndex = AR_PREVIEW_ONE;
         /** @brief Current camera streaming state  */
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
         /** @brief In which order is this streaming mode presented in the viewing area  */
@@ -226,15 +227,16 @@ namespace AR {
         uint32_t selectedSourceIndex = 0;
         CRLCameraResolution selectedMode;
         std::vector<std::string> sources;
-        std::string selectedSource;
         std::map<int,  std::string> selectedSourceMap;
+        std::map<int, int> selectedSourceIndexMap;
+
         float row[9] = {0};
+        float col[9] = {0};
+        std::map<int, StreamIndex> identifier;
 
         std::vector<std::string> userRequestedSources;
         std::vector<std::string> enabledStreams;
         std::string attachedScripts[9];
-
-        bool update = false;
 
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
@@ -254,7 +256,7 @@ namespace AR {
 
     struct EntryConnectDevice {
         std::string profileName = "MultiSense";
-        std::string IP = "10.66.176.21";
+        std::string IP = "10.66.171.21";
         std::string interfaceName;
         uint32_t interfaceIndex{};
 

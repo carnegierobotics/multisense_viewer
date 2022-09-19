@@ -27,13 +27,13 @@
 
 #include <MultiSense/src/scripts/objects/LightSource.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
-#include <MultiSense/src/scripts/pointcloud/VirtualPointCloud.h>
-#include <MultiSense/src/scripts/video/virtual/LeftImager.h>
-#include <MultiSense/src/scripts/video/virtual/RightImager.h>
-#include <MultiSense/src/scripts/video/virtual/AuxImager.h>
 #include <MultiSense/src/scripts/video/physical/Single/SingleLayout.h>
 #include <MultiSense/src/scripts/video/physical/Double/DoubleLayout.h>
 #include <MultiSense/src/scripts/video/physical/Double/DoubleLayoutBot.h>
+#include <MultiSense/src/scripts/video/physical/Quad/Three.h>
+#include <MultiSense/src/scripts/video/physical/Quad/PreviewOne.h>
+#include <MultiSense/src/scripts/video/physical/Quad/PreviewTwo.h>
+#include <MultiSense/src/scripts/video/physical/Quad/Four.h>
 
 class Renderer : VulkanRenderer {
 
@@ -77,7 +77,7 @@ public:
 private:
 
     std::map<std::string, std::unique_ptr<Base>> scripts;
-    std::unique_ptr<CameraConnection> cameraConnection{};
+    std::shared_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
 
 protected:
@@ -105,7 +105,7 @@ protected:
 
     void deleteScript(const std::string &scriptName);
 
-    void buildScript(const std::string& scriptName);
+    void buildScript(const std::string &scriptName, Base::Render render);
 };
 
 

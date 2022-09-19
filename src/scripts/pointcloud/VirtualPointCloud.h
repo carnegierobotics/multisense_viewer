@@ -25,9 +25,7 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
-    void update() override {};
-    /** @brief update function called once per frame **/
-    void update(CameraConnection* conn) override;
+    void update() override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 

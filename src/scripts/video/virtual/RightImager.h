@@ -22,7 +22,7 @@ public:
 
     void onDestroy() override{
         delete model;
-        camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_RIGHT);
+        //camHandle->camPtr->stop(AR_PREVIEW_VIRTUAL_RIGHT);
     }
 
 

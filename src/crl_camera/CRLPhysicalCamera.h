@@ -16,7 +16,8 @@
 class CRLPhysicalCamera : public CRLBaseInterface {
 public:
 
-    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime; // Timer to log every second
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> callbackTime; // Timer to see how long ago the callback was called
 
     CRLPhysicalCamera() : CRLBaseInterface() {
         startTime = std::chrono::steady_clock::now();

@@ -82,7 +82,7 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(const std::string &scriptName) {
+void Renderer::buildScript(const std::string &scriptName, Base::Render renderData) {
 
     // Do not recreate script if already created
 
@@ -95,7 +95,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
 
     if (scripts[scriptName].get() == nullptr) {
-        pLogger->error("Failed to register script. Did you remember to include it in renderer.h?");
+        pLogger->error("Failed to register script {}. Did you remember to include it in renderer.h?", scriptName);
         scriptNames.erase(std::find(scriptNames.begin(), scriptNames.end(), scriptName));
         return;
     }
@@ -108,10 +108,6 @@ void Renderer::buildScript(const std::string &scriptName) {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
 
-
-    Base::Render renderData{};
-    renderData.crlCamera = &cameraConnection;
-    renderData.gui = guiManager->handles.devices;
     renderData.scriptName = scriptName;
 
     // Run script setup function
@@ -165,17 +161,18 @@ void Renderer::render() {
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
-    renderData.crlCamera = &cameraConnection;
+
+    renderData.crlCamera = cameraConnection->camPtr;
 
     // Create/delete scripts after use
-    buildScript("LightSource");
+    buildScript("LightSource", renderData);
 
     // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
                 std::string scriptName = "SingleLayout";
-                buildScript(scriptName);
+                buildScript(scriptName, renderData);
                 dev.attachedScripts[0] = scriptName;
             } else {
                 deleteScript("SingleLayout");
@@ -183,15 +180,31 @@ void Renderer::render() {
 
             if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
                 std::string scriptName = "DoubleLayout";
-                buildScript(scriptName);
+                buildScript(scriptName, renderData);
                 dev.attachedScripts[0] = scriptName;
                 scriptName = "DoubleLayoutBot";
-                buildScript(scriptName);
+                buildScript(scriptName, renderData);
                 dev.attachedScripts[1] = scriptName;
             } else {
                 deleteScript("DoubleLayout");
                 deleteScript("DoubleLayoutBot");
 
+            }
+
+            if (dev.layout == PREVIEW_LAYOUT_QUAD){
+                buildScript("PreviewOne", renderData);
+                buildScript("PreviewTwo", renderData);
+                buildScript("Three", renderData);
+                buildScript("Four", renderData);
+                dev.attachedScripts[0] = "PreviewOne";
+                dev.attachedScripts[1] = "PreviewTwo";
+                dev.attachedScripts[2] = "Three";
+                dev.attachedScripts[3] = "Four";
+            } else {
+                deleteScript("PreviewOne");
+                deleteScript("PreviewTwo");
+                deleteScript("Three");
+                deleteScript("Four");
             }
         }
 
@@ -232,7 +245,7 @@ void Renderer::windowResized() {
     renderData.pLogger = pLogger;
     renderData.height = height;
     renderData.width = width;
-    renderData.crlCamera = &cameraConnection;
+    renderData.crlCamera = cameraConnection->camPtr;
 
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);

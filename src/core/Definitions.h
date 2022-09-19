@@ -112,16 +112,17 @@ typedef enum CRLCameraResolution {
     CRL_RESOLUTION_960_600_256 = 3,
     CRL_RESOLUTION_1920_1200_64 = 4,
     CRL_RESOLUTION_1920_1200_128 = 5,
-    CRL_RESOLUTION_1920_1200_256 = 6
+    CRL_RESOLUTION_1920_1200_256 = 6,
+    CRL_RESOLUTION_TOTAL_MODES = 7,
 } CRLCameraResolution;
 
 typedef enum PreviewLayout {
-    PREVIEW_LAYOUT_NONE,
-    PREVIEW_LAYOUT_SINGLE,
-    PREVIEW_LAYOUT_DOUBLE,
-    PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE,
-    PREVIEW_LAYOUT_QUAD,
-    PREVIEW_LAYOUT_NINE
+    PREVIEW_LAYOUT_NONE = 0,
+    PREVIEW_LAYOUT_SINGLE = 1,
+    PREVIEW_LAYOUT_DOUBLE = 2,
+    PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE = 3,
+    PREVIEW_LAYOUT_QUAD = 4,
+    PREVIEW_LAYOUT_NINE = 5
 }PreviewLayout;
 
 struct WhiteBalanceParams {
@@ -220,24 +221,20 @@ namespace AR {
         std::map<int, StreamingModes> streams;
 
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
-        std::string selectedStream;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
         std::vector<std::string> modes;
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
         CRLCameraResolution selectedMode;
-        std::vector<std::string> sources;
+        std::vector<std::string> sources; // Human-readable names of camera sources
         std::map<int,  std::string> selectedSourceMap;
         std::map<int, int> selectedSourceIndexMap;
 
-        float row[9] = {0};
-        float col[9] = {0};
-        std::map<int, StreamIndex> identifier;
-
         std::vector<std::string> userRequestedSources;
         std::vector<std::string> enabledStreams;
-        std::string attachedScripts[9];
-
+        std::vector<std::string> attachedScripts;
+        float row[9] = {0};
+        float col[9] = {0};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

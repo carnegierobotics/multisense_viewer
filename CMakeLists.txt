@@ -57,7 +57,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 set(FMT_DIR external/fmt) 
 add_subdirectory(${FMT_DIR})
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt")
 
 # add source files
 set(IMGUI_SRC
@@ -67,6 +66,13 @@ set(IMGUI_SRC
         src/imgui/custom/imgui_user.inl
         )
 INCLUDE_DIRECTORIES(src/imgui/custom)
+
+# Ini file parser SimpleIni
+set(SimpleIni_DIR external/simpleini)
+set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
+add_library(SimpleIni ${SimpleIni_SRC})
+
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 
 set(ENGINE_SRC
         src/core/Definitions.h
@@ -142,6 +148,8 @@ set(ENGINE_SRC
         src/tools/Logger.h
         src/tools/Logger.cpp
         src/scripts/video/physical/ScriptHeader.h
+
+        # IniH header only
         )
 
 
@@ -225,7 +233,7 @@ else () ## Linux
     add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb )
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

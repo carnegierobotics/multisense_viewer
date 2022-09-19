@@ -35,6 +35,7 @@
 #include "MultiSense/src/crl_camera/CRLVirtualCamera.h"
 #include "MultiSense/src/crl_camera/CRLPhysicalCamera.h"
 #include <unistd.h>
+#include "MultiSense/external/simpleini/SimpleIni.h"
 
 
 CameraConnection::CameraConnection() {
@@ -143,8 +144,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
             if (camPtr->start(dev->selectedMode, s)) {
                 dev->enabledStreams.push_back(s);
-            }
-            else
+            } else
                 Log::Logger::getInstance()->info("Failed to enabled stream {}", s);
         }
     }
@@ -182,21 +182,23 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
 
         // Connect if we click a device or if it is just added
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
-
             // reset other active device if present. So loop over all devices again. quick hack is to updaet state for the newly connect device/clicked device ot just added to enter this if statement on next render loop
             bool resetOtherDeviceFirst = false;
+            AR::Element *otherDev;
             for (auto &d: *pVector) {
                 if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
                     d.state = AR_STATE_RESET;
                     Log::Logger::getInstance()->info("Call to reset state requested for profile {}", d.name);
                     resetOtherDeviceFirst = true;
+                    otherDev = &d;
                 }
             }
 
-            if (!resetOtherDeviceFirst)
-                connectCrlCamera(dev);
-            else
-                dev.state = AR_STATE_JUST_ADDED;
+            if (resetOtherDeviceFirst) {
+                disableCrlCamera(*otherDev);
+            }
+
+            connectCrlCamera(dev);
 
             break;
         }
@@ -232,7 +234,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
 
     if (dev.cameraName == "Virtual Camera") {
-        camPtr = std::make_shared<CRLVirtualCamera>();
+        camPtr = std::make_unique<CRLVirtualCamera>();
         connected = camPtr->connect("None");
         if (connected) {
             dev.state = AR_STATE_ACTIVE;
@@ -293,8 +295,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 */
 
             Log::Logger::getInstance()->info("Creating new Virtual Camera.");
-
-
         } else
             dev.state = AR_STATE_UNAVAILABLE;
 
@@ -307,7 +307,8 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
         Log::Logger::getInstance()->info("Creating new physical camera.");
 
-        camPtr = std::make_shared<CRLPhysicalCamera>();
+        camPtr = std::make_unique<CRLPhysicalCamera>();
+
         connected = camPtr->connect(dev.IP);
         if (connected) {
             dev.state = AR_STATE_ACTIVE;
@@ -323,7 +324,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 }
 
 void CameraConnection::setStreamingModes(AR::Element &dev) {
-
     auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
 
     dev.modes.clear();
@@ -335,8 +335,38 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     dev.selectedSourceIndex = 0;
     dev.selectedMode = CRL_RESOLUTION_960_600_256;
 
-    if (dev.modes.empty() || dev.sources.empty()){
+    // Check for previous user profiles attached to this hardware
+    if (dev.modes.empty() || dev.sources.empty()) {
         Log::Logger::getInstance()->info("Modes and Sources empty for physical camera");
+    }
+
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile("crl.ini");
+    if (rc < 0) { /* handle error */ }
+    else {
+        std::string serialNumber = ini.GetValue("camera", "SerialNumber", "default");
+        // Identical serial number. Use configuration
+        if (camPtr->getCameraInfo().devInfo.serialNumber == serialNumber) {
+            std::string profileName = ini.GetValue("camera", "ProfileName", "default");
+            std::string mode = ini.GetValue("camera", "Mode", "default");
+            std::string layout = ini.GetValue("camera", "Layout", "default");
+            std::string enabledSources = ini.GetValue("camera", "EnabledSources", "default");
+            std::string previewOne = ini.GetValue("camera", "Preview1", "None");
+            std::string previewTwo = ini.GetValue("camera", "Preview2", "None");
+
+            dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
+            dev.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
+            dev.selectedModeIndex = std::stoi(mode) - 1;
+
+            dev.selectedSourceMap[0] = previewOne;
+            dev.selectedSourceMap[1] = previewTwo;
+
+            dev.userRequestedSources.emplace_back(previewOne);
+            dev.userRequestedSources.emplace_back(previewTwo);
+
+        }
+
     }
 
     /*
@@ -409,7 +439,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
     for (auto mask: maskVec) {
         bool enabled = (bits & mask);
         if (enabled) {
-            sources->emplace_back(dataSourceToString(mask));
+            sources->emplace_back(Utils::dataSourceToString(mask));
         }
     }
 }
@@ -546,11 +576,59 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev.name.c_str(),
                                      dev.cameraName.c_str());
 
-    camPtr.reset();
+
+    // Save settings to file
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile("crl.ini");
+    if (rc < 0) { /* handle error */ }
+    else {
+        std::string serialNumber = ini.GetValue("camera", "SerialNumber", "");
+
+        // Create new entry
+        if (serialNumber != camPtr->getCameraInfo().devInfo.serialNumber) {
+
+        } else {
+            int ret = ini.SetValue("camera", "Mode", std::to_string((int) dev.selectedMode).c_str());
+            if (ret < 0)
+                Log::Logger::getInstance()->info("Failed to insert Mode in crl.ini file. {}", ret);
+            else
+                Log::Logger::getInstance()->info("Updated Mode in crl.ini. Result: {}",
+                                                 std::to_string((int) dev.selectedMode));
+
+            ret = ini.SetValue("camera", "Layout", std::to_string((int) dev.layout).c_str());
+            if (ret < 0)
+                Log::Logger::getInstance()->info("Failed to insert Layout in crl.ini. Result: {}", ret);
+            else
+                Log::Logger::getInstance()->info("Updated Layout in crl.ini. Result: {}",
+                                                 std::to_string((int) dev.layout));
+
+            for (int i = 0; i < 11; ++i) {
+                if (dev.selectedSourceMap.contains(i)) {
+                    std::string key = "Preview" + std::to_string(i + 1);
+                    ini.SetValue("camera", key.c_str(), dev.selectedSourceMap[i].c_str());
+                    if (ret < 0)
+                        Log::Logger::getInstance()->info("Failed to insert {} in crl.ini. Result: {}", key, ret);
+                    else
+                        Log::Logger::getInstance()->info("Updated {} in crl.ini. Result: {}", key,
+                                                         std::to_string((int) dev.layout));
+                }
+            }
+        }
+
+        // save the data back to the file
+        rc = ini.SaveFile("crl.ini");
+        if (rc < 0) {
+            Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+        }
+    }
+
     dev.userRequestedSources.clear();
     dev.enabledStreams.clear();
     dev.selectedSourceMap.clear();
     dev.selectedSourceIndexMap.clear();
+
+    camPtr.reset();
 
     /*
 #ifdef WIN32
@@ -585,57 +663,3 @@ CameraConnection::~CameraConnection() {
 
 }
 
-std::string CameraConnection::dataSourceToString(crl::multisense::DataSource d) {
-    switch (d) {
-        case crl::multisense::Source_Raw_Left:
-            return "Raw Left";
-        case crl::multisense::Source_Raw_Right:
-            return "Raw Right";
-        case crl::multisense::Source_Luma_Left:
-            return "Luma Left";
-        case crl::multisense::Source_Luma_Right:
-            return "Luma Right";
-        case crl::multisense::Source_Luma_Rectified_Left:
-            return "Luma Rectified Left";
-        case crl::multisense::Source_Luma_Rectified_Right:
-            return "Luma Rectified Right";
-        case crl::multisense::Source_Chroma_Left:
-            return "Color Left";
-        case crl::multisense::Source_Chroma_Right:
-            return "Source Color Right";
-        case crl::multisense::Source_Compressed_Right:
-            return "Source Compressed Right";
-        case crl::multisense::Source_Compressed_Rectified_Right:
-            return "Source Compressed Rectified Right | Jpeg Left";
-        case crl::multisense::Source_Disparity_Left:
-            return "Disparity Left";
-        case crl::multisense::Source_Disparity_Cost:
-            return "Disparity Cost";
-        case crl::multisense::Source_Disparity_Right:
-            return "Disparity Right";
-        case crl::multisense::Source_Rgb_Left:
-            return "Source Rgb Left | Source Compressed Rectified Aux";
-        case crl::multisense::Source_Compressed_Left:
-            return "Source Compressed Left";
-        case crl::multisense::Source_Compressed_Rectified_Left:
-            return "Source Compressed Rectified Left";
-        case crl::multisense::Source_Lidar_Scan:
-            return "Source Lidar Scan";
-        case crl::multisense::Source_Raw_Aux:
-            return "Raw Aux";
-        case crl::multisense::Source_Luma_Aux:
-            return "Luma Aux";
-        case crl::multisense::Source_Luma_Rectified_Aux:
-            return "Luma Rectified Aux";
-        case crl::multisense::Source_Chroma_Aux:
-            return "Color Aux";
-        case crl::multisense::Source_Chroma_Rectified_Aux:
-            return "Color Rectified Aux";
-        case crl::multisense::Source_Disparity_Aux:
-            return "Disparity Aux";
-        case crl::multisense::Source_Compressed_Aux:
-            return "Source Compressed Aux";
-        default:
-            return "Unknown";
-    }
-}

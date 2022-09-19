@@ -35,6 +35,79 @@ namespace Utils {
         return "scripts/";
     }
 
+    static std::string dataSourceToString(crl::multisense::DataSource d) {
+        switch (d) {
+            case crl::multisense::Source_Raw_Left:
+                return "Raw Left";
+            case crl::multisense::Source_Raw_Right:
+                return "Raw Right";
+            case crl::multisense::Source_Luma_Left:
+                return "Luma Left";
+            case crl::multisense::Source_Luma_Right:
+                return "Luma Right";
+            case crl::multisense::Source_Luma_Rectified_Left:
+                return "Luma Rectified Left";
+            case crl::multisense::Source_Luma_Rectified_Right:
+                return "Luma Rectified Right";
+            case crl::multisense::Source_Chroma_Left:
+                return "Color Left";
+            case crl::multisense::Source_Chroma_Right:
+                return "Source Color Right";
+            case crl::multisense::Source_Disparity_Left:
+                return "Disparity Left";
+            case crl::multisense::Source_Disparity_Cost:
+                return "Disparity Cost";
+            case crl::multisense::Source_Jpeg_Left:
+                return "Jpeg Left";
+            case crl::multisense::Source_Rgb_Left:
+                return "Source Rgb Left";
+            case crl::multisense::Source_Lidar_Scan:
+                return "Source Lidar Scan";
+            case crl::multisense::Source_Raw_Aux:
+                return "Raw Aux";
+            case crl::multisense::Source_Luma_Aux:
+                return "Luma Aux";
+            case crl::multisense::Source_Luma_Rectified_Aux:
+                return "Luma Rectified Aux";
+            case crl::multisense::Source_Chroma_Aux:
+                return "Color Aux";
+            case crl::multisense::Source_Chroma_Rectified_Aux:
+                return "Color Rectified Aux";
+            case crl::multisense::Source_Disparity_Aux:
+                return "Disparity Aux";
+            default:
+                return "Unknown";
+        }
+    }
+
+    static crl::multisense::DataSource stringToDataSource(const std::string &d) {
+        if (d == "Raw Left") return crl::multisense::Source_Raw_Left;
+        if (d == "Raw Right") return crl::multisense::Source_Raw_Right;
+        if (d == "Luma Left") return crl::multisense::Source_Luma_Left;
+        if (d == "Luma Right") return crl::multisense::Source_Luma_Right;
+        if (d == "Luma Rectified Left") return crl::multisense::Source_Luma_Rectified_Left;
+        if (d == "Luma Rectified Right") return crl::multisense::Source_Luma_Rectified_Right;
+        if (d == "Color Left") return crl::multisense::Source_Chroma_Left;
+        if (d == "Source Color Right") return crl::multisense::Source_Chroma_Right;
+        if (d == "Disparity Left") return crl::multisense::Source_Disparity_Left;
+        if (d == "Disparity Cost") return crl::multisense::Source_Disparity_Cost;
+        if (d == "Jpeg Left") return crl::multisense::Source_Jpeg_Left;
+        if (d == "Source Rgb Left") return crl::multisense::Source_Rgb_Left;
+        if (d == "Source Lidar Scan") return crl::multisense::Source_Lidar_Scan;
+        if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
+        if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
+        if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
+        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
+        if (d == "Color Rectified Aux")
+            return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;;
+        if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
+        if (d == "Color + Luma Rectified Aux")
+            return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;
+        if (d == "All") return crl::multisense::Source_All;
+        return false;
+    }
+
+
     inline bool findValIfExists(std::map<int, AR::StreamingModes> map, StreamIndex streamIndex) {
         if (map.find(streamIndex) == map.end()) {
             Log::Logger::getInstance()->info("Could not find {} in stream map", (uint32_t) streamIndex);

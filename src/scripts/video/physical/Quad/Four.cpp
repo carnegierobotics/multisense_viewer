@@ -14,16 +14,16 @@ void Four::setup(Base::Render r) {
 }
 
 void Four::update(){
-    if (playbackSate != AR_PREVIEW_PLAYING)
+    if (!model)
         return;
 
     if (model->draw) {
-        if (renderData.crlCamera->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
         }
 
         auto *tex = new ArEngine::TextureData();
-        if (renderData.crlCamera->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
             model->setZoom();
             free(tex->data);
@@ -57,7 +57,7 @@ void Four::prepareTexture() {
                                        src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     model->draw = false;
 
-    auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -97,6 +97,9 @@ void Four::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
+        selectedPreviewTab = dev.selectedPreviewTab;
+        playbackSate = dev.playbackStatus;
+
         if (!dev.selectedSourceMap.contains(AR_PREVIEW_FOUR))
             break;
 
@@ -108,8 +111,6 @@ void Four::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
         if ((src != dev.selectedSourceMap.at(AR_PREVIEW_FOUR) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_FOUR);
-            selectedPreviewTab = dev.selectedPreviewTab;
-            playbackSate = dev.playbackStatus;
             res = dev.selectedMode;
             prepareTexture();
         }

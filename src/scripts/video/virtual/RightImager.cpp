@@ -16,7 +16,6 @@ void RightImager::setup(Base::Render r) {
     model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
     // Don't draw it before we create the texture in update()
     model->draw = false;
-    this->camHandle = r.crlCamera->get();
 
     start = std::chrono::steady_clock::now();
 
@@ -40,11 +39,12 @@ void RightImager::update() {
         ArEngine::MP4Frame frame{};
 
         // Todo On destructor of connected device in sidebar, camPtr is set to nullptr. This function update() should not get called then.
-        bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_RIGHT);
+        //bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_RIGHT);
 
+        /*
         if (ret)
             model->setColorTexture(&frame);
-
+*/
         free(frame.plane0);
         free(frame.plane1);
         free(frame.plane2);
@@ -105,6 +105,7 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (dev.button)
             model->draw = false;
 
+        /*
         if (dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
@@ -145,6 +146,8 @@ void RightImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
             }
             model->draw = true;
         }
+
+         */
     }
 }
 
@@ -160,12 +163,13 @@ void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element 
     scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
 
+    /*
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
    // posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;          // left anchor
-
+*/
 }
 
 

@@ -12,7 +12,7 @@
 #include "MultiSense/src/tools/Logger.h"
 #include "GLFW/glfw3.h"
 #include "KeyInput.h"
-
+#include "MultiSense/src/crl_camera/CRLBaseInterface.h"
 
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate scripts/model_loaders from ImGui source recompile
@@ -54,9 +54,8 @@ public:
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<CameraConnection> *crlCamera = nullptr;
+        std::shared_ptr<CRLBaseInterface> crlCamera;
         ScriptType type;
-        const std::vector<AR::Element> *gui;
         Log::Logger *pLogger;
 
         uint32_t height;
@@ -69,12 +68,6 @@ public:
 
     /**@brief Pure virtual function called once every frame*/
     virtual void update() = 0;
-
-    /**@brief Optional virtual function usefully for camera scripts
-     * Called if the script type is: ArCameraScript and
-     * the cameraHandle has been initialized by the CameraConnection Class */
-    // TODO Refactor and remove this
-    virtual void update(CameraConnection *cameraHandle) {};
 
     /**@brief Pure virtual function called only once when VK is ready to render*/
     virtual void setup() = 0;
@@ -151,7 +144,7 @@ public:
         if (renderData.type == AR_SCRIPT_TYPE_DEFAULT || renderData.type == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY)
             update();
         else
-            update(renderData.crlCamera->get());
+            update();
 
 
 
@@ -271,7 +264,6 @@ protected:
     void updateRenderData(Render *data) {
         this->renderData.camera = data->camera;
         this->renderData.crlCamera = data->crlCamera;
-        this->renderData.gui = data->gui;
         this->renderData.deltaT = data->deltaT;
         this->renderData.index = data->index;
         this->renderData.pLogger = data->pLogger;

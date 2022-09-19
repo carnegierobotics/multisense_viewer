@@ -138,6 +138,9 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
     for (const auto &s: dev->userRequestedSources) {
         if (!Utils::isInVector(dev->enabledStreams, s)) {
             // Enable stream and push back if it is successfully enabled
+            if (s == "None")
+                continue;
+
             if (camPtr->start(dev->selectedMode, s)) {
                 dev->enabledStreams.push_back(s);
             }
@@ -229,7 +232,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
 
     if (dev.cameraName == "Virtual Camera") {
-        camPtr = new CRLVirtualCamera();
+        camPtr = std::make_shared<CRLVirtualCamera>();
         connected = camPtr->connect("None");
         if (connected) {
             dev.state = AR_STATE_ACTIVE;
@@ -240,7 +243,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
             dev.modes.emplace_back("1920x1080");
             dev.sources.emplace_back("rowbot_short.mpg");
-            dev.selectedSource = dev.sources.front();
             dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
 
 
@@ -305,7 +307,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
         Log::Logger::getInstance()->info("Creating new physical camera.");
 
-        camPtr = new CRLPhysicalCamera();
+        camPtr = std::make_shared<CRLPhysicalCamera>();
         connected = camPtr->connect(dev.IP);
         if (connected) {
             dev.state = AR_STATE_ACTIVE;
@@ -324,12 +326,20 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
 
     auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
 
+    dev.modes.clear();
+    dev.sources.clear();
+    dev.sources.emplace_back("None");
+
     initCameraModes(&dev.modes, supportedModes);
     filterAvailableSources(&dev.sources, maskArrayAll);
-    dev.selectedSource = dev.sources.front();
-    dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
+    dev.selectedSourceIndex = 0;
+    dev.selectedMode = CRL_RESOLUTION_960_600_256;
 
+    if (dev.modes.empty() || dev.sources.empty()){
+        Log::Logger::getInstance()->info("Modes and Sources empty for physical camera");
+    }
 
+    /*
     AR::StreamingModes left{};
     left.name = "1. Left Sensor";
     left.streamIndex = AR_PREVIEW_LEFT;
@@ -377,6 +387,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     dev.streams[AR_PREVIEW_DISPARITY] = disparity;
     dev.streams[AR_PREVIEW_AUXILIARY] = aux;
     dev.streams[AR_PREVIEW_POINT_CLOUD] = pointCloud;
+    */
 
     Log::Logger::getInstance()->info("setting available streaming modes");
 
@@ -534,9 +545,12 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
 
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev.name.c_str(),
                                      dev.cameraName.c_str());
-    // Free camPtr memory
-    delete camPtr;
 
+    camPtr.reset();
+    dev.userRequestedSources.clear();
+    dev.enabledStreams.clear();
+    dev.selectedSourceMap.clear();
+    dev.selectedSourceIndexMap.clear();
 
     /*
 #ifdef WIN32

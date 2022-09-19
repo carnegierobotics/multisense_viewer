@@ -25,10 +25,6 @@ public:
         delete model;
         delete[] meshData;
 
-        for(const auto& source : startedSources){
-            auto* ptr = dynamic_cast<CRLPhysicalCamera *>(renderData.crlCamera->get()->camPtr);
-            ptr->stop(source);
-        }
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PointCloud>(); }
@@ -40,9 +36,8 @@ public:
     /** @brief Setup function called one during engine prepare **/
     void setup(Base::Render r) override;
     /** @brief update function called once per frame **/
-    void update() override {};
+    void update() override;
     /** @brief update function called once per frame **/
-    void update(CameraConnection* conn) override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 

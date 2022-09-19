@@ -16,7 +16,6 @@ void LeftImager::setup(Base::Render r) {
     model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
     // Don't draw it before we create the texture in update()
     model->draw = false;
-    this->camHandle = r.crlCamera->get();
 
     start = std::chrono::steady_clock::now();
 
@@ -39,11 +38,12 @@ void LeftImager::update() {
         crl::multisense::image::Header stream;
         ArEngine::MP4Frame frame{};
 
+        /*
         bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_LEFT);
 
         if (ret)
             model->setColorTexture(&frame);
-
+*/
         free(frame.plane0);
         free(frame.plane1);
         free(frame.plane2);
@@ -102,6 +102,7 @@ void LeftImager::prepareTextureAfterDecode() {
 void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     bool found = false;
     for (const auto &dev: *uiHandle.devices) {
+        /*
         if (dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
         src = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.selectedStreamingSource;
@@ -142,7 +143,7 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
             }
             model->draw = true;
-        }
+        }'*/
     }
 
 }
@@ -159,12 +160,14 @@ void LeftImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element d
     scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform;
 
+    /*
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
     //posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;
-}
+*/
+     }
 
 
 void LeftImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {

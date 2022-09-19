@@ -119,6 +119,16 @@ set(ENGINE_SRC
         src/scripts/video/physical/Double/DoubleLayout.h
         src/scripts/video/physical/Double/DoubleLayoutBot.cpp
         src/scripts/video/physical/Double/DoubleLayoutBot.h
+
+        src/scripts/video/physical/Quad/PreviewOne.cpp
+        src/scripts/video/physical/Quad/PreviewOne.h
+        src/scripts/video/physical/Quad/PreviewTwo.cpp
+        src/scripts/video/physical/Quad/PreviewTwo.h
+        src/scripts/video/physical/Quad/Three.cpp
+        src/scripts/video/physical/Quad/Three.h
+        src/scripts/video/physical/Quad/Four.cpp
+        src/scripts/video/physical/Quad/Four.h
+
         src/scripts/video/virtual/LeftImager.cpp
         src/scripts/video/virtual/LeftImager.h
         src/scripts/video/virtual/RightImager.cpp

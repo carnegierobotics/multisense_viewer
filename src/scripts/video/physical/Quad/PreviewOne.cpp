@@ -2,18 +2,18 @@
 // Created by magnus on 5/8/22.
 //
 
-#include "SingleLayout.h"
+#include "PreviewOne.h"
 #include "GLFW/glfw3.h"
 
 
-void SingleLayout::setup(Base::Render r) {
+void PreviewOne::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void SingleLayout::update(){
+void PreviewOne::update(){
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -51,12 +51,10 @@ void SingleLayout::update(){
 }
 
 
-void SingleLayout::prepareTexture() {
-
+void PreviewOne::prepareTexture() {
     model = new CRLCameraModels::Model(renderUtils.device,
                                        src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     model->draw = false;
-
 
     auto imgConf = renderData.crlCamera->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
@@ -93,13 +91,21 @@ void SingleLayout::prepareTexture() {
     model->draw = true;
 }
 
-void SingleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void PreviewOne::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     for (const AR::Element &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
+        if (!dev.selectedSourceMap.contains(AR_PREVIEW_ONE))
+            break;
 
-        if (dev.selectedSourceMap.contains(AR_PREVIEW_ONE) && (src != dev.selectedSourceMap.at(AR_PREVIEW_ONE) || dev.selectedMode != res)) {
+        if (dev.selectedSourceMap.at(AR_PREVIEW_ONE) == "None"){
+            // dont draw or update
+            if (model)
+                model->draw = false;
+        }
+
+        if ((src != dev.selectedSourceMap.at(AR_PREVIEW_ONE) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_ONE);
             selectedPreviewTab = dev.selectedPreviewTab;
             playbackSate = dev.playbackStatus;
@@ -107,77 +113,25 @@ void SingleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
             prepareTexture();
         }
 
-
-
         transformToUISpace(uiHandle, dev);
-
     }
-
-
-    /*
-    for (const auto &dev: *uiHandle.devices) {
-
-
-        src = dev.streams.find(AR_PREVIEW_DISPARITY)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(AR_PREVIEW_DISPARITY)->second.playbackStatus;
-        selectedPreviewTab = dev.selectedPreviewTab;
-
-
-    }
-
-    if (playbackSate == AR_PREVIEW_PLAYING) {
-
-        if (input->getButton(GLFW_KEY_LEFT_CONTROL)){
-            std::cout << "Btn down: " << uiHandle.mouseBtns->wheel / 100.0f << std::endl;
-            auto * d2 = (ArEngine::ZoomParam *) bufferFourData;
-            d2->zoom = uiHandle.mouseBtns->wheel / 1000.0f;
-
-        } else if (!uiHandle.info->hoverState ) {
-            posY = uiHandle.accumulatedActiveScroll * 0.05f * 0.1f * 0.557 * (720.0f / (float) renderData.height);
-        }
-
-        // center of viewing area box.
-
-        //posX =  2*;
-
-        for (auto &dev: *uiHandle.devices) {
-            if (dev.state != AR_STATE_ACTIVE)
-                continue;
-            if (prevOrder != dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder) {
-                transformToUISpace(uiHandle, dev);
-                model->draw = false;
-                coordinateTransformed = true;
-            }
-            prevOrder = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
-
-            if (!model->draw && !coordinateTransformed) {
-                renderData.crlCamera->get()->camPtr->start(src, AR_PREVIEW_DISPARITY);
-
-                transformToUISpace(uiHandle, dev);
-                coordinateTransformed = true;
-
-            }
-        }
-    }
-
-
-    //printf("Pos %f, %f, %f\n", posX, posY, posZ);
-*/
 }
 
-void SingleLayout::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+void PreviewOne::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
     auto *info = uiHandle.info;
-    centerX = 2 * ((info->width - (info->viewingAreaWidth / 2)) / info->width) - 1; // map between -1 to 1q
-    centerY = 2 * (info->tabAreaHeight +
-                   ((info->viewAreaElementSizeY / 2) + ((dev.row[0]) * info->viewAreaElementSizeY) +
-                    ((dev.row[0]) * 10.0f))) / info->height- 1; // map between -1 to 1
-
     scaleX = (info->viewAreaElementSizeX / 1280.0f) * (1280.0f / info->width);
     scaleY = (info->viewAreaElementSizeY / 720.0f) * (720 / info->height);
+
+    float offsetX = (info->controlAreaWidth + info->sidebarWidth + 5.0f);
+
+    float viewAreaElementPosX = offsetX + (info->viewAreaElementSizeX/2) + (dev.col[0] * info->viewAreaElementSizeX) + (dev.col[0] * 10.0f);
+
+    centerX = 2 * (viewAreaElementPosX) / info->width - 1; // map between -1 to 1q
+    centerY = 2 * (info->tabAreaHeight + (info->viewAreaElementSizeY/2.0f)  + ((dev.row[0]) * info->viewAreaElementSizeY) + ((dev.row[0]) * 10.0f)) / info->height - 1; // map between -1 to 1
 }
 
 
-void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void PreviewOne::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (!model)
         return;
 
@@ -186,7 +140,7 @@ void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i) {
 
 }
 
-void SingleLayout::onWindowResize(AR::GuiObjectHandles uiHandle) {
+void PreviewOne::onWindowResize(AR::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

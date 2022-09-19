@@ -547,8 +547,7 @@ private:
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
                     offsetX = (info->controlAreaWidth + info->sidebarWidth + ((info->viewingAreaWidth - newWidth) / 2));
-                }
-                else
+                } else
                     offsetX = (info->controlAreaWidth + info->sidebarWidth + 5.0f);
 
                 float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
@@ -557,9 +556,10 @@ private:
                 ImGui::SetNextWindowSize(ImVec2(info->viewAreaElementSizeX, info->viewAreaElementSizeY),
                                          ImGuiCond_Always);
 
-                dev.row[index] = (float) row;
+                dev.row[index] = float(row);
+                dev.col[index] = float(col);
                 // Calculate window position
-                float viewAreaElementPosY=
+                float viewAreaElementPosY =
                         info->tabAreaHeight + ((float) row * (info->viewAreaElementSizeY + 10.0f));
 
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
@@ -627,8 +627,8 @@ private:
 
 
 
-                // Max X and Min Y is top right corner
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 225.0f, topBarRectMin.y + 5.0f));
+                    // Max X and Min Y is top right corner
+                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 225.0f, topBarRectMin.y + 5.0f));
                 }
                 ImGui::Text("Source: ");
                 ImGui::SameLine(0.0f, 5.0f);
@@ -637,34 +637,41 @@ private:
                 std::string srcLabel = "##Source" + std::to_string(index);
 
                 std::string previewValue;
-                auto search = dev.selectedSourceMap.find(index);
-                if (search == dev.selectedSourceMap.end())
-                    previewValue = "None";
-                else
-                    previewValue = dev.selectedSourceMap.at(index);
 
-                if (ImGui::BeginCombo(srcLabel.c_str(), previewValue.c_str(),
+                if (ImGui::BeginCombo(srcLabel.c_str(), dev.sources[dev.selectedSourceIndexMap[index]].c_str(),
                                       ImGuiComboFlags_HeightSmall)) {
                     for (int n = 0; n < dev.sources.size(); n++) {
 
                         const bool is_selected = (dev.selectedSourceIndex == n);
                         if (ImGui::Selectable(dev.sources[n].c_str(), is_selected)) {
 
-                            if (Utils::removeFromVector(&dev.userRequestedSources, dev.selectedSource)) {
-                                Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
-                                                                 dev.selectedSource);
+                            if (dev.selectedSourceMap.contains(index)) {
+                                dev.sources[n];
+                                bool inUse = false;
+
+                                for (const auto &source: dev.selectedSourceMap) {
+                                    if (dev.selectedSourceMap[index] == source.second && index != source.first)
+                                        inUse = true;
+                                }
+
+
+                                if (!inUse &&
+                                    Utils::removeFromVector(&dev.userRequestedSources, dev.selectedSourceMap[index])) {
+                                    Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
+                                                                     dev.selectedSourceMap[index]);
+
+                                }
                             }
 
                             dev.selectedSourceIndex = n;
-                            dev.selectedSource = dev.sources[dev.selectedSourceIndex];
+                            dev.selectedSourceIndexMap[index] = dev.selectedSourceIndex;
                             dev.selectedSourceMap[index] = dev.sources[dev.selectedSourceIndex];
 
-                            dev.update = true;
 
-                            if (!Utils::isInVector(dev.userRequestedSources, dev.selectedSource)) {
-                                dev.userRequestedSources.emplace_back(dev.selectedSource);
+                            if (!Utils::isInVector(dev.userRequestedSources, dev.selectedSourceMap[index])) {
+                                dev.userRequestedSources.emplace_back(dev.selectedSourceMap[index]);
                                 Log::Logger::getInstance()->info("Added source '{}' to user requested sources",
-                                                                 dev.selectedSource);
+                                                                 dev.selectedSourceMap[index]);
                             }
                         }
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -780,7 +787,6 @@ private:
                                         dev.selectedModeIndex = n;
                                         dev.selectedMode = Utils::stringToCameraResolution(
                                                 dev.modes[dev.selectedModeIndex]);
-                                        dev.update = true;
 
                                     }
                                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -809,7 +815,6 @@ private:
                                         dev.selectedModeIndex = n;
                                         dev.selectedMode = Utils::stringToCameraResolution(
                                                 dev.modes[dev.selectedModeIndex]);
-                                        dev.update = true;
                                         dev.playbackStatus = AR_PREVIEW_PLAYING;
                                     }
                                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -820,7 +825,7 @@ private:
                                 ImGui::EndCombo();
                             }
 
-                            dev.selectedSource = "Disparity Left";
+                            dev.selectedSourceMap[10] = "Disparity Left";
                         }
 
 

@@ -7,6 +7,7 @@
 
 #include "../crl_camera/CRLBaseInterface.h"
 #include <MultiSense/src/imgui/Layer.h>
+#include <memory>
 
 /**
  * Class handles the bridge between the GUI interaction and actual communication to camera
@@ -25,7 +26,7 @@ public:
     } camPreviewBar;
 
     /** @brief Handle to the current camera object */
-    CRLBaseInterface *camPtr = nullptr;
+    std::shared_ptr<CRLBaseInterface> camPtr = nullptr;
     bool preview = false;
     std::string lastActiveDevice = "-1";
 

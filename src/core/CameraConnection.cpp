@@ -130,6 +130,33 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
         dev->parameters.update = false;
     }
 
+    // Set the correct resolution. Will only update if changed.
+    camPtr->setResolution(dev->selectedMode);
+
+    // Handle streams enabling/disable
+    // Enable sources that are in userRequested but not in enabled
+    for (const auto &s: dev->userRequestedSources) {
+        if (!Utils::isInVector(dev->enabledStreams, s)) {
+            // Enable stream and push back if it is successfully enabled
+            if (camPtr->start(dev->selectedMode, s)) {
+                dev->enabledStreams.push_back(s);
+            }
+            else
+                Log::Logger::getInstance()->info("Failed to enabled stream {}", s);
+        }
+    }
+
+    // Disable sources that are in enabled but not in userRequested
+    for (const auto &s: dev->enabledStreams) {
+        if (!Utils::isInVector(dev->userRequestedSources, s)) {
+            // Enable stream and push back if it is successfully enabled
+            if (camPtr->stop(s))
+                Utils::removeFromVector(&dev->enabledStreams, s);
+            else
+                Log::Logger::getInstance()->info("Failed to disable stream {}", s);
+        }
+    }
+
 }
 
 void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
@@ -210,6 +237,14 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             dev.IP = "Local";
             lastActiveDevice = dev.name;
 
+
+            dev.modes.emplace_back("1920x1080");
+            dev.sources.emplace_back("rowbot_short.mpg");
+            dev.selectedSource = dev.sources.front();
+            dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
+
+
+            /*
             AR::StreamingModes virtualCam{};
             virtualCam.name = "1. Virtual Left";
             virtualCam.sources.emplace_back("rowbot_short.mpg");
@@ -253,7 +288,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             virutalPC.selectedStreamingMode = Utils::stringToCameraResolution(virutalPC.modes.front());
             virutalPC.selectedStreamingSource = virutalPC.sources.front();
             dev.streams[AR_PREVIEW_VIRTUAL_POINT_CLOUD] = virutalPC;
-
+*/
 
             Log::Logger::getInstance()->info("Creating new Virtual Camera.");
 
@@ -288,6 +323,12 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 void CameraConnection::setStreamingModes(AR::Element &dev) {
 
     auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
+
+    initCameraModes(&dev.modes, supportedModes);
+    filterAvailableSources(&dev.sources, maskArrayAll);
+    dev.selectedSource = dev.sources.front();
+    dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
+
 
     AR::StreamingModes left{};
     left.name = "1. Left Sensor";
@@ -365,7 +406,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 
 bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
-     hostAddress = dev.IP;
+    hostAddress = dev.IP;
 
     // TODO recheck if we want to start using exceptions for stuff or if this is fine
     try {
@@ -413,14 +454,16 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     /** SET NETWORK PARAMETERS FOR THE ADAPTER */
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
-        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",strerror(errno));
+        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
+                                          strerror(errno));
 
         return false;
     }
     // Specify interface name
     const char *interface = dev.interfaceName.c_str();
     if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
-        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName, strerror(errno));
+        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
+                                          strerror(errno));
     };
 
     struct ifreq ifr{};
@@ -444,7 +487,8 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
-        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName, strerror(errno));
+        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
+                                          strerror(errno));
 
     }
 
@@ -453,7 +497,8 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
-        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}", dev.interfaceName, strerror(errno));
+        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}", dev.interfaceName,
+                                          strerror(errno));
     }
 
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
@@ -465,7 +510,6 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
         Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                           dev.interfaceName.c_str());
     }
-
 
 
 #endif
@@ -493,7 +537,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     // Free camPtr memory
     delete camPtr;
 
-   
+
     /*
 #ifdef WIN32
 

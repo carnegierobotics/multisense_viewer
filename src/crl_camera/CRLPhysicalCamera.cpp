@@ -32,61 +32,39 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 }
 
 
-void CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
-
-    setResolution(resolution);
-
+bool CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
 
     crl::multisense::DataSource source = stringToDataSource(dataSourceStr);
     if (source == false)
-        return;
-    // Check if the stream has already been enabled first
-    if (std::find(enabledSources.begin(), enabledSources.end(),
-                  source) != enabledSources.end()) {
-        return;
-    }
-    if (dataSourceStr == "Color Rectified Aux") {
-        enabledSources.push_back(
-                crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux);
-    } else {
-        enabledSources.push_back(source);
-    }
+        return false;
+
 
     // Start stream
-    for (auto src: enabledSources) {
-        bool status = cameraInterface->startStreams(src);
+    bool status = cameraInterface->startStreams(source);
 
-        if (status == crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info("Enabled stream: {}",
-                                             dataSourceToString(src).c_str());
-            stopForDestruction = false;
-        } else
-            Log::Logger::getInstance()->info("Failed to enable stream: {}  status code {}",
-                                             dataSourceToString(src).c_str(), status);
-    }
+    if (status == crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Enabled stream: {}",
+                                         dataSourceToString(source).c_str());
+        stopForDestruction = false;
+        return true;
+
+    } else
+        Log::Logger::getInstance()->info("Failed to enable stream: {}  status code {}",
+                                         dataSourceToString(source).c_str(), status);
+    return false;
+
+
 }
 
 
-void CRLPhysicalCamera::stop(std::string dataSourceStr) {
-    Log::Logger::getInstance()->info("Stopping camera streams {}", dataSourceStr.c_str());
+bool CRLPhysicalCamera::stop(std::string dataSourceStr) {
 
     if (cameraInterface == nullptr)
-        return;
+        return false;
 
     crl::multisense::DataSource src = stringToDataSource(dataSourceStr);
     // Check if the stream has been enabled before we attempt to stop it
-    if (dataSourceStr != "All") {
-        if (std::find(enabledSources.begin(), enabledSources.end(),
-                      src) == enabledSources.end()) {
-            return;
-        }
-        std::vector<uint32_t>::iterator it;
-        it = std::remove(enabledSources.begin(), enabledSources.end(),
-                         src);
-        enabledSources.erase(it);
-    } else {
-        enabledSources.clear();
-    }
+
     /*
     std::vector<uint32_t>::iterator it;
     // Search and stop additional sources
@@ -96,11 +74,13 @@ void CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
     */
     bool status = cameraInterface->stopStreams(src);
-    if (status == crl::multisense::Status_Ok)
+    if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
-    else
+        return true;
+    } else {
         Log::Logger::getInstance()->info("Failed to stop stream {}", dataSourceStr.c_str());
-
+        return false;
+    }
 }
 
 bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
@@ -396,6 +376,10 @@ void CRLPhysicalCamera::setResolution(uint32_t width, uint32_t height, uint32_t 
 }
 
 void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
+
+    if (resolution == currentResolution)
+        return;
+
     uint32_t width, height, depth;
     Utils::cameraResolutionToValue(resolution, &width, &height, &depth);
 
@@ -410,6 +394,7 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
     ret = cameraInterface->setImageConfig(cfg);
     if (ret == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Set resolution to {}x{}x{}", width, height, depth);
+        currentResolution = resolution;
     } else
         Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
     this->updateCameraInfo();

@@ -162,7 +162,7 @@ void LeftImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element d
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_LEFT)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
-    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
+    //posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;
 }
 

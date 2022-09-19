@@ -23,7 +23,7 @@ namespace AR {
         float width{};
         float height{};
         /**@brief Width of sidebar*/
-        float sidebarWidth = 250.0f;
+        float sidebarWidth = 200.0f;
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
         /**@brief Physical Graphics device used*/
@@ -39,7 +39,7 @@ namespace AR {
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
         ImFont *font13{}, *font18{}, *font24{};
 
-        ImTextureID imageButtonTextureDescriptor[9];
+        ImTextureID imageButtonTextureDescriptor[10];
 
         // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
         struct {
@@ -57,6 +57,7 @@ namespace AR {
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
+
         float previewBorderPadding = 60.0f;
 
         /** @brief add device button params */
@@ -76,7 +77,7 @@ namespace AR {
         int numControlTabs = 4;
 
         /** @brief size of viewing Area*/
-        float viewingAreaWidth = 590.0f, viewingAreaHeight = height;
+        float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
 
         /** @brief control area drop down box size */
         float controlDropDownWidth = 350.0, controlDropDownHeight = 40.0f;

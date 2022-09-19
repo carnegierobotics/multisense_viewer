@@ -68,9 +68,9 @@ void CRLVirtualCamera::start(std::string src, StreamIndex parent) {
 }
 
 
-void CRLVirtualCamera::stop(std::string dataSourceStr) {
+bool CRLVirtualCamera::stop(std::string dataSourceStr) {
 
-
+    return false;
 }
 
 void CRLVirtualCamera::stop(StreamIndex parent) {
@@ -474,7 +474,8 @@ CRLBaseInterface::CameraInfo CRLVirtualCamera::getCameraInfo() {
     return info;
 }
 
-void CRLVirtualCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
+bool CRLVirtualCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
 
+    return false;
 }
 

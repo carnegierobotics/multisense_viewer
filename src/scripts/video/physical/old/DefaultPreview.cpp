@@ -1,32 +1,33 @@
 //
-// Created by magnus on 7/11/22.
+// Created by magnus on 3/10/22.
 //
 
-#include "AuxiliaryPreview.h"
+#include "DefaultPreview.h"
 #include "GLFW/glfw3.h"
 
-
-void AuxiliaryPreview::setup(Base::Render r) {
+void DefaultPreview::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
 
     // Don't draw it before we create the texture in update()
     model->draw = false;
-    for (auto dev: *r.gui) {
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+
+
+    for (auto dev : *renderData.gui){
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
             continue;
 
-        auto opt = dev.streams.find(AR_PREVIEW_AUXILIARY)->second;
-        r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
+        auto opt = dev.streams.find(AR_PREVIEW_LEFT)->second;
+        renderData.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
         startedSources.push_back(opt.selectedStreamingSource);
 
     }
 
-    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
+    Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName);
 }
 
 
-void AuxiliaryPreview::update(CameraConnection *conn) {
+void DefaultPreview::update(CameraConnection *conn) {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
@@ -44,16 +45,18 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
         std::string vertexShaderFileName;
         std::string fragmentShaderFileName;
 
-        vertexShaderFileName = "myScene/spv/quad.vert";
-        fragmentShaderFileName = "myScene/spv/quad.frag";
+        vertexShaderFileName = "myScene/spv/preview.vert";
+        fragmentShaderFileName = "myScene/spv/preview.frag";
 
         width = imgConf.width();
         height = imgConf.height();
 
-        model->createEmtpyTexture(width, height, AR_COLOR_IMAGE_YUV420);
+        model->createEmtpyTexture(width, height, AR_GRAYSCALE_IMAGE);
 
-        //ImageData imgData(((float) imgConf.width() / (float) imgConf.height()), 1);
+        //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
+
         ImageData imgData;
+
 
         // Load shaders
         VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -72,13 +75,10 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
     }
 
     if (model->draw) {
-
-        auto *tex = new ArEngine::YUVTexture();
-        if (camera->getCameraStream(tex)) {
-            model->setColorTexture(tex);
-            free(tex->data[0]);
-            free(tex->data[1]);
-
+        auto *tex = new ArEngine::TextureData();
+        if (camera->getCameraStream(src, tex)) {
+            model->setGrayscaleTexture(tex, AR_CAMERA_DATA_IMAGE);
+            free(tex->data);
         }
         delete tex;
     }
@@ -103,15 +103,15 @@ void AuxiliaryPreview::update(CameraConnection *conn) {
 }
 
 
-void AuxiliaryPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void DefaultPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
     for (const auto &dev: *uiHandle.devices) {
 
-        if (dev.streams.find(AR_PREVIEW_AUXILIARY) == dev.streams.end() || dev.state != AR_STATE_ACTIVE)
+        if (dev.streams.find(AR_PREVIEW_LEFT) == dev.streams.end())
             continue;
 
-        src = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.selectedStreamingSource;
-        playbackSate = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.playbackStatus;
+        src = dev.streams.find(AR_PREVIEW_LEFT)->second.selectedStreamingSource;
+        playbackSate = dev.streams.find(AR_PREVIEW_LEFT)->second.playbackStatus;
         selectedPreviewTab = dev.selectedPreviewTab;
 
 
@@ -135,16 +135,16 @@ void AuxiliaryPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         for (auto &dev: *uiHandle.devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
-            if (prevOrder != dev.streams.find(AR_PREVIEW_AUXILIARY)->second.streamingOrder) {
+
+            if (prevOrder != dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder) {
                 transformToUISpace(uiHandle, dev);
                 model->draw = false;
                 coordinateTransformed = true;
-
             }
-            prevOrder = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.streamingOrder;
+            prevOrder = dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder;
 
             if (!model->draw && !coordinateTransformed) {
-                renderData.crlCamera->get()->camPtr->start(src, AR_PREVIEW_AUXILIARY);
+                renderData.crlCamera->get()->camPtr->start(src, AR_PREVIEW_LEFT);
 
                 transformToUISpace(uiHandle, dev);
                 coordinateTransformed = true;
@@ -158,7 +158,7 @@ void AuxiliaryPreview::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
 }
 
-void AuxiliaryPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+void DefaultPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
     posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth) / (float) renderData.width);
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth) / (float) renderData.width;
 
@@ -169,22 +169,22 @@ void AuxiliaryPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     scaleX = (1280.0f / (float) renderData.width) * 0.25f * scaleUniform;
     scaleY = (720.0f / (float) renderData.height) * 0.25f * scaleUniform * 1.11f;
 
-    int order = dev.streams.find(AR_PREVIEW_AUXILIARY)->second.streamingOrder;
+    int order = dev.streams.find(AR_PREVIEW_LEFT)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
-    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
+    //posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;
 
 }
 
 
-void AuxiliaryPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void DefaultPreview::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model);
 
 }
 
-void AuxiliaryPreview::onWindowResize(AR::GuiObjectHandles uiHandle) {
+void DefaultPreview::onWindowResize(AR::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

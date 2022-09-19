@@ -54,6 +54,27 @@ private:
 
     void filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> array);
 
+    std::vector<uint32_t> maskArrayAll = {
+            crl::multisense::Source_Luma_Left,
+            crl::multisense::Source_Luma_Rectified_Left,
+            crl::multisense::Source_Compressed_Left,
+            crl::multisense::Source_Compressed_Rectified_Left,
+            crl::multisense::Source_Disparity_Left,
+
+            crl::multisense::Source_Luma_Right,
+            crl::multisense::Source_Luma_Rectified_Right,
+            crl::multisense::Source_Compressed_Right,
+            crl::multisense::Source_Compressed_Rectified_Right,
+
+            crl::multisense::Source_Chroma_Rectified_Aux,
+            crl::multisense::Source_Raw_Aux,
+            crl::multisense::Source_Luma_Aux,
+            crl::multisense::Source_Luma_Rectified_Aux,
+            crl::multisense::Source_Chroma_Aux,
+            crl::multisense::Source_Compressed_Aux,
+            crl::multisense::Source_Compressed_Rectified_Aux
+    };
+
     std::vector<uint32_t> maskArrayLeft = {
             {crl::multisense::Source_Raw_Left,
              crl::multisense::Source_Luma_Left,
@@ -83,12 +104,12 @@ private:
     };
 
     std::vector<uint32_t> maskArrayRight = {{
-        crl::multisense::Source_Raw_Right,
-                                             crl::multisense::Source_Luma_Right,
-                                             crl::multisense::Source_Luma_Rectified_Right,
-                                             crl::multisense::Source_Chroma_Right,
-                                             crl::multisense::Source_Compressed_Right,
-                                             crl::multisense::Source_Compressed_Rectified_Right,}
+                                                    crl::multisense::Source_Raw_Right,
+                                                    crl::multisense::Source_Luma_Right,
+                                                    crl::multisense::Source_Luma_Rectified_Right,
+                                                    crl::multisense::Source_Chroma_Right,
+                                                    crl::multisense::Source_Compressed_Right,
+                                                    crl::multisense::Source_Compressed_Rectified_Right,}
     };
 
 #ifdef WIN32

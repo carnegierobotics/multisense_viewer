@@ -163,7 +163,7 @@ void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element 
     int order = dev.streams.find(AR_PREVIEW_VIRTUAL_RIGHT)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2*(orderOffset / (float) renderData.height);
-    posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
+   // posYMax = -1.0f + 2*((uiHandle.info->viewAreaElementSizeY + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;          // left anchor
 
 }

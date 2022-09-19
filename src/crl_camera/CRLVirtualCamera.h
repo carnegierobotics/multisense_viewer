@@ -44,11 +44,11 @@ public:
 
     void preparePointCloud(uint32_t width, uint32_t height) override;
 
-    void start(CRLCameraResolution resolution, std::string dataSourceStr) override;
+    bool start(CRLCameraResolution resolution, std::string dataSourceStr) override;
 
     void start(std::string src, StreamIndex parent) override;
 
-    void stop(std::string dataSourceStr) override;
+    bool stop(std::string dataSourceStr) override;
     void stop(StreamIndex parent) override;
 
     CameraInfo getCameraInfo() override;

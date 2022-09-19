@@ -30,8 +30,8 @@ public:
 
 
     bool connect(const std::string& ip) override;
-    void start(CRLCameraResolution resolution, std::string string) override;
-    void stop( std::string dataSourceStr) override;
+    bool start(CRLCameraResolution resolution, std::string dataSourceStr) override;
+    bool stop(std::string dataSourceStr) override;
     void updateCameraInfo() override;
     bool getCameraStream(ArEngine::YUVTexture *tex) override;
     bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) override;
@@ -82,6 +82,7 @@ private:
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers;
     glm::mat4 kInverseMatrix{};
+    CRLCameraResolution currentResolution;
 
     /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
     bool stopForDestruction = false;
@@ -104,8 +105,7 @@ private:
     void setGamma(float gamma) override;
     void setFps(float fps) override;
     void setGain(float gain) override;
-
-    void setResolution(CRLCameraResolution resolution);
+    void setResolution(CRLCameraResolution resolution) override;
 };
 
 

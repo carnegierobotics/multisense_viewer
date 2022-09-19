@@ -172,78 +172,35 @@ void Renderer::render() {
 
     // Run update function on active camera scripts and build them if not built
     for (auto &dev: *guiManager->handles.devices) {
-
-        for (auto &i: dev.streams) {
-            if (i.second.playbackStatus == AR_PREVIEW_PLAYING) {
-                std::string name;
-                switch (i.second.streamIndex) {
-                    case AR_PREVIEW_LEFT:
-                        name = "DefaultPreview";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_RIGHT:
-                        name = "RightPreview";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_DISPARITY:
-                        name = "DisparityPreview";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_AUXILIARY:
-                        name = "AuxiliaryPreview";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_VIRTUAL_LEFT:
-                        name = "LeftImager";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_POINT_CLOUD:
-                        name = "PointCloud";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_VIRTUAL_POINT_CLOUD:
-                        name = "VirtualPointCloud";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_VIRTUAL_RIGHT:
-                        name = "RightImager";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                    case AR_PREVIEW_VIRTUAL_AUX:
-                        name = "AuxImager";
-                        buildScript(name);
-                        i.second.attachedScript = name;
-                        break;
-                }
+        if (dev.state == AR_STATE_ACTIVE) {
+            if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
+                std::string scriptName = "SingleLayout";
+                buildScript(scriptName);
+                dev.attachedScripts[0] = scriptName;
+            } else {
+                deleteScript("SingleLayout");
             }
-            // Delete non playing scripts
-            if (i.second.playbackStatus == AR_PREVIEW_NONE) {
-                deleteScript(i.second.attachedScript);
+
+            if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
+                std::string scriptName = "DoubleLayout";
+                buildScript(scriptName);
+                dev.attachedScripts[0] = scriptName;
+                scriptName = "DoubleLayoutBot";
+                buildScript(scriptName);
+                dev.attachedScripts[1] = scriptName;
+            } else {
+                deleteScript("DoubleLayout");
+                deleteScript("DoubleLayoutBot");
+
             }
         }
+
 
         // Check if camera connection was AR RESET and disable all scripts
         if (dev.state == AR_STATE_RESET) {
             // delete all scripts attached to device
-            for (const auto &name: dev.streams) {
-                deleteScript(name.second.attachedScript);
-            }
+            deleteScript(dev.attachedScripts[0]);
             break;
-        }
-    }
-
-    // Run update function on scripts
-    for (auto &script: scripts) {
-        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
-            script.second->updateUniformBufferData(&renderData);
         }
     }
 
@@ -253,10 +210,16 @@ void Renderer::render() {
             script.second->uiUpdate(guiManager->handles);
     }
 
+
+    // Run update function on scripts
+    for (auto &script: scripts) {
+        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+            script.second->updateUniformBufferData(&renderData);
+        }
+    }
     // Generate draw commands
     guiManager->updateBuffers();
     buildCommandBuffers();
-
     VulkanRenderer::submitFrame();
 
 }
@@ -269,6 +232,7 @@ void Renderer::windowResized() {
     renderData.pLogger = pLogger;
     renderData.height = height;
     renderData.width = width;
+    renderData.crlCamera = &cameraConnection;
 
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);

@@ -253,6 +253,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
     switch (model->modelType) {
         case AR_CAMERA_DATA_IMAGE:
         case AR_DISPARITY_IMAGE:
+        case AR_GRAYSCALE_IMAGE:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
@@ -388,6 +389,15 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+
+            };
+            break;
+        case AR_GRAYSCALE_IMAGE:
+            setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 
             };
             break;

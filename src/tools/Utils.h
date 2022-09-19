@@ -52,6 +52,17 @@ namespace Utils {
     }
 
     /**@brief small utility function. Usage of this makes other code more readable */
+    inline bool removeFromVector(std::vector<std::string>* v, const std::string &str) {
+        auto it = std::find(v->begin(), v->end(), str);
+        if (it == v->end())
+            return false;
+        v->erase(it);
+
+        return true;
+    }
+
+
+    /**@brief small utility function. Usage of this makes other code more readable */
     inline bool delFromVector(std::vector<std::string> v, const std::string &str) {
         auto itr = std::find(v.begin(), v.end(), str);
         if (itr != v.end()) {
@@ -80,9 +91,9 @@ namespace Utils {
 #endif
 
 
-    inline CRLCameraResolution stringToCameraResolution(const std::string& resolution) {
+    inline CRLCameraResolution stringToCameraResolution(const std::string &resolution) {
         if (resolution == "960 x 600 x 64x") return CRL_RESOLUTION_960_600_64;
-        if (resolution == "960 x 600 x 128") return CRL_RESOLUTION_960_600_128;
+        if (resolution == "960 x 600 x 128x") return CRL_RESOLUTION_960_600_128;
         if (resolution == "960 x 600 x 256x") return CRL_RESOLUTION_960_600_256;
         if (resolution == "1920 x 1200 x 64x") return CRL_RESOLUTION_1920_1200_64;
         if (resolution == "1920 x 1200 x 128x") return CRL_RESOLUTION_1920_1200_128;
@@ -91,7 +102,8 @@ namespace Utils {
     }
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
-    inline void cameraResolutionToValue(CRLCameraResolution resolution, uint32_t* _width, uint32_t* _height, uint32_t* _depth){
+    inline void
+    cameraResolutionToValue(CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {
         uint32_t width, height, depth;
         switch (resolution) {
             case CRL_RESOLUTION_NONE:

@@ -339,6 +339,18 @@ namespace AR {
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_playback.png");
         handles.info->imageButtonTextureDescriptor[5] = reinterpret_cast<void *>(imageIconDescriptor);
 
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_single_layout.png");
+        handles.info->imageButtonTextureDescriptor[6] = reinterpret_cast<void *>(imageIconDescriptor);
+
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_double_layout.png");
+        handles.info->imageButtonTextureDescriptor[7] = reinterpret_cast<void *>(imageIconDescriptor);
+
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_quad_layout.png");
+        handles.info->imageButtonTextureDescriptor[8] = reinterpret_cast<void *>(imageIconDescriptor);
+
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_nine_layout.png");
+        handles.info->imageButtonTextureDescriptor[9] = reinterpret_cast<void *>(imageIconDescriptor);
+
 
 
         loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");

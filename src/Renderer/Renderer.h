@@ -31,10 +31,9 @@
 #include <MultiSense/src/scripts/video/virtual/LeftImager.h>
 #include <MultiSense/src/scripts/video/virtual/RightImager.h>
 #include <MultiSense/src/scripts/video/virtual/AuxImager.h>
-#include <MultiSense/src/scripts/video/physical/DefaultPreview.h>
-#include <MultiSense/src/scripts/video/physical/DisparityPreview.h>
-#include <MultiSense/src/scripts/video/physical/RightPreview.h>
-#include <MultiSense/src/scripts/video/physical/AuxiliaryPreview.h>
+#include <MultiSense/src/scripts/video/physical/Single/SingleLayout.h>
+#include <MultiSense/src/scripts/video/physical/Double/DoubleLayout.h>
+#include <MultiSense/src/scripts/video/physical/Double/DoubleLayoutBot.h>
 
 class Renderer : VulkanRenderer {
 

@@ -101,8 +101,8 @@ public:
             uint32_t indexCount{};
         } quad;
 
-        /**@brief Generates a Quad with texture coordinates */
-        ImageData(float widthScale = 1.0f, float heightScale = 1.0f) {
+        /**@brief Generates a Quad with texture coordinates. Arguments are offset values */
+        ImageData(float x = 0.0f, float y = 0.0f) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
             quad.vertexCount = vertexCount;
@@ -115,20 +115,20 @@ public:
             auto *iP = (uint32_t *) quad.indices;
 
             ArEngine::Vertex vertex[4];
-            vertex[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f);
-            vertex[1].pos = glm::vec3(1.0f * widthScale, -1.0f, 0.0f);
-            vertex[2].pos = glm::vec3(1.0f * widthScale, 1.0f, 0.0f);
-            vertex[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f);
+            vertex[0].pos = glm::vec3(-1.0f, -1.0f + y, 0.0f);
+            vertex[1].pos = glm::vec3(1.0f, -1.0f + y, 0.0f);
+            vertex[2].pos = glm::vec3(1.0f, 1.0f + y, 0.0f);
+            vertex[3].pos = glm::vec3(-1.0f, 1.0f + y, 0.0f);
 
             vertex[0].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[1].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 
-            vertex[0].uv0 = glm::vec2(1.0f * widthScale, 0.0f);
-            vertex[1].uv0 = glm::vec2(0.0f, 0.0f);
-            vertex[2].uv0 = glm::vec2(0.0f, 1.0f);
-            vertex[3].uv0 = glm::vec2(1.0f * widthScale, 1.0f);
+            vertex[0].uv0 = glm::vec2(1.0f, 0.0f + y);
+            vertex[1].uv0 = glm::vec2(0.0f, 0.0f + y);
+            vertex[2].uv0 = glm::vec2(0.0f, 1.0f + y);
+            vertex[3].uv0 = glm::vec2(1.0f, 1.0f + y);
             vP[0] = vertex[0];
             vP[1] = vertex[1];
             vP[2] = vertex[2];

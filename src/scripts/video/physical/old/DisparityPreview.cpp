@@ -20,7 +20,7 @@ void DisparityPreview::setup(Base::Render r) {
         auto opt = dev.streams.find(AR_PREVIEW_DISPARITY)->second;
         r.crlCamera->get()->camPtr->start(opt.selectedStreamingMode, opt.selectedStreamingSource);
         startedSources.push_back(opt.selectedStreamingSource);
-        resolution = opt.selectedStreamingMode;
+        resolution = std::to_string(opt.selectedStreamingMode);
     }
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -172,8 +172,7 @@ void DisparityPreview::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Ele
     int order = dev.streams.find(AR_PREVIEW_DISPARITY)->second.streamingOrder;
     float orderOffset = uiHandle.info->viewAreaElementPositionsY[order] - uiHandle.accumulatedActiveScroll;
     posYMin = -1.0f + 2 * (orderOffset / (float) renderData.height);
-    posYMax = -1.0f + 2 * ((uiHandle.info->viewAreaElementSizeY + (orderOffset)) /
-                           (float) renderData.height);                // left anchor
+    //posYMax = -1.0f + 2 * ((uiHandle.info->viewAreaElementSizeY[0] + (orderOffset)) / (float) renderData.height);                // left anchor
     centerY = (posYMax - posYMin) / 2 + posYMin;
 
 }

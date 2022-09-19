@@ -92,7 +92,8 @@ public:
 
                 ImVec4 bg_col = AR::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
-                if (ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1, bg_col,tint_col))
+                if (ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1,
+                                       bg_col, tint_col))
                     page[i] = true;
 
                 ImGui::SetCursorPos(ImVec2(xOffset, (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
@@ -251,6 +252,7 @@ private:
     bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
     float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
 
+
     void buildDeviceInformation(AR::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -323,45 +325,13 @@ private:
 
             // Viewing page
             ImGui::BeginGroup();
-            //createViewingArea(handles, dev);
+            createViewingArea(handles, dev);
             ImGui::EndGroup();
 
         }
     }
 
     void createViewingArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
-        /** CREATE VIEWING PREVIEWS **/
-        ImGui::ShowDemoWindow();
-        uint32_t previewWindowCount = 0;
-        for (auto &d: *handles->devices) {
-            if (d.state == AR_STATE_ACTIVE && d.selectedPreviewTab == TAB_2D_PREVIEW) {
-
-                /*
-                printf("ID: %u | %d | %d\n", ImGui::GetHoveredID(), ImGui::IsWindowHovered(),
-                       ImGui::IsMouseHoveringRect(ImVec2(handles->info->sidebarWidth, 0.0f), ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth,handles->info->controlAreaHeight)));
-
-                 */
-
-                for (auto &stream: d.streams) {
-                    if (stream.second.playbackStatus == AR_PREVIEW_PLAYING) {
-
-                        // Skip preview window for point cloud because it is displayed in the 3D tab
-                        if (stream.second.streamIndex == AR_PREVIEW_POINT_CLOUD ||
-                            stream.second.streamIndex == AR_PREVIEW_VIRTUAL_POINT_CLOUD)
-                            continue;
-
-                        stream.second.streamingOrder = previewWindowCount;
-                        ImGui::PushStyleColor(ImGuiCol_WindowBg,
-                                              ImVec4(0.0f, 0.0f, 0.0, 0.0f)); // TODO use named colors
-                        createPreviewArea(handles, stream.second.streamIndex, previewWindowCount, d);
-                        previewWindowCount++;
-                        ImGui::PopStyleColor(); // Bg color
-                    }
-                }
-
-
-            }
-        }
 
         /** CREATE TOP NAVIGATION BAR **/
         bool pOpen = true;
@@ -420,7 +390,7 @@ private:
 
     }
 
-
+/*
     void createPreviewArea(AR::GuiObjectHandles *handles, StreamIndex streamIndex, uint32_t i, AR::Element d) {
         // Calculate window position
         //float viewAreaElementPosX = handles->info->sidebarWidth + handles->info->controlAreaWidth + 40.0f;
@@ -433,12 +403,12 @@ private:
         // Equation is a (to-do)
 
         handles->info->hoverState = ImGui::IsWindowHovered("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)){
+        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
 
         float viewAreaElementPosY = (handles->info->height * 0.25f) + handles->accumulatedActiveScroll +
-                ((float) i * (275.0f * (handles->info->width / 1280.0f)));
+                                    ((float) i * (275.0f * (handles->info->width / 1280.0f)));
 
         handles->info->viewAreaElementPositionsY[i] = viewAreaElementPosY;
 
@@ -525,6 +495,192 @@ private:
         ImGui::End();
         ImGui::PopStyleVar(); // Window padding
     }
+*/
+    void createDoubleWindowPreview(AR::GuiObjectHandles *handles, AR::Element &dev) {
+        AR::GuiLayerUpdateInfo *info = handles->info;
+        info->viewingAreaWidth = info->width - info->sidebarWidth - info->controlAreaWidth;
+
+        // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
+        // Equation is a (to-do)
+
+        info->hoverState = ImGui::IsWindowHovered("ControlArea", ImGuiHoveredFlags_AnyWindow);
+        if (!info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
+            handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
+        }
+
+        int cols, rows;
+        switch (dev.layout) {
+            case PREVIEW_LAYOUT_NONE:
+                break;
+            case PREVIEW_LAYOUT_SINGLE:
+                cols = 1;
+                rows = 1;
+                break;
+            case PREVIEW_LAYOUT_DOUBLE:
+                rows = 2;
+                cols = 1;
+                break;
+            case PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE:
+                rows = 1;
+                cols = 2;
+                break;
+            case PREVIEW_LAYOUT_QUAD:
+                cols = 2;
+                rows = 2;
+                break;
+            case PREVIEW_LAYOUT_NINE:
+                cols = 3;
+                rows = 3;
+                break;
+        }
+
+        int index = 0;
+        for (int row = 0; row < rows; ++row) {
+            for (int col = 0; col < cols; ++col) {
+
+                float newWidth = (info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
+                float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
+                // Calculate window size
+                info->viewAreaElementSizeX = newWidth;
+                info->viewAreaElementSizeY = newHeight;
+
+                float offsetX;
+                if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
+                    offsetX = (info->controlAreaWidth + info->sidebarWidth + ((info->viewingAreaWidth - newWidth) / 2));
+                }
+                else
+                    offsetX = (info->controlAreaWidth + info->sidebarWidth + 5.0f);
+
+                float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
+
+
+                ImGui::SetNextWindowSize(ImVec2(info->viewAreaElementSizeX, info->viewAreaElementSizeY),
+                                         ImGuiCond_Always);
+
+                dev.row[index] = (float) row;
+                // Calculate window position
+                float viewAreaElementPosY=
+                        info->tabAreaHeight + ((float) row * (info->viewAreaElementSizeY + 10.0f));
+
+                ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
+                                        ImGuiCond_Always);
+
+                static bool open = true;
+                ImGuiWindowFlags window_flags =
+                        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+                        ImGuiWindowFlags_NoScrollWithMouse;
+
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                ImGui::Begin((std::string("View Area") + std::to_string(index)).c_str(), &open, window_flags);
+
+                {                // The colored bars around the preview window is made up of rectangles
+                    // Top bar
+                    ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
+                    ImVec2 topBarRectMax(viewAreaElementPosX + info->viewAreaElementSizeX,
+                                         viewAreaElementPosY + (info->previewBorderPadding / 2));
+                    ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(AR::CRLBlueIsh),
+                                                              0.0f,
+                                                              0);
+
+
+                    // extension of top bar in different color
+                    ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
+                    ImVec2 topBarRectMaxExtended(viewAreaElementPosX + info->viewAreaElementSizeX,
+                                                 topBarRectMax.y + 5.0f);
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
+                                                              ImColor(AR::CRLGray424Main), 0.0f,
+                                                              0);
+
+                    // Left bar
+
+                    ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMaxExtended.y);
+                    ImVec2 leftBarMax(viewAreaElementPosX + info->previewBorderPadding,
+                                      topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                                      (info->previewBorderPadding * 0.5f));
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(AR::CRLGray424Main), 0.0f,
+                                                              0);
+
+                    // Right bar
+                    ImVec2 rightBarMin(
+                            viewAreaElementPosX + info->viewAreaElementSizeX - info->previewBorderPadding,
+                            topBarRectMaxExtended.y);
+                    ImVec2 rightBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
+                                       topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                                       (info->previewBorderPadding * 0.5f));
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(AR::CRLGray424Main),
+                                                              0.0f,
+                                                              0);
+
+                    // Bottom bar
+                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                                                             (info->previewBorderPadding) - 13.0f);
+                    ImVec2 bottomBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
+                                        topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                                        (info->previewBorderPadding * 0.5));
+
+                    ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(AR::CRLGray424Main),
+                                                              0.0f,
+                                                              0);
+
+
+
+                // Max X and Min Y is top right corner
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 225.0f, topBarRectMin.y + 5.0f));
+                }
+                ImGui::Text("Source: ");
+                ImGui::SameLine(0.0f, 5.0f);
+
+                ImGui::SetNextItemWidth(150.0f);
+                std::string srcLabel = "##Source" + std::to_string(index);
+
+                std::string previewValue;
+                auto search = dev.selectedSourceMap.find(index);
+                if (search == dev.selectedSourceMap.end())
+                    previewValue = "None";
+                else
+                    previewValue = dev.selectedSourceMap.at(index);
+
+                if (ImGui::BeginCombo(srcLabel.c_str(), previewValue.c_str(),
+                                      ImGuiComboFlags_HeightSmall)) {
+                    for (int n = 0; n < dev.sources.size(); n++) {
+
+                        const bool is_selected = (dev.selectedSourceIndex == n);
+                        if (ImGui::Selectable(dev.sources[n].c_str(), is_selected)) {
+
+                            if (Utils::removeFromVector(&dev.userRequestedSources, dev.selectedSource)) {
+                                Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
+                                                                 dev.selectedSource);
+                            }
+
+                            dev.selectedSourceIndex = n;
+                            dev.selectedSource = dev.sources[dev.selectedSourceIndex];
+                            dev.selectedSourceMap[index] = dev.sources[dev.selectedSourceIndex];
+
+                            dev.update = true;
+
+                            if (!Utils::isInVector(dev.userRequestedSources, dev.selectedSource)) {
+                                dev.userRequestedSources.emplace_back(dev.selectedSource);
+                                Log::Logger::getInstance()->info("Added source '{}' to user requested sources",
+                                                                 dev.selectedSource);
+                            }
+                        }
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                dev.playbackStatus = AR_PREVIEW_PLAYING;
+                ImGui::PopStyleColor();
+                ImGui::End();
+                index++;
+            }
+        }
+    }
 
     void createControlArea(AR::GuiObjectHandles *handles, AR::Element &dev) {
 
@@ -541,6 +697,7 @@ private:
         ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
         ImGui::Begin("ControlArea", &pOpen, window_flags);
 
+
         for (auto &d: *handles->devices) {
             // Create dropdown
             if (d.state == AR_STATE_ACTIVE) {
@@ -553,6 +710,117 @@ private:
                         if (ImGui::Button("Back")) {
                             page[PAGE_CONFIGURE_DEVICE] = false;
                             drawActionPage = true;
+                        }
+
+                        if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
+
+                            ImVec2 size = ImVec2(65.0f,
+                                                 50.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                            ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+                            ImVec2 uv1 = ImVec2(1.0f, 1.0f);
+
+                            ImVec4 bg_col = AR::CRLCoolGray;         // Match bg color
+                            ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
+                            ImGui::Dummy(ImVec2(40.0f, 80.0f));
+
+                            // Text
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
+                            ImGui::Text("1. Choose Layout");
+                            ImGui::PopStyleColor();
+
+                            // Image buttons
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            if (ImGui::ImageButton("Single", handles->info->imageButtonTextureDescriptor[6], size, uv0,
+                                                   uv1,
+                                                   bg_col, tint_col)) {
+                                Log::Logger::getInstance()->info("Single Layout pressed.");
+                                dev.layout = PREVIEW_LAYOUT_SINGLE;
+                            }
+                            ImGui::SameLine(0, 20.0f);
+                            if (ImGui::ImageButton("Double", handles->info->imageButtonTextureDescriptor[7], size, uv0,
+                                                   uv1,
+                                                   bg_col, tint_col)) {
+                                dev.layout = PREVIEW_LAYOUT_DOUBLE;
+                            }
+                            ImGui::SameLine(0, 20.0f);
+                            if (ImGui::ImageButton("Quad", handles->info->imageButtonTextureDescriptor[8], size, uv0,
+                                                   uv1,
+                                                   bg_col, tint_col))
+                                dev.layout = PREVIEW_LAYOUT_QUAD;
+
+                            ImGui::SameLine(0, 20.0f);
+                            if (ImGui::ImageButton("Nine", handles->info->imageButtonTextureDescriptor[9], size, uv0,
+                                                   uv1,
+                                                   bg_col, tint_col))
+                                dev.layout = PREVIEW_LAYOUT_NINE;
+
+
+                            if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
+                                createDoubleWindowPreview(handles, dev);
+                            }
+
+
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
+                            ImGui::Text("2. Choose Sensor Resolution");
+                            ImGui::PopStyleColor();
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::SetNextItemWidth(200);
+                            std::string resLabel = "##Resolution";
+                            if (ImGui::BeginCombo(resLabel.c_str(), dev.modes[dev.selectedModeIndex].c_str(),
+                                                  ImGuiComboFlags_HeightSmall)) {
+                                for (int n = 0; n < dev.modes.size(); n++) {
+                                    const bool is_selected = (dev.selectedModeIndex == n);
+                                    if (ImGui::Selectable(dev.modes[n].c_str(), is_selected)) {
+                                        dev.selectedModeIndex = n;
+                                        dev.selectedMode = Utils::stringToCameraResolution(
+                                                dev.modes[dev.selectedModeIndex]);
+                                        dev.update = true;
+
+                                    }
+                                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                    if (is_selected) {
+                                        ImGui::SetItemDefaultFocus();
+                                    }
+                                }
+                                ImGui::EndCombo();
+                            }
+                        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+                            ImGui::Dummy(ImVec2(40.0f, 40.0));
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
+                            ImGui::Text("1. Choose Sensor Resolution");
+                            ImGui::PopStyleColor();
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::SetNextItemWidth(200);
+                            std::string resLabel = "##Resolution";
+                            if (ImGui::BeginCombo(resLabel.c_str(), dev.modes[dev.selectedModeIndex].c_str(),
+                                                  ImGuiComboFlags_HeightSmall)) {
+                                for (int n = 0; n < dev.modes.size(); n++) {
+                                    const bool is_selected = (dev.selectedModeIndex == n);
+                                    if (ImGui::Selectable(dev.modes[n].c_str(), is_selected)) {
+                                        dev.selectedModeIndex = n;
+                                        dev.selectedMode = Utils::stringToCameraResolution(
+                                                dev.modes[dev.selectedModeIndex]);
+                                        dev.update = true;
+                                        dev.playbackStatus = AR_PREVIEW_PLAYING;
+                                    }
+                                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                    if (is_selected) {
+                                        ImGui::SetItemDefaultFocus();
+                                    }
+                                }
+                                ImGui::EndCombo();
+                            }
+
+                            dev.selectedSource = "Disparity Left";
                         }
 
 
@@ -570,30 +838,30 @@ private:
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         if (!d.parameters.ep.autoExposure) {
                             ImGui::SliderInt("Exposure", reinterpret_cast<int *>(&d.parameters.ep.exposure),
-                                                       10, 30000);
+                                             10, 30000);
                             active |= ImGui::IsItemDeactivated();
 
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         } else {
                             ImGui::SliderInt("Auto exposure max value",
-                                                       reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10,
-                                                       35000);
+                                             reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10,
+                                             35000);
                             active |= ImGui::IsItemDeactivated();
 
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderInt("Auto exposure decay",
-                                                       reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 1,
-                                                       100);
+                                             reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 1,
+                                             100);
                             active |= ImGui::IsItemDeactivated();
 
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderFloat("Auto exposure intensity",
-                                                         &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
+                                               &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
                             active |= ImGui::IsItemDeactivated();
 
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderFloat("Auto exposure threshold", &d.parameters.ep.autoExposureThresh,
-                                                         0, 1);
+                                               0, 1);
                             active |= ImGui::IsItemDeactivated();
 
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -608,24 +876,24 @@ private:
                             active |= ImGui::IsItemDeactivated();
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderFloat("White balance blue", &d.parameters.wb.whiteBalanceBlue, 0,
-                                                         5);
+                                               5);
                             active |= ImGui::IsItemDeactivated();
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         } else {
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderFloat("Auto white balance threshold",
-                                                         &d.parameters.wb.autoWhiteBalanceThresh, 0, 1);
+                                               &d.parameters.wb.autoWhiteBalanceThresh, 0, 1);
                             active |= ImGui::IsItemDeactivated();
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                             ImGui::SliderFloat("Auto white balance decay",
-                                                       reinterpret_cast<float *>(&d.parameters.wb.autoWhiteBalanceDecay),
-                                                       1, 2);
+                                               reinterpret_cast<float *>(&d.parameters.wb.autoWhiteBalanceDecay),
+                                               1, 2);
                             active |= ImGui::IsItemDeactivated();
                             ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         }
 
                         ImGui::SliderFloat("Stereo Post Filter Strength",
-                                                     &d.parameters.stereoPostFilterStrength, 0, 1);
+                                           &d.parameters.stereoPostFilterStrength, 0, 1);
                         active |= ImGui::IsItemDeactivated();
                         ImGui::Dummy(ImVec2(0.0f, 10.0f));
                         ImGui::SliderFloat("Gamma", &d.parameters.gamma, 1.0f, 2.5f);
@@ -660,6 +928,15 @@ private:
             }
         }
         ImGui::PopStyleColor();
+
+        // Draw border between control and viewing area
+        ImVec2 lineMin(handles->info->sidebarWidth + handles->info->controlAreaWidth - 3.0f, 0.0f);
+        ImVec2 lineMax(lineMin.x + 3.0f, handles->info->height);
+        ImGui::GetWindowDrawList()->AddRectFilled(lineMin, lineMax, ImColor(AR::CRLGray424Main), 0.0f,
+                                                  0);
+
+
+        ImGui::Dummy(ImVec2(0.0f, handles->info->height - ImGui::GetCursorPosY()));
         ImGui::End();
         ImGui::PopStyleVar(2);
 
@@ -693,7 +970,6 @@ private:
         }
 
         ImGui::SetNextItemWidth(200);
-
         std::string resLabel = "##Resolution" + std::to_string(streamIndex);
         if (ImGui::BeginCombo(resLabel.c_str(), stream.modes[stream.selectedModeIndex].c_str(),
                               ImGuiComboFlags_HeightSmall)) {

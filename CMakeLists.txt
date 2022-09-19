@@ -113,20 +113,19 @@ set(ENGINE_SRC
         src/scripts/pointcloud/PointCloud.h
         src/scripts/pointcloud/VirtualPointCloud.cpp
         src/scripts/pointcloud/VirtualPointCloud.h
-        src/scripts/video/physical/DefaultPreview.cpp
-        src/scripts/video/physical/DefaultPreview.h
-        src/scripts/video/physical/RightPreview.cpp
-        src/scripts/video/physical/RightPreview.h
-        src/scripts/video/physical/DisparityPreview.cpp
-        src/scripts/video/physical/DisparityPreview.h
-        src/scripts/video/physical/AuxiliaryPreview.cpp
-        src/scripts/video/physical/AuxiliaryPreview.h
+        src/scripts/video/physical/Single/SingleLayout.cpp
+        src/scripts/video/physical/Single/SingleLayout.h
+        src/scripts/video/physical/Double/DoubleLayout.cpp
+        src/scripts/video/physical/Double/DoubleLayout.h
+        src/scripts/video/physical/Double/DoubleLayoutBot.cpp
+        src/scripts/video/physical/Double/DoubleLayoutBot.h
         src/scripts/video/virtual/LeftImager.cpp
         src/scripts/video/virtual/LeftImager.h
         src/scripts/video/virtual/RightImager.cpp
         src/scripts/video/virtual/RightImager.h
         src/scripts/video/virtual/AuxImager.cpp
         src/scripts/video/virtual/AuxImager.h
+        src/scripts/video/physical/ScriptHeader.h
         src/tools/Macros.h
         src/tools/Populate.h
         src/tools/Utils.h

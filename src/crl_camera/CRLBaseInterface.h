@@ -37,10 +37,10 @@ public:
 
     virtual void updateCameraInfo() = 0;
 
-    virtual void start(CRLCameraResolution resolution, std::string string) = 0;
+    virtual bool start(CRLCameraResolution resolution, std::string string) = 0;
     virtual void start(std::string src, StreamIndex parent){};
 
-    virtual void stop(std::string dataSourceStr) = 0;
+    virtual bool stop(std::string dataSourceStr) = 0;
     virtual void stop(StreamIndex parent)  {};
 
     virtual void preparePointCloud(uint32_t width, uint32_t height) = 0;
@@ -61,6 +61,7 @@ public:
     virtual void setGamma(float gamma) {}
     virtual void setFps(float fps) {}
     virtual void setGain(float gain) {}
+    virtual void setResolution(CRLCameraResolution res) {}
 
 };
 

@@ -114,6 +114,15 @@ typedef enum CRLCameraResolution {
     CRL_RESOLUTION_1920_1200_256 = 6
 } CRLCameraResolution;
 
+typedef enum PreviewLayout {
+    PREVIEW_LAYOUT_NONE,
+    PREVIEW_LAYOUT_SINGLE,
+    PREVIEW_LAYOUT_DOUBLE,
+    PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE,
+    PREVIEW_LAYOUT_QUAD,
+    PREVIEW_LAYOUT_NINE
+}PreviewLayout;
+
 struct WhiteBalanceParams {
     float whiteBalanceRed = 1.0f;
     float whiteBalanceBlue = 1.0f;
@@ -208,6 +217,25 @@ namespace AR {
         ArConnectionState state;
 
         std::map<int, StreamingModes> streams;
+
+        PreviewLayout layout = PREVIEW_LAYOUT_NONE;
+        std::string selectedStream;
+        CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
+        std::vector<std::string> modes;
+        uint32_t selectedModeIndex = 0;
+        uint32_t selectedSourceIndex = 0;
+        CRLCameraResolution selectedMode;
+        std::vector<std::string> sources;
+        std::string selectedSource;
+        std::map<int,  std::string> selectedSourceMap;
+        float row[9] = {0};
+
+        std::vector<std::string> userRequestedSources;
+        std::vector<std::string> enabledStreams;
+        std::string attachedScripts[9];
+
+        bool update = false;
+
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

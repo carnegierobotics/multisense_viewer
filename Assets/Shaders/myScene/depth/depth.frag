@@ -5,6 +5,7 @@
 layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
+layout(location = 3) in vec2 mousePos;
 
 layout(location = 0) out vec4 outColor;
 
@@ -31,7 +32,7 @@ void main()
 {
     vec2 uv = inUV * zoom.zoom;
     vec3 tex = texture(samplerColorMap, uv).rgb * 65535 / 4096 * 2; // magic number that makes it work
+    vec3 color = tex;
 
-    outColor = vec4(tex.r, tex.r, tex.r, 1.0);
-
+    outColor = vec4(color.r, color.r, color.r, 1.0);
 }

@@ -189,6 +189,9 @@ protected:
     // Pipeline cache object
     VkPipelineCache pipelineCache;
 
+
+    ArEngine::ObjectPicking selection{};
+
     // Handle to Debug Utils
     VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 

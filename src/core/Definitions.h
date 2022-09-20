@@ -235,6 +235,7 @@ namespace AR {
         std::vector<std::string> attachedScripts;
         float row[9] = {0};
         float col[9] = {0};
+        bool useLoadedProfile = false;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 
@@ -390,6 +391,24 @@ namespace ArEngine {
         glm::vec4 col[NUM_POINTS];
     };
 
+    struct MousePositionPushConstant {
+        glm::vec2 position;
+    };
+
+    struct ObjectPicking{
+        // Global render pass for frame buffer writes
+        VkRenderPass renderPass;
+        // List of available frame buffers (same as number of swap chain images)
+        VkFramebuffer frameBuffer;
+
+        VkImage colorImage;
+        VkImage depthImage;
+        VkImageView colorView;
+        VkImageView depthView;
+        VkDeviceMemory colorMem;
+        VkDeviceMemory depthMem;
+
+    };
 
 }
 

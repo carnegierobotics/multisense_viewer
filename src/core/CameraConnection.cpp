@@ -354,19 +354,28 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
             std::string enabledSources = ini.GetValue("camera", "EnabledSources", "default");
             std::string previewOne = ini.GetValue("camera", "Preview1", "None");
             std::string previewTwo = ini.GetValue("camera", "Preview2", "None");
+            Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
             dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
             dev.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
             dev.selectedModeIndex = std::stoi(mode) - 1;
 
-            dev.selectedSourceMap[0] = previewOne;
-            dev.selectedSourceMap[1] = previewTwo;
+            // Create previews
+            for (int i = 0; i < 11; ++i) {
+                std::string prev = "Preview" + std::to_string(i + 1);
+                std::string source = std::string(ini.GetValue("camera", prev.c_str(), ""));
+                if (!source.empty()){
+                    Log::Logger::getInstance()->info(".ini file: Starting source '{}' for preview {}", source, i + 1);
+                    dev.selectedSourceMap[i] = source;
+                    dev.userRequestedSources.emplace_back(source);
 
-            dev.userRequestedSources.emplace_back(previewOne);
-            dev.userRequestedSources.emplace_back(previewTwo);
-
+                    auto it = find(dev.sources.begin(), dev.sources.end(), source);
+                    if (it != dev.sources.end()) {
+                        dev.selectedSourceIndexMap[i] = it - dev.sources.begin();
+                    }
+                }
+            }
         }
-
     }
 
     /*

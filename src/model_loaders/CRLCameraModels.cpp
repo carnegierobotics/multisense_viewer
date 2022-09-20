@@ -15,7 +15,8 @@ void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type) {
+CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type,
+                              const Base::RenderUtils *renderUtils) {
     this->vulkanDevice = _vulkanDevice;
     this->modelType = type;
 }
@@ -429,11 +430,22 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
 
 void CRLCameraModels::createPipelineLayout() {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+
+    VkPushConstantRange pushconstantRanges {};
+
+    pushconstantRanges.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushconstantRanges.offset = 0;
+    pushconstantRanges.size = sizeof(ArEngine::MousePositionPushConstant);
+
+    info.pPushConstantRanges = &pushconstantRanges;
+    info.pushConstantRangeCount = 1;
+
     CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, &pipelineLayout))
 }
 
 void
-CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type) {
+CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
+                                VkPipeline *pPipelineT) {
     createPipelineLayout();
 
     // Vertex bindings an attributes
@@ -526,32 +538,39 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
     pipelineCI.layout = pipelineLayout;
 
-    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
+    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, pPipelineT));
 
 
-    for (auto shaderStage: vector) {
-        vkDestroyShaderModule(vulkanDevice->logicalDevice, shaderStage.module, nullptr);
-    }
+
 }
 
 
-void CRLCameraModels::createRenderPipeline(const Base::RenderUtils &utils,
-                                           std::vector<VkPipelineShaderStageCreateInfo> vector,
-                                           Model *model,
-                                           ScriptType type) {
-    this->vulkanDevice = utils.device;
+void CRLCameraModels::createRenderPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector, Model *model,
+                                           ScriptType type, const Base::RenderUtils *renderUtils) {
+
+    this->utils = renderUtils;
+    this->vulkanDevice = renderUtils->device;
 
     createDescriptorSetLayout(model);
-    createDescriptors(utils.UBCount, utils.uniformBuffers, model);
+    createDescriptors(utils->UBCount, utils->uniformBuffers, model);
+    createPipeline(*utils->renderPass, vector, type, &pipeline);
 
-    createPipeline(*utils.renderPass, std::move(vector), type);
+    // Create selection pipeline as well
+    createPipeline(utils->picking->renderPass, vector, type, &selectionPipeline);
 
 }
 
-void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model) {
+void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, b ? pipeline : selectionPipeline);
+
+
+    ArEngine::MousePositionPushConstant constants{};
+    constants.position = glm::vec2(640, 360);
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ArEngine::MousePositionPushConstant), &constants);
+
 
     const VkDeviceSize offsets[1] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);

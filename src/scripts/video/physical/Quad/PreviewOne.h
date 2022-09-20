@@ -39,7 +39,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
+    ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY;
 
     CRLCameraModels::Model* model = nullptr;
 
@@ -58,7 +58,7 @@ public:
     CameraPlaybackFlags playbackSate{};
     uint32_t width{}, height{};
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
     void transformToUISpace(AR::GuiObjectHandles handles, AR::Element element);

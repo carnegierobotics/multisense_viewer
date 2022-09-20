@@ -13,7 +13,7 @@ void RightImager::setup(Base::Render r) {
      * Create and load Mesh elements
      */
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE, nullptr);
     // Don't draw it before we create the texture in update()
     model->draw = false;
 
@@ -95,7 +95,7 @@ void RightImager::prepareTextureAfterDecode() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
+    CRLCameraModels::createRenderPipeline(shaders, model, type, nullptr);
 
 }
 
@@ -173,9 +173,9 @@ void RightImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element 
 }
 
 
-void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE)
-        CRLCameraModels::draw(commandBuffer, i, model);
+        CRLCameraModels::draw(commandBuffer, i, model, false);
 }
 
 

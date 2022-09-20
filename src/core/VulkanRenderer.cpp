@@ -530,10 +530,13 @@ void VulkanRenderer::renderLoop() {
         io.MouseDown[0] = mouseButtons.left;
         io.MouseDown[1] = mouseButtons.right;
 
-        input.lastKeyPress = &keyPress;
-        input.action = &keyAction;
+        input.lastKeyPress = keyPress;
+        input.action = keyAction;
 
         render();
+
+        keyPress = -1;
+        keyAction = -1;
 
         io.MouseWheel = 0;
 
@@ -619,34 +622,6 @@ void VulkanRenderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
 }
 
 void VulkanRenderer::updateOverlay() {
-    // Update imGui
-    /*
-    ImGuiIO &io = ImGui::GetIO();
-    io.DisplaySize = ImVec2((float) width, (float) height);
-    io.DeltaTime = frameTimer;
-    io.MousePos = ImVec2(mousePos.x, mousePos.y);
-
-    io.MouseDown[0] = mouseButtons.left;
-    io.MouseDown[1] = mouseButtons.right;
-
-    guiManager->update((frameCounter == 0), frameTimer, width, height);
-    if (guiManager->updateBuffers())
-        buildCommandBuffers();
-
-    UIUpdate(&guiManager->handles);
-
-
-    UIOverlay->newFrame((frameCounter == 0), frameTimer, width, height);
-    if (UIOverlay->updateBuffers()) {
-        buildCommandBuffers();
-
-    }
-
-    if (UIOverlay->updated || UIOverlay->firstUpdate) {
-        UIUpdate(UIOverlay->uiSettings);
-        UIOverlay->firstUpdate = false;
-    }
-     */
 }
 
 void VulkanRenderer::renderFrame() {
@@ -694,10 +669,10 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
     io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
 
 
+    myApp->keyPress = key; // TODO Disabled key release events
+    myApp->keyAction = action;
 
     if (action == GLFW_PRESS) {
-        myApp->keyAction = action;
-        myApp->keyPress = key;
 
         switch (key) {
             case GLFW_KEY_W:
@@ -716,8 +691,6 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
         }
     }
     if (action == GLFW_RELEASE) {
-        myApp->keyAction = action;
-        myApp->keyPress = 0; // TODO Disabled key release events
 
         switch (key) {
             case GLFW_KEY_W:

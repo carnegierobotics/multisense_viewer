@@ -54,7 +54,7 @@ void Four::update(){
 void Four::prepareTexture() {
     Log::Logger::getInstance()->info("Creating new model for source: '{}'", src);
     model = new CRLCameraModels::Model(renderUtils.device,
-                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE, nullptr);
     model->draw = false;
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
@@ -88,7 +88,7 @@ void Four::prepareTexture() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
+    CRLCameraModels::createRenderPipeline(shaders, model, type, nullptr);
     model->draw = true;
 }
 
@@ -131,12 +131,12 @@ void Four::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
 }
 
 
-void Four::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (!model)
         return;
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model);
+        CRLCameraModels::draw(commandBuffer, i, model, false);
 
 }
 

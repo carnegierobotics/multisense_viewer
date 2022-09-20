@@ -33,6 +33,6 @@ public:
 
     void *selection = (void *) "0";
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
 };

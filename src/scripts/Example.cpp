@@ -20,7 +20,7 @@ void Example::setup() {
     glTFModel::createRenderPipeline(renderUtils);
 }
 
-void Example::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void Example::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     glTFModel::draw(commandBuffer, i);
 }
 

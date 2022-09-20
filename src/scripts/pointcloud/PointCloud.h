@@ -53,7 +53,7 @@ public:
     Page selectedPreviewTab = TAB_NONE;
     uint32_t width, height;
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     ArEngine::Vertex* meshData{};
     int point = 0;

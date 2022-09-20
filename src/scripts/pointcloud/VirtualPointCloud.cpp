@@ -5,7 +5,7 @@
 
 void VirtualPointCloud::setup(Base::Render r) {
 
-    model = new CRLCameraModels::Model(renderUtils.device, AR_POINT_CLOUD);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_POINT_CLOUD, nullptr);
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
 
@@ -17,7 +17,7 @@ void VirtualPointCloud::setup(Base::Render r) {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
 
-    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
+    CRLCameraModels::createRenderPipeline(shaders, model, type, nullptr);
 
     auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
     //buf->kInverse = r.crlCamera->getCameraInfo().kInverseMatrix;
@@ -92,7 +92,7 @@ void VirtualPointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 
-void VirtualPointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void VirtualPointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_3D_POINT_CLOUD)
-        CRLCameraModels::draw(commandBuffer, i, model);
+        CRLCameraModels::draw(commandBuffer, i, model, false);
 }

@@ -20,8 +20,8 @@ void LightSource::setup() {
     glTFModel::createRenderPipeline(renderUtils);
 }
 
-void LightSource::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    if (previewTab == TAB_3D_POINT_CLOUD)
+void LightSource::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+    if (previewTab == TAB_3D_POINT_CLOUD && b)
         glTFModel::draw(commandBuffer, i);
 }
 

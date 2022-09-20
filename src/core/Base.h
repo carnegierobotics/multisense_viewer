@@ -43,6 +43,7 @@ public:
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         std::vector<UniformBufferSet> uniformBuffers;
 
+        const ArEngine::ObjectPicking* picking;
 
     } renderUtils;
 
@@ -105,7 +106,7 @@ public:
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
-    void drawScript(VkCommandBuffer commandBuffer, uint32_t i) {
+    void drawScript(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
         if (!renderData.drawThisScript)
             return;
@@ -120,14 +121,14 @@ public:
         }
 
 
-        draw(commandBuffer, i);
+        draw(commandBuffer, i, b);
 
         if (i == 0)
             renderData.scriptDrawCount++;
 
     };
 
-    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i) {};
+    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {};
 
     /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
     void updateUniformBufferData(Render *data) {

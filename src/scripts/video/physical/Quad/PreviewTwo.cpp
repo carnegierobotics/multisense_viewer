@@ -9,7 +9,7 @@
 void PreviewTwo::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = new CRLCameraModels::Model(renderUtils.device, AR_GRAYSCALE_IMAGE);
+    model = new CRLCameraModels::Model(renderUtils.device, AR_GRAYSCALE_IMAGE, nullptr);
     model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -86,7 +86,7 @@ void PreviewTwo::prepareTexture() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
+    CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
     model->draw = true;
 }
 
@@ -128,10 +128,10 @@ void PreviewTwo::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element d
 }
 
 
-void PreviewTwo::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void PreviewTwo::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model);
+        CRLCameraModels::draw(commandBuffer, i, model, false);
 
 }
 

@@ -42,7 +42,7 @@ public:
     const int vertexCount = 960 * 600;
     ArEngine::Vertex *meshData{}; // Don't forget to de
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
 
 };

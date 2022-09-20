@@ -25,7 +25,8 @@ public:
     CRLCameraModels() = default;
 
     struct Model {
-        Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type);
+        Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type,
+              const Base::RenderUtils *renderUtils);
         ~Model();
 /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
@@ -147,6 +148,9 @@ public:
     VkDescriptorSetLayout descriptorSetLayout{};
     VkDescriptorPool descriptorPool{};
     VkPipeline pipeline{};
+    VkPipeline selectionPipeline{};
+    const Base::RenderUtils *utils;
+
     VkPipelineLayout pipelineLayout{};
 
     void destroy(VkDevice device);
@@ -159,7 +163,7 @@ public:
 
     void createPipelineLayout();
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, CRLCameraModels::Model *model);
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b);
 
     //void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
 
@@ -171,14 +175,14 @@ protected:
 
     void createPointCloudDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
 
-    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
+    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
+                        VkPipeline *pPipelineT);
 
     void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, Model *model);
 
     void
-    createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPipelineShaderStageCreateInfo> vector,
-                         Model *model,
-                         ScriptType type);
+    createRenderPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector, Model *model,
+                         ScriptType type, const Base::RenderUtils *renderUtils);
 };
 
 

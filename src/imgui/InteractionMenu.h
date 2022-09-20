@@ -290,19 +290,6 @@ private:
             drawActionPage = true;
         }
 
-        /*
-        ImVec2 pos = ImGui::GetCursorPos();
-        pos.y += 5;
-        pos.x += 50;
-        ImGui::SetCursorPos(pos);
-
-        for (auto &d: *handles->devices) {
-            if (d.cameraName == "Virtual Camera") {
-                addStreamPlaybackControls(AR_PREVIEW_VIRTUAL_LEFT, "Virtual preview", &d);
-            }
-        }
-        ImGui::NewLine();
-        */
 
         ImGui::PopStyleColor(); // bg color
         ImGui::End();
@@ -543,6 +530,7 @@ private:
                 // Calculate window size
                 info->viewAreaElementSizeX = newWidth;
                 info->viewAreaElementSizeY = newHeight;
+                info->previewBorderPadding = 40.0f * (info->width / 1280);
 
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {

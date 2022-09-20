@@ -71,7 +71,7 @@ public:
 
     std::chrono::steady_clock::time_point start, end;
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     static void *decode(void *arg);
 

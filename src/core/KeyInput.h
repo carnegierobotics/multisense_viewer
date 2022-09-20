@@ -9,29 +9,35 @@
 
 struct Input {
 
+    Input(){
+        action = 0;
+        lastKeyPress = 0;
+    }
+
     [[nodiscard]] bool getButtonDown(int key) const {
-        if (key == *lastKeyPress && *action == GLFW_PRESS)
+        if (key == lastKeyPress && action == GLFW_PRESS)
             return true;
 
         return false;
     }
 
+    /**@brief Not currently implemented */
     [[nodiscard]] bool getButtonUp(int key) const {
-        if (key == *lastKeyPress && *action == GLFW_RELEASE)
+        if (key == lastKeyPress && action == GLFW_RELEASE)
             return true;
 
         return false;
     }
 
     [[nodiscard]] bool getButton(int key) const {
-        if (key == *lastKeyPress)
+        if (key == lastKeyPress)
             return true;
 
         return false;
     }
 
-    const int* action;
-    const int* lastKeyPress;
+    int action;
+    int lastKeyPress;
 
 };
 

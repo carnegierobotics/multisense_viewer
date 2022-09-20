@@ -53,7 +53,7 @@ void DoubleLayoutBot::update(){
 void DoubleLayoutBot::prepareTexture() {
     Log::Logger::getInstance()->info("Creating new model for source: '{}'", src);
     model = new CRLCameraModels::Model(renderUtils.device,
-                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE, nullptr);
     model->draw = false;
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
@@ -87,7 +87,7 @@ void DoubleLayoutBot::prepareTexture() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(renderUtils, shaders, model, type);
+    CRLCameraModels::createRenderPipeline(shaders, model, type, nullptr);
     model->draw = true;
 }
 
@@ -130,12 +130,12 @@ void DoubleLayoutBot::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Elem
 }
 
 
-void DoubleLayoutBot::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void DoubleLayoutBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (!model)
         return;
 
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model);
+        CRLCameraModels::draw(commandBuffer, i, model, false);
 
 }
 

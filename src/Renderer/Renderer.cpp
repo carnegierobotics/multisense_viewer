@@ -2,9 +2,7 @@
 //
 //
 
-#include <armadillo>
 #include "Renderer.h"
-#include "MultiSense/src/imgui/InteractionMenu.h"
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
@@ -24,9 +22,6 @@ void Renderer::prepareRenderer() {
 
 void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
     //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
-
-
-
     camera.setMovementSpeed(200.0f);
 
 }

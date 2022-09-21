@@ -111,7 +111,8 @@ public:
         }
     }
 
-
+    /*
+     *
     void
     addDropDown(AR::GuiObjectHandles *handles, AR::StreamingModes *stream) {
 
@@ -159,6 +160,8 @@ public:
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::Text("Data source:");
 
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, AR::CRLBlueIsh);
+
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
             ImGui::SetNextItemWidth(handles->info->dropDownWidth);
             if (ImGui::BeginCombo(std::string("##Source" + std::to_string(streamIndex)).c_str(),
@@ -179,6 +182,7 @@ public:
                 }
                 ImGui::EndCombo();
             }
+            ImGui::PopStyleColor();
 
 
             ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
@@ -191,60 +195,62 @@ public:
             ImGui::SameLine();
             ImGui::HelpMarker("\n  HelpMarker  \n\n");
             ImGui::SameLine();
-             */
 
 
-            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
-            ImGui::SetNextItemWidth(handles->info->dropDownWidth);
-            if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(stream->streamIndex)).c_str(),
-                                  stream->modes[stream->selectedModeIndex].c_str(),
-                                  ImGuiComboFlags_HeightSmall)) {
-                for (int n = 0; n < stream->modes.size(); n++) {
-                    const bool is_selected = (stream->selectedModeIndex == n);
-                    if (ImGui::Selectable(stream->modes[n].c_str(), is_selected)) {
-                        stream->selectedModeIndex = n;
-                        stream->selectedStreamingMode = Utils::stringToCameraResolution(
-                                stream->modes[stream->selectedModeIndex]);
-                    }
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
+
+    ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+    ImGui::SetNextItemWidth(handles->info->dropDownWidth);
+    if (ImGui::BeginCombo(std::string("##Resolution" + std::to_string(stream->streamIndex)).c_str(),
+            stream->modes[stream->selectedModeIndex].c_str(),
+            ImGuiComboFlags_HeightSmall)) {
+        for (int n = 0; n < stream->modes.size(); n++) {
+            const bool is_selected = (stream->selectedModeIndex == n);
+            if (ImGui::Selectable(stream->modes[n].c_str(), is_selected)) {
+                stream->selectedModeIndex = n;
+                stream->selectedStreamingMode = Utils::stringToCameraResolution(
+                        stream->modes[stream->selectedModeIndex]);
             }
-
-            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
-            ImGui::Dummy(ImVec2(0.0f, 20.0f));
-
-            ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
-            std::string btnLabel = "Start##" + std::to_string(streamIndex);
-            if (ImGui::Button(btnLabel.c_str())) {
-                stream->playbackStatus = AR_PREVIEW_PLAYING;
-                Log::Logger::getInstance()->info("Pressed Play for preview {}", id.c_str());
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
             }
-            ImGui::SameLine();
-            btnLabel = "Pause##" + std::to_string(streamIndex);
-            if (ImGui::Button(btnLabel.c_str())) {
-                stream->playbackStatus = AR_PREVIEW_PAUSED;
-                Log::Logger::getInstance()->info("Pressed Pause for preview {}", id.c_str());
-            }
-            ImGui::SameLine();
-            btnLabel = "Stop##" + std::to_string(streamIndex);
-            if (ImGui::Button(btnLabel.c_str())) {
-                stream->playbackStatus = AR_PREVIEW_NONE;
-                Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
-            }
-
-            if (streamIndex == AR_PREVIEW_POINT_CLOUD) {
-                ImGui::SameLine(0, 150.0f); // TODO Hardcoded positioning values
-                ImGui::HelpMarker(
-                        "  Why is my point cloud black?\n   Solution: start 'Luma Rectified Left' data source in 1. Left Sensor  \n\n");
-            }
-
-            ImGui::Dummy(ImVec2(0.0f, 40.0f));
         }
+        ImGui::EndCombo();
     }
+
+    ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+    ImGui::Dummy(ImVec2(0.0f, 20.0f));
+
+    ImGui::SetCursorPos(ImVec2(sourceComboPos.x, ImGui::GetCursorPosY()));
+    std::string btnLabel = "Start##" + std::to_string(streamIndex);
+    if (ImGui::Button(btnLabel.c_str())) {
+        stream->playbackStatus = AR_PREVIEW_PLAYING;
+        Log::Logger::getInstance()->info("Pressed Play for preview {}", id.c_str());
+    }
+    ImGui::SameLine();
+    btnLabel = "Pause##" + std::to_string(streamIndex);
+    if (ImGui::Button(btnLabel.c_str())) {
+        stream->playbackStatus = AR_PREVIEW_PAUSED;
+        Log::Logger::getInstance()->info("Pressed Pause for preview {}", id.c_str());
+    }
+    ImGui::SameLine();
+    btnLabel = "Stop##" + std::to_string(streamIndex);
+    if (ImGui::Button(btnLabel.c_str())) {
+        stream->playbackStatus = AR_PREVIEW_NONE;
+        Log::Logger::getInstance()->info("Pressed Stop for preview {}", id.c_str());
+    }
+
+    if (streamIndex == AR_PREVIEW_POINT_CLOUD) {
+        ImGui::SameLine(0, 150.0f); // TODO Hardcoded positioning values
+        ImGui::HelpMarker(
+                "  Why is my point cloud black?\n   Solution: start 'Luma Rectified Left' data source in 1. Left Sensor  \n\n");
+    }
+
+    ImGui::Dummy(ImVec2(0.0f, 40.0f));
+}
+}
+
+*/
 
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
@@ -298,7 +304,7 @@ private:
 
 
     void buildConfigurationPreview(AR::GuiObjectHandles *handles) {
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
 
         for (auto &dev: *handles->devices) {
             if (dev.state != AR_STATE_ACTIVE)
@@ -527,7 +533,7 @@ private:
                 // Calculate window size
                 info->viewAreaElementSizeX = newWidth;
                 info->viewAreaElementSizeY = newHeight;
-                info->previewBorderPadding = 30.0f * (info->width / 1280);
+                info->previewBorderPadding = 35.0f * (info->width / 1280);
 
 
                 float offsetX;
@@ -630,19 +636,21 @@ private:
 
 
                     // Max X and Min Y is top right corner
-                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 225.0f, topBarRectMin.y + 5.0f));
+                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 325.0f, topBarRectMin.y));
                 }
 
                 ImGui::Text("Source: ");
                 ImGui::SameLine(0.0f, 5.0f);
 
-                ImGui::SetNextItemWidth(150.0f);
+                ImGui::SetNextItemWidth(250.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
 
                 std::string previewValue;
 
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, AR::CRLBlueIsh);
+
                 if (ImGui::BeginCombo(srcLabel.c_str(), dev.sources[dev.selectedSourceIndexMap[index]].c_str(),
-                                      ImGuiComboFlags_HeightSmall)) {
+                                      ImGuiComboFlags_HeightLarge)) {
                     for (int n = 0; n < dev.sources.size(); n++) {
 
                         const bool is_selected = (dev.selectedSourceIndex == n);
@@ -685,6 +693,7 @@ private:
                 }
                 dev.playbackStatus = AR_PREVIEW_PLAYING;
                 ImGui::PopStyleColor();
+                ImGui::PopStyleColor(); // PopupBg
                 ImGui::End();
                 index++;
             }
@@ -812,7 +821,7 @@ private:
                                 for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
                                     if (!dev.selectedSourceMap.contains(index))
                                         continue;
-                                    if (dev.selectedSourceMap[index] == source && index != AR_PREVIEW_POINT_CLOUD)
+                                    if (dev.selectedSourceMap[index] == source)
                                         inUse = true;
                                 }
 

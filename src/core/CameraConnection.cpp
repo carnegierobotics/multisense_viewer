@@ -247,53 +247,6 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
             dev.sources.emplace_back("rowbot_short.mpg");
             dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
 
-
-            /*
-            AR::StreamingModes virtualCam{};
-            virtualCam.name = "1. Virtual Left";
-            virtualCam.sources.emplace_back("rowbot_short.mpg");
-            virtualCam.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
-            virtualCam.sources.emplace_back("jeep_disparity.mp4");
-
-            virtualCam.streamIndex = AR_PREVIEW_VIRTUAL_LEFT;
-            std::string modeName = "1920x1080";
-            virtualCam.modes.emplace_back(modeName);
-            virtualCam.selectedStreamingMode = Utils::stringToCameraResolution(virtualCam.modes.front());
-            virtualCam.selectedStreamingSource = virtualCam.sources.front();
-            dev.streams[AR_PREVIEW_VIRTUAL_LEFT] = virtualCam;
-
-            AR::StreamingModes virtualRight{};
-            virtualRight.name = "2. Virtual Right";
-            virtualRight.sources.emplace_back("rowbot_short.mpg");
-            virtualRight.sources.emplace_back("crl_jeep_multisense_front_left_image_rect.mp4");
-            virtualRight.streamIndex = AR_PREVIEW_VIRTUAL_RIGHT;
-            modeName = "1920x1080";
-            virtualRight.modes.emplace_back(modeName);
-            virtualRight.selectedStreamingMode = Utils::stringToCameraResolution(virtualRight.modes.front());
-            virtualRight.selectedStreamingSource = virtualRight.sources.front();
-            dev.streams[AR_PREVIEW_VIRTUAL_RIGHT] = virtualRight;
-            AR::StreamingModes aux{};
-            aux.name = "3. Virtual Auxiliary";
-            aux.sources.emplace_back("rowbot_short.mpg");
-            aux.sources.emplace_back("jeep_multisense_front_aux_image_color.mp4");
-            aux.streamIndex = AR_PREVIEW_VIRTUAL_AUX;
-            modeName = "1920x1080";
-            aux.modes.emplace_back(modeName);
-            aux.selectedStreamingMode = Utils::stringToCameraResolution(aux.modes.front());
-            aux.selectedStreamingSource = aux.sources.front();
-            dev.streams[AR_PREVIEW_VIRTUAL_AUX] = aux;
-
-            AR::StreamingModes virutalPC{};
-            virutalPC.name = "4. Virtual Point cloud";
-            virutalPC.sources.emplace_back("depth");
-            virutalPC.streamIndex = AR_PREVIEW_VIRTUAL_POINT_CLOUD;
-            modeName = "1920x1080";
-            virutalPC.modes.emplace_back(modeName);
-            virutalPC.selectedStreamingMode = Utils::stringToCameraResolution(virutalPC.modes.front());
-            virutalPC.selectedStreamingSource = virutalPC.sources.front();
-            dev.streams[AR_PREVIEW_VIRTUAL_POINT_CLOUD] = virutalPC;
-*/
-
             Log::Logger::getInstance()->info("Creating new Virtual Camera.");
         } else
             dev.state = AR_STATE_UNAVAILABLE;
@@ -346,15 +299,17 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
     SI_Error rc = ini.LoadFile("crl.ini");
     if (rc < 0) { /* handle error */ }
     else {
-        std::string serialNumber = ini.GetValue("camera", "SerialNumber", "default");
-        // Identical serial number. Use configuration
-        if (camPtr->getCameraInfo().devInfo.serialNumber == serialNumber) {
-            std::string profileName = ini.GetValue("camera", "ProfileName", "default");
-            std::string mode = ini.GetValue("camera", "Mode", "default");
-            std::string layout = ini.GetValue("camera", "Layout", "default");
-            std::string enabledSources = ini.GetValue("camera", "EnabledSources", "default");
-            std::string previewOne = ini.GetValue("camera", "Preview1", "None");
-            std::string previewTwo = ini.GetValue("camera", "Preview2", "None");
+        // A serial number is the section identifier of a profile. I can have three following states
+        // - Not Exist
+        // - Exist
+        std::string cameraSerialNumber = camPtr->getCameraInfo().devInfo.serialNumber;
+        if (ini.SectionExists(cameraSerialNumber.c_str())) {
+            std::string profileName = ini.GetValue(cameraSerialNumber.c_str(), "ProfileName", "default");
+            std::string mode = ini.GetValue(cameraSerialNumber.c_str(), "Mode", "default");
+            std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
+            std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources", "default");
+            std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "None");
+            std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "None");
             Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
             dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
@@ -362,11 +317,12 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
             dev.selectedModeIndex = std::stoi(mode) - 1;
 
             // Create previews
-            for (int i = 0; i < 11; ++i) {
+            for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 std::string prev = "Preview" + std::to_string(i + 1);
-                std::string source = std::string(ini.GetValue("camera", prev.c_str(), ""));
-                if (!source.empty()){
-                    Log::Logger::getInstance()->info(".ini file: Starting source '{}' for preview {}", source, i + 1);
+                std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), prev.c_str(), ""));
+                if (!source.empty()) {
+                    Log::Logger::getInstance()->info(".ini file: Starting source '{}' for preview {}", source,
+                                                     i + 1);
                     dev.selectedSourceMap[i] = source;
                     dev.userRequestedSources.emplace_back(source);
 
@@ -379,59 +335,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
         }
     }
 
-    /*
-    AR::StreamingModes left{};
-    left.name = "1. Left Sensor";
-    left.streamIndex = AR_PREVIEW_LEFT;
-    initCameraModes(&left.modes, supportedModes);
-    filterAvailableSources(&left.sources, maskArrayLeft);
-    left.selectedStreamingMode = Utils::stringToCameraResolution(left.modes.front());
-    left.selectedStreamingSource = left.sources.front();
-
-
-    AR::StreamingModes right{};
-    right.name = "2. Right Sensor";
-    right.streamIndex = AR_PREVIEW_RIGHT;
-    initCameraModes(&right.modes, supportedModes);
-    filterAvailableSources(&right.sources, maskArrayRight);
-    right.selectedStreamingMode = Utils::stringToCameraResolution(right.modes.front());
-    right.selectedStreamingSource = right.sources.front();
-
-    AR::StreamingModes disparity{};
-    disparity.name = "3. Disparity Image";
-    disparity.streamIndex = AR_PREVIEW_DISPARITY;
-    initCameraModes(&disparity.modes, supportedModes);
-    filterAvailableSources(&disparity.sources, maskArrayDisparity);
-    disparity.selectedStreamingMode = Utils::stringToCameraResolution(disparity.modes.front());
-    disparity.selectedStreamingSource = disparity.sources.front();
-
-    AR::StreamingModes aux{};
-    aux.name = "4. Aux Sensor";
-    aux.streamIndex = AR_PREVIEW_AUXILIARY;
-    initCameraModes(&aux.modes, supportedModes);
-    filterAvailableSources(&aux.sources, maskArrayAux);
-    aux.selectedStreamingMode = Utils::stringToCameraResolution(aux.modes.front());
-    aux.selectedStreamingSource = aux.sources.front();
-
-    AR::StreamingModes pointCloud{};
-    pointCloud.name = "5. Point Cloud";
-    pointCloud.streamIndex = AR_PREVIEW_POINT_CLOUD;
-    initCameraModes(&pointCloud.modes, supportedModes);
-    filterAvailableSources(&pointCloud.sources, maskArrayDisparity);
-    pointCloud.selectedStreamingMode = Utils::stringToCameraResolution(pointCloud.modes.front());
-    pointCloud.selectedStreamingSource = pointCloud.sources.front();
-
-
-    dev.streams[AR_PREVIEW_LEFT] = left;
-    dev.streams[AR_PREVIEW_RIGHT] = right;
-    dev.streams[AR_PREVIEW_DISPARITY] = disparity;
-    dev.streams[AR_PREVIEW_AUXILIARY] = aux;
-    dev.streams[AR_PREVIEW_POINT_CLOUD] = pointCloud;
-    */
-
     Log::Logger::getInstance()->info("setting available streaming modes");
-
-
 }
 
 void CameraConnection::initCameraModes(std::vector<std::string> *modes,
@@ -587,49 +491,52 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
                                      dev.cameraName.c_str());
 
 
-    // Save settings to file
+    // Save settings to file. Attempt to create a new file if it doesn't exist
     CSimpleIniA ini;
     ini.SetUnicode();
     SI_Error rc = ini.LoadFile("crl.ini");
-    if (rc < 0) { /* handle error */ }
-    else {
-        std::string serialNumber = ini.GetValue("camera", "SerialNumber", "");
+    if (rc < 0) {
+        // File doesn't exist error, then create one
+        if (rc == SI_FILE && errno == ENOENT) {
+            std::ofstream output("crl.ini");
+            rc = ini.LoadFile("crl.ini");
+        } else
+            Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
+    }
+    std::string CRLSerialNumber = camPtr->getCameraInfo().devInfo.serialNumber;
 
-        // Create new entry
-        if (serialNumber != camPtr->getCameraInfo().devInfo.serialNumber) {
+    // new entry given we have a valid ini file entry
+    if (rc > 0) {
+        int ret = ini.SetValue(CRLSerialNumber.c_str(), "Mode", std::to_string((int) dev.selectedMode).c_str());
+        if (ret < 0)
+            Log::Logger::getInstance()->info("Failed to insert Mode in crl.ini file. {}", ret);
+        else
+            Log::Logger::getInstance()->info("Updated Mode in crl.ini. Result: {}",
+                                             std::to_string((int) dev.selectedMode));
 
-        } else {
-            int ret = ini.SetValue("camera", "Mode", std::to_string((int) dev.selectedMode).c_str());
-            if (ret < 0)
-                Log::Logger::getInstance()->info("Failed to insert Mode in crl.ini file. {}", ret);
-            else
-                Log::Logger::getInstance()->info("Updated Mode in crl.ini. Result: {}",
-                                                 std::to_string((int) dev.selectedMode));
+        ret = ini.SetValue(CRLSerialNumber.c_str(), "Layout", std::to_string((int) dev.layout).c_str());
+        if (ret < 0)
+            Log::Logger::getInstance()->info("Failed to insert Layout in crl.ini. Result: {}", ret);
+        else
+            Log::Logger::getInstance()->info("Updated Layout in crl.ini. Result: {}",
+                                             std::to_string((int) dev.layout));
 
-            ret = ini.SetValue("camera", "Layout", std::to_string((int) dev.layout).c_str());
-            if (ret < 0)
-                Log::Logger::getInstance()->info("Failed to insert Layout in crl.ini. Result: {}", ret);
-            else
-                Log::Logger::getInstance()->info("Updated Layout in crl.ini. Result: {}",
-                                                 std::to_string((int) dev.layout));
-
-            for (int i = 0; i < 11; ++i) {
-                if (dev.selectedSourceMap.contains(i)) {
-                    std::string key = "Preview" + std::to_string(i + 1);
-                    ini.SetValue("camera", key.c_str(), dev.selectedSourceMap[i].c_str());
-                    if (ret < 0)
-                        Log::Logger::getInstance()->info("Failed to insert {} in crl.ini. Result: {}", key, ret);
-                    else
-                        Log::Logger::getInstance()->info("Updated {} in crl.ini. Result: {}", key,
-                                                         std::to_string((int) dev.layout));
-                }
+        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+            if (dev.selectedSourceMap.contains(i)) {
+                std::string key = "Preview" + std::to_string(i + 1);
+                ini.SetValue(CRLSerialNumber.c_str(), key.c_str(), dev.selectedSourceMap[i].c_str());
+                if (ret < 0)
+                    Log::Logger::getInstance()->info("Failed to insert {} in crl.ini. Result: {}", key, ret);
+                else
+                    Log::Logger::getInstance()->info("Updated {} in crl.ini. Result: {}", key,
+                                                     std::to_string((int) dev.layout));
             }
-        }
 
-        // save the data back to the file
-        rc = ini.SaveFile("crl.ini");
-        if (rc < 0) {
-            Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+            // save the data back to the file
+            rc = ini.SaveFile("crl.ini");
+            if (rc < 0) {
+                Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+            }
         }
     }
 
@@ -637,26 +544,25 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     dev.enabledStreams.clear();
     dev.selectedSourceMap.clear();
     dev.selectedSourceIndexMap.clear();
-
     camPtr.reset();
 
-    /*
+/*
 #ifdef WIN32
 
-    if ((dwRetVal = DeleteIPAddress(NTEContext)) == NO_ERROR) {
-        printf("\tIPv4 address %s was successfully deleted.\n", hostAddress.c_str());
-    }
-    else {
-        printf("\tDeleteIPAddress failed with error: %d\n", dwRetVal);
-        LPVOID lpMsgBuf;
+if ((dwRetVal = DeleteIPAddress(NTEContext)) == NO_ERROR) {
+    printf("\tIPv4 address %s was successfully deleted.\n", hostAddress.c_str());
+}
+else {
+    printf("\tDeleteIPAddress failed with error: %d\n", dwRetVal);
+    LPVOID lpMsgBuf;
 
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-            (LPTSTR)&lpMsgBuf, 0, NULL)) {
-            printf("\tError: %s", lpMsgBuf);
-            LocalFree(lpMsgBuf);
-        }
+    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+        (LPTSTR)&lpMsgBuf, 0, NULL)) {
+        printf("\tError: %s", lpMsgBuf);
+        LocalFree(lpMsgBuf);
     }
+}
 #endif
 */
 }

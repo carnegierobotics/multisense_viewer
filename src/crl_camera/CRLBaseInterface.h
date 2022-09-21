@@ -15,6 +15,7 @@ class CRLBaseInterface {
 
 public:
 
+    CRLBaseInterface() = default;
     virtual ~CRLBaseInterface() {
         printf("BaseInterface destructor\n");
     };

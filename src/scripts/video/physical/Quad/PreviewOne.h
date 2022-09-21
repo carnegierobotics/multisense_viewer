@@ -57,6 +57,7 @@ public:
     CRLCameraResolution res{};
     CameraPlaybackFlags playbackSate{};
     uint32_t width{}, height{};
+    CRLCameraDataType textureType;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

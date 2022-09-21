@@ -22,13 +22,19 @@ void DoubleLayout::update(){
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
+            return;
         }
 
-        auto *tex = new ArEngine::TextureData();
+        auto* tex = new ArEngine::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
-            model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+            model->setTexture(tex);
             model->setZoom();
-            free(tex->data);
+            if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
+                free(tex->data);
+            else {
+                free(tex->planar.data[0]);
+                free(tex->planar.data[1]);
+            }
         }
         delete tex;
     }
@@ -54,26 +60,38 @@ void DoubleLayout::update(){
 
 
 void DoubleLayout::prepareTexture() {
-    model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
+    model->modelType = textureType;
 
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
-    if (src == "Disparity Left") {
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
-    } else {
-        vertexShaderFileName = "myScene/spv/preview.vert";
-        fragmentShaderFileName = "myScene/spv/preview.frag";
+    switch (textureType) {
+        case AR_GRAYSCALE_IMAGE:
+            vertexShaderFileName = "myScene/spv/preview.vert";
+            fragmentShaderFileName = "myScene/spv/preview.frag";
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+        case AR_YUV_PLANAR_FRAME:
+            vertexShaderFileName = "myScene/spv/quad.vert";
+            fragmentShaderFileName = "myScene/spv/quad.frag";
+
+            break;
+        case AR_DISPARITY_IMAGE:
+            vertexShaderFileName = "myScene/spv/depth.vert";
+            fragmentShaderFileName = "myScene/spv/depth.frag";
+            break;
+        default:
+            std::cerr << "Invalid Texture type" << std::endl;
+            return;
     }
 
 
     width = imgConf.width();
     height = imgConf.height();
 
-    model->createEmtpyTexture(width, height, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+    model->createEmtpyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
     ImageData imgData;
 
@@ -109,6 +127,7 @@ void DoubleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
         if ((src != dev.selectedSourceMap.at(AR_PREVIEW_ONE) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_ONE);
+            textureType =  Utils::CRLSourceToTextureType(src);
             res = dev.selectedMode;
             prepareTexture();
         }
@@ -127,11 +146,9 @@ void DoubleLayout::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element
 
 
 void DoubleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (!model)
-        return;
-
-    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
+    if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model, b);
+
 }
 
 void DoubleLayout::onWindowResize(AR::GuiObjectHandles uiHandle) {

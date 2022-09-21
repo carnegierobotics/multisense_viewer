@@ -72,17 +72,21 @@ namespace Utils {
             case crl::multisense::Source_Disparity_Aux:
                 return "Disparity Aux";
             case crl::multisense::Source_Compressed_Left:
-                return "Luma compressed left";
+                return "Luma Compressed Left";
             case crl::multisense::Source_Compressed_Rectified_Left:
-                return "Luma compressed rectified left";
+                return "Luma Compressed Rectified Left";
             case crl::multisense::Source_Compressed_Right:
-                return "Luma compressed right";
+                return "Luma Compressed Right";
             case crl::multisense::Source_Compressed_Rectified_Right:
-                return "Luma compressed rectified eight";
+                return "Luma Compressed Rectified Reight";
             case crl::multisense::Source_Compressed_Aux:
-                return "Luma compressed aux";
+                return "Compressed Aux";
             case crl::multisense::Source_Compressed_Rectified_Aux:
-                return "Luma compressed rectified aux";
+                return "Compressed Rectified Aux";
+            case (crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux):
+                return "Color Rectified Aux";
+            case (crl::multisense::Source_Chroma_Aux | crl::multisense::Source_Luma_Aux):
+                return "Color Aux";
             default:
                 return "Unknown";
         }
@@ -105,14 +109,33 @@ namespace Utils {
         if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
         if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
         if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
-        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
+        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux | crl::multisense::Source_Luma_Aux;
         if (d == "Color Rectified Aux")
             return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;;
         if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
-        if (d == "Color + Luma Rectified Aux")
-            return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;
         if (d == "All") return crl::multisense::Source_All;
         return false;
+    }
+
+    static CRLCameraDataType CRLSourceToTextureType(const std::string &d) {
+        if (d == "Luma Left") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Right") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Left") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Right") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Left") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Right") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Left") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Right") return AR_GRAYSCALE_IMAGE;
+        if (d == "Disparity Left") return AR_DISPARITY_IMAGE;
+
+        if (d == "Color Aux") return AR_COLOR_IMAGE_YUV420;
+        if (d == "Color Rectified Aux") return AR_COLOR_IMAGE_YUV420;
+        if (d == "Luma Aux") return AR_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Aux") return AR_GRAYSCALE_IMAGE;
+        if (d == "Compressed Aux") return AR_COLOR_IMAGE_YUV420;
+        if (d == "Compressed Rectified Aux") return AR_COLOR_IMAGE_YUV420;
+
+        return AR_CAMERA_IMAGE_NONE;
     }
 
 
@@ -133,7 +156,7 @@ namespace Utils {
     }
 
     /**@brief small utility function. Usage of this makes other code more readable */
-    inline bool removeFromVector(std::vector<std::string>* v, const std::string &str) {
+    inline bool removeFromVector(std::vector<std::string> *v, const std::string &str) {
         auto it = std::find(v->begin(), v->end(), str);
         if (it == v->end())
             return false;

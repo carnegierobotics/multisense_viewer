@@ -154,7 +154,7 @@ public:
 
     void updateTextureFromBufferYUV(void *chromaBuffer, uint32_t chromaBufferSize, void *lumaBuffer,
                                     uint32_t lumaBufferSize);
-    void updateTextureFromBufferYUV(ArEngine::YUVTexture *tex);
+    void updateTextureFromBufferYUV(ArEngine::TextureData *tex);
     void updateTextureFromBufferYUV(ArEngine::MP4Frame *frame);
 
 };

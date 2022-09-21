@@ -16,20 +16,22 @@ void Four::setup(Base::Render r) {
 }
 
 void Four::update(){
-    if (!model)
-        return;
-
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
             return;
         }
 
-        auto *tex = new ArEngine::TextureData();
+        auto* tex = new ArEngine::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
-            model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+            model->setTexture(tex);
             model->setZoom();
-            free(tex->data);
+            if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
+                free(tex->data);
+            else {
+                free(tex->planar.data[0]);
+                free(tex->planar.data[1]);
+            }
         }
         delete tex;
     }
@@ -55,28 +57,36 @@ void Four::update(){
 
 
 void Four::prepareTexture() {
-    model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
-
-
+    model->modelType = textureType;
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
-    if (src == "Disparity Left") {
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
-    } else {
-        vertexShaderFileName = "myScene/spv/preview.vert";
-        fragmentShaderFileName = "myScene/spv/preview.frag";
-    }
+    switch (textureType) {
+        case AR_GRAYSCALE_IMAGE:
+            vertexShaderFileName = "myScene/spv/preview.vert";
+            fragmentShaderFileName = "myScene/spv/preview.frag";
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+        case AR_YUV_PLANAR_FRAME:
+            vertexShaderFileName = "myScene/spv/quad.vert";
+            fragmentShaderFileName = "myScene/spv/quad.frag";
 
+            break;
+        case AR_DISPARITY_IMAGE:
+            vertexShaderFileName = "myScene/spv/depth.vert";
+            fragmentShaderFileName = "myScene/spv/depth.frag";
+            break;
+        default:
+            std::cerr << "Invalid Texture type" << std::endl;
+            return;
+    }
 
     width = imgConf.width();
     height = imgConf.height();
 
-    model->createEmtpyTexture(width, height, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+    model->createEmtpyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
-    ImageData imgData;
 
 
     // Load shaders
@@ -85,6 +95,7 @@ void Four::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
+    ImageData imgData;
     model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
@@ -104,17 +115,18 @@ void Four::onUIUpdate(AR::GuiObjectHandles uiHandle) {
         if (!dev.selectedSourceMap.contains(AR_PREVIEW_FOUR))
             break;
 
-        if (dev.selectedSourceMap.at(AR_PREVIEW_FOUR) == "None"){
+        if (dev.selectedSourceMap.at(AR_PREVIEW_FOUR) == "None") {
             // dont draw or update
-            if (model)
-                model->draw = false;
+            model->draw = false;
         }
 
         if ((src != dev.selectedSourceMap.at(AR_PREVIEW_FOUR) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_FOUR);
+            textureType =  Utils::CRLSourceToTextureType(src);
             res = dev.selectedMode;
             prepareTexture();
         }
+
         transformToUISpace(uiHandle, dev);
     }
 }
@@ -133,10 +145,7 @@ void Four::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
 
 
 void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (!model)
-        return;
-
-    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
+    if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model, b);
 
 }

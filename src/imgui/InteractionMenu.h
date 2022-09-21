@@ -530,7 +530,6 @@ private:
                 info->previewBorderPadding = 30.0f * (info->width / 1280);
 
 
-
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
                     offsetX = (info->controlAreaWidth + info->sidebarWidth + ((info->viewingAreaWidth - newWidth) / 2));
@@ -583,7 +582,7 @@ private:
                     // Left bar
 
                     ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
-                    ImVec2 leftBarMax(viewAreaElementPosX + (info->previewBorderPadding/2),
+                    ImVec2 leftBarMax(viewAreaElementPosX + (info->previewBorderPadding / 2),
                                       topBarRectMax.y + info->viewAreaElementSizeY -
                                       (info->previewBorderPadding * 0.5f));
 
@@ -615,9 +614,10 @@ private:
 
                     // Min Y and Min Y is top left corner
                     ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
-                    if (dev.pixelInfoEnable){
+                    if (dev.pixelInfoEnable) {
                         // Also only if a window is hovered
-                        if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index), ImGuiHoveredFlags_AnyWindow)) {
+                        if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
+                                                         ImGuiHoveredFlags_AnyWindow)) {
                             // Offsset cursor positions.
                             uint32_t x, y, val = dev.pixelInfo.intensity;
                             x = dev.pixelInfo.x - viewAreaElementPosX;
@@ -721,6 +721,7 @@ private:
                             drawActionPage = true;
                         }
 
+
                         if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
 
                             ImVec2 size = ImVec2(65.0f,
@@ -803,6 +804,24 @@ private:
                             ImGui::SameLine();
                             ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
+
+                            // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
+                            std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
+                            for (const auto &source: pointCloudSources) {
+                                bool inUse = false;
+                                for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
+                                    if (!dev.selectedSourceMap.contains(index))
+                                        continue;
+                                    if (dev.selectedSourceMap[index] == source && index != AR_PREVIEW_POINT_CLOUD)
+                                        inUse = true;
+                                }
+
+                                if (!inUse && Utils::isInVector(dev.userRequestedSources, source)){
+                                    Utils::removeFromVector(&dev.userRequestedSources, source);
+                                }
+                            }
+
+
                         } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
                             ImGui::Dummy(ImVec2(40.0f, 40.0));
                             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -832,7 +851,14 @@ private:
                                 ImGui::EndCombo();
                             }
 
-                            dev.selectedSourceMap[10] = "Disparity Left";
+                            dev.selectedSourceMap[AR_PREVIEW_POINT_CLOUD] = "Disparity Left";
+
+                            if (!Utils::isInVector(dev.userRequestedSources, "Disparity Left")) {
+                                dev.userRequestedSources.emplace_back("Disparity Left");
+                            }
+                            if (!Utils::isInVector(dev.userRequestedSources, "Luma Rectified Left")) {
+                                dev.userRequestedSources.emplace_back("Luma Rectified Left");
+                            }
                         }
 
 

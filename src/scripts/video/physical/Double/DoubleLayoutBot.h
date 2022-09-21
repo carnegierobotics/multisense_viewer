@@ -45,7 +45,7 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
-    bool coordinateTransformed = false;
+    CRLCameraDataType textureType;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;

@@ -53,8 +53,9 @@ public:
     float scaleY = 0.25f;
     float centerX = 0.0f;
     float centerY = 0.0f;
-    std::string src = "source";
+    std::string src;
     CRLCameraResolution res;
+    CRLCameraDataType textureType;
     CameraPlaybackFlags playbackSate{};
     uint32_t width, height;
 

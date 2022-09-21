@@ -42,7 +42,7 @@ void AuxImager::update() {
         bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_AUX);
 
         if (ret)
-            model->setColorTexture(&frame);
+            model->setTexture(&frame);
 
          */
         free(frame.plane0);

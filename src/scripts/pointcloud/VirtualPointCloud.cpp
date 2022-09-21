@@ -48,7 +48,7 @@ void VirtualPointCloud::update() {
 
     crl::multisense::image::Header disp;
     //camPtr->getCameraStream(nullptr);
-    //model->setGrayscaleTexture(&disp);
+    //model->setTexture(&disp);
 
     free((void *) disp.imageDataP);
 

@@ -25,11 +25,16 @@ void DoubleLayoutBot::update(){
             return;
         }
 
-        auto *tex = new ArEngine::TextureData();
+        auto* tex = new ArEngine::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
-            model->setGrayscaleTexture(tex, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
+            model->setTexture(tex);
             model->setZoom();
-            free(tex->data);
+            if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
+                free(tex->data);
+            else {
+                free(tex->planar.data[0]);
+                free(tex->planar.data[1]);
+            }
         }
         delete tex;
     }
@@ -54,19 +59,31 @@ void DoubleLayoutBot::update(){
 
 
 void DoubleLayoutBot::prepareTexture() {
-    model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
+    model->modelType = textureType;
 
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
-    if (src == "Disparity Left") {
-        vertexShaderFileName = "myScene/spv/depth.vert";
-        fragmentShaderFileName = "myScene/spv/depth.frag";
-    } else {
-        vertexShaderFileName = "myScene/spv/preview.vert";
-        fragmentShaderFileName = "myScene/spv/preview.frag";
+    switch (textureType) {
+        case AR_GRAYSCALE_IMAGE:
+            vertexShaderFileName = "myScene/spv/preview.vert";
+            fragmentShaderFileName = "myScene/spv/preview.frag";
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+        case AR_YUV_PLANAR_FRAME:
+            vertexShaderFileName = "myScene/spv/quad.vert";
+            fragmentShaderFileName = "myScene/spv/quad.frag";
+
+            break;
+        case AR_DISPARITY_IMAGE:
+            vertexShaderFileName = "myScene/spv/depth.vert";
+            fragmentShaderFileName = "myScene/spv/depth.frag";
+            break;
+        default:
+            std::cerr << "Invalid Texture type" << std::endl;
+            return;
     }
 
 
@@ -109,6 +126,7 @@ void DoubleLayoutBot::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
         if ((src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
             src = dev.selectedSourceMap.at(AR_PREVIEW_TWO);
+            textureType =  Utils::CRLSourceToTextureType(src);
             res = dev.selectedMode;
             prepareTexture();
         }
@@ -132,11 +150,9 @@ void DoubleLayoutBot::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Elem
 
 
 void DoubleLayoutBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (!model)
-        return;
-
-    if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
+    if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model, b);
+
 
 }
 

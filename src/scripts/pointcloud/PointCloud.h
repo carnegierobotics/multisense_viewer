@@ -7,7 +7,6 @@
 
 #include <MultiSense/src/core/ScriptBuilder.h>
 #include <MultiSense/src/model_loaders/CRLCameraModels.h>
-#include <MultiSense/src/model_loaders/MeshModel.h>
 #include <MultiSense/src/imgui/Layer.h>
 #include "MultiSense/src/Renderer/Renderer.h"
 #include "MultiSense/src/crl_camera/CRLPhysicalCamera.h"
@@ -46,17 +45,23 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
+
+    CRLCameraModels::Model* model{};
+
     std::string src;
     std::vector<std::string> startedSources;
-    CRLCameraModels::Model* model{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
-    uint32_t width, height;
+    uint32_t width{}, height{};
+    CRLCameraResolution res;
+    CRLCameraDataType textureType;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     ArEngine::Vertex* meshData{};
     int point = 0;
+
+    void prepareTexture();
 };
 
 

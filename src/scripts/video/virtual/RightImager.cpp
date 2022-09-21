@@ -43,7 +43,7 @@ void RightImager::update() {
 
         /*
         if (ret)
-            model->setColorTexture(&frame);
+            model->setTexture(&frame);
 */
         free(frame.plane0);
         free(frame.plane1);

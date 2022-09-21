@@ -9,6 +9,8 @@
 void SingleLayout::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
+    model = new CRLCameraModels::Model(&renderUtils);
+    model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
@@ -20,6 +22,7 @@ void SingleLayout::update() {
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
             model->draw = false;
+            return;
         }
 
         auto *tex = new ArEngine::TextureData();
@@ -52,10 +55,8 @@ void SingleLayout::update() {
 
 
 void SingleLayout::prepareTexture() {
+    model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
 
-    model = new CRLCameraModels::Model(renderUtils.device,
-                                       src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE, nullptr);
-    model->draw = false;
 
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;

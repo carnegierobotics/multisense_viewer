@@ -311,7 +311,6 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
 
         result = vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain image views");
-
     }
 }
 

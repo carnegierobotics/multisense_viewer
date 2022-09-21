@@ -72,6 +72,7 @@ public:
     void run() {
         renderLoop();
         cleanUp();
+        destroySelectionBuffer();
     }
 
 private:
@@ -80,7 +81,12 @@ private:
     std::unique_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
     Base::Render renderData{};
-
+    bool renderSelectionPass = false;
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer selectionBuffer;
+    VkDeviceMemory selectionMemory;
+    VkBufferImageCopy bufferCopyRegion{};
+    VkMemoryRequirements memReqs{};
 protected:
 
     glm::vec3 defaultCameraPosition = glm::vec3(2.0f, 1.2f, -5.0f);
@@ -107,6 +113,14 @@ protected:
     void deleteScript(const std::string &scriptName);
 
     void buildScript(const std::string &scriptName);
+
+    void createSelectionFramebuffer();
+
+    void createSelectionImages();
+
+    void destroySelectionBuffer();
+
+    void createSelectionBuffer();
 };
 
 

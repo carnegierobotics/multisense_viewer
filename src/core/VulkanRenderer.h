@@ -116,7 +116,7 @@ public:
     /** @brief (Virtual) Setup default depth and stencil views */
     virtual void setupDepthStencil();
     /** @brief (Virtual) Setup default framebuffers for all requested swapchain images */
-    virtual void setupFrameBuffer();
+    virtual void setupMainFramebuffer();
     /** @brief (Virtual) Setup a default renderpass */
     virtual void setupRenderPass();
     /** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */

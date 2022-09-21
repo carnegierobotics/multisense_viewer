@@ -179,25 +179,23 @@ namespace AR {
 /** @brief  */
     struct Parameters {
         bool initialized = false;
-
-
         float gain = 1.0f;
         float fps = 30.0f;
-
-
         ExposureParams ep;
         WhiteBalanceParams wb;
-
-
         float stereoPostFilterStrength = 0.5f;
         bool hdrEnabled;
         bool storeSettingsInFlash;
-
         crl::multisense::CameraProfile cameraProfile;
         float gamma = 2.0f;
-
-
         bool update = false;
+    };
+
+    struct CursorPixelInformation {
+        uint32_t x, y;
+        uint32_t r, g, b;
+        uint32_t intensity;
+        uint32_t depth;
     };
 
 
@@ -229,13 +227,17 @@ namespace AR {
         std::vector<std::string> sources; // Human-readable names of camera sources
         std::map<int,  std::string> selectedSourceMap;
         std::map<int, int> selectedSourceIndexMap;
+        std::map<int, int> hoveredPixelInfo;
 
         std::vector<std::string> userRequestedSources;
         std::vector<std::string> enabledStreams;
         std::vector<std::string> attachedScripts;
         float row[9] = {0};
         float col[9] = {0};
+        bool pixelInfoEnable = false;
+        CursorPixelInformation pixelInfo;
         bool useLoadedProfile = false;
+
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

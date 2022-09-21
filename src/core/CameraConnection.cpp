@@ -307,6 +307,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 
         Log::Logger::getInstance()->info("Creating new physical camera.");
 
+        // TODO Segfault on reconnects. One of those hard to debug errors but seems to be consistently hitting here at least.
         camPtr = std::make_unique<CRLPhysicalCamera>();
 
         connected = camPtr->connect(dev.IP);

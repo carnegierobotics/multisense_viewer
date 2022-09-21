@@ -9,7 +9,7 @@
 void PreviewOne::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = new CRLCameraModels::Model(renderUtils.device, AR_GRAYSCALE_IMAGE, nullptr);
+    model = new CRLCameraModels::Model(&renderUtils);
     model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -53,11 +53,9 @@ void PreviewOne::update() {
 
 void PreviewOne::prepareTexture() {
     model->modelType = src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE;
-
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
-
     if (src == "Disparity Left") {
         vertexShaderFileName = "myScene/spv/depth.vert";
         fragmentShaderFileName = "myScene/spv/depth.frag";
@@ -65,16 +63,11 @@ void PreviewOne::prepareTexture() {
         vertexShaderFileName = "myScene/spv/preview.vert";
         fragmentShaderFileName = "myScene/spv/preview.frag";
     }
-
-
     width = imgConf.width();
     height = imgConf.height();
-
     model->createEmtpyTexture(width, height, src == "Disparity Left" ? AR_DISPARITY_IMAGE : AR_GRAYSCALE_IMAGE);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
     ImageData imgData;
-
-
     // Load shaders
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -83,7 +76,6 @@ void PreviewOne::prepareTexture() {
     // Create quad and store it locally on the GPU
     model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
-
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
     model->draw = true;

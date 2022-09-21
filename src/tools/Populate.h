@@ -121,10 +121,19 @@ namespace Populate {
         return imageViewCreateInfo;
     }
 
-    inline VkFramebufferCreateInfo framebufferCreateInfo()
+    inline VkFramebufferCreateInfo
+    framebufferCreateInfo(uint32_t width, uint32_t height, VkImageView *attachments, int attachmentCount, VkRenderPass renderPass)
     {
         VkFramebufferCreateInfo framebufferCreateInfo {};
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferCreateInfo.pNext = NULL;
+        framebufferCreateInfo.layers = 1;
+        framebufferCreateInfo.attachmentCount = 2;
+        framebufferCreateInfo.pAttachments = attachments;
+        framebufferCreateInfo.width = width;
+        framebufferCreateInfo.height = height;
+        framebufferCreateInfo.renderPass = renderPass;
+
         return framebufferCreateInfo;
     }
 

@@ -8,7 +8,7 @@
 
 void PointCloud::setup(Base::Render r) {
 
-    model = new CRLCameraModels::Model(renderUtils.device, AR_POINT_CLOUD, nullptr);
+    model = new CRLCameraModels::Model(nullptr);
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 

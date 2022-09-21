@@ -83,11 +83,11 @@ public:
 
         void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setColorTexture(ArEngine::MP4Frame* frame);
+        void setTexture(ArEngine::MP4Frame* frame);
 
-        void setColorTexture(ArEngine::YUVTexture *tex);
+        void setTexture(ArEngine::YUVTexture *tex);
 
-        void setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type);
+        void setTexture(ArEngine::TextureData *tex);
 
         void setZoom();
     };

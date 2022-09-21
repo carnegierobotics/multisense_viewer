@@ -42,7 +42,7 @@ void LeftImager::update() {
         bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_LEFT);
 
         if (ret)
-            model->setColorTexture(&frame);
+            model->setTexture(&frame);
 */
         free(frame.plane0);
         free(frame.plane1);

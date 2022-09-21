@@ -116,11 +116,13 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span =
             std::chrono::duration_cast<std::chrono::duration<float>>(time - startTime);
-    if (time_span.count() > 1){
+    if (time_span.count() > 1) {
         std::chrono::duration<float> callbackTimeSpan =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - callbackTime);
 
-        Log::Logger::getInstance()->info("Requesting image from camera stream. But it is {} seconds since the image stream callback was called.", callbackTimeSpan.count());
+        Log::Logger::getInstance()->info(
+                "Requesting image from camera stream. But it is {} seconds since the image stream callback was called.",
+                callbackTimeSpan.count());
         startTime = std::chrono::steady_clock::now();
     }
 
@@ -128,33 +130,57 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::Texture
     assert(tex != nullptr);
     auto src = Utils::stringToDataSource(stringSrc);
 
-    switch (src) {
-        case crl::multisense::Source_Disparity_Left:
-            tex->type = AR_DISPARITY_IMAGE;
-            break;
-        case crl::multisense::Source_Unknown:
-            Log::Logger::getInstance()->info("Could not get camera stream. Source unknown");
-            return false;
-        default:
-            tex->type = AR_GRAYSCALE_IMAGE;
-    }
-
-
     auto header = imagePointers[src];
-
-    // TODO Fix with proper conditions for checking if a frame is good or not
-    if (header.source != src)
-        return false;
-
-    if (header.imageDataP != nullptr && header.imageLength != 0 && header.imageLength < 11520000) {
-        tex->data = malloc(header.imageLength);
-        memcpy(tex->data, header.imageDataP, header.imageLength);
-        //tex->data = (void *) header.imageDataP;
-        tex->len = header.imageLength;
-        return true;
+    crl::multisense::DataSource colorSource;
+    crl::multisense::DataSource lumaSource;
+    if (stringSrc == "Color Aux") {
+        colorSource = crl::multisense::Source_Chroma_Aux;
+        lumaSource = crl::multisense::Source_Luma_Aux;
+    } else if (stringSrc == "Color Rectified Aux") {
+        colorSource = crl::multisense::Source_Chroma_Rectified_Aux;
+        lumaSource = crl::multisense::Source_Luma_Rectified_Aux;
     }
-    return false;
+    auto chroma = imagePointers[colorSource];
+    auto luma = imagePointers[lumaSource];
 
+    switch (tex->type) {
+        case AR_COLOR_IMAGE_YUV420:
+            if (chroma.imageLength > 0 && (luma.source == crl::multisense::Source_Luma_Rectified_Aux ||
+                                           luma.source == crl::multisense::Source_Luma_Aux) &&
+                luma.imageLength > 0 &&
+                (chroma.source == crl::multisense::Source_Chroma_Rectified_Aux ||
+                 chroma.source == crl::multisense::Source_Chroma_Aux)) {
+
+                    tex->planar.data[0] = malloc(chroma.imageLength);
+                    memcpy(tex->planar.data[0], chroma.imageDataP, chroma.imageLength);
+                    tex->planar.len[0] = chroma.imageLength;
+                    tex->planar.data[1] = malloc(luma.imageLength);
+                    memcpy(tex->planar.data[1], luma.imageDataP, luma.imageLength);
+                    tex->planar.len[1] = luma.imageLength;
+
+                return true;
+            } else
+                return false;
+        case AR_YUV_PLANAR_FRAME:
+            break;
+        case AR_GRAYSCALE_IMAGE:
+        case AR_DISPARITY_IMAGE:
+        case AR_POINT_CLOUD:
+            if (header.source != src)
+                return false;
+
+            if (header.imageDataP != nullptr && header.imageLength != 0 && header.imageLength < 11520000) {
+                tex->data = malloc(header.imageLength);
+                memcpy(tex->data, header.imageDataP, header.imageLength);
+                //tex->data = (void *) header.imageDataP;
+                tex->len = header.imageLength;
+                return true;
+            }
+        case AR_CAMERA_IMAGE_NONE:
+            break;
+    }
+    // TODO Fix with proper conditions for checking if a frame is good or not
+    return false;
 }
 
 
@@ -295,7 +321,7 @@ void CRLPhysicalCamera::setGamma(float gamma) {
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query gamma configuration");
     }
     //
     // Modify image configuration parameters
@@ -308,7 +334,7 @@ void CRLPhysicalCamera::setGamma(float gamma) {
     // Check to see if the configuration was successfully received by the
     // sensor
     if (crl::multisense::Status_Ok != status) {
-        throw std::runtime_error("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set gamma configuration");
     }
 
     this->updateCameraInfo();

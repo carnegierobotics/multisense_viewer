@@ -26,14 +26,13 @@ typedef enum ScriptType {
 } ScriptType;
 
 
-
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
     AR_GRAYSCALE_IMAGE,
     AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
-    AR_COLOR_IMAGE,
-    CrlNone, AR_DISPARITY_IMAGE, AR_CAMERA_DATA_IMAGE
+    AR_CAMERA_IMAGE_NONE,
+    AR_DISPARITY_IMAGE,
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {
@@ -123,7 +122,7 @@ typedef enum PreviewLayout {
     PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE = 3,
     PREVIEW_LAYOUT_QUAD = 4,
     PREVIEW_LAYOUT_NINE = 5
-}PreviewLayout;
+} PreviewLayout;
 
 struct WhiteBalanceParams {
     float whiteBalanceRed = 1.0f;
@@ -225,7 +224,7 @@ namespace AR {
         uint32_t selectedSourceIndex = 0;
         CRLCameraResolution selectedMode;
         std::vector<std::string> sources; // Human-readable names of camera sources
-        std::map<int,  std::string> selectedSourceMap;
+        std::map<int, std::string> selectedSourceMap;
         std::map<int, int> selectedSourceIndexMap;
         std::map<int, int> hoveredPixelInfo;
 
@@ -262,22 +261,25 @@ namespace AR {
 
         std::string cameraName;
 
-        EntryConnectDevice()= default;
+        EntryConnectDevice() = default;
 
         EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx) : IP(std::move(ip)),
-                                                                                                  interfaceName(std::move(iName)),
-                                                                                                  cameraName(std::move(camera)),
+                                                                                                  interfaceName(
+                                                                                                          std::move(
+                                                                                                                  iName)),
+                                                                                                  cameraName(std::move(
+                                                                                                          camera)),
                                                                                                   interfaceIndex(idx) {
         }
 
-        void reset(){
+        void reset() {
             profileName = "";
             IP = "";
             interfaceName = "";
             interfaceIndex = 0;
         }
 
-        bool ready(const std::vector<AR::Element>& devices, const EntryConnectDevice& entry) const{
+        bool ready(const std::vector<AR::Element> &devices, const EntryConnectDevice &entry) const {
 
             bool profileNameEmpty = entry.profileName.empty();
             bool profileNameTaken = false;
@@ -292,7 +294,8 @@ namespace AR {
             for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
-                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
+                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,
+                                                     entry.interfaceName);
 
                 }
                 if (d.name == entry.profileName) {
@@ -315,14 +318,27 @@ namespace ArEngine {
     struct YUVTexture {
         void *data[NUM_YUV_DATA_POINTERS]{};
         uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
-        VkFlags *formats[NUM_YUV_DATA_POINTERS];
+        VkFlags *formats[NUM_YUV_DATA_POINTERS]{};
         VkFormat format{};
     };
 
     struct TextureData {
+        TextureData(CRLCameraDataType texType) : type(texType) {
+
+        }
+        TextureData() {
+        }
+
         void *data;
         uint32_t len;
         CRLCameraDataType type;
+
+        struct {
+            void *data[NUM_YUV_DATA_POINTERS]{};
+            uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
+            VkFlags *formats[NUM_YUV_DATA_POINTERS]{};
+            VkFormat format{};
+        } planar;
     };
 
     struct Vertex {
@@ -383,7 +399,7 @@ namespace ArEngine {
     struct ZoomParam {
         float zoom;
 
-        ZoomParam(){
+        ZoomParam() {
             zoom = 1.0f;
         }
     };
@@ -397,7 +413,7 @@ namespace ArEngine {
         glm::vec2 position;
     };
 
-    struct ObjectPicking{
+    struct ObjectPicking {
         // Global render pass for frame buffer writes
         VkRenderPass renderPass;
         // List of available frame buffers (same as number of swap chain images)

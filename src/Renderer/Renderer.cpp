@@ -138,60 +138,75 @@ void Renderer::render() {
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
     guiManager->handles.mouseBtns = &mouseButtons;
+
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
     // Create/delete scripts after use
     buildScript("LightSource");
+
     // Run update function on active camera scripts and build them if not built
+    // TODO Rework conditions to when scripts are built to more human readable code
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             renderSelectionPass = dev.pixelInfoEnable;
-            if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
-                std::string scriptName = "SingleLayout";
+            if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+
+                std::string scriptName = "PointCloud";
                 buildScript(scriptName);
                 if (!Utils::isInVector(dev.attachedScripts, scriptName))
                     dev.attachedScripts.emplace_back(scriptName);
+
+
             } else {
-                deleteScript("SingleLayout");
-            }
+                deleteScript("PointCloud");
 
-            if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
-                std::string scriptName = "DoubleLayout";
-                buildScript(scriptName);
+                if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
+                    std::string scriptName = "SingleLayout";
+                    buildScript(scriptName);
+                    if (!Utils::isInVector(dev.attachedScripts, scriptName))
+                        dev.attachedScripts.emplace_back(scriptName);
+                } else {
+                    deleteScript("SingleLayout");
+                }
 
-                if (!Utils::isInVector(dev.attachedScripts, "DoubleLayout"))
-                    dev.attachedScripts.emplace_back("DoubleLayout");
-                scriptName = "DoubleLayoutBot";
-                buildScript(scriptName);
+                if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
+                    std::string scriptName = "DoubleLayout";
+                    buildScript(scriptName);
 
-                if (!Utils::isInVector(dev.attachedScripts, "DoubleLayoutBot"))
-                    dev.attachedScripts.emplace_back("DoubleLayoutBot");
-            } else {
-                deleteScript("DoubleLayout");
-                deleteScript("DoubleLayoutBot");
+                    if (!Utils::isInVector(dev.attachedScripts, "DoubleLayout"))
+                        dev.attachedScripts.emplace_back("DoubleLayout");
+                    scriptName = "DoubleLayoutBot";
+                    buildScript(scriptName);
 
-            }
+                    if (!Utils::isInVector(dev.attachedScripts, "DoubleLayoutBot"))
+                        dev.attachedScripts.emplace_back("DoubleLayoutBot");
+                } else {
+                    deleteScript("DoubleLayout");
+                    deleteScript("DoubleLayoutBot");
 
-            if (dev.layout == PREVIEW_LAYOUT_QUAD) {
-                buildScript("PreviewOne");
-                buildScript("PreviewTwo");
-                buildScript("Three");
-                buildScript("Four");
-                if (!Utils::isInVector(dev.attachedScripts, "PreviewOne"))
-                    dev.attachedScripts.emplace_back("PreviewOne");
-                if (!Utils::isInVector(dev.attachedScripts, "PreviewTwo"))
-                    dev.attachedScripts.emplace_back("PreviewTwo");
-                if (!Utils::isInVector(dev.attachedScripts, "Three"))
-                    dev.attachedScripts.emplace_back("Three");
-                if (!Utils::isInVector(dev.attachedScripts, "Four"))
-                    dev.attachedScripts.emplace_back("Four");
-            } else {
-                deleteScript("PreviewOne");
-                deleteScript("PreviewTwo");
-                deleteScript("Three");
-                deleteScript("Four");
+                }
+
+                if (dev.layout == PREVIEW_LAYOUT_QUAD) {
+                    buildScript("PreviewOne");
+                    buildScript("PreviewTwo");
+                    buildScript("Three");
+                    buildScript("Four");
+                    if (!Utils::isInVector(dev.attachedScripts, "PreviewOne"))
+                        dev.attachedScripts.emplace_back("PreviewOne");
+                    if (!Utils::isInVector(dev.attachedScripts, "PreviewTwo"))
+                        dev.attachedScripts.emplace_back("PreviewTwo");
+                    if (!Utils::isInVector(dev.attachedScripts, "Three"))
+                        dev.attachedScripts.emplace_back("Three");
+                    if (!Utils::isInVector(dev.attachedScripts, "Four"))
+                        dev.attachedScripts.emplace_back("Four");
+                } else {
+                    deleteScript("PreviewOne");
+                    deleteScript("PreviewTwo");
+                    deleteScript("Three");
+                    deleteScript("Four");
+                }
             }
         }
         // Check if camera connection was AR RESET and disable all scripts
@@ -442,7 +457,7 @@ void Renderer::createSelectionImages() {
     }
 }
 
-void Renderer::createSelectionBuffer(){
+void Renderer::createSelectionBuffer() {
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -466,7 +481,7 @@ void Renderer::createSelectionBuffer(){
     bufferCopyRegion.bufferOffset = 0;
 }
 
-void Renderer::destroySelectionBuffer(){
+void Renderer::destroySelectionBuffer() {
     // Clean up staging resources
     vkFreeMemory(vulkanDevice->logicalDevice, selectionMemory, nullptr);
     vkDestroyBuffer(vulkanDevice->logicalDevice, selectionBuffer, nullptr);

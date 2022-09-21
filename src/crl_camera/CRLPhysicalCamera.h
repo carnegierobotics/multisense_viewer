@@ -48,7 +48,7 @@ private:
         uint32_t size{0};
         int64_t frame_id{0};
         crl::multisense::DataSource source{};
-        const void *data{nullptr};
+        const void *data{};
     };
 
     struct BufferPair

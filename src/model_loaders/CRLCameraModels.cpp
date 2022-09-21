@@ -131,28 +131,34 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 }
 
 
-void CRLCameraModels::Model::setGrayscaleTexture(ArEngine::TextureData *tex, CRLCameraDataType type) {
+void CRLCameraModels::Model::setTexture(ArEngine::TextureData *tex) {
 
-    switch (type) {
+    switch (tex->type) {
         case AR_POINT_CLOUD:
             textureVideoDepthMap->updateTextureFromBuffer(tex);
             break;
         case AR_GRAYSCALE_IMAGE:
-        case AR_CAMERA_DATA_IMAGE:
         case AR_DISPARITY_IMAGE:
             textureVideo->updateTextureFromBuffer(tex);
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+            textureVideo->updateTextureFromBufferYUV(tex);
+            break;
+        case AR_YUV_PLANAR_FRAME:
+            break;
+        case AR_CAMERA_IMAGE_NONE:
             break;
     }
 
 }
 
-void CRLCameraModels::Model::setColorTexture(ArEngine::YUVTexture *tex) {
+void CRLCameraModels::Model::setTexture(ArEngine::YUVTexture *tex) {
 
-    textureVideo->updateTextureFromBufferYUV(tex);
+    //textureVideo->updateTextureFromBufferYUV(tex);
 
 }
 
-void CRLCameraModels::Model::setColorTexture(ArEngine::MP4Frame *frame) {
+void CRLCameraModels::Model::setTexture(ArEngine::MP4Frame *frame) {
 
     textureVideo->updateTextureFromBufferYUV(frame);
 
@@ -198,9 +204,6 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
             break;
         case AR_DISPARITY_IMAGE:
             format = VK_FORMAT_R16_UNORM;
-            break;
-        case AR_COLOR_IMAGE:
-
             break;
         case AR_POINT_CLOUD:
             format = VK_FORMAT_R16_UNORM;
@@ -250,9 +253,9 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
      */
 
     switch (model->modelType) {
-        case AR_CAMERA_DATA_IMAGE:
         case AR_DISPARITY_IMAGE:
         case AR_GRAYSCALE_IMAGE:
+        case AR_COLOR_IMAGE_YUV420:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
@@ -380,7 +383,6 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std:
 void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
     switch (pModel->modelType) {
-        case AR_CAMERA_DATA_IMAGE:
         case AR_DISPARITY_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
@@ -388,15 +390,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
                     {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                     {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-
-            };
-            break;
-        case AR_GRAYSCALE_IMAGE:
-            setLayoutBindings = {
-                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
-                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                    {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                    {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 
             };
             break;
@@ -409,7 +402,17 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
 
             };
             break;
+        case AR_YUV_PLANAR_FRAME:
+        case AR_COLOR_IMAGE_YUV420:
+        case AR_GRAYSCALE_IMAGE:
+            setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 
+            };
+            break;
         default:
             std::cerr << "Model type not supported yet\n";
             break;
@@ -417,7 +420,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
 
     // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
     if (nullptr != pModel->textureVideo->sampler) {
-        VkDescriptorSetLayoutBinding binding{};
         setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo->sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),

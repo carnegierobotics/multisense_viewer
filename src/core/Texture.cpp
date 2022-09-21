@@ -1460,14 +1460,14 @@ void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
 }
 
-void TextureVideo::updateTextureFromBufferYUV(ArEngine::YUVTexture *tex) {
-    if (size < tex->len[0] || size < tex->len[1]) {
+void TextureVideo::updateTextureFromBufferYUV(ArEngine::TextureData *tex) {
+    if (size < tex->planar.len[0] || size < tex->planar.len[1]) {
         Log::Logger::getInstance()->info("Size mismatch between color texture image and camera image");
         return;
     }
 
-    memcpy(data, tex->data[1], tex->len[1]);
-    memcpy(data2, tex->data[0], tex->len[0]);
+    memcpy(data, tex->planar.data[1], tex->planar.len[1]);
+    memcpy(data2, tex->planar.data[0], tex->planar.len[0]);
 
 
     VkImageSubresourceRange subresourceRange = {};

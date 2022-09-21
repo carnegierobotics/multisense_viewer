@@ -13,7 +13,7 @@ void LeftImager::setup(Base::Render r) {
      * Create and load Mesh elements
      */
     // Prepare a model for drawing a texture onto
-    model = new CRLCameraModels::Model(renderUtils.device, AR_CAMERA_DATA_IMAGE, nullptr);
+    model = new CRLCameraModels::Model(nullptr);
     // Don't draw it before we create the texture in update()
     model->draw = false;
 

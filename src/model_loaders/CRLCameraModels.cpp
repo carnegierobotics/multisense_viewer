@@ -15,10 +15,8 @@ void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-CRLCameraModels::Model::Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type,
-                              const Base::RenderUtils *renderUtils) {
-    this->vulkanDevice = _vulkanDevice;
-    this->modelType = type;
+CRLCameraModels::Model::Model(const Base::RenderUtils *renderUtils) {
+    this->vulkanDevice = renderUtils->device;
 }
 
 CRLCameraModels::Model::~Model() {

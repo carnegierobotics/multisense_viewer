@@ -296,7 +296,7 @@ namespace ImGui {
         return true;
     }
 
-    inline bool IsWindowHovered(std::string name, ImGuiHoveredFlags flags) {
+    inline bool IsWindowHoveredByName(std::string name, ImGuiHoveredFlags flags) {
         IM_ASSERT((flags & (ImGuiHoveredFlags_AllowWhenOverlapped | ImGuiHoveredFlags_AllowWhenDisabled)) ==
                   0);   // Flags not supported by this function
         ImGuiContext &g = *GImGui;

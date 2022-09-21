@@ -25,8 +25,7 @@ public:
     CRLCameraModels() = default;
 
     struct Model {
-        Model(VulkanDevice *_vulkanDevice, CRLCameraDataType type,
-              const Base::RenderUtils *renderUtils);
+        Model(const Base::RenderUtils *renderUtils);
         ~Model();
 /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
@@ -163,7 +162,7 @@ public:
 
     void createPipelineLayout();
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b);
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b = true);
 
     //void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
 

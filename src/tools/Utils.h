@@ -57,10 +57,6 @@ namespace Utils {
                 return "Disparity Left";
             case crl::multisense::Source_Disparity_Cost:
                 return "Disparity Cost";
-            case crl::multisense::Source_Jpeg_Left:
-                return "Jpeg Left";
-            case crl::multisense::Source_Rgb_Left:
-                return "Source Rgb Left";
             case crl::multisense::Source_Lidar_Scan:
                 return "Source Lidar Scan";
             case crl::multisense::Source_Raw_Aux:
@@ -75,6 +71,18 @@ namespace Utils {
                 return "Color Rectified Aux";
             case crl::multisense::Source_Disparity_Aux:
                 return "Disparity Aux";
+            case crl::multisense::Source_Compressed_Left:
+                return "Luma compressed left";
+            case crl::multisense::Source_Compressed_Rectified_Left:
+                return "Luma compressed rectified left";
+            case crl::multisense::Source_Compressed_Right:
+                return "Luma compressed right";
+            case crl::multisense::Source_Compressed_Rectified_Right:
+                return "Luma compressed rectified eight";
+            case crl::multisense::Source_Compressed_Aux:
+                return "Luma compressed aux";
+            case crl::multisense::Source_Compressed_Rectified_Aux:
+                return "Luma compressed rectified aux";
             default:
                 return "Unknown";
         }

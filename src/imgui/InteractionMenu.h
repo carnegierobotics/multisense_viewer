@@ -486,15 +486,12 @@ private:
     void createDoubleWindowPreview(AR::GuiObjectHandles *handles, AR::Element &dev) {
         AR::GuiLayerUpdateInfo *info = handles->info;
         info->viewingAreaWidth = info->width - info->sidebarWidth - info->controlAreaWidth;
-
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
-
-        info->hoverState = ImGui::IsWindowHovered("ControlArea", ImGuiHoveredFlags_AnyWindow);
+        info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
         if (!info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
-
         int cols, rows;
         switch (dev.layout) {
             case PREVIEW_LAYOUT_NONE:
@@ -530,7 +527,9 @@ private:
                 // Calculate window size
                 info->viewAreaElementSizeX = newWidth;
                 info->viewAreaElementSizeY = newHeight;
-                info->previewBorderPadding = 40.0f * (info->width / 1280);
+                info->previewBorderPadding = 30.0f * (info->width / 1280);
+
+
 
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
@@ -571,6 +570,7 @@ private:
                                                               0);
 
 
+                    /*
                     // extension of top bar in different color
                     ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
                     ImVec2 topBarRectMaxExtended(viewAreaElementPosX + info->viewAreaElementSizeX,
@@ -579,12 +579,12 @@ private:
                     ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
                                                               ImColor(AR::CRLGray424Main), 0.0f,
                                                               0);
-
+                    */
                     // Left bar
 
-                    ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMaxExtended.y);
-                    ImVec2 leftBarMax(viewAreaElementPosX + info->previewBorderPadding,
-                                      topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                    ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
+                    ImVec2 leftBarMax(viewAreaElementPosX + (info->previewBorderPadding/2),
+                                      topBarRectMax.y + info->viewAreaElementSizeY -
                                       (info->previewBorderPadding * 0.5f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(AR::CRLGray424Main), 0.0f,
@@ -592,10 +592,10 @@ private:
 
                     // Right bar
                     ImVec2 rightBarMin(
-                            viewAreaElementPosX + info->viewAreaElementSizeX - info->previewBorderPadding,
-                            topBarRectMaxExtended.y);
+                            viewAreaElementPosX + info->viewAreaElementSizeX - (info->previewBorderPadding / 2),
+                            topBarRectMax.y);
                     ImVec2 rightBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
-                                       topBarRectMaxExtended.y + info->viewAreaElementSizeY -
+                                       topBarRectMax.y + info->viewAreaElementSizeY -
                                        (info->previewBorderPadding * 0.5f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(AR::CRLGray424Main),
@@ -603,21 +603,36 @@ private:
                                                               0);
 
                     // Bottom bar
-                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMaxExtended.y + info->viewAreaElementSizeY -
-                                                             (info->previewBorderPadding) - 13.0f);
+                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMin.y + info->viewAreaElementSizeY -
+                                                             (info->previewBorderPadding / 2.0f));
                     ImVec2 bottomBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
-                                        topBarRectMaxExtended.y + info->viewAreaElementSizeY -
-                                        (info->previewBorderPadding * 0.5));
+                                        topBarRectMin.y + info->viewAreaElementSizeY +
+                                        (info->previewBorderPadding / 2.0f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(AR::CRLGray424Main),
                                                               0.0f,
                                                               0);
 
+                    // Min Y and Min Y is top left corner
+                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
+                    if (dev.pixelInfoEnable){
+                        // Also only if a window is hovered
+                        if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index), ImGuiHoveredFlags_AnyWindow)) {
+                            // Offsset cursor positions.
+                            uint32_t x, y, val = dev.pixelInfo.intensity;
+                            x = dev.pixelInfo.x - viewAreaElementPosX;
+                            y = dev.pixelInfo.y - viewAreaElementPosY;
+
+
+                            ImGui::Text("(%d, %d) %d", x, y, val);
+                        }
+                    }
 
 
                     // Max X and Min Y is top right corner
                     ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 225.0f, topBarRectMin.y + 5.0f));
                 }
+
                 ImGui::Text("Source: ");
                 ImGui::SameLine(0.0f, 5.0f);
 
@@ -783,6 +798,11 @@ private:
                                 }
                                 ImGui::EndCombo();
                             }
+                            ImGui::Dummy(ImVec2(40.0f, 10.0));
+                            ImGui::Dummy(ImVec2(40.0f, 0.0));
+                            ImGui::SameLine();
+                            ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
+
                         } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
                             ImGui::Dummy(ImVec2(40.0f, 40.0));
                             ImGui::Dummy(ImVec2(40.0f, 0.0));

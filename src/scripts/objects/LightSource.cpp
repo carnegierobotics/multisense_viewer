@@ -1,8 +1,6 @@
 #include "LightSource.h"
 
 void LightSource::setup() {
-    printf("MyModelExample setup\n");
-
     std::string fileName;
     //loadFromFile(fileName);
     model.loadFromFile(Utils::getAssetsPath() + "Models/coordinates.gltf", renderUtils.device,

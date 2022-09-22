@@ -514,7 +514,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
         addIniEntry(&ini, CRLSerialNumber, "CameraName", dev.cameraName);
         addIniEntry(&ini, CRLSerialNumber, "IP", dev.IP);
         addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev.interfaceIndex));
-        addIniEntry(&ini, CRLSerialNumber, "IP", dev.IP);
+        addIniEntry(&ini, CRLSerialNumber, "State", std::to_string((int) dev.state));
 
 
         // Preview Data

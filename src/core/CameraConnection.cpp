@@ -6,10 +6,13 @@
 
 
 #ifdef WIN32
-#define _WINSOCKAPI_    // stops windows.h including winsock.h
+//#define _WINSOCKAPI_    // stops windows.h including winsock.h
 
+#ifndef _WINSOCKAPI_
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#endif
+
 #include <Windows.h>
 #include <ipmib.h>
 #include <iphlpapi.h> 

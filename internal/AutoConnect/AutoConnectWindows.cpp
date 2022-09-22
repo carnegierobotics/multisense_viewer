@@ -19,8 +19,11 @@
 #define ADAPTER_HEX_NAME_LENGTH 38
 #define UNNAMED_ADAPTER "Unnamed"
 
+#define _WINSOCKAPI_    // stops windows.h including winsock.h
 #include <WinSock2.h>
 #include <iphlpapi.h>
+
+
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -44,9 +47,9 @@ struct iphdr {
 
 };
 
-std::vector<AutoConnect::AdapterSupportResult>
+std::vector<AutoConnect::Result>
 AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
-    std::vector<AutoConnect::AdapterSupportResult> adapters;
+    std::vector<AutoConnect::Result> adapters;
    
     
     pcap_if_t* alldevs;
@@ -65,8 +68,8 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     const char* token = "{";
     // Find { token in order to find correct prefix
     for (d = alldevs; d; d = d->next) {
-        AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
-        adapter.lName = d->name;
+        Result adapter(UNNAMED_ADAPTER, 0);
+        adapter.networkAdapterLongName = d->name;
         if (d->description)
             adapter.description = d->description;
 
@@ -187,7 +190,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
             if (pAdapterInfo->Index == 1)
                 continue;
 
-            AdapterSupportResult adapter(UNNAMED_ADAPTER, 0);
+            Result adapter(UNNAMED_ADAPTER, 0);
             adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
             adapter.description = pAdapterInfo->Description;
             
@@ -197,7 +200,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
             char* con = (char *) malloc(lenA + lenB + 1);
             memcpy(con, prefix.c_str(), lenA);
             memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
-            adapter.name = con;
+            adapter.networkAdapter = con;
             adapter.index = pAdapterInfo->Index;
 
             adapters.push_back(adapter);
@@ -218,7 +221,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     return adapters;
 }
 
-void AutoConnectWindows::start(std::vector<AdapterSupportResult> adapters) {
+void AutoConnectWindows::start(std::vector<Result> adapters) {
     // TODO Clean up public booleans. 4 member booleans might be exaggerated use?
     running = true;
     loopAdapters = true;
@@ -229,13 +232,13 @@ void AutoConnectWindows::start(std::vector<AdapterSupportResult> adapters) {
     printf("Started thread\n");
 }
 
-void AutoConnectWindows::onFoundAdapters(std::vector<AdapterSupportResult> adapters, bool logEvent) {
+void AutoConnectWindows::onFoundAdapters(std::vector<Result> adapters, bool logEvent) {
 
     for (auto& adapter : adapters) {
 
         if (adapter.supports) {
             std::string str;
-            str = "Found supported adapter: " + adapter.name;
+            str = "Found supported adapter: " + adapter.networkAdapter;
             if (logEvent)
                 eventCallback(str, context, 1);
         }
@@ -244,11 +247,10 @@ void AutoConnectWindows::onFoundAdapters(std::vector<AdapterSupportResult> adapt
 }
 
 
-AutoConnect::FoundCameraOnIp
-AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSupportResult adapter) {
+AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, Result adapter, int camera_fd) {
   
   
-    std::string hostAddress(cameraAddress);
+    std::string hostAddress(address);
 
     size_t it = hostAddress.rfind('.', hostAddress.length());
     hostAddress.replace(it, hostAddress.length(), ".2");
@@ -277,7 +279,7 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     else {
         // 5010 might be ERROR_DUP_DOMAINNAME according to description of error, but 5010 means address already exists at that adapter
         if (dwRetVal == 5010) {
-            printf("Ip: already set to: %s\n", cameraAddress);
+            printf("Ip: already set to: %s\n", address);
         } else {
             printf("AddIPAddress failed with error: %d\n", dwRetVal);
             if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -291,10 +293,10 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
     }
 
     // Attempt to connect to camera and post some info
-    str = "Checking for camera at: " + cameraAddress;
+    str = "Checking for camera at: " + address;
     eventCallback(str, context, 0);
 
-    cameraInterface = crl::multisense::Channel::Create(cameraAddress);
+    cameraInterface = crl::multisense::Channel::Create(address);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;
@@ -305,18 +307,19 @@ AutoConnectWindows::onFoundIp(std::string cameraAddress, AutoConnect::AdapterSup
         return NO_CAMERA_RETRY;
     }
     else {
-        result.networkAdapter = adapter.name;
-        result.networkAdapterLongName = adapter.lName;
-        result.cameraIpv4Address = cameraAddress;
+        result.networkAdapter = adapter.networkAdapter;
+        result.networkAdapterLongName = adapter.networkAdapterLongName;
+        result.cameraIpv4Address = address;
         result.index = adapter.index;
-        str = "Found camera at: " + cameraAddress + "";
+        connectAttemptCounter = 0;
+        str = "Found camera at: " + address + "";
         eventCallback(str, context, 1);
         return FOUND_CAMERA;
     }
 
 }
 
-void AutoConnectWindows::onFoundCamera(AdapterSupportResult supportResult) {
+void AutoConnectWindows::onFoundCamera(Result supportResult) {
     callback(result, context);
 }
 
@@ -334,7 +337,7 @@ void AutoConnectWindows::stop() {
     t = nullptr;
 }
 
-void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> adapters) {
+void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
     auto *app = (AutoConnectWindows *) instance;
     app->eventCallback("Started detection service", app->context, 0);
 
@@ -368,14 +371,14 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
             time_t local_tv_sec;
 
             /* Open the adapter */
-            if ((adhandle = pcap_open_live(adapter.name.c_str(),    // name of the device
+            if ((adhandle = pcap_open_live(adapter.networkAdapter.c_str(),    // name of the device
                                            65536,            // portion of the packet to capture.
 // 65536 grants that the whole packet will be captured on all the MACs.
                                            1,                // promiscuous mode (nonzero means promiscuous)
                                            1000,            // read timeout
                                            errbuf            // error buffer
             )) == NULL) {
-                fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.name.c_str());
+                fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.networkAdapter.c_str());
                 /* Free the device list */
                 return;
             }
@@ -383,7 +386,7 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
             str = "Set adapter to listen for all activity";
             app->eventCallback(str, app->context, 0);
 
-            str = "Waiting for packet at: " + adapter.name;
+            str = "Waiting for packet at: " + adapter.networkAdapter;
             app->eventCallback(str, app->context, 0);
             while (app->listenOnAdapter) {
 
@@ -426,7 +429,7 @@ void AutoConnectWindows::run(void* instance, std::vector<AdapterSupportResult> a
                     str = "Packet found. Source address: " + std::string(ips);
                     app->eventCallback(str, app->context, 0);
 
-                    FoundCameraOnIp ret = app->onFoundIp(ips, adapter);
+                    FoundCameraOnIp ret = app->onFoundIp(ips, adapter, 0);
 
                     printf("Ip returned %d\n", ret);
                     if (ret == FOUND_CAMERA) {

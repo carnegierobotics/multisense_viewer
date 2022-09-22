@@ -37,8 +37,6 @@
 #include <MultiSense/src/tools/Utils.h>
 #include "MultiSense/src/crl_camera/CRLVirtualCamera.h"
 #include "MultiSense/src/crl_camera/CRLPhysicalCamera.h"
-#include <unistd.h>
-#include "MultiSense/external/simpleini/SimpleIni.h"
 
 
 CameraConnection::CameraConnection() {
@@ -509,30 +507,23 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     std::string CRLSerialNumber = camPtr->getCameraInfo().devInfo.serialNumber;
 
     // new entry given we have a valid ini file entry
-    if (rc > 0) {
-        int ret = ini.SetValue(CRLSerialNumber.c_str(), "Mode", std::to_string((int) dev.selectedMode).c_str());
-        if (ret < 0)
-            Log::Logger::getInstance()->info("Failed to insert Mode in crl.ini file. {}", ret);
-        else
-            Log::Logger::getInstance()->info("Updated Mode in crl.ini. Result: {}",
-                                             std::to_string((int) dev.selectedMode));
+    if (rc >= 0) {
+        // Profile Data
+        addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev.name);
+        addIniEntry(&ini, CRLSerialNumber, "AdapterName"    ,dev.interfaceName);
+        addIniEntry(&ini, CRLSerialNumber, "CameraName", dev.cameraName);
+        addIniEntry(&ini, CRLSerialNumber, "IP", dev.IP);
+        addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev.interfaceIndex));
+        addIniEntry(&ini, CRLSerialNumber, "IP", dev.IP);
 
-        ret = ini.SetValue(CRLSerialNumber.c_str(), "Layout", std::to_string((int) dev.layout).c_str());
-        if (ret < 0)
-            Log::Logger::getInstance()->info("Failed to insert Layout in crl.ini. Result: {}", ret);
-        else
-            Log::Logger::getInstance()->info("Updated Layout in crl.ini. Result: {}",
-                                             std::to_string((int) dev.layout));
 
+        // Preview Data
+        addIniEntry(&ini, CRLSerialNumber, "Mode", std::to_string((int)dev.selectedMode));
+        addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int)dev.layout));
         for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
             if (dev.selectedSourceMap.contains(i)) {
                 std::string key = "Preview" + std::to_string(i + 1);
-                ini.SetValue(CRLSerialNumber.c_str(), key.c_str(), dev.selectedSourceMap[i].c_str());
-                if (ret < 0)
-                    Log::Logger::getInstance()->info("Failed to insert {} in crl.ini. Result: {}", key, ret);
-                else
-                    Log::Logger::getInstance()->info("Updated {} in crl.ini. Result: {}", key,
-                                                     std::to_string((int) dev.layout));
+                addIniEntry(&ini, CRLSerialNumber, key, dev.selectedSourceMap[i]);
             }
 
             // save the data back to the file
@@ -568,6 +559,16 @@ else {
 }
 #endif
 */
+}
+
+void CameraConnection::addIniEntry(CSimpleIniA* ini, std::string section, std::string key, std::string value){
+    int ret = ini->SetValue(section.c_str(), key.c_str(), value.c_str());
+
+    if (ret < 0)
+        Log::Logger::getInstance()->error("Serial: {} Updated {} to {}", section, key, value);
+    else
+        Log::Logger::getInstance()->info("Serial: {} Updated {} to {}", section, key, value);
+
 }
 
 CameraConnection::~CameraConnection() {

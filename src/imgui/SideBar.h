@@ -27,7 +27,6 @@
 #include "imgui_internal.h"
 #include "Layer.h"
 #include "imgui_user.h"
-#include <unistd.h>
 #include <sys/types.h>
 
 #define ONE_SECOND 1

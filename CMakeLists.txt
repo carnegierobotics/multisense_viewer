@@ -70,7 +70,7 @@ INCLUDE_DIRECTORIES(src/imgui/custom)
 # Ini file parser SimpleIni
 set(SimpleIni_DIR external/simpleini)
 set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
-add_library(SimpleIni ${SimpleIni_SRC})
+add_library(SimpleIni STATIC ${SimpleIni_SRC})
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 

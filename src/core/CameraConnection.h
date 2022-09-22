@@ -8,6 +8,7 @@
 #include "../crl_camera/CRLBaseInterface.h"
 #include <MultiSense/src/imgui/Layer.h>
 #include <memory>
+#include "MultiSense/external/simpleini/SimpleIni.h"
 
 /**
  * Class handles the bridge between the GUI interaction and actual communication to camera
@@ -54,6 +55,8 @@ private:
     void initCameraModes(std::vector<std::string> *modes, std::vector<crl::multisense::system::DeviceMode> vector);
 
     void filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> array);
+
+    void addIniEntry(CSimpleIniA* ini, std::string section, std::string key, std::string value);
 
     std::vector<uint32_t> maskArrayAll = {
             crl::multisense::Source_Luma_Left,

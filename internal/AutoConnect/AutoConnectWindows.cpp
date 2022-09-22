@@ -23,15 +23,27 @@
 #include <WinSock2.h>
 #include <iphlpapi.h>
 
+#define _WIN32_DCOM
+#include <comdef.h>
+#include <Wbemidl.h>
+
+#pragma comment(lib, "wbemuuid.lib")
 
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <Iprtrmib.h>
 #include <ctime>
+#include <filesystem>
 
 #include "AutoConnectWindows.h"
 #include "pcap.h"
+
+typedef struct IP_INFO
+{
+    std::string ip;
+    std::string netmask;
+} IP_INFO, * PIP_INFO;
 
 struct iphdr {
     unsigned char ip_verlen;            // 4-bit IPv4 version, 4-bit header length (in 32-bit words)
@@ -93,7 +105,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     };
     std::vector<PowerShellOutput> names;
 
-    // Create Readable names from windows' hex string idetifiers
+    // Create Readable names from windo string idetifiers
     std::ofstream psFile{};
     std::string psName = "tmp.ps1";
     std::string tmpTxtFile = "tmp.txt";
@@ -136,8 +148,8 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
         remove(tmpTxtFile.c_str());
     }
 
-    // Match hex strings.
-    // Loop through the found adapters and cross check if any of the hex strings are simillar to the getmacs commands from powershell
+    // Ma strings.
+    // Loop through the found adapters and cross check if any of  strings are simillar to the getmacs commands from powershell
 
 
     for (auto& psOut : names) {
@@ -148,9 +160,9 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
         for (auto& adapter : adapters) {
             if (adapter.lName.length() < ADAPTER_HEX_NAME_LENGTH && adapter.name != UNNAMED_ADAPTER)
                 continue;
-            std::string hexString = adapter.lName.substr(adapter.lName.size() - ADAPTER_HEX_NAME_LENGTH);
+            std::strString = adapter.lName.substr(adapter.lName.size() - ADAPTER_HEX_NAME_LENGTH);
 
-            if (hexString == tplName) {
+            String == tplName) {
                 adapter.name = psOut.name;
                 adapter.supports = true;
 
@@ -159,7 +171,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 
     }
     */
-    /* Another attempt at making the windows hex string user readable*/
+    /* Another attempt at making the wind string user readable*/
 
     
     PIP_ADAPTER_INFO AdapterInfo;
@@ -187,8 +199,22 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
         PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
         do {
 
-            if (pAdapterInfo->Index == 1)
+            // Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
+            // I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
+
+            char* bleFoundInName = strstr(pAdapterInfo->Description, "Bluetooth");
+            
+            if (bleFoundInName || pAdapterInfo->Type != MIB_IF_TYPE_ETHERNET){
+                pAdapterInfo = pAdapterInfo->Next;
                 continue;
+
+            }
+
+            // Internal loopback device always located at index = 1. Skip it..
+            if (pAdapterInfo->Index == 1) {
+                pAdapterInfo = pAdapterInfo->Next;
+                continue;
+            }
 
             Result adapter(UNNAMED_ADAPTER, 0);
             adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
@@ -203,6 +229,21 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
             adapter.networkAdapter = con;
             adapter.index = pAdapterInfo->Index;
 
+
+            // If a camera has al ready been found on the adapter then set the searched flag.
+            bool ignore = false;
+            for (const auto& found : ignoreAdapters) {
+                if (found.index == adapter.index) {
+                    ignore = true;
+                    std::string str = "Found already searched adapter: " + adapter.networkAdapter + ". Ignoring...";
+                    eventCallback(str, context, 0);
+                }
+            }
+
+            if (ignore && !skipIgnored) {
+                adapter.searched = true;
+            }
+
             adapters.push_back(adapter);
             free(con);
             // technically should look at pAdapterInfo->AddressLength
@@ -215,6 +256,8 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
     }
     free(AdapterInfo);
     
+
+
     if (!adapters.empty())
         onFoundAdapters(adapters, logEvent);
 
@@ -234,9 +277,9 @@ void AutoConnectWindows::start(std::vector<Result> adapters) {
 
 void AutoConnectWindows::onFoundAdapters(std::vector<Result> adapters, bool logEvent) {
 
-    for (auto& adapter : adapters) {
 
-        if (adapter.supports) {
+    for (auto& adapter : adapters) {
+        if (adapter.supports && !adapter.searched) {
             std::string str;
             str = "Found supported adapter: " + adapter.networkAdapter;
             if (logEvent)
@@ -269,6 +312,8 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
     unsigned long ulMask = inet_addr("255.255.255.0");
     LPVOID lpMsgBuf;
     DWORD dwRetVal;
+    /*
+    disable*/
 
     if ((dwRetVal = AddIPAddress(ulAddr,
         ulMask,
@@ -289,8 +334,9 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
                 LocalFree(lpMsgBuf);
             }
         }
-
-    }
+        }
+        
+    
 
     // Attempt to connect to camera and post some info
     str = "Checking for camera at: " + address;
@@ -298,7 +344,7 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 
     cameraInterface = crl::multisense::Channel::Create(address);
 
-    if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
+    if (cameraInterface == nullptr && connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;
         return NO_CAMERA;
     }
@@ -341,20 +387,62 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
     auto *app = (AutoConnectWindows *) instance;
     app->eventCallback("Started detection service", app->context, 0);
 
+    auto path = std::filesystem::absolute("Assets/Tools/windows/enable_jumbos.ps1").make_preferred().string();
+    //access function:
+           //The function returns 0 if the file has the given mode.
+           //The function returns –1 if the named file does not exist or does not have the given mode
+    if (access(path.c_str(), 0) == 0)
+    {
+        std::string startCommand = "start powershell.exe " + path;
+        system(startCommand.c_str());
+    }
+    else
+    {
+        std::cout << "File not exist " << path << std::endl;
+        system("pause");
+    }
+
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
-    size_t i = adapters.size();
+    size_t i = 0;
 
     // Loop keeps retrying to connect on supported network adapters.
     while (app->loopAdapters) {
-        if (i == 0)
-            i = adapters.size();
-        i--;
+        
+            if (i >= adapters.size()){
+            i = 0;
+            app->eventCallback("Tested all adapters. rerunning adapter search", app->context, 0);
+            adapters = app->findEthernetAdapters(true, false);
+            bool testedAllAdapters = true;
+            for (const auto& a : adapters) {
+                if (a.supports && !a.searched)
+                    testedAllAdapters = false;
+            }
+            if (testedAllAdapters) {
+                app->eventCallback("No other adapters found", app->context, 0);
+                app->eventCallback("Finished", app->context, 0);
+                break;
+            }
+        }
         auto adapter = adapters[i];
 
         if (!adapter.supports) {
             continue;
         }
+
+        // If a camera has al ready been found on the adapter then dont re-run a search on it. Remove it from adapters list
+        bool isAlreadySearched = false;
+        for (const auto& found : app->ignoreAdapters) {
+            if (found.index == adapter.index)
+                isAlreadySearched = true;
+        }
+        if (isAlreadySearched) {
+            adapters.erase(adapters.begin() + i);
+            continue;
+        }
+
+        i++;
+
             std::string str = "Testing Adapter. Name: " + adapter.description;
             app->eventCallback(str, app->context, 0);
 
@@ -391,12 +479,27 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
             while (app->listenOnAdapter) {
 
                 // Timeout handler
-                if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS) {
+                // Will timeout the number of MAX_CONNECTION_ATTEMPTS. After so many timeouts we retry on a new adapter
+                if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
+                    app->connectAttemptCounter < MAX_CONNECTION_ATTEMPTS) {
                     app->startTime = time(nullptr);
-                    printf("Timeout reached. Switching adapter\n");
-                    app->eventCallback("Timeout reached. Switching adapter", app->context, 0);
-
+                    printf("\n");
+                    str = "Timeout reached. Retrying... (" + std::to_string(app->connectAttemptCounter + 1) + "/" + std::to_string(MAX_CONNECTION_ATTEMPTS) + ")";
+                    app->eventCallback(str, app->context, 0);
+                    app->connectAttemptCounter++;
+                    str = "Waiting for packet at: " + adapter.networkAdapter;
+                    app->eventCallback(str, app->context, 0);
+                }
+                else if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
+                    app->connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
+                    app->startTime = time(nullptr);
+                    printf("\n");
+                    str = "Timeout reached. Switching to next supported adapter";
+                    app->eventCallback(str, app->context, 2);
+                    app->connectAttemptCounter = 0;
+                    app->ignoreAdapters.push_back(adapter);
                     break;
+
                 }
 
                 res = pcap_next_ex(adhandle, &header, &pkt_data);
@@ -431,18 +534,17 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 
                     FoundCameraOnIp ret = app->onFoundIp(ips, adapter, 0);
 
-                    printf("Ip returned %d\n", ret);
                     if (ret == FOUND_CAMERA) {
-                        app->listenOnAdapter = false;
-                        app->loopAdapters = false;
-                        app->success = true;
+                        app->ignoreAdapters.push_back(adapter);
                         app->onFoundCamera(adapter);
+                        pcap_close(adhandle);
                         break;
                     } else if (ret == NO_CAMERA_RETRY) {
                         app->eventCallback("Did not find a camera. Retrying...", app->context, 2);
                         continue;
                     } else if (ret == NO_CAMERA) {
-                        app->eventCallback("Did not find a camera. Retrying...",app->context, 2);
+                        app->eventCallback("Did not find a camera on the adapter",app->context, 2);
+                        pcap_close(adhandle);
                         break;
                     }
                 }
@@ -467,14 +569,306 @@ void AutoConnectWindows::setDetectedCallback(void (*param)(Result result1, void*
 }
 
 bool AutoConnectWindows::shouldProgramClose() {
-    return shouldProgramRun;
+    return !shouldProgramRun;  // Note: This is just confusing usage... future technical debt right here
 }
 
 void AutoConnectWindows::setShouldProgramClose(bool close) {
-    this->shouldProgramRun = close;
+    this->shouldProgramRun = !close;  // Note: This is just confusing usage... future technical debt right here
 }
 
 void AutoConnectWindows::setEventCallback(void (*param)(std::string str, void*, int)) {
     eventCallback = param;
 
+}
+
+void AutoConnectWindows::clearSearchedAdapters() {
+    ignoreAdapters.clear();
+}
+
+
+void AutoConnectWindows::disableAutoConfiguration(std::string address, uint32_t index) {
+    HRESULT hres;
+
+    // Step 1: --------------------------------------------------
+    // Initialize COM. ------------------------------------------
+
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres))
+    {
+        std::cout << "Failed to initialize COM library. Error code = 0x"
+            << hres << hres << std::endl;
+        return;                  // Program has failed.
+    }
+
+    // Step 2: --------------------------------------------------
+    // Set general COM security levels --------------------------
+
+    hres = CoInitializeSecurity(
+        NULL,
+        -1,                          // COM authentication
+        NULL,                        // Authentication services
+        NULL,                        // Reserved
+        RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication 
+        RPC_C_IMP_LEVEL_DELEGATE, // Default Impersonation  
+        NULL,                        // Authentication info
+        EOAC_NONE,                   // Additional capabilities 
+        NULL                         // Reserved
+    );
+
+
+    if (FAILED(hres))
+    {
+        std::cout << "Failed to initialize security. Error code = 0x"
+            << hres << std::endl;
+        CoUninitialize();
+        return;                    // Program has failed.
+    }
+
+    // Step 3: ---------------------------------------------------
+    // Obtain the initial locator to WMI -------------------------
+
+    IWbemLocator* pLoc = NULL;
+
+    hres = CoCreateInstance(
+        CLSID_WbemLocator,
+        0,
+        CLSCTX_INPROC_SERVER,
+        IID_IWbemLocator, (LPVOID*)&pLoc);
+
+    if (FAILED(hres))
+    {
+        std::cout << "Failed to create IWbemLocator object."
+            << " Err code = 0x"
+            << hres << std::endl;
+        CoUninitialize();
+        return;                 // Program has failed.
+    }
+
+    // Step 4: -----------------------------------------------------
+    // Connect to WMI through the IWbemLocator::ConnectServer method
+
+    IWbemServices* pSvc = NULL;
+
+    // Connect to the root\cimv2 namespace with
+    // the current user and obtain pointer pSvc
+    // to make IWbemServices calls.
+    hres = pLoc->ConnectServer(
+        _bstr_t(L"ROOT\\CIMV2"), // Object path of WMI namespace
+        NULL,                    // User name. NULL = current user
+        NULL,                    // User password. NULL = current
+        0,                       // Locale. NULL indicates current
+        NULL,                    // Security flags.
+        0,                       // Authority (for example, Kerberos)
+        0,                       // Context object 
+        &pSvc                    // pointer to IWbemServices proxy
+    );
+
+    if (FAILED(hres))
+    {
+        std::cout << "Could not connect. Error code = 0x"
+            << hres << std::endl;
+        pLoc->Release();
+        CoUninitialize();
+        return;                // Program has failed.
+    }
+
+    std::cout << "Connected to ROOT\\CIMV2 WMI namespace" << std::endl;
+
+
+    // Step 5: --------------------------------------------------
+    // Set security levels on the proxy -------------------------
+
+    hres = CoSetProxyBlanket(
+        pSvc,                        // Indicates the proxy to set
+        RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
+        RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
+        NULL,                        // Server principal name 
+        RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx 
+        RPC_C_IMP_LEVEL_DELEGATE,     // RPC_C_IMP_LEVEL_xxx
+        NULL,                        // client identity
+        EOAC_NONE                    // proxy capabilities 
+    );
+
+    if (FAILED(hres))
+    {
+        std::cout << "Could not set proxy blanket. Error code = 0x"
+            << hres << std::endl;
+        pSvc->Release();
+        pLoc->Release();
+        CoUninitialize();
+        return;               // Program has failed.
+    }
+
+    // Step 6: --------------------------------------------------
+    // Use the IWbemServices pointer to make requests of WMI ----
+
+    // For example, get the name of the operating system
+// For example, get the name of the operating system
+/*IEnumWbemClassObject* pEnumerator = NULL;
+hres = pSvc->ExecQuery(
+    bstr_t("WQL"),
+    bstr_t("SELECT * FROM Win32_NetworkAdapterConfiguration"),
+    WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+    NULL,
+    &pEnumerator);
+
+if (FAILED(hres))
+    {
+    pSvc->Release();
+    pLoc->Release();
+    CoUninitialize();
+    return;               // Program has failed.
+    }*/
+
+    IP_INFO ipInfo;
+    INT count = 1; 
+    INT fIndex = index;
+
+    ipInfo.ip.reserve(40);
+    ipInfo.netmask.reserve(40);
+
+    ipInfo.ip.insert(0, address);
+    ipInfo.netmask.insert(0, "255.255.255.0");
+
+    // Grab class required to work on Win32_NetworkAdapterConfiguration
+    IWbemClassObject* pClass = NULL;
+    BSTR ClassPath = SysAllocString(L"Win32_NetworkAdapterConfiguration");
+    HRESULT hr = pSvc->GetObject(ClassPath, 0, NULL, &pClass, NULL);
+    SysFreeString(ClassPath);
+    if (WBEM_S_NO_ERROR == hr)
+    {
+        // Grab pointer to the input parameter class of the method we are going to call
+        BSTR MethodName_ES = SysAllocString(L"EnableStatic");
+        IWbemClassObject* pInClass_ES = NULL;
+        if (WBEM_S_NO_ERROR == pClass->GetMethod(MethodName_ES, 0, &pInClass_ES, NULL))
+        {
+            // Spawn instance of the input parameter class, so that we can stuff our parameters in
+            IWbemClassObject* pInInst_ES = NULL;
+
+            if (WBEM_S_NO_ERROR == pInClass_ES->SpawnInstance(0, &pInInst_ES))
+            {
+                //
+                // (Step 3) - Pack desired parameters into the input class instances
+                //
+                // Convert from multibyte strings to wide character arrays
+                wchar_t tmp_ip[40];
+                SAFEARRAY* ip_list = SafeArrayCreateVector(VT_BSTR, 0, count);
+                // Insert into safe arrays, allocating memory as we do so (destroying the safe array will destroy the allocated memory)
+                long idx[] = { 0 };
+                for (int i = 0; i < count; i++)
+                {
+                    mbstowcs(tmp_ip, ipInfo.ip.c_str(), 40);
+                    BSTR ip = SysAllocString(tmp_ip);
+                    idx[0] = i;
+                    if (FAILED(SafeArrayPutElement(ip_list, idx, ip)))
+                    {
+                        return;
+                    } // if
+                    // Destroy the BSTR pointer
+                    SysFreeString(ip);
+                } // for
+
+                // Convert from multibyte strings to wide character arrays
+                wchar_t tmp_netmask[40];
+                SAFEARRAY* netmask_list = SafeArrayCreateVector(VT_BSTR, 0, count);
+                // Insert into safe arrays, allocating memory as we do so (destroying the safe array will destroy the allocated memory)
+                for (int i = 0; i < count; i++)
+                {
+                    mbstowcs(tmp_netmask, ipInfo.netmask.c_str(), 40);
+                    BSTR netmask = SysAllocString(tmp_netmask);
+                    idx[0] = i;
+                    if (FAILED(SafeArrayPutElement(netmask_list, idx, netmask)))
+                    {
+                        return;
+                    } // if
+                    // Destroy the BSTR pointer
+                    SysFreeString(netmask);
+                } // for
+
+                // Now wrap each safe array in a VARIANT so that it can be passed to COM function
+                VARIANT arg1_ES;
+                VariantInit(&arg1_ES);
+                arg1_ES.vt = VT_ARRAY | VT_BSTR;
+                arg1_ES.parray = ip_list;
+
+                VARIANT arg2_ES;
+                VariantInit(&arg2_ES);
+                arg2_ES.vt = VT_ARRAY | VT_BSTR;
+                arg2_ES.parray = netmask_list;
+
+                if ((WBEM_S_NO_ERROR == pInInst_ES->Put(L"IPAddress", 0, &arg1_ES, 0)) &&
+                    (WBEM_S_NO_ERROR == pInInst_ES->Put(L"SubNetMask", 0, &arg2_ES, 0)))
+                {
+                    //
+                    // (Step 4) - Call the methods
+                    //
+
+                    // First build the object path that specifies which network adapter we are executing a method on
+                    char indexString[10];
+                    itoa(fIndex, indexString, 10);
+
+                    char instanceString[100];
+                    wchar_t w_instanceString[100];
+                    strcpy(instanceString, "Win32_NetworkAdapterConfiguration.Index='");
+                    strcat(instanceString, indexString);
+                    strcat(instanceString, "'");
+                    mbstowcs(w_instanceString, instanceString, 100);
+                    BSTR InstancePath = SysAllocString(w_instanceString);
+
+                    // Now call the method
+                    IWbemClassObject* pOutInst = NULL;
+                    hr = pSvc->ExecMethod(InstancePath, MethodName_ES, 0, NULL, pInInst_ES, &pOutInst, NULL);
+                    if (FAILED(hr))
+                    {
+                        // false
+                        return;
+                    } // if
+                    SysFreeString(InstancePath);
+                } // if
+
+                // Clear the variants - does this actually get ride of safearrays?
+                VariantClear(&arg1_ES);
+                VariantClear(&arg2_ES);
+
+                // Destroy safe arrays, which destroys the objects stored inside them
+                //SafeArrayDestroy(ip_list); ip_list = NULL;
+                //SafeArrayDestroy(netmask_list); netmask_list = NULL;
+            }
+            else
+            {
+                // false
+            } // if
+
+            // Free up the instances that we spawned
+            if (pInInst_ES)
+            {
+                pInInst_ES->Release();
+                pInInst_ES = NULL;
+            } // if
+        }
+        else
+        {
+            // false
+        } // if
+
+        // Free up methods input parameters class pointers
+        if (pInClass_ES)
+        {
+            pInClass_ES->Release();
+            pInClass_ES = NULL;
+        } // if
+        SysFreeString(MethodName_ES);
+    }
+    else
+    {
+        // false
+    } // if
+    // Cleanup
+    // ========
+
+    pSvc->Release();
+    pLoc->Release();
+    CoUninitialize();
+
+    return;   // Program successfully completed.
 }

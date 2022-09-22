@@ -5,8 +5,8 @@
 #ifndef AUTOCONNECT_AUTOCONNECT_H
 #define AUTOCONNECT_AUTOCONNECT_H
 
-#define MAX_CONNECTION_ATTEMPTS 3
-#define TIMEOUT_INTERVAL_SECONDS 10
+#define MAX_CONNECTION_ATTEMPTS 2
+#define TIMEOUT_INTERVAL_SECONDS 5
 
 #include <include/MultiSense/MultiSenseTypes.hh>
 #include "include/MultiSense/MultiSenseChannel.hh"

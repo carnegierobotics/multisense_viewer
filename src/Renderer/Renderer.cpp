@@ -3,6 +3,7 @@
 //
 
 #include "Renderer.h"
+#include "MultiSense/external/simpleini/SimpleIni.h"
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
@@ -17,6 +18,41 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
 
     cameraConnection = std::make_unique<CameraConnection>();
+
+
+    /** LOAD PREVIOUS CONNECTION PROFILE IF THEY EXIST*/
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile("crl.ini");
+    if (rc < 0) { /* handle error */ }
+    else {
+        // A serial number is the section identifier of a profile. I can have three following states
+        CSimpleIniA::TNamesDepend sections;
+        ini.GetAllSections(sections);
+        for (auto& section : sections) {
+            std::string profileName = ini.GetValue(section.pItem, "ProfileName");
+            std::string IP = ini.GetValue(section.pItem, "IP");
+            std::string cameraName = ini.GetValue(section.pItem, "CameraName");
+            int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
+
+            std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
+            int state = std::stoi(ini.GetValue(section.pItem, "State"));
+
+            AR::Element el;
+            el.name = profileName;
+            el.IP = IP;
+            el.state = static_cast<ArConnectionState>(state);
+            el.cameraName = cameraName;
+            el.interfaceName = adapterName;
+            el.clicked = true;
+            el.interfaceIndex = interfaceIndex;
+
+            guiManager->handles.devices->emplace_back(el);
+
+
+        }
+    }
+
 }
 
 

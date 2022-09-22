@@ -42,14 +42,14 @@ typedef enum CRLCameraType {
 } CRLCameraType;
 
 typedef enum ArConnectionState {
-    AR_STATE_CONNECTED,
-    AR_STATE_CONNECTING,
-    AR_STATE_ACTIVE,
-    AR_STATE_INACTIVE,
-    AR_STATE_RESET,
-    AR_STATE_DISCONNECTED,
-    AR_STATE_UNAVAILABLE,
-    AR_STATE_JUST_ADDED
+    AR_STATE_CONNECTED = 0,
+    AR_STATE_CONNECTING = 1,
+    AR_STATE_ACTIVE = 2,
+    AR_STATE_INACTIVE = 3,
+    AR_STATE_RESET = 4,
+    AR_STATE_DISCONNECTED = 5,
+    AR_STATE_UNAVAILABLE = 6,
+    AR_STATE_JUST_ADDED = 7
 } ArConnectionState;
 
 typedef enum StreamIndex {
@@ -279,7 +279,7 @@ namespace AR {
             interfaceIndex = 0;
         }
 
-        bool ready(const std::vector<AR::Element> &devices, const EntryConnectDevice &entry) const {
+        bool ready(const std::vector<AR::Element> *devices, const EntryConnectDevice &entry) const {
 
             bool profileNameEmpty = entry.profileName.empty();
             bool profileNameTaken = false;
@@ -291,7 +291,7 @@ namespace AR {
 
 
             // Loop through devices and check that it doesn't exist already.
-            for (auto &d: devices) {
+            for (auto &d: *devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
                     Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,

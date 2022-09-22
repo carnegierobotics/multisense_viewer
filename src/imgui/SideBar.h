@@ -53,9 +53,6 @@ public:
     std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
 
     std::string dots;
-
-    std::vector<AR::Element> devices;
-
     bool btnConnect = false;
     bool btnAdd = false;
     bool skipUserFriendlySleepDelay = false;
@@ -126,8 +123,8 @@ public:
         ImGui::Spacing();
         ImGui::Spacing();
 
-        if (!devices.empty())
-            sidebarElements();
+        if (!handles->devices->empty())
+            sidebarElements(handles);
 
 
         addDeviceButton(handles);
@@ -283,18 +280,17 @@ private:
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
 
-        devices.emplace_back(el);
-
-        handles->devices = &devices;
+        handles->devices->emplace_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {}", entry.IP, entry.profileName);
     }
 
 
-    void sidebarElements() {
-        for (int i = 0; i < devices.size(); ++i) {
-            auto &e = devices[i];
+    void sidebarElements(AR::GuiObjectHandles *handles) {
+        auto* devices = handles->devices;
+        for (int i = 0; i < devices->size(); ++i) {
+            auto &e = devices->at(i);
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
@@ -343,7 +339,7 @@ private:
 
 
             if (ImGui::SmallButton("X")) {
-                devices.erase(devices.begin() + i);
+                devices->erase(devices->begin() + i);
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(2);
                 ImGui::EndChild();
@@ -783,12 +779,12 @@ private:
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
             ImGui::SameLine(0, 110.0f);
-            if (!entry.ready(devices, entry)) {
+            if (!entry.ready(handles->devices, entry)) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, AR::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            if (!entry.ready(devices, entry)) {
+            if (!entry.ready(handles->devices, entry)) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
@@ -799,7 +795,7 @@ private:
                 autoConnect.stop();
             }
 
-            if (btnConnect) {
+            if (btnConnect && entry.ready(handles->devices, entry)) {
                 createDefaultElement(entry);
                 ImGui::CloseCurrentPopup();
             }

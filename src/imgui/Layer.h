@@ -96,9 +96,9 @@ namespace AR {
         GuiLayerUpdateInfo *info{};
 
         /** Keypress and mouse events */
-        const ArEngine::MouseButtons* mouseBtns;
+        const ArEngine::MouseButtons* mouseBtns{};
         float accumulatedActiveScroll = 0.0f;
-        const Input* input;
+        const Input* input{};
 
     };
 

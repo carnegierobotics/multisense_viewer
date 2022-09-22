@@ -36,7 +36,7 @@ void Renderer::prepareRenderer() {
             int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
 
             std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
-            int state = std::stoi(ini.GetValue(section.pItem, "State"));
+            int state = std::stoi(ini.GetValue(section.pItem, "State", "7"));
 
             AR::Element el;
             el.name = profileName;

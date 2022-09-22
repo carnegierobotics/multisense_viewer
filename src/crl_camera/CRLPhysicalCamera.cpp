@@ -7,7 +7,7 @@
 #include <MultiSense/src/tools/Logger.h>
 #include <vulkan/vulkan_core.h>
 #include "MultiSense/src/tools/Utils.h"
-
+#pragma optimize("off")
 
 bool CRLPhysicalCamera::connect(const std::string &ip) {
     if (cameraInterface == nullptr) {

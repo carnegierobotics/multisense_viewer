@@ -201,13 +201,19 @@ if (WIN32)
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
     # LibMultiSense on Windows. Use precompiled library from a manual step
+
+
+    set(LibMultiSenseBuildFlavor "Debug")
+    if(CMAKE_BUILD_TYPE MATCHES Release)
+            set(LibMultiSenseBuildFlavor "Release")
+    endif()
+
     add_custom_command(TARGET VulkanRenderer
             PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/MultiSense.lib  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.lib  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-
             )
 
 

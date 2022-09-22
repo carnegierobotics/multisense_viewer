@@ -1,10 +1,21 @@
-message("Linking MultiSense lib")
+message("-- Linking")
+message(INFO ${CMAKE_CURRENT_SOURCE_DIR}/MultiSense.lib)
 
+
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+message("Linking DEBUG")
 add_library(MultiSenseWindows STATIC IMPORTED GLOBAL)
-set_property(TARGET MultiSenseWindows APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+set_property(TARGET MultiSenseWindows APPEND PROPERTY IMPORTED_CONFIGURATIONS Debug)
 set_target_properties(MultiSenseWindows PROPERTIES
 IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/MultiSense.lib")
+IMPORTED_LOCATION_DEBUG  ${CMAKE_CURRENT_SOURCE_DIR}/Debug/MultiSense.lib)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
-
-message("${CMAKE_CURRENT_SOURCE_DIR}/MultiSense.lib")
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+message("Linking RELEASE")
+add_library(MultiSenseWindows STATIC IMPORTED GLOBAL)
+set_property(TARGET MultiSenseWindows APPEND PROPERTY IMPORTED_CONFIGURATIONS Release)
+set_target_properties(MultiSenseWindows PROPERTIES
+IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+IMPORTED_LOCATION_RELEASE  ${CMAKE_CURRENT_SOURCE_DIR}/Release/MultiSense.lib)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release) 

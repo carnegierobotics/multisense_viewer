@@ -208,7 +208,7 @@ namespace Utils {
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
     inline void
     cameraResolutionToValue(CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {
-        uint32_t width, height, depth;
+        uint32_t width = 0, height = 0, depth = 0;
         switch (resolution) {
             case CRL_RESOLUTION_NONE:
                 width = 0;

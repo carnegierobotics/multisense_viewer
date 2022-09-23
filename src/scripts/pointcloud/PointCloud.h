@@ -49,12 +49,12 @@ public:
     CRLCameraModels::Model* model{};
 
     std::string src;
-    std::vector<std::string> startedSources;
+    std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
     uint32_t width{}, height{};
-    CRLCameraResolution res;
-    CRLCameraDataType textureType;
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
+    CRLCameraDataType textureType{};
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

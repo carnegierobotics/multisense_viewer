@@ -47,7 +47,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
     if (gltfimage.component == 3) {
         // Most devices don't support RGB only on Vulkan so convert if necessary
         // TODO: Check actual format support and transform only if required
-        bufferSize = gltfimage.width * gltfimage.height * 4;
+        bufferSize = (VkDeviceSize) gltfimage.width * gltfimage.height * 4;
         buffer = new unsigned char[bufferSize];
         unsigned char *rgba = buffer;
         unsigned char *rgb = &gltfimage.image[0];
@@ -97,7 +97,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
     CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
     CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
 
-    uint8_t *data;
+    uint8_t* data = nullptr;
     CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
     vkUnmapMemory(device->logicalDevice, stagingMemory);
@@ -620,7 +620,7 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
 
 
     // Copy texture data into staging buffer
-    uint8_t *data;
+    uint8_t *data = nullptr;
     CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
     vkUnmapMemory(device->logicalDevice, stagingMemory);
@@ -1259,7 +1259,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     updateDescriptor();
 
     // Create empty buffers we can copy our texture data to
-    size = width * height * 2;
+    size = (VkDeviceSize) width * height * 2;
 
 
     // Create sampler dependt on image format
@@ -1393,7 +1393,7 @@ void TextureVideo::updateTextureFromBuffer(void *buffer, uint32_t bufferSize) {
 
 
     // Copy texture data into staging buffer
-    uint8_t *data;
+    uint8_t *data = nullptr;
 
     CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
@@ -1865,7 +1865,7 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
 
     CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo;
+    VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo{};
     samplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
     samplerYcbcrConversionInfo.conversion = YUVSamplerToRGB;
     samplerYcbcrConversionInfo.pNext = VK_NULL_HANDLE;

@@ -24,7 +24,7 @@ public:
 
     glTFModel();
 
-    VulkanDevice *vulkanDevice;
+    VulkanDevice *vulkanDevice = nullptr;
 
     struct Primitive {
         uint32_t firstIndex{};
@@ -100,8 +100,8 @@ public:
     };
 
     struct TextureIndices{
-        uint32_t baseColor = -1;
-        uint32_t normalMap = -1;
+        int baseColor = -1;
+        int normalMap = -1;
     } ;
 
     struct Model {
@@ -127,21 +127,21 @@ public:
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory;
-        } vertices;
+        } vertices{};
         struct Indices {
-            int count;
+            int count = 0;
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory;
-        } indices;
+        } indices{};
 
 
-        std::vector<Node*> nodes;
-        std::vector<Node*> linearNodes;
+        std::vector<Node*> nodes{};
+        std::vector<Node*> linearNodes{};
 
         struct Dimensions {
             glm::vec3 min = glm::vec3(FLT_MAX);
             glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions;
+        } dimensions{};
 
         void destroy(VkDevice device);
         void loadNode(glTFModel::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
@@ -158,7 +158,7 @@ public:
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
 
         void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-    } model;
+    } model{};
 
 
     std::vector<VkDescriptorSet> descriptors;

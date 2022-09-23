@@ -37,7 +37,7 @@ class SideBar : public AR::Layer {
 public:
 
     // Create global object for convenience in other functions
-    AR::GuiObjectHandles *handles;
+    AR::GuiObjectHandles* handles = nullptr;
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::Result> adapters;
@@ -70,7 +70,7 @@ public:
     ImVec4 lastLogTextColor = AR::TextColorGray;
 
     uint32_t ethernetComboIndex = 0;
-    int resultsComboIndex = -1;
+    size_t resultsComboIndex = -1;
 
     void OnAttach() override {
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
@@ -730,7 +730,7 @@ private:
 
                         if (Utils::isInVector(interfaceNameList, "No adapters found")) {
                             Utils::delFromVector(interfaceNameList, "No adapters found");
-                            std::remove(indexList.begin(), indexList.end(), 0);
+                            auto newEndIterator = std::remove(indexList.begin(), indexList.end(), 0);
                         }
                     }
                 }
@@ -813,7 +813,7 @@ private:
         ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
         ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
-        ImVec4 bg_col = ImVec4(0.054, 0.137, 0.231, 1.0f);
+        ImVec4 bg_col = ImVec4(0.054f, 0.137f, 0.231f, 1.0f);
         ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.0f);
 
         ImGui::Image(handles->info->gif.image[gifFrameIndex], size, uv0, uv1, bg_col, tint_col);

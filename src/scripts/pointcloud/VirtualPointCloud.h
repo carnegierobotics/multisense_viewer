@@ -36,7 +36,7 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
 
     CRLCameraModels::Model* model{};
-    CameraPlaybackFlags playbackSate;
+    CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
 
     const int vertexCount = 960 * 600;

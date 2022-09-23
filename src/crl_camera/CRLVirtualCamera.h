@@ -35,7 +35,7 @@ public:
     std::string description;
     std::string data;
     int point = 0;
-    glm::mat4 kInverseMatrix;
+    glm::mat4 kInverseMatrix{};
 
     bool connect(const std::string& ip) override;
 
@@ -67,7 +67,7 @@ public:
         CRLVirtualCamera* ctx;
         uint32_t index;
     };
-    DecodeThreadArgs args[MAX_STREAMS];
+    DecodeThreadArgs args[MAX_STREAMS]{};
 
     struct DecodeContainer {
         //static void decode(LPVOID);

@@ -20,18 +20,18 @@ public:
 
     struct Model {
         struct VideoTexture {
-            std::vector<unsigned char *> pixels;
-            VkDeviceSize imageSize;
-            uint32_t width;
-            uint32_t height;
-        }videos;
+            std::vector<unsigned char *> pixels{};
+            uint32_t imageSize = 0;
+            uint32_t width = 0;
+            uint32_t height = 0;
+        }videos{};
         struct Vertex {
-            glm::vec3 pos;
-            glm::vec3 normal;
-            glm::vec2 uv0;
-            glm::vec2 uv1;
-            glm::vec4 joint0;
-            glm::vec4 weight0;
+            glm::vec3 pos{};
+            glm::vec3 normal{};
+            glm::vec2 uv0{};
+            glm::vec2 uv1{};
+            glm::vec4 joint0{};
+            glm::vec4 weight0{};
         };
 
         struct Primitive {
@@ -52,17 +52,17 @@ public:
 
             struct Vertices {
                 VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory;
-            } vertices;
+                VkDeviceMemory memory{};
+            } vertices{};
             struct Indices {
                 int count;
                 VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory;
-            } indices;
+                VkDeviceMemory memory{};
+            } indices{};
 
-            Buffer uniformBuffer;
+            Buffer uniformBuffer{};
 
-        } mesh;
+        } mesh{};
 
         struct TextureIndices {
             uint32_t baseColor = -1;

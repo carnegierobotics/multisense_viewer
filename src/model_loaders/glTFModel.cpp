@@ -55,7 +55,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
     struct StagingBuffer {
         VkBuffer buffer;
         VkDeviceMemory memory;
-    } vertexStaging, indexStaging;
+    } vertexStaging{}, indexStaging{};
 
     // Create staging buffers
     // Vertex data
@@ -381,7 +381,7 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             sampler = textureSamplers[tex.sampler];
         }
-        Texture2D texture2D;
+        Texture2D texture2D{};
         texture2D.fromglTfImage(image, sampler, device, transferQueue);
         textures.push_back(texture2D);
     }
@@ -451,14 +451,14 @@ VkFilter glTFModel::Model::getVkFilterMode(int32_t filterMode) {
 void glTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
     // Create texture image
 
-    int texWidth, texHeight, texChannels;
+    int texWidth = 0, texHeight = 0, texChannels = 0;
     stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture;
+    Texture2D texture{};
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
     textureIndices.baseColor = 0;
     textures.push_back(texture);
@@ -483,12 +483,12 @@ void glTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
 
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture;
+    Texture2D texture{};
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
     textureIndices.normalMap = 1;
     textures.push_back(texture);
@@ -559,7 +559,7 @@ void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
      * Create Descriptor Pool
      */
 
-    uint32_t uniformDescriptorCount = (3 * count + model.nodes.size());
+    uint32_t uniformDescriptorCount = (3 * count + (uint32_t)model.nodes.size());
     uint32_t imageDescriptorSamplerCount = (3 * count * 3);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
@@ -567,7 +567,7 @@ void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
 
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-                                                                                   count + model.nodes.size());
+        static_cast<uint32_t>(count + model.nodes.size()));
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
@@ -772,7 +772,7 @@ void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineSh
 
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 
-    for (auto shaderStage: shaderStages) {
+    for (auto& shaderStage: shaderStages) {
         vkDestroyShaderModule(vulkanDevice->logicalDevice, shaderStage.module, nullptr);
     }
 

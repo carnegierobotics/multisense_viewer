@@ -498,7 +498,7 @@ private:
         if (!info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
-        int cols, rows;
+        int cols = 0, rows = 0;
         switch (dev.layout) {
             case PREVIEW_LAYOUT_NONE:
                 break;
@@ -626,8 +626,8 @@ private:
                                                          ImGuiHoveredFlags_AnyWindow)) {
                             // Offsset cursor positions.
                             uint32_t x, y, val = dev.pixelInfo.intensity;
-                            x = dev.pixelInfo.x - viewAreaElementPosX;
-                            y = dev.pixelInfo.y - viewAreaElementPosY;
+                            x = static_cast<uint32_t>( dev.pixelInfo.x - viewAreaElementPosX);
+                            y = static_cast<uint32_t>(dev.pixelInfo.y - viewAreaElementPosY);
 
 
                             ImGui::Text("(%d, %d) %d", x, y, val);

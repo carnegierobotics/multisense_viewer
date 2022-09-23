@@ -45,7 +45,7 @@ public:
 
         const ArEngine::ObjectPicking* picking;
 
-    } renderUtils;
+    } renderUtils{};
 
     struct Render {
         uint32_t index;
@@ -92,8 +92,6 @@ public:
     virtual void onUIUpdate(AR::GuiObjectHandles uiHandle) = 0;
 
     void uiUpdate(AR::GuiObjectHandles uiHandle) {
-        auto p = this->renderData;
-
         if (!this->renderData.drawThisScript)
             return;
 

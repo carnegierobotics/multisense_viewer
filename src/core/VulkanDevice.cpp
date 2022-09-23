@@ -32,7 +32,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
         std::vector<VkExtensionProperties> extensions(extCount);
         if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) ==
             VK_SUCCESS) {
-            for (auto ext: extensions) {
+            for (const auto& ext: extensions) {
                 supportedExtensions.push_back(ext.extensionName);
             }
         }

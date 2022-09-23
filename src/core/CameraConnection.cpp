@@ -48,7 +48,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
     if (!dev->parameters.initialized) {
         auto *p = &dev->parameters;
 
-        auto conf = camPtr->getCameraInfo().imgConf;
+        const auto& conf = camPtr->getCameraInfo().imgConf;
 
 
         p->ep.exposure = conf.exposure();
@@ -95,7 +95,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
         camPtr->setFps(p->fps);
         camPtr->setGain(p->gain);
 
-        auto conf = camPtr->getCameraInfo().imgConf;
+        const auto& conf = camPtr->getCameraInfo().imgConf;
 
 
         p->ep.exposure = conf.exposure();
@@ -279,7 +279,7 @@ void CameraConnection::connectCrlCamera(AR::Element &dev) {
 }
 
 void CameraConnection::setStreamingModes(AR::Element &dev) {
-    auto supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
+    const auto& supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
 
     dev.modes.clear();
     dev.sources.clear();
@@ -329,7 +329,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
 
                     auto it = find(dev.sources.begin(), dev.sources.end(), source);
                     if (it != dev.sources.end()) {
-                        dev.selectedSourceIndexMap[i] = it - dev.sources.begin();
+                        dev.selectedSourceIndexMap[i] = static_cast<uint32_t>(it - dev.sources.begin());
                     }
                 }
             }
@@ -341,7 +341,7 @@ void CameraConnection::setStreamingModes(AR::Element &dev) {
 
 void CameraConnection::initCameraModes(std::vector<std::string> *modes,
                                        std::vector<crl::multisense::system::DeviceMode> deviceModes) {
-    for (auto mode: deviceModes) {
+    for (const auto& mode: deviceModes) {
         std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
                                std::to_string(mode.disparities) + "x";
         modes->emplace_back(modeName);
@@ -384,7 +384,7 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     // Attempt to connect to camera and post some info
 
 
-    LPVOID lpMsgBuf;
+    LPVOID lpMsgBuf = nullptr;
 
     unsigned long ulAddr = inet_addr(hostAddress.c_str());
     unsigned long ulMask = inet_addr("255.255.255.0");
@@ -399,7 +399,7 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
         if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
             (LPTSTR)&lpMsgBuf, 0, NULL)) {
-            printf("\tError: %s", lpMsgBuf);
+            printf("\tError: %p", std::addressof(lpMsgBuf));
             LocalFree(lpMsgBuf);
         }
 

@@ -54,10 +54,10 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    CRLCameraResolution res;
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width, height;
-    CRLCameraDataType textureType;
+    uint32_t width = 0, height = 0;
+    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

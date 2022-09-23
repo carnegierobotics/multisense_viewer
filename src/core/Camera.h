@@ -22,8 +22,8 @@
 class Camera
 {
 private:
-    float fov;
-    float znear, zfar;
+    float fov = 0;
+    float znear = 0, zfar = 1000;
 
     void updateViewMatrix()
     {
@@ -70,9 +70,9 @@ public:
 
     struct
     {
-        glm::mat4 perspective;
-        glm::mat4 view;
-    } matrices;
+        glm::mat4 perspective{};
+        glm::mat4 view{};
+    } matrices{};
 
     struct
     {
@@ -162,7 +162,7 @@ public:
             if (moving())
             {
 
-                glm::vec3 camFront;
+                glm::vec3 camFront{};
                 camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
                 camFront.y = sin(glm::radians(rotation.x));
                 camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
@@ -198,7 +198,7 @@ public:
             const float deadZone = 0.0015f;
             const float range = 1.0f - deadZone;
 
-            glm::vec3 camFront;
+            glm::vec3 camFront{};
             camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
             camFront.y = sin(glm::radians(rotation.x));
             camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));

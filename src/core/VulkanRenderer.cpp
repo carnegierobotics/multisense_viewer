@@ -613,7 +613,7 @@ void VulkanRenderer::renderLoop() {
 
         frameCounter++;
 
-        float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - graphLastTimestamp).count();
+        float fpsTimer = std::chrono::duration<float, std::milli>(tEnd - graphLastTimestamp).count();
         if (fpsTimer > 1000.0f) {
             lastFPS = (float) frameCounter * (1000.0f / fpsTimer);
             frameCounter = 0;
@@ -811,7 +811,7 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
 
 void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-    myApp->handleMouseMove(xPos, yPos);
+    myApp->handleMouseMove((int32_t) xPos, (int32_t) yPos);
 
 }
 

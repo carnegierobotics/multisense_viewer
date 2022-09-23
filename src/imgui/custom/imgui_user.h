@@ -256,9 +256,9 @@ namespace ImGui {
         ImVec2 posMax = posMinScreen;
         posMax.x += btnSize.x;
         posMax.y += btnSize.y;
-        ImVec4 color = (*idx == defaultValue) ? ImColor(0.666, 0.674, 0.658, 1.0f) :
-                       hovered ? ImColor(0.462, 0.474, 0.494, 1.0f) :
-                       ImColor(0.411, 0.419, 0.407, 1.0f);
+        ImVec4 color = (*idx == defaultValue) ? ImColor(0.666f, 0.674f, 0.658f, 1.0f) :
+                       hovered ? ImColor(0.462f, 0.474f, 0.494f, 1.0f) :
+                       ImColor(0.411f, 0.419f, 0.407f, 1.0f);
         ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
                                                   ImColor(color), 10.0f, 0);
 

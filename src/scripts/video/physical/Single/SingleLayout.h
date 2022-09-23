@@ -41,7 +41,7 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
 
-    CRLCameraModels::Model* model;
+    CRLCameraModels::Model* model = nullptr;
 
     int count = 1;
     void *selection = (void *) "0";
@@ -54,10 +54,10 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    CRLCameraResolution res;
-    CRLCameraDataType textureType;
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width, height;
+    uint32_t width = 0, height = 0;
+    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

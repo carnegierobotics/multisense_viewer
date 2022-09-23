@@ -168,7 +168,7 @@ namespace AR {
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
         /** @brief Which mode is currently selected */
-        CRLCameraResolution selectedStreamingMode;
+        CRLCameraResolution selectedStreamingMode{};
         /** @brief Which source is currently selected */
         std::string selectedStreamingSource = "Select sensor resolution";
 
@@ -224,9 +224,9 @@ namespace AR {
         uint32_t selectedSourceIndex = 0;
         CRLCameraResolution selectedMode;
         std::vector<std::string> sources; // Human-readable names of camera sources
-        std::map<int, std::string> selectedSourceMap;
-        std::map<int, int> selectedSourceIndexMap;
-        std::map<int, int> hoveredPixelInfo;
+        std::map<uint32_t, std::string> selectedSourceMap;
+        std::map<uint32_t, uint32_t> selectedSourceIndexMap;
+        std::map<uint32_t, int> hoveredPixelInfo;
 
         std::vector<std::string> userRequestedSources;
         std::vector<std::string> enabledStreams;
@@ -329,9 +329,9 @@ namespace ArEngine {
         TextureData() {
         }
 
-        void *data;
-        uint32_t len;
-        CRLCameraDataType type;
+        void *data = nullptr;
+        uint32_t len = 0;
+        CRLCameraDataType type = AR_CAMERA_IMAGE_NONE;
 
         struct {
             void *data[NUM_YUV_DATA_POINTERS]{};

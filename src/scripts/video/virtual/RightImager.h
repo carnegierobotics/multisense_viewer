@@ -55,8 +55,8 @@ public:
 
     uint32_t width = 0, height = 0;
     std::string src;
-    CameraPlaybackFlags playbackSate;
-    CameraConnection* camHandle;
+    CameraPlaybackFlags playbackSate{};
+    CameraConnection* camHandle{};
     float posY = 0.0f;
     float scaleX = 0.25f;
     float scaleY = 0.25f;

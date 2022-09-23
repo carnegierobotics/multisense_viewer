@@ -7,7 +7,6 @@
 #include <MultiSense/src/tools/Logger.h>
 #include <vulkan/vulkan_core.h>
 #include "MultiSense/src/tools/Utils.h"
-#pragma optimize("off")
 
 bool CRLPhysicalCamera::connect(const std::string &ip) {
     if (cameraInterface == nullptr) {
@@ -83,14 +82,14 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
     assert(tex != nullptr);
     tex->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
 
-    auto chroma = imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
+    auto& chroma = imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
     if (chroma.imageDataP != nullptr && chroma.source == crl::multisense::Source_Chroma_Rectified_Aux) {
         tex->data[0] = malloc(chroma.imageLength);
         memcpy(tex->data[0], chroma.imageDataP, chroma.imageLength);
         tex->len[0] = chroma.imageLength;
     }
 
-    auto luma = imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
+    auto& luma = imagePointers[crl::multisense::Source_Luma_Rectified_Aux];
     if (luma.imageDataP != nullptr && luma.source == crl::multisense::Source_Luma_Rectified_Aux) {
         tex->data[1] = malloc(luma.imageLength);
         memcpy(tex->data[1], luma.imageDataP, luma.imageLength);
@@ -269,7 +268,7 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
 
 void CRLPhysicalCamera::addCallbacks() {
-    for (auto e: info.supportedDeviceModes)
+    for (const auto& e: info.supportedDeviceModes)
         info.supportedSources |= e.supportedDataSources;
 
     // reserve double_buffers for each stream
@@ -281,7 +280,7 @@ void CRLPhysicalCamera::addCallbacks() {
     }
 
     // --- initializing our callback buffers ---
-    std::size_t bufSize = 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
+    std::size_t bufSize = (size_t) 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
     for (int i = 0;
          i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
     {
@@ -289,7 +288,7 @@ void CRLPhysicalCamera::addCallbacks() {
     }
 
     // use these buffers instead of the default
-    cameraInterface->setLargeBuffers(info.rawImages, bufSize);
+    cameraInterface->setLargeBuffers(info.rawImages, static_cast<uint32_t>(bufSize));
 
     // finally, add our callback
     if (cameraInterface->addIsolatedCallback(imageCallback, info.supportedSources, this) !=

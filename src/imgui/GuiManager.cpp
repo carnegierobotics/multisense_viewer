@@ -38,8 +38,8 @@ namespace AR {
 
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
-        handles.info->width = width;
-        handles.info->height = height;
+        handles.info->width = static_cast<float>(width);
+        handles.info->height = static_cast<float>(height);
         handles.input = pInput;
 
         ImGui::NewFrame();
@@ -157,7 +157,7 @@ namespace AR {
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                             &texture, 0, nullptr);
 
-                    VkRect2D scissorRect;
+                    VkRect2D scissorRect{};
                     scissorRect.offset.x = std::max((int32_t) (pcmd->ClipRect.x), 0);
                     scissorRect.offset.y = std::max((int32_t) (pcmd->ClipRect.y), 0);
                     scissorRect.extent.width = (uint32_t) (pcmd->ClipRect.z - pcmd->ClipRect.x);
@@ -360,25 +360,25 @@ namespace AR {
 
     // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
     void GuiManager::loadAnimatedGif(const std::string &file) {
-        int width, height, depth, comp;
-        int *delays;
+        int width = 0, height = 0, depth = 0, comp = 0;
+        int* delays = nullptr;
         int channels = 4;
 
         std::ifstream input(file, std::ios::binary | std::ios::ate);
         std::streamsize size = input.tellg();
         input.seekg(0, std::ios::beg);
 
-        stbi_uc *pixels;
+        stbi_uc *pixels = nullptr;
         std::vector<stbi_uc> buffer(size);
         if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
             pixels = stbi_load_gif_from_memory(buffer.data(), size, &delays, &width, &height, &depth, &comp, channels);
             if (!pixels)
                 throw std::runtime_error("failed to load texture image: " + file);
         }
-        VkDeviceSize imageSize = width * height * channels;
+        uint32_t imageSize = width * height * channels;
 
-        handles.info->gif.pixels = (unsigned char *) malloc(imageSize * depth);
-        memcpy(handles.info->gif.pixels, pixels, imageSize * depth);
+        handles.info->gif.pixels = (unsigned char *) malloc((size_t) imageSize * depth);
+        memcpy(handles.info->gif.pixels, pixels, (size_t) imageSize * depth);
 
         handles.info->gif.width = width;
         handles.info->gif.height = height;
@@ -459,7 +459,7 @@ namespace AR {
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
         if (!pixels) {
             throw std::runtime_error("failed to load texture image: " + file);
         }
@@ -539,7 +539,7 @@ namespace AR {
         unsigned char *pixels;
         int width, height;
         io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        size_t uploadSize = width * height * 4 * sizeof(char);
+        VkDeviceSize uploadSize =(VkDeviceSize) width * height * 4 * sizeof(char);
 
         {
             fontTexture.fromBuffer(pixels, uploadSize,

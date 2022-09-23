@@ -208,18 +208,35 @@ if (WIN32)
             set(LibMultiSenseBuildFlavor "Release")
     endif()
 
-    add_custom_command(TARGET VulkanRenderer
-            PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.lib  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll  ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-            )
-
-
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)
+
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE})
+    set(RUNTIME_DESTINATION ${INSTALL_DIRECTORY})
+    set(LIBRARY_DESTINATION ${INSTALL_DIRECTORY})
+    set(ASSETS_DESTINATION ${INSTALL_DIRECTORY})
+    set(CMAKE_INSTALL_PREFIX ${INSTALL_DIRECTORY})
+
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
+        install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${LIBRARY_DESTINATION})
+
+    add_custom_command(TARGET VulkanRenderer
+        PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.dll  ${INSTALL_DIRECTORY}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.lib  ${INSTALL_DIRECTORY}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll  ${INSTALL_DIRECTORY}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll   ${INSTALL_DIRECTORY}/
+        )
+
+    # Copy ffmpeg decoding DLLS
+    file(GLOB FFMPEG_DLL "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/*.dll")
+    file(COPY ${FFMPEG_DLL} DESTINATION ${INSTALL_DIRECTORY})
+
+    # Copy Assets
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${ASSETS_DESTINATION})
 
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -260,20 +277,8 @@ else () ## Linux
 
 
 endif ()
-
-
-## TODO: COPY dependencies with executables (shaders etc..)
-## TODO COPY FFMPEG DLLs for windows build
 # Copy dependency folders to output directory
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 add_dependencies(MultiSense-viewer copy_assets)
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR}/Assets)
-
-# Copy DLLs
-if (WIN32)
-#add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin ${CMAKE_CURRENT_BINARY_DIR}/Assets)
-#add_dependencies(MultiSense-viewer copy_assets)
-file(GLOB FFMPEG_DLL "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/*.dll")
-file(COPY ${FFMPEG_DLL} DESTINATION  ${CMAKE_CURRENT_BINARY_DIR})
-endif()

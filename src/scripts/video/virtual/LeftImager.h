@@ -55,7 +55,7 @@ public:
 
     uint32_t width = 0, height = 0;
     std::string src;
-    CameraPlaybackFlags playbackSate;
+    CameraPlaybackFlags playbackSate{};
     CameraConnection* camHandle{};
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -69,7 +69,7 @@ public:
     float speed = 1.0f;
     int prevOrder = 0;
 
-    std::chrono::steady_clock::time_point start, end;
+    std::chrono::steady_clock::time_point start{}, end{};
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

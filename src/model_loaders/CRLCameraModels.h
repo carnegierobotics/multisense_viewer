@@ -29,10 +29,10 @@ public:
         ~Model();
 /**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
-        CRLCameraDataType modelType;
+        CRLCameraDataType modelType{};
 
         struct Mesh {
-            VulkanDevice *device;
+            VulkanDevice *device = nullptr;
             uint32_t firstIndex = 0;
             uint32_t indexCount = 0;
             uint32_t vertexCount = 0;
@@ -40,17 +40,17 @@ public:
 
             struct Vertices {
                 VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory;
-            } vertices;
+                VkDeviceMemory memory{};
+            } vertices{};
             struct Indices {
-                int count;
+                int count = 0;
                 VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory;
-            } indices;
+                VkDeviceMemory memory{};
+            } indices{};
 
-            Buffer uniformBuffer;
+            Buffer uniformBuffer{};
 
-        } mesh;
+        } mesh{};
 
         struct TextureIndices {
             uint32_t baseColor = -1;
@@ -99,7 +99,7 @@ public:
             uint32_t vertexCount{};
             uint32_t *indices{};
             uint32_t indexCount{};
-        } quad;
+        } quad{};
 
         /**@brief Generates a Quad with texture coordinates. Arguments are offset values */
         ImageData(float x = 0.0f, float y = 0.0f) {
@@ -114,7 +114,7 @@ public:
             auto *vP = (ArEngine::Vertex *) quad.vertices;
             auto *iP = (uint32_t *) quad.indices;
 
-            ArEngine::Vertex vertex[4];
+            ArEngine::Vertex vertex[4]{};
             vertex[0].pos = glm::vec3(-1.0f, -1.0f + y, 0.0f);
             vertex[1].pos = glm::vec3(1.0f, -1.0f + y, 0.0f);
             vertex[2].pos = glm::vec3(1.0f, 1.0f + y, 0.0f);
@@ -148,7 +148,7 @@ public:
     VkDescriptorPool descriptorPool{};
     VkPipeline pipeline{};
     VkPipeline selectionPipeline{};
-    const Base::RenderUtils *utils;
+    const Base::RenderUtils *utils = nullptr;
 
     VkPipelineLayout pipelineLayout{};
 

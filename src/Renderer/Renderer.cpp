@@ -76,8 +76,8 @@ void Renderer::addDeviceFeatures() {
 void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
-    VkClearValue clearValues[2];
-    clearValues[0].color = {{0.870f, 0.878, 0.862, 1.0f}};
+    std::array< VkClearValue, 2> clearValues{};
+    clearValues[0].color = {{0.870f, 0.878f, 0.862f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -86,8 +86,8 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.renderArea.offset.y = 0;
     renderPassBeginInfo.renderArea.extent.width = width;
     renderPassBeginInfo.renderArea.extent.height = height;
-    renderPassBeginInfo.clearValueCount = 2;
-    renderPassBeginInfo.pClearValues = clearValues;
+    renderPassBeginInfo.clearValueCount = clearValues.size();
+    renderPassBeginInfo.pClearValues = clearValues.data();
 
     const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
     const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
@@ -267,9 +267,9 @@ void Renderer::render() {
 
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        VkClearValue clearValues[2];
-        clearValues[0].color = {{0.870f, 0.878, 0.862, 1.0f}};
-        clearValues[1].depthStencil = {1.0f, 0};
+        std::array< VkClearValue, 2> clearValues{};
+        clearValues[0].color = { {0.870f, 0.878f, 0.862f, 1.0f} };
+        clearValues[1].depthStencil = { 1.0f, 0 };
         const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
 
@@ -279,8 +279,8 @@ void Renderer::render() {
         renderPassBeginInfo.renderArea.offset.y = 0;
         renderPassBeginInfo.renderArea.extent.width = width;
         renderPassBeginInfo.renderArea.extent.height = height;
-        renderPassBeginInfo.clearValueCount = 2;
-        renderPassBeginInfo.pClearValues = clearValues;
+        renderPassBeginInfo.clearValueCount = clearValues.size();
+        renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.renderPass = selection.renderPass;
         renderPassBeginInfo.framebuffer = selection.frameBuffer;
         vkCmdBeginRenderPass(renderCmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -325,7 +325,7 @@ void Renderer::render() {
         );
         vulkanDevice->flushCommandBuffer(copyCmd, queue);
         // Copy texture data into staging buffer
-        uint8_t *data;
+        uint8_t *data = nullptr;
         CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, selectionMemory, 0, memReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->logicalDevice, selectionMemory);
 
@@ -333,14 +333,14 @@ void Renderer::render() {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
 
-            int idx = int((mousePos.x + (width * mousePos.y)) * 4);
+            uint32_t idx = uint32_t((mousePos.x + (width * mousePos.y)) * 4);
             if (idx > width * height * 4)
                 continue;
 
             uint32_t val = data[idx];
             if (dev.state == AR_STATE_ACTIVE) {
-                dev.pixelInfo.x = mousePos.x;
-                dev.pixelInfo.y = mousePos.y;
+                dev.pixelInfo.x = static_cast<uint32_t>(mousePos.x);
+                dev.pixelInfo.y = static_cast<uint32_t>(mousePos.y);
                 dev.pixelInfo.intensity = val;
             }
         }

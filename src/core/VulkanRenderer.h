@@ -202,7 +202,7 @@ private:
     bool viewUpdated = false;
     uint32_t destWidth;
     uint32_t destHeight;
-    uint32_t lastFPS;
+    float lastFPS;
 
     void windowResize();
     void updateOverlay();

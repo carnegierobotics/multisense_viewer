@@ -274,7 +274,7 @@ namespace Log {
         std::ofstream m_File;
 
 #ifdef    WIN32
-        CRITICAL_SECTION        m_Mutex;
+        CRITICAL_SECTION        m_Mutex{};
 #else
         pthread_mutexattr_t m_Attr;
         pthread_mutex_t m_Mutex;

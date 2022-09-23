@@ -147,11 +147,13 @@ void CRLVirtualCamera::update() {
 void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
     //this->width = width;
     //this->height = height;
+    width = (float)width;
+    height = (float)height;
 
-    float fx = width / 2;
-    float fy = height / 2;
-    float cx = width / 2;
-    float cy = height / 2;
+    float fx = width / 2.0f;
+    float fy = height / 2.0f;
+    float cx = width / 2.0f;
+    float cy = height / 2.0f;
 
     kInverseMatrix =
             glm::mat4(
@@ -290,7 +292,7 @@ bool CRLVirtualCamera::getVideoMetadata(uint32_t i) {
     }
     av_dump_format(ctx_format, 0, fileName.c_str(), false);
 
-    for (int i = 0; i < ctx_format->nb_streams; i++)
+    for (uint32_t i = 0; i < ctx_format->nb_streams; i++)
         if (ctx_format->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             stream_idx = i;
             vid_stream = ctx_format->streams[i];
@@ -341,7 +343,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
         AVCodecContext *ctx_codec = nullptr;
         const AVCodec *codec = nullptr;
         AVFrame *frame = av_frame_alloc();
-        int stream_idx;
+        int stream_idx = 0;
         SwsContext *ctx_sws = nullptr;
         std::string fileName = Utils::getTexturePath() + "Video/" + instance->container[idx].videoName;
         AVStream *vid_stream = nullptr;
@@ -359,7 +361,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
         }
         av_dump_format(ctx_format, 0, fileName.c_str(), false);
 
-        for (int i = 0; i < ctx_format->nb_streams; i++)
+        for (uint32_t i = 0; i < ctx_format->nb_streams; i++)
             if (ctx_format->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
                 stream_idx = i;
                 vid_stream = ctx_format->streams[i];
@@ -400,7 +402,7 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
                     }
 
 #ifdef WIN32 // TODO USE MACROS INSTEAD AND DEFINE MACROS DEPENDING ON PLATFORM
-                    DWORD dwWaitResult;
+                    DWORD dwWaitResult = 0;
                     semWait(instance->container[idx].notFull, INFINITE);
                    
 #else
@@ -451,9 +453,9 @@ void *CRLVirtualCamera::DecodeContainer::decode(void *arg) {
 }
 
 void CRLVirtualCamera::saveFrameYUV420P(AVFrame *pFrame, int width, int height, int iFrame) {
-    FILE *pFile;
+    FILE *pFile = nullptr;
     char szFilename[32];
-    int y;
+    int y = 0;
 
     // Open file
     sprintf(szFilename, "frame%d.yuv", iFrame);

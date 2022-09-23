@@ -45,7 +45,6 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
-    CRLCameraDataType textureType;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -53,9 +52,10 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    CRLCameraResolution res;
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width, height;
+    uint32_t width = 0, height = 0;
+    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

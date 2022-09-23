@@ -43,16 +43,16 @@ namespace AR {
 
         // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
         struct {
-            unsigned char* pixels;
-            ImTextureID image[20];
-            uint32_t id;
+            unsigned char* pixels = nullptr;
+            ImTextureID image[20]{};
+            uint32_t id{};
             uint32_t lastFrame = 0;
-            uint32_t width;
-            uint32_t height;
-            uint32_t imageSize;
-            uint32_t totalFrames;
-            uint32_t* delay;
-        } gif;
+            uint32_t width{};
+            uint32_t height{};
+            uint32_t imageSize{};
+            uint32_t totalFrames{};
+            uint32_t* delay{};
+        } gif{};
 
         float viewAreaElementPositionsY[9] = {0};
         float viewAreaElementSizeY = {0};
@@ -114,7 +114,7 @@ namespace AR {
     static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
 
     static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
-    static const ImVec4 PopupBackground(0.183, 0.33, 0.47f, 1.0f);
+    static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
 
     static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
     static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);

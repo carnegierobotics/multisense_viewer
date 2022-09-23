@@ -122,7 +122,7 @@ namespace Populate {
     }
 
     inline VkFramebufferCreateInfo
-    framebufferCreateInfo(uint32_t width, uint32_t height, VkImageView *attachments, int attachmentCount, VkRenderPass renderPass)
+    framebufferCreateInfo(uint32_t width, uint32_t height, VkImageView *attachments, size_t attachmentCount, VkRenderPass renderPass)
     {
         VkFramebufferCreateInfo framebufferCreateInfo {};
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -251,7 +251,7 @@ namespace Populate {
             VkDescriptorType type,
             VkShaderStageFlags stageFlags,
             uint32_t binding,
-            uint32_t descriptorCount = 1)
+        uint32_t descriptorCount = 1)
     {
         VkDescriptorSetLayoutBinding setLayoutBinding {};
         setLayoutBinding.descriptorType = type;
@@ -263,7 +263,7 @@ namespace Populate {
 
     inline VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
             const VkDescriptorSetLayoutBinding* pBindings,
-            uint32_t bindingCount)
+        uint32_t bindingCount)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

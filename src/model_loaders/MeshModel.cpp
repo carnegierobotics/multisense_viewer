@@ -140,12 +140,12 @@ void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
 
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    VkDeviceSize imageSize =(VkDeviceSize) texWidth * texHeight * 4;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture;
+    Texture2D texture{};
 /*
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -162,13 +162,12 @@ void MeshModel::Model::prepareVideoTextures() {
     while(counter < 101){
         std::string strCount = std::to_string(counter);
         std::string fileName = "Video/earth/ezgif-frame-000";
-        strCount.length();
         std::string file = fileName.substr(0, fileName.length() - strCount.length());
         file = file + strCount + ".jpg";
 
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load((Utils::getTexturePath() + file).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");
         }
@@ -400,7 +399,7 @@ void MeshModel::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStag
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 
 
-    for (auto shaderStage: vector) {
+    for (auto& shaderStage: vector) {
         vkDestroyShaderModule(vulkanDevice->logicalDevice, shaderStage.module, nullptr);
     }
 }

@@ -119,6 +119,7 @@ namespace AR {
     static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
     static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
     static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
+    static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
     static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
     static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
     static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
@@ -126,6 +127,7 @@ namespace AR {
     static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
 
     static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
+    static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.5f);
     static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
 

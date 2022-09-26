@@ -4,7 +4,6 @@
 
 #include "CRLPhysicalCamera.h"
 
-#include <MultiSense/src/tools/Logger.h>
 #include <vulkan/vulkan_core.h>
 #include "MultiSense/src/tools/Utils.h"
 
@@ -59,15 +58,7 @@ bool CRLPhysicalCamera::stop(std::string dataSourceStr) {
         return false;
 
     crl::multisense::DataSource src = Utils::stringToDataSource(dataSourceStr);
-    // Check if the stream has been enabled before we attempt to stop it
-    /*
-    std::vector<uint32_t>::iterator it;
-    // Search and stop additional sources
-    it = std::find(enabledSources.begin(), enabledSources.end(), crl::multisense::Source_Chroma_Rectified_Aux);
-    if (it != enabledSources.end()) {
-        src |= crl::multisense::Source_Luma_Rectified_Aux;
-    }
-    */
+
     bool status = cameraInterface->stopStreams(src);
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
@@ -295,14 +286,6 @@ void CRLPhysicalCamera::addCallbacks() {
         crl::multisense::Status_Ok) {
         std::cerr << "Adding callback failed!\n";
     }
-
-    /*
-if (cameraInterface->addIsolatedCallback(imageCallback, crl::multisense::Source_All, this) !=
-    crl::multisense::Status_Ok) {
-    std::cerr << "Adding callback failed!\n";
-}
-     */
-
 }
 
 CRLBaseInterface::CameraInfo CRLPhysicalCamera::getCameraInfo() {
@@ -387,7 +370,7 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution) {
     if (resolution == currentResolution)
         return;
 
-    uint32_t width, height, depth;
+    uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(resolution, &width, &height, &depth);
 
     crl::multisense::image::Config cfg;

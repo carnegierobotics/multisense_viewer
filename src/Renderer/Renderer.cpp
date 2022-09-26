@@ -86,7 +86,7 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.renderArea.offset.y = 0;
     renderPassBeginInfo.renderArea.extent.width = width;
     renderPassBeginInfo.renderArea.extent.height = height;
-    renderPassBeginInfo.clearValueCount = clearValues.size();
+    renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassBeginInfo.pClearValues = clearValues.data();
 
     const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
@@ -279,7 +279,7 @@ void Renderer::render() {
         renderPassBeginInfo.renderArea.offset.y = 0;
         renderPassBeginInfo.renderArea.extent.width = width;
         renderPassBeginInfo.renderArea.extent.height = height;
-        renderPassBeginInfo.clearValueCount = clearValues.size();
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.renderPass = selection.renderPass;
         renderPassBeginInfo.framebuffer = selection.frameBuffer;

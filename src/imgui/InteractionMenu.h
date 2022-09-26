@@ -70,23 +70,23 @@ public:
             int imageButtonHeight = 100;
             const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+            ImGui::ShowDemoWindow();
 
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
-                float imageSpacing = 150.0f;
+                float imageSpacingX = 200.0f;
 
                 // width of menu buttons layout. Needed to draw on center of screen.
                 float xOffset = ((handles->info->width - handles->info->sidebarWidth) / 2) -
-                                (((float) imageSpacing * (float) PAGE_CONFIGURE_DEVICE) +
+                                (((float) imageSpacingX * (float) PAGE_CONFIGURE_DEVICE) +
                                  ((float) PAGE_TOTAL_PAGES * 100.0f) / 2) +
                                 handles->info->sidebarWidth +
-                                ((float) i * imageSpacing);
+                                ((float) i * imageSpacingX);
 
                 ImGui::SetCursorPos(ImVec2(xOffset,
-
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
+                float posY = ImGui::GetCursorScreenPos().y;
 
-                ImVec2 size = ImVec2(100.0f,
-                                     100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                ImVec2 size = ImVec2(100.0f, 100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -96,16 +96,40 @@ public:
                                        bg_col, tint_col))
                     page[i] = true;
 
-                ImGui::SetCursorPos(ImVec2(xOffset, (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
 
+                ImGui::PushFont(handles->info->font18);
+                ImGui::SetCursorPos(ImVec2(xOffset + ((100.0f - ImGui::CalcTextSize(labels[i]).x) / 2), (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
+                float posX = ImGui::GetCursorScreenPos().x;
+                ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                 ImGui::Text("%s", labels[i]);
+                ImGui::PopStyleColor();
+
+
+                // Reset cursorpos to first pos
+                ImVec2 btnSize = ImVec2(ImGui::CalcTextSize(labels[i]).x, imageButtonHeight + ImGui::CalcTextSize(labels[i]).y + 10.0f);
+                ImGui::PopFont();
+
+                ImVec2 pos(posX, posY);
+                ImVec2 posMax = btnSize;
+                posMax.x += pos.x + 5.0f;
+                posMax.y += pos.y;
+
+                pos.x -= 5.0f;
+
+                ImGui::SetCursorScreenPos(pos);
+                bool hovered = false;
+                ImGui::HoveredInvisibleButton(labels[i], &hovered, btnSize, 0);
+                if (hovered)
+                    ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(AR::CRLBlueIshTransparent), 5.0f);
+                else
+                    ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(AR::CRLCoolGrayTransparent), 5.0f);
+
 
                 ImGui::SameLine();
             }
 
             ImGui::PopStyleVar();
             ImGui::NewLine();
-            //ImGui::ShowDemoWindow();
             ImGui::End();
             ImGui::PopStyleColor(); // bg color
         }
@@ -114,8 +138,6 @@ public:
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
-    bool openDropDown[AR_PREVIEW_TOTAL_MODES + 1] = {false};
-    float animationLength[AR_PREVIEW_TOTAL_MODES + 1] = {false};
 
 
     void buildDeviceInformation(AR::GuiObjectHandles *handles) {
@@ -527,7 +549,9 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                 ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
+                ImGui::PopStyleColor();
             }
 
             if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
@@ -941,6 +965,7 @@ private:
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
                 txt = "Gain:";

@@ -461,7 +461,7 @@ void CameraConnection::disableCrlCamera(AR::Element &dev) {
     // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
 
     // new entry given we have a valid ini file entry
-    if (rc >= 0) {
+    if (rc >= 0 && !CRLSerialNumber.empty()) {
         // Profile Data
         addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev.name);
         addIniEntry(&ini, CRLSerialNumber, "AdapterName", dev.interfaceName);

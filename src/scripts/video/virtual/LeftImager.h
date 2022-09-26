@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_LEFTIMAGER_H
 
 #include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/model_loaders/CRLCameraModels.h>
+#include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/src/imgui/Layer.h>
 #include "MultiSense/src/Renderer/Renderer.h"
 

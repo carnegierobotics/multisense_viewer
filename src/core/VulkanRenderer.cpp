@@ -570,7 +570,6 @@ void VulkanRenderer::windowResize() {
 void VulkanRenderer::renderLoop() {
     destWidth = width;
     destHeight = height;
-
     auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
 
     while (!glfwWindowShouldClose(window)) {
@@ -579,16 +578,11 @@ void VulkanRenderer::renderLoop() {
 
         glfwPollEvents();
 
-
-        if (viewUpdated) {
-            viewUpdated = false;
-            viewChanged();
-        }
-
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end - startTime;
         runTime = elapsed_seconds.count();
 
+        /** Give ImGui Reference to this frame's input events **/
         ImGuiIO &io = ImGui::GetIO();
         io.DisplaySize = ImVec2((float) width, (float) height);
         io.DeltaTime = frameTimer;
@@ -601,48 +595,33 @@ void VulkanRenderer::renderLoop() {
         input.lastKeyPress = keyPress;
         input.action = keyAction;
 
+        prepareFrame();
+        /** Call Renderer's render function **/
         render();
-
+        /** Reset some variables for next frame **/
+        submitFrame();
         keyPress = -1;
         keyAction = -1;
-
         io.MouseWheel = 0;
 
-
+        /** FrameTiming **/
         auto tEnd = std::chrono::high_resolution_clock::now();
-
         frameCounter++;
-
         float fpsTimer = std::chrono::duration<float, std::milli>(tEnd - graphLastTimestamp).count();
         if (fpsTimer > 1000.0f) {
             lastFPS = (float) frameCounter * (1000.0f / fpsTimer);
             frameCounter = 0;
             graphLastTimestamp = tEnd;
         }
-
         auto tDiff = std::chrono::duration<double, std::milli>(
                 std::chrono::high_resolution_clock::now() - tStart).count();
-
         frameTimer = (float) tDiff / 1000.0f;
-
-        // 60 FPS with with fpsTimeLimiter
-
-        /*
-        double fpsTimeLimiter = 0.01666666666;
-        if (frameTimer < fpsTimeLimiter){
-            double us = (fpsTimeLimiter - frameTimer) * 1000 * 1000;
-            std::this_thread::sleep_for(std::chrono::microseconds (static_cast<long>(us)));
-        }
-        */
-
         camera.update(frameTimer);
         if (camera.moving()) {
             viewUpdated = true;
         }
-
-
     }
-    // Flush device to make sure all resources can be freed
+    // Flush device to make sure all resources can be freed before we start cleanup
     if (device != VK_NULL_HANDLE) {
         vkDeviceWaitIdle(device);
     }

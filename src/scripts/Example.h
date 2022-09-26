@@ -2,10 +2,11 @@
 
 
 #include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/model_loaders/glTFModel.h>
+#include <MultiSense/src/ModelLoaders/glTFModel.h>
 #include <MultiSense/src/imgui/Layer.h>
 
-class Example: public Base, public RegisteredInFactory<Example>, glTFModel
+/** Example class for scripts. Inherits Base and RegisteredInFactory by default, but can be extended with any class in the ModelLoaders folder **/
+class Example: public Base, public RegisteredInFactory<Example>
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -13,18 +14,17 @@ public:
     Example() {
         s_bRegistered;
     }
-    /** @brief Static method to create class, returns a unique ptr of Terrain **/
+    /** @brief Static method to create instance of this class, returns a unique ptr of Example **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Example>(); }
-    /** @brief Name which is registered for this class. Same as ClassName **/
+    /** @brief Name which is registered for this class. Same as 'ClassName' **/
     static std::string GetFactoryName() { return "Example"; }
-
-    /** @brief Setup function called one during engine prepare **/
+    /** @brief Setup function called one during script creating prepare **/
     void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
-    /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
+    /** @brief Get the type of script. Future extension if scripts should behave differently **/
     ScriptType getType() override {return type;}
-
+    /** @brief update function called once per frame with a const UI reference handle **/
     void onUIUpdate(AR::GuiObjectHandles uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
@@ -33,6 +33,7 @@ public:
 
     void *selection = (void *) "0";
 
+    /** @brief draw function called once per frame with handle to command buffer for which a draw cmd can be recorded in **/
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
 };

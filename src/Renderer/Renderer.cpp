@@ -12,13 +12,10 @@ void Renderer::prepareRenderer() {
     camera.movementSpeed = 1.0f;
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(defaultCameraRotation);
-
     createSelectionImages();
     createSelectionFramebuffer();
     createSelectionBuffer();
-
     cameraConnection = std::make_unique<CameraConnection>();
-
 
     /** LOAD PREVIOUS CONNECTION PROFILE IF THEY EXIST*/
     CSimpleIniA ini;
@@ -26,7 +23,7 @@ void Renderer::prepareRenderer() {
     SI_Error rc = ini.LoadFile("crl.ini");
     if (rc < 0) { /* handle error */ }
     else {
-        // A serial number is the section identifier of a profile. I can have three following states
+        // A serial number is the section identifier of a profile of the ini file
         CSimpleIniA::TNamesDepend sections;
         ini.GetAllSections(sections);
         for (auto& section : sections) {
@@ -34,10 +31,8 @@ void Renderer::prepareRenderer() {
             std::string IP = ini.GetValue(section.pItem, "IP");
             std::string cameraName = ini.GetValue(section.pItem, "CameraName");
             int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
-
             std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
             int state = std::stoi(ini.GetValue(section.pItem, "State", "7"));
-
             AR::Element el;
             el.name = profileName;
             el.IP = IP;
@@ -46,13 +41,12 @@ void Renderer::prepareRenderer() {
             el.interfaceName = adapterName;
             el.clicked = true;
             el.interfaceIndex = interfaceIndex;
-
             guiManager->handles.devices->emplace_back(el);
-
-
         }
     }
 
+    // Prefer to load the model only once, so load it in first setup
+    buildScript("MultiSenseCamera");
 }
 
 
@@ -96,11 +90,14 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+        /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
                 script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
+        /** Generate UI draw commands **/
         guiManager->drawFrame(drawCmdBuffers[i]);
         vkCmdEndRenderPass(drawCmdBuffers[i]);
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -148,8 +145,6 @@ void Renderer::deleteScript(const std::string &scriptName) {
 
 
 void Renderer::render() {
-    VulkanRenderer::prepareFrame();
-
     pLogger->frameNumber = frameID;
     if (keyPress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);
@@ -167,14 +162,10 @@ void Renderer::render() {
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
     guiManager->handles.mouseBtns = &mouseButtons;
-
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
-    // Create/delete scripts after use
-    buildScript("LightSource");
-
     // Run update function on active camera scripts and build them if not built
     // TODO Rework conditions to when scripts are built to more human readable code
     for (auto &dev: *guiManager->handles.devices) {
@@ -238,14 +229,14 @@ void Renderer::render() {
                 }
             }
         }
-        // Check if camera connection was AR RESET and disable all scripts
+        // Check if camera connection was AR RESET and clean up all scripts attached to that camera connection
         if (dev.state == AR_STATE_RESET) {
             // delete all scripts attached to device
             for (const std::string &script: dev.attachedScripts)
                 deleteScript(script);
         }
     }
-    // Update general scripts with handle to GUI
+    // UIupdaet on scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(guiManager->handles);
@@ -257,12 +248,12 @@ void Renderer::render() {
             script.second->updateUniformBufferData(&renderData);
         }
     }
-    // Generate draw commands
+
+    /** Generate Draw Commands **/
     guiManager->updateBuffers();
     buildCommandBuffers();
-    VulkanRenderer::submitFrame();
 
-
+    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array< VkClearValue, 2> clearValues{};
@@ -290,18 +281,13 @@ void Renderer::render() {
             }
         }
         vkCmdEndRenderPass(renderCmd);
-
-
         vulkanDevice->flushCommandBuffer(renderCmd, queue);
-
         VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
         VkMemoryBarrier memoryBarrier = {
                 VK_STRUCTURE_TYPE_MEMORY_BARRIER,
                 nullptr,
                 VK_ACCESS_SHADER_READ_BIT,   // srcAccessMask
                 VK_ACCESS_HOST_READ_BIT};     // dstAccessMask
-
         vkCmdPipelineBarrier(
                 copyCmd,
                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,          // srcStageMask
@@ -326,11 +312,9 @@ void Renderer::render() {
         uint8_t *data = nullptr;
         CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, selectionMemory, 0, memReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->logicalDevice, selectionMemory);
-
         for (auto &dev: *guiManager->handles.devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
-
             uint32_t idx = uint32_t((mousePos.x + (width * mousePos.y)) * 4);
             if (idx > width * height * 4)
                 continue;
@@ -355,7 +339,6 @@ void Renderer::windowResized() {
     destroySelectionBuffer();
     createSelectionBuffer();
 
-    Base::Render renderData{};
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;

@@ -25,7 +25,7 @@
 //
 //#include <MultiSense/src/scripts/Example.h>
 
-#include <MultiSense/src/scripts/objects/LightSource.h>
+#include <MultiSense/src/scripts/objects/MultiSenseCamera.h>
 #include <MultiSense/src/scripts/pointcloud/PointCloud.h>
 #include <MultiSense/src/scripts/video/physical/Single/SingleLayout.h>
 #include <MultiSense/src/scripts/video/physical/Double/DoubleLayout.h>

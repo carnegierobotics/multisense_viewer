@@ -9,7 +9,7 @@ void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
     camera.rotationSpeed = 0.2f;
-    camera.movementSpeed = 10.0f;
+    camera.movementSpeed = 1.0f;
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(defaultCameraRotation);
 
@@ -57,8 +57,6 @@ void Renderer::prepareRenderer() {
 
 
 void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
-    //printf("Index: %d, name: %s\n", uiSettings.getSelectedItem(), uiSettings.listBoxNames[uiSettings.getSelectedItem()].c_str());
-    camera.setMovementSpeed(200.0f);
 
 }
 

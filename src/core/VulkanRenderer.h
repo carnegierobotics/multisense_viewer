@@ -39,7 +39,7 @@
 class VulkanRenderer {
 
 public:
-    VulkanRenderer(const std::string &title, bool enableValidation = false);
+    explicit VulkanRenderer(const std::string &title, bool enableValidation = false);
 
     virtual ~VulkanRenderer();
 
@@ -60,6 +60,7 @@ public:
 
     std::string title = "-1";
     std::string name = "VulkanRenderer";
+    /** This application is written against Vulkan API v.1.2+ **/
     uint32_t apiVersion = VK_API_VERSION_1_2;
     bool backendInitialized = false;
     bool resized = false;
@@ -95,11 +96,11 @@ public:
 
 
     /** @brief Handle for UI updates and overlay */
-    AR::GuiManager* guiManager;
+    AR::GuiManager* guiManager{};
 
     /** @brief (Virtual) Creates the application wide Vulkan instance */
     virtual VkResult createInstance(bool enableValidation);
-    /** @brief (Pure virtual) Render function to be implemented by the sample application */
+    /** @brief (Pure virtual) Render function to be implemented by the application */
     virtual void render() = 0;
     /** @brief (Virtual) Called when the camera view has changed */
     virtual void viewChanged();
@@ -179,7 +180,7 @@ protected:
     // Command buffers used for rendering
     std::vector<VkCommandBuffer> drawCmdBuffers;
     // Global render pass for frame buffer writes
-    VkRenderPass renderPass;
+    VkRenderPass renderPass{};
     // List of available frame buffers (same as number of swap chain images)
     std::vector<VkFramebuffer>frameBuffers;
     // Active frame buffer index
@@ -187,7 +188,7 @@ protected:
     // Descriptor set pool
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     // Pipeline cache object
-    VkPipelineCache pipelineCache;
+    VkPipelineCache pipelineCache{};
 
 
     ArEngine::ObjectPicking selection{};
@@ -200,9 +201,9 @@ protected:
 
 private:
     bool viewUpdated = false;
-    uint32_t destWidth;
-    uint32_t destHeight;
-    float lastFPS;
+    uint32_t destWidth{};
+    uint32_t destHeight{};
+    float lastFPS{};
 
     void windowResize();
     void updateOverlay();

@@ -70,7 +70,7 @@ public:
     void cleanUp();
 
     void run() {
-        renderLoop();
+        VulkanRenderer::renderLoop();
         cleanUp();
         destroySelectionBuffer();
     }
@@ -83,8 +83,8 @@ private:
     Base::Render renderData{};
     bool renderSelectionPass = false;
     // Create a host-visible staging buffer that contains the raw image data
-    VkBuffer selectionBuffer;
-    VkDeviceMemory selectionMemory;
+    VkBuffer selectionBuffer{};
+    VkDeviceMemory selectionMemory{};
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements memReqs{};
 protected:
@@ -108,8 +108,6 @@ protected:
      *
      * \brief creates instances from classes located in src/scripts directory. Usually each class here represents object(s) in the scene
      */
-    void generateScriptClasses();
-
     void deleteScript(const std::string &scriptName);
 
     void buildScript(const std::string &scriptName);

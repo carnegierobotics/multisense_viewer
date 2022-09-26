@@ -2,7 +2,7 @@
 
 
 #include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/model_loaders/glTFModel.h>
+#include <MultiSense/src/ModelLoaders/glTFModel.h>
 #include "MultiSense/src/Renderer/Renderer.h"
 
 class MultiSenseCamera: public Base, public RegisteredInFactory<MultiSenseCamera>, glTFModel
@@ -16,7 +16,7 @@ public:
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "LightSource"; }
+    static std::string GetFactoryName() { return "MultiSenseCamera"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;

@@ -79,7 +79,7 @@ namespace AR {
         VkDescriptorSet fontDescriptor{};
         VkDescriptorSet imageIconDescriptor{};
 
-        VkDescriptorSet gifImageDescriptors[20];     // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+        VkDescriptorSet gifImageDescriptors[20];     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
 
 
         VulkanDevice *device;

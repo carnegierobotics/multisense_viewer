@@ -4,12 +4,10 @@ void Example::setup() {
     printf("MyModelExample setup\n");
 
     std::string fileName;
-    //loadFromFile(fileName);
-    model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device,
-                       renderUtils.device->transferQueue, 1.0f);
+    //model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device, renderUtils.device->transferQueue, 1.0f);
 
 
-    // Shader creation
+    // Shader loading
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/helmet.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/helmet.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -17,14 +15,16 @@ void Example::setup() {
                            {fs}};
 
     // Obligatory call to prepare render resources for glTFModel.
-    glTFModel::createRenderPipeline(renderUtils);
+    //glTFModel::createRenderPipeline(renderUtils);
 }
 
 void Example::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    glTFModel::draw(commandBuffer, i);
+    //glTFModel::draw(commandBuffer, i);
 }
 
 void Example::update() {
+
+    // Update Uniform buffers for this draw call
     ArEngine::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(4.0f, -5.0f, -1.0f));
@@ -46,8 +46,6 @@ void Example::update() {
 
     bufferThreeData = selection;
 }
-
-
 
 void Example::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 

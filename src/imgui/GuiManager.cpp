@@ -17,6 +17,7 @@
 #include "stb_image.h"
 #include "SideBar.h"
 #include "InteractionMenu.h"
+#include "LayerExample.h"
 
 namespace AR {
     GuiManager::GuiManager(VulkanDevice *vulkanDevice) {
@@ -32,6 +33,8 @@ namespace AR {
 
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
+        pushLayer<LayerExample>();
+
     }
 
     void GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput) {
@@ -320,7 +323,7 @@ namespace AR {
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
         io->Fonts->SetTexID(reinterpret_cast<void *>(fontDescriptor));
 
-
+        // TODO use separate Descriptors to copy reference to imageButtonTextureDescriptors. Loss of memory alloc.
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png");
         handles.info->imageButtonTextureDescriptor[0] = reinterpret_cast<void *>(imageIconDescriptor);
 

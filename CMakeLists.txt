@@ -103,12 +103,13 @@ set(ENGINE_SRC
         src/imgui/InteractionMenu.h
         src/imgui/Layer.h
         src/imgui/SideBar.h
-        src/model_loaders/CRLCameraModels.cpp
-        src/model_loaders/CRLCameraModels.h
-        src/model_loaders/glTFModel.cpp
-        src/model_loaders/glTFModel.h
-        src/model_loaders/MeshModel.cpp
-        src/model_loaders/MeshModel.h
+        src/imgui/LayerExample.h
+        src/ModelLoaders/CRLCameraModels.cpp
+        src/ModelLoaders/CRLCameraModels.h
+        src/ModelLoaders/glTFModel.cpp
+        src/ModelLoaders/glTFModel.h
+        src/ModelLoaders/MeshModel.cpp
+        src/ModelLoaders/MeshModel.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
         src/scripts/Example.cpp

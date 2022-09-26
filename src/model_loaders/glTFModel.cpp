@@ -606,27 +606,6 @@ void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
 
-        if (model.textureIndices.baseColor != -1) {
-            writeDescriptorSets.resize(4);
-            writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeDescriptorSets[3].descriptorCount = 1;
-            writeDescriptorSets[3].dstSet = descriptors[i];
-            writeDescriptorSets[3].dstBinding = 3;
-            writeDescriptorSets[3].pImageInfo = &model.textures[model.textureIndices.baseColor].descriptor;
-        }
-
-        if (model.textureIndices.normalMap != -1) {
-            writeDescriptorSets.resize(5);
-            writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeDescriptorSets[4].descriptorCount = 1;
-            writeDescriptorSets[4].dstSet = descriptors[i];
-            writeDescriptorSets[4].dstBinding = 4;
-            writeDescriptorSets[4].pImageInfo = &model.textures[model.textureIndices.normalMap].descriptor;
-        }
-
-
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
     }

@@ -113,8 +113,8 @@ set(ENGINE_SRC
         src/Renderer/Renderer.h
         src/scripts/Example.cpp
         src/scripts/Example.h
-        src/scripts/objects/LightSource.cpp
-        src/scripts/objects/LightSource.h
+        src/scripts/objects/MultiSenseCamera.cpp
+        src/scripts/objects/MultiSenseCamera.h
         src/scripts/pointcloud/PointCloud.cpp
         src/scripts/pointcloud/PointCloud.h
         src/scripts/pointcloud/VirtualPointCloud.cpp

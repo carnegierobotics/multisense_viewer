@@ -5,16 +5,16 @@
 #include <MultiSense/src/model_loaders/glTFModel.h>
 #include "MultiSense/src/Renderer/Renderer.h"
 
-class LightSource: public Base, public RegisteredInFactory<LightSource>, glTFModel
+class MultiSenseCamera: public Base, public RegisteredInFactory<MultiSenseCamera>, glTFModel
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    LightSource() {
+    MultiSenseCamera() {
         s_bRegistered;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<LightSource>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
     static std::string GetFactoryName() { return "LightSource"; }
 

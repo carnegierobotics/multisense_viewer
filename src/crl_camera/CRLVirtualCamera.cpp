@@ -144,16 +144,12 @@ void CRLVirtualCamera::update() {
 
 }
 
-void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {
-    //this->width = width;
-    //this->height = height;
-    width = (float)width;
-    height = (float)height;
-
-    float fx = width / 2.0f;
-    float fy = height / 2.0f;
-    float cx = width / 2.0f;
-    float cy = height / 2.0f;
+void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {;
+   
+    float fx = (float) width / 2.0f;
+    float fy = (float)height / 2.0f;
+    float cx = (float)width / 2.0f;
+    float cy = (float)height / 2.0f;
 
     kInverseMatrix =
             glm::mat4(

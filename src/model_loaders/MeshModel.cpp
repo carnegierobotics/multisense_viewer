@@ -172,7 +172,7 @@ void MeshModel::Model::prepareVideoTextures() {
             throw std::runtime_error("failed to load texture image!");
         }
         videos.pixels.emplace_back(pixels);
-        videos.imageSize = imageSize;
+        videos.imageSize = (uint32_t) imageSize;
         videos.height = texHeight;
         videos.width = texWidth;
         counter += 1;

@@ -105,7 +105,7 @@ public:
 
             ImGui::PopStyleVar();
             ImGui::NewLine();
-            ImGui::ShowDemoWindow();
+            //ImGui::ShowDemoWindow();
             ImGui::End();
             ImGui::PopStyleColor(); // bg color
         }
@@ -163,13 +163,9 @@ private:
 
 
     void buildConfigurationPreview(AR::GuiObjectHandles *handles) {
-        //ImGui::ShowDemoWindow();
-
         for (auto &dev: *handles->devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
-
-
             // Control page
             ImGui::BeginGroup();
             createControlArea(handles, dev);
@@ -669,7 +665,7 @@ private:
 
     void buildConfigurationTab(AR::GuiObjectHandles *handles, AR::Element &d) {
         bool active = false;
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
         // Exposure Tab
         {
             float textSpacing = 90.0f;

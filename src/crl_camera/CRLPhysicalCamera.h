@@ -19,13 +19,12 @@ public:
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime{}; // Timer to log every second
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> callbackTime{}; // Timer to see how long ago the callback was called
 
-    CRLPhysicalCamera() : CRLBaseInterface() {
-        //startTime = std::chrono::steady_clock::now();
-    }
+    CRLPhysicalCamera() = default;
 
     ~CRLPhysicalCamera() override {
         // TODO FREE RESOURCES MEMBER VARIABLES
         stop("All");
+        crl::multisense::Channel::Destroy(cameraInterface);
         stopForDestruction = true;
     }
 
@@ -53,10 +52,10 @@ private:
 
     struct BufferPair
     {
-        std::mutex swap_lock;
-        crl::multisense::image::Header active, inactive;
+        std::mutex swap_lock{};
+        crl::multisense::image::Header active{}, inactive{};
         void *activeCBBuf{nullptr}, *inactiveCBBuf{nullptr};  // weird multisense BufferStream object, only for freeing reserved data later
-        Image user_handle;
+        Image user_handle{};
 
         void refresh()   // swap to latest if possible
         {

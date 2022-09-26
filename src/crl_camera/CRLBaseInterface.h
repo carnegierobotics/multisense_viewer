@@ -21,16 +21,16 @@ public:
     };
 
     struct CameraInfo {
-        crl::multisense::system::DeviceInfo devInfo;
-        crl::multisense::image::Config imgConf;
-        crl::multisense::system::NetworkConfig netConfig;
-        crl::multisense::system::VersionInfo versionInfo;
+        crl::multisense::system::DeviceInfo devInfo{};
+        crl::multisense::image::Config imgConf{};
+        crl::multisense::system::NetworkConfig netConfig{};
+        crl::multisense::system::VersionInfo versionInfo{};
         crl::multisense::image::Calibration camCal{};
-        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes{};
         crl::multisense::DataSource supportedSources{0};
-        std::vector<uint8_t *> rawImages;
+        std::vector<uint8_t *> rawImages{};
         int sensorMTU = 0;
-        glm::mat4 kInverseMatrix;
+        glm::mat4 kInverseMatrix{};
     };
 
 

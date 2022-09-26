@@ -130,6 +130,16 @@ struct WhiteBalanceParams {
     bool autoWhiteBalance = true;
     uint32_t autoWhiteBalanceDecay = 3;
     float autoWhiteBalanceThresh = 0.5f;
+    bool update = false;
+};
+
+struct Lighting {
+    float dutyCycle = 1.0f;
+    uint32_t selection = 1;
+    bool enable = true;
+    uint32_t numLightPulses = 3;
+    uint32_t startupTime = 0;
+    bool update = false;
 };
 
 struct ExposureParams {
@@ -145,6 +155,7 @@ struct ExposureParams {
     uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
     crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
 
+    bool update = false;
 };
 
 
@@ -177,16 +188,18 @@ namespace AR {
 
 /** @brief  */
     struct Parameters {
-        bool initialized = false;
-        float gain = 1.0f;
-        float fps = 30.0f;
         ExposureParams ep;
         WhiteBalanceParams wb;
+        Lighting light;
+
+        bool initialized = false;
+
+        float gain = 1.0f;
+        float fps = 30.0f;
         float stereoPostFilterStrength = 0.5f;
         bool hdrEnabled;
-        bool storeSettingsInFlash;
-        crl::multisense::CameraProfile cameraProfile;
         float gamma = 2.0f;
+
         bool update = false;
     };
 

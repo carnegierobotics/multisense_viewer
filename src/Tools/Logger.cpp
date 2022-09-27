@@ -5,6 +5,19 @@
 #include <ctime>
 #include <vector>
 
+#ifdef WIN32
+#define semPost(x) SetEvent(x)
+#define semWait(x, y) WaitForSingleObject(x, y)
+#else
+#include<bits/stdc++.h>
+#include<pthread.h>
+#include<semaphore.h>
+#define semWait(x, y) sem_wait(x)
+#define semPost(x) sem_post(x)
+#define INFINITE nullptr
+#endif
+
+
 // Code Specific Header Files(s)
 using namespace std;
 namespace Log {
@@ -18,15 +31,12 @@ namespace Log {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
         m_LogLevel = LOG_LEVEL_TRACE;
         m_LogType = FILE_LOG;
-        pthread_mutex_init(&m_Mutex, NULL);
 
     }
 
 
     Logger::~Logger() {
         m_File.close();
-        pthread_mutexattr_destroy(&m_Attr);
-        pthread_mutex_destroy(&m_Mutex);
     }
 
     Logger *Logger::getInstance() noexcept {
@@ -37,17 +47,15 @@ namespace Log {
     }
 
     void Logger::lock() {
-        pthread_mutex_lock(&m_Mutex);
     }
 
     void Logger::unlock() {
-        pthread_mutex_unlock(&m_Mutex);
     }
 
     void Logger::logIntoFile(std::string &data) {
-        lock();
+        m_Mutex.lock();
         m_File << getCurrentTime() << "  " << data << endl;
-        unlock();
+        m_Mutex.unlock();
     }
 
     void Logger::logOnConsole(std::string &data) {

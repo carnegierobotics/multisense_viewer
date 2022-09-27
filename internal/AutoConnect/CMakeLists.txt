@@ -51,7 +51,7 @@ if (WIN32)
 
     if (${BUILD_AUTOCONNECT_LIB})
         add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h)
-        target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi)
+        target_link_libraries(LibAutoConnect winpcap iphlpapi)
     else()
         add_executable(AutoConnect WIN32 AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h main.cpp)
         target_link_libraries(AutoConnect MultiSense winpcap iphlpapi)

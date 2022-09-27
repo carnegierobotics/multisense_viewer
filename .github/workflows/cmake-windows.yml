@@ -169,5 +169,6 @@ jobs:
           
       - name: Building the installer
         run: |
-        "%programfiles(x86)%\\inno Setup 6\\iscc.exe" "inno_setup_script.iss"
+          "%programfiles(x86)%\\inno Setup 6\\iscc.exe" inno_setup_script.iss
         shell: cmd
+        

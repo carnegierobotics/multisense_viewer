@@ -150,8 +150,6 @@ set(ENGINE_SRC
         src/Tools/Logger.h
         src/Tools/Logger.cpp
         src/Scripts/video/physical/ScriptHeader.h
-
-        # IniH header only
         )
 
 
@@ -201,7 +199,7 @@ if (WIN32)
 
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib ${LIBRARIES} avformat avutil avcodec swscale) #avformat avcodec avutil swscale random_seed)
+    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES}) #avformat avcodec avutil swscale random_seed)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
 
@@ -223,7 +221,7 @@ if (WIN32)
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
-        install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${LIBRARY_DESTINATION})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${LIBRARY_DESTINATION})
 
     add_custom_command(TARGET VulkanRenderer
         PRE_BUILD

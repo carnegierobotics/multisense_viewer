@@ -46,6 +46,7 @@
 #endif
 
 
+
 #if __has_include(<format>)
 #include <format>
 #endif
@@ -273,12 +274,7 @@ namespace Log {
         static Logger *m_Instance;
         std::ofstream m_File;
 
-#ifdef    WIN32
-        CRITICAL_SECTION        m_Mutex{};
-#else
-        pthread_mutexattr_t m_Attr;
-        pthread_mutex_t m_Mutex;
-#endif
+        std::mutex m_Mutex{};
 
         LogLevel m_LogLevel;
         LogType m_LogType;

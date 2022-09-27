@@ -83,7 +83,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: multisense-zip
-        path: ${{github.workspace}}/build/MultiSense_viewer.zip
+        path: ${{github.workspace}}/MultiSense_viewer.zip
 
   BuildUbuntu:
     name: Build and package for Ubuntu
@@ -165,7 +165,7 @@ jobs:
       - name: Extract some files
         run: |
           mkdir files
-          tar -xf MultiSense_viewer.zip -C .\files
+          tar -xf .\MultiSense_viewer.zip -C .\files\
           cp .\files\Assets\Tools\windows\inno_setup_script.iss .\
         shell: cmd
       - name: Building the installer

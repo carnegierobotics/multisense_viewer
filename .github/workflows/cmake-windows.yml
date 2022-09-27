@@ -56,7 +56,7 @@ jobs:
     - name: zipFiles
       uses: vimtor/action-zip@v1
       with:
-        files: ${{github.workspace}}/build/${{env.INSTALL_PATH}}
+        files: ${{github.workspace}}/build/${{env.INSTALL_PATH}}/*
         dest: MultiSense_viewer.zip
     - name: Upload Release Asset
       id: upload-release-asset 

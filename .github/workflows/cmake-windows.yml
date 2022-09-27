@@ -65,7 +65,7 @@ jobs:
     - name: zipFiles
       uses: vimtor/action-zip@v1
       with:
-        files: ${{github.workspace}}/build/${{env.INSTALL_PATH}}/*
+        files: ${{github.workspace}}/build/${{env.INSTALL_PATH}}
         dest: ${{github.workspace}}/build/MultiSense_viewer.zip
     - name: Upload Release Asset
       id: upload-release-asset 
@@ -148,8 +148,8 @@ jobs:
         
         
   build:
-    name: Setup Windows Installer
-    needs: BuildWindows
+    name: Create Windows Installer
+    needs: [BuildWindows, ReleaseJob]
     runs-on: windows-2022
 
     steps:
@@ -169,6 +169,6 @@ jobs:
           
       - name: Building the installer
         run: |
-          "%programfiles(x86)%\\inno Setup 6\\iscc.exe" inno_setup_script.iss
+          "%programfiles(x86)%\inno Setup 6\iscc.exe" "inno_setup_script.iss"
         shell: cmd
         

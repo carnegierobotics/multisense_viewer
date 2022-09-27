@@ -112,7 +112,7 @@ public:
         auto time = std::chrono::steady_clock::now();
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
-        if (time_span.count() > INTERVAL_10_SECONDS_LOG_DRAW_COUNT) {
+        if (time_span.count() > INTERVAL_10_SECONDS_LOG_DRAW_COUNT || renderData.scriptDrawCount == 0) {
             lastLogTime = std::chrono::steady_clock::now();
             renderData.pLogger->info("Draw-number: {} for script: {}", (int) renderData.scriptDrawCount,
                                      renderData.scriptName.c_str());

@@ -265,31 +265,32 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
 
 #ifdef WIN32
 
-    /* Variables where handles to the added IP are returned */
-    ULONG NTEInstance = 0;
-    // Attempt to connect to camera and post some info
+    
+    ///* Variables where handles to the added IP are returned */
+    //ULONG NTEInstance = 0;
+    //// Attempt to connect to camera and post some info
 
 
-    LPVOID lpMsgBuf = nullptr;
+    //LPVOID lpMsgBuf = nullptr;
 
-    unsigned long ulAddr = inet_addr(hostAddress.c_str());
-    unsigned long ulMask = inet_addr("255.255.255.0");
-    if ((dwRetVal = AddIPAddress(ulAddr,
-        ulMask,
-        dev.interfaceIndex,
-        &NTEContext, &NTEInstance)) == NO_ERROR) {
-        printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
-    }
-    else {
-        printf("AddIPAddress failed with error: %d\n", dwRetVal);
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-            (LPTSTR)&lpMsgBuf, 0, NULL)) {
-            printf("\tError: %p", std::addressof(lpMsgBuf));
-            LocalFree(lpMsgBuf);
-        }
+    //unsigned long ulAddr = inet_addr(hostAddress.c_str());
+    //unsigned long ulMask = inet_addr("255.255.255.0");
+    //if ((dwRetVal = AddIPAddress(ulAddr,
+    //    ulMask,
+    //    dev.interfaceIndex,
+    //    &NTEContext, &NTEInstance)) == NO_ERROR) {
+    //    printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
+    //}
+    //else {
+    //    printf("AddIPAddress failed with error: %d\n", dwRetVal);
+    //    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    //        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+    //        (LPTSTR)&lpMsgBuf, 0, NULL)) {
+    //        printf("\tError: %p", std::addressof(lpMsgBuf));
+    //        LocalFree(lpMsgBuf);
+    //    }
 
-    }
+    //}
 
 
 #else

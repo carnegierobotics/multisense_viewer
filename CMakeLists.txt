@@ -199,44 +199,65 @@ if (WIN32)
 
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES}) #avformat avcodec avutil swscale random_seed)
+    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES})
     # LibMultiSense on Windows. Use precompiled library from a manual step
-
-
-    set(LibMultiSenseBuildFlavor "Debug")
-    if(CMAKE_BUILD_TYPE MATCHES Release)
-            set(LibMultiSenseBuildFlavor "Release")
-    endif()
 
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)
 
+
+    # create a list of files to copy
+    set( THIRD_PARTY_DLLS
+    #FFMPEG
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avcodec-59.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avdevice-59.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avfilter-8.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avformat-59.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swresample-4.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
+    #LibMultiSense
+    ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.lib
+    #WinPCap
+    ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
+    ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
+    )
+
+    # do the copying
+    foreach( file_i ${THIRD_PARTY_DLLS})
+        add_custom_command(
+        TARGET VulkanRenderer
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+        ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
+    )
+endforeach( file_i )
+
+    ### INSTALL TARGETS ###
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE})
-    set(RUNTIME_DESTINATION ${INSTALL_DIRECTORY})
-    set(LIBRARY_DESTINATION ${INSTALL_DIRECTORY})
-    set(ASSETS_DESTINATION ${INSTALL_DIRECTORY})
-    set(CMAKE_INSTALL_PREFIX ${INSTALL_DIRECTORY})
+    # MultiSense Viewer DLL and libraries
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
 
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${LIBRARY_DESTINATION})
+    # LibMultiSense and WinPCap dll
+    install(FILES  
+     ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.dll
+     ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.lib
+     ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
+     ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
+     CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
-    add_custom_command(TARGET VulkanRenderer
-        PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.dll  ${INSTALL_DIRECTORY}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${LibMultiSenseBuildFlavor}/MultiSense.lib  ${INSTALL_DIRECTORY}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll  ${INSTALL_DIRECTORY}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll   ${INSTALL_DIRECTORY}/
-        )
-
-    # Copy ffmpeg decoding DLLS
-    file(GLOB FFMPEG_DLL "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/*.dll")
-    file(COPY ${FFMPEG_DLL} DESTINATION ${INSTALL_DIRECTORY})
+     ## dll's from fmmpeg
+     install(DIRECTORY  ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/ DESTINATION ${INSTALL_DIRECTORY}
+    FILES_MATCHING PATTERN "*.dll")
 
     # Copy Assets
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${ASSETS_DESTINATION})
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")

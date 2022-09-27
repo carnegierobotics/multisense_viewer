@@ -75,29 +75,29 @@ add_library(SimpleIni STATIC ${SimpleIni_SRC})
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 
 set(ENGINE_SRC
-        src/core/Definitions.h
-        src/core/KeyInput.h
-        src/core/Base.h
-        src/core/Buffer.cpp
-        src/core/Buffer.h
-        src/core/Camera.h
-        src/core/CameraConnection.cpp
-        src/core/CameraConnection.h
-        src/core/ScriptBuilder.h
-        src/core/Texture.cpp
-        src/core/Texture.h
-        src/core/Validation.h
-        src/core/VulkanDevice.cpp
-        src/core/VulkanDevice.h
-        src/core/VulkanRenderer.cpp
-        src/core/VulkanRenderer.h
-        src/core/VulkanSwapchain.cpp
-        src/core/VulkanSwapchain.h
-        src/crl_camera/CRLBaseInterface.h
-        src/crl_camera/CRLPhysicalCamera.cpp
-        src/crl_camera/CRLPhysicalCamera.h
-        src/crl_camera/CRLVirtualCamera.cpp
-        src/crl_camera/CRLVirtualCamera.h
+        src/Core/Definitions.h
+        src/Core/KeyInput.h
+        src/Scripts/Base.h
+        src/Core/Buffer.cpp
+        src/Core/Buffer.h
+        src/Core/Camera.h
+        src/CRLCamera/CameraConnection.cpp
+        src/CRLCamera/CameraConnection.h
+        src/Scripts/ScriptBuilder.h
+        src/Core/Texture.cpp
+        src/Core/Texture.h
+        src/Core/Validation.h
+        src/Core/VulkanDevice.cpp
+        src/Core/VulkanDevice.h
+        src/Core/VulkanRenderer.cpp
+        src/Core/VulkanRenderer.h
+        src/Core/VulkanSwapchain.cpp
+        src/Core/VulkanSwapchain.h
+        src/CRLCamera/CRLBaseInterface.h
+        src/CRLCamera/CRLPhysicalCamera.cpp
+        src/CRLCamera/CRLPhysicalCamera.h
+        src/CRLCamera/CRLVirtualCamera.cpp
+        src/CRLCamera/CRLVirtualCamera.h
         src/imgui/GuiManager.cpp
         src/imgui/GuiManager.h
         src/imgui/InteractionMenu.h
@@ -112,43 +112,43 @@ set(ENGINE_SRC
         src/ModelLoaders/MeshModel.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
-        src/scripts/Example.cpp
-        src/scripts/Example.h
-        src/scripts/objects/MultiSenseCamera.cpp
-        src/scripts/objects/MultiSenseCamera.h
-        src/scripts/pointcloud/PointCloud.cpp
-        src/scripts/pointcloud/PointCloud.h
-        src/scripts/pointcloud/VirtualPointCloud.cpp
-        src/scripts/pointcloud/VirtualPointCloud.h
-        src/scripts/video/physical/Single/SingleLayout.cpp
-        src/scripts/video/physical/Single/SingleLayout.h
-        src/scripts/video/physical/Double/DoubleLayout.cpp
-        src/scripts/video/physical/Double/DoubleLayout.h
-        src/scripts/video/physical/Double/DoubleLayoutBot.cpp
-        src/scripts/video/physical/Double/DoubleLayoutBot.h
+        src/Scripts/Example.cpp
+        src/Scripts/Example.h
+        src/Scripts/objects/MultiSenseCamera.cpp
+        src/Scripts/objects/MultiSenseCamera.h
+        src/Scripts/pointcloud/PointCloud.cpp
+        src/Scripts/pointcloud/PointCloud.h
+        src/Scripts/pointcloud/VirtualPointCloud.cpp
+        src/Scripts/pointcloud/VirtualPointCloud.h
+        src/Scripts/video/physical/Single/SingleLayout.cpp
+        src/Scripts/video/physical/Single/SingleLayout.h
+        src/Scripts/video/physical/Double/DoubleLayout.cpp
+        src/Scripts/video/physical/Double/DoubleLayout.h
+        src/Scripts/video/physical/Double/DoubleLayoutBot.cpp
+        src/Scripts/video/physical/Double/DoubleLayoutBot.h
 
-        src/scripts/video/physical/Quad/PreviewOne.cpp
-        src/scripts/video/physical/Quad/PreviewOne.h
-        src/scripts/video/physical/Quad/PreviewTwo.cpp
-        src/scripts/video/physical/Quad/PreviewTwo.h
-        src/scripts/video/physical/Quad/Three.cpp
-        src/scripts/video/physical/Quad/Three.h
-        src/scripts/video/physical/Quad/Four.cpp
-        src/scripts/video/physical/Quad/Four.h
+        src/Scripts/video/physical/Quad/PreviewOne.cpp
+        src/Scripts/video/physical/Quad/PreviewOne.h
+        src/Scripts/video/physical/Quad/PreviewTwo.cpp
+        src/Scripts/video/physical/Quad/PreviewTwo.h
+        src/Scripts/video/physical/Quad/Three.cpp
+        src/Scripts/video/physical/Quad/Three.h
+        src/Scripts/video/physical/Quad/Four.cpp
+        src/Scripts/video/physical/Quad/Four.h
 
-        src/scripts/video/virtual/LeftImager.cpp
-        src/scripts/video/virtual/LeftImager.h
-        src/scripts/video/virtual/RightImager.cpp
-        src/scripts/video/virtual/RightImager.h
-        src/scripts/video/virtual/AuxImager.cpp
-        src/scripts/video/virtual/AuxImager.h
-        src/scripts/video/physical/ScriptHeader.h
-        src/tools/Macros.h
-        src/tools/Populate.h
-        src/tools/Utils.h
-        src/tools/Logger.h
-        src/tools/Logger.cpp
-        src/scripts/video/physical/ScriptHeader.h
+        src/Scripts/video/virtual/LeftImager.cpp
+        src/Scripts/video/virtual/LeftImager.h
+        src/Scripts/video/virtual/RightImager.cpp
+        src/Scripts/video/virtual/RightImager.h
+        src/Scripts/video/virtual/AuxImager.cpp
+        src/Scripts/video/virtual/AuxImager.h
+        src/Scripts/video/physical/ScriptHeader.h
+        src/Tools/Macros.h
+        src/Tools/Populate.h
+        src/Tools/Utils.h
+        src/Tools/Logger.h
+        src/Tools/Logger.cpp
+        src/Scripts/video/physical/ScriptHeader.h
 
         # IniH header only
         )

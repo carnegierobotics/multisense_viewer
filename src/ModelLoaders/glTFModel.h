@@ -8,13 +8,13 @@
 
 #include <vulkan/vulkan_core.h>
 #include <MultiSense/external/glm/glm/detail/type_quat.hpp>
-#include "MultiSense/src/core/VulkanDevice.h"
+#include "MultiSense/src/Core/VulkanDevice.h"
 #include "glm/glm.hpp"
-#include "MultiSense/src/core/Texture.h"
+#include "MultiSense/src/Core/Texture.h"
 
 #include <MultiSense/external/glm/glm/gtc/type_ptr.hpp>
-#include "MultiSense/src/core/Base.h"
-#include <MultiSense/src/tools/Macros.h>
+#include "MultiSense/src/Scripts/Base.h"
+#include <MultiSense/src/Tools/Macros.h>
 
 // Changing this value here also requires changing it in the vertex shader
 #define MAX_NUM_JOINTS 128u

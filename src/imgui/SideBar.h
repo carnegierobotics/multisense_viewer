@@ -20,7 +20,7 @@
 #define elevated() getuid()
 #endif
 
-#include <MultiSense/src/tools/Utils.h>
+#include <MultiSense/src/Tools/Utils.h>
 
 #include <algorithm>
 #include <queue>

@@ -53,7 +53,7 @@
 
 
 #include <fmt/core.h>
-
+#include <mutex>
 
 #ifdef WIN32
 // Win Socket Header File(s)

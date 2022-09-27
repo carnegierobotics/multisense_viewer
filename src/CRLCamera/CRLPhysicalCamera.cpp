@@ -35,10 +35,13 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
 
 
 bool CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
+    
+    /*
     crl::multisense::DataSource source = Utils::stringToDataSource(dataSourceStr);
     if (source == false)
         return false;
 
+    
     // Start stream
     int32_t status = cameraInterface->startStreams(source);
     if (status == crl::multisense::Status_Ok) {
@@ -50,7 +53,7 @@ bool CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSo
         Log::Logger::getInstance()->info("Failed to enable stream: {}  status code {}",
                                          Utils::dataSourceToString(source).c_str(), status);
     return false;
-
+    */
 
 }
 
@@ -256,7 +259,7 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
     cam->startTime = std::chrono::steady_clock::now();
 
     if (!cam->stopForDestruction)
-        cam->streamCallback(header);
+        ;// cam->streamCallback(header);
 }
 
 

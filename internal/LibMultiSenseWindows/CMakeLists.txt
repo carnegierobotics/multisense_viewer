@@ -3,7 +3,7 @@ message(INFO ${CMAKE_CURRENT_SOURCE_DIR}/MultiSense.lib)
 
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
-message("Linking DEBUG")
+message("Linking Debug version of LibMultiSense")
 add_library(MultiSenseWindows STATIC IMPORTED GLOBAL)
 set_property(TARGET MultiSenseWindows APPEND PROPERTY IMPORTED_CONFIGURATIONS Debug)
 set_target_properties(MultiSenseWindows PROPERTIES
@@ -12,7 +12,7 @@ IMPORTED_LOCATION_DEBUG  ${CMAKE_CURRENT_SOURCE_DIR}/Debug/MultiSense.lib)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
 IF(CMAKE_BUILD_TYPE MATCHES Release)
-message("Linking RELEASE")
+message("Linking Release version of LibMultiSense")
 add_library(MultiSenseWindows STATIC IMPORTED GLOBAL)
 set_property(TARGET MultiSenseWindows APPEND PROPERTY IMPORTED_CONFIGURATIONS Release)
 set_target_properties(MultiSenseWindows PROPERTIES

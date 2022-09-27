@@ -146,9 +146,8 @@ void SingleLayout::transformToUISpace(MultiSense::GuiObjectHandles uiHandle, Mul
 
 void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model, b);
-
-}
+        ;// CRLCameraModels::draw(commandBuffer, i, model, b);
+} 
 
 void SingleLayout::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {

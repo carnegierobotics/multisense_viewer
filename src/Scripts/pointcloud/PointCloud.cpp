@@ -11,21 +11,6 @@ void PointCloud::setup(Base::Render r) {
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
 
-
-    const int vertexCount = 960 * 600;
-    meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] when you're done!
-
-    int v = 0;
-    for (int i = 0; i < 960; ++i) {
-        for (int j = 0; j < 600; ++j) {
-            meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
-            meshData[v].uv0 = glm::vec2((float) 1 - ((float) i / 960.0f), (float) 1 - ((float) j / 600.0f));
-            v++;
-        }
-    }
-
-    model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
-
 }
 
 
@@ -105,6 +90,19 @@ void PointCloud::prepareTexture() {
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     width = imgConf.width();
     height = imgConf.height();
+    meshData = new ArEngine::Vertex[width * height];
+    int v = 0;
+    // first few rows and cols (20) are discarded in the shader anyway
+    for (int i = 20; i < width-20; ++i) {
+        for (int j = 20; j < height - 20; ++j) {
+            meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
+            meshData[v].uv0 = glm::vec2(1.0f- ((float) i / (float) width), 1.0f - ((float) j / (float) height));
+            v++;
+        }
+    }
+    const uint32_t vtxBufSize = width * height;
+    model->createMeshDeviceLocal((ArEngine::Vertex *) meshData, vtxBufSize, nullptr, 0);
+    delete[] meshData;
 
     renderData.crlCamera->get()->preparePointCloud(width, height);
     model->createEmtpyTexture(width, height, textureType);

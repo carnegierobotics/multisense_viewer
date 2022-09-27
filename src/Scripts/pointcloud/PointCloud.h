@@ -22,8 +22,6 @@ public:
 
     void onDestroy() override{
         delete model;
-        delete[] meshData;
-
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PointCloud>(); }

@@ -25,7 +25,7 @@ void DoubleLayout::update(){
             return;
         }
 
-        auto* tex = new ArEngine::TextureData(textureType);
+        auto* tex = new VkRender::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setTexture(tex);
             model->setZoom();
@@ -39,18 +39,18 @@ void DoubleLayout::update(){
         delete tex;
     }
 
-    ArEngine::UBOMatrix mat{};
+    VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 / scaleX), centerY * (1 / scaleY), 0.0f));
 
-    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
+    auto *d = (VkRender::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
+    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -102,7 +102,7 @@ void DoubleLayout::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
-    model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
+    model->createMeshDeviceLocal((VkRender::Vertex *) imgData.quad.vertices,
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
@@ -110,8 +110,8 @@ void DoubleLayout::prepareTexture() {
     model->draw = true;
 }
 
-void DoubleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
-    for (const AR::Element &dev: *uiHandle.devices) {
+void DoubleLayout::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+    for (const MultiSense::Device &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -136,7 +136,7 @@ void DoubleLayout::onUIUpdate(AR::GuiObjectHandles uiHandle) {
     }
 }
 
-void DoubleLayout::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+void DoubleLayout::transformToUISpace(MultiSense::GuiObjectHandles uiHandle, MultiSense::Device dev) {
     auto *info = uiHandle.info;
     scaleX = (info->viewAreaElementSizeX / 1280.0f) * (1280.0f / info->width);
     scaleY = (info->viewAreaElementSizeY / 720.0f) * (720 / info->height);
@@ -151,7 +151,7 @@ void DoubleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void DoubleLayout::onWindowResize(AR::GuiObjectHandles uiHandle) {
+void DoubleLayout::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

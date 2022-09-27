@@ -40,7 +40,7 @@
 #include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
 
-void CameraConnection::updateActiveDevice(AR::Element *dev) {
+void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
     auto *p = &dev->parameters;
     if (!dev->parameters.initialized) {
         const auto &conf = camPtr->getCameraInfo().imgConf;
@@ -115,7 +115,7 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
 
 }
 
-void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
+void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector) {
     // If no device is connected then return
     if (pVector == nullptr)
         return;
@@ -125,9 +125,6 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
         if (dev.state == AR_STATE_RESET) {
             pool->Push(CameraConnection::disconnectCRLCameraTask, this, &dev);
             dev.state = AR_STATE_UNAVAILABLE;
-            for (auto &s: dev.streams) {
-                s.second.playbackStatus = AR_PREVIEW_NONE;
-            }
             return;
         }
 
@@ -135,7 +132,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
             // reset other active device if present. So loop over all devices again. quick hack is to updaet state for the newly connect device/clicked device ot just added to enter this if statement on next render loop
             bool resetOtherDeviceFirst = false;
-            AR::Element *otherDev;
+            MultiSense::Device *otherDev;
             for (auto &d: *pVector) {
                 if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
                     d.state = AR_STATE_RESET;
@@ -167,11 +164,11 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
     }
 }
 
-void CameraConnection::connectCrlCamera(AR::Element &dev) {
+void CameraConnection::connectCrlCamera(MultiSense::Device &dev) {
 
 }
 
-void CameraConnection::setStreamingModes(AR::Element &dev) {
+void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
     const auto &supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
     dev.modes.clear();
     dev.sources.clear();
@@ -249,7 +246,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 }
 
 
-bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
+bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
 
     hostAddress = dev.IP;
 
@@ -361,11 +358,11 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
     return true;
 }
 
-void CameraConnection::updateDeviceState(AR::Element *dev) {
+void CameraConnection::updateDeviceState(MultiSense::Device *dev) {
 
 }
 
-void CameraConnection::disableCrlCamera(AR::Element &dev) {
+void CameraConnection::disableCrlCamera(MultiSense::Device &dev) {
 
 }
 
@@ -390,7 +387,7 @@ CameraConnection::~CameraConnection() {
 
 
 
-void CameraConnection::connectCRLCameraTask(void *context, AR::Element *dev) {
+void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
@@ -432,7 +429,7 @@ void CameraConnection::connectCRLCameraTask(void *context, AR::Element *dev) {
 
 }
 
-void CameraConnection::disconnectCRLCameraTask(void *context, AR::Element *dev) {
+void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
     dev->state = AR_STATE_DISCONNECTED;
@@ -486,7 +483,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, AR::Element *dev) 
     app->camPtr.reset();
 }
 
-void CameraConnection::setExposureTask(void *context, void *arg1, AR::Element* dev) {
+void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device* dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<ExposureParams *>(arg1);
 
@@ -495,7 +492,7 @@ void CameraConnection::setExposureTask(void *context, void *arg1, AR::Element* d
     app->updateFromCameraParameters(dev);
 }
 
-void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, AR::Element* dev) {
+void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense::Device* dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<WhiteBalanceParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -503,7 +500,7 @@ void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, AR::Elemen
     app->updateFromCameraParameters(dev);
 }
 
-void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs, AR::Element* dev) {
+void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs, MultiSense::Device* dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setGamma(gamma);
@@ -514,7 +511,7 @@ void CameraConnection::setAdditionalParametersTask(void *context, float fps, flo
 
 }
 
-void CameraConnection::setLightingTask(void *context, void *arg1, AR::Element* dev) {
+void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::Device* dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<LightingParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -522,7 +519,7 @@ void CameraConnection::setLightingTask(void *context, void *arg1, AR::Element* d
     // TODO implement
 }
 
-void CameraConnection::updateFromCameraParameters(AR::Element *dev) const {
+void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
     const auto &conf = camPtr->getCameraInfo().imgConf;
     auto *p = &dev->parameters;

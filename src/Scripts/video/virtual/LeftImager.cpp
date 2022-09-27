@@ -36,7 +36,7 @@ void LeftImager::update() {
 
     if (model->draw) {
         crl::multisense::image::Header stream;
-        ArEngine::MP4Frame frame{};
+        VkRender::MP4Frame frame{};
 
         /*
         bool ret = camHandle->camPtr->getCameraStream(&frame, AR_PREVIEW_VIRTUAL_LEFT);
@@ -49,18 +49,18 @@ void LeftImager::update() {
         free(frame.plane2);
     }
 
-    ArEngine::UBOMatrix mat{};
+    VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 /scaleX), centerY * (1 /scaleY), 0.0f));
 
-    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
+    auto *d = (VkRender::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
+    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -90,7 +90,7 @@ void LeftImager::prepareTextureAfterDecode() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
-    model->createMeshDeviceLocal((ArEngine::Vertex *) imgData.quad.vertices,
+    model->createMeshDeviceLocal((VkRender::Vertex *) imgData.quad.vertices,
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
@@ -99,7 +99,7 @@ void LeftImager::prepareTextureAfterDecode() {
 }
 
 
-void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void LeftImager::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
     bool found = false;
     for (const auto &dev: *uiHandle.devices) {
         /*
@@ -116,7 +116,7 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 
         if (input->getButton(GLFW_KEY_LEFT_CONTROL)){
             std::cout << "Btn down: " << uiHandle.mouseBtns->wheel / 100.0f << std::endl;
-            auto * d2 = (ArEngine::ZoomParam *) bufferFourData;
+            auto * d2 = (VkRender::ZoomParam *) bufferFourData;
             d2->zoom = uiHandle.mouseBtns->wheel / 1000.0f;
 
         } else if (!uiHandle.info->hoverState ) {
@@ -149,7 +149,7 @@ void LeftImager::onUIUpdate(AR::GuiObjectHandles uiHandle) {
 }
 
 
-void LeftImager::transformToUISpace(AR::GuiObjectHandles uiHandle, AR::Element dev) {
+void LeftImager::transformToUISpace(MultiSense::GuiObjectHandles uiHandle, MultiSense::Device dev) {
     posXMin = -1 + 2*((uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth) / (float) renderData.width);
     posXMax = (uiHandle.info->sidebarWidth + uiHandle.info->controlAreaWidth + uiHandle.info->viewingAreaWidth) / (float) renderData.width;
 
@@ -176,7 +176,7 @@ void LeftImager::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
         CRLCameraModels::draw(commandBuffer, i, model, false);
 }
 
-void LeftImager::onWindowResize(AR::GuiObjectHandles uiHandle) {
+void LeftImager::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

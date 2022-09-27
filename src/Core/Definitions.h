@@ -159,32 +159,32 @@ struct ExposureParams {
 };
 
 
-namespace AR {
+namespace MultiSense {
 
-/** @brief  */
+/** @brief
     struct StreamingModes {
-        /** @brief Name of this streaming mode (i.e: front camera) */
+        /** @brief Name of this streaming mode (i.e: front camera)
         std::string name;
         std::string attachedScript;
-        /** @brief Which gui index is selected */
+        /** @brief Which gui index is selected
         CameraStreamInfoFlag streamIndex = AR_PREVIEW_ONE;
-        /** @brief Current camera streaming state  */
+        /** @brief Current camera streaming state
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-        /** @brief In which order is this streaming mode presented in the viewing area  */
+        /** @brief In which order is this streaming mode presented in the viewing area
         uint32_t streamingOrder = 0;
-        /** @brief Camera streaming modes  */
+        /** @brief Camera streaming modes
         std::vector<std::string> modes;
-        /** @brief Camera streaming sources  */
+        /** @brief Camera streaming sources
         std::vector<std::string> sources;
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
-        /** @brief Which mode is currently selected */
+        /** @brief Which mode is currently selected
         CRLCameraResolution selectedStreamingMode{};
-        /** @brief Which source is currently selected */
+        /** @brief Which source is currently selected
         std::string selectedStreamingSource = "Select sensor resolution";
 
     };
-
+*/
 
 /** @brief  */
     struct Parameters {
@@ -211,7 +211,7 @@ namespace AR {
     };
 
 
-    struct Element {
+    struct Device {
         /** @brief Profile Name information  */
         std::string name = "Profile #1"; // TODO Remove if remains Unused
         /** @brief Identifier of the camera connected  */
@@ -227,8 +227,6 @@ namespace AR {
         bool clicked = false;
         /** @brief Current connection state for this device */
         ArConnectionState state = AR_STATE_UNAVAILABLE;
-
-        std::map<int, StreamingModes> streams;
 
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
@@ -292,7 +290,7 @@ namespace AR {
             interfaceIndex = 0;
         }
 
-        bool ready(const std::vector<AR::Element> *devices, const EntryConnectDevice &entry) const {
+        bool ready(const std::vector<MultiSense::Device> *devices, const EntryConnectDevice &entry) const {
 
             bool profileNameEmpty = entry.profileName.empty();
             bool profileNameTaken = false;
@@ -327,7 +325,7 @@ namespace AR {
     };
 
 }
-namespace ArEngine {
+namespace VkRender {
     struct YUVTexture {
         void *data[NUM_YUV_DATA_POINTERS]{};
         uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
@@ -336,11 +334,10 @@ namespace ArEngine {
     };
 
     struct TextureData {
-        TextureData(CRLCameraDataType texType) : type(texType) {
+        explicit TextureData(CRLCameraDataType texType) : type(texType) {
 
         }
-        TextureData() {
-        }
+        TextureData() = default;
 
         void *data = nullptr;
         uint32_t len = 0;

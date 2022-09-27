@@ -53,8 +53,8 @@ public:
 
     CameraInfo getCameraInfo() override;
 
-    bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) override;
-    bool getCameraStream(ArEngine::YUVTexture* tex) override;
+    bool getCameraStream(VkRender::MP4Frame* frame, StreamIndex parent) override;
+    bool getCameraStream(VkRender::YUVTexture* tex) override;
 
 
 

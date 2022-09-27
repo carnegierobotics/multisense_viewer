@@ -25,7 +25,7 @@ CRLCameraModels::Model::~Model() {
 
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
-void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vtxBufferSize) {
+void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize) {
     mesh.vertexCount = vtxBufferSize;
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -38,12 +38,12 @@ void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vt
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 void
-CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
+CRLCameraModels::Model::createMeshDeviceLocal(VkRender::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                               uint32_t
                                               indexCount) {
 
 
-    size_t vertexBufferSize = vertexCount * sizeof(ArEngine::Vertex);
+    size_t vertexBufferSize = vertexCount * sizeof(VkRender::Vertex);
     size_t indexBufferSize = indexCount * sizeof(uint32_t);
     mesh.vertexCount = vertexCount;
     mesh.indexCount = indexCount;
@@ -121,7 +121,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint3
 }
 
 
-void CRLCameraModels::Model::setTexture(ArEngine::TextureData *tex) {
+void CRLCameraModels::Model::setTexture(VkRender::TextureData *tex) {
 
     switch (tex->type) {
         case AR_POINT_CLOUD:
@@ -142,13 +142,13 @@ void CRLCameraModels::Model::setTexture(ArEngine::TextureData *tex) {
 
 }
 
-void CRLCameraModels::Model::setTexture(ArEngine::YUVTexture *tex) {
+void CRLCameraModels::Model::setTexture(VkRender::YUVTexture *tex) {
 
     //textureVideo->updateTextureFromBufferYUV(tex);
 
 }
 
-void CRLCameraModels::Model::setTexture(ArEngine::MP4Frame *frame) {
+void CRLCameraModels::Model::setTexture(VkRender::MP4Frame *frame) {
 
     textureVideo->updateTextureFromBufferYUV(frame);
 
@@ -425,7 +425,7 @@ void CRLCameraModels::createPipelineLayout() {
 
     pushconstantRanges.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushconstantRanges.offset = 0;
-    pushconstantRanges.size = sizeof(ArEngine::MousePositionPushConstant);
+    pushconstantRanges.size = sizeof(VkRender::MousePositionPushConstant);
 
     info.pPushConstantRanges = &pushconstantRanges;
     info.pushConstantRangeCount = 1;
@@ -493,7 +493,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
 
-    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(ArEngine::Vertex),
+    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
                                                           VK_VERTEX_INPUT_RATE_VERTEX};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
             {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
@@ -556,10 +556,10 @@ void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *mod
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, b ? pipeline : selectionPipeline);
 
 
-    ArEngine::MousePositionPushConstant constants{};
+    VkRender::MousePositionPushConstant constants{};
     constants.position = glm::vec2(640, 360);
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(ArEngine::MousePositionPushConstant), &constants);
+                       sizeof(VkRender::MousePositionPushConstant), &constants);
 
 
     const VkDeviceSize offsets[1] = {0};

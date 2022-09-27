@@ -19,7 +19,7 @@
 #include <MultiSense/src/Core/Texture.h>
 #include "imgui_internal.h"
 
-namespace AR {
+namespace MultiSense {
 
 
     class GuiManager {

@@ -503,7 +503,7 @@ void VulkanRenderer::prepare() {
     createPipelineCache();
     setupMainFramebuffer();
 
-    guiManager = new AR::GuiManager(vulkanDevice);
+    guiManager = new MultiSense::GuiManager(vulkanDevice);
     std::vector<VkPipelineShaderStageCreateInfo> shaders;
     shaders = {
             loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
@@ -664,7 +664,7 @@ void VulkanRenderer::submitFrame() {
 }
 
 
-void VulkanRenderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
+void VulkanRenderer::UIUpdate(MultiSense::GuiObjectHandles *uiSettings) {
 
 }
 

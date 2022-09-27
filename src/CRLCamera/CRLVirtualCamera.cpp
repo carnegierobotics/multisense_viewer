@@ -164,7 +164,7 @@ void CRLVirtualCamera::preparePointCloud(uint32_t width, uint32_t height) {;
 }
 
 
-bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame, StreamIndex parent) {
+bool CRLVirtualCamera::getCameraStream(VkRender::MP4Frame *frame, StreamIndex parent) {
     if (parentKeyMap.empty())
         return false;
 
@@ -227,7 +227,7 @@ bool CRLVirtualCamera::getCameraStream(ArEngine::MP4Frame *frame, StreamIndex pa
 
 
 // TODO COMPLETE IMPLEMENTATION
-bool CRLVirtualCamera::getCameraStream(ArEngine::YUVTexture *tex) {
+bool CRLVirtualCamera::getCameraStream(VkRender::YUVTexture *tex) {
 
     return false;
 }

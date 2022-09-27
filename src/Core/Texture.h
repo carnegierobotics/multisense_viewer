@@ -149,9 +149,9 @@ public:
     VkSamplerYcbcrConversionInfo createYUV420Sampler(VkFormat format);
     void createDefaultSampler();
 
-    void updateTextureFromBuffer(ArEngine::TextureData *tex);
-    void updateTextureFromBufferYUV(ArEngine::TextureData *tex);
-    void updateTextureFromBufferYUV(ArEngine::MP4Frame *frame);
+    void updateTextureFromBuffer(VkRender::TextureData *tex);
+    void updateTextureFromBufferYUV(VkRender::TextureData *tex);
+    void updateTextureFromBufferYUV(VkRender::MP4Frame *frame);
 
 };
 

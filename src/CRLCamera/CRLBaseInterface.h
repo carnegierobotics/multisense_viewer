@@ -49,9 +49,9 @@ public:
     virtual CameraInfo getCameraInfo() = 0;
 
 
-    virtual bool getCameraStream(ArEngine::YUVTexture *tex) { return false;};
-    virtual bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) { return  false;};
-    virtual bool getCameraStream(ArEngine::MP4Frame* frame, StreamIndex parent) { return false; };
+    virtual bool getCameraStream(VkRender::YUVTexture *tex) { return false;};
+    virtual bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex) { return  false;};
+    virtual bool getCameraStream(VkRender::MP4Frame* frame, StreamIndex parent) { return false; };
 
 
     virtual void setExposure(uint32_t e){}

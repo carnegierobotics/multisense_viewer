@@ -71,7 +71,7 @@ bool CRLPhysicalCamera::stop(std::string dataSourceStr) {
     }
 }
 
-bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
+bool CRLPhysicalCamera::getCameraStream(VkRender::YUVTexture *tex) {
     assert(tex != nullptr);
     tex->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
 
@@ -97,7 +97,7 @@ bool CRLPhysicalCamera::getCameraStream(ArEngine::YUVTexture *tex) {
 
 }
 
-bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) {
+bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex) {
 
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span =

@@ -12,7 +12,7 @@
  *         pushLayer<[LayerName]>();
  *
 **/
-class LayerExample : public AR::Layer {
+class LayerExample : public MultiSense::Layer {
 public:
 
 
@@ -27,7 +27,7 @@ public:
     }
 
     /** Called once per frame **/
-    void OnUIRender(AR::GuiObjectHandles *_handles) override {
+    void OnUIRender(MultiSense::GuiObjectHandles *_handles) override {
 
 
         /*

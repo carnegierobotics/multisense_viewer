@@ -16,7 +16,7 @@
 #include "MultiSense/src/Core/Definitions.h"
 #include "MultiSense/src/Core/KeyInput.h"
 
-namespace AR {
+namespace MultiSense {
 
     struct GuiLayerUpdateInfo {
         bool firstFrame{};
@@ -91,12 +91,12 @@ namespace AR {
 /** @brief Handle which is the communication from GUI to Scripts */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
-        std::vector<Element> *devices = new std::vector<Element>();
+        std::vector<Device> *devices = new std::vector<Device>();
         /** @brief Static info used in creation of gui */
         GuiLayerUpdateInfo *info{};
 
         /** Keypress and mouse events */
-        const ArEngine::MouseButtons* mouseBtns{};
+        const VkRender::MouseButtons* mouseBtns{};
         float accumulatedActiveScroll = 0.0f;
         const Input* input{};
 

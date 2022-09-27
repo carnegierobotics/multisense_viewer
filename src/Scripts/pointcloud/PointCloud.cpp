@@ -22,13 +22,13 @@ void PointCloud::update() {
     }
 
     if (model->draw) {
-        auto *tex = new ArEngine::TextureData(AR_DISPARITY_IMAGE);
+        auto *tex = new VkRender::TextureData(AR_DISPARITY_IMAGE);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setTexture(tex);
             free(tex->data);
         }
 
-        auto *tex2 = new ArEngine::TextureData(AR_POINT_CLOUD);
+        auto *tex2 = new VkRender::TextureData(AR_POINT_CLOUD);
         if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex2)) {
             model->setTexture(tex2);
             free(tex2->data);
@@ -36,7 +36,7 @@ void PointCloud::update() {
         delete tex;
         delete tex2;
     }
-    ArEngine::UBOMatrix mat{};
+    VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
 
@@ -45,12 +45,12 @@ void PointCloud::update() {
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
-    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
+    auto *d = (VkRender::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
+    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -58,7 +58,7 @@ void PointCloud::update() {
 }
 
 
-void PointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void PointCloud::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle.devices) {
 
@@ -90,7 +90,7 @@ void PointCloud::prepareTexture() {
     auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
     width = imgConf.width();
     height = imgConf.height();
-    meshData = new ArEngine::Vertex[width * height];
+    meshData = new VkRender::Vertex[width * height];
     int v = 0;
     // first few rows and cols (20) are discarded in the shader anyway
     for (int i = 20; i < width-20; ++i) {
@@ -101,7 +101,7 @@ void PointCloud::prepareTexture() {
         }
     }
     const uint32_t vtxBufSize = width * height;
-    model->createMeshDeviceLocal((ArEngine::Vertex *) meshData, vtxBufSize, nullptr, 0);
+    model->createMeshDeviceLocal((VkRender::Vertex *) meshData, vtxBufSize, nullptr, 0);
     delete[] meshData;
 
     renderData.crlCamera->get()->preparePointCloud(width, height);
@@ -114,7 +114,7 @@ void PointCloud::prepareTexture() {
 
     CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
 
-    auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
+    auto *buf = (VkRender::PointCloudParam *) bufferThreeData;
     buf->kInverse = renderData.crlCamera->get()->getCameraInfo().kInverseMatrix;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);

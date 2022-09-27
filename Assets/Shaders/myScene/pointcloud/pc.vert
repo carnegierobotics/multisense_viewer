@@ -39,7 +39,7 @@ void main()
 
     vec4 coords = vec4(0.0f, 0.0f, 0.0f, 0.0f);
     vec2 uvCoords = vec2(int((1 - inUV.x) * width), int((1 - inUV.y) * height));
-    if (uvCoords.x < 20 || uvCoords.y < 20 || depth < 2){
+    if ((uvCoords.x < 20 || uvCoords.x > width - 20) || (uvCoords.y < 20 || uvCoords.y > height - 20) || depth < 5){
         gl_Position = vec4(0.0f, 0.0f, 0.0f, 0.0f);
         return;
     }

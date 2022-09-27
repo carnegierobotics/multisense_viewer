@@ -102,7 +102,7 @@ protected:
      * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
      * @param uiSettings Handle to UISetting variables
      */
-    void UIUpdate(AR::GuiObjectHandles *uiSettings) override;
+    void UIUpdate(MultiSense::GuiObjectHandles *uiSettings) override;
 
     /**
      *

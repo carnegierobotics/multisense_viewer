@@ -19,13 +19,13 @@ void VirtualPointCloud::setup(Base::Render r) {
 
     CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
 
-    auto *buf = (ArEngine::PointCloudParam *) bufferThreeData;
+    auto *buf = (VkRender::PointCloudParam *) bufferThreeData;
     //buf->kInverse = r.crlCamera->getCameraInfo().kInverseMatrix;
     buf->height = static_cast<float>(960.0f);
     buf->width = static_cast<float>(600.0f);
     std::cout << glm::to_string(buf->kInverse) << std::endl;
 
-    meshData = new ArEngine::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
+    meshData = new VkRender::Vertex[vertexCount]; // Don't forget to delete [] a; when you're done!
 
     int v = 0;
     for (int i = 0; i < 960; ++i) {
@@ -52,21 +52,21 @@ void VirtualPointCloud::update() {
 
     free((void *) disp.imageDataP);
 
-    model->createMesh((ArEngine::Vertex *) meshData, vertexCount);
+    model->createMesh((VkRender::Vertex *) meshData, vertexCount);
 
 
-    ArEngine::UBOMatrix mat{};
+    VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -5.0f));
     mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
-    auto *d = (ArEngine::UBOMatrix *) bufferOneData;
+    auto *d = (VkRender::UBOMatrix *) bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (ArEngine::FragShaderParams *) bufferTwoData;
+    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -74,7 +74,7 @@ void VirtualPointCloud::update() {
 }
 
 
-void VirtualPointCloud::onUIUpdate(AR::GuiObjectHandles uiHandle) {
+void VirtualPointCloud::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)

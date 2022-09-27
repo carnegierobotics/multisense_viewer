@@ -33,8 +33,8 @@ public:
     bool start(CRLCameraResolution resolution, std::string dataSourceStr) override;
     bool stop(std::string dataSourceStr) override;
     void updateCameraInfo() override;
-    bool getCameraStream(ArEngine::YUVTexture *tex) override;
-    bool getCameraStream(std::string stringSrc, ArEngine::TextureData *tex) override;
+    bool getCameraStream(VkRender::YUVTexture *tex) override;
+    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex) override;
 
     CameraInfo getCameraInfo() override;
     void preparePointCloud(uint32_t i, uint32_t i1) override;

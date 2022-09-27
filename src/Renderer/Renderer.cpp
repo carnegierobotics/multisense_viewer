@@ -33,7 +33,7 @@ void Renderer::prepareRenderer() {
             int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
             std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
             int state = std::stoi(ini.GetValue(section.pItem, "State", "7"));
-            AR::Element el;
+            MultiSense::Device el;
             el.name = profileName;
             el.IP = IP;
             el.state = static_cast<ArConnectionState>(state);
@@ -50,7 +50,7 @@ void Renderer::prepareRenderer() {
 }
 
 
-void Renderer::UIUpdate(AR::GuiObjectHandles *uiSettings) {
+void Renderer::UIUpdate(MultiSense::GuiObjectHandles *uiSettings) {
 
 }
 
@@ -229,7 +229,7 @@ void Renderer::render() {
                 }
             }
         }
-        // Check if camera connection was AR RESET and clean up all Scripts attached to that camera connection
+        // Check if camera connection was MultiSense RESET and clean up all Scripts attached to that camera connection
         if (dev.state == AR_STATE_RESET) {
             // delete all Scripts attached to device
             for (const std::string &script: dev.attachedScripts)

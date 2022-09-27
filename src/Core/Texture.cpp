@@ -1305,7 +1305,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 }
 
 
-void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
+void TextureVideo::updateTextureFromBuffer(VkRender::TextureData *tex) {
     if (size < tex->len) {
         Log::Logger::getInstance()->info("Size mismatch between grayscale texture image and camera image");
         return;
@@ -1370,7 +1370,7 @@ void TextureVideo::updateTextureFromBuffer(ArEngine::TextureData *tex) {
 }
 
 
-void TextureVideo::updateTextureFromBufferYUV(ArEngine::TextureData *tex) {
+void TextureVideo::updateTextureFromBufferYUV(VkRender::TextureData *tex) {
     if (size < tex->planar.len[0] || size < tex->planar.len[1]) {
         Log::Logger::getInstance()->info("Size mismatch between color texture image and camera image");
         return;
@@ -1459,7 +1459,7 @@ void TextureVideo::updateTextureFromBufferYUV(ArEngine::TextureData *tex) {
 
 }
 
-void TextureVideo::updateTextureFromBufferYUV(ArEngine::MP4Frame *frame) {
+void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
 
 
     // Create a host-visible staging buffer that contains the raw image data

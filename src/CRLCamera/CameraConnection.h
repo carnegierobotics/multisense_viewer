@@ -29,7 +29,7 @@ public:
     /** @brief Handle to the current camera object */
     bool preview = false;
     std::string lastActiveDevice = "-1";
-    void onUIUpdate(std::vector<AR::Element> *pVector);
+    void onUIUpdate(std::vector<MultiSense::Device> *pVector);
 
     std::unique_ptr<CRLBaseInterface> camPtr;
     std::unique_ptr<ThreadPool> pool;
@@ -44,17 +44,17 @@ private:
 #endif
     std::string hostAddress;
 
-    void updateActiveDevice(AR::Element *dev);
+    void updateActiveDevice(MultiSense::Device *dev);
 
-    void connectCrlCamera(AR::Element &element);
+    void connectCrlCamera(MultiSense::Device &element);
 
-    void updateDeviceState(AR::Element *element);
+    void updateDeviceState(MultiSense::Device *element);
 
-    void disableCrlCamera(AR::Element &dev);
+    void disableCrlCamera(MultiSense::Device &dev);
 
-    bool setNetworkAdapterParameters(AR::Element &dev);
+    bool setNetworkAdapterParameters(MultiSense::Device &dev);
 
-    void setStreamingModes(AR::Element &dev);
+    void setStreamingModes(MultiSense::Device &dev);
 
     void initCameraModes(std::vector<std::string> *modes, std::vector<crl::multisense::system::DeviceMode> vector);
 
@@ -85,14 +85,14 @@ private:
 
 
     // Caller functions for threadpool
-    static void setExposureTask(void * context, void* arg1, AR::Element* dev);
-    static void setWhiteBalanceTask(void * context, void* arg1, AR::Element* dev);
-    static void setLightingTask(void * context, void* arg1, AR::Element* dev);
-    static void setAdditionalParametersTask(void * context, float fps, float gain, float gamma, float spfs, AR::Element* dev);
-    static void connectCRLCameraTask(void* context, AR::Element* dev);
-    static void disconnectCRLCameraTask(void* context, AR::Element* dev);
+    static void setExposureTask(void * context, void* arg1, MultiSense::Device* dev);
+    static void setWhiteBalanceTask(void * context, void* arg1, MultiSense::Device* dev);
+    static void setLightingTask(void * context, void* arg1, MultiSense::Device* dev);
+    static void setAdditionalParametersTask(void * context, float fps, float gain, float gamma, float spfs, MultiSense::Device* dev);
+    static void connectCRLCameraTask(void* context, MultiSense::Device* dev);
+    static void disconnectCRLCameraTask(void* context, MultiSense::Device* dev);
 
-    void updateFromCameraParameters(AR::Element *dev) const;
+    void updateFromCameraParameters(MultiSense::Device *dev) const;
 };
 
 

@@ -139,14 +139,6 @@ namespace Utils {
     }
 
 
-    inline bool findValIfExists(std::map<int, AR::StreamingModes> map, StreamIndex streamIndex) {
-        if (map.find(streamIndex) == map.end()) {
-            Log::Logger::getInstance()->info("Could not find {} in stream map", (uint32_t) streamIndex);
-            return false;
-        }
-        return true;
-    }
-
     /**@brief small utility function. Usage of this makes other code more readable */
     inline bool isInVector(std::vector<std::string> v, const std::string &str) {
         if (std::find(v.begin(), v.end(), str) != v.end())

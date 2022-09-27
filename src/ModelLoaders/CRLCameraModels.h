@@ -73,21 +73,21 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(ArEngine::Vertex *_vertices, uint32_t vtxBufferSize);
+        void createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize);
 
         void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& fileName);
 
         void
-        createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices,
+        createMeshDeviceLocal(VkRender::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices,
                               uint32_t indexCount);
 
         void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setTexture(ArEngine::MP4Frame* frame);
+        void setTexture(VkRender::MP4Frame* frame);
 
-        void setTexture(ArEngine::YUVTexture *tex);
+        void setTexture(VkRender::YUVTexture *tex);
 
-        void setTexture(ArEngine::TextureData *tex);
+        void setTexture(VkRender::TextureData *tex);
 
         void setZoom();
     };
@@ -108,13 +108,13 @@ public:
             quad.vertexCount = vertexCount;
             quad.indexCount = indexCount;
             // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(ArEngine::Vertex));
+            quad.vertices = calloc(vertexCount, sizeof(VkRender::Vertex));
             quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
 
-            auto *vP = (ArEngine::Vertex *) quad.vertices;
+            auto *vP = (VkRender::Vertex *) quad.vertices;
             auto *iP = (uint32_t *) quad.indices;
 
-            ArEngine::Vertex vertex[4]{};
+            VkRender::Vertex vertex[4]{};
             vertex[0].pos = glm::vec3(-1.0f, -1.0f + y, 0.0f);
             vertex[1].pos = glm::vec3(1.0f, -1.0f + y, 0.0f);
             vertex[2].pos = glm::vec3(1.0f, 1.0f + y, 0.0f);

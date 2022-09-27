@@ -29,7 +29,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(AR::GuiObjectHandles uiHandle) override;
+    void onUIUpdate(MultiSense::GuiObjectHandles uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
@@ -40,7 +40,7 @@ public:
     Page selectedPreviewTab = TAB_NONE;
 
     const int vertexCount = 960 * 600;
-    ArEngine::Vertex *meshData{}; // Don't forget to de
+    VkRender::Vertex *meshData{}; // Don't forget to de
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

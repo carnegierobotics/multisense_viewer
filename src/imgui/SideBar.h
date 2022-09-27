@@ -13,9 +13,9 @@
 #define AutoConnectHandle AutoConnectWindows
 #define elevated() Utils::hasAdminRights()
 #else
-
+#include <unistd.h>
+#include <sys/types.h>
 #include "AutoConnectLinux.h"
-
 #define AutoConnectHandle AutoConnectLinux
 #define elevated() getuid()
 #endif

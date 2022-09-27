@@ -89,8 +89,8 @@ private:
     VkMemoryRequirements memReqs{};
 protected:
 
-    glm::vec3 defaultCameraPosition = glm::vec3(2.0f, 1.2f, -5.0f);
-    glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -0.5f);
+    glm::vec3 defaultCameraRotation = glm::vec3(-4.4f, -3.2f , 0.0f);
 
     void windowResized() override;
 

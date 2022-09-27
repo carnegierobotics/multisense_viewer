@@ -25,28 +25,18 @@ CRLCameraModels::Model::~Model() {
 
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
-void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount) {
-    size_t vertexBufferSize = vertexCount * sizeof(ArEngine::Vertex);
-
-    mesh.vertexCount = vertexCount;
-    if (mesh.vertices.buffer == nullptr) {
-        CHECK_RESULT(vulkanDevice->createBuffer(
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                vertexBufferSize,
-                &mesh.vertices.buffer,
-                &mesh.vertices.memory,
-                _vertices))
-    } else {
-        void *data{};
-        // TODO dont map and unmmap memory every time
-        vkMapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, _vertices, vertexBufferSize);
-        vkUnmapMemory(vulkanDevice->logicalDevice, mesh.vertices.memory);
-    }
+void CRLCameraModels::Model::createMesh(ArEngine::Vertex *_vertices, uint32_t vtxBufferSize) {
+    mesh.vertexCount = vtxBufferSize;
+    CHECK_RESULT(vulkanDevice->createBuffer(
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            vtxBufferSize,
+            &mesh.vertices.buffer,
+            &mesh.vertices.memory,
+            _vertices))
 }
-// TODO change signature to CreateMesh(), and let function decide if its device local or not
 
+// TODO change signature to CreateMesh(), and let function decide if its device local or not
 void
 CRLCameraModels::Model::createMeshDeviceLocal(ArEngine::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
                                               uint32_t
@@ -262,7 +252,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
             createPointCloudDescriptors(model, ubo);
             break;
         default:
-            std::cerr  << "Model type not supported yet\n";
+            std::cerr << "Model type not supported yet\n";
             break;
     }
 
@@ -431,7 +421,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
 void CRLCameraModels::createPipelineLayout() {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 
-    VkPushConstantRange pushconstantRanges {};
+    VkPushConstantRange pushconstantRanges{};
 
     pushconstantRanges.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushconstantRanges.offset = 0;
@@ -541,7 +531,6 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, pPipelineT));
 
 
-
 }
 
 
@@ -569,7 +558,8 @@ void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *mod
 
     ArEngine::MousePositionPushConstant constants{};
     constants.position = glm::vec2(640, 360);
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ArEngine::MousePositionPushConstant), &constants);
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                       sizeof(ArEngine::MousePositionPushConstant), &constants);
 
 
     const VkDeviceSize offsets[1] = {0};

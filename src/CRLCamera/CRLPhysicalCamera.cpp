@@ -13,8 +13,7 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
         if (cameraInterface != nullptr) {
             updateCameraInfo();
             addCallbacks();
-            callbackTime = std::chrono::steady_clock::now();
-            startTime = std::chrono::steady_clock::now();
+
 
             int mtuSize = 7200;
             int status = cameraInterface->setMtu(mtuSize);
@@ -23,11 +22,14 @@ bool CRLPhysicalCamera::connect(const std::string &ip) {
             } else {
                 Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
             }
+
+            // Start some timers
+            callbackTime = std::chrono::steady_clock::now();
+            startTime = std::chrono::steady_clock::now();
+
             return true;
         }
     }
-
-
     return false;
 }
 

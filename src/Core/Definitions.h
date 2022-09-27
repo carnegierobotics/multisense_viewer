@@ -133,7 +133,7 @@ struct WhiteBalanceParams {
     bool update = false;
 };
 
-struct Lighting {
+struct LightingParams {
     float dutyCycle = 1.0f;
     uint32_t selection = 1;
     bool enable = true;
@@ -190,7 +190,7 @@ namespace AR {
     struct Parameters {
         ExposureParams ep;
         WhiteBalanceParams wb;
-        Lighting light;
+        LightingParams light;
 
         bool initialized = false;
 
@@ -224,26 +224,26 @@ namespace AR {
         std::string interfaceName;
         uint32_t interfaceIndex = 0;
         /** @brief Flag for registering if device is clicked in sidebar */
-        bool clicked;
+        bool clicked = false;
         /** @brief Current connection state for this device */
-        ArConnectionState state;
+        ArConnectionState state = AR_STATE_UNAVAILABLE;
 
         std::map<int, StreamingModes> streams;
 
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-        std::vector<std::string> modes;
+        std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
         uint32_t selectedSourceIndex = 0;
-        CRLCameraResolution selectedMode;
+        CRLCameraResolution selectedMode{};
         std::vector<std::string> sources; // Human-readable names of camera sources
-        std::map<uint32_t, std::string> selectedSourceMap;
-        std::map<uint32_t, uint32_t> selectedSourceIndexMap;
-        std::map<uint32_t, int> hoveredPixelInfo;
+        std::map<uint32_t, std::string> selectedSourceMap{};
+        std::map<uint32_t, uint32_t> selectedSourceIndexMap{};
+        std::map<uint32_t, int> hoveredPixelInfo{};
 
-        std::vector<std::string> userRequestedSources;
-        std::vector<std::string> enabledStreams;
-        std::vector<std::string> attachedScripts;
+        std::vector<std::string> userRequestedSources{};
+        std::vector<std::string> enabledStreams{};
+        std::vector<std::string> attachedScripts{};
         float row[9] = {0};
         float col[9] = {0};
         bool pixelInfoEnable = false;

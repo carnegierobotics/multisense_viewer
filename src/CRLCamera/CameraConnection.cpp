@@ -40,10 +40,6 @@
 #include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
 
-CameraConnection::CameraConnection() {
-
-}
-
 void CameraConnection::updateActiveDevice(AR::Element *dev) {
     auto *p = &dev->parameters;
     if (!dev->parameters.initialized) {
@@ -71,51 +67,23 @@ void CameraConnection::updateActiveDevice(AR::Element *dev) {
         p->initialized = true;
     }
 
-    bool runUpdateFlag = false;
     if (dev->parameters.ep.update) {
-        camPtr->setExposureParams(p->ep);
-        runUpdateFlag = true;
+        pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev);
     }
     if (dev->parameters.wb.update) {
-        camPtr->setWhiteBalance(p->wb);
-        runUpdateFlag = true;
+        pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev);
+
     }
     if (dev->parameters.light.update) {
-        runUpdateFlag = true;
+        pool->Push(CameraConnection::setLightingTask, this, &p->light, dev);
+
     }
     if (dev->parameters.update) {
-        camPtr->setGamma(p->gamma);
-        camPtr->setGain(p->gain);
-        camPtr->setFps(p->fps);
-        camPtr->setPostFilterStrength(p->stereoPostFilterStrength);
-        runUpdateFlag = true;
+        pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
+                   p->stereoPostFilterStrength, dev);
     }
 
-    // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
-    if (runUpdateFlag) {
-        const auto &conf = camPtr->getCameraInfo().imgConf;
-        p->ep.exposure = conf.exposure();
-        p->ep.autoExposure = conf.autoExposure();
-        p->ep.exposureSource = conf.exposureSource();
-        p->ep.autoExposureThresh = conf.autoExposureThresh();
-        p->ep.autoExposureDecay = conf.autoExposureDecay();
-        p->ep.autoExposureMax = conf.autoExposureMax();
-        p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
-        p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
-        p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
-        p->ep.autoExposureRoiX = conf.autoExposureRoiX();
-        p->ep.autoExposureRoiY = conf.autoExposureRoiY();
-        p->gain = conf.gain();
-        p->fps = conf.fps();
-        p->gamma = conf.gamma();
-        p->wb.autoWhiteBalance = conf.autoWhiteBalance();
-        p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
-        p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
-        p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
-        p->wb.whiteBalanceRed = conf.whiteBalanceRed();
-        p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
-        dev->parameters.update = false;
-    }
+
 
     // Set the correct resolution. Will only update if changed.
     camPtr->setResolution(dev->selectedMode);
@@ -155,7 +123,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
     for (auto &dev: *pVector) {
 
         if (dev.state == AR_STATE_RESET) {
-            disableCrlCamera(dev);
+            pool->Push(CameraConnection::disconnectCRLCameraTask, this, &dev);
             dev.state = AR_STATE_UNAVAILABLE;
             for (auto &s: dev.streams) {
                 s.second.playbackStatus = AR_PREVIEW_NONE;
@@ -177,14 +145,15 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
                 }
             }
             if (resetOtherDeviceFirst) {
-                disableCrlCamera(*otherDev);
+                pool->Push(CameraConnection::disconnectCRLCameraTask, this, otherDev);
             }
-            connectCrlCamera(dev);
+            pool->Push(CameraConnection::connectCRLCameraTask, this, &dev);
+            dev.state = AR_STATE_CONNECTING;
             break;
         }
 
         updateDeviceState(&dev);
-        // Make sure inactive devices' preview are not drawn.
+        // Rest of this function is only for active devices
         if (dev.state != AR_STATE_ACTIVE) {
             continue;
         }
@@ -199,43 +168,7 @@ void CameraConnection::onUIUpdate(std::vector<AR::Element> *pVector) {
 }
 
 void CameraConnection::connectCrlCamera(AR::Element &dev) {
-    // 1. Connect to camera
-    // 2. If successful: Disable any other available camera
-    bool connected = false;
-    Log::Logger::getInstance()->info("Connect.");
-    if (dev.cameraName == "Virtual Camera") {
-        camPtr = std::make_unique<CRLVirtualCamera>();
-        connected = camPtr->connect("None");
-        if (connected) {
-            dev.state = AR_STATE_ACTIVE;
-            dev.cameraName = "Virtual Camera";
-            dev.IP = "Local";
-            lastActiveDevice = dev.name;
-            dev.modes.emplace_back("1920x1080");
-            dev.sources.emplace_back("rowbot_short.mpg");
-            dev.selectedMode = Utils::stringToCameraResolution(dev.modes.front());
-            Log::Logger::getInstance()->info("Creating new Virtual Camera.");
-        } else
-            dev.state = AR_STATE_UNAVAILABLE;
-    } else {
-        if (!setNetworkAdapterParameters(dev)) {
-            dev.state = AR_STATE_UNAVAILABLE;
-            return;
-        }
-        Log::Logger::getInstance()->info("Creating new physical camera.");
-        // TODO Segfault on reconnects. One of those hard to debug errors but seems to be consistently hitting here at least.
-        camPtr = std::make_unique<CRLPhysicalCamera>();
-        connected = camPtr->connect(dev.IP);
-        if (connected) {
-            dev.state = AR_STATE_ACTIVE;
-            dev.cameraName = camPtr->getCameraInfo().devInfo.name;
-            setStreamingModes(dev);
-            lastActiveDevice = dev.name;
-        } else {
-            disableCrlCamera(dev);
 
-        }
-    }
 }
 
 void CameraConnection::setStreamingModes(AR::Element &dev) {
@@ -430,66 +363,10 @@ bool CameraConnection::setNetworkAdapterParameters(AR::Element &dev) {
 
 void CameraConnection::updateDeviceState(AR::Element *dev) {
 
-    dev->state = AR_STATE_UNAVAILABLE;
-
-    // IF our clicked device is the one we already clicked
-    if (dev->name == lastActiveDevice) {
-        dev->state = AR_STATE_ACTIVE;
-    }
-
-
 }
 
 void CameraConnection::disableCrlCamera(AR::Element &dev) {
-    dev.state = AR_STATE_DISCONNECTED;
-    lastActiveDevice = "-1";
-    Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev.name.c_str(),
-                                     dev.cameraName.c_str());
-    // Save settings to file. Attempt to create a new file if it doesn't exist
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    SI_Error rc = ini.LoadFile("crl.ini");
-    if (rc < 0) {
-        // File doesn't exist error, then create one
-        if (rc == SI_FILE && errno == ENOENT) {
-            std::ofstream output("crl.ini");
-            rc = ini.LoadFile("crl.ini");
-        } else
-            Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
-    }
-    std::string CRLSerialNumber = camPtr->getCameraInfo().devInfo.serialNumber;
-    // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
 
-    // new entry given we have a valid ini file entry
-    if (rc >= 0 && !CRLSerialNumber.empty()) {
-        // Profile Data
-        addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev.name);
-        addIniEntry(&ini, CRLSerialNumber, "AdapterName", dev.interfaceName);
-        addIniEntry(&ini, CRLSerialNumber, "CameraName", dev.cameraName);
-        addIniEntry(&ini, CRLSerialNumber, "IP", dev.IP);
-        addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev.interfaceIndex));
-        addIniEntry(&ini, CRLSerialNumber, "State", std::to_string((int) dev.state));
-        // Preview Data
-        addIniEntry(&ini, CRLSerialNumber, "Mode", std::to_string((int) dev.selectedMode));
-        addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev.layout));
-        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-            if (dev.selectedSourceMap.contains(i)) {
-                std::string key = "Preview" + std::to_string(i + 1);
-                addIniEntry(&ini, CRLSerialNumber, key, dev.selectedSourceMap[i]);
-            }
-
-            // save the data back to the file
-            rc = ini.SaveFile("crl.ini");
-            if (rc < 0) {
-                Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
-            }
-        }
-    }
-    dev.userRequestedSources.clear();
-    dev.enabledStreams.clear();
-    dev.selectedSourceMap.clear();
-    dev.selectedSourceIndexMap.clear();
-    camPtr.reset();
 }
 
 void CameraConnection::addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value) {
@@ -505,12 +382,171 @@ void CameraConnection::addIniEntry(CSimpleIniA *ini, std::string section, std::s
 CameraConnection::~CameraConnection() {
     // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
     // stops all streams on the camera
-
 #ifndef WIN32
     if (sd != -1)
         close(sd);
 #endif // !WIN32
+}
 
+
+
+void CameraConnection::connectCRLCameraTask(void *context, AR::Element *dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    // 1. Connect to camera
+    // 2. If successful: Disable any other available camera
+    bool connected = false;
+    Log::Logger::getInstance()->info("Connect.");
+    if (dev->cameraName == "Virtual Camera") {
+        app->camPtr = std::make_unique<CRLVirtualCamera>();
+        connected = app->camPtr->connect("None");
+        if (connected) {
+            dev->state = AR_STATE_ACTIVE;
+            dev->cameraName = "Virtual Camera";
+            dev->IP = "Local";
+            app->lastActiveDevice = dev->name;
+            dev->modes.emplace_back("1920x1080");
+            dev->sources.emplace_back("rowbot_short.mpg");
+            dev->selectedMode = Utils::stringToCameraResolution(dev->modes.front());
+            Log::Logger::getInstance()->info("Creating new Virtual Camera.");
+        } else
+            dev->state = AR_STATE_UNAVAILABLE;
+    } else {
+        if (!app->setNetworkAdapterParameters(*dev)) {
+            dev->state = AR_STATE_UNAVAILABLE;
+            return;
+        }
+        Log::Logger::getInstance()->info("Creating new physical camera.");
+        // TODO Segfault on reconnects. One of those hard to debug errors but seems to be consistently hitting here at least.
+        app->camPtr = std::make_unique<CRLPhysicalCamera>();
+        connected = app->camPtr->connect(dev->IP);
+        if (connected) {
+            dev->state = AR_STATE_ACTIVE;
+            dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
+            app->setStreamingModes(*dev);
+            app->lastActiveDevice = dev->name;
+        } else {
+            dev->state = AR_STATE_UNAVAILABLE;
+            app->lastActiveDevice = "-1";
+        }
+    }
+
+}
+
+void CameraConnection::disconnectCRLCameraTask(void *context, AR::Element *dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+
+    dev->state = AR_STATE_DISCONNECTED;
+    app->lastActiveDevice = "-1";
+    Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
+                                     dev->cameraName.c_str());
+    // Save settings to file. Attempt to create a new file if it doesn't exist
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile("crl.ini");
+    if (rc < 0) {
+        // File doesn't exist error, then create one
+        if (rc == SI_FILE && errno == ENOENT) {
+            std::ofstream output("crl.ini");
+            rc = ini.LoadFile("crl.ini");
+        } else
+            Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
+    }
+    std::string CRLSerialNumber = app->camPtr->getCameraInfo().devInfo.serialNumber;
+    // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
+
+    // new entry given we have a valid ini file entry
+    if (rc >= 0 && !CRLSerialNumber.empty()) {
+        // Profile Data
+        addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev->name);
+        addIniEntry(&ini, CRLSerialNumber, "AdapterName", dev->interfaceName);
+        addIniEntry(&ini, CRLSerialNumber, "CameraName", dev->cameraName);
+        addIniEntry(&ini, CRLSerialNumber, "IP", dev->IP);
+        addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev->interfaceIndex));
+        addIniEntry(&ini, CRLSerialNumber, "State", std::to_string((int) dev->state));
+        // Preview Data
+        addIniEntry(&ini, CRLSerialNumber, "Mode", std::to_string((int) dev->selectedMode));
+        addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
+        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+            if (dev->selectedSourceMap.contains(i)) {
+                std::string key = "Preview" + std::to_string(i + 1);
+                addIniEntry(&ini, CRLSerialNumber, key, dev->selectedSourceMap[i]);
+            }
+
+            // save the data back to the file
+            rc = ini.SaveFile("crl.ini");
+            if (rc < 0) {
+                Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+            }
+        }
+    }
+    dev->userRequestedSources.clear();
+    dev->enabledStreams.clear();
+    dev->selectedSourceMap.clear();
+    dev->selectedSourceIndexMap.clear();
+    app->camPtr.reset();
+}
+
+void CameraConnection::setExposureTask(void *context, void *arg1, AR::Element* dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    auto *ep = reinterpret_cast<ExposureParams *>(arg1);
+
+    std::scoped_lock lock(app->writeParametersMtx);
+    app->camPtr->setExposureParams(*ep);
+    app->updateFromCameraParameters(dev);
+}
+
+void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, AR::Element* dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    auto *ep = reinterpret_cast<WhiteBalanceParams *>(arg1);
+    std::scoped_lock lock(app->writeParametersMtx);
+    app->camPtr->setWhiteBalance(*ep);
+    app->updateFromCameraParameters(dev);
+}
+
+void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs, AR::Element* dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    std::scoped_lock lock(app->writeParametersMtx);
+    app->camPtr->setGamma(gamma);
+    app->camPtr->setGain(gain);
+    app->camPtr->setFps(fps);
+    app->camPtr->setPostFilterStrength(spfs);
+    app->updateFromCameraParameters(dev);
+
+}
+
+void CameraConnection::setLightingTask(void *context, void *arg1, AR::Element* dev) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    auto *ep = reinterpret_cast<LightingParams *>(arg1);
+    std::scoped_lock lock(app->writeParametersMtx);
+    app->updateFromCameraParameters(dev);
+    // TODO implement
+}
+
+void CameraConnection::updateFromCameraParameters(AR::Element *dev) const {
+    // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
+    const auto &conf = camPtr->getCameraInfo().imgConf;
+    auto *p = &dev->parameters;
+    p->ep.exposure = conf.exposure();
+    p->ep.autoExposure = conf.autoExposure();
+    p->ep.exposureSource = conf.exposureSource();
+    p->ep.autoExposureThresh = conf.autoExposureThresh();
+    p->ep.autoExposureDecay = conf.autoExposureDecay();
+    p->ep.autoExposureMax = conf.autoExposureMax();
+    p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+    p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+    p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+    p->ep.autoExposureRoiX = conf.autoExposureRoiX();
+    p->ep.autoExposureRoiY = conf.autoExposureRoiY();
+    p->gain = conf.gain();
+    p->fps = conf.fps();
+    p->gamma = conf.gamma();
+    p->wb.autoWhiteBalance = conf.autoWhiteBalance();
+    p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
+    p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
+    p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
+    p->wb.whiteBalanceRed = conf.whiteBalanceRed();
+    p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
+    dev->parameters.update = false;
 
 }
 

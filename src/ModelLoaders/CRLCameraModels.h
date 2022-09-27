@@ -73,7 +73,7 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(ArEngine::Vertex *_vertices, uint32_t vertexCount);
+        void createMesh(ArEngine::Vertex *_vertices, uint32_t vtxBufferSize);
 
         void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& fileName);
 

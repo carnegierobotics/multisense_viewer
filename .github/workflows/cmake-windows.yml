@@ -66,7 +66,7 @@ jobs:
       uses: vimtor/action-zip@v1
       with:
         files: ${{github.workspace}}/build/${{env.INSTALL_PATH}}/*
-        dest: MultiSense_viewer.zip
+        dest: ${{github.workspace}}/build/MultiSense_viewer.zip
     - name: Upload Release Asset
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
@@ -77,6 +77,12 @@ jobs:
         asset_path: ./MultiSense_viewer.zip
         asset_name: MultiSense_viewer.zip
         asset_content_type: application/zip
+        
+    - name: "Create Artifact"
+      uses: actions/upload-artifact@v2
+      with:
+        name: multisense-zip
+        path: ${{github.workspace}}/build/MultiSense_viewer.zip
 
   BuildUbuntu:
     name: Build For Ubuntu
@@ -136,7 +142,32 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ./MultiSense_viewer.zip
-        asset_name: MultiSense_viewer.zip
+        asset_path: ./build/${{env.INSTALL_PATH}}.deb
+        asset_name: ${{env.INSTALL_PATH}}.deb
         asset_content_type: application/zip
         
+        
+  build:
+    name: Setup Windows Installer
+    needs: BuildWindows
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Get Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: multisense-zip
+        
+      - name: Extract some files
+        run: |
+          mkdir files
+          tar -xf MultiSense_viewer.zip -C .\files
+          cp ./files/Assets/Tools/windows/inno_setup_script.iss ./
+          
+      - name: Building the installer
+        run: |
+        "%programfiles(x86)%\\inno Setup 6\\iscc.exe" "inno_setup_script.iss"
+        shell: cmd

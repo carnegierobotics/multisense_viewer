@@ -166,7 +166,7 @@ jobs:
           mkdir files
           tar -xf MultiSense_viewer.zip -C .\files
           cp .\files\Assets\Tools\windows\inno_setup_script.iss .\
-          
+        shell: cmd
       - name: Building the installer
         run: |
           "%programfiles(x86)%\inno Setup 6\iscc.exe" "inno_setup_script.iss"

@@ -127,7 +127,9 @@ namespace AR {
     static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
 
     static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
-    static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.5f);
+    static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
+    static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
+
     static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
 

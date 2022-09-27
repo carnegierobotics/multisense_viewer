@@ -18,16 +18,18 @@ namespace Log {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
         m_LogLevel = LOG_LEVEL_TRACE;
         m_LogType = FILE_LOG;
+        pthread_mutex_init(&m_Mutex, NULL);
+
     }
 
 
     Logger::~Logger() {
         m_File.close();
-        //pthread_mutexattr_destroy(&m_Attr);
-        //pthread_mutex_destroy(&m_Mutex);
+        pthread_mutexattr_destroy(&m_Attr);
+        pthread_mutex_destroy(&m_Mutex);
     }
 
-    Logger *Logger::getInstance() throw() {
+    Logger *Logger::getInstance() noexcept {
         if (m_Instance == 0) {
             m_Instance = new Logger();
         }
@@ -35,11 +37,11 @@ namespace Log {
     }
 
     void Logger::lock() {
-        //pthread_mutex_lock(&m_Mutex);
+        pthread_mutex_lock(&m_Mutex);
     }
 
     void Logger::unlock() {
-        //pthread_mutex_unlock(&m_Mutex);
+        pthread_mutex_unlock(&m_Mutex);
     }
 
     void Logger::logIntoFile(std::string &data) {

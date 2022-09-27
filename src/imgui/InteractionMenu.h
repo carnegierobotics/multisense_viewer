@@ -86,7 +86,8 @@ public:
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
                 float posY = ImGui::GetCursorScreenPos().y;
 
-                ImVec2 size = ImVec2(100.0f, 100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                ImVec2 size = ImVec2(100.0f,
+                                     100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -98,7 +99,8 @@ public:
 
 
                 ImGui::PushFont(handles->info->font18);
-                ImGui::SetCursorPos(ImVec2(xOffset + ((100.0f - ImGui::CalcTextSize(labels[i]).x) / 2), (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
+                ImGui::SetCursorPos(ImVec2(xOffset + ((100.0f - ImGui::CalcTextSize(labels[i]).x) / 2),
+                                           (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
                 float posX = ImGui::GetCursorScreenPos().x;
                 ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextGray);
                 ImGui::Text("%s", labels[i]);
@@ -106,7 +108,8 @@ public:
 
 
                 // Reset cursorpos to first pos
-                ImVec2 btnSize = ImVec2(ImGui::CalcTextSize(labels[i]).x, imageButtonHeight + ImGui::CalcTextSize(labels[i]).y + 10.0f);
+                ImVec2 btnSize = ImVec2(ImGui::CalcTextSize(labels[i]).x,
+                                        imageButtonHeight + ImGui::CalcTextSize(labels[i]).y + 10.0f);
                 ImGui::PopFont();
 
                 ImVec2 pos(posX, posY);
@@ -118,12 +121,12 @@ public:
 
                 ImGui::SetCursorScreenPos(pos);
                 bool hovered = false;
-                ImGui::HoveredInvisibleButton(labels[i], &hovered, btnSize, 0);
-                if (hovered)
-                    ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(AR::CRLBlueIshTransparent), 5.0f);
-                else
-                    ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(AR::CRLCoolGrayTransparent), 5.0f);
+                bool held = false;
+                ImGui::HoveredInvisibleButton(labels[i], &hovered, &held, btnSize, 0);
 
+                ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(
+                        hovered && held ? AR::CRLBlueIshTransparent2 :
+                        hovered ? AR::CRLBlueIshTransparent : AR::CRLCoolGrayTransparent), 5.0f);
 
                 ImGui::SameLine();
             }
@@ -473,7 +476,7 @@ private:
 
     void drawVideoPreviewGuiOverlay(AR::GuiObjectHandles *handles, AR::Element &dev, bool withStreamControls) {
 
-        if (dev.selectedPreviewTab == TAB_2D_PREVIEW ) {
+        if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
 
             if (withStreamControls) {
                 ImVec2 size = ImVec2(65.0f,
@@ -798,7 +801,7 @@ private:
                 d.parameters.wb.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-                if (!d.parameters.wb.autoWhiteBalance){
+                if (!d.parameters.wb.autoWhiteBalance) {
                     ImGui::Dummy(ImVec2(25.0f, 0.0f));
                     ImGui::SameLine();
                     txt = "Red Balance:";
@@ -807,8 +810,8 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextWhite);
                     ImGui::SliderFloat("##WBRed",
-                                     &d.parameters.wb.whiteBalanceRed, 0.25f,
-                                     4.0f);
+                                       &d.parameters.wb.whiteBalanceRed, 0.25f,
+                                       4.0f);
                     d.parameters.wb.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -856,13 +859,13 @@ private:
 
             }
 
-            // Lighting controls
+            // LightingParams controls
             {
                 ImGui::PushFont(handles->info->font18);
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("Lighting - Not implemented");
+                ImGui::Text("LightingParams - Not implemented");
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
@@ -884,8 +887,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextWhite);
                 ImGui::SliderFloat("##Duty_Cycle",
-                                 &d.parameters.light.dutyCycle, 0,
-                                 100);
+                                   &d.parameters.light.dutyCycle, 0,
+                                   100);
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -960,8 +963,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextWhite);
                 ImGui::SliderFloat("##Framerate",
-                                 &d.parameters.fps, 1,
-                                 30);
+                                   &d.parameters.fps, 1,
+                                   30);
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -974,8 +977,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
-                                 &d.parameters.gain, 0,
-                                 3);
+                                   &d.parameters.gain, 0,
+                                   3);
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1002,8 +1005,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, AR::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
-                                 &d.parameters.stereoPostFilterStrength, 0,
-                                 1);
+                                   &d.parameters.stereoPostFilterStrength, 0,
+                                   1);
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

@@ -298,8 +298,8 @@ private:
                     break;
                 case AR_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.19f, 0.33f, 0.48f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.98f, 0.65f, 0.00f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, AR::CRLBlueIsh);
                     break;
                 case AR_STATE_ACTIVE:
                     buttonIdentifier = "Active";
@@ -312,7 +312,7 @@ private:
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.713f, 0.065f, 0.066f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, AR::CRLRed);
                     break;
                 case AR_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, AR::CRLGray424);

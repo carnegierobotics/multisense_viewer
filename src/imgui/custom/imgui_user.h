@@ -200,7 +200,7 @@ namespace ImGui {
     // Tip: use ImGui::PushID()/PopID() to push indices or pointers in the ID stack.
 // Then you can keep 'str_id' empty or the same for all your buttons (instead of creating a string based on a non-string id)
     inline bool
-    HoveredInvisibleButton(const char *str_id, bool *hovered, const ImVec2 &size_arg, ImGuiButtonFlags flags) {
+    HoveredInvisibleButton(const char *str_id, bool *hovered, bool* held, const ImVec2 &size_arg, ImGuiButtonFlags flags) {
         ImGuiContext &g = *GImGui;
         ImGuiWindow *window = GetCurrentWindow();
         if (window->SkipItems)
@@ -219,8 +219,7 @@ namespace ImGui {
         if (!ItemAdd(bb, id))
             return false;
 
-        bool held;
-        bool pressed = ButtonBehavior(bb, id, hovered, &held, flags);
+        bool pressed = ButtonBehavior(bb, id, hovered, held, flags);
 
         IMGUI_TEST_ENGINE_ITEM_INFO(id, str_id, g.LastItemData.StatusFlags);
         return pressed;
@@ -243,7 +242,8 @@ namespace ImGui {
         ImGui::SetCursorScreenPos(posMinScreen);
         ImGui::PushID(1);
         bool hovered = false;
-        if (HoveredInvisibleButton(str_id, &hovered, btnSize, 0)) {
+        bool held;
+        if (HoveredInvisibleButton(str_id, &hovered, &held, btnSize, 0)) {
             if (*idx != defaultValue)
                 *idx = defaultValue;
             else if (*idx == defaultValue)

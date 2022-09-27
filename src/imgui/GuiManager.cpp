@@ -12,7 +12,7 @@
 #endif
 
 
-#include <MultiSense/src/tools/Macros.h>
+#include <MultiSense/src/Tools/Macros.h>
 #include "GuiManager.h"
 #include "stb_image.h"
 #include "SideBar.h"

@@ -15,25 +15,25 @@
 #include <fstream>
 #include <filesystem>
 
-#include <MultiSense/src/core/VulkanRenderer.h>
-#include <MultiSense/src/core/Base.h>
-#include <MultiSense/src/core/ScriptBuilder.h>
-#include <MultiSense/src/tools/Macros.h>
-#include <MultiSense/src/core/CameraConnection.h>
+#include <MultiSense/src/Core/VulkanRenderer.h>
+#include <MultiSense/src/Scripts/Base.h>
+#include <MultiSense/src/Scripts/ScriptBuilder.h>
+#include <MultiSense/src/Tools/Macros.h>
+#include <MultiSense/src/CRLCamera/CameraConnection.h>
 
-// Include scripts
+// Include Scripts
 //
-//#include <MultiSense/src/scripts/Example.h>
+//#include <MultiSense/src/Scripts/Example.h>
 
-#include <MultiSense/src/scripts/objects/MultiSenseCamera.h>
-#include <MultiSense/src/scripts/pointcloud/PointCloud.h>
-#include <MultiSense/src/scripts/video/physical/Single/SingleLayout.h>
-#include <MultiSense/src/scripts/video/physical/Double/DoubleLayout.h>
-#include <MultiSense/src/scripts/video/physical/Double/DoubleLayoutBot.h>
-#include <MultiSense/src/scripts/video/physical/Quad/Three.h>
-#include <MultiSense/src/scripts/video/physical/Quad/PreviewOne.h>
-#include <MultiSense/src/scripts/video/physical/Quad/PreviewTwo.h>
-#include <MultiSense/src/scripts/video/physical/Quad/Four.h>
+#include <MultiSense/src/Scripts/objects/MultiSenseCamera.h>
+#include <MultiSense/src/Scripts/pointcloud/PointCloud.h>
+#include <MultiSense/src/Scripts/video/physical/Single/SingleLayout.h>
+#include <MultiSense/src/Scripts/video/physical/Double/DoubleLayout.h>
+#include <MultiSense/src/Scripts/video/physical/Double/DoubleLayoutBot.h>
+#include <MultiSense/src/Scripts/video/physical/Quad/Three.h>
+#include <MultiSense/src/Scripts/video/physical/Quad/PreviewOne.h>
+#include <MultiSense/src/Scripts/video/physical/Quad/PreviewTwo.h>
+#include <MultiSense/src/Scripts/video/physical/Quad/Four.h>
 
 class Renderer : VulkanRenderer {
 
@@ -106,7 +106,7 @@ protected:
 
     /**
      *
-     * \brief creates instances from classes located in src/scripts directory. Usually each class here represents object(s) in the scene
+     * \brief creates instances from classes located in src/Scripts directory. Usually each class here represents object(s) in the scene
      */
     void deleteScript(const std::string &scriptName);
 

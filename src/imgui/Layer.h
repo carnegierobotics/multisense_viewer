@@ -13,8 +13,8 @@
 #include "map"
 #include "unordered_map"
 #include "string"
-#include "MultiSense/src/core/Definitions.h"
-#include "MultiSense/src/core/KeyInput.h"
+#include "MultiSense/src/Core/Definitions.h"
+#include "MultiSense/src/Core/KeyInput.h"
 
 namespace AR {
 

@@ -10,9 +10,9 @@
 #include <vulkan/vulkan_core.h>
 #include <string>
 #include <vector>
-#include <MultiSense/src/core/Texture.h>
-#include <MultiSense/src/tools/Macros.h>
-#include <MultiSense/src/core/Base.h>
+#include <MultiSense/src/Core/Texture.h>
+#include <MultiSense/src/Tools/Macros.h>
+#include <MultiSense/src/Scripts/Base.h>
 class MeshModel {
 
 public:

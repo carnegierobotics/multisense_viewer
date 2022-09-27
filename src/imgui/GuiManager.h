@@ -11,12 +11,12 @@
 #include <vector>
 #include <functional>
 #include "glm/vec2.hpp"
-#include <MultiSense/src/tools/Populate.h>
-#include <MultiSense/src/core/Buffer.h>
-#include <MultiSense/src/tools/Utils.h>
-#include <MultiSense/src/core/VulkanDevice.h>
+#include <MultiSense/src/Tools/Populate.h>
+#include <MultiSense/src/Core/Buffer.h>
+#include <MultiSense/src/Tools/Utils.h>
+#include <MultiSense/src/Core/VulkanDevice.h>
 #include "MultiSense/src/imgui/Layer.h"
-#include <MultiSense/src/core/Texture.h>
+#include <MultiSense/src/Core/Texture.h>
 #include "imgui_internal.h"
 
 namespace AR {

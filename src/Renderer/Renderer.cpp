@@ -166,8 +166,8 @@ void Renderer::render() {
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices);
-    // Run update function on active camera scripts and build them if not built
-    // TODO Rework conditions to when scripts are built to more human readable code
+    // Run update function on active camera Scripts and build them if not built
+    // TODO Rework conditions to when Scripts are built to more human readable code
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             renderSelectionPass = dev.pixelInfoEnable;
@@ -229,20 +229,20 @@ void Renderer::render() {
                 }
             }
         }
-        // Check if camera connection was AR RESET and clean up all scripts attached to that camera connection
+        // Check if camera connection was AR RESET and clean up all Scripts attached to that camera connection
         if (dev.state == AR_STATE_RESET) {
-            // delete all scripts attached to device
+            // delete all Scripts attached to device
             for (const std::string &script: dev.attachedScripts)
                 deleteScript(script);
         }
     }
-    // UIupdaet on scripts with const handle to GUI
+    // UIupdaet on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(guiManager->handles);
     }
 
-    // Run update function on scripts
+    // Run update function on Scripts
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
             script.second->updateUniformBufferData(&renderData);
@@ -349,7 +349,7 @@ void Renderer::windowResized() {
 
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
-    // Update general scripts with handle to GUI
+    // Update general Scripts with handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->windowResize(&renderData, guiManager->handles);

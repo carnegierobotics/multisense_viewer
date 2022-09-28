@@ -112,7 +112,8 @@ typedef enum CRLCameraResolution {
     CRL_RESOLUTION_1920_1200_64 = 4,
     CRL_RESOLUTION_1920_1200_128 = 5,
     CRL_RESOLUTION_1920_1200_256 = 6,
-    CRL_RESOLUTION_TOTAL_MODES = 7,
+    CRL_RESOLUTION_1024_1024_128 = 7,
+    CRL_RESOLUTION_TOTAL_MODES = CRL_RESOLUTION_1024_1024_128,
 } CRLCameraResolution;
 
 typedef enum PreviewLayout {
@@ -135,8 +136,8 @@ struct WhiteBalanceParams {
 
 struct LightingParams {
     float dutyCycle = 1.0f;
-    uint32_t selection = 1;
-    bool enable = true;
+    uint32_t selection = -1;
+    bool flashing = true;
     uint32_t numLightPulses = 3;
     uint32_t startupTime = 0;
     bool update = false;
@@ -188,26 +189,26 @@ namespace MultiSense {
 
 /** @brief  */
     struct Parameters {
-        ExposureParams ep;
-        WhiteBalanceParams wb;
-        LightingParams light;
+        ExposureParams ep{};
+        WhiteBalanceParams wb{};
+        LightingParams light{};
 
         bool initialized = false;
 
         float gain = 1.0f;
         float fps = 30.0f;
         float stereoPostFilterStrength = 0.5f;
-        bool hdrEnabled;
+        bool hdrEnabled = false;
         float gamma = 2.0f;
 
         bool update = false;
     };
 
     struct CursorPixelInformation {
-        uint32_t x, y;
-        uint32_t r, g, b;
-        uint32_t intensity;
-        uint32_t depth;
+        uint32_t x{}, y{};
+        uint32_t r{}, g{}, b{};
+        uint32_t intensity{};
+        uint32_t depth{};
     };
 
 
@@ -245,6 +246,7 @@ namespace MultiSense {
         float row[9] = {0};
         float col[9] = {0};
         bool pixelInfoEnable = false;
+        bool useImuData = false;
         CursorPixelInformation pixelInfo;
         bool useLoadedProfile = false;
 
@@ -352,31 +354,29 @@ namespace VkRender {
     };
 
     struct Vertex {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec2 uv0;
-        glm::vec2 uv1;
-        glm::vec4 joint0;
-        glm::vec4 weight0;
+        glm::vec3 pos{};
+        glm::vec3 normal{};
+        glm::vec2 uv0{};
+        glm::vec2 uv1{};
+        glm::vec4 joint0{};
+        glm::vec4 weight0{};
     };
 
-    struct Primitive {
-        uint32_t firstIndex{};
-        uint32_t indexCount{};
-        uint32_t vertexCount{};
-        bool hasIndices{};
-        //Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
-        //void setBoundingBox(glm::vec3 min, glm::vec3 max);
+    struct Rotation {
+        glm::mat4 rotationMatrix{};
+        float roll = 0;
+        float pitch = 0;
+        float yaw = 0;
     };
 
     struct MP4Frame {
-        void *plane0;
-        void *plane1;
-        void *plane2;
+        void *plane0 = nullptr;
+        void *plane1 = nullptr;
+        void *plane2 = nullptr;
 
-        uint32_t plane0Size;
-        uint32_t plane1Size;
-        uint32_t plane2Size;
+        uint32_t plane0Size = 0;
+        uint32_t plane1Size = 0;
+        uint32_t plane2Size = 0;
     };
 
     struct MouseButtons {
@@ -388,26 +388,26 @@ namespace VkRender {
 
 
     struct UBOMatrix {
-        glm::mat4 projection;
-        glm::mat4 view;
-        glm::mat4 model;
+        glm::mat4 projection{};
+        glm::mat4 view{};
+        glm::mat4 model{};
     };
 
     struct FragShaderParams {
-        glm::vec4 lightColor;
-        glm::vec4 objectColor;
-        glm::vec4 lightPos;
-        glm::vec4 viewPos;
+        glm::vec4 lightColor{};
+        glm::vec4 objectColor{};
+        glm::vec4 lightPos{};
+        glm::vec4 viewPos{};
     };
 
     struct PointCloudParam {
-        glm::mat4 kInverse;
-        float width;
-        float height;
+        glm::mat4 kInverse{};
+        float width{};
+        float height{};
     };
 
     struct ZoomParam {
-        float zoom;
+        float zoom{};
 
         ZoomParam() {
             zoom = 1.0f;
@@ -415,26 +415,26 @@ namespace VkRender {
     };
 
     struct PointCloudShader {
-        glm::vec4 pos[NUM_POINTS];
-        glm::vec4 col[NUM_POINTS];
+        glm::vec4 pos[NUM_POINTS]{};
+        glm::vec4 col[NUM_POINTS]{};
     };
 
     struct MousePositionPushConstant {
-        glm::vec2 position;
+        glm::vec2 position{};
     };
 
     struct ObjectPicking {
         // Global render pass for frame buffer writes
-        VkRenderPass renderPass;
+        VkRenderPass renderPass{};
         // List of available frame buffers (same as number of swap chain images)
-        VkFramebuffer frameBuffer;
+        VkFramebuffer frameBuffer{};
 
-        VkImage colorImage;
-        VkImage depthImage;
-        VkImageView colorView;
-        VkImageView depthView;
-        VkDeviceMemory colorMem;
-        VkDeviceMemory depthMem;
+        VkImage colorImage{};
+        VkImage depthImage{};
+        VkImageView colorView{};
+        VkImageView depthView{};
+        VkDeviceMemory colorMem{};
+        VkDeviceMemory depthMem{};
 
     };
 

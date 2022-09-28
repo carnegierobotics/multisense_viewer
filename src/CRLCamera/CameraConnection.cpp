@@ -63,27 +63,29 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
         p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
         p->wb.whiteBalanceRed = conf.whiteBalanceRed();
+
+        const auto &lightConf = camPtr->getCameraInfo().lightConf;
+        p->light.numLightPulses = lightConf.getNumberOfPulses();
+        p->light.dutyCycle = lightConf.getDutyCycle(0);
+        p->light.flashing = lightConf.getFlash();
+        p->light.startupTime = lightConf.getStartupTime();
+
         p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
         p->initialized = true;
     }
 
-    if (dev->parameters.ep.update) {
+    if (dev->parameters.ep.update)
         pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev);
-    }
-    if (dev->parameters.wb.update) {
+
+    if (dev->parameters.wb.update)
         pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev);
 
-    }
-    if (dev->parameters.light.update) {
+    if (dev->parameters.light.update)
         pool->Push(CameraConnection::setLightingTask, this, &p->light, dev);
 
-    }
-    if (dev->parameters.update) {
+    if (dev->parameters.update)
         pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
                    p->stereoPostFilterStrength, dev);
-    }
-
-
 
     // Set the correct resolution. Will only update if changed.
     camPtr->setResolution(dev->selectedMode);
@@ -176,7 +178,8 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
     initCameraModes(&dev.modes, supportedModes);
     filterAvailableSources(&dev.sources, maskArrayAll);
     dev.selectedSourceIndex = 0;
-    dev.selectedMode = CRL_RESOLUTION_960_600_256;
+    dev.selectedMode = CRL_RESOLUTION_NONE;
+
     // Check for previous user profiles attached to this hardware
     if (dev.modes.empty() || dev.sources.empty()) {
         Log::Logger::getInstance()->info("Modes and Sources empty for physical camera");
@@ -201,7 +204,7 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
 
             dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
             dev.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
-            dev.selectedModeIndex = std::stoi(mode) - 1;
+            dev.selectedModeIndex = std::stoi(mode);
 
             // Create previews
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
@@ -265,7 +268,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
 
 #ifdef WIN32
 
-    
+
     ///* Variables where handles to the added IP are returned */
     //ULONG NTEInstance = 0;
     //// Attempt to connect to camera and post some info
@@ -387,7 +390,6 @@ CameraConnection::~CameraConnection() {
 }
 
 
-
 void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     // 1. Connect to camera
@@ -414,13 +416,12 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
             return;
         }
         Log::Logger::getInstance()->info("Creating new physical camera.");
-        // TODO Segfault on reconnects. One of those hard to debug errors but seems to be consistently hitting here at least.
         app->camPtr = std::make_unique<CRLPhysicalCamera>();
         connected = app->camPtr->connect(dev->IP);
         if (connected) {
             dev->state = AR_STATE_ACTIVE;
             dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
-            app->setStreamingModes(*dev);
+            app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
             app->lastActiveDevice = dev->name;
         } else {
             dev->state = AR_STATE_UNAVAILABLE;
@@ -484,7 +485,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     app->camPtr.reset();
 }
 
-void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device* dev) {
+void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<ExposureParams *>(arg1);
 
@@ -493,7 +494,7 @@ void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::De
     app->updateFromCameraParameters(dev);
 }
 
-void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense::Device* dev) {
+void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<WhiteBalanceParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -501,7 +502,8 @@ void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense
     app->updateFromCameraParameters(dev);
 }
 
-void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs, MultiSense::Device* dev) {
+void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
+                                                   MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setGamma(gamma);
@@ -512,10 +514,11 @@ void CameraConnection::setAdditionalParametersTask(void *context, float fps, flo
 
 }
 
-void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::Device* dev) {
+void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
-    auto *ep = reinterpret_cast<LightingParams *>(arg1);
+    auto *light = reinterpret_cast<LightingParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
+    app->camPtr->setLighting(*light);
     app->updateFromCameraParameters(dev);
     // TODO implement
 }

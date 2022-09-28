@@ -83,8 +83,8 @@ bool VulkanRenderer::initVulkan() {
         throw std::runtime_error("Could not create Vulkan instance");
     }
     pLogger->info("Vulkan Instance successfully created");
-    // If requested, we enable the default validation layers for debugging
-// If requested, we enable the default validation layers for debugging
+    // If requested, we flashing the default validation layers for debugging
+// If requested, we flashing the default validation layers for debugging
     if (settings.validation) {
         // The report flags determine what type of messages for the layers will be displayed
         // For validating (debugging) an application the error and warning bits should suffice
@@ -128,7 +128,7 @@ bool VulkanRenderer::initVulkan() {
     features.pNext = nullptr;
 
 
-    // Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
+    // Derived examples can override this to set actual features (based on above readings) to flashing for logical device creation
     addDeviceFeatures();
 
     VkPhysicalDeviceFeatures2 features2;

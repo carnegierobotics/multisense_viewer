@@ -27,7 +27,7 @@ public:
     struct Model {
         Model(const Base::RenderUtils *renderUtils);
         ~Model();
-/**@brief Property to enable/disable drawing of this model. Set to false if you want to control when to draw the model. */
+/**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
         CRLCameraDataType modelType{};
 

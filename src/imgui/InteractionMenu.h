@@ -563,6 +563,11 @@ private:
 
             // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
             std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
+
+            // Disable IMU as well in 2D
+            if (dev.useImuData)
+                pointCloudSources.emplace_back("IMU");
+
             for (const auto &source: pointCloudSources) {
                 bool inUse = false;
                 for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
@@ -609,11 +614,31 @@ private:
 
             dev.selectedSourceMap[AR_PREVIEW_POINT_CLOUD] = "Disparity Left";
 
+            ImGui::Dummy(ImVec2(40.0f, 10.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::Checkbox("Use IMU data", &dev.useImuData);
+            ImGui::PopStyleColor();
+
+
+            if (dev.useImuData){
+                if (!Utils::isInVector(dev.userRequestedSources, "IMU")) {
+                    dev.userRequestedSources.emplace_back("IMU");
+                    Log::Logger::getInstance()->info(("Adding IMU source to user requested sources"));
+                }
+            } else {
+                Utils::removeFromVector(&dev.userRequestedSources, "IMU");
+            }
+
+
             if (!Utils::isInVector(dev.userRequestedSources, "Disparity Left")) {
                 dev.userRequestedSources.emplace_back("Disparity Left");
+                Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
             }
             if (!Utils::isInVector(dev.userRequestedSources, "Luma Rectified Left")) {
                 dev.userRequestedSources.emplace_back("Luma Rectified Left");
+                Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
         }
 
@@ -655,7 +680,7 @@ private:
                     }
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
 
-                    if (ImGui::BeginTabItem("Configuration")) {
+                    if (ImGui::BeginTabItem("Sensor Config")) {
 
                         drawVideoPreviewGuiOverlay(handles, dev, false);
                         buildConfigurationTab(handles, dev);
@@ -871,17 +896,17 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Enable Lights:";
+                std::string txt = "Enable Flashing:";
                 ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::Checkbox("##Enable Lights", &d.parameters.light.enable);
+                ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing);
                 d.parameters.light.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Duty Cycle:";
+                txt = "Power :";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -901,8 +926,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderInt("##LightSelection",
-                                 reinterpret_cast<int *>(&d.parameters.light.selection), 1,
-                                 5);
+                                 reinterpret_cast<int *>(&d.parameters.light.selection), -1,
+                                 3);
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
 
                 ImGui::PopStyleColor();

@@ -70,7 +70,7 @@ public:
             int imageButtonHeight = 100;
             const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            ImGui::ShowDemoWindow();
+            //ImGui::ShowDemoWindow();
 
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
                 float imageSpacingX = 200.0f;

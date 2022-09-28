@@ -438,3 +438,6 @@ experimental_features
 /cmake-build-default-visual-studio/.cmake/api/v1/query/cmakeFiles-v1
 /cmake-build-default-visual-studio/.cmake/api/v1/query/cache-v2
 /build
+/Assets/Tools/windows/mycert.pfx
+/Assets/Tools/windows/CreateCARoot.cmd
+/Assets/Tools/windows/cert.pfx

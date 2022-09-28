@@ -24,21 +24,16 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void MultiSenseCamera::update() {
-
-    VkRender::Rotation rot{};
-    renderData.crlCamera->get()->getImuRotation(&rot);
-
-
-    float P = (rot.pitch - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
-    float R = (rot.roll - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
-    //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", P, R, rot.pitch, rot.roll);
-
-
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 
-    if (rot.roll != 0 && rot.pitch != 0) {
+    if (imuEnabled) {
+        VkRender::Rotation rot{};
+        renderData.crlCamera->get()->getImuRotation(&rot);
+        float P = (rot.pitch - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
+        float R = (rot.roll - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
+        //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", P, R, rot.pitch, rot.roll);
         mat.model = glm::rotate(mat.model, glm::radians(P), glm::vec3(1.0f, 0.0f, 0.0f));
         mat.model = glm::rotate(mat.model, glm::radians(R), glm::vec3(0.0f, 0.0f, 1.0f));
     } else {
@@ -66,6 +61,7 @@ void MultiSenseCamera::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
             continue;
 
         previewTab = d.selectedPreviewTab;
+        imuEnabled = d.useImuData;
 
     }
 

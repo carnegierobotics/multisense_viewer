@@ -197,6 +197,8 @@ namespace Utils {
         if (resolution == "1920 x 1200 x 64x") return CRL_RESOLUTION_1920_1200_64;
         if (resolution == "1920 x 1200 x 128x") return CRL_RESOLUTION_1920_1200_128;
         if (resolution == "1920 x 1200 x 256x") return CRL_RESOLUTION_1920_1200_256;
+        if (resolution == "1024 x 1024 x 128x") return CRL_RESOLUTION_1024_1024_128;
+        if (resolution == "2048 x 1088 x 256x") return CRL_RESOLUTION_2048_1088_256;
         return CRL_RESOLUTION_NONE;
     }
 
@@ -245,6 +247,11 @@ namespace Utils {
                 height = 1024;
                 depth = 128;
                 break;
+            case CRL_RESOLUTION_2048_1088_256:
+                width = 2048;
+                height = 1088;
+                depth = 256;
+                break;
         }
 
         *_width = width;
@@ -275,6 +282,9 @@ namespace Utils {
         }
         if (_height == 1024 && _width == 1024 && _depth == 128) {
             return CRL_RESOLUTION_1024_1024_128;
+        }
+        if (_height == 2048 && _width == 1088 && _depth == 256) {
+            return CRL_RESOLUTION_2048_1088_256;
         }
     }
 

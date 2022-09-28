@@ -225,7 +225,7 @@ namespace Log {
 
         void debug(std::ostringstream &stream) throw();
 
-        // Error and Alarm log must be always enable
+        // Error and Alarm log must be always flashing
         // Hence, there is no interfce to control error and alarm logs
 
         // Interfaces to control log levels

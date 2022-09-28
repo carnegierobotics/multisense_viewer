@@ -23,6 +23,7 @@ public:
     struct CameraInfo {
         crl::multisense::system::DeviceInfo devInfo{};
         crl::multisense::image::Config imgConf{};
+        crl::multisense::lighting::Config lightConf{};
         crl::multisense::system::NetworkConfig netConfig{};
         crl::multisense::system::VersionInfo versionInfo{};
         crl::multisense::image::Calibration camCal{};
@@ -40,6 +41,7 @@ public:
 
     virtual bool start(CRLCameraResolution resolution, std::string string) = 0;
     virtual void start(std::string src, StreamIndex parent){};
+    virtual bool start(uint32_t source){return false;};
 
     virtual bool stop(std::string dataSourceStr) = 0;
     virtual void stop(StreamIndex parent)  {};
@@ -52,6 +54,7 @@ public:
     virtual bool getCameraStream(VkRender::YUVTexture *tex) { return false;};
     virtual bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex) { return  false;};
     virtual bool getCameraStream(VkRender::MP4Frame* frame, StreamIndex parent) { return false; };
+    virtual bool getImuRotation(VkRender::Rotation *rot){ return false; };
 
 
     virtual void setExposure(uint32_t e){}
@@ -59,6 +62,7 @@ public:
 
     virtual void setWhiteBalance(WhiteBalanceParams param) {}
     virtual void setPostFilterStrength(float filterStrength) {}
+    virtual void setLighting(LightingParams light) {}
     virtual void setGamma(float gamma) {}
     virtual void setFps(float fps) {}
     virtual void setGain(float gain) {}

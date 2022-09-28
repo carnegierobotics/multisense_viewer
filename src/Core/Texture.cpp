@@ -499,7 +499,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, VulkanDevice
     samplerCreateInfo.minLod = 0.0f;
     // Max level-of-detail should match mip level count
     samplerCreateInfo.maxLod = (useStaging) ? (float) mipLevels : 0.0f;
-    // Only enable anisotropic filtering if enabled on the device
+    // Only flashing anisotropic filtering if enabled on the device
     samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy
                                       ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
     samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;

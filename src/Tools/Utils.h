@@ -87,6 +87,8 @@ namespace Utils {
                 return "Color Rectified Aux";
             case (crl::multisense::Source_Chroma_Aux | crl::multisense::Source_Luma_Aux):
                 return "Color Aux";
+            case crl::multisense::Source_Imu:
+                return "IMU";
             default:
                 return "Unknown";
         }
@@ -113,6 +115,7 @@ namespace Utils {
         if (d == "Color Rectified Aux")
             return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;;
         if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
+        if (d == "IMU") return crl::multisense::Source_Imu;
         if (d == "All") return crl::multisense::Source_All;
         return false;
     }
@@ -237,11 +240,42 @@ namespace Utils {
                 height = 1200;
                 depth = 256;
                 break;
+            case CRL_RESOLUTION_1024_1024_128:
+                width = 1024;
+                height = 1024;
+                depth = 128;
+                break;
         }
 
         *_width = width;
         *_height = height;
         *_depth = depth;
+    }
+
+    /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
+    inline CRLCameraResolution
+    valueToCameraResolution(uint32_t _width, uint32_t _height, uint32_t _depth) {
+        if (_height == 600 && _width == 960 && _depth == 64) {
+            return CRL_RESOLUTION_960_600_64;
+        }
+        if (_height == 600 && _width == 960 && _depth == 128) {
+            return CRL_RESOLUTION_960_600_128;
+        }
+        if (_height == 600 && _width == 960 && _depth == 256) {
+            return CRL_RESOLUTION_960_600_256;
+        }
+        if (_height == 1200 && _width == 1920 && _depth == 64) {
+            return CRL_RESOLUTION_1920_1200_64;
+        }
+        if (_height == 1200 && _width == 1920 && _depth == 128) {
+            return CRL_RESOLUTION_1920_1200_128;
+        }
+        if (_height == 1200 && _width == 1920 && _depth == 256) {
+            return CRL_RESOLUTION_1920_1200_256;
+        }
+        if (_height == 1024 && _width == 1024 && _depth == 128) {
+            return CRL_RESOLUTION_1024_1024_128;
+        }
     }
 
     inline VkFormat

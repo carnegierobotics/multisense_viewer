@@ -129,7 +129,7 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags) const {
 /**
 	* Create the logical device based on the assigned physical device, also gets default queue family indices
 	*
-	* @param enabledFeatures Can be used to enable certain features upon device creation
+	* @param enabledFeatures Can be used to flashing certain features upon device creation
 	* @param pNextChain Optional chain of pointer to extension structures
 	* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
 	* @param requestedQueueTypes Bit flags specifying the queue types to be requested from the device
@@ -323,7 +323,7 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
 
     // Find a memory type index that fits the properties of the buffer
     memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
-    // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+    // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to flashing the appropriate flag during allocation
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
@@ -385,7 +385,7 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     memAlloc.allocationSize = memReqs.size;
     // Find a memory type index that fits the properties of the buffer
     memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
-    // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+    // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to flashing the appropriate flag during allocation
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;

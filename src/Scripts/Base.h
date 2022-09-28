@@ -101,7 +101,7 @@ public:
     }
 
 
-    /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
+    /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
     virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
     void drawScript(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -128,13 +128,13 @@ public:
 
     virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {};
 
-    /**@brief Which script type this is. Can be used to enable/disable rendering of this script */
+    /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
     void updateUniformBufferData(Render *data) {
         updateRenderData(data);
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
-        if (renderData.crlCamera != nullptr)
+        if (renderData.crlCamera->get() != nullptr)
             update();
 
         // If initialized

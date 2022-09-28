@@ -43,7 +43,7 @@ public:
 
     virtual ~VulkanRenderer();
 
-    /** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
+    /** @brief Setup the vulkan instance, flashing required extensions and connect to the physical device (GPU) */
     bool initVulkan();
 
     /** @brief Example settings that can be changed by ... */
@@ -120,7 +120,7 @@ public:
     virtual void setupMainFramebuffer();
     /** @brief (Virtual) Setup a default renderpass */
     virtual void setupRenderPass();
-    /** @brief (Virtual) Called after the physical device features have been read, can be used to set features to enable on the device */
+    /** @brief (Virtual) Called after the physical device features have been read, can be used to set features to flashing on the device */
     virtual void addDeviceFeatures() = 0;
     /** @brief Prepares all Vulkan resources and functions required to run the sample */
     virtual void prepare();

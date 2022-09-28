@@ -12,11 +12,13 @@
 #include <thread>
 #include <bitset>
 #include <iostream>
+#include <cstdint>
 
 class CRLPhysicalCamera : public CRLBaseInterface {
 public:
 
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime{}; // Timer to log every second
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTimeImu{}; // Timer to log every second
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> callbackTime{}; // Timer to see how long ago the callback was called
 
     CRLPhysicalCamera() = default;
@@ -31,10 +33,12 @@ public:
 
     bool connect(const std::string& ip) override;
     bool start(CRLCameraResolution resolution, std::string dataSourceStr) override;
+    bool start(uint32_t source) override;
     bool stop(std::string dataSourceStr) override;
     void updateCameraInfo() override;
     bool getCameraStream(VkRender::YUVTexture *tex) override;
     bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex) override;
+    bool getImuRotation(VkRender::Rotation *rot) override;
 
     CameraInfo getCameraInfo() override;
     void preparePointCloud(uint32_t i, uint32_t i1) override;
@@ -49,6 +53,13 @@ private:
         crl::multisense::DataSource source{};
         const void *data{};
     };
+
+    struct RotationData {
+        float roll = 0;
+        float pitch = 0;
+        float yaw = 0;
+    } rotationData;
+    std::mutex swap_lock{};
 
     struct BufferPair
     {
@@ -88,18 +99,22 @@ private:
     bool stopForDestruction = false;
 
     void addCallbacks();
-    static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
 
     void streamCallback(const crl::multisense::image::Header &image);
 
     void setExposure(uint32_t exp) override;
     void setExposureParams(ExposureParams p) override;
     void setWhiteBalance(WhiteBalanceParams param) override;
+    void setLighting(LightingParams light) override;
     void setPostFilterStrength(float filterStrength) override;
     void setGamma(float gamma) override;
     void setFps(float fps) override;
     void setGain(float gain) override;
     void setResolution(CRLCameraResolution resolution) override;
+
+    static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
+    static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
+
 };
 
 

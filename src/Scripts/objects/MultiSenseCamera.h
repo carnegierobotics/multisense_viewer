@@ -37,4 +37,5 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
+    bool imuEnabled = false;
 };

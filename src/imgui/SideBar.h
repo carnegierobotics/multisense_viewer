@@ -772,7 +772,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-                ImGui::Checkbox("Use IMU data", &handles->configureNetworkForNextConnection);
+                ImGui::Checkbox("  Configure System Network", &handles->configureNetworkForNextConnection);
                 ImGui::PopStyleColor();
 
             } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/

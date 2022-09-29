@@ -32,7 +32,7 @@ typedef enum CRLCameraDataType {
     AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
     AR_CAMERA_IMAGE_NONE,
-    AR_DISPARITY_IMAGE,
+    AR_DISPARITY_IMAGE
 } CRLCameraDataType;
 
 typedef enum CRLCameraType {
@@ -42,15 +42,18 @@ typedef enum CRLCameraType {
 } CRLCameraType;
 
 typedef enum ArConnectionState {
-    AR_STATE_CONNECTED = 0,
-    AR_STATE_CONNECTING = 1,
-    AR_STATE_ACTIVE = 2,
-    AR_STATE_INACTIVE = 3,
-    AR_STATE_RESET = 4,
-    AR_STATE_DISCONNECTED = 5,
-    AR_STATE_UNAVAILABLE = 6,
-    AR_STATE_JUST_ADDED = 7
+    AR_STATE_CONNECTED =               0,
+    AR_STATE_CONNECTING =              1,
+    AR_STATE_ACTIVE =                  2,
+    AR_STATE_INACTIVE =                3,
+    AR_STATE_RESET =                   4,
+    AR_STATE_DISCONNECTED =            5,
+    AR_STATE_UNAVAILABLE =             6,
+    AR_STATE_DISCONNECT_AND_FORGET =   7,
+    AR_STATE_REMOVE_FROM_LIST =        8,
+    AR_STATE_JUST_ADDED =              9
 } ArConnectionState;
+
 
 typedef enum StreamIndex {
     // First 0 - 8 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
@@ -216,8 +219,10 @@ namespace MultiSense {
     struct Device {
         /** @brief Profile Name information  */
         std::string name = "Profile #1"; // TODO Remove if remains Unused
-        /** @brief Identifier of the camera connected  */
+        /** @brief Name of the camera connected  */
         std::string cameraName;
+        /** @brief Identifier of the camera connected  */
+        std::string serialName;
         /** @brief IP of the connected camera  */
         std::string IP;
         /** @brief Default IP of the connected camera  */

@@ -286,6 +286,7 @@ namespace Utils {
         if (_height == 2048 && _width == 1088 && _depth == 256) {
             return CRL_RESOLUTION_2048_1088_256;
         }
+        return CRL_RESOLUTION_NONE;
     }
 
     inline VkFormat

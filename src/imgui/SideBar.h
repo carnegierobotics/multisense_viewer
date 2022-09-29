@@ -13,9 +13,11 @@
 #define AutoConnectHandle AutoConnectWindows
 #define elevated() Utils::hasAdminRights()
 #else
+
 #include <unistd.h>
 #include <sys/types.h>
 #include "AutoConnectLinux.h"
+
 #define AutoConnectHandle AutoConnectLinux
 #define elevated() getuid()
 #endif
@@ -37,7 +39,7 @@ class SideBar : public MultiSense::Layer {
 public:
 
     // Create global object for convenience in other functions
-    MultiSense::GuiObjectHandles* handles = nullptr;
+    MultiSense::GuiObjectHandles *handles = nullptr;
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::Result> adapters;
@@ -288,7 +290,7 @@ private:
 
 
     void sidebarElements(MultiSense::GuiObjectHandles *handles) {
-        auto* devices = handles->devices;
+        auto *devices = handles->devices;
         for (int i = 0; i < devices->size(); ++i) {
             auto &e = devices->at(i);
             std::string buttonIdentifier;
@@ -308,6 +310,8 @@ private:
                     break;
                 case AR_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
                     break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
@@ -324,6 +328,8 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     buttonIdentifier = "Added...";
                     break;
+                case AR_STATE_DISCONNECT_AND_FORGET:
+                case AR_STATE_REMOVE_FROM_LIST:
                 case AR_STATE_RESET:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -338,8 +344,10 @@ private:
                               false, ImGuiWindowFlags_NoDecoration);
 
 
+            // Stop execution here
             if (ImGui::SmallButton("X")) {
-                devices->erase(devices->begin() + i);
+                // delete and disconnect devices
+                handles->devices->at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(2);
                 ImGui::EndChild();
@@ -400,15 +408,10 @@ private:
                                       ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
 
             ImGui::PopFont();
-            ImGui::PopStyleVar();
-            ImGui::PopStyleColor();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(2);
 
             ImGui::EndChild();
-
-            ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
-
-
         }
     }
 
@@ -710,10 +713,12 @@ private:
                 // Call once a second
                 auto time = std::chrono::steady_clock::now();
                 std::chrono::duration<float> time_span =
-                        std::chrono::duration_cast<std::chrono::duration<float>>(time - searchNewAdaptersManualConnectTimer);
+                        std::chrono::duration_cast<std::chrono::duration<float>>(
+                                time - searchNewAdaptersManualConnectTimer);
                 if (time_span.count() > ONE_SECOND) {
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-                    adapters = autoConnect.findEthernetAdapters(false, true); // Don't log it but dont ignore searched adapters
+                    adapters = autoConnect.findEthernetAdapters(false,
+                                                                true); // Don't log it but dont ignore searched adapters
                     interfaceNameList.clear();
                     indexList.clear();
                 }
@@ -762,9 +767,15 @@ private:
                 }
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
                 entry.cameraName = "Manual";
-            }
-                /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
 
+                ImGui::Dummy(ImVec2(40.0f, 10.0));
+                ImGui::Dummy(ImVec2(20.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::Checkbox("Use IMU data", &handles->configureNetworkForNextConnection);
+                ImGui::PopStyleColor();
+
+            } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == VIRTUAL_CONNECT) {
                 entry.profileName = "Virtual Camera";
                 entry.interfaceName = "lol";

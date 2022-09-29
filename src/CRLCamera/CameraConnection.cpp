@@ -97,10 +97,8 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
             if (s == "None")
                 continue;
 
-            if (camPtr->start(dev->selectedMode, s)) {
-                dev->enabledStreams.push_back(s);
-            } else
-                Log::Logger::getInstance()->info("Failed to enabled stream {}", s);
+            if (pool->getTaskListSize() < 3)
+                pool->Push(CameraConnection::startStreamTask, this, dev, s);
         }
     }
 
@@ -108,25 +106,28 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
     for (const auto &s: dev->enabledStreams) {
         if (!Utils::isInVector(dev->userRequestedSources, s)) {
             // Enable stream and push back if it is successfully enabled
-            if (camPtr->stop(s))
-                Utils::removeFromVector(&dev->enabledStreams, s);
-            else
-                Log::Logger::getInstance()->info("Failed to disable stream {}", s);
+            if (pool->getTaskListSize() < 3)
+                pool->Push(CameraConnection::stopStreamTask, this, dev, s);
+
         }
     }
 
 }
 
-void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector) {
+void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork) {
     // If no device is connected then return
     if (pVector == nullptr)
         return;
     // Check for actions on each element
     for (auto &dev: *pVector) {
 
-        if (dev.state == AR_STATE_RESET) {
-            pool->Push(CameraConnection::disconnectCRLCameraTask, this, &dev);
-            dev.state = AR_STATE_UNAVAILABLE;
+        if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET) {
+            Log::Logger::getInstance()->info("Pushing disconnect task");
+            // Only call this task if it is not already running
+            if (!processingDisconnectTask) {
+                pool->Push(CameraConnection::disconnectCRLCameraTask, this, &dev);
+                processingDisconnectTask = true;
+            }
             return;
         }
 
@@ -146,6 +147,8 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector) {
             if (resetOtherDeviceFirst) {
                 pool->Push(CameraConnection::disconnectCRLCameraTask, this, otherDev);
             }
+
+            setNetworkAdapterParameters(dev, shouldConfigNetwork);
             pool->Push(CameraConnection::connectCRLCameraTask, this, &dev);
             dev.state = AR_STATE_CONNECTING;
             break;
@@ -164,10 +167,6 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector) {
             dev.state = AR_STATE_RESET;
         }
     }
-}
-
-void CameraConnection::connectCrlCamera(MultiSense::Device &dev) {
-
 }
 
 void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
@@ -249,7 +248,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 }
 
 
-bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
+bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool shouldConfigNetwork) {
 
     hostAddress = dev.IP;
 
@@ -265,99 +264,99 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
         Log::Logger::getInstance()->error("Exception message: '{}'", exception.what());
         return false;
     }
+    if (shouldConfigNetwork) {
 
 #ifdef WIN32
 
 
-    ///* Variables where handles to the added IP are returned */
-    //ULONG NTEInstance = 0;
-    //// Attempt to connect to camera and post some info
+        ///* Variables where handles to the added IP are returned */
+        //ULONG NTEInstance = 0;
+        //// Attempt to connect to camera and post some info
 
 
-    //LPVOID lpMsgBuf = nullptr;
+        //LPVOID lpMsgBuf = nullptr;
 
-    //unsigned long ulAddr = inet_addr(hostAddress.c_str());
-    //unsigned long ulMask = inet_addr("255.255.255.0");
-    //if ((dwRetVal = AddIPAddress(ulAddr,
-    //    ulMask,
-    //    dev.interfaceIndex,
-    //    &NTEContext, &NTEInstance)) == NO_ERROR) {
-    //    printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
-    //}
-    //else {
-    //    printf("AddIPAddress failed with error: %d\n", dwRetVal);
-    //    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-    //        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-    //        (LPTSTR)&lpMsgBuf, 0, NULL)) {
-    //        printf("\tError: %p", std::addressof(lpMsgBuf));
-    //        LocalFree(lpMsgBuf);
-    //    }
+        //unsigned long ulAddr = inet_addr(hostAddress.c_str());
+        //unsigned long ulMask = inet_addr("255.255.255.0");
+        //if ((dwRetVal = AddIPAddress(ulAddr,
+        //    ulMask,
+        //    dev.interfaceIndex,
+        //    &NTEContext, &NTEInstance)) == NO_ERROR) {
+        //    printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
+        //}
+        //else {
+        //    printf("AddIPAddress failed with error: %d\n", dwRetVal);
+        //    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        //        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+        //        (LPTSTR)&lpMsgBuf, 0, NULL)) {
+        //        printf("\tError: %p", std::addressof(lpMsgBuf));
+        //        LocalFree(lpMsgBuf);
+        //    }
 
-    //}
+        //}
 
 
 #else
-/*
-    /** SET NETWORK PARAMETERS FOR THE ADAPTER
-    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
-        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
-                                          strerror(errno));
+        /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
+        if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
+            Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
+                                              strerror(errno));
 
-        return false;
+            return false;
+        }
+        // Specify interface name
+        const char *interface = dev.interfaceName.c_str();
+        if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
+            Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
+                                              strerror(errno));
+        };
+
+        struct ifreq ifr{};
+        /// note: no pointer here
+        struct sockaddr_in inet_addr{}, subnet_mask{};
+        /* get interface name */
+        /* Prepare the struct ifreq */
+        bzero(ifr.ifr_name, IFNAMSIZ);
+        strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+        /// note: prepare the two struct sockaddr_in
+        inet_addr.sin_family = AF_INET;
+        int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+
+        subnet_mask.sin_family = AF_INET;
+        int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+
+        /* Call ioctl to configure network devices */
+        /// put addr in ifr structure
+        memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+        int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+            Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
+                                              strerror(errno));
+
+        }
+
+        /// put mask in ifr structure
+        memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+        ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+            Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}", dev.interfaceName,
+                                              strerror(errno));
+        }
+
+        strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+        ifr.ifr_mtu = 7200; //your MTU size here
+        if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+            Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
+                                              dev.interfaceName.c_str());
+        } else {
+            Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
+                                              dev.interfaceName.c_str());
+        }
     }
-    // Specify interface name
-    const char *interface = dev.interfaceName.c_str();
-    if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
-        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
-                                          strerror(errno));
-    };
-
-    struct ifreq ifr{};
-    /// note: no pointer here
-    struct sockaddr_in inet_addr{}, subnet_mask{};
-    /* get interface name */
-    /* Prepare the struct ifreq
-    bzero(ifr.ifr_name, IFNAMSIZ);
-    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
-
-    /// note: prepare the two struct sockaddr_in
-    inet_addr.sin_family = AF_INET;
-    int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
-
-    subnet_mask.sin_family = AF_INET;
-    int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
-
-    /* Call ioctl to configure network devices
-    /// put addr in ifr structure
-    memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
-    int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
-    if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
-        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
-                                          strerror(errno));
-
-    }
-
-    /// put mask in ifr structure
-    memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
-    ioctl_result = ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
-    if (ioctl_result < 0) {
-        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
-        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}", dev.interfaceName,
-                                          strerror(errno));
-    }
-
-    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
-    ifr.ifr_mtu = 7200; //your MTU size here
-    if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
-        Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
-                                          dev.interfaceName.c_str());
-    } else {
-        Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
-                                          dev.interfaceName.c_str());
-    }
-*/
 
 #endif
     return true;
@@ -367,23 +366,30 @@ void CameraConnection::updateDeviceState(MultiSense::Device *dev) {
 
 }
 
-void CameraConnection::disableCrlCamera(MultiSense::Device &dev) {
-
-}
-
 void CameraConnection::addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value) {
     int ret = ini->SetValue(section.c_str(), key.c_str(), value.c_str());
 
     if (ret < 0)
-        Log::Logger::getInstance()->error("Serial: {} Updated {} to {}", section, key, value);
+        Log::Logger::getInstance()->error("Section: {} Updated {} to {}", section, key, value);
     else
-        Log::Logger::getInstance()->info("Serial: {} Updated {} to {}", section, key, value);
+        Log::Logger::getInstance()->info("Section: {} Updated {} to {}", section, key, value);
+
+}
+
+void CameraConnection::deleteIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value) {
+    int ret = ini->DeleteValue(section.c_str(), key.c_str(), value.c_str());
+
+    if (ret < 0)
+        Log::Logger::getInstance()->error("Section: {} deleted {}", section, key, value);
+    else
+        Log::Logger::getInstance()->info("Section: {} deleted {}", section, key, value);
 
 }
 
 CameraConnection::~CameraConnection() {
     // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
     // stops all streams on the camera
+    camPtr.reset();
 #ifndef WIN32
     if (sd != -1)
         close(sd);
@@ -411,7 +417,7 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
             dev->state = AR_STATE_UNAVAILABLE;
     } else {
         // Create Physical Camera Object
-        if (!app->setNetworkAdapterParameters(*dev)) {
+        if (!app->setNetworkAdapterParameters(*dev, false)) {
             dev->state = AR_STATE_UNAVAILABLE;
             return;
         }
@@ -421,6 +427,7 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
         if (app->camPtr->connect(dev->IP)) {
             dev->state = AR_STATE_ACTIVE;
             dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
+            dev->serialName = app->camPtr->getCameraInfo().devInfo.serialNumber;
             app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
             app->lastActiveDevice = dev->name;
         } else {
@@ -434,8 +441,7 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
 void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
-    dev->state = AR_STATE_DISCONNECTED;
-    app->lastActiveDevice = "-1";
+
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                      dev->cameraName.c_str());
     // Save settings to file. Attempt to create a new file if it doesn't exist
@@ -450,7 +456,8 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         } else
             Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
     }
-    std::string CRLSerialNumber = app->camPtr->getCameraInfo().devInfo.serialNumber;
+
+    std::string CRLSerialNumber = dev->serialName;
     // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
 
     // new entry given we have a valid ini file entry
@@ -470,19 +477,31 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
                 std::string key = "Preview" + std::to_string(i + 1);
                 addIniEntry(&ini, CRLSerialNumber, key, dev->selectedSourceMap[i]);
             }
-
-            // save the data back to the file
-            rc = ini.SaveFile("crl.ini");
-            if (rc < 0) {
-                Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
-            }
         }
     }
+
+    // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
+    if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
+        int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
+        dev->state = AR_STATE_REMOVE_FROM_LIST;
+        Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
+
+    } else {
+        dev->state = AR_STATE_DISCONNECTED;
+    }
+
+    // save the data back to the file
+    rc = ini.SaveFile("crl.ini");
+    if (rc < 0) {
+        Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+
+    }
+    app->lastActiveDevice = "-1";
     dev->userRequestedSources.clear();
     dev->enabledStreams.clear();
     dev->selectedSourceMap.clear();
     dev->selectedSourceIndexMap.clear();
-    app->camPtr.reset();
+    app->processingDisconnectTask = false;
 }
 
 void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {
@@ -549,5 +568,25 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev) const
     p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
     dev->parameters.update = false;
 
+}
+
+void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, std::string src) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+
+    if (app->camPtr->start(dev->selectedMode, src))
+        dev->enabledStreams.push_back(src);
+    else
+        Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
+
+
+}
+
+void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, std::string src) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+
+    if (app->camPtr->stop(src))
+        Utils::removeFromVector(&dev->enabledStreams, src);
+    else
+        Log::Logger::getInstance()->info("Failed to disable stream {}", src);
 }
 

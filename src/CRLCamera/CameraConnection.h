@@ -29,14 +29,17 @@ public:
     /** @brief Handle to the current camera object */
     bool preview = false;
     std::string lastActiveDevice = "-1";
-    void onUIUpdate(std::vector<MultiSense::Device> *pVector);
+    void onUIUpdate(std::vector<MultiSense::Device> *pVector, bool b);
 
     std::unique_ptr<CRLBaseInterface> camPtr;
     std::unique_ptr<ThreadPool> pool;
 
+    static void disconnectCRLCameraTask(void* context, MultiSense::Device* dev);
+
 private:
     int sd = -1;
-    std::mutex writeParametersMtx;
+    std::mutex writeParametersMtx{};
+    bool processingDisconnectTask = false;
 
 #ifdef WIN32
     unsigned long dwRetVal = 0;
@@ -46,13 +49,9 @@ private:
 
     void updateActiveDevice(MultiSense::Device *dev);
 
-    void connectCrlCamera(MultiSense::Device &element);
-
     void updateDeviceState(MultiSense::Device *element);
 
-    void disableCrlCamera(MultiSense::Device &dev);
-
-    bool setNetworkAdapterParameters(MultiSense::Device &dev);
+    bool setNetworkAdapterParameters(MultiSense::Device &dev, bool b);
 
     void setStreamingModes(MultiSense::Device &dev);
 
@@ -61,6 +60,7 @@ private:
     void filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> array);
 
     static void addIniEntry(CSimpleIniA* ini, std::string section, std::string key, std::string value);
+    static void deleteIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value);
 
     std::vector<uint32_t> maskArrayAll = {
             crl::multisense::Source_Luma_Left,
@@ -90,9 +90,12 @@ private:
     static void setLightingTask(void * context, void* arg1, MultiSense::Device* dev);
     static void setAdditionalParametersTask(void * context, float fps, float gain, float gamma, float spfs, MultiSense::Device* dev);
     static void connectCRLCameraTask(void* context, MultiSense::Device* dev);
-    static void disconnectCRLCameraTask(void* context, MultiSense::Device* dev);
+
+    static void startStreamTask(void* context, MultiSense::Device* dev, std::string src);
+    static void stopStreamTask(void* context, MultiSense::Device* dev, std::string src);
 
     void updateFromCameraParameters(MultiSense::Device *dev) const;
+
 };
 
 

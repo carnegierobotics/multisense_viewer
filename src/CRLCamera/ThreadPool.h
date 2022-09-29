@@ -79,6 +79,10 @@ public:
         return res;
     }
 
+    uint32_t getTaskListSize(){
+        return tasks_.size();
+    }
+
 private:
     void push_stop_task() {
         std::lock_guard<std::mutex> lock(task_mutex_);

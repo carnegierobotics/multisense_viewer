@@ -95,6 +95,9 @@ namespace MultiSense {
         /** @brief Static info used in creation of gui */
         GuiLayerUpdateInfo *info{};
 
+        /** User action to configure network automatically even when using manual approach **/
+        bool configureNetworkForNextConnection = false;
+
         /** Keypress and mouse events */
         const VkRender::MouseButtons* mouseBtns{};
         float accumulatedActiveScroll = 0.0f;

@@ -32,15 +32,15 @@ void Renderer::prepareRenderer() {
             std::string cameraName = ini.GetValue(section.pItem, "CameraName");
             int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
             std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
-            int state = std::stoi(ini.GetValue(section.pItem, "State", "7"));
             MultiSense::Device el;
             el.name = profileName;
             el.IP = IP;
-            el.state = static_cast<ArConnectionState>(state);
+            el.state = AR_STATE_JUST_ADDED;
             el.cameraName = cameraName;
             el.interfaceName = adapterName;
             el.clicked = true;
             el.interfaceIndex = interfaceIndex;
+            el.serialName = section.pItem;
             guiManager->handles.devices->emplace_back(el);
         }
     }
@@ -165,8 +165,12 @@ void Renderer::render() {
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
-    cameraConnection->onUIUpdate(guiManager->handles.devices);
+    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetworkForNextConnection);
     // Run update function on active camera Scripts and build them if not built
+    for (int i = 0; i < guiManager->handles.devices->size(); ++i){
+        if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)
+            guiManager->handles.devices->erase(guiManager->handles.devices->begin() + i);
+    }
     // TODO Rework conditions to when Scripts are built to more human readable code
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
@@ -358,9 +362,13 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+    for (auto& dev : *guiManager->handles.devices)
+        CameraConnection::disconnectCRLCameraTask(&cameraConnection, &dev);
+
     cameraConnection.reset();
-}
+        Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+
+    }
 
 
 void Renderer::createSelectionFramebuffer() {

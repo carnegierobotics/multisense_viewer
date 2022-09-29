@@ -297,7 +297,8 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
 
 
 #else
-    /** SET NETWORK PARAMETERS FOR THE ADAPTER */
+/*
+    /** SET NETWORK PARAMETERS FOR THE ADAPTER
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
         Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
@@ -316,7 +317,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
     /// note: no pointer here
     struct sockaddr_in inet_addr{}, subnet_mask{};
     /* get interface name */
-    /* Prepare the struct ifreq */
+    /* Prepare the struct ifreq
     bzero(ifr.ifr_name, IFNAMSIZ);
     strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
@@ -327,7 +328,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
     subnet_mask.sin_family = AF_INET;
     int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
 
-    /* Call ioctl to configure network devices */
+    /* Call ioctl to configure network devices
     /// put addr in ifr structure
     memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
     int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
@@ -356,7 +357,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev) {
         Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                           dev.interfaceName.c_str());
     }
-
+*/
 
 #endif
     return true;
@@ -394,12 +395,10 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     auto *app = reinterpret_cast<CameraConnection *>(context);
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
-    bool connected = false;
     Log::Logger::getInstance()->info("Connect.");
     if (dev->cameraName == "Virtual Camera") {
         app->camPtr = std::make_unique<CRLVirtualCamera>();
-        connected = app->camPtr->connect("None");
-        if (connected) {
+        if (app->camPtr->connect("None")) {
             dev->state = AR_STATE_ACTIVE;
             dev->cameraName = "Virtual Camera";
             dev->IP = "Local";
@@ -411,14 +410,15 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
         } else
             dev->state = AR_STATE_UNAVAILABLE;
     } else {
+        // Create Physical Camera Object
         if (!app->setNetworkAdapterParameters(*dev)) {
             dev->state = AR_STATE_UNAVAILABLE;
             return;
         }
         Log::Logger::getInstance()->info("Creating new physical camera.");
         app->camPtr = std::make_unique<CRLPhysicalCamera>();
-        connected = app->camPtr->connect(dev->IP);
-        if (connected) {
+        // If we successfully connect
+        if (app->camPtr->connect(dev->IP)) {
             dev->state = AR_STATE_ACTIVE;
             dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
             app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory

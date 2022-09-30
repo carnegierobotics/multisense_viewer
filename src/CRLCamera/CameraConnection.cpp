@@ -111,7 +111,6 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
 
         }
     }
-
 }
 
 void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork) {

@@ -15,10 +15,20 @@
 #include "string"
 #include "MultiSense/src/Core/Definitions.h"
 #include "MultiSense/src/Core/KeyInput.h"
+#include <memory>
 
 namespace MultiSense {
 
     struct GuiLayerUpdateInfo {
+
+        GuiLayerUpdateInfo(){
+
+        }
+
+        ~GuiLayerUpdateInfo(){
+
+        }
+
         bool firstFrame{};
         float width{};
         float height{};
@@ -93,7 +103,7 @@ namespace MultiSense {
         /** @brief Handle for current devices located in sidebar */
         std::vector<Device> *devices = new std::vector<Device>();
         /** @brief Static info used in creation of gui */
-        GuiLayerUpdateInfo *info{};
+        std::unique_ptr<GuiLayerUpdateInfo> info{};
 
         /** User action to configure network automatically even when using manual approach **/
         bool configureNetworkForNextConnection = false;

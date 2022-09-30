@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <vector>
 
-typedef struct _SwapChainBuffers {
+typedef struct SwapChainBuffers {
     VkImage image;
     VkImageView view;
 } SwapChainBuffer;

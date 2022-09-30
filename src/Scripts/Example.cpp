@@ -47,6 +47,6 @@ void Example::update() {
     bufferThreeData = selection;
 }
 
-void Example::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void Example::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
 
 }

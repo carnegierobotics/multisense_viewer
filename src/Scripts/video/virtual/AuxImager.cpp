@@ -100,7 +100,7 @@ void AuxImager::prepareTextureAfterDecode() {
 }
 
 
-void AuxImager::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void AuxImager::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
@@ -180,7 +180,7 @@ void AuxImager::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 
-void AuxImager::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
+void AuxImager::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

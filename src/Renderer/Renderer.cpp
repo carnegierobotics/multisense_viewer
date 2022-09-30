@@ -50,10 +50,6 @@ void Renderer::prepareRenderer() {
 }
 
 
-void Renderer::UIUpdate(MultiSense::GuiObjectHandles *uiSettings) {
-
-}
-
 void Renderer::addDeviceFeatures() {
     if (deviceFeatures.fillModeNonSolid) {
         enabledFeatures.fillModeNonSolid = VK_TRUE;
@@ -243,7 +239,7 @@ void Renderer::render() {
     // UIupdaet on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
-            script.second->uiUpdate(guiManager->handles);
+            script.second->uiUpdate(&guiManager->handles);
     }
 
     // Run update function on Scripts
@@ -356,7 +352,7 @@ void Renderer::windowResized() {
     // Update general Scripts with handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
-            script.second->windowResize(&renderData, guiManager->handles);
+            script.second->windowResize(&renderData, &guiManager->handles);
     }
 }
 
@@ -364,9 +360,9 @@ void Renderer::windowResized() {
 void Renderer::cleanUp() {
     for (auto& dev : *guiManager->handles.devices)
         CameraConnection::disconnectCRLCameraTask(&cameraConnection, &dev);
+    destroySelectionBuffer();
 
-    cameraConnection.reset();
-        Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 
     }
 

@@ -110,8 +110,8 @@ void DoubleLayout::prepareTexture() {
     model->draw = true;
 }
 
-void DoubleLayout::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle.devices) {
+void DoubleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+    for (const MultiSense::Device &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -136,12 +136,14 @@ void DoubleLayout::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
     }
 }
 
-void DoubleLayout::transformToUISpace(MultiSense::GuiObjectHandles uiHandle, MultiSense::Device dev) {
-    auto *info = uiHandle.info;
-    scaleX = (info->viewAreaElementSizeX / 1280.0f) * (1280.0f / info->width);
-    scaleY = (info->viewAreaElementSizeY / 720.0f) * (720 / info->height);
-    centerX = 2 * ((info->width - (info->viewingAreaWidth / 2)) / info->width) - 1; // map between -1 to 1q
-    centerY = 2 * (info->tabAreaHeight + (info->viewAreaElementSizeY/2.0f)  + ((dev.row[0]) * info->viewAreaElementSizeY) + ((dev.row[0]) * 10.0f)) / info->height - 1; // map between -1 to 1
+void DoubleLayout::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+    centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) - 1; // map between -1 to 1q
+    centerY = 2 * (uiHandle->info->tabAreaHeight +
+                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
+                    ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+
+    scaleX = (uiHandle->info->viewAreaElementSizeX / 1280.0f) * (1280.0f / uiHandle->info->width);
+    scaleY = (uiHandle->info->viewAreaElementSizeY / 720.0f) * (720 / uiHandle->info->height);
 }
 
 
@@ -151,8 +153,8 @@ void DoubleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void DoubleLayout::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
-    for (auto &dev: *uiHandle.devices) {
+void DoubleLayout::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+    for (auto &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

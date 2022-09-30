@@ -13,6 +13,7 @@
 #include <MultiSense/src/Core/Texture.h>
 #include <MultiSense/src/Tools/Macros.h>
 #include <MultiSense/src/Scripts/Base.h>
+/*
 class MeshModel {
 
 public:
@@ -133,5 +134,5 @@ protected:
 
 };
 
-
+*/
 #endif //MULTISENSE_MESHMODEL_H

@@ -25,7 +25,7 @@ public:
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
     ScriptType getType() override {return type;}
     /** @brief update function called once per frame with a const UI reference handle **/
-    void onUIUpdate(MultiSense::GuiObjectHandles uiHandle) override;
+    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

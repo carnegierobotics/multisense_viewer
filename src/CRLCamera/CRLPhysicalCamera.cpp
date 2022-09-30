@@ -117,7 +117,6 @@ void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &head
 
     if (!cam->stopForDestruction)
         cam->streamCallback(header);
-
 }
 
 
@@ -174,9 +173,10 @@ bool CRLPhysicalCamera::getImuRotation(VkRender::Rotation *rot) {
         rotationData.roll = 0;
         rotationData.pitch = 0;
         rotationData.yaw = 0;
+        return false;
     }
 
-
+    return true;
 }
 
 
@@ -186,7 +186,7 @@ bool CRLPhysicalCamera::getCameraStream(VkRender::YUVTexture *tex) {
 
     auto &chroma = imagePointers[crl::multisense::Source_Chroma_Rectified_Aux];
     if (chroma.imageDataP != nullptr && chroma.source == crl::multisense::Source_Chroma_Rectified_Aux) {
-        tex->data[0] = malloc(chroma.imageLength);
+        tex->data[0] = malloc(chroma.imageLength); // TODO leverage STL... Rethink malloc
         memcpy(tex->data[0], chroma.imageDataP, chroma.imageLength);
         tex->len[0] = chroma.imageLength;
     }
@@ -327,7 +327,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
                                     void *userDataP) {
-    auto* app = static_cast<CRLPhysicalCamera*>(userDataP);
+    auto *app = static_cast<CRLPhysicalCamera *>(userDataP);
     std::vector<crl::multisense::imu::Sample>::const_iterator it = header.samples.begin();
 
     for (; it != header.samples.end(); ++it) {
@@ -350,8 +350,8 @@ void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
             float accelX = (s.x);
             float accelY = (s.y);
             float accelZ = (s.z);
-            float pitch = 180.0f * atan2(accelX, sqrt(accelY*accelY + accelZ*accelZ))/(float) M_PI;
-            float roll = 180.0f * atan2(accelY, sqrt(accelX*accelX + accelZ*accelZ))/(float) M_PI;
+            float pitch = 180.0f * atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) / (float) M_PI;
+            float roll = 180.0f * atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) / (float) M_PI;
 
             app->rotationData.roll = roll;
             app->rotationData.pitch = pitch;

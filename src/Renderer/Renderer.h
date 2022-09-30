@@ -54,13 +54,16 @@ public:
         backendInitialized = true;
         pLogger->info("Initialized Backend");
 
+        guiManager = std::make_unique<MultiSense::GuiManager>(vulkanDevice, renderPass, width, height);
+
         prepareRenderer();
         pLogger->info("Prepared Renderer");
 
     };
 
-    ~Renderer() override{
-        delete guiManager;
+    ~Renderer(){
+
+
     }
 
     void render() override;
@@ -71,13 +74,13 @@ public:
 
     void run() {
         VulkanRenderer::renderLoop();
+
         cleanUp();
-        destroySelectionBuffer();
     }
 
 private:
-
-    std::map<std::string, std::unique_ptr<Base>> scripts;
+    std::unique_ptr<MultiSense::GuiManager> guiManager{};
+    std::map<std::string, std::unique_ptr<Base>> scripts{};
     std::unique_ptr<CameraConnection> cameraConnection{};
     std::vector<std::string> scriptNames;
     Base::Render renderData{};
@@ -99,18 +102,14 @@ protected:
     void buildCommandBuffers() override;
 
     /**
-     * Overrides UIUpdate function. Is called with an per-frame updated handle to \ref UISettings
-     * @param uiSettings Handle to UISetting variables
-     */
-    void UIUpdate(MultiSense::GuiObjectHandles *uiSettings) override;
-
-    /**
      *
      * \brief creates instances from classes located in src/Scripts directory. Usually each class here represents object(s) in the scene
      */
+    void buildScript(const std::string &scriptName);
+
     void deleteScript(const std::string &scriptName);
 
-    void buildScript(const std::string &scriptName);
+
 
     void createSelectionFramebuffer();
 

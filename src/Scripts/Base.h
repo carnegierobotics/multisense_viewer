@@ -78,20 +78,20 @@ public:
      * the cameraHandle has been initialized by the CameraConnection Class */
     virtual void setup(Render r) {};
 
-    virtual void onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
+    virtual void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
 
     };
 
-    void windowResize(Render *data, MultiSense::GuiObjectHandles uiHandle) {
+    void windowResize(Render *data, const MultiSense::GuiObjectHandles* uiHandle) {
         updateRenderData(data);
 
         onWindowResize(uiHandle);
     }
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(MultiSense::GuiObjectHandles uiHandle) = 0;
+    virtual void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) = 0;
 
-    void uiUpdate(MultiSense::GuiObjectHandles uiHandle) {
+    void uiUpdate(const MultiSense::GuiObjectHandles* uiHandle) {
         if (!this->renderData.drawThisScript)
             return;
 
@@ -141,7 +141,7 @@ public:
         if (renderUtils.uniformBuffers.empty())
             return;
 
-        UniformBufferSet currentUB = renderUtils.uniformBuffers[renderData.index];
+        UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
         if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
             // TODO unceesarry mapping and unmapping occurring here.
             currentUB.bufferOne.map();

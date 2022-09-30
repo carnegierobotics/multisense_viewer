@@ -172,7 +172,7 @@ public:
 
     void createDescriptorSetLayout();
 
-    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo);
+    void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo);
 
     void setupNodeDescriptorSet(Node *node);
 

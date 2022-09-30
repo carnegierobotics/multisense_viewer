@@ -32,10 +32,10 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
     /** @brief called after renderer has handled a window resize event **/
-    void onWindowResize(MultiSense::GuiObjectHandles uiHandle) override;
+    void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) override;
 
 
-    void onUIUpdate(MultiSense::GuiObjectHandles uiHandle) override;
+    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
@@ -62,7 +62,7 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(MultiSense::GuiObjectHandles handles, MultiSense::Device element);
+    void transformToUISpace(const MultiSense::GuiObjectHandles * handles, MultiSense::Device element);
 
     void prepareTexture();
 };

@@ -58,9 +58,9 @@ void PointCloud::update() {
 }
 
 
-void PointCloud::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void PointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
-    for (const auto &dev: *uiHandle.devices) {
+    for (const auto &dev: *uiHandle->devices) {
 
         if (!dev.selectedSourceMap.contains(AR_PREVIEW_POINT_CLOUD))
             break;

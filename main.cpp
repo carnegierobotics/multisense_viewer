@@ -6,9 +6,8 @@
 #endif
 
 #include <MultiSense/src/Renderer/Renderer.h>
-Renderer *application;
 int main() {
-    application = new Renderer("MultiSense Viewer");
-    application->run();
+    Renderer app("MultiSense Viewer");
+    app.run();
     return 0;
 }

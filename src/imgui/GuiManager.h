@@ -19,6 +19,9 @@
 #include <MultiSense/src/Core/Texture.h>
 #include "imgui_internal.h"
 
+#define NUM_TEXTURES 3
+#define NUM_IMAGE_ICONS 9
+
 namespace MultiSense {
 
 
@@ -27,21 +30,26 @@ namespace MultiSense {
 
         GuiObjectHandles handles{};
 
-        explicit GuiManager(VulkanDevice *vulkanDevice);
+        GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass& renderPass, const uint32_t& width, const uint32_t& height);
 
-        ~GuiManager() = default;
+        ~GuiManager(){
+            vkDestroyPipeline(device->logicalDevice, pipeline, nullptr);
+            vkDestroyPipelineCache(device->logicalDevice, pipelineCache, nullptr);
+            vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
+            vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
+            vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
 
+        };
 
+        /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
-
-        void setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue,
-                   std::vector<VkPipelineShaderStageCreateInfo> *shaders);
-
+        /**@brief setup function called once vulkan renderer is setup. Function calls each layer in order to generate buffers for draw commands*/
+        void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass);
+        /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer);
 
+        /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers();
-
-        void setMenubarCallback(const std::function<void()> &menubarCallback) { m_MenubarCallback = menubarCallback; }
 
         template<typename T>
         void pushLayer() {
@@ -57,16 +65,15 @@ namespace MultiSense {
         } pushConstBlock{};
 
 
-        std::vector<std::shared_ptr<Layer>> m_LayerStack;
-        std::function<void()> m_MenubarCallback;
+        std::vector<std::shared_ptr<Layer>> m_LayerStack{};
+        std::function<void()> m_MenubarCallback{};
 
-        ImGuiIO *io{};
-        Texture2D fontTexture{};
-        Texture2D iconTexture{};
-        Texture2D gifTexture[99];
+        std::unique_ptr<Texture2D> fontTexture;
+        //std::unique_ptr<Texture2D> iconTexture;
+        Texture2D iconTexture;
+        std::unique_ptr<Texture2D> gifTexture[99];
 
         // Vulkan resources for rendering the UI
-        VkSampler sampler{};
         Buffer vertexBuffer;
         Buffer indexBuffer;
         int32_t vertexCount = 0;
@@ -79,21 +86,15 @@ namespace MultiSense {
         VkDescriptorSet fontDescriptor{};
         VkDescriptorSet imageIconDescriptor{};
 
-        VkDescriptorSet gifImageDescriptors[20];     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
-
-
+        VkDescriptorSet gifImageDescriptors[20]{};     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
         VulkanDevice *device;
 
         void initializeFonts();
 
         ImFont *AddDefaultFont(float pixel_size);
-
         ImFont *loadFontFromFileName(std::string file, float fontSize);
-
         void loadImGuiTextureFromFileName(const std::string& file);
-
         void loadAnimatedGif(const std::string &file);
-
         void loadNextGifFrame();
     };
 };

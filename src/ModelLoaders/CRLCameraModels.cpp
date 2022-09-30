@@ -166,7 +166,7 @@ CRLCameraModels::Model::setTexture(
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D tex{};
+    Texture2D texture(device);
 
     /*
     tex.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
@@ -176,15 +176,12 @@ CRLCameraModels::Model::setTexture(
 
 
     textureIndices.baseColor = 0;
-    this->texture = tex;
 
 }
 
 void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
     Log::Logger::getInstance()->info("Preparing Texture image {}, {}, with type {}", width, height, (int) texType);
-
     VkFormat format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
-
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
             format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
@@ -201,7 +198,6 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
             textureVideoDepthMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
                                                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                   VK_FORMAT_R8_UNORM);
-
             break;
         case AR_YUV_PLANAR_FRAME:
             format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
@@ -298,7 +294,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
             writeDescriptorSets[3].descriptorCount = 1;
             writeDescriptorSets[3].dstSet = descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
-            writeDescriptorSets[3].pImageInfo = &model->texture.descriptor;
+            writeDescriptorSets[3].pImageInfo = &model->texture->descriptor;
         } else {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

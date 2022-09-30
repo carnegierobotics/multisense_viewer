@@ -100,7 +100,7 @@ void RightImager::prepareTextureAfterDecode() {
 }
 
 
-void RightImager::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void RightImager::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const auto &dev: *uiHandle.devices) {
         if (dev.button)
             model->draw = false;
@@ -179,7 +179,7 @@ void RightImager::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 
-void RightImager::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
+void RightImager::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

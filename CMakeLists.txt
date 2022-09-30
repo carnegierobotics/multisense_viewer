@@ -137,12 +137,6 @@ set(ENGINE_SRC
         src/Scripts/video/physical/Quad/Four.cpp
         src/Scripts/video/physical/Quad/Four.h
 
-        src/Scripts/video/virtual/LeftImager.cpp
-        src/Scripts/video/virtual/LeftImager.h
-        src/Scripts/video/virtual/RightImager.cpp
-        src/Scripts/video/virtual/RightImager.h
-        src/Scripts/video/virtual/AuxImager.cpp
-        src/Scripts/video/virtual/AuxImager.h
         src/Scripts/video/physical/ScriptHeader.h
         src/Tools/Macros.h
         src/Tools/Populate.h

@@ -25,7 +25,7 @@ public:
     CRLCameraModels() = default;
 
     struct Model {
-        Model(const Base::RenderUtils *renderUtils);
+        explicit Model(const Base::RenderUtils *renderUtils);
         ~Model();
 /**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
@@ -65,8 +65,8 @@ public:
         VulkanDevice *vulkanDevice{};
         VulkanDevice *device{};
         std::vector<std::string> extensions;
-        Texture2D texture;
 
+        std::unique_ptr<Texture2D> texture;
         std::unique_ptr<TextureVideo> textureVideo;
         std::unique_ptr<TextureVideo> textureVideoDepthMap;
 

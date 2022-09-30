@@ -264,12 +264,11 @@ private:
     }
 
     void createDoubleWindowPreview(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
-        MultiSense::GuiLayerUpdateInfo *info = handles->info;
-        info->viewingAreaWidth = info->width - info->sidebarWidth - info->controlAreaWidth;
+        handles->info->viewingAreaWidth = handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
-        info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
+        handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
+        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
         int cols = 0, rows = 0;
@@ -302,31 +301,31 @@ private:
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
 
-                float newWidth = (info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
+                float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
                 float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
                 // Calculate window size
-                info->viewAreaElementSizeX = newWidth;
-                info->viewAreaElementSizeY = newHeight;
-                info->previewBorderPadding = 35.0f * (info->width / 1280);
+                handles->info->viewAreaElementSizeX = newWidth;
+                handles->info->viewAreaElementSizeY = newHeight;
+                handles->info->previewBorderPadding = 35.0f * (handles->info->width / 1280);
 
 
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
-                    offsetX = (info->controlAreaWidth + info->sidebarWidth + ((info->viewingAreaWidth - newWidth) / 2));
+                    offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth + ((handles->info->viewingAreaWidth - newWidth) / 2));
                 } else
-                    offsetX = (info->controlAreaWidth + info->sidebarWidth + 5.0f);
+                    offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth + 5.0f);
 
                 float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
 
 
-                ImGui::SetNextWindowSize(ImVec2(info->viewAreaElementSizeX, info->viewAreaElementSizeY),
+                ImGui::SetNextWindowSize(ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
                                          ImGuiCond_Always);
 
                 dev.row[index] = float(row);
                 dev.col[index] = float(col);
                 // Calculate window position
                 float viewAreaElementPosY =
-                        info->tabAreaHeight + ((float) row * (info->viewAreaElementSizeY + 10.0f));
+                        handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
@@ -342,8 +341,8 @@ private:
                 {                // The colored bars around the preview window is made up of rectangles
                     // Top bar
                     ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
-                    ImVec2 topBarRectMax(viewAreaElementPosX + info->viewAreaElementSizeX,
-                                         viewAreaElementPosY + (info->previewBorderPadding / 2));
+                    ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                         viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
                     ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(MultiSense::CRLBlueIsh),
                                                               0.0f,
                                                               0);
@@ -352,7 +351,7 @@ private:
                     /*
                     // extension of top bar in different color
                     ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
-                    ImVec2 topBarRectMaxExtended(viewAreaElementPosX + info->viewAreaElementSizeX,
+                    ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
                                                  topBarRectMax.y + 5.0f);
 
                     ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
@@ -362,31 +361,31 @@ private:
                     // Left bar
 
                     ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
-                    ImVec2 leftBarMax(viewAreaElementPosX + (info->previewBorderPadding / 2),
-                                      topBarRectMax.y + info->viewAreaElementSizeY -
-                                      (info->previewBorderPadding * 0.5f));
+                    ImVec2 leftBarMax(viewAreaElementPosX + (handles->info->previewBorderPadding / 2),
+                                      topBarRectMax.y + handles->info->viewAreaElementSizeY -
+                                      (handles->info->previewBorderPadding * 0.5f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(MultiSense::CRLGray424Main), 0.0f,
                                                               0);
 
                     // Right bar
                     ImVec2 rightBarMin(
-                            viewAreaElementPosX + info->viewAreaElementSizeX - (info->previewBorderPadding / 2),
+                            viewAreaElementPosX + handles->info->viewAreaElementSizeX - (handles->info->previewBorderPadding / 2),
                             topBarRectMax.y);
-                    ImVec2 rightBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
-                                       topBarRectMax.y + info->viewAreaElementSizeY -
-                                       (info->previewBorderPadding * 0.5f));
+                    ImVec2 rightBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                       topBarRectMax.y + handles->info->viewAreaElementSizeY -
+                                       (handles->info->previewBorderPadding * 0.5f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(MultiSense::CRLGray424Main),
                                                               0.0f,
                                                               0);
 
                     // Bottom bar
-                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMin.y + info->viewAreaElementSizeY -
-                                                             (info->previewBorderPadding / 2.0f));
-                    ImVec2 bottomBarMax(viewAreaElementPosX + info->viewAreaElementSizeX,
-                                        topBarRectMin.y + info->viewAreaElementSizeY +
-                                        (info->previewBorderPadding / 2.0f));
+                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMin.y + handles->info->viewAreaElementSizeY -
+                                                             (handles->info->previewBorderPadding / 2.0f));
+                    ImVec2 bottomBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                        topBarRectMin.y + handles->info->viewAreaElementSizeY +
+                                        (handles->info->previewBorderPadding / 2.0f));
 
                     ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(MultiSense::CRLGray424Main),
                                                               0.0f,

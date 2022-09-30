@@ -140,7 +140,7 @@ struct WhiteBalanceParams {
 
 struct LightingParams {
     float dutyCycle = 1.0f;
-    uint32_t selection = -1;
+    int selection = -1;
     bool flashing = true;
     uint32_t numLightPulses = 3;
     uint32_t startupTime = 0;

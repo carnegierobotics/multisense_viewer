@@ -154,7 +154,6 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
             break;
         }
 
-        updateDeviceState(&dev);
         // Rest of this function is only for active devices
         if (dev.state != AR_STATE_ACTIVE) {
             continue;
@@ -269,31 +268,31 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
 #ifdef WIN32
 
 
-        ///* Variables where handles to the added IP are returned */
-        //ULONG NTEInstance = 0;
-        //// Attempt to connect to camera and post some info
+        /* Variables where handles to the added IP are returned */
+        ULONG NTEInstance = 0;
+        // Attempt to connect to camera and post some info
 
 
-        //LPVOID lpMsgBuf = nullptr;
+        LPVOID lpMsgBuf = nullptr;
 
-        //unsigned long ulAddr = inet_addr(hostAddress.c_str());
-        //unsigned long ulMask = inet_addr("255.255.255.0");
-        //if ((dwRetVal = AddIPAddress(ulAddr,
-        //    ulMask,
-        //    dev.interfaceIndex,
-        //    &NTEContext, &NTEInstance)) == NO_ERROR) {
-        //    printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
-        //}
-        //else {
-        //    printf("AddIPAddress failed with error: %d\n", dwRetVal);
-        //    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        //        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-        //        (LPTSTR)&lpMsgBuf, 0, NULL)) {
-        //        printf("\tError: %p", std::addressof(lpMsgBuf));
-        //        LocalFree(lpMsgBuf);
-        //    }
+        unsigned long ulAddr = inet_addr(hostAddress.c_str());
+        unsigned long ulMask = inet_addr("255.255.255.0");
+        if ((dwRetVal = AddIPAddress(ulAddr,
+            ulMask,
+            dev.interfaceIndex,
+            &NTEContext, &NTEInstance)) == NO_ERROR) {
+            printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
+        }
+        else {
+            printf("AddIPAddress failed with error: %d\n", dwRetVal);
+            if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
+                (LPTSTR)&lpMsgBuf, 0, NULL)) {
+                printf("\tError: %p", std::addressof(lpMsgBuf));
+                LocalFree(lpMsgBuf);
+            }
 
-        //}
+        }
 
 
 #else
@@ -356,15 +355,11 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
             Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                               dev.interfaceName.c_str());
         }
-    }
-
 #endif
+    }
     return true;
 }
 
-void CameraConnection::updateDeviceState(MultiSense::Device *dev) {
-
-}
 
 void CameraConnection::addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value) {
     int ret = ini->SetValue(section.c_str(), key.c_str(), value.c_str());
@@ -497,10 +492,15 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
 
     }
     app->lastActiveDevice = "-1";
-    dev->userRequestedSources.clear();
-    dev->enabledStreams.clear();
-    dev->selectedSourceMap.clear();
-    dev->selectedSourceIndexMap.clear();
+    if (!dev->userRequestedSources.empty())
+        dev->userRequestedSources.clear();
+    if (!dev->enabledStreams.empty())
+        dev->enabledStreams.clear();
+    if (!dev->selectedSourceMap.empty())
+        dev->selectedSourceMap.clear();
+    if (!dev->selectedSourceIndexMap.empty())
+        dev->selectedSourceIndexMap.clear();
+    
     app->processingDisconnectTask = false;
 }
 

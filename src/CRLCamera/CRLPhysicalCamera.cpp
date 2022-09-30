@@ -1,6 +1,10 @@
 //
 // Created by magnus on 3/1/22.
 //
+#ifdef WIN32
+    #define _USE_MATH_DEFINES
+    #include <cmath>
+#endif
 
 #include "CRLPhysicalCamera.h"
 
@@ -174,9 +178,10 @@ bool CRLPhysicalCamera::getImuRotation(VkRender::Rotation *rot) {
         rotationData.roll = 0;
         rotationData.pitch = 0;
         rotationData.yaw = 0;
+        return false;
     }
 
-
+    return true;
 }
 
 

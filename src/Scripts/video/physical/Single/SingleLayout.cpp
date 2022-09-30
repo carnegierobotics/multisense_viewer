@@ -24,8 +24,6 @@ void SingleLayout::update() {
             model->draw = false;
             return;
         }
-
-        Log::Logger::getInstance()->info("Update SingleLayout");
         auto* tex = new VkRender::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setTexture(tex);

@@ -104,8 +104,8 @@ void PreviewOne::prepareTexture() {
     model->draw = true;
 }
 
-void PreviewOne::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle.devices) {
+void PreviewOne::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+    for (const MultiSense::Device &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -130,21 +130,17 @@ void PreviewOne::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
     }
 }
 
-void PreviewOne::transformToUISpace(MultiSense::GuiObjectHandles uiHandle, MultiSense::Device dev) {
-    auto *info = uiHandle.info;
-    scaleX = (info->viewAreaElementSizeX / 1280.0f) * (1280.0f / info->width);
-    scaleY = (info->viewAreaElementSizeY / 720.0f) * (720 / info->height);
-
-    float offsetX = (info->controlAreaWidth + info->sidebarWidth + 5.0f);
-
-    float viewAreaElementPosX = offsetX + (info->viewAreaElementSizeX / 2) + (dev.col[0] * info->viewAreaElementSizeX) +
-                                (dev.col[0] * 10.0f);
-
-    centerX = 2 * (viewAreaElementPosX) / info->width - 1; // map between -1 to 1q
-    centerY = 2 *
-              (info->tabAreaHeight + (info->viewAreaElementSizeY / 2.0f) + ((dev.row[0]) * info->viewAreaElementSizeY) +
-               ((dev.row[0]) * 10.0f)) / info->height - 1; // map between -1 to 1
+void PreviewOne::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+    float row = dev.row[0];
+    float col = dev.col[0];
+    scaleX = (uiHandle->info->viewAreaElementSizeX / 1280.0f) * (1280.0f / uiHandle->info->width);
+    scaleY = (uiHandle->info->viewAreaElementSizeY / 720.0f) * (720 / uiHandle->info->height);
+    float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
+    float viewAreaElementPosX = offsetX + (uiHandle->info->viewAreaElementSizeX/2) + (col * uiHandle->info->viewAreaElementSizeX) + (col * 10.0f);
+    centerX = 2 * (viewAreaElementPosX) / uiHandle->info->width - 1; // map between -1 to 1q
+    centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY/2.0f)  + ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height - 1; // map between -1 to 1
 }
+
 
 
 void PreviewOne::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -153,8 +149,8 @@ void PreviewOne::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void PreviewOne::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
-    for (auto &dev: *uiHandle.devices) {
+void PreviewOne::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+    for (auto &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

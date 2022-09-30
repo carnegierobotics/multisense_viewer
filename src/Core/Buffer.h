@@ -35,6 +35,10 @@ struct Buffer
     VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
     VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
     void destroy() const;
+
+    ~Buffer(){
+        destroy();
+    }
 };
 
 

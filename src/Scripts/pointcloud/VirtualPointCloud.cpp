@@ -74,20 +74,9 @@ void VirtualPointCloud::update() {
 }
 
 
-void VirtualPointCloud::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void VirtualPointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
-    for (const auto &dev: *uiHandle.devices) {
-        if (dev.button)
-            model->draw = false;
 
-        /*
-        if (dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD) == dev.streams.end())
-            continue;
-
-        playbackSate = dev.streams.find(AR_PREVIEW_VIRTUAL_POINT_CLOUD)->second.playbackStatus;
-        selectedPreviewTab = dev.selectedPreviewTab;
-    */
-    }
 
 }
 

@@ -381,7 +381,7 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             sampler = textureSamplers[tex.sampler];
         }
-        Texture2D texture2D{};
+        Texture2D texture2D(device);
         texture2D.fromglTfImage(image, sampler, device, transferQueue);
         textures.push_back(texture2D);
     }
@@ -458,7 +458,7 @@ void glTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture{};
+    Texture2D texture(device);
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
     textureIndices.baseColor = 0;
     textures.push_back(texture);
@@ -488,7 +488,7 @@ void glTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture{};
+    Texture2D texture(device);
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
     textureIndices.normalMap = 1;
     textures.push_back(texture);
@@ -550,7 +550,7 @@ void glTFModel::createDescriptorSetLayout() {
     CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorSetLayoutCI, nullptr,&descriptorSetLayout))
 }
 
-void glTFModel::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo) {
+void glTFModel::createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo) {
     descriptors.resize(count);
 
     // Check for how many image descriptors

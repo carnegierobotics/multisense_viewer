@@ -99,7 +99,7 @@ void LeftImager::prepareTextureAfterDecode() {
 }
 
 
-void LeftImager::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
+void LeftImager::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     bool found = false;
     for (const auto &dev: *uiHandle.devices) {
         /*
@@ -176,7 +176,7 @@ void LeftImager::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
         CRLCameraModels::draw(commandBuffer, i, model, false);
 }
 
-void LeftImager::onWindowResize(MultiSense::GuiObjectHandles uiHandle) {
+void LeftImager::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle.devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

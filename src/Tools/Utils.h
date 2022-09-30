@@ -480,11 +480,12 @@ namespace Utils {
 
     }
 
-    inline VkShaderModule loadShader(const char *fileName, VkDevice device) {
+
+    inline VkShaderModule loadShader(const char *fileName, const VkDevice& device) {
         std::ifstream is(fileName, std::ios::binary | std::ios::ate);
 
         if (is.is_open()) {
-            size_t size = is.tellg();
+            std::streamsize size = is.tellg();
             is.seekg(0, std::ios::beg);
             char *shaderCode = new char[size];
             is.read(shaderCode, size);
@@ -498,7 +499,7 @@ namespace Utils {
             moduleCreateInfo.codeSize = size;
             moduleCreateInfo.pCode = (uint32_t *) shaderCode;
 
-            if (vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule) != VK_SUCCESS)
+            if (vkCreateShaderModule(device, &moduleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS)
                 throw std::runtime_error("Failed to crate shader module");
 
 
@@ -510,6 +511,18 @@ namespace Utils {
             return VK_NULL_HANDLE;
         }
     }
+    inline VkPipelineShaderStageCreateInfo getPipelineShaderStateCreateInfo(const VkDevice& device, const std::string &fileName, VkShaderStageFlagBits stage) {
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage = stage;
+        shaderStage.module = loadShader((Utils::getShadersPath() + fileName).c_str(), device);
+        shaderStage.pName = "main";
+        assert(shaderStage.module != VK_NULL_HANDLE);
+        // TODO CLEANUP SHADERMODULES WHEN UNUSED AND ON EXITING VIEWER APP
+        return shaderStage;
+    }
+
+
 }
 
 #endif //MULTISENSE_UTILS_H

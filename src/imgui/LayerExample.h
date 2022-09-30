@@ -28,16 +28,15 @@ public:
 
     /** Called once per frame **/
     void OnUIRender(MultiSense::GuiObjectHandles *_handles) override {
-
-
-        /*
         // Create a Button
+        /*
         bool clicked = ImGui::Button("Dont Click", ImVec2(150.0f, 50.0f));
 
         if (clicked)
             throw std::runtime_error("Dont click it");
-        demo to learn more: https://github.com/ocornut/imgui
+        //demo to learn more: https://github.com/ocornut/imgui
          */
+
     }
 };
 

@@ -41,7 +41,7 @@ class VulkanRenderer {
 public:
     explicit VulkanRenderer(const std::string &title, bool enableValidation = false);
 
-    virtual ~VulkanRenderer();
+    ~VulkanRenderer();
 
     /** @brief Setup the vulkan instance, flashing required extensions and connect to the physical device (GPU) */
     bool initVulkan();
@@ -92,11 +92,10 @@ public:
     Input input;
 
     /** @brief Handle for Logging*/
-    Log::Logger *pLogger = NULL; // Create the object pointer for Logger Class
+    Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
 
 
     /** @brief Handle for UI updates and overlay */
-    MultiSense::GuiManager* guiManager{};
 
     /** @brief (Virtual) Creates the application wide Vulkan instance */
     virtual VkResult createInstance(bool enableValidation);
@@ -104,10 +103,6 @@ public:
     virtual void render() = 0;
     /** @brief (Virtual) Called when the camera view has changed */
     virtual void viewChanged();
-    /** @brief (Virtual) Called after a key was pressed, can be used to do custom key handling */
-    virtual void keyPressed(uint32_t);
-    /** @brief (Virtual) Called once a update on the UI is detected */
-    virtual void UIUpdate(MultiSense::GuiObjectHandles *uiSettings);
     /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is firstUpdate */
     virtual void mouseMoved(double x, double y, bool &handled);
     /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
@@ -130,11 +125,6 @@ public:
     void prepareFrame();
     /** @brief Presents the current image to the swap chain */
     void submitFrame();
-    /** @brief (Virtual) Default image acquire + submission and command buffer submission function */
-    virtual void renderFrame();
-
-
-    VkPipelineShaderStageCreateInfo loadShader(const std::string& fileName, VkShaderStageFlagBits stage);
 
 protected:
     // Window instance GLFW
@@ -186,7 +176,6 @@ protected:
     // Active frame buffer index
     uint32_t currentBuffer = 0;
     // Descriptor set pool
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     // Pipeline cache object
     VkPipelineCache pipelineCache{};
 
@@ -206,8 +195,6 @@ private:
     float lastFPS{};
 
     void windowResize();
-    void updateOverlay();
-
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void resizeCallback(GLFWwindow* window, int width, int height);
     static void cursorPositionCallback(GLFWwindow *window, double xPos, double yPos);

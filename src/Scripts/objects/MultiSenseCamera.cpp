@@ -54,9 +54,8 @@ void MultiSenseCamera::update() {
 }
 
 
-void MultiSenseCamera::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
-
-    for (const auto &d: *uiHandle.devices) {
+void MultiSenseCamera::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+    for (const auto &d: *uiHandle->devices) {
         if (d.state != AR_STATE_ACTIVE)
             continue;
 
@@ -64,5 +63,4 @@ void MultiSenseCamera::onUIUpdate(MultiSense::GuiObjectHandles uiHandle) {
         imuEnabled = d.useImuData;
 
     }
-
 }

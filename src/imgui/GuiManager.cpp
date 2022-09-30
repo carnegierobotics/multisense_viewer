@@ -20,20 +20,25 @@
 #include "LayerExample.h"
 
 namespace MultiSense {
-    GuiManager::GuiManager(VulkanDevice *vulkanDevice) {
+
+    GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass& renderPass, const uint32_t& width, const uint32_t& height){
         device = vulkanDevice;
         ImGui::CreateContext();
 
-        handles.info = new GuiLayerUpdateInfo();
+        handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.info->deviceName = device->properties.deviceName;
         handles.info->title = "GuiManager";
-        io = &ImGui::GetIO();
 
         initializeFonts();
 
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
         pushLayer<LayerExample>();
+
+        std::vector<VkPipelineShaderStageCreateInfo> shaders;
+
+        // setup graphics pipeline
+        setup(width, height, renderPass);
 
     }
 
@@ -131,6 +136,7 @@ namespace MultiSense {
         //vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // UI scale and translate via push constants
+        ImGuiIO* io = &ImGui::GetIO();
         pushConstBlock.scale = glm::vec2(2.0f / io->DisplaySize.x, 2.0f / io->DisplaySize.y);
         pushConstBlock.translate = glm::vec2(-1.0f);
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
@@ -156,7 +162,7 @@ namespace MultiSense {
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
 
-                    auto texture = (VkDescriptorSet) pcmd->TextureId;
+                    auto texture = (VkDescriptorSet) pcmd->GetTexID();
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                             &texture, 0, nullptr);
 
@@ -175,8 +181,12 @@ namespace MultiSense {
     }
 
 
-    void GuiManager::setup(float width, float height, VkRenderPass renderPass, VkQueue copyQueue,
-                           std::vector<VkPipelineShaderStageCreateInfo> *shaders) {
+    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
+        std::vector<VkPipelineShaderStageCreateInfo> shaders = {
+                Utils::getPipelineShaderStateCreateInfo(device->logicalDevice, "imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+                Utils::getPipelineShaderStateCreateInfo(device->logicalDevice, "imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
+        };
+
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
@@ -194,7 +204,7 @@ namespace MultiSense {
 
 
         // Dimensions
-        io = &ImGui::GetIO();
+        ImGuiIO* io = &ImGui::GetIO();
         io->DisplaySize = ImVec2(width, height);
         io->DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
@@ -282,8 +292,8 @@ namespace MultiSense {
         pipelineCreateInfo.pViewportState = &viewportState;
         pipelineCreateInfo.pDepthStencilState = &depthStencilState;
         pipelineCreateInfo.pDynamicState = &dynamicState;
-        pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaders->size());
-        pipelineCreateInfo.pStages = shaders->data();
+        pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaders.size());
+        pipelineCreateInfo.pStages = shaders.data();
 
         // Vertex bindings an attributes based on ImGui vertex definition
         std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -316,12 +326,14 @@ namespace MultiSense {
     }
 
     void GuiManager::initializeFonts() {
+        ImGuiIO* io = &ImGui::GetIO();
         io->Fonts->Clear();
 
+        fontTexture = std::make_unique<Texture2D>(device);
         handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13); // TODO FIX PATHS
         handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
-        io->Fonts->SetTexID(reinterpret_cast<void *>(fontDescriptor));
+        io->Fonts->SetTexID(fontDescriptor);
 
         // TODO use separate Descriptors to copy reference to imageButtonTextureDescriptors. Loss of memory alloc.
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png");
@@ -356,7 +368,7 @@ namespace MultiSense {
 
 
 
-        loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
+        //loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
 
     }
 
@@ -391,8 +403,9 @@ namespace MultiSense {
 
 
         for (int i = 0; i < depth; ++i) {
+            gifTexture[i] = std::make_unique<Texture2D>(device);
 
-            gifTexture[i].fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
+            gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                      handles.info->gif.width, handles.info->gif.height, device,
                                      device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -449,7 +462,7 @@ namespace MultiSense {
                 write_desc[0].dstSet = gifImageDescriptors[i];
                 write_desc[0].descriptorCount = 1;
                 write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                write_desc[0].pImageInfo = &gifTexture[i].descriptor;
+                write_desc[0].pImageInfo = &gifTexture[i]->descriptor;
                 vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
             }
 
@@ -532,29 +545,29 @@ namespace MultiSense {
 
 
     ImFont *GuiManager::loadFontFromFileName(std::string file, float fontSize) {
-        ImFont *font;
+
         ImFontConfig config;
         config.OversampleH = 2;
         config.OversampleV = 1;
         config.GlyphExtraSpacing.x = 1.0f;
-        font = io->Fonts->AddFontFromFileTTF(file.c_str(), fontSize, &config);
+        ImGuiIO * io = &ImGui::GetIO();
+        ImFont *font = io->Fonts->AddFontFromFileTTF(file.c_str(), fontSize, &config);
 
         unsigned char *pixels;
         int width, height;
         io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
         VkDeviceSize uploadSize =(VkDeviceSize) width * height * 4 * sizeof(char);
 
-        {
-            fontTexture.fromBuffer(pixels, uploadSize,
+        fontTexture->fromBuffer(pixels, uploadSize,
                                    VK_FORMAT_R8G8B8A8_UNORM,
                                    width, height, device,
                                    device->transferQueue);
 
-        }
+
 
         // Descriptor Layout
 
-        {
+
             std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -567,10 +580,10 @@ namespace MultiSense {
             CHECK_RESULT(
                     vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
                                                 &descriptorSetLayout));
-        }
+
 
         // Descriptor Pool
-        {
+
             uint32_t imageDescriptorSamplerCount = (3 * 5);
             std::vector<VkDescriptorPoolSize> poolSizes = {
                     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
@@ -580,10 +593,10 @@ namespace MultiSense {
             CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
-        }
+
 
         // descriptors
-        {
+
             // Create Descriptor Set:
             {
                 VkDescriptorSetAllocateInfo alloc_info = {};
@@ -602,10 +615,10 @@ namespace MultiSense {
                 write_desc[0].dstSet = fontDescriptor;
                 write_desc[0].descriptorCount = 1;
                 write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                write_desc[0].pImageInfo = &fontTexture.descriptor;
+                write_desc[0].pImageInfo = &fontTexture->descriptor;
                 vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
             }
-        }
+
 
 
         return font;

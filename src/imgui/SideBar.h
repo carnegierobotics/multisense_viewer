@@ -39,7 +39,6 @@ class SideBar : public MultiSense::Layer {
 public:
 
     // Create global object for convenience in other functions
-    MultiSense::GuiObjectHandles *handles = nullptr;
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::Result> adapters;
@@ -85,39 +84,38 @@ public:
     }
 
 
-    void OnUIRender(MultiSense::GuiObjectHandles *_handles) override {
-        this->handles = _handles;
-        MultiSense::GuiLayerUpdateInfo *info = handles->info;
+    void OnUIRender(MultiSense::GuiObjectHandles *handles) override {
+        ;
 
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, info->height));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLGray424Main);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
-        ImGui::TextUnformatted(info->title.c_str());
-        ImGui::TextUnformatted(info->deviceName.c_str());
+        ImGui::TextUnformatted(handles->info->title.c_str());
+        ImGui::TextUnformatted(handles->info->deviceName.c_str());
 
         // Update frame time display
-        if (info->firstFrame) {
-            std::rotate(info->frameTimes.begin(), info->frameTimes.begin() + 1,
-                        info->frameTimes.end());
-            float frameTime = 1000.0f / (info->frameTimer * 1000.0f);
-            info->frameTimes.back() = frameTime;
-            if (frameTime < info->frameTimeMin) {
-                info->frameTimeMin = frameTime;
+        if (handles->info->firstFrame) {
+            std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
+                        handles->info->frameTimes.end());
+            float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
+            handles->info->frameTimes.back() = frameTime;
+            if (frameTime < handles->info->frameTimeMin) {
+                handles->info->frameTimeMin = frameTime;
             }
-            if (frameTime > info->frameTimeMax) {
-                info->frameTimeMax = frameTime;
+            if (frameTime > handles->info->frameTimeMax) {
+                handles->info->frameTimeMax = frameTime;
             }
         }
 
-        ImGui::PlotLines("Frame Times", &info->frameTimes[0], 50, 0, "", info->frameTimeMin,
-                         info->frameTimeMax, ImVec2(0, 80));
+        ImGui::PlotLines("Frame Times", &handles->info->frameTimes[0], 50, 0, "", handles->info->frameTimeMin,
+                         handles->info->frameTimeMax, ImVec2(0, 80));
 
 
         addPopup(handles);
@@ -271,7 +269,7 @@ private:
 
     }
 
-    void createDefaultElement(const MultiSense::EntryConnectDevice &entry) {
+    void createDefaultElement(MultiSense::GuiObjectHandles *handles, const MultiSense::EntryConnectDevice &entry) {
         MultiSense::Device el;
 
         el.name = entry.profileName;
@@ -807,7 +805,7 @@ private:
             }
 
             if (btnConnect && entry.ready(handles->devices, entry)) {
-                createDefaultElement(entry);
+                createDefaultElement(handles, entry);
                 ImGui::CloseCurrentPopup();
             }
 

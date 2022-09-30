@@ -190,7 +190,36 @@ VulkanRenderer::~VulkanRenderer() {
     // CleanUP all vulkan resources
     swapchain.cleanup();
 
-    //vkDestroyCommandPool(device, cmdPool, nullptr);
+
+    // Object picking resources
+    vkDestroyRenderPass(device, selection.renderPass, nullptr);
+    vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
+    vkDestroyImage(device, selection.colorImage, nullptr);
+    vkDestroyImage(device, selection.depthImage, nullptr);
+    vkDestroyImageView(device, selection.colorView, nullptr);
+    vkDestroyImageView(device, selection.depthView, nullptr);
+    vkFreeMemory(device, selection.colorMem, nullptr);
+    vkFreeMemory(device, selection.depthMem, nullptr);
+
+
+    // VulkanRenderer resources
+    vkDestroyImage(device, depthStencil.image, nullptr);
+    vkDestroyImageView(device, depthStencil.view, nullptr);
+    vkFreeMemory(device, depthStencil.mem, nullptr);
+
+    vkDestroyCommandPool(device, cmdPool, nullptr);
+
+    for(auto* fence : waitFences){
+        vkDestroyFence(device, fence, nullptr);
+    }
+
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
+    for(auto* fb : frameBuffers){
+        vkDestroyFramebuffer(device, fb, nullptr);
+    }
+
+    vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
     vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
     vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
@@ -210,10 +239,6 @@ void VulkanRenderer::addDeviceFeatures() {
 }
 
 void VulkanRenderer::viewChanged() {
-
-}
-
-void VulkanRenderer::keyPressed(uint32_t) {
 
 }
 
@@ -472,17 +497,6 @@ void VulkanRenderer::createSynchronizationPrimitives() {
 }
 
 
-VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(const std::string &fileName, VkShaderStageFlagBits stage) {
-    VkPipelineShaderStageCreateInfo shaderStage = {};
-    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStage.stage = stage;
-    shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(), device);
-    shaderStage.pName = "main";
-    assert(shaderStage.module != VK_NULL_HANDLE);
-    // TODO CLEANUP SHADERMODULES WHEN UNUSED AND ON EXITING VIEWER APP
-    return shaderStage;
-}
-
 
 void VulkanRenderer::createPipelineCache() {
     VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -503,14 +517,7 @@ void VulkanRenderer::prepare() {
     createPipelineCache();
     setupMainFramebuffer();
 
-    guiManager = new MultiSense::GuiManager(vulkanDevice);
-    std::vector<VkPipelineShaderStageCreateInfo> shaders;
-    shaders = {
-            loadShader("imgui/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-            loadShader("imgui/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT),
-    };
-    guiManager->setup((float) width, (float) height, renderPass, queue, &shaders);
-    pLogger->info("Initialized GUI with shaders, ui.vert and ui.frag");
+    pLogger->info("Initialized Renderer backend");
 
     startTime = std::chrono::system_clock::now();
 }
@@ -661,18 +668,6 @@ void VulkanRenderer::submitFrame() {
 
     if (vkQueueWaitIdle(queue) != VK_SUCCESS)
         throw std::runtime_error("Failed to wait for Queue Idle");
-}
-
-
-void VulkanRenderer::UIUpdate(MultiSense::GuiObjectHandles *uiSettings) {
-
-}
-
-void VulkanRenderer::updateOverlay() {
-}
-
-void VulkanRenderer::renderFrame() {
-
 }
 
 /** CALLBACKS **/

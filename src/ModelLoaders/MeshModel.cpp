@@ -7,6 +7,7 @@
 
 #include <utility>
 
+/*
 void MeshModel::destroy(VkDevice device) {
 
 }
@@ -17,8 +18,6 @@ void MeshModel::loadFromFile(std::string filename, float scale) {
 
 MeshModel::Model::Model(uint32_t count, VulkanDevice *_vulkanDevice) {
     this->vulkanDevice = _vulkanDevice;
-    textures.resize(count);
-    textureSamplers.resize(count);
 
 }
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
@@ -151,7 +150,7 @@ void MeshModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
                        vulkanDevice->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
- */
+
 
     textureIndices.baseColor = 0;
     textures[0] = texture;
@@ -223,9 +222,9 @@ void MeshModel::createDescriptors(uint32_t count, std::vector<Base::UniformBuffe
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
-    /**
+
      * Create Descriptor Sets
-     */
+
     for (auto i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
@@ -417,3 +416,4 @@ MeshModel::createRenderPipeline(const Base::RenderUtils &utils, std::vector<VkPi
     createPipeline(*utils.renderPass, std::move(vector), type);
 
 }
+ */

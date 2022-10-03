@@ -219,7 +219,7 @@ void CRLCameraModels::Model::setZoom() {
 }
 
 
-void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo,
+void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo,
                                         CRLCameraModels::Model *model) {
     descriptors.resize(count);
 
@@ -254,7 +254,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, std::vector<Base::Unifor
 
 }
 
-void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std::vector<Base::UniformBufferSet> ubo) {
+void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 
@@ -319,7 +319,7 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, std:
 }
 
 void
-CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, std::vector<Base::UniformBufferSet> ubo) {
+CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 

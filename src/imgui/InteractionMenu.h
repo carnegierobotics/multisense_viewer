@@ -264,7 +264,8 @@ private:
     }
 
     void createDoubleWindowPreview(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
-        handles->info->viewingAreaWidth = handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
+        handles->info->viewingAreaWidth =
+                handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
@@ -311,15 +312,17 @@ private:
 
                 float offsetX;
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
-                    offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth + ((handles->info->viewingAreaWidth - newWidth) / 2));
+                    offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth +
+                               ((handles->info->viewingAreaWidth - newWidth) / 2));
                 } else
                     offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth + 5.0f);
 
                 float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
 
 
-                ImGui::SetNextWindowSize(ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
-                                         ImGuiCond_Always);
+                ImGui::SetNextWindowSize(
+                        ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
+                        ImGuiCond_Always);
 
                 dev.row[index] = float(row);
                 dev.col[index] = float(col);
@@ -338,124 +341,157 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
                 ImGui::Begin((std::string("View Area") + std::to_string(index)).c_str(), &open, window_flags);
 
-                {                // The colored bars around the preview window is made up of rectangles
-                    // Top bar
-                    ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
-                    ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                                         viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
-                    ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(MultiSense::CRLBlueIsh),
-                                                              0.0f,
-                                                              0);
+                // The colored bars around the preview window is made up of rectangles
+                // Top bar
+                ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
+                ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                     viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
+                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(MultiSense::CRLBlueIsh),
+                                                          0.0f,
+                                                          0);
 
 
-                    /*
-                    // extension of top bar in different color
-                    ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
-                    ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                                                 topBarRectMax.y + 5.0f);
+                /*
+                // extension of top bar in different color
+                ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
+                ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                             topBarRectMax.y + 5.0f);
 
-                    ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
-                                                              ImColor(MultiSense::CRLGray424Main), 0.0f,
-                                                              0);
-                    */
-                    // Left bar
+                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
+                                                          ImColor(MultiSense::CRLGray424Main), 0.0f,
+                                                          0);
+                */
+                // Left bar
 
-                    ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
-                    ImVec2 leftBarMax(viewAreaElementPosX + (handles->info->previewBorderPadding / 2),
-                                      topBarRectMax.y + handles->info->viewAreaElementSizeY -
-                                      (handles->info->previewBorderPadding * 0.5f));
+                ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
+                ImVec2 leftBarMax(viewAreaElementPosX + (handles->info->previewBorderPadding / 2),
+                                  topBarRectMax.y + handles->info->viewAreaElementSizeY -
+                                  (handles->info->previewBorderPadding * 0.5f));
 
-                    ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(MultiSense::CRLGray424Main), 0.0f,
-                                                              0);
+                ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(MultiSense::CRLGray424Main),
+                                                          0.0f,
+                                                          0);
 
-                    // Right bar
-                    ImVec2 rightBarMin(
-                            viewAreaElementPosX + handles->info->viewAreaElementSizeX - (handles->info->previewBorderPadding / 2),
-                            topBarRectMax.y);
-                    ImVec2 rightBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                                       topBarRectMax.y + handles->info->viewAreaElementSizeY -
-                                       (handles->info->previewBorderPadding * 0.5f));
+                // Right bar
+                ImVec2 rightBarMin(
+                        viewAreaElementPosX + handles->info->viewAreaElementSizeX -
+                        (handles->info->previewBorderPadding / 2),
+                        topBarRectMax.y);
+                ImVec2 rightBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                   topBarRectMax.y + handles->info->viewAreaElementSizeY -
+                                   (handles->info->previewBorderPadding * 0.5f));
 
-                    ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(MultiSense::CRLGray424Main),
-                                                              0.0f,
-                                                              0);
+                ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(MultiSense::CRLGray424Main),
+                                                          0.0f,
+                                                          0);
 
-                    // Bottom bar
-                    ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMin.y + handles->info->viewAreaElementSizeY -
-                                                             (handles->info->previewBorderPadding / 2.0f));
-                    ImVec2 bottomBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                                        topBarRectMin.y + handles->info->viewAreaElementSizeY +
-                                        (handles->info->previewBorderPadding / 2.0f));
+                // Bottom bar
+                ImVec2 bottomBarMin(viewAreaElementPosX, topBarRectMin.y + handles->info->viewAreaElementSizeY -
+                                                         (handles->info->previewBorderPadding / 2.0f));
+                ImVec2 bottomBarMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
+                                    topBarRectMin.y + handles->info->viewAreaElementSizeY +
+                                    (handles->info->previewBorderPadding / 2.0f));
 
-                    ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax, ImColor(MultiSense::CRLGray424Main),
-                                                              0.0f,
-                                                              0);
+                ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax,
+                                                          ImColor(MultiSense::CRLGray424Main),
+                                                          0.0f,
+                                                          0);
 
-                    // Min Y and Min Y is top left corner
-                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
-                    if (dev.pixelInfoEnable) {
-                        // Also only if a window is hovered
-                        if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
-                                                         ImGuiHoveredFlags_AnyWindow)) {
-                            // Offsset cursor positions.
-                            uint32_t x, y, val = dev.pixelInfo.intensity;
-                            x = static_cast<uint32_t>( dev.pixelInfo.x - viewAreaElementPosX);
-                            y = static_cast<uint32_t>(dev.pixelInfo.y - viewAreaElementPosY);
+                // Min Y and Min Y is top left corner
+
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
+                if (dev.pixelInfoEnable) {
+                    // Also only if a window is hovered
+                    if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
+                                                     ImGuiHoveredFlags_AnyWindow)) {
+                        // Offsset cursor positions.
+                        uint32_t x, y, val = dev.pixelInfo.intensity;
+                        x = static_cast<uint32_t>( dev.pixelInfo.x - viewAreaElementPosX);
+                        y = static_cast<uint32_t>(dev.pixelInfo.y - viewAreaElementPosY);
 
 
-                            ImGui::Text("(%d, %d) %d", x, y, val);
-                        }
+                        ImGui::Text("(%d, %d) %d", x, y, val);
                     }
-
-
-                    // Max X and Min Y is top right corner
-                    ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 325.0f, topBarRectMin.y));
                 }
 
-                ImGui::Text("Source: ");
-                ImGui::SameLine(0.0f, 5.0f);
 
-                ImGui::SetNextItemWidth(250.0f);
-                std::string srcLabel = "##Source" + std::to_string(index);
-
-                std::string previewValue;
+                // Max X and Min Y is top right corner
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 10.0f, topBarRectMin.y));
+                ImGui::SetNextItemWidth(150.0f);
+                auto &window = dev.win[index];
 
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
 
-                if (ImGui::BeginCombo(srcLabel.c_str(), dev.sources[dev.selectedSourceIndexMap[index]].c_str(),
+                std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads, std::to_string(window.selectedRemoteHeadIndex))];
+                std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
+                if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < dev.sources.size(); n++) {
+                    for (int n = 0; n < window.availableRemoteHeads.size(); n++) {
+                        const bool is_selected = (window.selectedRemoteHeadIndex == n);
+                        if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
+                            // If we had streams active then transfer active streams to new channel
+                            window.selectedRemoteHeadIndex = std::stoi(window.availableRemoteHeads[n]);
+                            Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
+                                                             window.selectedRemoteHeadIndex, index);
+                        }
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                ImGui::PopStyleColor();
 
-                        const bool is_selected = (dev.selectedSourceIndex == n);
-                        if (ImGui::Selectable(dev.sources[n].c_str(), is_selected)) {
 
+                // Set the avaiable sources according to the selected remote head
+                window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
+                ImGui::SetNextItemWidth(150.0f);
+                std::string srcLabel = "##Source" + std::to_string(index);
+                std::string previewValue;
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
+
+                if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
+                                      ImGuiComboFlags_HeightLarge)) {
+                    for (int n = 0; n < window.availableSources.size(); n++) {
+                        const bool is_selected = (window.selectedSourceIndex == n);
+                        if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
+
+
+                            /*
                             if (dev.selectedSourceMap.contains(index)) {
-
                                 bool inUse = false;
                                 for (const auto &source: dev.selectedSourceMap) {
                                     if (dev.selectedSourceMap[index] == source.second && index != source.first)
                                         inUse = true;
                                 }
-
-
-                                if (!inUse &&
-                                    Utils::removeFromVector(&dev.userRequestedSources, dev.selectedSourceMap[index])) {
-                                    Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
-                                                                     dev.selectedSourceMap[index]);
-
-                                }
+                            }
+                             */
+                            if (// !inUse &&
+                                    Utils::removeFromVector(
+                                            &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                            window.selectedSource)) {
+                                Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
+                                                                 window.selectedSource);
                             }
 
-                            dev.selectedSourceIndex = n;
-                            dev.selectedSourceIndexMap[index] = dev.selectedSourceIndex;
-                            dev.selectedSourceMap[index] = dev.sources[dev.selectedSourceIndex];
 
+                            window.selectedSourceIndex = n;
+                            window.selectedSource = window.availableSources[window.selectedSourceIndex];
+                            Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
+                                                             window.selectedSource, index);
 
-                            if (!Utils::isInVector(dev.userRequestedSources, dev.selectedSourceMap[index])) {
-                                dev.userRequestedSources.emplace_back(dev.selectedSourceMap[index]);
-                                Log::Logger::getInstance()->info("Added source '{}' to user requested sources",
-                                                                 dev.selectedSourceMap[index]);
+                            if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
+                                                   window.selectedSource)) {
+                                dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
+                                        window.selectedSource);
+                                Log::Logger::getInstance()->info(
+                                        "Added source '{}' from head {} to user requested sources",
+                                        window.selectedSource, window.selectedRemoteHeadIndex);
                             }
+
                         }
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected) {
@@ -473,7 +509,8 @@ private:
         }
     }
 
-    void drawVideoPreviewGuiOverlay(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev, bool withStreamControls) {
+    void drawVideoPreviewGuiOverlay(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev,
+                                    bool withStreamControls) {
 
         if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
 
@@ -527,26 +564,40 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
                 ImGui::Text("2. Choose Sensor Resolution");
                 ImGui::PopStyleColor();
-                ImGui::Dummy(ImVec2(40.0f, 0.0));
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(200);
-                std::string resLabel = "##Resolution";
-                if (ImGui::BeginCombo(resLabel.c_str(), dev.modes[dev.selectedModeIndex].c_str(),
-                                      ImGuiComboFlags_HeightSmall)) {
-                    for (int n = 0; n < dev.modes.size(); n++) {
-                        const bool is_selected = (dev.selectedModeIndex == n);
-                        if (ImGui::Selectable(dev.modes[n].c_str(), is_selected)) {
-                            dev.selectedModeIndex = n;
-                            dev.selectedMode = Utils::stringToCameraResolution(
-                                    dev.modes[dev.selectedModeIndex]);
 
+                for (int i = 0; i < dev.channelInfo.size(); ++i) {
+                    if (dev.channelInfo[i].state != AR_STATE_ACTIVE)
+                        continue;
+
+                    ImGui::Dummy(ImVec2(40.0f, 0.0));
+                    ImGui::SameLine();
+                    std::string descriptionText = "Remote head " + std::to_string(i) + ":";
+                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::Text("%s", descriptionText.c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(250);
+                    std::string resLabel = "##Resolution" + std::to_string(i);
+                    auto &chInfo = dev.channelInfo[i];
+                    if (chInfo.state != AR_STATE_ACTIVE)
+                        continue;
+                    if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
+                                          ImGuiComboFlags_HeightSmall)) {
+                        for (int n = 0; n < chInfo.modes.size(); n++) {
+                            const bool is_selected = (chInfo.selectedModeIndex == n);
+                            if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
+                                chInfo.selectedModeIndex = n;
+                                chInfo.selectedMode = Utils::stringToCameraResolution(
+                                        chInfo.modes[chInfo.selectedModeIndex]);
+
+                            }
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
                         }
-                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                        if (is_selected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
+                        ImGui::EndCombo();
                     }
-                    ImGui::EndCombo();
                 }
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -566,21 +617,23 @@ private:
             // Disable IMU as well in 2D
             if (dev.useImuData)
                 pointCloudSources.emplace_back("IMU");
+            /*
+                       for (const auto &source: pointCloudSources) {
+                           bool inUse = false;
+                           for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
+                               if (!dev.selectedSourceMap.contains(index))
+                                   continue;
+                               if (dev.selectedSourceMap[index] == source)
+                                   inUse = true;
+                           }
 
-            for (const auto &source: pointCloudSources) {
-                bool inUse = false;
-                for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
-                    if (!dev.selectedSourceMap.contains(index))
-                        continue;
-                    if (dev.selectedSourceMap[index] == source)
-                        inUse = true;
-                }
 
-                if (!inUse && Utils::isInVector(dev.userRequestedSources, source)) {
-                    Utils::removeFromVector(&dev.userRequestedSources, source);
-                }
+                           if (!inUse && Utils::isInVector(dev.userRequestedSourcesMap, source)) {
+                               Utils::removeFromVector(&dev.userRequestedSourcesMap, source);
+                           }
+
             }
-
+ */
 
         } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
@@ -593,15 +646,16 @@ private:
             ImGui::SameLine();
             ImGui::SetNextItemWidth(200);
             std::string resLabel = "##Resolution";
-            if (ImGui::BeginCombo(resLabel.c_str(), dev.modes[dev.selectedModeIndex].c_str(),
+            auto chInfo = dev.channelInfo.front();
+            if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
-                for (int n = 0; n < dev.modes.size(); n++) {
-                    const bool is_selected = (dev.selectedModeIndex == n);
-                    if (ImGui::Selectable(dev.modes[n].c_str(), is_selected)) {
-                        dev.selectedModeIndex = n;
-                        dev.selectedMode = Utils::stringToCameraResolution(
-                                dev.modes[dev.selectedModeIndex]);
-                        dev.playbackStatus = AR_PREVIEW_PLAYING;
+                for (int n = 0; n < chInfo.modes.size(); n++) {
+                    const bool is_selected = (chInfo.selectedModeIndex == n);
+                    if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
+                        chInfo.selectedModeIndex = n;
+                        chInfo.selectedMode = Utils::stringToCameraResolution(
+                                chInfo.modes[chInfo.selectedModeIndex]);
+                        //chInfo.playbackStatus = AR_PREVIEW_PLAYING;
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -611,7 +665,7 @@ private:
                 ImGui::EndCombo();
             }
 
-            dev.selectedSourceMap[AR_PREVIEW_POINT_CLOUD] = "Disparity Left";
+            //chInfo.selectedSourceMap[AR_PREVIEW_POINT_CLOUD] = "Disparity Left";
 
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -621,7 +675,8 @@ private:
             ImGui::PopStyleColor();
 
 
-            if (dev.useImuData){
+            /*
+            if (dev.useImuData) {
                 if (!Utils::isInVector(dev.userRequestedSources, "IMU")) {
                     dev.userRequestedSources.emplace_back("IMU");
                     Log::Logger::getInstance()->info(("Adding IMU source to user requested sources"));
@@ -639,6 +694,7 @@ private:
                 dev.userRequestedSources.emplace_back("Luma Rectified Left");
                 Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
+             */
         }
 
 

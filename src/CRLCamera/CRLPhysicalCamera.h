@@ -14,7 +14,7 @@
 #include <iostream>
 #include <cstdint>
 
-class CRLPhysicalCamera : public CRLBaseInterface {
+class CRLPhysicalCamera {
 public:
 
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime{}; // Timer to log every second
@@ -23,26 +23,57 @@ public:
 
     CRLPhysicalCamera() = default;
 
-    ~CRLPhysicalCamera() override {
+    ~CRLPhysicalCamera() {
         // TODO FREE RESOURCES MEMBER VARIABLES
-        stop("All");
-        crl::multisense::Channel::Destroy(cameraInterface);
-        stopForDestruction = true;
+        for (auto& ch: channelMap) {
+            stop("All", ch.first);
+            crl::multisense::Channel::Destroy(ch.second);
+        }
     }
 
+    struct CameraInfo {
+        crl::multisense::system::DeviceInfo devInfo{};
+        crl::multisense::image::Config imgConf{};
+        crl::multisense::lighting::Config lightConf{};
+        crl::multisense::system::NetworkConfig netConfig{};
+        crl::multisense::system::VersionInfo versionInfo{};
+        crl::multisense::image::Calibration camCal{};
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes{};
+        crl::multisense::DataSource supportedSources{0};
+        std::vector<uint8_t *> rawImages{};
+        int sensorMTU = 0;
+        glm::mat4 kInverseMatrix{};
+    }info{};
 
-    bool connect(const std::string& ip) override;
-    bool start(CRLCameraResolution resolution, std::string dataSourceStr) override;
-    bool start(uint32_t source) override;
-    bool stop(std::string dataSourceStr) override;
-    void updateCameraInfo() override;
-    bool getCameraStream(VkRender::YUVTexture *tex) override;
-    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex) override;
-    bool getImuRotation(VkRender::Rotation *rot) override;
+    std::map<uint32_t, CameraInfo> infoMap;
+    bool connect(const std::string& ip);
+    bool start(CRLCameraResolution resolution, std::string dataSourceStr);
+    bool start(uint32_t source);
+    bool start(const std::string& dataSourceStr, uint32_t remoteHeadID);
+    bool stop(std::string dataSourceStr);
+    bool stop(std::string dataSourceStr, uint32_t idx);
+    void updateCameraInfo();
+    bool getCameraStream(VkRender::YUVTexture *tex);
+    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx);
+    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex);
+    bool getImuRotation(VkRender::Rotation *rot);
 
-    CameraInfo getCameraInfo() override;
-    void preparePointCloud(uint32_t i, uint32_t i1) override;
+    CameraInfo getCameraInfo();
+    void preparePointCloud(uint32_t i, uint32_t i1);
 
+
+    void setResolution(CRLCameraResolution resolution, uint32_t i);
+    void setExposure(uint32_t exp);
+    void setExposureParams(ExposureParams p);
+    void setWhiteBalance(WhiteBalanceParams param);
+    void setLighting(LightingParams light);
+    void setPostFilterStrength(float filterStrength);
+    void setGamma(float gamma);
+    void setFps(float fps, uint32_t index);
+    void setGain(float gain);
+
+    std::vector<uint32_t> connectRemoteHead(const std::string &ip);
+    CameraInfo getCameraInfo(uint32_t idx);
 
 private:
     struct Image
@@ -86,34 +117,37 @@ private:
         }
     };
 
-    CameraInfo info{};
     std::vector<crl::multisense::DataSource> enabledSources{};
     crl::multisense::Channel * cameraInterface{};
+    std::map<uint32_t, crl::multisense::Channel *> channelMap;
+
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_{};
+    std::map<uint32_t, std::unordered_map<crl::multisense::DataSource,BufferPair>> buffersMap{};
 
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers{};
+    std::map<uint32_t ,std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header>> imagePointersMap{};
+
     glm::mat4 kInverseMatrix{};
-    CRLCameraResolution currentResolution{};
+    std::unordered_map<uint32_t ,CRLCameraResolution> currentResolutionMap{};
 
     /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
     bool stopForDestruction = false;
 
     void addCallbacks();
+    void addCallbacks(uint32_t idx);
 
     void streamCallback(const crl::multisense::image::Header &image);
+    void streamCallbackRemoteHead(const crl::multisense::image::Header &image, uint32_t idx);
 
-    void setExposure(uint32_t exp) override;
-    void setExposureParams(ExposureParams p) override;
-    void setWhiteBalance(WhiteBalanceParams param) override;
-    void setLighting(LightingParams light) override;
-    void setPostFilterStrength(float filterStrength) override;
-    void setGamma(float gamma) override;
-    void setFps(float fps) override;
-    void setGain(float gain) override;
-    void setResolution(CRLCameraResolution resolution) override;
 
     static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
     static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
+    static void remoteHeadOneCallback(const crl::multisense::image::Header &header, void *userDataP);
+    static void remoteHeadTwoCallback(const crl::multisense::image::Header &header, void *userDataP);
+    static void remoteHeadThreeCallback(const crl::multisense::image::Header &header, void *userDataP);
+    static void remoteHeadFourCallback(const crl::multisense::image::Header &header, void *userDataP);
+
+    void updateCameraInfo(uint32_t idx);
 
 };
 

@@ -25,13 +25,14 @@ public:
     CRLCameraModels() = default;
 
     ~CRLCameraModels() {
-        vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
-        vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
-        vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
-
+        if (vulkanDevice) {
+            vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+            vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
+            vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
+            vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
+        }
     }
 
     struct Model {
@@ -189,7 +190,7 @@ protected:
     void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo, Model *model);
 
     void
-    createRenderPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector, Model *model,
+    createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& vector, Model *model,
                          ScriptType type, const Base::RenderUtils *renderUtils);
 };
 

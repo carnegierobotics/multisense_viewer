@@ -481,7 +481,7 @@ namespace Utils {
     }
 
 
-    inline VkShaderModule loadShader(const char *fileName, const VkDevice& device) {
+    inline VkShaderModule loadShader(const char *fileName, const VkDevice &device) {
         std::ifstream is(fileName, std::ios::binary | std::ios::ate);
 
         if (is.is_open()) {
@@ -511,7 +511,9 @@ namespace Utils {
             return VK_NULL_HANDLE;
         }
     }
-    inline VkPipelineShaderStageCreateInfo getPipelineShaderStateCreateInfo(const VkDevice& device, const std::string &fileName, VkShaderStageFlagBits stage) {
+
+    inline VkPipelineShaderStageCreateInfo
+    getPipelineShaderStateCreateInfo(const VkDevice &device, const std::string &fileName, VkShaderStageFlagBits stage) {
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
@@ -520,6 +522,17 @@ namespace Utils {
         assert(shaderStage.module != VK_NULL_HANDLE);
         // TODO CLEANUP SHADERMODULES WHEN UNUSED AND ON EXITING VIEWER APP
         return shaderStage;
+    }
+
+    template<typename T>
+    size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
+        // Find given element in vector
+        size_t result;
+        auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
+        if (it != vecOfElements.end())
+            return std::distance(vecOfElements.begin(), it);
+        else
+            return 0;
     }
 
 

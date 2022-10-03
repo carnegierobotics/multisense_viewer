@@ -54,6 +54,7 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
+    uint32_t remoteHeadIndex = 0;
     CRLCameraResolution res{};
     CameraPlaybackFlags playbackSate{};
     uint32_t width{}, height{};

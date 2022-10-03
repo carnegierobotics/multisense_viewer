@@ -326,13 +326,19 @@ void Renderer::render() {
                 dev.pixelInfo.intensity = val;
             }
         }
-
-
     }
 }
 
 void Renderer::windowResized() {
     // Recreate to fit new dimensions
+    vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
+    vkDestroyImage(device, selection.colorImage, nullptr);
+    vkDestroyImage(device, selection.depthImage, nullptr);
+    vkDestroyImageView(device, selection.colorView, nullptr);
+    vkDestroyImageView(device, selection.depthView, nullptr);
+    vkFreeMemory(device, selection.colorMem, nullptr);
+    vkFreeMemory(device, selection.depthMem, nullptr);
+
     createSelectionImages();
     createSelectionFramebuffer();
 

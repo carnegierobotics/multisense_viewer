@@ -20,12 +20,12 @@ void SingleLayout::update() {
         return;
 
     if (model->draw) {
-        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
             return;
         }
-        auto* tex = new VkRender::TextureData(textureType);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
+        auto *tex = new VkRender::TextureData(textureType);
+        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
             model->setTexture(tex);
             model->setZoom();
             if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
@@ -60,7 +60,7 @@ void SingleLayout::update() {
 
 void SingleLayout::prepareTexture() {
     model->modelType = textureType;
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -70,7 +70,7 @@ void SingleLayout::prepareTexture() {
             fragmentShaderFileName = "myScene/spv/preview.frag";
             break;
         case AR_COLOR_IMAGE_YUV420:
-                    case AR_YUV_PLANAR_FRAME:
+        case AR_YUV_PLANAR_FRAME:
             vertexShaderFileName = "myScene/spv/quad.vert";
             fragmentShaderFileName = "myScene/spv/quad.frag";
 
@@ -112,27 +112,31 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
         playbackSate = dev.playbackStatus;
-        if (!dev.selectedSourceMap.contains(AR_PREVIEW_ONE))
-            break;
 
-        if (dev.selectedSourceMap.at(AR_PREVIEW_ONE) == "None") {
+        auto &preview = dev.win.at(AR_PREVIEW_ONE);
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        if (preview.selectedSource == "Source") {
             // dont draw or update
             model->draw = false;
         }
 
-        if ((src != dev.selectedSourceMap.at(AR_PREVIEW_ONE) || dev.selectedMode != res)) {
-            src = dev.selectedSourceMap.at(AR_PREVIEW_ONE);
-            textureType =  Utils::CRLSourceToTextureType(src);
-            res = dev.selectedMode;
+        if ((src != preview.selectedSource || currentRes != res ||
+             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+            src = preview.selectedSource;
+            textureType = Utils::CRLSourceToTextureType(src);
+            res = currentRes;
+            remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
+
 
         transformToUISpace(uiHandle, dev);
     }
 }
 
-void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
-    centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) - 1; // map between -1 to 1q
+void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+    centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
+              1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
@@ -145,7 +149,7 @@ void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles * uiHan
 void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
-} 
+}
 
 void SingleLayout::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle->devices) {

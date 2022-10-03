@@ -74,6 +74,15 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         p->initialized = true;
     }
 
+    for (auto &ch: dev->channelInfo) {
+        if (ch.state != AR_STATE_ACTIVE)
+            continue;
+
+        if (dev->parameters.update)
+            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma, ch.index,
+                       p->stereoPostFilterStrength, dev);
+    }
+
     if (dev->parameters.ep.update)
         pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev);
 
@@ -82,35 +91,86 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
 
     if (dev->parameters.light.update)
         pool->Push(CameraConnection::setLightingTask, this, &p->light, dev);
+    // start streams
+    /*
+    for (int i = 0; i < dev->win.size(); ++i) {
+        MultiSense::PreviewWindow win = dev->win[i];
+        MultiSense::ChannelInfo& chInfo = dev->channelInfo[win.selectedRemoteHeadIndex];
 
-    if (dev->parameters.update)
-        pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
-                   p->stereoPostFilterStrength, dev);
-
+        if (!Utils::isInVector(chInfo.enabledStreams, )){
+            pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, win.selectedSource, win.selectedRemoteHeadIndex);
+            dev->channelInfo[win.selectedRemoteHeadIndex].enabledStreams.emplace_back(win.selectedSource);
+        }
+    }
+     */
     // Set the correct resolution. Will only update if changed.
-    camPtr->setResolution(dev->selectedMode);
+    for (auto &ch: dev->channelInfo) {
+        if (ch.state == AR_STATE_ACTIVE)
+            pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+
+    }
+
+    // Start requested streams
+    for (auto &ch: dev->channelInfo) {
+        if (ch.state != AR_STATE_ACTIVE)
+            continue;
+        for (const auto &requested: ch.requestedStreams) {
+            if (!Utils::isInVector(ch.enabledStreams, requested)) {
+                pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, requested, ch.index);
+                ch.enabledStreams.emplace_back(requested);
+            }
+        }
+    }
+
+    // Stop if the stream is no longer requested
+    for (auto &ch: dev->channelInfo) {
+        if (ch.state != AR_STATE_ACTIVE)
+            continue;
+        for (const auto &enabled: ch.enabledStreams) {
+            if (!Utils::isInVector(ch.requestedStreams, enabled)) {
+                pool->Push(CameraConnection::stopStreamTaskRemoteHead, this, dev, enabled, ch.index);
+                Utils::removeFromVector(&ch.enabledStreams, enabled);
+            }
+        }
+    }
+
+    // Stop streams
+
+    /*
     // Handle streams enabling/disable
     // Enable sources that are in userRequested but not in enabled
-    for (const auto &s: dev->userRequestedSources) {
-        if (!Utils::isInVector(dev->enabledStreams, s)) {
-            // Enable stream and push back if it is successfully enabled
-            if (s == "None")
-                continue;
+    for (const auto &ch: dev->selectedRemoteHeadIndexMap) {
+        for (const auto &s: dev->userRequestedSourcesMap[ch.second]) {
+            if (!Utils::isInVector(dev->enabledStreams[ch.second], s)) {
+                // Enable stream and push back if it is successfully enabled
+                if (s == "Source")
+                    continue;
+                if (pool->getTaskListSize() > 0)
+                    continue;
 
-            if (pool->getTaskListSize() < 3)
-                pool->Push(CameraConnection::startStreamTask, this, dev, s);
+                if (dev->baseCameraUnit == CRL_BASE_REMOTE_HEAD)
+                    pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, s, dev->selectedRemoteHeadIndex);
+                else
+                    pool->Push(CameraConnection::startStreamTask, this, dev, s);
+            }
+        }
+
+        // Disable sources that are in enabled but not in userRequested
+        for (const auto &s: dev->enabledStreams[ch.second]) {
+            if (!Utils::isInVector(dev->userRequestedSourcesMap[ch.second], s)) {
+                // Enable stream and push back if it is successfully enabled
+                if (pool->getTaskListSize() > 0)
+                    continue;
+
+                if (dev->baseCameraUnit == CRL_BASE_REMOTE_HEAD)
+                    pool->Push(CameraConnection::stopStreamTaskRemoteHead, this, dev, s, dev->selectedRemoteHeadIndex);
+                else
+                    pool->Push(CameraConnection::stopStreamTask, this, dev, s);
+
+            }
         }
     }
-
-    // Disable sources that are in enabled but not in userRequested
-    for (const auto &s: dev->enabledStreams) {
-        if (!Utils::isInVector(dev->userRequestedSources, s)) {
-            // Enable stream and push back if it is successfully enabled
-            if (pool->getTaskListSize() < 3)
-                pool->Push(CameraConnection::stopStreamTask, this, dev, s);
-
-        }
-    }
+     */
 }
 
 void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork) {
@@ -146,7 +206,6 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
             if (resetOtherDeviceFirst) {
                 pool->Push(CameraConnection::disconnectCRLCameraTask, this, otherDev);
             }
-
             setNetworkAdapterParameters(dev, shouldConfigNetwork);
             pool->Push(CameraConnection::connectCRLCameraTask, this, &dev);
             dev.state = AR_STATE_CONNECTING;
@@ -169,23 +228,30 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
 }
 
 void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
-    const auto &supportedModes = camPtr->getCameraInfo().supportedDeviceModes;
-    dev.modes.clear();
-    dev.sources.clear();
-    dev.sources.emplace_back("None");
-    initCameraModes(&dev.modes, supportedModes);
-    filterAvailableSources(&dev.sources, maskArrayAll);
-    dev.selectedSourceIndex = 0;
-    dev.selectedMode = CRL_RESOLUTION_NONE;
+    // Find all possible streaming modes
+    dev.channelInfo.resize(4); // max number of remote heads
+    for (auto ch: dev.channelConnections) {
+        MultiSense::ChannelInfo chInfo;
+        chInfo.availableSources.clear();
+        chInfo.modes.clear();
+        chInfo.availableSources.emplace_back("Source");
+        chInfo.index = ch;
+        chInfo.state = AR_STATE_ACTIVE;
 
-    // Check for previous user profiles attached to this hardware
-    if (dev.modes.empty() || dev.sources.empty()) {
-        Log::Logger::getInstance()->info("Modes and Sources empty for physical camera");
+        filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
+
+        const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
+        initCameraModes(&chInfo.modes, supportedModes);
+        chInfo.selectedMode = CRL_RESOLUTION_NONE;
+
+        dev.channelInfo.at(ch) = chInfo;
+        // Check for previous user profiles attached to this hardware
     }
+    /*
     CSimpleIniA ini;
     ini.SetUnicode();
     SI_Error rc = ini.LoadFile("crl.ini");
-    if (rc < 0) { /* handle error */ }
+    if (rc < 0) { /* handle error  }
     else {
         // A serial number is the section identifier of a profile. I can have three following states
         // - Not Exist
@@ -196,8 +262,8 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
             std::string mode = ini.GetValue(cameraSerialNumber.c_str(), "Mode", "default");
             std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
             std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources", "default");
-            std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "None");
-            std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "None");
+            std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Source");
+            std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Source");
             Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
             dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
@@ -212,7 +278,7 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
                     Log::Logger::getInstance()->info(".ini file: Starting source '{}' for preview {}", source,
                                                      i + 1);
                     dev.selectedSourceMap[i] = source;
-                    dev.userRequestedSources.emplace_back(source);
+                    //dev.userRequestedSources.emplace_back(source);
 
                     auto it = find(dev.sources.begin(), dev.sources.end(), source);
                     if (it != dev.sources.end()) {
@@ -222,7 +288,15 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
             }
         }
     }
+    */
 
+    for (int i = 0; i < 10; ++i) {
+        dev.win[i].availableRemoteHeads.clear();
+        for (auto ch: dev.channelConnections) {
+            dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
+        }
+    }
+    // Populate streaming info for preview info
     Log::Logger::getInstance()->info("setting available streaming modes");
 }
 
@@ -236,8 +310,9 @@ void CameraConnection::initCameraModes(std::vector<std::string> *modes,
 
 }
 
-void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec) {
-    uint32_t bits = camPtr->getCameraInfo().supportedSources;
+void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec,
+                                              uint32_t idx) {
+    uint32_t bits = camPtr->getCameraInfo(idx).supportedSources;
     for (auto mask: maskVec) {
         bool enabled = (bits & mask);
         if (enabled) {
@@ -401,39 +476,22 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
     Log::Logger::getInstance()->info("Connect.");
-    if (dev->cameraName == "Virtual Camera") {
-        app->camPtr = std::make_unique<CRLVirtualCamera>();
-        if (app->camPtr->connect("None")) {
-            dev->state = AR_STATE_ACTIVE;
-            dev->cameraName = "Virtual Camera";
-            dev->IP = "Local";
-            app->lastActiveDevice = dev->name;
-            dev->modes.emplace_back("1920x1080");
-            dev->sources.emplace_back("rowbot_short.mpg");
-            dev->selectedMode = Utils::stringToCameraResolution(dev->modes.front());
-            Log::Logger::getInstance()->info("Creating new Virtual Camera.");
-        } else
-            dev->state = AR_STATE_UNAVAILABLE;
+    Log::Logger::getInstance()->info("Creating new physical camera.");
+    app->camPtr = std::make_unique<CRLPhysicalCamera>();
+    // If we successfully connect
+    dev->channelConnections = app->camPtr->connectRemoteHead(dev->IP);
+
+    if (!dev->channelConnections.empty()) {
+        dev->state = AR_STATE_ACTIVE;
+        dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
+        dev->serialName = app->camPtr->getCameraInfo().devInfo.serialNumber;
+        app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
+        app->lastActiveDevice = dev->name;
     } else {
-        // Create Physical Camera Object
-        if (!app->setNetworkAdapterParameters(*dev, false)) {
-            dev->state = AR_STATE_UNAVAILABLE;
-            return;
-        }
-        Log::Logger::getInstance()->info("Creating new physical camera.");
-        app->camPtr = std::make_unique<CRLPhysicalCamera>();
-        // If we successfully connect
-        if (app->camPtr->connect(dev->IP)) {
-            dev->state = AR_STATE_ACTIVE;
-            dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
-            dev->serialName = app->camPtr->getCameraInfo().devInfo.serialNumber;
-            app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
-            app->lastActiveDevice = dev->name;
-        } else {
-            dev->state = AR_STATE_UNAVAILABLE;
-            app->lastActiveDevice = "-1";
-        }
+        dev->state = AR_STATE_UNAVAILABLE;
+        app->lastActiveDevice = "-1";
     }
+
 
 }
 
@@ -444,6 +502,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                      dev->cameraName.c_str());
     // Save settings to file. Attempt to create a new file if it doesn't exist
+    /*
     CSimpleIniA ini;
     ini.SetUnicode();
     SI_Error rc = ini.LoadFile("crl.ini");
@@ -480,14 +539,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     }
 
     // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
-    if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
-        int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
-        dev->state = AR_STATE_REMOVE_FROM_LIST;
-        Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
 
-    } else {
-        dev->state = AR_STATE_DISCONNECTED;
-    }
 
     // save the data back to the file
     rc = ini.SaveFile("crl.ini");
@@ -495,12 +547,23 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
 
     }
+
+
     app->lastActiveDevice = "-1";
-    dev->userRequestedSources.clear();
+    dev->userRequestedSourcesMap.clear();
     dev->enabledStreams.clear();
     dev->selectedSourceMap.clear();
     dev->selectedSourceIndexMap.clear();
-    app->processingDisconnectTask = false;
+       */
+    if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
+        //int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
+        dev->state = AR_STATE_REMOVE_FROM_LIST;
+        //Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
+
+    } else {
+        dev->state = AR_STATE_DISCONNECTED;
+    }    app->processingDisconnectTask = false;
+
 }
 
 void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {
@@ -509,7 +572,7 @@ void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::De
 
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setExposureParams(*ep);
-    app->updateFromCameraParameters(dev);
+    app->updateFromCameraParameters(dev, 0);
 }
 
 void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense::Device *dev) {
@@ -517,18 +580,19 @@ void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense
     auto *ep = reinterpret_cast<WhiteBalanceParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setWhiteBalance(*ep);
-    app->updateFromCameraParameters(dev);
+    app->updateFromCameraParameters(dev, 0);
 }
 
 void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
+                                                   uint32_t index,
                                                    MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setGamma(gamma);
-    app->camPtr->setGain(gain);
-    app->camPtr->setFps(fps);
-    app->camPtr->setPostFilterStrength(spfs);
-    app->updateFromCameraParameters(dev);
+    //app->camPtr->setGamma(gamma);
+    //app->camPtr->setGain(gain);
+    app->camPtr->setFps(fps, index);
+    //app->camPtr->setPostFilterStrength(spfs);
+    app->updateFromCameraParameters(dev, index);
 
 }
 
@@ -537,11 +601,11 @@ void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::De
     auto *light = reinterpret_cast<LightingParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setLighting(*light);
-    app->updateFromCameraParameters(dev);
+    app->updateFromCameraParameters(dev, 0);
     // TODO implement
 }
 
-void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev) const {
+void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint32_t index) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
     const auto &conf = camPtr->getCameraInfo().imgConf;
     auto *p = &dev->parameters;
@@ -572,10 +636,29 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev) const
 void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, std::string src) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
-    if (app->camPtr->start(dev->selectedMode, src))
-        dev->enabledStreams.push_back(src);
+
+}
+
+void
+CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
+                                            uint32_t remoteHeadIndex) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+
+    if (app->camPtr->start(src, remoteHeadIndex));
     else
         Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
+
+
+}
+
+void
+CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
+                                           uint32_t remoteHeadIndex) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+
+    if (app->camPtr->stop(src, remoteHeadIndex));
+    else
+        Log::Logger::getInstance()->info("Failed to disable stream {}", src);
 
 
 }
@@ -583,9 +666,15 @@ void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, s
 void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, std::string src) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
-    if (app->camPtr->stop(src))
-        Utils::removeFromVector(&dev->enabledStreams, src);
+    if (app->camPtr->stop(src));//Utils::removeFromVector(&dev->enabledStreams, src);
     else
         Log::Logger::getInstance()->info("Failed to disable stream {}", src);
+}
+
+void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, uint32_t idx) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    std::scoped_lock lock(app->writeParametersMtx);
+    app->camPtr->setResolution(arg1, idx);
+
 }
 

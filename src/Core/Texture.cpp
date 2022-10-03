@@ -21,12 +21,7 @@ void Texture::updateDescriptor() {
 }
 
 void Texture::destroy() const {
-    vkDestroyImageView(device->logicalDevice, view, nullptr);
-    vkDestroyImage(device->logicalDevice, image, nullptr);
-    if (sampler) {
-        vkDestroySampler(device->logicalDevice, sampler, nullptr);
-    }
-    vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
+
 }
 
 /*

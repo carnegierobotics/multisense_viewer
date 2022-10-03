@@ -9,7 +9,7 @@
 
 bool CRLPhysicalCamera::connect(const std::string &ip) {
     if (cameraInterface == nullptr) {
-        cameraInterface = crl::multisense::Channel::Create(ip);
+        cameraInterface = crl::multisense::Channel::Create(ip, crl::multisense::Remote_Head_2);
         if (cameraInterface != nullptr) {
             updateCameraInfo();
             addCallbacks();

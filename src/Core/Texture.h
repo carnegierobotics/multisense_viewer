@@ -53,16 +53,21 @@ public:
     };
 
 
-    Texture() =default;
+    Texture() = default;
 
     void updateDescriptor();
+
     void destroy() const;
 
 
-    ~Texture(){
-        // Destroy if we made any textures
-        if (width != 0 && height != 0){
-            destroy();
+    ~Texture() {
+        if (width != 0 && height != 0) {
+            vkDestroyImageView(device->logicalDevice, view, nullptr);
+            vkDestroyImage(device->logicalDevice, image, nullptr);
+            if (sampler) {
+                vkDestroySampler(device->logicalDevice, sampler, nullptr);
+            }
+            vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
         }
     }
     //ktxResult loadKTXFile(std::string filename, ktxTexture **target);
@@ -75,19 +80,23 @@ class Texture2D : public Texture {
 public:
     Texture2D() = default;
 
+    ~Texture2D() {
+
+    }
+
     Texture2D(void *buffer,
-                          VkDeviceSize bufferSize,
-                          VkFormat format,
-                          uint32_t texWidth,
-                          uint32_t texHeight,
-                          VulkanDevice *device,
-                          VkQueue copyQueue,
-                          VkFilter filter = VK_FILTER_LINEAR,
-                          VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-                          VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+              VkDeviceSize bufferSize,
+              VkFormat format,
+              uint32_t texWidth,
+              uint32_t texHeight,
+              VulkanDevice *device,
+              VkQueue copyQueue,
+              VkFilter filter = VK_FILTER_LINEAR,
+              VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+              VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
-    explicit Texture2D(VulkanDevice *const pDevice){
+    explicit Texture2D(VulkanDevice *const pDevice) {
         device = pDevice;
     }
 
@@ -104,9 +113,9 @@ public:
             VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
-    void fromglTfImage(tinygltf::Image& gltfimage, TextureSampler textureSampler, VulkanDevice* device, VkQueue copyQueue);
-     };
-
+    void
+    fromglTfImage(tinygltf::Image &gltfimage, TextureSampler textureSampler, VulkanDevice *device, VkQueue copyQueue);
+};
 
 
 class TextureVideo : public Texture {
@@ -138,14 +147,18 @@ public:
                 vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
         }
     }
+
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
                  VkFormat format);
 
     VkSamplerYcbcrConversionInfo createYUV420Sampler(VkFormat format);
+
     void createDefaultSampler();
 
     void updateTextureFromBuffer(VkRender::TextureData *tex);
+
     void updateTextureFromBufferYUV(VkRender::TextureData *tex);
+
     void updateTextureFromBufferYUV(VkRender::MP4Frame *frame);
 
 };

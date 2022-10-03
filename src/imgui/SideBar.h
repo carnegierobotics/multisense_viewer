@@ -556,7 +556,7 @@ private:
                 // Create child window regardless of gif spinner state in order to keep cursor position constant
                 ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 if (autoConnect.running)
-                    addSpinnerGif(handles);
+                    ;//addSpinnerGif(handles);
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);

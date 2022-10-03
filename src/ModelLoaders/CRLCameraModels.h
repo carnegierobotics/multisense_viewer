@@ -30,6 +30,7 @@ public:
         vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
         vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
         vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
 
     }
 
@@ -51,7 +52,6 @@ public:
                 VkDeviceMemory memory{};
             } vertices{};
             struct Indices {
-                int count = 0;
                 VkBuffer buffer = VK_NULL_HANDLE;
                 VkDeviceMemory memory{};
             } indices{};
@@ -71,7 +71,6 @@ public:
         } dimensions;
 
         VulkanDevice *vulkanDevice{};
-        VulkanDevice *device{};
         std::vector<std::string> extensions;
 
         std::unique_ptr<Texture2D> texture;
@@ -157,8 +156,10 @@ public:
     VkPipeline pipeline{};
     VkPipeline selectionPipeline{}; // TODO destroy object
     const Base::RenderUtils *utils = nullptr;
+    bool initializedPipeline = false;
 
     VkPipelineLayout pipelineLayout{};
+    VkPipelineLayout selectionPipelineLayout{};
 
     void destroy(VkDevice device);
 
@@ -168,7 +169,7 @@ public:
 
     //void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
 
-    void createPipelineLayout();
+    void createPipelineLayout(VkPipelineLayout *pT);
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b = true);
 
@@ -183,7 +184,7 @@ protected:
     void createPointCloudDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
 
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
-                        VkPipeline *pPipelineT);
+                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
 
     void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo, Model *model);
 

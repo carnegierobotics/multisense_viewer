@@ -20,7 +20,13 @@ CRLCameraModels::Model::Model(const Base::RenderUtils *renderUtils) {
 }
 
 CRLCameraModels::Model::~Model() {
+    vkFreeMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, nullptr);
+    vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.vertices.buffer, nullptr);
 
+    if (mesh.indexCount > 0) {
+        vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.indices.buffer, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, mesh.indices.memory, nullptr);
+    }
 }
 
 
@@ -405,7 +411,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
             vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout));
 }
 
-void CRLCameraModels::createPipelineLayout() {
+void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT) {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
 
     VkPushConstantRange pushconstantRanges{};
@@ -417,13 +423,13 @@ void CRLCameraModels::createPipelineLayout() {
     info.pPushConstantRanges = &pushconstantRanges;
     info.pushConstantRangeCount = 1;
 
-    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, &pipelineLayout))
+    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, pT))
 }
 
 void
 CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
-                                VkPipeline *pPipelineT) {
-    createPipelineLayout();
+                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT) {
+    createPipelineLayout(pLayoutT);
 
     // Vertex bindings an attributes
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -513,8 +519,6 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     pipelineCI.pStages = vector.data();
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    pipelineCI.layout = pipelineLayout;
-
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, pPipelineT));
 
 
@@ -527,13 +531,22 @@ void CRLCameraModels::createRenderPipeline(std::vector<VkPipelineShaderStageCrea
     this->utils = renderUtils;
     this->vulkanDevice = renderUtils->device;
 
+    if (initializedPipeline){
+        vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
+        vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
+        vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
+    }
+
     createDescriptorSetLayout(model);
     createDescriptors(utils->UBCount, utils->uniformBuffers, model);
-    createPipeline(*utils->renderPass, vector, type, &pipeline);
+    createPipeline(*utils->renderPass, vector, type, &pipeline, &pipelineLayout);
 
     // Create selection pipeline as well
-    createPipeline(utils->picking->renderPass, vector, type, &selectionPipeline);
-
+    createPipeline(utils->picking->renderPass, vector, type, &selectionPipeline, &selectionPipelineLayout);
+    initializedPipeline = true;
 }
 
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b) {

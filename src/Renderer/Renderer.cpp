@@ -26,7 +26,7 @@ void Renderer::prepareRenderer() {
         // A serial number is the section identifier of a profile of the ini file
         CSimpleIniA::TNamesDepend sections;
         ini.GetAllSections(sections);
-        for (auto& section : sections) {
+        for (auto &section: sections) {
             std::string profileName = ini.GetValue(section.pItem, "ProfileName");
             std::string IP = ini.GetValue(section.pItem, "IP");
             std::string cameraName = ini.GetValue(section.pItem, "CameraName");
@@ -64,7 +64,7 @@ void Renderer::addDeviceFeatures() {
 void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
-    std::array< VkClearValue, 2> clearValues{};
+    std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{0.870f, 0.878f, 0.862f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
@@ -163,7 +163,7 @@ void Renderer::render() {
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetworkForNextConnection);
     // Run update function on active camera Scripts and build them if not built
-    for (int i = 0; i < guiManager->handles.devices->size(); ++i){
+    for (int i = 0; i < guiManager->handles.devices->size(); ++i) {
         if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)
             guiManager->handles.devices->erase(guiManager->handles.devices->begin() + i);
     }
@@ -256,9 +256,9 @@ void Renderer::render() {
     /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        std::array< VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {0.870f, 0.878f, 0.862f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {{0.870f, 0.878f, 0.862f, 1.0f}};
+        clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
 
@@ -358,15 +358,23 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    for (auto& dev : *guiManager->handles.devices)
-        CameraConnection::disconnectCRLCameraTask(cameraConnection.get(), &dev); // TODO Note: potentially unsafe usage. Casting smart pointer cameraConnection to void* then back to CameraConnection * with uses context in static function
+    for (auto &dev: *guiManager->handles.devices)
+        CameraConnection::disconnectCRLCameraTask(cameraConnection.get(),
+                                                  &dev); // TODO Note: potentially unsafe usage. Casting smart pointer cameraConnection to void* then back to CameraConnection * with uses context in static function
 
+    // Clear script and scriptnames
+    for (auto scriptName: scriptNames) {
+        pLogger->info("Deleting Script: {}", scriptName.c_str());
+        scripts[scriptName].get()->onDestroyScript();
+        scripts.erase(scriptName);
+    }
+    scriptNames.clear();
 
     destroySelectionBuffer();
 
-     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 
-    }
+}
 
 
 void Renderer::createSelectionFramebuffer() {

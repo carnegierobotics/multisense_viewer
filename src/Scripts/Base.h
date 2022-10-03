@@ -34,6 +34,8 @@ public:
     void *bufferThreeData{};
     void *bufferFourData{};
 
+    std::vector<VkShaderModule> shaderModules{};
+
     struct RenderUtils {
         VulkanDevice *device{};
         uint32_t UBCount = 0;
@@ -222,11 +224,15 @@ public:
 
     /**@brief Call to delete the attached script. */
     void onDestroyScript() {
+        for (auto * shaderModule: shaderModules) {
+            vkDestroyShaderModule(renderUtils.device->logicalDevice, shaderModule, nullptr);
+        }
+
         onDestroy();
     }
 
     [[nodiscard]] VkPipelineShaderStageCreateInfo
-    loadShader(std::string fileName, VkShaderStageFlagBits stage) const {
+    loadShader(std::string fileName, VkShaderStageFlagBits stage) {
 
         // Check if we have .spv extensions. If not then add it.
         std::size_t extension = fileName.find(".spv");
@@ -242,6 +248,7 @@ public:
         shaderStage.pName = "main";
         assert(shaderStage.module != VK_NULL_HANDLE);
         // TODO CLEANUP SHADERMODULES WHEN UNUSED
+        shaderModules.emplace_back(shaderStage.module);
         return shaderStage;
     }
 

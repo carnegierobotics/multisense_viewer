@@ -330,41 +330,48 @@ namespace MultiSense {
         io->Fonts->Clear();
 
         fontTexture = std::make_unique<Texture2D>(device);
+
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+        setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+
+
+        VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                setLayoutBindings.data(),
+                setLayoutBindings.size());
+        CHECK_RESULT(
+                vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                                            &descriptorSetLayout));
+
+
+        uint32_t imageDescriptorSamplerCount = 13;
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 13);
+        CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+
         handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13); // TODO FIX PATHS
         handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
         io->Fonts->SetTexID(fontDescriptor);
 
         // TODO use separate Descriptors to copy reference to imageButtonTextureDescriptors. Loss of memory alloc.
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png");
-        handles.info->imageButtonTextureDescriptor[0] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_information.png");
-        handles.info->imageButtonTextureDescriptor[1] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png");
-        handles.info->imageButtonTextureDescriptor[2] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_auto_configure.png");
-        handles.info->imageButtonTextureDescriptor[3] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_manual_configure.png");
-        handles.info->imageButtonTextureDescriptor[4] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_playback.png");
-        handles.info->imageButtonTextureDescriptor[5] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_single_layout.png");
-        handles.info->imageButtonTextureDescriptor[6] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_double_layout.png");
-        handles.info->imageButtonTextureDescriptor[7] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_quad_layout.png");
-        handles.info->imageButtonTextureDescriptor[8] = reinterpret_cast<void *>(imageIconDescriptor);
-
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_nine_layout.png");
-        handles.info->imageButtonTextureDescriptor[9] = reinterpret_cast<void *>(imageIconDescriptor);
+        imageIconDescriptor.resize(10);
+        handles.info->imageButtonTextureDescriptor.resize(10);
+        iconTextures.reserve(10);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png", 0);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_information.png", 1);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png", 2);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_auto_configure.png", 3);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_manual_configure.png", 4);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_playback.png", 5);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_single_layout.png", 6);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_double_layout.png", 7);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_quad_layout.png", 8);
+        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_nine_layout.png", 9);
 
 
 
@@ -472,7 +479,7 @@ namespace MultiSense {
 
     }
 
-    void GuiManager::loadImGuiTextureFromFileName(const std::string &file) {
+    void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
@@ -480,67 +487,31 @@ namespace MultiSense {
             throw std::runtime_error("failed to load texture image: " + file);
         }
 
-        iconTexture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device,
+        iconTextures.emplace_back(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), device,
                                device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-
-
-
-        // Descriptor Layout
-
-        {
-            std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-            setLayoutBindings = {
-                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            };
-
-
-            VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
-                    setLayoutBindings.data(),
-                    setLayoutBindings.size());
-
-            CHECK_RESULT(
-                    vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
-                                                &descriptorSetLayout));
-        }
-
-        // Descriptor Pool
-        {
-            uint32_t imageDescriptorSamplerCount = (3 * 5);
-            std::vector<VkDescriptorPoolSize> poolSizes = {
-                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
-
-            };
-            VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
-            CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-
-
-        }
-
-        // descriptors
-
-        // Create Descriptor Set:
         {
             VkDescriptorSetAllocateInfo alloc_info = {};
             alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptor));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptor[i]));
         }
-
         // Update the Descriptor Set:
         {
 
             VkWriteDescriptorSet write_desc[1] = {};
             write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = imageIconDescriptor;
+            write_desc[0].dstSet = imageIconDescriptor[i];
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTexture.descriptor;
+            write_desc[0].pImageInfo = &iconTextures[i].descriptor;
             vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
         }
+
+        handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(imageIconDescriptor[i]);
     }
 
 
@@ -563,40 +534,7 @@ namespace MultiSense {
                                    width, height, device,
                                    device->transferQueue);
 
-
-
-        // Descriptor Layout
-
-
-            std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-            setLayoutBindings = {
-                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            };
-
-
-            VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
-                    setLayoutBindings.data(),
-                    setLayoutBindings.size());
-            CHECK_RESULT(
-                    vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
-                                                &descriptorSetLayout));
-
-
-        // Descriptor Pool
-
-            uint32_t imageDescriptorSamplerCount = (3 * 5);
-            std::vector<VkDescriptorPoolSize> poolSizes = {
-                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
-
-            };
-            VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
-            CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-
-
-
-
         // descriptors
-
             // Create Descriptor Set:
             {
                 VkDescriptorSetAllocateInfo alloc_info = {};
@@ -606,7 +544,6 @@ namespace MultiSense {
                 alloc_info.pSetLayouts = &descriptorSetLayout;
                 CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &fontDescriptor));
             }
-
             // Update the Descriptor Set:
             {
 
@@ -618,8 +555,6 @@ namespace MultiSense {
                 write_desc[0].pImageInfo = &fontTexture->descriptor;
                 vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
             }
-
-
 
         return font;
     }

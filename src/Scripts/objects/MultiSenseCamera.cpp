@@ -1,8 +1,6 @@
 #include "MultiSenseCamera.h"
 
 void MultiSenseCamera::setup() {
-    std::string fileName;
-    //loadFromFile(fileName);
     model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
                        renderUtils.device->transferQueue, 1.0f);
 

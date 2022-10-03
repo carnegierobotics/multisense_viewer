@@ -745,6 +745,14 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     updateDescriptor();
 }
 
+Texture2D::Texture2D(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
+                     VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
+                     VkImageLayout imageLayout) {
+
+    fromBuffer(buffer, bufferSize, format, texWidth, texHeight, device, copyQueue, filter, imageUsageFlags, imageLayout);
+
+}
+
 /*
 * Load a 2D texture array including all mip levels
 *
@@ -1157,6 +1165,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     width = texWidth;
     height = texHeight;
     mipLevels = 1;
+    this->format = format;
 
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
@@ -1293,15 +1302,11 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
                     &stagingBuffer2,
                     &stagingMemory2));
             CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory2, 0, size, 0, (void **) &data2));
-            hasEmptyYUVTexture = true;
             break;
         default:
             std::cerr << "No video texture type for that format yet\n";
             break;
     }
-
-    hasEmptyTexture = true;
-
 }
 
 

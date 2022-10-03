@@ -70,7 +70,7 @@ namespace MultiSense {
 
         std::unique_ptr<Texture2D> fontTexture;
         //std::unique_ptr<Texture2D> iconTexture;
-        Texture2D iconTexture;
+        std::vector<Texture2D> iconTextures;
         std::unique_ptr<Texture2D> gifTexture[99];
 
         // Vulkan resources for rendering the UI
@@ -84,7 +84,7 @@ namespace MultiSense {
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
         VkDescriptorSet fontDescriptor{};
-        VkDescriptorSet imageIconDescriptor{};
+        std::vector<VkDescriptorSet> imageIconDescriptor{};
 
         VkDescriptorSet gifImageDescriptors[20]{};     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
         VulkanDevice *device;
@@ -93,7 +93,7 @@ namespace MultiSense {
 
         ImFont *AddDefaultFont(float pixel_size);
         ImFont *loadFontFromFileName(std::string file, float fontSize);
-        void loadImGuiTextureFromFileName(const std::string& file);
+        void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
         void loadAnimatedGif(const std::string &file);
         void loadNextGifFrame();
     };

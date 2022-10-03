@@ -49,7 +49,7 @@ namespace MultiSense {
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
         ImFont *font13{}, *font18{}, *font24{};
 
-        ImTextureID imageButtonTextureDescriptor[10];
+        std::vector<ImTextureID> imageButtonTextureDescriptor;
 
         // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
         struct {

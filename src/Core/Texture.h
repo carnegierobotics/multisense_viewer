@@ -42,6 +42,7 @@ public:
     VkDescriptorImageInfo descriptor;
     VkSampler sampler;
     VkSamplerYcbcrConversion YUVSamplerToRGB;
+    VkFormat format;
 
     struct TextureSampler {
         VkFilter magFilter;
@@ -72,11 +73,21 @@ public:
 
 class Texture2D : public Texture {
 public:
-
     Texture2D() = default;
 
+    Texture2D(void *buffer,
+                          VkDeviceSize bufferSize,
+                          VkFormat format,
+                          uint32_t texWidth,
+                          uint32_t texHeight,
+                          VulkanDevice *device,
+                          VkQueue copyQueue,
+                          VkFilter filter = VK_FILTER_LINEAR,
+                          VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+                          VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    Texture2D(VulkanDevice *const pDevice){
+
+    explicit Texture2D(VulkanDevice *const pDevice){
         device = pDevice;
     }
 
@@ -94,8 +105,9 @@ public:
 
 
     void fromglTfImage(tinygltf::Image& gltfimage, TextureSampler textureSampler, VulkanDevice* device, VkQueue copyQueue);
-
      };
+
+
 
 class TextureVideo : public Texture {
 
@@ -105,26 +117,25 @@ public:
     VkDeviceMemory stagingMemory{};
     VkDeviceSize size{};
     uint8_t *data{};
-    bool hasEmptyTexture = false;
-
     VkBuffer stagingBuffer2{};
     VkDeviceMemory stagingMemory2{};
-    VkDeviceSize size2{};
     uint8_t *data2{};
-    bool hasEmptyYUVTexture = false;
 
     TextureVideo() = default;
 
     ~TextureVideo() {
-        if (hasEmptyTexture){
-            vkUnmapMemory(device->logicalDevice, stagingMemory);
-            vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-            vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
-        }
-        if (hasEmptyYUVTexture){
-            vkUnmapMemory(device->logicalDevice, stagingMemory2);
-            vkFreeMemory(device->logicalDevice, stagingMemory2, nullptr);
-            vkDestroyBuffer(device->logicalDevice, stagingBuffer2, nullptr);
+
+        switch (format) {
+            case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+            case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+                vkUnmapMemory(device->logicalDevice, stagingMemory2);
+                vkFreeMemory(device->logicalDevice, stagingMemory2, nullptr);
+                vkDestroyBuffer(device->logicalDevice, stagingBuffer2, nullptr);
+                break;
+            default:
+                vkUnmapMemory(device->logicalDevice, stagingMemory);
+                vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+                vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
         }
     }
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,

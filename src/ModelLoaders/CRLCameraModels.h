@@ -24,6 +24,15 @@ class CRLCameraModels {
 public:
     CRLCameraModels() = default;
 
+    ~CRLCameraModels() {
+        vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
+        vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
+        vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
+
+    }
+
     struct Model {
         explicit Model(const Base::RenderUtils *renderUtils);
         ~Model();
@@ -36,7 +45,6 @@ public:
             uint32_t firstIndex = 0;
             uint32_t indexCount = 0;
             uint32_t vertexCount = 0;
-            bool hasIndices{};
 
             struct Vertices {
                 VkBuffer buffer = VK_NULL_HANDLE;
@@ -147,7 +155,7 @@ public:
     VkDescriptorSetLayout descriptorSetLayout{};
     VkDescriptorPool descriptorPool{};
     VkPipeline pipeline{};
-    VkPipeline selectionPipeline{};
+    VkPipeline selectionPipeline{}; // TODO destroy object
     const Base::RenderUtils *utils = nullptr;
 
     VkPipelineLayout pipelineLayout{};

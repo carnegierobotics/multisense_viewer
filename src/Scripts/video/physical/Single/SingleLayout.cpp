@@ -9,7 +9,7 @@
 void SingleLayout::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = new CRLCameraModels::Model(&renderUtils);
+    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -104,7 +104,7 @@ void SingleLayout::prepareTexture() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
     model->draw = true;
 }
 
@@ -146,7 +146,7 @@ void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles * uiHan
 
 void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model, b);
+        CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 } 
 
 void SingleLayout::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {

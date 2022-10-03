@@ -158,7 +158,7 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
         if (dev.state != AR_STATE_ACTIVE) {
             continue;
         }
-        updateActiveDevice(&dev);
+        //updateActiveDevice(&dev);
         // Disable if we click a device already connected
         if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
             // Disable all streams and delete camPtr on next update

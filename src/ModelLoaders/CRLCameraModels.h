@@ -170,14 +170,14 @@ protected:
 
     VulkanDevice *vulkanDevice{};
 
-    void createImageDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
+    void createImageDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
 
-    void createPointCloudDescriptors(Model *model, std::vector<Base::UniformBufferSet> ubo);
+    void createPointCloudDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
 
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
                         VkPipeline *pPipelineT);
 
-    void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, Model *model);
+    void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo, Model *model);
 
     void
     createRenderPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector, Model *model,

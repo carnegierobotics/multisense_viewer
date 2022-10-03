@@ -359,7 +359,9 @@ void Renderer::windowResized() {
 
 void Renderer::cleanUp() {
     for (auto& dev : *guiManager->handles.devices)
-        CameraConnection::disconnectCRLCameraTask(&cameraConnection, &dev);
+        CameraConnection::disconnectCRLCameraTask(cameraConnection.get(), &dev); // TODO Note: potentially unsafe usage. Casting smart pointer cameraConnection to void* then back to CameraConnection * with uses context in static function
+
+
     destroySelectionBuffer();
 
      Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");

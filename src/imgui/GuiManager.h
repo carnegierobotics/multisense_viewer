@@ -39,6 +39,10 @@ namespace MultiSense {
             vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
 
+            for (auto * shaderModule: shaderModules) {
+                vkDestroyShaderModule(device->logicalDevice, shaderModule, nullptr);
+            }
+
         };
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
@@ -68,7 +72,7 @@ namespace MultiSense {
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
         std::function<void()> m_MenubarCallback{};
 
-        std::unique_ptr<Texture2D> fontTexture;
+        std::vector<Texture2D> fontTexture;
         //std::unique_ptr<Texture2D> iconTexture;
         std::vector<Texture2D> iconTextures;
         std::unique_ptr<Texture2D> gifTexture[99];
@@ -83,8 +87,9 @@ namespace MultiSense {
         VkPipeline pipeline{};
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
-        VkDescriptorSet fontDescriptor{};
-        std::vector<VkDescriptorSet> imageIconDescriptor{};
+        std::vector<VkDescriptorSet> fontDescriptors{};
+        std::vector<VkDescriptorSet> imageIconDescriptors{};
+        std::vector<VkShaderModule> shaderModules{};
 
         VkDescriptorSet gifImageDescriptors[20]{};     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
         VulkanDevice *device;

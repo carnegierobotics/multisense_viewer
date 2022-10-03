@@ -11,6 +11,7 @@
 #include "include/MultiSense/MultiSenseTypes.hh"
 #include "MultiSense/src/Tools/Logger.h"
 #include "map"
+#include "unordered_map"
 #include <utility>
 
 #define NUM_YUV_DATA_POINTERS 3
@@ -108,17 +109,21 @@ typedef enum ImageElementIndex {
 } ImageElementIndex;
 
 typedef enum CRLCameraResolution {
-    CRL_RESOLUTION_NONE = 0,
-    CRL_RESOLUTION_960_600_64 = 1,
-    CRL_RESOLUTION_960_600_128 = 2,
-    CRL_RESOLUTION_960_600_256 = 3,
-    CRL_RESOLUTION_1920_1200_64 = 4,
-    CRL_RESOLUTION_1920_1200_128 = 5,
-    CRL_RESOLUTION_1920_1200_256 = 6,
-    CRL_RESOLUTION_1024_1024_128 = 7,
-    CRL_RESOLUTION_2048_1088_256 = 8,
-    CRL_RESOLUTION_TOTAL_MODES = 9,
+    CRL_RESOLUTION_960_600_64 = 0,
+    CRL_RESOLUTION_960_600_128 = 1,
+    CRL_RESOLUTION_960_600_256 = 2,
+    CRL_RESOLUTION_1920_1200_64 = 3,
+    CRL_RESOLUTION_1920_1200_128 = 4,
+    CRL_RESOLUTION_1920_1200_256 = 5,
+    CRL_RESOLUTION_1024_1024_128 = 6,
+    CRL_RESOLUTION_2048_1088_256 = 7,
+    CRL_RESOLUTION_NONE = 8
 } CRLCameraResolution;
+
+typedef enum CRLCameraBaseUnit {
+    CRL_BASE_MULTISENSE = 0,
+    CRL_BASE_REMOTE_HEAD = 1
+}CRLCameraBaseUnit;
 
 typedef enum PreviewLayout {
     PREVIEW_LAYOUT_NONE = 0,
@@ -215,6 +220,30 @@ namespace MultiSense {
         uint32_t depth{};
     };
 
+    struct PreviewWindow{
+        std::vector<std::string> availableSources{}; // Human-readable names of camera sources
+        std::vector<std::string> availableRemoteHeads{};
+
+        std::string selectedSource = "Source";
+        uint32_t selectedSourceIndex = 0;
+
+        int hoveredPixelInfo{};
+        uint32_t selectedRemoteHeadIndex = 0;
+
+    };
+
+    struct ChannelInfo {
+        uint32_t index = 0;
+        std::vector<std::string> availableSources{}; // Human-readable names of camera sources
+        ArConnectionState state = AR_STATE_DISCONNECTED;
+
+        std::vector<std::string> modes{};
+        uint32_t selectedModeIndex = 0;
+        CRLCameraResolution selectedMode{};
+
+        std::vector<std::string> requestedStreams{};
+        std::vector<std::string> enabledStreams{};
+    };
 
     struct Device {
         /** @brief Profile Name information  */
@@ -234,20 +263,12 @@ namespace MultiSense {
         bool clicked = false;
         /** @brief Current connection state for this device */
         ArConnectionState state = AR_STATE_UNAVAILABLE;
-
-        PreviewLayout layout = PREVIEW_LAYOUT_NONE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-        std::vector<std::string> modes{};
-        uint32_t selectedModeIndex = 0;
-        uint32_t selectedSourceIndex = 0;
-        CRLCameraResolution selectedMode{};
-        std::vector<std::string> sources; // Human-readable names of camera sources
-        std::map<uint32_t, std::string> selectedSourceMap{};
-        std::map<uint32_t, uint32_t> selectedSourceIndexMap{};
-        std::map<uint32_t, int> hoveredPixelInfo{};
+        PreviewLayout layout = PREVIEW_LAYOUT_NONE;
 
-        std::vector<std::string> userRequestedSources{};
-        std::vector<std::string> enabledStreams{};
+        std::unordered_map<uint32_t, PreviewWindow> win{};
+        std::vector<ChannelInfo> channelInfo;
+
         std::vector<std::string> attachedScripts{};
         float row[9] = {0};
         float col[9] = {0};
@@ -256,6 +277,7 @@ namespace MultiSense {
         CursorPixelInformation pixelInfo;
         bool useLoadedProfile = false;
 
+        std::vector<uint32_t> channelConnections{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

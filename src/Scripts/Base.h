@@ -12,7 +12,7 @@
 #include "MultiSense/src/Tools/Logger.h"
 #include "GLFW/glfw3.h"
 #include "MultiSense/src/Core/KeyInput.h"
-#include "MultiSense/src/CRLCamera/CRLBaseInterface.h"
+#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
@@ -57,7 +57,7 @@ public:
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<CRLBaseInterface>* crlCamera;
+        std::unique_ptr<CRLPhysicalCamera>* crlCamera;
         ScriptType type;
         Log::Logger *pLogger;
         uint32_t height;

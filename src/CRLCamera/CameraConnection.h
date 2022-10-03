@@ -5,11 +5,12 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include "CRLBaseInterface.h"
 #include <MultiSense/src/imgui/Layer.h>
 #include <memory>
 #include "MultiSense/external/simpleini/SimpleIni.h"
 #include "ThreadPool.h"
+#include "CRLPhysicalCamera.h"
+
 #define NUM_THREADS 3
 
 /**
@@ -20,7 +21,7 @@ class CameraConnection {
 public:
     CameraConnection(){
 
-        pool = std::make_unique<ThreadPool>(NUM_THREADS);
+        pool = std::make_unique<ThreadPool>(1);
 
     }
 
@@ -31,7 +32,7 @@ public:
     std::string lastActiveDevice = "-1";
     void onUIUpdate(std::vector<MultiSense::Device> *pVector, bool b);
 
-    std::unique_ptr<CRLBaseInterface> camPtr;
+    std::unique_ptr<CRLPhysicalCamera> camPtr;
     std::unique_ptr<ThreadPool> pool;
 
     static void disconnectCRLCameraTask(void* context, MultiSense::Device* dev);
@@ -88,13 +89,22 @@ private:
     static void setExposureTask(void * context, void* arg1, MultiSense::Device* dev);
     static void setWhiteBalanceTask(void * context, void* arg1, MultiSense::Device* dev);
     static void setLightingTask(void * context, void* arg1, MultiSense::Device* dev);
-    static void setAdditionalParametersTask(void * context, float fps, float gain, float gamma, float spfs, MultiSense::Device* dev);
+    static void setResolutionTask(void * context, CRLCameraResolution arg1, uint32_t idx);
+
+    static void setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
+                                            uint32_t index,
+                                            MultiSense::Device *dev);
+
     static void connectCRLCameraTask(void* context, MultiSense::Device* dev);
 
     static void startStreamTask(void* context, MultiSense::Device* dev, std::string src);
+    static void startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);
     static void stopStreamTask(void* context, MultiSense::Device* dev, std::string src);
+    static void stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);
 
-    void updateFromCameraParameters(MultiSense::Device *dev) const;
+    void updateFromCameraParameters(MultiSense::Device *dev, uint32_t index) const;
+
+    void filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec, uint32_t idx);
 
 };
 

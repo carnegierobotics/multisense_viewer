@@ -17,13 +17,13 @@ void PreviewTwo::setup(Base::Render r) {
 
 void PreviewTwo::update(){
     if (model->draw) {
-        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
             return;
         }
 
         auto* tex = new VkRender::TextureData(textureType);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
             model->setTexture(tex);
             model->setZoom();
             if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
@@ -58,7 +58,7 @@ void PreviewTwo::update(){
 
 void PreviewTwo::prepareTexture() {
     model->modelType = textureType;
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -111,21 +111,21 @@ void PreviewTwo::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
         selectedPreviewTab = dev.selectedPreviewTab;
         playbackSate = dev.playbackStatus;
 
-        if (!dev.selectedSourceMap.contains(AR_PREVIEW_TWO))
-            break;
-
-        if (dev.selectedSourceMap.at(AR_PREVIEW_TWO) == "None") {
+        auto &preview = dev.win.at(AR_PREVIEW_TWO);
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        if (preview.selectedSource == "Source") {
             // dont draw or update
             model->draw = false;
         }
 
-        if ((src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
-            src = dev.selectedSourceMap.at(AR_PREVIEW_TWO);
-            textureType =  Utils::CRLSourceToTextureType(src);
-            res = dev.selectedMode;
+        if ((src != preview.selectedSource || currentRes != res ||
+             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+            src = preview.selectedSource;
+            textureType = Utils::CRLSourceToTextureType(src);
+            res = currentRes;
+            remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
-
         transformToUISpace(uiHandle, dev);
     }
 }

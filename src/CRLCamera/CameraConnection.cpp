@@ -175,7 +175,8 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
      */
 }
 
-void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork, bool isRemoteHead) {
+void
+CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork, bool isRemoteHead) {
     // If no device is connected then return
     if (pVector == nullptr)
         return;
@@ -213,8 +214,6 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
             dev.state = AR_STATE_CONNECTING;
             break;
         }
-
-        updateDeviceState(&dev);
         // Rest of this function is only for active devices
         if (dev.state != AR_STATE_ACTIVE) {
             continue;
@@ -246,59 +245,61 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
         chInfo.selectedMode = CRL_RESOLUTION_NONE;
 
 
-
-        dev.channelInfo.at(ch) = chInfo;
         // Check for previous user profiles attached to this hardware
-    }
-    /*
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    SI_Error rc = ini.LoadFile("crl.ini");
-    if (rc < 0) { /* handle error  }
-    else {
-        // A serial number is the section identifier of a profile. I can have three following states
-        // - Not Exist
-        // - Exist
-        std::string cameraSerialNumber = camPtr->getCameraInfo().devInfo.serialNumber;
-        if (ini.SectionExists(cameraSerialNumber.c_str())) {
-            std::string profileName = ini.GetValue(cameraSerialNumber.c_str(), "ProfileName", "default");
-            std::string mode = ini.GetValue(cameraSerialNumber.c_str(), "Mode", "default");
-            std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
-            std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources", "default");
-            std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Source");
-            std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Source");
-            Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
-            dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
-            dev.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
-            dev.selectedModeIndex = std::stoi(mode);
+        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+            dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
+        }
 
-            // Create previews
-            for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-                std::string prev = "Preview" + std::to_string(i + 1);
-                std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), prev.c_str(), ""));
-                if (!source.empty()) {
-                    Log::Logger::getInstance()->info(".ini file: Starting source '{}' for preview {}", source,
-                                                     i + 1);
-                    dev.selectedSourceMap[i] = source;
-                    //dev.userRequestedSources.emplace_back(source);
+        CSimpleIniA ini;
+        ini.SetUnicode();
+        SI_Error rc = ini.LoadFile("crl.ini");
+        if (rc < 0) {} // Handle error
+        else {
+            // A serial number is the section identifier of a profile. I can have three following states
+            // - Not Exist
+            // - Exist
+            std::string cameraSerialNumber = camPtr->getCameraInfo(ch).devInfo.serialNumber;
+            if (ini.SectionExists(cameraSerialNumber.c_str())) {
+                std::string profileName = ini.GetValue(cameraSerialNumber.c_str(), "ProfileName", "default");
+                std::string mode = ini.GetValue(cameraSerialNumber.c_str(),
+                                                std::string("Mode" + std::to_string(ch)).c_str(), "default");
+                std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
+                std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources", "default");
+                std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Source");
+                std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Source");
+                Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
-                    auto it = find(dev.sources.begin(), dev.sources.end(), source);
-                    if (it != dev.sources.end()) {
-                        dev.selectedSourceIndexMap[i] = static_cast<uint32_t>(it - dev.sources.begin());
+                dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
+                chInfo.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
+                chInfo.selectedModeIndex = std::stoi(mode);
+
+                // Create previews
+                for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+                    if (i == AR_PREVIEW_POINT_CLOUD)
+                        continue;
+
+                    std::string key = "Preview" + std::to_string(i + 1);
+                    std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
+                    std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
+                    if (!source.empty()) {
+
+                        dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
+                        dev.win[i].selectedRemoteHeadIndex = std::stoi(remoteHeadIndex);
+
+                        Log::Logger::getInstance()->info(".ini file: found source '{}' for preview {} at head {}, Adding to requested source", source.substr(0, source.find_last_of(':')),
+                                                         i + 1, ch);
+
+                        chInfo.requestedStreams.emplace_back(dev.win[i].selectedSource);
+
                     }
                 }
             }
         }
-    }
-    */
 
-    for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-        dev.win[i].availableRemoteHeads.clear();
-        for (auto ch: dev.channelConnections) {
-            dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
-        }
+        dev.channelInfo.at(ch) = chInfo;
     }
+
     // Populate streaming info for preview info
     Log::Logger::getInstance()->info("setting available streaming modes");
 }
@@ -439,9 +440,6 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
     return true;
 }
 
-void CameraConnection::updateDeviceState(MultiSense::Device *dev) {
-
-}
 
 void CameraConnection::addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value) {
     int ret = ini->SetValue(section.c_str(), key.c_str(), value.c_str());
@@ -485,11 +483,11 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
 
     if (!dev->channelConnections.empty()) {
-        dev->state = AR_STATE_ACTIVE;
+        app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
         dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
         dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
-        app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
         app->lastActiveDevice = dev->name;
+        dev->state = AR_STATE_ACTIVE;
     } else {
         dev->state = AR_STATE_UNAVAILABLE;
         app->lastActiveDevice = "-1";
@@ -505,7 +503,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                      dev->cameraName.c_str());
     // Save settings to file. Attempt to create a new file if it doesn't exist
-    /*
+
     CSimpleIniA ini;
     ini.SetUnicode();
     SI_Error rc = ini.LoadFile("crl.ini");
@@ -530,42 +528,50 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         addIniEntry(&ini, CRLSerialNumber, "IP", dev->IP);
         addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev->interfaceIndex));
         addIniEntry(&ini, CRLSerialNumber, "State", std::to_string((int) dev->state));
-        // Preview Data
-        addIniEntry(&ini, CRLSerialNumber, "Mode", std::to_string((int) dev->selectedMode));
-        addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
-        for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-            if (dev->selectedSourceMap.contains(i)) {
+        // Preview Data per channel
+        for (const auto &ch: dev->channelConnections) {
+            std::string mode = "Mode" + std::to_string(ch);
+            addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) dev->channelInfo[ch].selectedMode));
+
+
+            addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
+            auto &chInfo = dev->channelInfo[ch];
+
+            for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+                if (i == AR_PREVIEW_POINT_CLOUD)
+                    continue;
+
+                std::string source = dev->win[i].selectedSource;
+                if (source == "Source")
+                    continue;
+
+                std::string remoteHead = std::to_string(dev->win[i].selectedRemoteHeadIndex);
                 std::string key = "Preview" + std::to_string(i + 1);
-                addIniEntry(&ini, CRLSerialNumber, key, dev->selectedSourceMap[i]);
+                std::string value = (source + ":" + remoteHead);
+                addIniEntry(&ini, CRLSerialNumber, key, value);
+
             }
         }
+
     }
-
     // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
-
-
     // save the data back to the file
     rc = ini.SaveFile("crl.ini");
     if (rc < 0) {
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
 
     }
-
-
     app->lastActiveDevice = "-1";
-    dev->userRequestedSourcesMap.clear();
-    dev->enabledStreams.clear();
-    dev->selectedSourceMap.clear();
-    dev->selectedSourceIndexMap.clear();
-       */
+
     if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
-        //int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
+        int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
         dev->state = AR_STATE_REMOVE_FROM_LIST;
-        //Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
+        Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
 
     } else {
         dev->state = AR_STATE_DISCONNECTED;
-    }    app->processingDisconnectTask = false;
+    }
+    app->processingDisconnectTask = false;
 
 }
 
@@ -637,7 +643,7 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint3
 }
 
 void CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
-                                            uint32_t remoteHeadIndex) {
+                                                 uint32_t remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
     if (app->camPtr->start(src, remoteHeadIndex));
@@ -648,7 +654,7 @@ void CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Devi
 }
 
 void CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
-                                           uint32_t remoteHeadIndex) {
+                                                uint32_t remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
     if (app->camPtr->stop(src, remoteHeadIndex));

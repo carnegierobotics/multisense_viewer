@@ -46,7 +46,6 @@ public:
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
-    std::string src;
     uint32_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};

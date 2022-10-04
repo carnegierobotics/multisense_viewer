@@ -620,7 +620,7 @@ private:
             // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
             std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
             // Disable IMU as well in 2D
-            auto chInfo = dev.channelInfo.front();
+            auto& chInfo = dev.channelInfo.front();
             if (dev.useImuData)
                 pointCloudSources.emplace_back("IMU");
             for (const auto &source: pointCloudSources) {

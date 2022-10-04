@@ -16,12 +16,13 @@ void PointCloud::update() {
 
     if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
         model->draw = false;
+        Log::Logger::getInstance()->info("Size mismatch with image size and imgconf in pointcloud");
         return;
     }
 
     if (model->draw) {
         auto *tex = new VkRender::TextureData(AR_DISPARITY_IMAGE);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
+        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", tex, remoteHeadIndex)) {
             model->setTexture(tex);
             free(tex->data);
         }
@@ -59,21 +60,18 @@ void PointCloud::update() {
 void PointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle->devices) {
+        if (dev.state != AR_STATE_ACTIVE)
+            continue;
+
+        selectedPreviewTab = dev.selectedPreviewTab;
 
         auto &preview = dev.win.at(AR_PREVIEW_POINT_CLOUD);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
-        if (preview.selectedSource == "Source") {
-            // dont draw or update
-            model->draw = false;
-        }
 
-
-        if ((src != preview.selectedSource || currentRes != res ||
+        if ((currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
-            src = preview.selectedSource;
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
-            selectedPreviewTab = dev.selectedPreviewTab;
             textureType = AR_POINT_CLOUD;
             prepareTexture();
         }

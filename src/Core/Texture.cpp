@@ -1639,6 +1639,7 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
     vkCreateSamplerYcbcrConversion(device->logicalDevice, &info, nullptr,
                                    &YUVSamplerToRGB);
 
+
     VkSamplerYcbcrConversionInfo samplerConversionInfo{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO, nullptr,
                                                        YUVSamplerToRGB};
 // Create sampler

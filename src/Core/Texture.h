@@ -140,6 +140,10 @@ public:
                 vkUnmapMemory(device->logicalDevice, stagingMemory2);
                 vkFreeMemory(device->logicalDevice, stagingMemory2, nullptr);
                 vkDestroyBuffer(device->logicalDevice, stagingBuffer2, nullptr);
+                vkDestroySamplerYcbcrConversion(device->logicalDevice, YUVSamplerToRGB, nullptr);
+                vkUnmapMemory(device->logicalDevice, stagingMemory);
+                vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+                vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
                 break;
             default:
                 vkUnmapMemory(device->logicalDevice, stagingMemory);

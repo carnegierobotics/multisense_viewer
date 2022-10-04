@@ -50,8 +50,6 @@ private:
 
     void updateActiveDevice(MultiSense::Device *dev);
 
-    void updateDeviceState(MultiSense::Device *element);
-
     bool setNetworkAdapterParameters(MultiSense::Device &dev, bool b);
 
     void setStreamingModes(MultiSense::Device &dev);

@@ -528,7 +528,6 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& vector, Model *model,
                                            ScriptType type, const Base::RenderUtils *renderUtils) {
 
-    this->utils = renderUtils;
     this->vulkanDevice = renderUtils->device;
 
     if (initializedPipeline){
@@ -541,11 +540,11 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
     }
 
     createDescriptorSetLayout(model);
-    createDescriptors(utils->UBCount, utils->uniformBuffers, model);
-    createPipeline(*utils->renderPass, vector, type, &pipeline, &pipelineLayout);
+    createDescriptors(renderUtils->UBCount, renderUtils->uniformBuffers, model);
+    createPipeline(*renderUtils->renderPass, vector, type, &pipeline, &pipelineLayout);
 
     // Create selection pipeline as well
-    createPipeline(utils->picking->renderPass, vector, type, &selectionPipeline, &selectionPipelineLayout);
+    createPipeline(renderUtils->picking->renderPass, vector, type, &selectionPipeline, &selectionPipelineLayout);
     initializedPipeline = true;
 }
 

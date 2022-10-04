@@ -5,15 +5,14 @@ void MultiSenseCamera::setup() {
                        renderUtils.device->transferQueue, 1.0f);
 
 
-    // Shader creation
-    VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/box.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/box.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
+                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
+                                                            {loadShader("myScene/spv/box.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    renderUtils.shaders = {{vs},
-                           {fs}};
 
     // Obligatory call to prepare render resources for glTFModel.
-    glTFModel::createRenderPipeline(renderUtils);
+    glTFModel::createRenderPipeline(renderUtils, shaders);
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {

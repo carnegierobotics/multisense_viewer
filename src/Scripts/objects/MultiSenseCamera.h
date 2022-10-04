@@ -13,6 +13,7 @@ public:
     MultiSenseCamera() {
         s_bRegistered;
     }
+    ~MultiSenseCamera() = default;
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/

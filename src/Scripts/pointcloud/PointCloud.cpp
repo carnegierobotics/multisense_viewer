@@ -89,9 +89,6 @@ void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 void PointCloud::prepareTexture() {
     model->modelType = textureType;
-    if (textureType == AR_CAMERA_IMAGE_NONE)
-        return;
-
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     width = imgConf.width();
     height = imgConf.height();
@@ -108,22 +105,16 @@ void PointCloud::prepareTexture() {
     const uint32_t vtxBufSize = width * height;
     model->createMeshDeviceLocal((VkRender::Vertex *) meshData, vtxBufSize, nullptr, 0);
     delete[] meshData;
-
     renderData.crlCamera->get()->preparePointCloud(width, height);
     model->createEmtpyTexture(width, height, textureType);
-
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
-
     CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
-
     auto *buf = (VkRender::PointCloudParam *) bufferThreeData;
     buf->kInverse = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
-    std::cout << glm::to_string(buf->kInverse) << std::endl;
-
     model->draw = true;
 }

@@ -40,13 +40,8 @@ public:
         VulkanDevice *device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
-
-        // TODO Some error happening on destruction on these vectors. Identify or made change to use pointers and free the later
-        std::vector<VkPipelineShaderStageCreateInfo> shaders;
         std::vector<UniformBufferSet> uniformBuffers;
-
         const VkRender::ObjectPicking* picking;
-
     } renderUtils{};
 
     struct Render {
@@ -69,10 +64,10 @@ public:
     virtual ~Base() = default;
 
     /**@brief Pure virtual function called once every frame*/
-    virtual void update() = 0;
+    virtual void update() {};
 
     /**@brief Pure virtual function called only once when VK is ready to render*/
-    virtual void setup() = 0;
+    virtual void setup() {};
 
     /**@brief Virtual function called once when VK is ready to render with camera handle
      * @param camHandle: Handle to currently connected camera
@@ -91,7 +86,7 @@ public:
     }
 
     /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) = 0;
+    virtual void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {};
 
     void uiUpdate(const MultiSense::GuiObjectHandles* uiHandle) {
         if (!this->renderData.drawThisScript)
@@ -239,16 +234,19 @@ public:
         if (extension == std::string::npos)
             fileName.append(".spv");
 
+        VkShaderModule module;
+        Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+                          renderUtils.device->logicalDevice, &module);
+        assert(module != VK_NULL_HANDLE);
 
+        shaderModules.emplace_back(module);
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
-        shaderStage.module = Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
-                                               renderUtils.device->logicalDevice);
+        shaderStage.module = module;
         shaderStage.pName = "main";
-        assert(shaderStage.module != VK_NULL_HANDLE);
-        // TODO CLEANUP SHADERMODULES WHEN UNUSED
-        shaderModules.emplace_back(shaderStage.module);
+
+
         return shaderStage;
     }
 

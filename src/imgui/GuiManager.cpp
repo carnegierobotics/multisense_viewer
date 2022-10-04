@@ -185,16 +185,28 @@ namespace MultiSense {
 
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
-        std::vector<VkPipelineShaderStageCreateInfo> shaders = {
-                Utils::getPipelineShaderStateCreateInfo(device->logicalDevice, "imgui/ui.vert.spv",
-                                                        VK_SHADER_STAGE_VERTEX_BIT),
-                Utils::getPipelineShaderStateCreateInfo(device->logicalDevice, "imgui/ui.frag.spv",
-                                                        VK_SHADER_STAGE_FRAGMENT_BIT),
-        };
+        VkShaderModule vtxModule;
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->logicalDevice, &vtxModule);
+        VkPipelineShaderStageCreateInfo vtxShaderStage = {};
+        vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vtxShaderStage.module = vtxModule;
+        vtxShaderStage.pName = "main";
+        assert(vtxShaderStage.module != VK_NULL_HANDLE);
+        shaderModules.push_back(vtxModule);
 
-        for (const auto &shader: shaders) {
-            shaderModules.push_back(shader.module);
-        }
+        VkShaderModule frgModule;
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->logicalDevice, &frgModule);
+        VkPipelineShaderStageCreateInfo fragShaderStage = {};
+        fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStage.module = frgModule;
+        fragShaderStage.pName = "main";
+        assert(fragShaderStage.module != VK_NULL_HANDLE);
+        shaderModules.push_back(frgModule);
+
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaders {vtxShaderStage, fragShaderStage};
+
 
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);

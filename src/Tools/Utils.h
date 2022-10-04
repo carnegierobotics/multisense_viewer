@@ -20,7 +20,7 @@
 namespace Utils {
 
     static std::string getShadersPath() {
-        return "Assets/Shaders/";
+        return "./Assets/Shaders/";
     }
 
     static std::string getAssetsPath() {
@@ -481,7 +481,7 @@ namespace Utils {
     }
 
 
-    inline VkShaderModule loadShader(const char *fileName, const VkDevice &device) {
+    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule* module) {
         std::ifstream is(fileName, std::ios::binary | std::ios::ate);
 
         if (is.is_open()) {
@@ -492,37 +492,19 @@ namespace Utils {
             is.close();
 
             assert(size > 0);
-
-            VkShaderModule shaderModule;
             VkShaderModuleCreateInfo moduleCreateInfo{};
             moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             moduleCreateInfo.codeSize = size;
             moduleCreateInfo.pCode = (uint32_t *) shaderCode;
-
-            if (vkCreateShaderModule(device, &moduleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS)
-                throw std::runtime_error("Failed to crate shader module");
-
-
+            VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr, module);
+            if (res != VK_SUCCESS)
+                throw std::runtime_error("Failed to create shader module");
             delete[] shaderCode;
-
-            return shaderModule;
         } else {
-            std::cerr << "Error: Could not open shader file \"" << fileName << "\"" << "\n";
-            return VK_NULL_HANDLE;
+            Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
         }
     }
 
-    inline VkPipelineShaderStageCreateInfo
-    getPipelineShaderStateCreateInfo(const VkDevice &device, const std::string &fileName, VkShaderStageFlagBits stage) {
-        VkPipelineShaderStageCreateInfo shaderStage = {};
-        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStage.stage = stage;
-        shaderStage.module = loadShader((Utils::getShadersPath() + fileName).c_str(), device);
-        shaderStage.pName = "main";
-        assert(shaderStage.module != VK_NULL_HANDLE);
-        // TODO CLEANUP SHADERMODULES WHEN UNUSED AND ON EXITING VIEWER APP
-        return shaderStage;
-    }
 
     template<typename T>
     size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {

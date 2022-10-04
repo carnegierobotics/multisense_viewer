@@ -136,6 +136,7 @@ void Renderer::deleteScript(const std::string &scriptName) {
         return;
     pLogger->info("Deleting Script: {}", scriptName.c_str());
     scripts[scriptName].get()->onDestroyScript();
+    scripts[scriptName].reset();
     scripts.erase(scriptName);
 }
 
@@ -369,9 +370,10 @@ void Renderer::cleanUp() {
                                                   &dev); // TODO Note: potentially unsafe usage. Casting smart pointer cameraConnection to void* then back to CameraConnection * with uses context in static function
 
     // Clear script and scriptnames
-    for (auto scriptName: scriptNames) {
+    for (const auto& scriptName: scriptNames) {
         pLogger->info("Deleting Script: {}", scriptName.c_str());
         scripts[scriptName].get()->onDestroyScript();
+        scripts[scriptName].reset();
         scripts.erase(scriptName);
     }
     scriptNames.clear();

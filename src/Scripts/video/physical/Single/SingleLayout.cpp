@@ -130,7 +130,7 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, const MultiSense::Device& dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +

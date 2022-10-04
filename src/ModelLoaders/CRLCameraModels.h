@@ -25,7 +25,7 @@ public:
     CRLCameraModels() = default;
 
     ~CRLCameraModels() {
-        if (vulkanDevice) {
+        if (vulkanDevice != nullptr) {
             vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
             vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
             vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
@@ -156,7 +156,6 @@ public:
     VkDescriptorPool descriptorPool{};
     VkPipeline pipeline{};
     VkPipeline selectionPipeline{}; // TODO destroy object
-    const Base::RenderUtils *utils = nullptr;
     bool initializedPipeline = false;
 
     VkPipelineLayout pipelineLayout{};
@@ -178,7 +177,7 @@ public:
 
 protected:
 
-    VulkanDevice *vulkanDevice{};
+    const VulkanDevice *vulkanDevice = nullptr;
 
     void createImageDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
 

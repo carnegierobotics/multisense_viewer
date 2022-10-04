@@ -279,6 +279,7 @@ private:
         el.interfaceName = entry.interfaceName;
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
+        el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
 
         handles->devices->emplace_back(el);
 
@@ -770,7 +771,9 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-                ImGui::Checkbox("  Configure System Network", &handles->configureNetworkForNextConnection);
+                ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
+                ImGui::SameLine(0, 20.0f);
+                ImGui::Checkbox("  Remote Head", &handles->nextIsRemoteHead);
                 ImGui::PopStyleColor();
 
             } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/

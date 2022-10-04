@@ -7,55 +7,53 @@
 #include <vulkan/vulkan_core.h>
 #include "MultiSense/src/Tools/Utils.h"
 
-bool CRLPhysicalCamera::connect(const std::string &ip) {
 
-}
-
-std::vector<uint32_t> CRLPhysicalCamera::connectRemoteHead(const std::string &ip) {
+std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead) {
+    // First make one connect. If it turns out to be a remote head try to connect all
     std::vector<uint32_t> indices;
-    for (int i = 0; i <= crl::multisense::Remote_Head_3; ++i) {
-        channelMap[i] = crl::multisense::Channel::Create(ip, i);
-        if (channelMap[i] != nullptr) {
-            updateCameraInfo(i);
+    if (isRemoteHead) {
+        for (int i = 0; i <= crl::multisense::Remote_Head_3; ++i) {
+            channelMap[i] = crl::multisense::Channel::Create(ip, i);
+            if (channelMap[i] != nullptr) {
+                updateCameraInfo(i);
+                int mtuSize = 7200;
+                int status = channelMap[i]->setMtu(mtuSize);
+                if (status != crl::multisense::Status_Ok) {
+                    Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
+                } else {
+                    Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
+                }
+                // Start some timers
+                callbackTime = std::chrono::steady_clock::now();
+                startTime = std::chrono::steady_clock::now();
+                startTimeImu = std::chrono::steady_clock::now();
+                addCallbacks(i);
+                indices.emplace_back(i);
+            }
+        }
+    }else {
+        channelMap[0] = crl::multisense::Channel::Create(ip);
+        if (channelMap[0] != nullptr) {
+            updateCameraInfo(0);
             int mtuSize = 7200;
-            int status = channelMap[i]->setMtu(mtuSize);
+            int status = channelMap[0]->setMtu(mtuSize);
             if (status != crl::multisense::Status_Ok) {
                 Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
             } else {
                 Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
             }
-
             // Start some timers
             callbackTime = std::chrono::steady_clock::now();
             startTime = std::chrono::steady_clock::now();
             startTimeImu = std::chrono::steady_clock::now();
-
-            addCallbacks(i);
-            indices.emplace_back(i);
+            addCallbacks(0);
+            indices.emplace_back(0);
         }
     }
     return indices;
 }
 
 
-bool CRLPhysicalCamera::start(CRLCameraResolution resolution, std::string dataSourceStr) {
-    crl::multisense::DataSource source = Utils::stringToDataSource(dataSourceStr);
-    if (source == false)
-        return false;
-
-    // Start stream
-    int32_t status = cameraInterface->startStreams(source);
-    if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Enabled stream: {}",
-                                         Utils::dataSourceToString(source).c_str());
-        stopForDestruction = false;
-        return true;
-    } else
-        Log::Logger::getInstance()->info("Failed to flashing stream: {}  status code {}",
-                                         Utils::dataSourceToString(source).c_str(), status);
-
-    return false;
-}
 
 bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t remoteHeadID) {
     crl::multisense::DataSource source = Utils::stringToDataSource(dataSourceStr);
@@ -66,44 +64,12 @@ bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t remoteH
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Enabled stream: {} at remote head {}",
                                          Utils::dataSourceToString(source).c_str(), remoteHeadID);
-        stopForDestruction = false;
         return true;
     } else
         Log::Logger::getInstance()->info("Failed to flashing stream: {}  status code {}",
                                          Utils::dataSourceToString(source).c_str(), status);
 
     return false;
-}
-
-bool CRLPhysicalCamera::start(crl::multisense::DataSource source) {
-    // Start stream
-    int32_t status = cameraInterface->startStreams(source);
-    if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Enabled stream: {}",
-                                         Utils::dataSourceToString(source).c_str());
-        stopForDestruction = false;
-        return true;
-    } else
-        Log::Logger::getInstance()->info("Failed to flashing stream: {}  status code {}",
-                                         Utils::dataSourceToString(source).c_str(), status);
-    return false;
-}
-
-
-bool CRLPhysicalCamera::stop(std::string dataSourceStr) {
-    if (cameraInterface == nullptr)
-        return false;
-
-    crl::multisense::DataSource src = Utils::stringToDataSource(dataSourceStr);
-
-    bool status = cameraInterface->stopStreams(src);
-    if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
-        return true;
-    } else {
-        Log::Logger::getInstance()->info("Failed to stop stream {}", dataSourceStr.c_str());
-        return false;
-    }
 }
 
 bool CRLPhysicalCamera::stop(std::string dataSourceStr, uint32_t idx) {
@@ -122,35 +88,6 @@ bool CRLPhysicalCamera::stop(std::string dataSourceStr, uint32_t idx) {
     }
 }
 
-// Copied from opengl multisense-viewer example
-void CRLPhysicalCamera::streamCallback(const crl::multisense::image::Header &image) {
-
-    auto &buf = buffers_[image.source];
-
-    // TODO: make this a method of the BufferPair or something
-    std::scoped_lock lock(buf.swap_lock);
-
-    if (buf.inactiveCBBuf != nullptr)  // initial state
-    {
-        cameraInterface->releaseCallbackBuffer(buf.inactiveCBBuf);
-    }
-
-
-    if (image.imageDataP == nullptr) {
-        Log::Logger::getInstance()->info("Image from camera was empty");
-    } else
-        imagePointers[image.source] = image;
-
-    buf.inactiveCBBuf = cameraInterface->reserveCallbackBuffer();
-    buf.inactive = image;
-}
-
-void CRLPhysicalCamera::imageCallback(const crl::multisense::image::Header &header, void *userDataP) {
-    auto cam = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
-    cam->callbackTime = std::chrono::steady_clock::now();
-    cam->startTime = std::chrono::steady_clock::now();
-    cam->streamCallback(header);
-}
 
 void CRLPhysicalCamera::streamCallbackRemoteHead(const crl::multisense::image::Header &image, uint32_t idx) {
 
@@ -239,39 +176,6 @@ void CRLPhysicalCamera::addCallbacks(uint32_t idx) {
                 std::cerr << "Adding callback failed!\n";
             break;
     }
-
-}
-
-
-void CRLPhysicalCamera::addCallbacks() {
-    for (const auto &e: info.supportedDeviceModes)
-        info.supportedSources |= e.supportedDataSources;
-    // reserve double_buffers for each stream
-    uint_fast8_t num_sources = 0;
-    crl::multisense::DataSource d = info.supportedSources;
-    while (d) {
-        num_sources += (d & 1);
-        d >>= 1;
-    }
-    // --- initializing our callback buffers ---
-    std::size_t bufSize = (size_t) 1024 * 1024 * 10;  // 10mb for every image, like in LibMultiSense
-    for (int i = 0;
-         i < (num_sources * 2 + 1); ++i) // double-buffering for each stream, plus one for handling if those are full
-    {
-        info.rawImages.push_back(new uint8_t[bufSize]);
-    }
-    // use these buffers instead of the default
-    cameraInterface->setLargeBuffers(info.rawImages, static_cast<uint32_t>(bufSize));
-    // finally, add our callback
-    cameraInterface->addIsolatedCallback(imuCallback, this);
-    if (cameraInterface->addIsolatedCallback(imageCallback, info.supportedSources, this) !=
-        crl::multisense::Status_Ok) {
-        std::cerr << "Adding callback failed!\n";
-    }
-}
-
-CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo() {
-    return info;
 }
 
 CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(uint32_t idx) {
@@ -409,13 +313,13 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 
     crl::multisense::image::Calibration calibration{};
-    cameraInterface->getImageCalibration(calibration);
+    channelMap[0]->getImageCalibration(calibration);
 
-    const double xScale = 1.0 / ((static_cast<double>(info.devInfo.imagerWidth) /
+    const double xScale = 1.0 / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
                                   static_cast<double>(width)));
 
     // From LibMultisenseUtility
-    crl::multisense::image::Config c = info.imgConf;
+    crl::multisense::image::Config c = infoMap[0].imgConf;
     const double fx = c.fx();
     const double fy = c.fy();
     const double cx = c.cx();
@@ -432,7 +336,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
     //kInverseMatrix = glm::transpose(kInverseMatrix); // TODO uncomment here and remove in shader code
 
-    info.kInverseMatrix = kInverseMatrix;
+    infoMap[0].kInverseMatrix = kInverseMatrix;
     //info.kInverseMatrix = Q;
     /*
    kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
@@ -522,7 +426,7 @@ void CRLPhysicalCamera::updateCameraInfo(uint32_t idx) {
 
 
 void CRLPhysicalCamera::setGamma(float gamma) {
-    crl::multisense::Status status = cameraInterface->getImageConfig(info.imgConf);
+    crl::multisense::Status status = channelMap[0]->getImageConfig(info.imgConf);
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
@@ -534,7 +438,7 @@ void CRLPhysicalCamera::setGamma(float gamma) {
     info.imgConf.setGamma(gamma);
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setImageConfig(info.imgConf);
+    status = channelMap[0]->setImageConfig(info.imgConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor
@@ -570,7 +474,7 @@ void CRLPhysicalCamera::setFps(float fps, uint32_t index) {
 }
 
 void CRLPhysicalCamera::setGain(float gain) {
-    crl::multisense::Status status = cameraInterface->getImageConfig(info.imgConf);
+    crl::multisense::Status status = channelMap[0]->getImageConfig(info.imgConf);
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
@@ -582,7 +486,7 @@ void CRLPhysicalCamera::setGain(float gain) {
     info.imgConf.setGain(gain);
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setImageConfig(info.imgConf);
+    status = channelMap[0]->setImageConfig(info.imgConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor
@@ -628,14 +532,14 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t i
         currentResolutionMap[i] = resolution;
     } else
         Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
-    this->updateCameraInfo(0);
+    this->updateCameraInfo(i);
 }
 
 void CRLPhysicalCamera::setExposure(uint32_t exp) {
     crl::multisense::image::Config cfg = info.imgConf;
 
     cfg.setExposure(exp);
-    int ret = cameraInterface->setImageConfig(cfg);
+    int ret = channelMap[0]->setImageConfig(cfg);
     if (ret == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Set exposure to {}", exp);
     } else
@@ -646,7 +550,7 @@ void CRLPhysicalCamera::setExposure(uint32_t exp) {
 
 void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
 
-    crl::multisense::Status status = cameraInterface->getImageConfig(info.imgConf);
+    crl::multisense::Status status = channelMap[0]->getImageConfig(info.imgConf);
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
@@ -669,7 +573,7 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
     info.imgConf.setExposureSource(p.exposureSource);
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setImageConfig(info.imgConf);
+    status = channelMap[0]->setImageConfig(info.imgConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor
@@ -682,7 +586,7 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
 
 void CRLPhysicalCamera::setPostFilterStrength(float filter) {
 
-    crl::multisense::Status status = cameraInterface->getImageConfig(info.imgConf);
+    crl::multisense::Status status = channelMap[0]->getImageConfig(info.imgConf);
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
@@ -694,7 +598,7 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
     info.imgConf.setStereoPostFilterStrength(filter);
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setImageConfig(info.imgConf);
+    status = channelMap[0]->setImageConfig(info.imgConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor
@@ -706,7 +610,7 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
 }
 
 void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
-    crl::multisense::Status status = cameraInterface->getImageConfig(info.imgConf);
+    crl::multisense::Status status = channelMap[0]->getImageConfig(info.imgConf);
     //
     // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
@@ -726,7 +630,7 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
     }
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setImageConfig(info.imgConf);
+    status = channelMap[0]->setImageConfig(info.imgConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor
@@ -739,7 +643,7 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
 }
 
 void CRLPhysicalCamera::setLighting(LightingParams param) {
-    crl::multisense::Status status = cameraInterface->getLightingConfig(info.lightConf);
+    crl::multisense::Status status = channelMap[0]->getLightingConfig(info.lightConf);
 
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
@@ -756,7 +660,7 @@ void CRLPhysicalCamera::setLighting(LightingParams param) {
     info.lightConf.setFlash(param.flashing);
     //
     // Send the new image configuration to the sensor
-    status = cameraInterface->setLightingConfig(info.lightConf);
+    status = channelMap[0]->setLightingConfig(info.lightConf);
     //
     // Check to see if the configuration was successfully received by the
     // sensor

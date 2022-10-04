@@ -420,29 +420,31 @@ private:
                 ImGui::SetNextItemWidth(150.0f);
                 auto &window = dev.win[index];
 
-                ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
-
-                std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads, std::to_string(window.selectedRemoteHeadIndex))];
-                std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
-                if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
-                                      ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < window.availableRemoteHeads.size(); n++) {
-                        const bool is_selected = (window.selectedRemoteHeadIndex == n);
-                        if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
-                            // If we had streams active then transfer active streams to new channel
-                            window.selectedRemoteHeadIndex = std::stoi(window.availableRemoteHeads[n]);
-                            Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
-                                                             window.selectedRemoteHeadIndex, index);
+                if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                    ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
+                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
+                                                                                      std::to_string(
+                                                                                              window.selectedRemoteHeadIndex))];
+                    std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
+                    if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
+                                          ImGuiComboFlags_HeightLarge)) {
+                        for (int n = 0; n < window.availableRemoteHeads.size(); n++) {
+                            const bool is_selected = (window.selectedRemoteHeadIndex == n);
+                            if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
+                                // If we had streams active then transfer active streams to new channel
+                                window.selectedRemoteHeadIndex = std::stoi(window.availableRemoteHeads[n]);
+                                Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
+                                                                 window.selectedRemoteHeadIndex, index);
+                            }
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
                         }
-                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                        if (is_selected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
+                        ImGui::EndCombo();
                     }
-                    ImGui::EndCombo();
+                    ImGui::PopStyleColor();
                 }
-                ImGui::PopStyleColor();
-
 
                 // Set the avaiable sources according to the selected remote head
                 window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
@@ -571,11 +573,14 @@ private:
 
                     ImGui::Dummy(ImVec2(40.0f, 0.0));
                     ImGui::SameLine();
-                    std::string descriptionText = "Remote head " + std::to_string(i) + ":";
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-                    ImGui::Text("%s", descriptionText.c_str());
-                    ImGui::PopStyleColor();
-                    ImGui::SameLine();
+                    if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                        std::string descriptionText = "Remote head " + std::to_string(i) + ":";
+                        ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                        ImGui::Text("%s", descriptionText.c_str());
+                        ImGui::PopStyleColor();
+                        ImGui::SameLine();
+                    }
+
                     ImGui::SetNextItemWidth(250);
                     std::string resLabel = "##Resolution" + std::to_string(i);
                     auto &chInfo = dev.channelInfo[i];
@@ -611,29 +616,28 @@ private:
                 createDoubleWindowPreview(handles, dev);
             }
 
+
             // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
             std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
-
             // Disable IMU as well in 2D
+            auto chInfo = dev.channelInfo.front();
             if (dev.useImuData)
                 pointCloudSources.emplace_back("IMU");
-            /*
-                       for (const auto &source: pointCloudSources) {
-                           bool inUse = false;
-                           for (int index = 0; index < AR_PREVIEW_TOTAL_MODES; ++index) {
-                               if (!dev.selectedSourceMap.contains(index))
-                                   continue;
-                               if (dev.selectedSourceMap[index] == source)
-                                   inUse = true;
-                           }
-
-
-                           if (!inUse && Utils::isInVector(dev.userRequestedSourcesMap, source)) {
-                               Utils::removeFromVector(&dev.userRequestedSourcesMap, source);
-                           }
-
+            for (const auto &source: pointCloudSources) {
+                bool inUse = false;
+                // Loop over all previews and check their source.
+                // If it matches either point cloud source then it means it is in use
+                for (const auto &preview: dev.win) {
+                    if (preview.second.selectedSource == source)
+                        inUse = true;
+                }
+                if (!inUse && Utils::isInVector(chInfo.requestedStreams, source)) {
+                    Utils::removeFromVector(&chInfo.requestedStreams, source);
+                    Log::Logger::getInstance()->info(
+                            "Removed {} from user requested sources because it is not in use anymore", source);
+                }
             }
- */
+
 
         } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
@@ -646,7 +650,8 @@ private:
             ImGui::SameLine();
             ImGui::SetNextItemWidth(200);
             std::string resLabel = "##Resolution";
-            auto chInfo = dev.channelInfo.front();
+            auto &chInfo = dev.channelInfo.front();
+            dev.playbackStatus = AR_PREVIEW_PLAYING;
             if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (int n = 0; n < chInfo.modes.size(); n++) {
@@ -655,7 +660,6 @@ private:
                         chInfo.selectedModeIndex = n;
                         chInfo.selectedMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
-                        //chInfo.playbackStatus = AR_PREVIEW_PLAYING;
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -665,7 +669,6 @@ private:
                 ImGui::EndCombo();
             }
 
-            //chInfo.selectedSourceMap[AR_PREVIEW_POINT_CLOUD] = "Disparity Left";
 
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -684,17 +687,19 @@ private:
             } else {
                 Utils::removeFromVector(&dev.userRequestedSources, "IMU");
             }
+   */
 
+            dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
 
-            if (!Utils::isInVector(dev.userRequestedSources, "Disparity Left")) {
-                dev.userRequestedSources.emplace_back("Disparity Left");
+            if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
+                chInfo.requestedStreams.emplace_back("Disparity Left");
                 Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
             }
-            if (!Utils::isInVector(dev.userRequestedSources, "Luma Rectified Left")) {
-                dev.userRequestedSources.emplace_back("Luma Rectified Left");
+            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
+                chInfo.requestedStreams.emplace_back("Luma Rectified Left");
                 Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
-             */
+
         }
 
 

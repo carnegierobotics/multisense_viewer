@@ -106,8 +106,8 @@ namespace MultiSense {
         std::unique_ptr<GuiLayerUpdateInfo> info{};
 
         /** User action to configure network automatically even when using manual approach **/
-        bool configureNetworkForNextConnection = false;
-
+        bool configureNetwork = false;
+        bool nextIsRemoteHead = false;
         /** Keypress and mouse events */
         const VkRender::MouseButtons* mouseBtns{};
         float accumulatedActiveScroll = 0.0f;

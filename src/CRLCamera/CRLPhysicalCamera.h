@@ -46,22 +46,15 @@ public:
     }info{};
 
     std::map<uint32_t, CameraInfo> infoMap;
-    bool connect(const std::string& ip);
-    bool start(CRLCameraResolution resolution, std::string dataSourceStr);
-    bool start(uint32_t source);
     bool start(const std::string& dataSourceStr, uint32_t remoteHeadID);
-    bool stop(std::string dataSourceStr);
     bool stop(std::string dataSourceStr, uint32_t idx);
-    void updateCameraInfo();
+
     bool getCameraStream(VkRender::YUVTexture *tex);
     bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx);
     bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex);
     bool getImuRotation(VkRender::Rotation *rot);
 
-    CameraInfo getCameraInfo();
     void preparePointCloud(uint32_t i, uint32_t i1);
-
-
     void setResolution(CRLCameraResolution resolution, uint32_t i);
     void setExposure(uint32_t exp);
     void setExposureParams(ExposureParams p);
@@ -72,7 +65,7 @@ public:
     void setFps(float fps, uint32_t index);
     void setGain(float gain);
 
-    std::vector<uint32_t> connectRemoteHead(const std::string &ip);
+    std::vector<uint32_t> connect(const std::string &ip, bool isRemoteHead);
     CameraInfo getCameraInfo(uint32_t idx);
 
 private:
@@ -118,30 +111,18 @@ private:
     };
 
     std::vector<crl::multisense::DataSource> enabledSources{};
-    crl::multisense::Channel * cameraInterface{};
     std::map<uint32_t, crl::multisense::Channel *> channelMap;
-
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_{};
     std::map<uint32_t, std::unordered_map<crl::multisense::DataSource,BufferPair>> buffersMap{};
-
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers{};
     std::map<uint32_t ,std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header>> imagePointersMap{};
-
     glm::mat4 kInverseMatrix{};
     std::unordered_map<uint32_t ,CRLCameraResolution> currentResolutionMap{};
 
     /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
-    bool stopForDestruction = false;
-
-    void addCallbacks();
     void addCallbacks(uint32_t idx);
-
-    void streamCallback(const crl::multisense::image::Header &image);
     void streamCallbackRemoteHead(const crl::multisense::image::Header &image, uint32_t idx);
-
-
     static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
-    static void imageCallback(const crl::multisense::image::Header &header, void *userDataP);
     static void remoteHeadOneCallback(const crl::multisense::image::Header &header, void *userDataP);
     static void remoteHeadTwoCallback(const crl::multisense::image::Header &header, void *userDataP);
     static void remoteHeadThreeCallback(const crl::multisense::image::Header &header, void *userDataP);

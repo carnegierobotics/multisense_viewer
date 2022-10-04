@@ -1307,7 +1307,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 
 void TextureVideo::updateTextureFromBuffer(VkRender::TextureData *tex) {
     if (size < tex->len) {
-        Log::Logger::getInstance()->info("Size mismatch between grayscale texture image and camera image");
+        Log::Logger::getInstance()->info("Size mismatch between texture type {} image and camera image", (int) tex->type);
         return;
     }
     memcpy(data, tex->data, tex->len);

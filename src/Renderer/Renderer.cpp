@@ -161,7 +161,7 @@ void Renderer::render() {
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
-    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetworkForNextConnection);
+    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork, guiManager->handles.nextIsRemoteHead);
     // Run update function on active camera Scripts and build them if not built
     for (int i = 0; i < guiManager->handles.devices->size(); ++i) {
         if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)

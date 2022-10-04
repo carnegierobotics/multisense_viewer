@@ -26,7 +26,7 @@ void DoubleLayoutBot::update() {
         }
 
         auto *tex = new VkRender::TextureData(textureType);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
             model->setTexture(tex);
             model->setZoom();
             if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)

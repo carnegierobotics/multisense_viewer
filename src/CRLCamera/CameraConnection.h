@@ -30,7 +30,7 @@ public:
     /** @brief Handle to the current camera object */
     bool preview = false;
     std::string lastActiveDevice = "-1";
-    void onUIUpdate(std::vector<MultiSense::Device> *pVector, bool b);
+    void onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork, bool isRemoteHead);
 
     std::unique_ptr<CRLPhysicalCamera> camPtr;
     std::unique_ptr<ThreadPool> pool;
@@ -95,7 +95,7 @@ private:
                                             uint32_t index,
                                             MultiSense::Device *dev);
 
-    static void connectCRLCameraTask(void* context, MultiSense::Device* dev);
+    static void connectCRLCameraTask(void* context, MultiSense::Device* dev, bool remoteHead);
 
     static void startStreamTask(void* context, MultiSense::Device* dev, std::string src);
     static void startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);

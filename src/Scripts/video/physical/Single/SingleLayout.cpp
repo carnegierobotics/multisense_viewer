@@ -112,14 +112,12 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
         playbackSate = dev.playbackStatus;
-
         auto &preview = dev.win.at(AR_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
         if (preview.selectedSource == "Source") {
             // dont draw or update
             model->draw = false;
         }
-
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             src = preview.selectedSource;
@@ -128,8 +126,6 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
-
-
         transformToUISpace(uiHandle, dev);
     }
 }

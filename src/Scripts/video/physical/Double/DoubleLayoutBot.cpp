@@ -15,17 +15,17 @@ void DoubleLayoutBot::setup(Base::Render r) {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void DoubleLayoutBot::update(){
+void DoubleLayoutBot::update() {
     if (playbackSate != AR_PREVIEW_PLAYING)
         return;
 
     if (model->draw) {
-        if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
+        if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
             return;
         }
 
-        auto* tex = new VkRender::TextureData(textureType);
+        auto *tex = new VkRender::TextureData(textureType);
         if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
             model->setTexture(tex);
             model->setZoom();
@@ -62,7 +62,7 @@ void DoubleLayoutBot::prepareTexture() {
     model->modelType = textureType;
 
 
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -115,30 +115,29 @@ void DoubleLayoutBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
         playbackSate = dev.playbackStatus;
-        /*
-        if (!dev.selectedSourceMap.contains(AR_PREVIEW_TWO))
-            break;
-
-        if (dev.selectedSourceMap.at(AR_PREVIEW_TWO) == "None"){
+        auto &preview = dev.win.at(AR_PREVIEW_TWO);
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        if (preview.selectedSource == "Source") {
             // dont draw or update
-            if (model)
-                model->draw = false;
+            model->draw = false;
         }
 
-        if ((src != dev.selectedSourceMap.at(AR_PREVIEW_TWO) || dev.selectedMode != res)) {
-            src = dev.selectedSourceMap.at(AR_PREVIEW_TWO);
-            textureType =  Utils::CRLSourceToTextureType(src);
-            res = dev.selectedMode;
+        if ((src != preview.selectedSource || currentRes != res ||
+             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+            src = preview.selectedSource;
+            textureType = Utils::CRLSourceToTextureType(src);
+            res = currentRes;
+            remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
-         */
 
         transformToUISpace(uiHandle, dev);
     }
 }
 
-void DoubleLayoutBot::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
-    centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) - 1; // map between -1 to 1q
+void DoubleLayoutBot::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+    centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
+              1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[1]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[1]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1

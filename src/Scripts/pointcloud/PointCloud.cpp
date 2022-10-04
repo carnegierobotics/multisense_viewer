@@ -7,29 +7,27 @@
 
 
 void PointCloud::setup(Base::Render r) {
-    model = new CRLCameraModels::Model(&renderUtils);
+    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
-
 }
-
 
 void PointCloud::update() {
 
-    if (renderData.crlCamera->get()->getCameraInfo().imgConf.width() != width) {
+    if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
         model->draw = false;
         return;
     }
 
     if (model->draw) {
         auto *tex = new VkRender::TextureData(AR_DISPARITY_IMAGE);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex)) {
+        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
             model->setTexture(tex);
             free(tex->data);
         }
 
         auto *tex2 = new VkRender::TextureData(AR_POINT_CLOUD);
-        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex2)) {
+        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex2, remoteHeadIndex)) {
             model->setTexture(tex2);
             free(tex2->data);
         }
@@ -62,34 +60,39 @@ void PointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: *uiHandle->devices) {
 
-        /*
-        if (!dev.selectedSourceMap.contains(AR_PREVIEW_POINT_CLOUD))
-            break;
+        auto &preview = dev.win.at(AR_PREVIEW_POINT_CLOUD);
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        if (preview.selectedSource == "Source") {
+            // dont draw or update
+            model->draw = false;
+        }
 
-        src = dev.selectedSourceMap.at(AR_PREVIEW_POINT_CLOUD);
 
-        if ((dev.selectedMode != res ||
-             dev.selectedPreviewTab != selectedPreviewTab))
-        {
-            textureType = AR_POINT_CLOUD;
-            res = dev.selectedMode;
+        if ((src != preview.selectedSource || currentRes != res ||
+             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+            src = preview.selectedSource;
+            res = currentRes;
+            remoteHeadIndex = preview.selectedRemoteHeadIndex;
             selectedPreviewTab = dev.selectedPreviewTab;
+            textureType = AR_POINT_CLOUD;
             prepareTexture();
         }
-         */
     }
 }
 
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_3D_POINT_CLOUD)
-        CRLCameraModels::draw(commandBuffer, i, model, b);
+        CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 }
 
 
 void PointCloud::prepareTexture() {
     model->modelType = textureType;
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo().imgConf;
+    if (textureType == AR_CAMERA_IMAGE_NONE)
+        return;
+
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     width = imgConf.width();
     height = imgConf.height();
     meshData = new VkRender::Vertex[width * height];
@@ -114,10 +117,10 @@ void PointCloud::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
 
-    CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
 
     auto *buf = (VkRender::PointCloudParam *) bufferThreeData;
-    buf->kInverse = renderData.crlCamera->get()->getCameraInfo().kInverseMatrix;
+    buf->kInverse = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     std::cout << glm::to_string(buf->kInverse) << std::endl;

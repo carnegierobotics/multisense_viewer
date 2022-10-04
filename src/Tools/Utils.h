@@ -143,7 +143,7 @@ namespace Utils {
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
-    inline bool isInVector(std::vector<std::string> v, const std::string &str) {
+    inline    bool isInVector(const std::vector<std::string>& v, const std::string &str) {
         if (std::find(v.begin(), v.end(), str) != v.end())
             return true;
         return false;

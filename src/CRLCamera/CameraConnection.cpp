@@ -43,7 +43,7 @@
 void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
     auto *p = &dev->parameters;
     if (!dev->parameters.initialized) {
-        const auto &conf = camPtr->getCameraInfo().imgConf;
+        const auto &conf = camPtr->getCameraInfo(0).imgConf;
         p->ep.exposure = conf.exposure();
         p->ep.autoExposure = conf.autoExposure();
         p->ep.exposureSource = conf.exposureSource();
@@ -64,7 +64,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
         p->wb.whiteBalanceRed = conf.whiteBalanceRed();
 
-        const auto &lightConf = camPtr->getCameraInfo().lightConf;
+        const auto &lightConf = camPtr->getCameraInfo(0).lightConf;
         p->light.numLightPulses = lightConf.getNumberOfPulses();
         p->light.dutyCycle = lightConf.getDutyCycle(0);
         p->light.flashing = lightConf.getFlash();
@@ -105,8 +105,10 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
      */
     // Set the correct resolution. Will only update if changed.
     for (auto &ch: dev->channelInfo) {
-        if (ch.state == AR_STATE_ACTIVE)
-            pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+        if (ch.state == AR_STATE_ACTIVE) {
+            //pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+            setResolutionTask(this, ch.selectedMode, ch.index);
+        }
 
     }
 
@@ -173,7 +175,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
      */
 }
 
-void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork) {
+void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shouldConfigNetwork, bool isRemoteHead) {
     // If no device is connected then return
     if (pVector == nullptr)
         return;
@@ -207,7 +209,7 @@ void CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool
                 pool->Push(CameraConnection::disconnectCRLCameraTask, this, otherDev);
             }
             setNetworkAdapterParameters(dev, shouldConfigNetwork);
-            pool->Push(CameraConnection::connectCRLCameraTask, this, &dev);
+            pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, isRemoteHead);
             dev.state = AR_STATE_CONNECTING;
             break;
         }
@@ -239,10 +241,11 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
         chInfo.state = AR_STATE_ACTIVE;
 
         filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
-
         const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
         initCameraModes(&chInfo.modes, supportedModes);
         chInfo.selectedMode = CRL_RESOLUTION_NONE;
+
+
 
         dev.channelInfo.at(ch) = chInfo;
         // Check for previous user profiles attached to this hardware
@@ -290,7 +293,7 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
     }
     */
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
         dev.win[i].availableRemoteHeads.clear();
         for (auto ch: dev.channelConnections) {
             dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
@@ -471,7 +474,7 @@ CameraConnection::~CameraConnection() {
 }
 
 
-void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev) {
+void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev, bool isRemoteHead) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
@@ -479,12 +482,12 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     Log::Logger::getInstance()->info("Creating new physical camera.");
     app->camPtr = std::make_unique<CRLPhysicalCamera>();
     // If we successfully connect
-    dev->channelConnections = app->camPtr->connectRemoteHead(dev->IP);
+    dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
 
     if (!dev->channelConnections.empty()) {
         dev->state = AR_STATE_ACTIVE;
-        dev->cameraName = app->camPtr->getCameraInfo().devInfo.name;
-        dev->serialName = app->camPtr->getCameraInfo().devInfo.serialNumber;
+        dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
+        dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
         app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
         app->lastActiveDevice = dev->name;
     } else {
@@ -607,7 +610,7 @@ void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::De
 
 void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint32_t index) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
-    const auto &conf = camPtr->getCameraInfo().imgConf;
+    const auto &conf = camPtr->getCameraInfo(0).imgConf;
     auto *p = &dev->parameters;
     p->ep.exposure = conf.exposure();
     p->ep.autoExposure = conf.autoExposure();
@@ -633,14 +636,7 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint3
 
 }
 
-void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, std::string src) {
-    auto *app = reinterpret_cast<CameraConnection *>(context);
-
-
-}
-
-void
-CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
+void CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
                                             uint32_t remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
@@ -651,8 +647,7 @@ CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *d
 
 }
 
-void
-CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
+void CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
                                            uint32_t remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
@@ -663,13 +658,6 @@ CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *de
 
 }
 
-void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, std::string src) {
-    auto *app = reinterpret_cast<CameraConnection *>(context);
-
-    if (app->camPtr->stop(src));//Utils::removeFromVector(&dev->enabledStreams, src);
-    else
-        Log::Logger::getInstance()->info("Failed to disable stream {}", src);
-}
 
 void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, uint32_t idx) {
     auto *app = reinterpret_cast<CameraConnection *>(context);

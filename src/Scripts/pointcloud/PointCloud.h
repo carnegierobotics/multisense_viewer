@@ -21,7 +21,7 @@ public:
     }
 
     void onDestroy() override{
-        delete model;
+
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PointCloud>(); }
@@ -44,9 +44,10 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
 
-    CRLCameraModels::Model* model{};
+    std::unique_ptr<CRLCameraModels::Model> model;
 
     std::string src;
+    uint32_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;

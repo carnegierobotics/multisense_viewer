@@ -70,7 +70,7 @@ typedef enum StreamIndex {
     AR_PREVIEW_POINT_CLOUD = 10,
 
 
-    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD,
+    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD + 1,
     // Other flags
 
 } CameraStreamInfoFlag;
@@ -268,6 +268,7 @@ namespace MultiSense {
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
         std::vector<ChannelInfo> channelInfo;
+        CRLCameraBaseUnit baseUnit{};
 
         std::vector<std::string> attachedScripts{};
         float row[9] = {0};

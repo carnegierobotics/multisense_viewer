@@ -750,17 +750,20 @@ void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineSh
 
 
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
-
-    for (auto& shaderStage: shaderStages) {
-        vkDestroyShaderModule(vulkanDevice->logicalDevice, shaderStage.module, nullptr);
-    }
-
-
 }
 
-void glTFModel::createRenderPipeline(const Base::RenderUtils& utils) {
+void glTFModel::createRenderPipeline(const Base::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
     this->vulkanDevice = utils.device;
     createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
-    createPipeline(*utils.renderPass, utils.shaders);
+    createPipeline(*utils.renderPass, shaders);
+}
+
+glTFModel::~glTFModel() {
+    // destroy
+    vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayoutNode, nullptr);
+    vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
+    vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
+    vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
 }

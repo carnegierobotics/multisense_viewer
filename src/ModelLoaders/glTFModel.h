@@ -23,7 +23,7 @@ class glTFModel {
 public:
 
     glTFModel();
-
+    ~glTFModel();
     VulkanDevice *vulkanDevice = nullptr;
 
     struct Primitive {
@@ -106,6 +106,12 @@ public:
 
     struct Model {
 
+        ~Model(){
+            vkFreeMemory(device->logicalDevice, vertices.memory, nullptr);
+            vkFreeMemory(device->logicalDevice, indices.memory, nullptr);
+            vkDestroyBuffer(device->logicalDevice, vertices.buffer, nullptr);
+            vkDestroyBuffer(device->logicalDevice, indices.buffer, nullptr);
+        }
         VulkanDevice *device;
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
@@ -182,7 +188,7 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i);
     void drawNode(Node *node, VkCommandBuffer commandBuffer);
 
-    void createRenderPipeline(const Base::RenderUtils& utils);
+    void createRenderPipeline(const Base::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
 };
 
 

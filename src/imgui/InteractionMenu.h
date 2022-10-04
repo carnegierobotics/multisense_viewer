@@ -674,7 +674,7 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-            ImGui::Checkbox("Use IMU data", &dev.useImuData);
+            ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
             ImGui::PopStyleColor();
 
 

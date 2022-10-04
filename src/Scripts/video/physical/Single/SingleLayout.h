@@ -63,7 +63,7 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const MultiSense::GuiObjectHandles * handles, MultiSense::Device element);
+    void transformToUISpace(const MultiSense::GuiObjectHandles * handles, const MultiSense::Device& element);
 
     void prepareTexture();
 };

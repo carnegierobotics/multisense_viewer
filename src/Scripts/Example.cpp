@@ -11,11 +11,11 @@ void Example::setup() {
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/helmet.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/helmet.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    renderUtils.shaders = {{vs},
-                           {fs}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
 
     // Obligatory call to prepare render resources for glTFModel.
-    //glTFModel::createRenderPipeline(renderUtils);
+    //glTFModel::createRenderPipeline(renderUtils, shaders);
 }
 
 void Example::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -39,7 +39,7 @@ void Example::update() {
     d->view = renderData.camera->matrices.view;
 
     auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
-    d2->objectColor =  glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
+    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -2.0f, -3.0f), 1.0f);
     d2->viewPos = renderData.camera->viewPos;

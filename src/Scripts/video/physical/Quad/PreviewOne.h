@@ -16,7 +16,6 @@ public:
         s_bRegistered;
     }
     void onDestroy() override{
-        delete model;
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PreviewOne>(); }
@@ -41,7 +40,7 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY;
 
-    CRLCameraModels::Model* model = nullptr;
+    std::unique_ptr<CRLCameraModels::Model> model;
 
     int count = 1;
     void *selection = (void *) "0";

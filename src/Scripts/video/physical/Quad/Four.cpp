@@ -9,7 +9,7 @@
 void Four::setup(Base::Render r) {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = new CRLCameraModels::Model(&renderUtils);
+    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
@@ -100,7 +100,7 @@ void Four::prepareTexture() {
                                  imgData.quad.vertexCount, imgData.quad.indices, imgData.quad.indexCount);
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, model, type, &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
     model->draw = true;
 }
 
@@ -147,7 +147,7 @@ void Four::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, Mul
 
 void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model, b);
+        CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 
 }
 

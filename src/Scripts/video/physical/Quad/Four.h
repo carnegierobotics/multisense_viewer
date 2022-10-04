@@ -41,7 +41,7 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
 
-    CRLCameraModels::Model* model = nullptr;
+    std::unique_ptr<CRLCameraModels::Model> model;
 
     int count = 1;
     void *selection = (void *) "0";

@@ -64,6 +64,7 @@ public:
     void setGamma(float gamma);
     void setFps(float fps, uint32_t index);
     void setGain(float gain);
+    void setHDR(bool hdr);
 
     std::vector<uint32_t> connect(const std::string &ip, bool isRemoteHead);
     CameraInfo getCameraInfo(uint32_t idx);

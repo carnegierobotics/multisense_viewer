@@ -79,8 +79,8 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
             continue;
 
         if (dev->parameters.update)
-            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma, ch.index,
-                       p->stereoPostFilterStrength, dev);
+            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
+                       p->stereoPostFilterStrength, ch.index, dev);
     }
 
     if (dev->parameters.ep.update)
@@ -91,23 +91,11 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
 
     if (dev->parameters.light.update)
         pool->Push(CameraConnection::setLightingTask, this, &p->light, dev);
-    // start streams
-    /*
-    for (int i = 0; i < dev->win.size(); ++i) {
-        MultiSense::PreviewWindow win = dev->win[i];
-        MultiSense::ChannelInfo& chInfo = dev->channelInfo[win.selectedRemoteHeadIndex];
-
-        if (!Utils::isInVector(chInfo.enabledStreams, )){
-            pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, win.selectedSource, win.selectedRemoteHeadIndex);
-            dev->channelInfo[win.selectedRemoteHeadIndex].enabledStreams.emplace_back(win.selectedSource);
-        }
-    }
-     */
     // Set the correct resolution. Will only update if changed.
     for (auto &ch: dev->channelInfo) {
         if (ch.state == AR_STATE_ACTIVE) {
-            //pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
-            setResolutionTask(this, ch.selectedMode, ch.index);
+            pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+            //setResolutionTask(this, ch.selectedMode, ch.index);
         }
 
     }
@@ -136,43 +124,6 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         }
     }
 
-    // Stop streams
-
-    /*
-    // Handle streams enabling/disable
-    // Enable sources that are in userRequested but not in enabled
-    for (const auto &ch: dev->selectedRemoteHeadIndexMap) {
-        for (const auto &s: dev->userRequestedSourcesMap[ch.second]) {
-            if (!Utils::isInVector(dev->enabledStreams[ch.second], s)) {
-                // Enable stream and push back if it is successfully enabled
-                if (s == "Source")
-                    continue;
-                if (pool->getTaskListSize() > 0)
-                    continue;
-
-                if (dev->baseCameraUnit == CRL_BASE_REMOTE_HEAD)
-                    pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, s, dev->selectedRemoteHeadIndex);
-                else
-                    pool->Push(CameraConnection::startStreamTask, this, dev, s);
-            }
-        }
-
-        // Disable sources that are in enabled but not in userRequested
-        for (const auto &s: dev->enabledStreams[ch.second]) {
-            if (!Utils::isInVector(dev->userRequestedSourcesMap[ch.second], s)) {
-                // Enable stream and push back if it is successfully enabled
-                if (pool->getTaskListSize() > 0)
-                    continue;
-
-                if (dev->baseCameraUnit == CRL_BASE_REMOTE_HEAD)
-                    pool->Push(CameraConnection::stopStreamTaskRemoteHead, this, dev, s, dev->selectedRemoteHeadIndex);
-                else
-                    pool->Push(CameraConnection::stopStreamTask, this, dev, s);
-
-            }
-        }
-    }
-     */
 }
 
 void
@@ -597,10 +548,10 @@ void CameraConnection::setAdditionalParametersTask(void *context, float fps, flo
                                                    MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
-    //app->camPtr->setGamma(gamma);
-    //app->camPtr->setGain(gain);
+    app->camPtr->setGamma(gamma);
+    app->camPtr->setGain(gain);
     app->camPtr->setFps(fps, index);
-    //app->camPtr->setPostFilterStrength(spfs);
+    app->camPtr->setPostFilterStrength(spfs);
     app->updateFromCameraParameters(dev, index);
 
 }

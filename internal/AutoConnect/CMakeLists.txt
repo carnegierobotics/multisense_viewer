@@ -2,27 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 project(AutoConnect LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 20)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
-
-option(LIBMULTISENSE_PATH "Path to LibMultiSense Source directory" None)
-option(LIBMULTISENSE_SKIP "Skip looking for LibMultiSense" False)
-option(BUILD_AUTOCONNECT_LIB FALSE)
-
 set(LIBMULTISENSE_PATH "../../external/LibMultiSense")
-set(BUILD_AUTOCONNECT_LIB True)
-
-if(NOT DEFINED LIBMULTISENSE_PATH)
-    message(FATAL_ERROR "You must set LIBMULTISENSE_PATH environment variable")
-elseif(LIBMULTISENSE_SKIP STREQUAL True)
-    # Do nothing. Use inherited value for MULTISENSE_SRC
-    set(BUILD_AUTOCONNECT_LIB TRUE)
-else()
-    set(MULTISENSE_SRC ${LIBMULTISENSE_PATH})
-    include_directories(${MULTISENSE_SRC})
-    add_subdirectory(${MULTISENSE_SRC}  [EXCLUDE_FROM_ALL])
-endif()
-
 
 if (WIN32)
 
@@ -49,13 +29,8 @@ if (WIN32)
 
     message(CURRENT PATH: ${CMAKE_CURRENT_SOURCE_DIR} | ${BUILD_AUTOCONNECT_LIB})
 
-    if (${BUILD_AUTOCONNECT_LIB})
-        add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h)
-        target_link_libraries(LibAutoConnect winpcap iphlpapi)
-    else()
-        add_executable(AutoConnect WIN32 AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h main.cpp)
-        target_link_libraries(AutoConnect MultiSense winpcap iphlpapi)
-    endif()
+    add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h "WinRegEditor.h")
+    target_link_libraries(LibAutoConnect winpcap iphlpapi SimpleIni)
 
 
     if (MSVC)
@@ -70,10 +45,10 @@ if (WIN32)
 else () ## Linux
     if (${BUILD_AUTOCONNECT_LIB})
         add_library(LibAutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h)
-        target_link_libraries(LibAutoConnect MultiSense -ltbb)
+        target_link_libraries(LibAutoConnect MultiSense -ltbb SimpleIni)
     else()
         add_executable(AutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h main.cpp)
-        target_link_libraries(AutoConnect MultiSense -ltbb)
+        target_link_libraries(AutoConnect MultiSense -ltbb SimpleIni)
     endif()
 
 

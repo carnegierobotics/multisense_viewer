@@ -46,7 +46,6 @@ public:
     void setShouldProgramClose(bool close) override;
 
     void clearSearchedAdapters();
-    void disableAutoConfiguration(std::string ip, uint32_t index);
 
 private:
     static void run(void* instance, std::vector<Result> adapters);

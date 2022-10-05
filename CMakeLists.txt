@@ -42,10 +42,13 @@ include_directories(external/tinygltf/)
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
 
-# Internal Library # Parameter for Autoconnect Library
-set(LIBMULTISENSE_SKIP True)
-set(TOP_LEVEL_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(AUTOCONNECT_SRC internal/AutoConnect/)
+# Ini file parser SimpleIni
+set(SimpleIni_DIR external/simpleini)
+set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
+add_library(SimpleIni STATIC ${SimpleIni_SRC})
+
+# Internal Library
+set(AUTOCONNECT_SRC "internal/AutoConnect/")
 include_directories(${AUTOCONNECT_SRC})
 add_subdirectory(${AUTOCONNECT_SRC})
 
@@ -54,9 +57,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 
 # FMT
 # Used for logging purposes
-set(FMT_DIR external/fmt) 
+set(FMT_DIR external/fmt)  
 add_subdirectory(${FMT_DIR})
-
 
 # add source files
 set(IMGUI_SRC
@@ -67,10 +69,7 @@ set(IMGUI_SRC
         )
 INCLUDE_DIRECTORIES(src/imgui/custom)
 
-# Ini file parser SimpleIni
-set(SimpleIni_DIR external/simpleini)
-set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
-add_library(SimpleIni STATIC ${SimpleIni_SRC})
+
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 
@@ -193,7 +192,7 @@ if (WIN32)
 
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer MultiSenseWindows winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES})
+    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} MultiSenseWindows) 
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
 

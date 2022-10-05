@@ -5,7 +5,6 @@
 #ifndef MULTISENSE_CRLPHYSICALCAMERA_H
 #define MULTISENSE_CRLPHYSICALCAMERA_H
 
-#include <MultiSense/src/CRLCamera/CRLBaseInterface.h>
 #include <mutex>
 #include <unordered_set>
 #include <unordered_map>
@@ -13,6 +12,9 @@
 #include <bitset>
 #include <iostream>
 #include <cstdint>
+#include "MultiSense/src/Core/Definitions.h"
+#include "MultiSense/details/channel.hh"
+
 
 class CRLPhysicalCamera {
 public:

@@ -11,6 +11,7 @@
 #ifndef _WINSOCKAPI_
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+
 #endif
 
 #include <Windows.h>
@@ -33,7 +34,6 @@
 #endif
 
 #include <MultiSense/src/Tools/Utils.h>
-#include "MultiSense/src/CRLCamera/CRLVirtualCamera.h"
 #include "MultiSense/external/simpleini/SimpleIni.h"
 
 

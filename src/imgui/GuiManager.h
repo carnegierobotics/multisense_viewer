@@ -67,11 +67,7 @@ namespace MultiSense {
             glm::vec2 scale;
             glm::vec2 translate;
         } pushConstBlock{};
-
-
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
-        std::function<void()> m_MenubarCallback{};
-
         std::vector<Texture2D> fontTexture;
         //std::unique_ptr<Texture2D> iconTexture;
         std::vector<Texture2D> iconTextures;

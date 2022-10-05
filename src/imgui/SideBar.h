@@ -156,7 +156,7 @@ private:
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
         if (!app->skipUserFriendlySleepDelay) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(800));
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
         }
         if (event == "Finished") {
             app->autoConnect.setShouldProgramClose(true);
@@ -170,27 +170,31 @@ private:
         auto *app = static_cast<SideBar *>(ctx);
 
 
-        crl::multisense::Channel *ptr = app->autoConnect.getCameraChannel();
         crl::multisense::system::DeviceInfo info;
-        ptr->getDeviceInfo(info);
-        Log::Logger::getInstance()->info(
+        crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
+        if (status == crl::multisense::Status_Ok) {
+            Log::Logger::getInstance()->info(
                 "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
                 res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
                 info.name.c_str());
 
-        bool ipExists = false;
-        for (const auto &e: app->entryConnectDeviceList) {
-            if (e.IP == res.cameraIpv4Address)
-                ipExists = true;
+            bool ipExists = false;
+            for (const auto& e : app->entryConnectDeviceList) {
+                if (e.IP == res.cameraIpv4Address)
+                    ipExists = true;
+            }
+
+            if (!ipExists) {
+                MultiSense::EntryConnectDevice entry{ res.cameraIpv4Address, res.networkAdapter, info.name, res.index, res.description };
+                app->entryConnectDeviceList.push_back(entry);
+                app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
+            }
+        }
+        else {
+            Log::Logger::getInstance()->info("Failed to fetch camera name from MultiSense device");
+
         }
 
-        if (!ipExists) {
-            MultiSense::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index};
-            app->entryConnectDeviceList.push_back(entry);
-
-
-            app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
-        }
 
     }
 
@@ -277,6 +281,7 @@ private:
         el.state = AR_STATE_JUST_ADDED;
         el.cameraName = entry.cameraName;
         el.interfaceName = entry.interfaceName;
+        el.interfaceDescription = entry.description;
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
         el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
@@ -284,7 +289,7 @@ private:
         handles->devices->emplace_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
-        Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {}", entry.IP, entry.profileName);
+        Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName, entry.description);
     }
 
 
@@ -555,10 +560,10 @@ private:
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
                 // Create child window regardless of gif spinner state in order to keep cursor position constant
-                ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-                if (autoConnect.running)
-                    ;//addSpinnerGif(handles);
-                ImGui::EndChild();
+                //ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+                //if (autoConnect.running)
+                    //addSpinnerGif(handles);
+                //ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
@@ -659,7 +664,7 @@ private:
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::BeginChild("ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true, 0);
+                ImGui::BeginChild("##ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true, 0);
                 for (int n = 0; n < entryConnectDeviceList.size(); n++) {
 
                     if (ImGui::Selectable(entryConnectDeviceList[n].cameraName.c_str(), resultsComboIndex == n,

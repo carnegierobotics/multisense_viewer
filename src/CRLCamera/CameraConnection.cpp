@@ -224,7 +224,6 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
                 dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
                 chInfo.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                 chInfo.selectedModeIndex = std::stoi(mode);
-
                 // Create previews
                 for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                     if (i == AR_PREVIEW_POINT_CLOUD)
@@ -385,9 +384,9 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
             Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                               dev.interfaceName.c_str());
         }
-    }
-
+   
 #endif
+    }
     return true;
 }
 
@@ -462,6 +461,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         // File doesn't exist error, then create one
         if (rc == SI_FILE && errno == ENOENT) {
             std::ofstream output("crl.ini");
+            output.close();
             rc = ini.LoadFile("crl.ini");
         } else
             Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
@@ -482,7 +482,8 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         // Preview Data per channel
         for (const auto &ch: dev->channelConnections) {
             std::string mode = "Mode" + std::to_string(ch);
-            addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) dev->channelInfo[ch].selectedMode));
+            addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) Utils::stringToCameraResolution(dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
+            ));
 
 
             addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
@@ -507,11 +508,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     }
     // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
     // save the data back to the file
-    rc = ini.SaveFile("crl.ini");
-    if (rc < 0) {
-        Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
 
-    }
     app->lastActiveDevice = "-1";
 
     if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
@@ -522,6 +519,12 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     } else {
         dev->state = AR_STATE_DISCONNECTED;
     }
+
+    rc = ini.SaveFile("crl.ini");
+    if (rc < 0) {
+        Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+
+    }   
     app->processingDisconnectTask = false;
 
 }

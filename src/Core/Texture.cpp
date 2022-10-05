@@ -1377,7 +1377,7 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::TextureData *tex) {
     }
 
     memcpy(data, tex->planar.data[1], tex->planar.len[1]);
-    memcpy(data2, tex->planar.data[0], tex->planar.len[0]);
+    memcpy(data2, tex->planar.data[0], tex->planar.len[0]); // TODO copy error
 
 
     VkImageSubresourceRange subresourceRange = {};

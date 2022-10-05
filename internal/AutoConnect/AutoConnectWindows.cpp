@@ -26,9 +26,8 @@
 #include <WinSock2.h>
 #include <iphlpapi.h>
 
-#define _WIN32_DCOM
-#include <comdef.h>
-#include <Wbemidl.h>
+
+#include "AutoConnectWindows.h"
 
 #pragma comment(lib, "wbemuuid.lib")
 
@@ -39,14 +38,9 @@
 #include <ctime>
 #include <filesystem>
 
-#include "AutoConnectWindows.h"
 #include "pcap.h"
+#include "WinRegEditor.h"
 
-typedef struct IP_INFO
-{
-	std::string ip;
-	std::string netmask;
-} IP_INFO, * PIP_INFO;
 
 struct iphdr {
 	unsigned char ip_verlen;            // 4-bit IPv4 version, 4-bit header length (in 32-bit words)
@@ -84,98 +78,15 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 	// Find { token in order to find correct prefix
 	for (d = alldevs; d; d = d->next) {
 		Result adapter(UNNAMED_ADAPTER, 0);
-		adapter.networkAdapterLongName = d->name;
 		if (d->description)
 			adapter.description = d->description;
-
 		std::cout << d->name << std::endl;
-
 		size_t found = std::string(d->name).find(token);
-
 		if (found != std::string::npos)
 			prefix = std::string(d->name).substr(0, found);
-
-
 	}
 
 	std::cout << "prefix: " << prefix << std::endl;
-
-	//
-	/** REST OF FUNCTION TRIES TO RENAME THE ADAPTERS FOUND INTO USABLE NAMES
-	struct PowerShellOutput {
-		std::string name;
-		std::string tplName;
-	};
-	std::vector<PowerShellOutput> names;
-
-	// Create Readable names from windo string idetifiers
-	std::ofstream psFile{};
-	std::string psName = "tmp.ps1";
-	std::string tmpTxtFile = "tmp.txt";
-	psFile.open(psName);
-	std::string powershell;
-	powershell = "getmac /v /fo csv > " + tmpTxtFile + " \n";
-	powershell +=
-		"((Get-Content " + tmpTxtFile + ")  -replace '`n','\n' -replace '`r','\n')  | Set-Content " + tmpTxtFile +
-		"\n";
-	psFile << powershell << std::endl;
-	psFile.close();
-
-	system("start powershell.exe Set-ExecutionPolicy RemoteSigned \n");
-	system((std::string("powershell.exe ") + "-File " + psName).c_str());
-	system("cls");
-	remove(psName.c_str());
-
-	std::ifstream resfile(tmpTxtFile);
-	std::string line;
-	if (resfile.is_open()) {
-		while (getline(resfile, line)) {
-			char* token = strtok(line.data(), ",");
-			int i = 0;
-			PowerShellOutput psOutput;
-			while (token != nullptr) {
-				if (i == 0)
-					psOutput.name = token;
-				if (i == 3) {
-					std::string tpl(token);
-					tpl.replace(tpl.length() - 1, tpl.length(), "");
-					psOutput.tplName = tpl;
-				}
-				i++;
-				token = strtok(nullptr, ",");
-			}
-			names.emplace_back(psOutput);
-
-		}
-		resfile.close();
-		remove(tmpTxtFile.c_str());
-	}
-
-	// Ma strings.
-	// Loop through the found adapters and cross check if any of  strings are simillar to the getmacs commands from powershell
-
-
-	for (auto& psOut : names) {
-		if (psOut.tplName.length() < ADAPTER_HEX_NAME_LENGTH)
-			continue;
-		std::string tplName = psOut.tplName.substr(psOut.tplName.size() - ADAPTER_HEX_NAME_LENGTH);
-
-		for (auto& adapter : adapters) {
-			if (adapter.lName.length() < ADAPTER_HEX_NAME_LENGTH && adapter.name != UNNAMED_ADAPTER)
-				continue;
-			std::strString = adapter.lName.substr(adapter.lName.size() - ADAPTER_HEX_NAME_LENGTH);
-
-			String == tplName) {
-				adapter.name = psOut.name;
-				adapter.supports = true;
-
-			}
-		}
-
-	}
-	*/
-	/* Another attempt at making the wind string user readable*/
-
 
 	PIP_ADAPTER_INFO AdapterInfo;
 	DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
@@ -201,16 +112,12 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 		// Contains pointer to current adapter info
 		PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
 		do {
-
 			// Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
 			// I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
-
 			char* bleFoundInName = strstr(pAdapterInfo->Description, "Bluetooth");
-
 			if (bleFoundInName || pAdapterInfo->Type != MIB_IF_TYPE_ETHERNET) {
 				pAdapterInfo = pAdapterInfo->Next;
 				continue;
-
 			}
 
 			// Internal loopback device always located at index = 1. Skip it..
@@ -229,7 +136,8 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 			char* con = (char*)malloc(lenA + lenB + 1);
 			memcpy(con, prefix.c_str(), lenA);
 			memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
-			adapter.networkAdapter = con;
+			adapter.networkAdapterLongName = con;
+			adapter.networkAdapter = pAdapterInfo->AdapterName;
 			adapter.index = pAdapterInfo->Index;
 
 
@@ -304,48 +212,26 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 	std::string str = "Setting host address to: " + hostAddress;
 	eventCallback(str, context, 0);
 
-
-
-	/* Variables where handles to the added IP are returned */
-	ULONG NTEContext = 0;
-	ULONG NTEInstance = 0;
-	// Attempt to connect to camera and post some info
-
-	unsigned long ulAddr = inet_addr(hostAddress.c_str());
-	unsigned long ulMask = inet_addr("255.255.255.0");
-	LPVOID lpMsgBuf;
-	DWORD dwRetVal;
-	/*
-	disable*/
-
-	if ((dwRetVal = AddIPAddress(ulAddr,
-		ulMask,
-		adapter.index,
-		&NTEContext, &NTEInstance)) == NO_ERROR) {
-		printf("\tIPv4 address %s was successfully added.\n", hostAddress.c_str());
+	WinRegEditor regEditor(adapter.networkAdapter, adapter.description, adapter.index);
+	if (regEditor.ready) {
+		str = "Configuring NetAdapter...";
+		eventCallback(str, context, 0);
+		regEditor.readAndBackupRegisty();	
+		regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
+		regEditor.setJumboPacket("9014");
+		regEditor.restartNetAdapters();
+		// 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
+		// If possible then wait for a windows event that triggers when the adapter is ready
+		// TODO: thread_sleep - Explanation above
+		std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+		str = "Finished Configuration";
+		eventCallback(str, context, 0);
+		// Wait for adapter to come back online
 	}
-	else {
-		// 5010 might be ERROR_DUP_DOMAINNAME according to description of error, but 5010 means address already exists at that adapter
-		if (dwRetVal == 5010) {
-			printf("Ip: already set to: %s\n", address);
-		}
-		else {
-			printf("AddIPAddress failed with error: %d\n", dwRetVal);
-			if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-				(LPTSTR)&lpMsgBuf, 0, NULL)) {
-				printf("\tError: %s", lpMsgBuf);
-				LocalFree(lpMsgBuf);
-			}
-		}
-	}
-
-
 
 	// Attempt to connect to camera and post some info
 	str = "Checking for camera at: " + address;
 	eventCallback(str, context, 0);
-
 	cameraInterface = crl::multisense::Channel::Create(address);
 
 	if (cameraInterface == nullptr && connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
@@ -357,10 +243,8 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 		return NO_CAMERA_RETRY;
 	}
 	else {
-		result.networkAdapter = adapter.networkAdapter;
-		result.networkAdapterLongName = adapter.networkAdapterLongName;
+		result = adapter;
 		result.cameraIpv4Address = address;
-		result.index = adapter.index;
 		connectAttemptCounter = 0;
 		str = "Found camera at: " + address + "";
 		eventCallback(str, context, 1);
@@ -371,6 +255,8 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 
 void AutoConnectWindows::onFoundCamera(Result supportResult) {
 	callback(result, context);
+
+	crl::multisense::Channel::Destroy(cameraInterface);
 }
 
 void AutoConnectWindows::stop() {
@@ -390,22 +276,6 @@ void AutoConnectWindows::stop() {
 void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 	auto* app = (AutoConnectWindows*)instance;
 	app->eventCallback("Started detection service", app->context, 0);
-
-	//auto path = std::filesystem::absolute("Assets/Tools/windows/enable_jumbos.ps1").make_preferred().string();
-	////access function:
-	//	   //The function returns 0 if the file has the given mode.
-	//	   //The function returns –1 if the named file does not exist or does not have the given mode
-	//if (access(path.c_str(), 0) == 0)
-	//{
-	//	std::string startCommand = "start powershell.exe " + path;
-	//	system(startCommand.c_str());
-	//}
-	//else
-	//{
-	//	std::cout << "File not exist " << path << std::endl;
-	//	system("pause");
-	//}
-
 
 	// Get list of network adapters that are  supports our application
 	std::string hostAddress;
@@ -464,14 +334,14 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 		time_t local_tv_sec;
 
 		/* Open the adapter */
-		if ((adhandle = pcap_open_live(adapter.networkAdapter.c_str(),    // name of the device
+		if ((adhandle = pcap_open_live(adapter.networkAdapterLongName.c_str(),    // name of the device
 			65536,            // portion of the packet to capture.
 			// 65536 grants that the whole packet will be captured on all the MACs.
 			1,                // promiscuous mode (nonzero means promiscuous)
 			1000,            // read timeout
 			errbuf            // error buffer
 		)) == NULL) {
-			fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.networkAdapter.c_str());
+			fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.networkAdapterLongName.c_str());
 			/* Free the device list */
 			return;
 		}
@@ -479,7 +349,7 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 		str = "Set adapter to listen for all activity";
 		app->eventCallback(str, app->context, 0);
 
-		str = "Waiting for packet at: " + adapter.networkAdapter;
+		str = "Waiting for packet at: " + adapter.networkAdapterLongName;
 		app->eventCallback(str, app->context, 0);
 		while (app->listenOnAdapter) {
 
@@ -585,292 +455,4 @@ void AutoConnectWindows::setEventCallback(void (*param)(std::string str, void*, 
 
 void AutoConnectWindows::clearSearchedAdapters() {
 	ignoreAdapters.clear();
-}
-
-
-void AutoConnectWindows::disableAutoConfiguration(std::string address, uint32_t index) {
-	HRESULT hres;
-
-	// Step 1: --------------------------------------------------
-	// Initialize COM. ------------------------------------------
-
-	hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-	if (FAILED(hres))
-	{
-		std::cout << "Failed to initialize COM library. Error code = 0x"
-			<< hres << hres << std::endl;
-		return;                  // Program has failed.
-	}
-
-	// Step 2: --------------------------------------------------
-	// Set general COM security levels --------------------------
-
-	hres = CoInitializeSecurity(
-		NULL,
-		-1,                          // COM authentication
-		NULL,                        // Authentication services
-		NULL,                        // Reserved
-		RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication 
-		RPC_C_IMP_LEVEL_DELEGATE, // Default Impersonation  
-		NULL,                        // Authentication info
-		EOAC_NONE,                   // Additional capabilities 
-		NULL                         // Reserved
-	);
-
-
-	if (FAILED(hres))
-	{
-		std::cout << "Failed to initialize security. Error code = 0x"
-			<< hres << std::endl;
-		CoUninitialize();
-		return;                    // Program has failed.
-	}
-
-	// Step 3: ---------------------------------------------------
-	// Obtain the initial locator to WMI -------------------------
-
-	IWbemLocator* pLoc = NULL;
-
-	hres = CoCreateInstance(
-		CLSID_WbemLocator,
-		0,
-		CLSCTX_INPROC_SERVER,
-		IID_IWbemLocator, (LPVOID*)&pLoc);
-
-	if (FAILED(hres))
-	{
-		std::cout << "Failed to create IWbemLocator object."
-			<< " Err code = 0x"
-			<< hres << std::endl;
-		CoUninitialize();
-		return;                 // Program has failed.
-	}
-
-	// Step 4: -----------------------------------------------------
-	// Connect to WMI through the IWbemLocator::ConnectServer method
-
-	IWbemServices* pSvc = NULL;
-
-	// Connect to the root\cimv2 namespace with
-	// the current user and obtain pointer pSvc
-	// to make IWbemServices calls.
-	hres = pLoc->ConnectServer(
-		_bstr_t(L"ROOT\\CIMV2"), // Object path of WMI namespace
-		NULL,                    // User name. NULL = current user
-		NULL,                    // User password. NULL = current
-		0,                       // Locale. NULL indicates current
-		NULL,                    // Security flags.
-		0,                       // Authority (for example, Kerberos)
-		0,                       // Context object 
-		&pSvc                    // pointer to IWbemServices proxy
-	);
-
-	if (FAILED(hres))
-	{
-		std::cout << "Could not connect. Error code = 0x"
-			<< hres << std::endl;
-		pLoc->Release();
-		CoUninitialize();
-		return;                // Program has failed.
-	}
-
-	std::cout << "Connected to ROOT\\CIMV2 WMI namespace" << std::endl;
-
-
-	// Step 5: --------------------------------------------------
-	// Set security levels on the proxy -------------------------
-
-	hres = CoSetProxyBlanket(
-		pSvc,                        // Indicates the proxy to set
-		RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
-		RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
-		NULL,                        // Server principal name 
-		RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx 
-		RPC_C_IMP_LEVEL_DELEGATE,     // RPC_C_IMP_LEVEL_xxx
-		NULL,                        // client identity
-		EOAC_NONE                    // proxy capabilities 
-	);
-
-	if (FAILED(hres))
-	{
-		std::cout << "Could not set proxy blanket. Error code = 0x"
-			<< hres << std::endl;
-		pSvc->Release();
-		pLoc->Release();
-		CoUninitialize();
-		return;               // Program has failed.
-	}
-
-	// Step 6: --------------------------------------------------
-	// Use the IWbemServices pointer to make requests of WMI ----
-
-	// For example, get the name of the operating system
-// For example, get the name of the operating system
-/*IEnumWbemClassObject* pEnumerator = NULL;
-hres = pSvc->ExecQuery(
-	bstr_t("WQL"),
-	bstr_t("SELECT * FROM Win32_NetworkAdapterConfiguration"),
-	WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-	NULL,
-	&pEnumerator);
-
-if (FAILED(hres))
-	{
-	pSvc->Release();
-	pLoc->Release();
-	CoUninitialize();
-	return;               // Program has failed.
-	}*/
-
-	IP_INFO ipInfo;
-	INT count = 1;
-	INT fIndex = index;
-
-	ipInfo.ip.reserve(40);
-	ipInfo.netmask.reserve(40);
-
-	ipInfo.ip.insert(0, address);
-	ipInfo.netmask.insert(0, "255.255.255.0");
-
-	// Grab class required to work on Win32_NetworkAdapterConfiguration
-	IWbemClassObject* pClass = NULL;
-	BSTR ClassPath = SysAllocString(L"Win32_NetworkAdapterConfiguration");
-	HRESULT hr = pSvc->GetObject(ClassPath, 0, NULL, &pClass, NULL);
-	SysFreeString(ClassPath);
-	if (WBEM_S_NO_ERROR == hr)
-	{
-		// Grab pointer to the input parameter class of the method we are going to call
-		BSTR MethodName_ES = SysAllocString(L"EnableStatic");
-		IWbemClassObject* pInClass_ES = NULL;
-		if (WBEM_S_NO_ERROR == pClass->GetMethod(MethodName_ES, 0, &pInClass_ES, NULL))
-		{
-			// Spawn instance of the input parameter class, so that we can stuff our parameters in
-			IWbemClassObject* pInInst_ES = NULL;
-
-			if (WBEM_S_NO_ERROR == pInClass_ES->SpawnInstance(0, &pInInst_ES))
-			{
-				//
-				// (Step 3) - Pack desired parameters into the input class instances
-				//
-				// Convert from multibyte strings to wide character arrays
-				wchar_t tmp_ip[40];
-				SAFEARRAY* ip_list = SafeArrayCreateVector(VT_BSTR, 0, count);
-				// Insert into safe arrays, allocating memory as we do so (destroying the safe array will destroy the allocated memory)
-				long idx[] = { 0 };
-				for (int i = 0; i < count; i++)
-				{
-					mbstowcs(tmp_ip, ipInfo.ip.c_str(), 40);
-					BSTR ip = SysAllocString(tmp_ip);
-					idx[0] = i;
-					if (FAILED(SafeArrayPutElement(ip_list, idx, ip)))
-					{
-						return;
-					} // if
-					// Destroy the BSTR pointer
-					SysFreeString(ip);
-				} // for
-
-				// Convert from multibyte strings to wide character arrays
-				wchar_t tmp_netmask[40];
-				SAFEARRAY* netmask_list = SafeArrayCreateVector(VT_BSTR, 0, count);
-				// Insert into safe arrays, allocating memory as we do so (destroying the safe array will destroy the allocated memory)
-				for (int i = 0; i < count; i++)
-				{
-					mbstowcs(tmp_netmask, ipInfo.netmask.c_str(), 40);
-					BSTR netmask = SysAllocString(tmp_netmask);
-					idx[0] = i;
-					if (FAILED(SafeArrayPutElement(netmask_list, idx, netmask)))
-					{
-						return;
-					} // if
-					// Destroy the BSTR pointer
-					SysFreeString(netmask);
-				} // for
-
-				// Now wrap each safe array in a VARIANT so that it can be passed to COM function
-				VARIANT arg1_ES;
-				VariantInit(&arg1_ES);
-				arg1_ES.vt = VT_ARRAY | VT_BSTR;
-				arg1_ES.parray = ip_list;
-
-				VARIANT arg2_ES;
-				VariantInit(&arg2_ES);
-				arg2_ES.vt = VT_ARRAY | VT_BSTR;
-				arg2_ES.parray = netmask_list;
-
-				if ((WBEM_S_NO_ERROR == pInInst_ES->Put(L"IPAddress", 0, &arg1_ES, 0)) &&
-					(WBEM_S_NO_ERROR == pInInst_ES->Put(L"SubNetMask", 0, &arg2_ES, 0)))
-				{
-					//
-					// (Step 4) - Call the methods
-					//
-
-					// First build the object path that specifies which network adapter we are executing a method on
-					char indexString[10];
-					itoa(fIndex, indexString, 10);
-
-					char instanceString[100];
-					wchar_t w_instanceString[100];
-					strcpy(instanceString, "Win32_NetworkAdapterConfiguration.Index='");
-					strcat(instanceString, indexString);
-					strcat(instanceString, "'");
-					mbstowcs(w_instanceString, instanceString, 100);
-					BSTR InstancePath = SysAllocString(w_instanceString);
-
-					// Now call the method
-					IWbemClassObject* pOutInst = NULL;
-					hr = pSvc->ExecMethod(InstancePath, MethodName_ES, 0, NULL, pInInst_ES, &pOutInst, NULL);
-					if (FAILED(hr))
-					{
-						// false
-						return;
-					} // if
-					SysFreeString(InstancePath);
-				} // if
-
-				// Clear the variants - does this actually get ride of safearrays?
-				VariantClear(&arg1_ES);
-				VariantClear(&arg2_ES);
-
-				// Destroy safe arrays, which destroys the objects stored inside them
-				//SafeArrayDestroy(ip_list); ip_list = NULL;
-				//SafeArrayDestroy(netmask_list); netmask_list = NULL;
-			}
-			else
-			{
-				// false
-			} // if
-
-			// Free up the instances that we spawned
-			if (pInInst_ES)
-			{
-				pInInst_ES->Release();
-				pInInst_ES = NULL;
-			} // if
-		}
-		else
-		{
-			// false
-		} // if
-
-		// Free up methods input parameters class pointers
-		if (pInClass_ES)
-		{
-			pInClass_ES->Release();
-			pInClass_ES = NULL;
-		} // if
-		SysFreeString(MethodName_ES);
-	}
-	else
-	{
-		// false
-	} // if
-	// Cleanup
-	// ========
-
-	pSvc->Release();
-	pLoc->Release();
-	CoUninitialize();
-
-	return;   // Program successfully completed.
 }

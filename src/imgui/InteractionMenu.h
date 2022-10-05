@@ -93,9 +93,13 @@ public:
 
                 ImVec4 bg_col = MultiSense::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
-                if (ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1,
-                                       bg_col, tint_col))
-                    page[i] = true;
+                ImGui::PushID(i);
+
+                ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1,
+                                       bg_col, tint_col);
+                ImGui::PopID();
+                ImGui::SetItemAllowOverlap();
+
 
 
                 ImGui::PushFont(handles->info->font18);
@@ -122,7 +126,8 @@ public:
                 ImGui::SetCursorScreenPos(pos);
                 bool hovered = false;
                 bool held = false;
-                ImGui::HoveredInvisibleButton(labels[i], &hovered, &held, btnSize, 0);
+                if(ImGui::HoveredInvisibleButton(labels[i], &hovered, &held, btnSize, 0))
+                    page[i] = true;
 
                 ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(
                         hovered && held ? MultiSense::CRLBlueIshTransparent2 :
@@ -1062,7 +1067,7 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
-                                   &d.parameters.gain, 0,
+                                   &d.parameters.gain, 1.68,
                                    3);
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();

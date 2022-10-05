@@ -93,7 +93,7 @@ private:
                                             uint32_t index,
                                             MultiSense::Device *dev);
 
-    static void connectCRLCameraTask(void* context, MultiSense::Device* dev, bool remoteHead);
+    static void connectCRLCameraTask(void* context, MultiSense::Device* dev, bool remoteHead, bool config);
 
     static void startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);
     static void stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);

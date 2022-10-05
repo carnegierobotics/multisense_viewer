@@ -509,23 +509,26 @@ private:
             //ImGui::BeginChild("IconChild", ImVec2(handles->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
             static bool active = false;
 
-            (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(125.0f, 55.0f),
+            (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
                                     bg_col,
                                     tint_col));
 
 
             ImGui::SameLine(0, 25.0f);
-            (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, ImVec2(125.0f, 55.0f),
+            (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
                                     bg_col,
                                     tint_col));
 
-            ImGui::SameLine(0, 30.0f);
+
+            /*
+                         ImGui::SameLine(0, 30.0f);
             (ImGui::ImageButtonText("Virtual", &connectMethodSelector, VIRTUAL_CONNECT, ImVec2(125.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[5], ImVec2(40.0f, 40.0f), uv0, uv1,
                                     bg_col,
                                     tint_col));
+             */
             ImGui::PopStyleVar();
             //ImGui::EndChild();
 

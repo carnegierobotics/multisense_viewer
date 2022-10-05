@@ -229,7 +229,7 @@ VulkanRenderer::~VulkanRenderer() {
     delete vulkanDevice;
 
     vkDestroyInstance(instance, nullptr);
-
+    
     // CleanUp GLFW window
     glfwDestroyWindow(window);
     glfwTerminate();

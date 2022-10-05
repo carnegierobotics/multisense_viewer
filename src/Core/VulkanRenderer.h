@@ -92,7 +92,7 @@ public:
     Input input;
 
     /** @brief Handle for Logging*/
-    Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
+    Log::Logger* pLogger = nullptr; // Create the object pointer for Logger Class
 
 
     /** @brief Handle for UI updates and overlay */

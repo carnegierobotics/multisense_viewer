@@ -115,6 +115,7 @@ namespace Log {
 
     class Logger {
     public:
+
         static Logger *getInstance() noexcept;
         // Interface for Error Log
         void _error(const char *text) throw();
@@ -244,8 +245,8 @@ namespace Log {
         uint32_t frameNumber = 0;
     protected:
         Logger();
-
         ~Logger();
+
 
 
         // Wrapper function for lock/unlock

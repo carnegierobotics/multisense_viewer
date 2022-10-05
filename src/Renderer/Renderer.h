@@ -61,10 +61,7 @@ public:
 
     };
 
-    ~Renderer(){
-
-
-    }
+    ~Renderer()= default;
 
     void render() override;
 

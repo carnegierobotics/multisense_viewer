@@ -43,13 +43,6 @@ if (WIN32)
 
 
 else () ## Linux
-    if (${BUILD_AUTOCONNECT_LIB})
-        add_library(LibAutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h)
-        target_link_libraries(LibAutoConnect MultiSense -ltbb SimpleIni)
-    else()
-        add_executable(AutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h main.cpp)
-        target_link_libraries(AutoConnect MultiSense -ltbb SimpleIni)
-    endif()
-
-
+    add_library(LibAutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h)
+    target_link_libraries(LibAutoConnect MultiSense -ltbb SimpleIni)
 endif ()

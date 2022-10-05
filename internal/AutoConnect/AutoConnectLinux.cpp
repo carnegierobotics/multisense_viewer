@@ -217,6 +217,16 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
                 if (ret == FOUND_CAMERA) {
                     app->ignoreAdapters.push_back(adapter);
                     app->onFoundCamera(adapter);
+                    // Disable promscious mode
+
+
+                    ethreq.ifr_flags &= ~IFF_PROMISC;
+                    if (ioctl(sd, SIOCSIFFLAGS, &ethreq) == -1) {
+                        perror("SIOCSIFFLAGS: ioctl");
+                        app->eventCallback(std::string(std::string("Error: ") + adapter.networkAdapter), app->context, 2);
+                        continue;
+                    }
+
                     close(sd);
                     break;
                 } else if (ret == NO_CAMERA_RETRY) {

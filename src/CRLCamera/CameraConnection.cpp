@@ -23,9 +23,6 @@
 #define UNNAMED_ADAPTER "Unnamed"
 #else
 
-
-#include <linux/if_ether.h>
-#include <netinet/ip.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
@@ -33,11 +30,9 @@
 
 #endif
 
-
-#include <MultiSense/src/Tools/Logger.h>
 #include <MultiSense/src/Tools/Utils.h>
 #include "MultiSense/src/CRLCamera/CRLVirtualCamera.h"
-#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
+#include "MultiSense/external/simpleini/SimpleIni.h"
 
 
 void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
@@ -195,9 +190,7 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
         initCameraModes(&chInfo.modes, supportedModes);
         chInfo.selectedMode = CRL_RESOLUTION_NONE;
 
-
         // Check for previous user profiles attached to this hardware
-
         for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
             dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
         }
@@ -237,8 +230,10 @@ void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
                         dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
                         dev.win[i].selectedRemoteHeadIndex = std::stoi(remoteHeadIndex);
 
-                        Log::Logger::getInstance()->info(".ini file: found source '{}' for preview {} at head {}, Adding to requested source", source.substr(0, source.find_last_of(':')),
-                                                         i + 1, ch);
+                        Log::Logger::getInstance()->info(
+                                ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
+                                source.substr(0, source.find_last_of(':')),
+                                i + 1, ch);
 
                         chInfo.requestedStreams.emplace_back(dev.win[i].selectedSource);
 
@@ -325,6 +320,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
 
 
 #else
+        int ioctl_result = -1;
         /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
         if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
@@ -348,6 +344,63 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
         bzero(ifr.ifr_name, IFNAMSIZ);
         strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
+        /*** Call ioctl to get network device configuration ***/
+        /*
+        std::string ipAddressBackup = "";
+        std::string subnetMaskBackup = "";
+        uint32_t mtuSizeBackup = 1500;
+        ioctl_result = ioctl(sd, SIOCGIFADDR, &ifr);  // Set IP address
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCGIFADDR: %s", strerror(errno));
+            if (errno == EADDRNOTAVAIL) {
+                Log::Logger::getInstance()->error("No address is set on interface {}", dev.interfaceName);
+            }
+        } else {
+            ipAddressBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        }
+        ioctl_result = ioctl(sd, SIOCGIFNETMASK, &ifr);   // Set subnet mask
+        if (ioctl_result < 0) {
+            fprintf(stderr, "ioctl SIOCGIFNETMASK: %s", strerror(errno));
+            if (errno == EADDRNOTAVAIL) {
+                Log::Logger::getInstance()->error("No NetMask is set on interface {}", dev.interfaceName);
+            }
+        } else {
+            subnetMaskBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+        }
+        if (ioctl(sd, SIOCGIFMTU, (caddr_t) &ifr) < 0) {
+            Log::Logger::getInstance()->error("Failed to get mtu size {} on adapter {}",
+                                              dev.interfaceName.c_str());
+        } else {
+            Log::Logger::getInstance()->error("got MTU {} on adapter {}", ifr.ifr_mtu,
+                                              dev.interfaceName.c_str());
+            mtuSizeBackup = ifr.ifr_mtu;
+        }
+
+        // Save backup to file
+
+        // Write to ini file.
+        CSimpleIniA ini;
+        ini.SetUnicode();
+        SI_Error rc = ini.LoadFile("NetConfigBackup.ini");
+        if (rc < 0) {
+            // File doesn't exist error, then create one
+            if (rc == SI_FILE && errno == ENOENT) {
+                std::ofstream output = std::ofstream("NetConfigBackup.ini");
+                output.close();
+                rc = ini.LoadFile("NetConfigBackup.ini");
+            }
+        }
+        int ret;
+        if (!ini.SectionExists(dev.interfaceName.c_str())) {
+            ret = ini.SetValue(dev.interfaceName.c_str(), "IPAddress", ipAddressBackup.c_str());
+            ret = ini.SetValue(dev.interfaceName.c_str(), "SubnetMask", subnetMaskBackup.c_str());
+            ret = ini.SetValue(dev.interfaceName.c_str(), "MTU", std::to_string(mtuSizeBackup).c_str());
+            rc = ini.SaveFile("NetConfigBackup.ini");
+        }
+
+
+        /*** Call ioctl to get configure network interface ***/
+
         /// note: prepare the two struct sockaddr_in
         inet_addr.sin_family = AF_INET;
         int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
@@ -355,10 +408,9 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
         subnet_mask.sin_family = AF_INET;
         int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
 
-        /* Call ioctl to configure network devices */
         /// put addr in ifr structure
         memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
-        int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+        ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
         if (ioctl_result < 0) {
             fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
             Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
@@ -384,7 +436,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
             Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                               dev.interfaceName.c_str());
         }
-   
+
 #endif
     }
     return true;
@@ -482,7 +534,8 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
         // Preview Data per channel
         for (const auto &ch: dev->channelConnections) {
             std::string mode = "Mode" + std::to_string(ch);
-            addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) Utils::stringToCameraResolution(dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
+            addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) Utils::stringToCameraResolution(
+                    dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
             ));
 
 
@@ -524,7 +577,7 @@ void CameraConnection::disconnectCRLCameraTask(void *context, MultiSense::Device
     if (rc < 0) {
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
 
-    }   
+    }
     app->processingDisconnectTask = false;
 
 }

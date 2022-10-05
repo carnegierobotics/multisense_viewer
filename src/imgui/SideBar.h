@@ -42,7 +42,7 @@ public:
     AutoConnectHandle autoConnect{};
     bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::Result> adapters;
-    std::vector<std::string> interfaceNameList;
+    std::vector<std::string> interfaceDescriptionList;
     std::vector<uint32_t> indexList;
 
     MultiSense::EntryConnectDevice entry;
@@ -723,7 +723,7 @@ private:
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
                     adapters = autoConnect.findEthernetAdapters(false,
                                                                 true); // Don't log it but dont ignore searched adapters
-                    interfaceNameList.clear();
+                    interfaceDescriptionList.clear();
                     indexList.clear();
                 }
 
@@ -733,34 +733,35 @@ private:
                 // if we push back other items then remove base item
                 // No identical items
                 for (const auto &a: adapters) {
-                    if (a.supports && !Utils::isInVector(interfaceNameList, a.description)) {
-                        interfaceNameList.push_back(a.description);
+                    if (a.supports && !Utils::isInVector(interfaceDescriptionList, a.description)) {
+                        interfaceDescriptionList.push_back(a.description);
                         indexList.push_back(a.index);
 
-                        if (Utils::isInVector(interfaceNameList, "No adapters found")) {
-                            Utils::delFromVector(interfaceNameList, "No adapters found");
+                        if (Utils::isInVector(interfaceDescriptionList, "No adapters found")) {
+                            Utils::delFromVector(interfaceDescriptionList, "No adapters found");
                             auto newEndIterator = std::remove(indexList.begin(), indexList.end(), 0);
                         }
                     }
                 }
 
 
-                if (!Utils::isInVector(interfaceNameList, "No adapters found") && interfaceNameList.empty()) {
-                    interfaceNameList.emplace_back("No adapters found");
+                if (!Utils::isInVector(interfaceDescriptionList, "No adapters found") && interfaceDescriptionList.empty()) {
+                    interfaceDescriptionList.emplace_back("No adapters found");
                     indexList.push_back(0);
                 }
 
 
-                entry.interfaceName = interfaceNameList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                 entry.interfaceIndex = indexList[ethernetComboIndex];
+                entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                if (ImGui::BeginCombo("##SelectAdapter", entry.interfaceName.c_str(), flags)) {
-                    for (int n = 0; n < interfaceNameList.size(); n++) {
+                if (ImGui::BeginCombo("##SelectAdapter", entry.description.c_str(), flags)) {
+                    for (int n = 0; n < interfaceDescriptionList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
-                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected))
+                        if (ImGui::Selectable(interfaceDescriptionList[n].c_str(), is_selected))
                             ethernetComboIndex = n;
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

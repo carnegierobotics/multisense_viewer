@@ -21,6 +21,8 @@
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 #define ADAPTER_HEX_NAME_LENGTH 38
 #define UNNAMED_ADAPTER "Unnamed"
+#include <WinRegEditor.h>
+
 #else
 
 
@@ -160,8 +162,7 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shou
             if (resetOtherDeviceFirst) {
                 pool->Push(CameraConnection::disconnectCRLCameraTask, this, otherDev);
             }
-            setNetworkAdapterParameters(dev, shouldConfigNetwork);
-            pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, isRemoteHead);
+            pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, isRemoteHead, shouldConfigNetwork);
             dev.state = AR_STATE_CONNECTING;
             break;
         }
@@ -296,33 +297,18 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
 
 #ifdef WIN32
 
-
-        ///* Variables where handles to the added IP are returned */
-        //ULONG NTEInstance = 0;
-        //// Attempt to connect to camera and post some info
-
-
-        //LPVOID lpMsgBuf = nullptr;
-
-        //unsigned long ulAddr = inet_addr(hostAddress.c_str());
-        //unsigned long ulMask = inet_addr("255.255.255.0");
-        //if ((dwRetVal = AddIPAddress(ulAddr,
-        //    ulMask,
-        //    dev.interfaceIndex,
-        //    &NTEContext, &NTEInstance)) == NO_ERROR) {
-        //    printf("\tIPv4 address %s was successfully added.\n\n", hostAddress.c_str());
-        //}
-        //else {
-        //    printf("AddIPAddress failed with error: %d\n", dwRetVal);
-        //    if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        //        NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),       // Default language
-        //        (LPTSTR)&lpMsgBuf, 0, NULL)) {
-        //        printf("\tError: %p", std::addressof(lpMsgBuf));
-        //        LocalFree(lpMsgBuf);
-        //    }
-
-        //}
-
+        WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
+        if (regEditor.ready) {
+            regEditor.readAndBackupRegisty();
+            regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
+            regEditor.setJumboPacket("9014");
+            regEditor.restartNetAdapters();
+            std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+            // TODO
+            // 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
+            // If possible then wait for a windows event that triggers when the adapter is ready
+        }
+    
 
 #else
         /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
@@ -422,8 +408,10 @@ CameraConnection::~CameraConnection() {
 }
 
 
-void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev, bool isRemoteHead) {
+void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev, bool isRemoteHead, bool shouldConfigNetwork) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
+    app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);
+
     // 1. Connect to camera
     // 2. If successful: Disable any other available camera
     Log::Logger::getInstance()->info("Connect.");

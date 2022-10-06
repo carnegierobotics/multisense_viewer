@@ -2,8 +2,8 @@
 // Created by magnus on 3/1/22.
 //
 #ifdef WIN32
-    #define _USE_MATH_DEFINES
-    #include <cmath>
+#define _USE_MATH_DEFINES
+#include <cmath>
 #endif
 
 #include "CRLPhysicalCamera.h"
@@ -15,32 +15,14 @@
 std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead) {
     // First make one connect. If it turns out to be a remote head try to connect all
     std::vector<uint32_t> indices;
-    if (isRemoteHead) {
-        for (int i = 0; i <= crl::multisense::Remote_Head_3; ++i) {
-            channelMap[i] = crl::multisense::Channel::Create(ip, i);
-            if (channelMap[i] != nullptr) {
-                updateCameraInfo(i);
-                int mtuSize = 7200;
-                int status = channelMap[i]->setMtu(mtuSize);
-                if (status != crl::multisense::Status_Ok) {
-                    Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
-                } else {
-                    Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
-                }
-                // Start some timers
-                callbackTime = std::chrono::steady_clock::now();
-                startTime = std::chrono::steady_clock::now();
-                startTimeImu = std::chrono::steady_clock::now();
-                addCallbacks(i);
-                indices.emplace_back(i);
-            }
-        }
-    }else {
-        channelMap[0] = crl::multisense::Channel::Create(ip);
-        if (channelMap[0] != nullptr) {
-            updateCameraInfo(0);
+    for (int i = 0; i < (isRemoteHead ? (crl::multisense::Remote_Head_3 + 1) : 1); ++i) {
+
+        channelMap[i] = isRemoteHead ? crl::multisense::Channel::Create(ip, i) : crl::multisense::Channel::Create(ip);
+
+        if (channelMap[i] != nullptr) {
+            updateCameraInfo(i);
             int mtuSize = 7200;
-            int status = channelMap[0]->setMtu(mtuSize);
+            int status = channelMap[i]->setMtu(mtuSize);
             if (status != crl::multisense::Status_Ok) {
                 Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
             } else {
@@ -50,24 +32,24 @@ std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isR
             callbackTime = std::chrono::steady_clock::now();
             startTime = std::chrono::steady_clock::now();
             startTimeImu = std::chrono::steady_clock::now();
-            addCallbacks(0);
-            indices.emplace_back(0);
+            addCallbacks(i);
+            indices.emplace_back(i);
         }
     }
+
     return indices;
 }
 
 
-
-bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t remoteHeadID) {
+bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t channelID) {
     crl::multisense::DataSource source = Utils::stringToDataSource(dataSourceStr);
     if (source == false)
         return false;
     // Start stream
-    int32_t status = channelMap[remoteHeadID]->startStreams(source);
+    int32_t status = channelMap[channelID]->startStreams(source);
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Enabled stream: {} at remote head {}",
-                                         Utils::dataSourceToString(source).c_str(), remoteHeadID);
+                                         Utils::dataSourceToString(source).c_str(), channelID);
         return true;
     } else
         Log::Logger::getInstance()->info("Failed to flashing stream: {}  status code {}",
@@ -76,13 +58,13 @@ bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t remoteH
     return false;
 }
 
-bool CRLPhysicalCamera::stop(std::string dataSourceStr, uint32_t idx) {
-    if (channelMap[idx] == nullptr)
+bool CRLPhysicalCamera::stop(const std::string& dataSourceStr, uint32_t channelID) {
+    if (channelMap[channelID] == nullptr)
         return false;
 
     crl::multisense::DataSource src = Utils::stringToDataSource(dataSourceStr);
 
-    bool status = channelMap[idx]->stopStreams(src);
+    bool status = channelMap[channelID]->stopStreams(src);
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
         return true;
@@ -308,11 +290,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
 }
 
 
-bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex) {
-
-    return false;
-}
-
 void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 
@@ -338,24 +315,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
                     glm::vec4(0, 0, 0, fx * fy * tx),
                     glm::vec4(0, 0, -fy, fy * (cx - cxRight)));
 
-    //kInverseMatrix = glm::transpose(kInverseMatrix); // TODO uncomment here and remove in shader code
-
-    infoMap[0].kInverseMatrix = kInverseMatrix;
-    //info.kInverseMatrix = Q;
-    /*
-   kInverseMatrix = glm::mat4(glm::vec4(c.fy() * c.tx(), 0, 0, -c.fy() * c.cx() * c.tx()),
-                  glm::vec4(0, c.fx() * c.tx(), 0, -c.fx() * c.cy() * c.tx()),
-                  glm::vec4(0, 0, 0, c.fx() * c.fy() * c.tx()),
-                  glm::vec4(0, 0, -c.fx(), c.fy() * 1));
-
-                      kInverseMatrix =
-              glm::mat4(
-                      glm::vec4(1/c.fx(), 0, -(c.cx()*c.fx())/(c.fx() * c.fy()), 0),
-                      glm::vec4(0, 1/c.fy(), -c.cy() / c.fy(), 0),
-                      glm::vec4(0, 0,  1, 0),
-                      glm::vec4(0, 0, 0, 1));
-  */
-    // Load calibration data
+    infoMap[0].kInverseMatrix = glm::transpose(kInverseMatrix);
 }
 
 

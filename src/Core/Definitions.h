@@ -9,6 +9,7 @@
 #include "glm/glm.hpp"
 #include "vulkan/vulkan_core.h"
 #include "include/MultiSense/MultiSenseTypes.hh"
+
 #include "MultiSense/src/Tools/Logger.h"
 #include "map"
 #include "unordered_map"

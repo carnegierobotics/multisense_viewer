@@ -45,7 +45,7 @@ void main()
     }
 
     vec4 imgCoords = vec4(uvCoords, depth, 1.0f);
-    coords = transpose(matrix.kInverse) * imgCoords;
+    coords = matrix.kInverse * imgCoords;
 
     float invB = 1.0f / (-600.0f * depth);
     vec3 outCoordinates = vec3(coords.x * invB, coords.y * invB, coords.z * invB);

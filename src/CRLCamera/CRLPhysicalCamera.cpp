@@ -50,7 +50,7 @@ bool CRLPhysicalCamera::start(const std::string &dataSourceStr, uint32_t channel
     return false;
 }
 
-bool CRLPhysicalCamera::stop(const std::string& dataSourceStr, uint32_t channelID) {
+bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, uint32_t channelID) {
     if (channelMap[channelID] == nullptr)
         return false;
 
@@ -287,9 +287,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
 void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 
 
-    crl::multisense::image::Calibration calibration{};
-    channelMap[0]->getImageCalibration(calibration);
-
     const double xScale = 1.0 / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
                                   static_cast<double>(width)));
 
@@ -300,7 +297,7 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
     const double cx = c.cx();
     const double cy = c.cy();
     const double tx = c.tx();
-    const double cxRight = calibration.right.P[0][2] * xScale;
+    const double cxRight = infoMap[0].calibration.right.P[0][2] * xScale;
 
     kInverseMatrix =
             glm::mat4(
@@ -348,24 +345,48 @@ void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
 }
 
 void CRLPhysicalCamera::updateCameraInfo(uint32_t idx) {
-    if (crl::multisense::Status_Ok != channelMap[idx]->getImageConfig(infoMap[idx].imgConf))
+    if (crl::multisense::Status_Ok != channelMap[idx]->getImageConfig(infoMap[idx].imgConf)) {
         Log::Logger::getInstance()->info("Failed to update Light config");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getNetworkConfig(infoMap[idx].netConfig))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getNetworkConfig(infoMap[idx].netConfig)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "netConfig");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getVersionInfo(infoMap[idx].versionInfo))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getVersionInfo(infoMap[idx].versionInfo)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "versionInfo");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getDeviceInfo(infoMap[idx].devInfo))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getDeviceInfo(infoMap[idx].devInfo)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "devInfo");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getDeviceModes(infoMap[idx].supportedDeviceModes))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getDeviceModes(infoMap[idx].supportedDeviceModes)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedDeviceModes");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getImageCalibration(infoMap[idx].camCal))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getImageCalibration(infoMap[idx].camCal)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "camCal");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getEnabledStreams(infoMap[idx].supportedSources))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getEnabledStreams(infoMap[idx].supportedSources)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedSources");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getMtu(infoMap[idx].sensorMTU))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getMtu(infoMap[idx].sensorMTU)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "sensorMTU");
-    if (crl::multisense::Status_Ok != channelMap[idx]->getLightingConfig(infoMap[idx].lightConf))
+        return;
+    }
+    if (crl::multisense::Status_Ok != channelMap[idx]->getLightingConfig(infoMap[idx].lightConf)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "lightConf");
+        return;
+    }
+
+    if (crl::multisense::Status_Ok != channelMap[idx]->getImageCalibration(infoMap[idx].calibration)) {
+        Log::Logger::getInstance()->info("Failed to update '{}'", "calibration");
+        return;
+    }
+
 }
 
 
@@ -445,8 +466,11 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t i
     if (ret == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Set resolution to {}x{}x{} on channel {}", width, height, depth, i);
         currentResolutionMap[i] = resolution;
-    } else
+    } else {
         Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
+        return;
+    }
+
     this->updateCameraInfo(i);
 }
 

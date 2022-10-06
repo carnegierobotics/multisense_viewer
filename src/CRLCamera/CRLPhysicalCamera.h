@@ -45,6 +45,7 @@ public:
         crl::multisense::DataSource supportedSources{0};
         std::vector<uint8_t *> rawImages{};
         int sensorMTU = 0;
+        crl::multisense::image::Calibration calibration{};
         glm::mat4 kInverseMatrix{};
     }info{};
 

@@ -70,8 +70,8 @@ namespace MultiSense {
         float previewBorderPadding = 60.0f;
 
         /** @brief add device button params */
-        float addDeviceBottomPadding = 70.0f, addDeviceLeftPadding = 20.0f;
-        float addDeviceWidth = 200.0f, addDeviceHeight = 35.0f;
+        float addDeviceBottomPadding = 70.0f;
+        float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
 
         /** @brief Height of popupModal*/
         float popupHeight = 500.0f;

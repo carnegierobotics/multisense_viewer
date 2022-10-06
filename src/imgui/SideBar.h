@@ -99,10 +99,34 @@ public:
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLGray424Main);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
-        ImGui::TextUnformatted(handles->info->title.c_str());
-        ImGui::TextUnformatted(handles->info->deviceName.c_str());
+        ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
+        float xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+        ImGui::Dummy(ImVec2(xOffset, 0.0f));
+        ImGui::SameLine();
+        ImGui::Text("%s", handles->info->title.c_str());
+
+        txtSize = ImGui::CalcTextSize(handles->info->deviceName.c_str());
+        // If it is too long then just remove some word towards the end.
+        if (txtSize.x > handles->info->sidebarWidth) {
+            std::string devName = handles->info->deviceName;
+            while (txtSize.x > handles->info->sidebarWidth){
+                devName.erase(devName.find_last_of(' '), devName.length());
+                txtSize = ImGui::CalcTextSize(devName.c_str());
+            }
+            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+            ImGui::Dummy(ImVec2(xOffset, 0.0f));
+            ImGui::SameLine();
+            ImGui::Text("%s", devName.c_str());
+        } else {
+            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+            ImGui::Dummy(ImVec2(xOffset, 0.0f));
+            ImGui::SameLine();
+            ImGui::Text("%s", handles->info->deviceName.c_str());
+        }
+
 
         // Update frame time display
         if (handles->info->firstFrame) {
@@ -118,8 +142,10 @@ public:
             }
         }
 
-        ImGui::PlotLines("Frame Times", &handles->info->frameTimes[0], 50, 0, "", handles->info->frameTimeMin,
-                         handles->info->frameTimeMax, ImVec2(0, 80));
+        ImGui::Dummy(ImVec2(5.0f, 0.0f));
+        ImGui::SameLine();
+        ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, "fps", handles->info->frameTimeMin,
+                         handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
 
 
         addPopup(handles);
@@ -134,7 +160,7 @@ public:
         addDeviceButton(handles);
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
 
     void AddLog(int color, const char *fmt, ...) IM_FMTARGS(3) {
@@ -178,23 +204,23 @@ private:
         crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
         if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info(
-                "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
-                res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
-                info.name.c_str());
+                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
+                    res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
+                    info.name.c_str());
 
             bool ipExists = false;
-            for (const auto& e : app->entryConnectDeviceList) {
+            for (const auto &e: app->entryConnectDeviceList) {
                 if (e.IP == res.cameraIpv4Address)
                     ipExists = true;
             }
 
             if (!ipExists) {
-                MultiSense::EntryConnectDevice entry{ res.cameraIpv4Address, res.networkAdapter, info.name, res.index, res.description };
+                MultiSense::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
+                                                     res.description};
                 app->entryConnectDeviceList.push_back(entry);
                 app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
             }
-        }
-        else {
+        } else {
             Log::Logger::getInstance()->info("Failed to fetch camera name from MultiSense device");
 
         }
@@ -293,7 +319,8 @@ private:
         handles->devices->emplace_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
-        Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName, entry.description);
+        Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName,
+                                         entry.description);
     }
 
 
@@ -344,15 +371,14 @@ private:
                     break;
             }
 
-            ImGui::SetCursorPos(ImVec2(5.0f, ImGui::GetCursorPosY()));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
             std::string winId = e.name + "Child";
             ImGui::BeginChild(winId.c_str(), ImVec2(handles->info->sidebarWidth, handles->info->elementHeight),
                               false, ImGuiWindowFlags_NoDecoration);
 
 
             // Stop execution here
+            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
             if (ImGui::SmallButton("X")) {
                 // delete and disconnect devices
                 handles->devices->at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
@@ -361,6 +387,8 @@ private:
                 ImGui::EndChild();
                 continue;
             }
+            ImGui::PopStyleColor();
+
             ImGui::SetCursorPos(ImVec2(0.0f, ImGui::GetCursorPosY()));
 
             ImGui::SameLine();
@@ -425,11 +453,10 @@ private:
 
     void addDeviceButton(MultiSense::GuiObjectHandles *handles) {
 
-        ImGui::SetCursorPos(ImVec2(handles->info->addDeviceLeftPadding,
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) -( handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
         ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
-
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
 
         ImGui::PopStyleColor();
@@ -569,7 +596,7 @@ private:
                 // Create child window regardless of gif spinner state in order to keep cursor position constant
                 //ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 //if (autoConnect.running)
-                    //addSpinnerGif(handles);
+                //addSpinnerGif(handles);
                 //ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
@@ -752,7 +779,8 @@ private:
                 }
 
 
-                if (!Utils::isInVector(interfaceDescriptionList, "No adapters found") && interfaceDescriptionList.empty()) {
+                if (!Utils::isInVector(interfaceDescriptionList, "No adapters found") &&
+                    interfaceDescriptionList.empty()) {
                     interfaceDescriptionList.emplace_back("No adapters found");
                     indexList.push_back(0);
                 }
@@ -760,7 +788,8 @@ private:
 
                 entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
                 entry.interfaceIndex = indexList[ethernetComboIndex];
-                entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
+                if (!adapters.empty())
+                    entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();

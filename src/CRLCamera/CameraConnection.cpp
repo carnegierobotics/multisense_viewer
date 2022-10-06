@@ -606,7 +606,6 @@ void CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Devic
     else
         Log::Logger::getInstance()->info("Failed to disable stream {}", src);
 
-
 }
 
 
@@ -643,5 +642,4 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint3
     p->wb.whiteBalanceRed = conf.whiteBalanceRed();
     p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
     dev->parameters.update = false;
-
 }

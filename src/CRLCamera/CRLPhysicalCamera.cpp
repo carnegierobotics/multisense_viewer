@@ -13,21 +13,14 @@
 
 
 std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead) {
-    // First make one connect. If it turns out to be a remote head try to connect all
     std::vector<uint32_t> indices;
+    // If RemoteHead then attempt to connect 4 LibMultiSense channels
+    // else create only one and place it at 0th index.
     for (int i = 0; i < (isRemoteHead ? (crl::multisense::Remote_Head_3 + 1) : 1); ++i) {
-
         channelMap[i] = isRemoteHead ? crl::multisense::Channel::Create(ip, i) : crl::multisense::Channel::Create(ip);
-
         if (channelMap[i] != nullptr) {
             updateCameraInfo(i);
-            int mtuSize = 7200;
-            int status = channelMap[i]->setMtu(mtuSize);
-            if (status != crl::multisense::Status_Ok) {
-                Log::Logger::getInstance()->info("Failed to set MTU {}", mtuSize);
-            } else {
-                Log::Logger::getInstance()->info("Set MTU to {}", mtuSize);
-            }
+            setMtu(7200, i);
             // Start some timers
             callbackTime = std::chrono::steady_clock::now();
             startTime = std::chrono::steady_clock::now();
@@ -36,7 +29,6 @@ std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isR
             indices.emplace_back(i);
         }
     }
-
     return indices;
 }
 
@@ -191,6 +183,7 @@ bool CRLPhysicalCamera::getImuRotation(VkRender::Rotation *rot) {
 }
 
 
+/*
 bool CRLPhysicalCamera::getCameraStream(VkRender::YUVTexture *tex) {
     assert(tex != nullptr);
     tex->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
@@ -216,8 +209,10 @@ bool CRLPhysicalCamera::getCameraStream(VkRender::YUVTexture *tex) {
         return false;
 
 }
+ */
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx) {
+    // TODO Fix with proper conditions for checking if a frame is good or not
 
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span =
@@ -285,7 +280,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
         case AR_CAMERA_IMAGE_NONE:
             break;
     }
-    // TODO Fix with proper conditions for checking if a frame is good or not
     return false;
 }
 
@@ -332,8 +326,6 @@ void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
             case crl::multisense::imu::Sample::Type_Accelerometer:
                 break;
             case crl::multisense::imu::Sample::Type_Gyroscope:
-                // rot x y z
-                //printf("Gyro: xyz (%f, %f, %f)\n", s.x, s.y, s.z);
                 break;
             case crl::multisense::imu::Sample::Type_Magnetometer:
                 break;
@@ -353,18 +345,6 @@ void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
             app->startTimeImu = std::chrono::steady_clock::now();
         }
     }
-
-    /*
-         if (-1 == sequence)
-        sequence = header.sequence;
-    else if ((sequence + 1) != header.sequence) {
-        const int32_t d = static_cast<int32_t> (header.sequence - (sequence + 1));
-        dropped += d;
-    }
-
-    sequence = header.sequence;
-    messages ++;
-     */
 }
 
 void CRLPhysicalCamera::updateCameraInfo(uint32_t idx) {
@@ -391,21 +371,11 @@ void CRLPhysicalCamera::updateCameraInfo(uint32_t idx) {
 
 void CRLPhysicalCamera::setGamma(float gamma) {
     crl::multisense::Status status = channelMap[0]->getImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query gamma configuration");
     }
-    //
-    // Modify image configuration parameters
-    // Here we increase the frame rate to 30 FPS
     infoMap[0].imgConf.setGamma(gamma);
-    //
-    // Send the new image configuration to the sensor
     status = channelMap[0]->setImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set gamma configuration");
     }
@@ -415,21 +385,12 @@ void CRLPhysicalCamera::setGamma(float gamma) {
 
 void CRLPhysicalCamera::setFps(float fps, uint32_t index) {
     crl::multisense::Status status = channelMap[index]->getImageConfig(infoMap[index].imgConf);
-    //
-    // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
     }
-    //
-    // Modify image configuration parameters
-    // Here we increase the frame rate to 30 FPS
     infoMap[index].imgConf.setFps(fps);
-    //
-    // Send the new image configuration to the sensor
+
     status = channelMap[index]->setImageConfig(infoMap[index].imgConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
@@ -439,21 +400,15 @@ void CRLPhysicalCamera::setFps(float fps, uint32_t index) {
 
 void CRLPhysicalCamera::setGain(float gain) {
     crl::multisense::Status status = channelMap[0]->getImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration query succeeded
+
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
     }
-    //
-    // Modify image configuration parameters
-    // Here we increase the frame rate to 30 FPS
+
     infoMap[0].imgConf.setGain(gain);
-    //
-    // Send the new image configuration to the sensor
+
     status = channelMap[0]->setImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
+
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
@@ -466,19 +421,16 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t i
 
     if (resolution == currentResolutionMap[i] || resolution == CRL_RESOLUTION_NONE)
         return;
-
     uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(resolution, &width, &height, &depth);
     if (width == 0 || height == 0 || depth == 0) {
         Log::Logger::getInstance()->error("Resolution mode not supported");
         return;
     }
-
     int ret = channelMap[i]->getImageConfig(infoMap[i].imgConf);
     if (ret != crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->error("failed to get image config");
     }
-
     if (Utils::valueToCameraResolution(infoMap[i].imgConf.width(), infoMap[i].imgConf.height(),
                                        infoMap[i].imgConf.disparities()) ==
         resolution) {
@@ -489,7 +441,6 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t i
 
     infoMap[i].imgConf.setResolution(width, height);
     infoMap[i].imgConf.setDisparities(depth);
-
     ret = channelMap[i]->setImageConfig(infoMap[i].imgConf);
     if (ret == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Set resolution to {}x{}x{} on channel {}", width, height, depth, i);
@@ -499,30 +450,12 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t i
     this->updateCameraInfo(i);
 }
 
-void CRLPhysicalCamera::setExposure(uint32_t exp) {
-    crl::multisense::image::Config cfg = infoMap[0].imgConf;
-
-    cfg.setExposure(exp);
-    int ret = channelMap[0]->setImageConfig(cfg);
-    if (ret == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Set exposure to {}", exp);
-    } else
-        Log::Logger::getInstance()->info("failed setting exposure to {}", exp);
-
-    this->updateCameraInfo(0);
-}
-
 void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
 
     crl::multisense::Status status = channelMap[0]->getImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration query succeeded
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
     }
-    //
-    // Modify image configuration parameters
-    // Here we increase the frame rate to 30 FPS
     if (p.autoExposure) {
         infoMap[0].imgConf.setAutoExposure(p.autoExposure);
         infoMap[0].imgConf.setAutoExposureMax(p.autoExposureMax);
@@ -535,12 +468,7 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
     }
 
     infoMap[0].imgConf.setExposureSource(p.exposureSource);
-    //
-    // Send the new image configuration to the sensor
     status = channelMap[0]->setImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
@@ -582,9 +510,6 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
     }
-    //
-    // Modify image configuration parameters
-    // Here we increase the frame rate to 30 FPS
     if (param.autoWhiteBalance) {
         infoMap[0].imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
         infoMap[0].imgConf.setAutoWhiteBalanceThresh(param.autoWhiteBalanceThresh);
@@ -594,12 +519,7 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
         infoMap[0].imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
         infoMap[0].imgConf.setWhiteBalance(param.whiteBalanceRed, param.whiteBalanceBlue);
     }
-    //
-    // Send the new image configuration to the sensor
     status = channelMap[0]->setImageConfig(infoMap[0].imgConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
@@ -614,7 +534,6 @@ void CRLPhysicalCamera::setLighting(LightingParams param) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
     }
-    //
 
     if (param.selection != -1) {
         info.lightConf.setDutyCycle(param.selection, param.dutyCycle);
@@ -624,15 +543,19 @@ void CRLPhysicalCamera::setLighting(LightingParams param) {
     info.lightConf.setNumberOfPulses(param.numLightPulses);
     info.lightConf.setLedStartupTime(param.startupTime);
     info.lightConf.setFlash(param.flashing);
-    //
-    // Send the new image configuration to the sensor
     status = channelMap[0]->setLightingConfig(info.lightConf);
-    //
-    // Check to see if the configuration was successfully received by the
-    // sensor
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
 
+}
+
+void CRLPhysicalCamera::setMtu(uint32_t mtu, uint32_t channelID) {
+    int status = channelMap[channelID]->setMtu(mtu);
+    if (status != crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
+    } else {
+        Log::Logger::getInstance()->info("Set MTU to {}", mtu);
+    }
 }

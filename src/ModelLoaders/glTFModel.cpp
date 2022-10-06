@@ -506,7 +506,6 @@ void glTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
 
 
 glTFModel::glTFModel() {
-    printf("glTFModel Constructor\n");
 }
 
 

@@ -49,16 +49,13 @@ public:
 
     std::map<uint32_t, CameraInfo> infoMap;
     bool start(const std::string& dataSourceStr, uint32_t remoteHeadID);
-    bool stop(std::string dataSourceStr, uint32_t idx);
+    bool stop(const std::string& dataSourceStr, uint32_t idx);
 
-    bool getCameraStream(VkRender::YUVTexture *tex);
     bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx);
-    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex);
     bool getImuRotation(VkRender::Rotation *rot);
 
     void preparePointCloud(uint32_t i, uint32_t i1);
     void setResolution(CRLCameraResolution resolution, uint32_t i);
-    void setExposure(uint32_t exp);
     void setExposureParams(ExposureParams p);
     void setWhiteBalance(WhiteBalanceParams param);
     void setLighting(LightingParams light);
@@ -133,6 +130,7 @@ private:
 
     void updateCameraInfo(uint32_t idx);
 
+    void setMtu(uint32_t mtu, uint32_t channelID);
 };
 
 

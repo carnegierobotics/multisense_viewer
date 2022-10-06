@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include "MultiSense/src/Tools/Logger.h"
 
 class ThreadPool {
     using task_type = std::function<void()>;
@@ -35,14 +36,14 @@ public:
                         tasks_.pop();
                     }
                     if (!task) {
-                        std::cout << "worker #" << std::this_thread::get_id() << " exited" << std::endl;
+                        Log::Logger::getInstance()->info("Worker #{} exited", std::hash<std::thread::id>{}(std::this_thread::get_id()));
                         push_stop_task();
                         return;
                     }
                     task();
                 }
             }));
-            std::cout << "worker #" << workers_.back().get_id() << " started" << std::endl;
+            Log::Logger::getInstance()->info("Worker #{} started", std::hash<std::thread::id>{}(std::this_thread::get_id()));
         }
     }
 

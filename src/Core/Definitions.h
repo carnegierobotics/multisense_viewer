@@ -213,7 +213,8 @@ namespace MultiSense {
 		CRLCameraResolution selectedMode{};
 		std::vector<std::string> requestedStreams{};
 		std::vector<std::string> enabledStreams{};
-	};
+        bool updateResolutionMode = true;
+    };
 
 	struct Device {
 		/** @brief Profile Name information  */

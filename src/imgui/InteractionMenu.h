@@ -607,6 +607,7 @@ private:
                                 chInfo.selectedModeIndex = n;
                                 chInfo.selectedMode = Utils::stringToCameraResolution(
                                         chInfo.modes[chInfo.selectedModeIndex]);
+                                chInfo.updateResolutionMode = true;
 
                             }
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -673,6 +674,7 @@ private:
                         chInfo.selectedModeIndex = n;
                         chInfo.selectedMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
+                        chInfo.updateResolutionMode = true;
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -711,7 +713,7 @@ private:
         }
 
         handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
-                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow));
+                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemActive());
 
     }
 

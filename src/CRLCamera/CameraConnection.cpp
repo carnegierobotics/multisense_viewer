@@ -90,9 +90,9 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         pool->Push(CameraConnection::setLightingTask, this, &p->light, dev);
     // Set the correct resolution. Will only update if changed.
     for (auto &ch: dev->channelInfo) {
-        if (ch.state == AR_STATE_ACTIVE) {
+        if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode) {
             pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
-            //setResolutionTask(this, ch.selectedMode, ch.index);
+            ch.updateResolutionMode = false;
         }
 
     }

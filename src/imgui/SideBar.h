@@ -383,7 +383,7 @@ private:
                 // delete and disconnect devices
                 handles->devices->at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
                 ImGui::PopStyleVar();
-                ImGui::PopStyleColor(2);
+                ImGui::PopStyleColor(3);
                 ImGui::EndChild();
                 continue;
             }

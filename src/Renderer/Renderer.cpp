@@ -152,6 +152,7 @@ void Renderer::render() {
         if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)
             guiManager->handles.devices->erase(guiManager->handles.devices->begin() + i);
     }
+
     // TODO Rework conditions to when Scripts are built to more human readable code
     for (auto &dev: *guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
@@ -221,7 +222,8 @@ void Renderer::render() {
                 deleteScript(script);
         }
     }
-    // UIupdaet on Scripts with const handle to GUI
+
+    // UiUpdate on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);

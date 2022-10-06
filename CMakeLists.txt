@@ -69,6 +69,8 @@ set(IMGUI_SRC
         )
 INCLUDE_DIRECTORIES(src/imgui/custom)
 
+# LIBMULTISENSE
+add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
@@ -260,9 +262,6 @@ endforeach( file_i )
 
 
 else () ## Linux
-
-    # LIBMULTISENSE
-    add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb)

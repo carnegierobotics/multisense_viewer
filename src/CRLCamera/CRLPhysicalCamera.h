@@ -13,7 +13,7 @@
 #include <iostream>
 #include <cstdint>
 #include "MultiSense/src/Core/Definitions.h"
-#include "MultiSense/details/channel.hh"
+#include "include/MultiSense/MultiSenseChannel.hh"
 
 
 class CRLPhysicalCamera {

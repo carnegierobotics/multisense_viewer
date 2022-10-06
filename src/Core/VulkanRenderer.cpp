@@ -7,13 +7,16 @@
 
 VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) {
     settings.validation = enableValidation;
-
     // Create window instance
     // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(1280, 720, title.c_str(), nullptr, nullptr);
+    width = 1920;
+    height = 1080;
+    width = 1280;
+    height = 720;
+    window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, VulkanRenderer::keyCallback);
@@ -22,7 +25,6 @@ VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) 
     glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
     glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
     glfwSetCharCallback(window, VulkanRenderer::charCallback);
-
 }
 
 VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -31,17 +33,12 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = name.c_str();
     appInfo.pEngineName = name.c_str();
-
     if (&vkEnumerateInstanceVersion) {
         vkEnumerateInstanceVersion(&apiVersion);
     }
-
     appInfo.apiVersion = apiVersion;
-
     pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
                   VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion), VK_API_VERSION_PATCH(apiVersion));
-
-
     // Get extensions supported by the instance
     enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
     // Check if extensions are supported
@@ -58,9 +55,7 @@ VkResult VulkanRenderer::createInstance(bool enableValidation) {
         instanceCreateInfo.enabledExtensionCount = (uint32_t) enabledInstanceExtensions.size();
         instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
     }
-
     const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-
     // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
     if (settings.validation) {
 
@@ -91,13 +86,10 @@ bool VulkanRenderer::initVulkan() {
         // Additional flags include performance info, loader and layer debug messages, etc.
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         Validation::populateDebugMessengerCreateInfo(createInfo);
-
         if (Validation::CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugUtilsMessenger) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
         }
-
-
     }
     // Get list of devices and capabilities of each device
     uint32_t gpuCount = 0;
@@ -113,11 +105,8 @@ bool VulkanRenderer::initVulkan() {
     }
     // Select physical device to be used for the Vulkan example
     // Defaults to the first device unless anything else specified
-
     physicalDevice = pickPhysicalDevice(physicalDevices);
-
     // If pyshyical device supports vulkan version > apiVersion then create new instance with this version.
-
     // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
@@ -126,11 +115,8 @@ bool VulkanRenderer::initVulkan() {
     VkPhysicalDeviceVulkan11Features features;
     features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     features.pNext = nullptr;
-
-
     // Derived examples can override this to set actual features (based on above readings) to flashing for logical device creation
     addDeviceFeatures();
-
     VkPhysicalDeviceFeatures2 features2;
     features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     features2.pNext = &features;
@@ -149,7 +135,7 @@ bool VulkanRenderer::initVulkan() {
     // Vulkan device creation
     // This is firstUpdate by a separate class that gets a logical device representation
     // and encapsulates functions related to a device
-    vulkanDevice = new VulkanDevice(physicalDevice);
+    vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
     err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
     if (err != VK_SUCCESS)
         throw std::runtime_error("Failed to create logical device");
@@ -159,7 +145,6 @@ bool VulkanRenderer::initVulkan() {
     vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
     // Find a suitable depth format
     depthFormat = Utils::findDepthFormat(physicalDevice);
-
     swapchain.connect(instance, physicalDevice, device);
     // Create synchronization objects
     VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
@@ -189,8 +174,6 @@ bool VulkanRenderer::initVulkan() {
 VulkanRenderer::~VulkanRenderer() {
     // CleanUP all vulkan resources
     swapchain.cleanup();
-
-
     // Object picking resources
     vkDestroyRenderPass(device, selection.renderPass, nullptr);
     vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
@@ -200,36 +183,26 @@ VulkanRenderer::~VulkanRenderer() {
     vkDestroyImageView(device, selection.depthView, nullptr);
     vkFreeMemory(device, selection.colorMem, nullptr);
     vkFreeMemory(device, selection.depthMem, nullptr);
-
-
     // VulkanRenderer resources
     vkDestroyImage(device, depthStencil.image, nullptr);
     vkDestroyImageView(device, depthStencil.view, nullptr);
     vkFreeMemory(device, depthStencil.mem, nullptr);
-
     vkDestroyCommandPool(device, cmdPool, nullptr);
-
     for(auto* fence : waitFences){
         vkDestroyFence(device, fence, nullptr);
     }
-
     vkDestroyRenderPass(device, renderPass, nullptr);
-
     for(auto* fb : frameBuffers){
         vkDestroyFramebuffer(device, fb, nullptr);
     }
-
     vkDestroyPipelineCache(device, pipelineCache, nullptr);
-
     vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
     vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
-
     if (settings.validation)
         Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
-    delete vulkanDevice;
 
+    vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical device before instance
     vkDestroyInstance(instance, nullptr);
-    
     // CleanUp GLFW window
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -582,26 +555,20 @@ void VulkanRenderer::renderLoop() {
     while (!glfwWindowShouldClose(window)) {
         auto tStart = std::chrono::high_resolution_clock::now();
         frameID++; // First frame will have id 1.
-
         glfwPollEvents();
-
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end - startTime;
         runTime = elapsed_seconds.count();
-
         /** Give ImGui Reference to this frame's input events **/
         ImGuiIO &io = ImGui::GetIO();
         io.DisplaySize = ImVec2((float) width, (float) height);
         io.DeltaTime = frameTimer;
         io.WantCaptureMouse = true;
         io.MousePos = ImVec2(mousePos.x, mousePos.y);
-
         io.MouseDown[0] = mouseButtons.left;
         io.MouseDown[1] = mouseButtons.right;
-
         input.lastKeyPress = keyPress;
         input.action = keyAction;
-
         prepareFrame();
         /** Call Renderer's render function **/
         render();
@@ -610,7 +577,6 @@ void VulkanRenderer::renderLoop() {
         keyPress = -1;
         keyAction = -1;
         io.MouseWheel = 0;
-
         /** FrameTiming **/
         auto tEnd = std::chrono::high_resolution_clock::now();
         frameCounter++;
@@ -624,9 +590,6 @@ void VulkanRenderer::renderLoop() {
                 std::chrono::high_resolution_clock::now() - tStart).count();
         frameTimer = (float) tDiff / 1000.0f;
         camera.update(frameTimer);
-        if (camera.moving()) {
-            viewUpdated = true;
-        }
     }
     // Flush device to make sure all resources can be freed before we start cleanup
     if (device != VK_NULL_HANDLE) {
@@ -664,18 +627,18 @@ void VulkanRenderer::submitFrame() {
         }
     } else if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to acquire next image");
-
-
     if (vkQueueWaitIdle(queue) != VK_SUCCESS)
         throw std::runtime_error("Failed to wait for Queue Idle");
 }
 
 /** CALLBACKS **/
+void VulkanRenderer::setWindowSize(uint32_t _width, uint32_t _height) {
+    if (frameID > 1){
+        destWidth = _width;
+        destHeight = _height;
+        windowResize();
+    }
 
-void VulkanRenderer::setWindowSize(uint32_t width, uint32_t height) {
-    destWidth = width;
-    destHeight = height;
-    windowResize();
 }
 
 void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
@@ -683,13 +646,10 @@ void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
     myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
-
 void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-
     ImGuiIO &io = ImGui::GetIO();
     io.AddInputCharacter((unsigned short) codepoint);
-
 }
 
 
@@ -699,17 +659,14 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
         myApp->pLogger->info("Escape or Quit (Q) key registered. Closing program..");
         glfwSetWindowShouldClose(window, true);
     }
-
     ImGuiIO &io = ImGui::GetIO();
     io.AddKeyEvent(ImGuiKey_ModCtrl, (mods & GLFW_MOD_CONTROL) != 0);
     io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
     io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
     io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
-
     key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
     ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
     io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
-
 
     myApp->keyPress = key; // TODO Disabled key release events
     myApp->keyAction = action;
@@ -753,34 +710,15 @@ void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int 
 }
 
 void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
-    int32_t dx = (int32_t) mousePos.x - x;
-    int32_t dy = (int32_t) mousePos.y - y;
-
     bool handled = false;
-
     if (settings.overlay) {
         ImGuiIO &io = ImGui::GetIO();
         io.WantCaptureMouse = true;
     }
+
     mouseMoved((float) x, (float) y, handled);
+    viewChanged();
 
-    if (handled) {
-        mousePos = glm::vec2((float) x, (float) y);
-        return;
-    }
-
-    if (mouseButtons.left) {
-        camera.rotate(glm::vec3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
-        viewUpdated = true;
-    }
-    if (mouseButtons.right) {
-        viewUpdated = true;
-    }
-    if (mouseButtons.middle) {
-        camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        viewUpdated = true;
-    }
-    mousePos = glm::vec2((float) x, (float) y);
 }
 
 void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
@@ -805,7 +743,6 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
                 break;
         }
     }
-
     if (action == GLFW_RELEASE) {
         switch (button) {
             case GLFW_MOUSE_BUTTON_RIGHT:
@@ -821,40 +758,31 @@ void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int act
     }
 }
 
-
 void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
     auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
     ImGuiIO &io = ImGui::GetIO();
     myApp->mouseButtons.wheel -= (float) (yoffset * myApp->mouseScrollSpeed);
-
     io.MouseWheel += 0.5f * (float) yoffset;
-
 }
 
-VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) {
-
+VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const {
     if (devices.empty())
         throw std::runtime_error("No physical devices available");
-
-    for (auto &device: devices) {
+    for (auto &d: devices) {
         VkPhysicalDeviceProperties properties{};
         VkPhysicalDeviceFeatures features{};
         VkPhysicalDeviceMemoryProperties memoryProperties{};
-
-        vkGetPhysicalDeviceProperties(device, &properties);
-        vkGetPhysicalDeviceFeatures(device, &features);
-        vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
-
-        pLogger->info("Found physical device: {}, ", properties.deviceName);
+        vkGetPhysicalDeviceProperties(d, &properties);
+        vkGetPhysicalDeviceFeatures(d, &features);
+        vkGetPhysicalDeviceMemoryProperties(d, &memoryProperties);
+        pLogger->info("Found physical d: {}, ", properties.deviceName);
 
         // Search for a discrete GPU and prefer this one
         if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
             pLogger->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
-            return device;
+            return d;
         }
-
     }
-
     // If no discrete GPU were found just return the first device found
     return devices[0];
 }

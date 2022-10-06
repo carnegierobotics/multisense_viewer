@@ -64,11 +64,11 @@ public:
     uint32_t apiVersion = VK_API_VERSION_1_2;
     bool backendInitialized = false;
     bool resized = false;
-    uint32_t width = 1280;
-    uint32_t height = 720;
+    uint32_t width = 1920;
+    uint32_t height = 1080;
 
     /** @brief Encapsulated physical and logical vulkan device */
-    VulkanDevice *vulkanDevice{};
+    std::unique_ptr<VulkanDevice> vulkanDevice{};
 
     struct {
         VkImage image;
@@ -150,9 +150,9 @@ protected:
     // Handle to the device graphics queue that command buffers are submitted to
     VkQueue queue{};
     // Depth buffer format (selected during Vulkan initialization)
-    VkFormat depthFormat;
+    VkFormat depthFormat{};
     // Wraps the swap chain to present images (framebuffers) to the windowing system
-    VulkanSwapchain swapchain;
+    VulkanSwapchain swapchain{};
     // Synchronization semaphores
     struct {
         // Swap chain image presentation
@@ -160,7 +160,7 @@ protected:
         // Command buffer submission and execution
         VkSemaphore renderComplete;
     } semaphores{};
-    std::vector<VkFence> waitFences;
+    std::vector<VkFence> waitFences{};
     /** @brief Pipeline stages used to wait at for graphics queue submissions */
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     // Contains command buffers and semaphores to be presented to the queue
@@ -168,11 +168,11 @@ protected:
     // CommandPool for render command buffers
     VkCommandPool cmdPool{};
     // Command buffers used for rendering
-    std::vector<VkCommandBuffer> drawCmdBuffers;
+    std::vector<VkCommandBuffer> drawCmdBuffers{};
     // Global render pass for frame buffer writes
     VkRenderPass renderPass{};
     // List of available frame buffers (same as number of swap chain images)
-    std::vector<VkFramebuffer>frameBuffers;
+    std::vector<VkFramebuffer>frameBuffers{};
     // Active frame buffer index
     uint32_t currentBuffer = 0;
     // Descriptor set pool
@@ -189,7 +189,6 @@ protected:
     int frameID = 0;
 
 private:
-    bool viewUpdated = false;
     uint32_t destWidth{};
     uint32_t destHeight{};
     float lastFPS{};
@@ -212,7 +211,7 @@ private:
     /** @brief Default function to handle cursor position input, calls the override function mouseMoved(...) **/
     void handleMouseMove(int32_t x, int32_t y);
 
-    VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices);
+    [[nodiscard]] VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const;
 
     static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode);
 

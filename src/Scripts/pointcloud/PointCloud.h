@@ -56,7 +56,6 @@ public:
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
-    VkRender::Vertex* meshData{};
     int point = 0;
 
     void prepareTexture();

@@ -54,7 +54,7 @@ public:
         backendInitialized = true;
         pLogger->info("Initialized Backend");
 
-        guiManager = std::make_unique<MultiSense::GuiManager>(vulkanDevice, renderPass, width, height);
+        guiManager = std::make_unique<MultiSense::GuiManager>(vulkanDevice.get(), renderPass, width, height);
 
         prepareRenderer();
         pLogger->info("Prepared Renderer");
@@ -97,6 +97,8 @@ protected:
     void addDeviceFeatures() override;
 
     void buildCommandBuffers() override;
+
+    void mouseMoved(double x, double y, bool&handled) override;
 
     /**
      *

@@ -64,10 +64,9 @@ namespace MultiSense {
             uint32_t* delay{};
         } gif{};
 
-        float viewAreaElementPositionsY[9] = {0};
+        /** @brief ImGUI Overlay on previews window sizes */
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
-
         float previewBorderPadding = 60.0f;
 
         /** @brief add device button params */
@@ -89,9 +88,6 @@ namespace MultiSense {
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
 
-        /** @brief control area drop down box size */
-        float controlDropDownWidth = 350.0, controlDropDownHeight = 40.0f;
-        float dropDownWidth = 300.0f, dropDownHeightOpen = 220.0f;
 
         bool hoverState = false;
     };
@@ -109,26 +105,25 @@ namespace MultiSense {
         bool configureNetwork = true;
         bool nextIsRemoteHead = false;
         /** Keypress and mouse events */
-        const VkRender::MouseButtons* mouseBtns{};
         float accumulatedActiveScroll = 0.0f;
+        bool disableCameraRotationFromGUI = false;
         const Input* input{};
 
+        ~GuiObjectHandles(){
+            delete devices;
+        }
     };
 
     static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
     static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
     static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
     static const ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
-
     static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
     static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
-
     static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
     static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
-
     static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
     static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
-
     static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
     static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
     static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
@@ -138,11 +133,9 @@ namespace MultiSense {
     static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
     static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
     static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
-
     static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
     static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
     static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
-
     static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
 
@@ -153,13 +146,13 @@ namespace MultiSense {
 
         virtual ~Layer() = default;
 
-        virtual void OnAttach() {}
+        virtual void onAttach()  = 0;
 
-        virtual void OnDetach() {}
+        virtual void onDetach()  = 0;
 
-        virtual void OnUIRender(GuiObjectHandles *handles) {}
+        virtual void onUIRender(GuiObjectHandles *handles) = 0;
 
-        virtual void onFinishedRender() {}
+        virtual void onFinishedRender() = 0;
 
     };
 };

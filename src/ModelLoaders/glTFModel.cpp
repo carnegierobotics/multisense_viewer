@@ -347,14 +347,15 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
             primitives.push_back(newPrimitive);
         }
     }
-
     if (parent) {
         parent->children.push_back(newNode);
     } else {
         nodes.push_back(newNode);
     }
+
     linearNodes.push_back(newNode);
 }
+
 void glTFModel::Model::loadTextureSamplers(tinygltf::Model &gltfModel) {
     for (const tinygltf::Sampler &smpl: gltfModel.samplers) {
         Texture::TextureSampler sampler{};

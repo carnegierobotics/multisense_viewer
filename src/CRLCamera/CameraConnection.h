@@ -35,12 +35,11 @@ public:
     std::unique_ptr<CRLPhysicalCamera> camPtr;
     std::unique_ptr<ThreadPool> pool;
 
-    static void disconnectCRLCameraTask(void* context, MultiSense::Device* dev);
+    void saveProfileAndDisconnect(MultiSense::Device *dev);
 
 private:
     int sd = -1;
     std::mutex writeParametersMtx{};
-    bool processingDisconnectTask = false;
 
 #ifdef WIN32
     unsigned long dwRetVal = 0;
@@ -90,7 +89,7 @@ private:
     static void setResolutionTask(void * context, CRLCameraResolution arg1, uint32_t idx);
 
     static void setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                            uint32_t index,
+                                            bool hdr, uint32_t index,
                                             MultiSense::Device *dev);
 
     static void connectCRLCameraTask(void* context, MultiSense::Device* dev, bool remoteHead, bool config);

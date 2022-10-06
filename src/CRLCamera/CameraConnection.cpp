@@ -171,7 +171,7 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *pVector, bool shou
     }
 }
 
-void CameraConnection::setStreamingModes(MultiSense::Device &dev) {
+void CameraConnection::getStreamingModes(MultiSense::Device &dev) {
     // Find all possible streaming modes
     dev.channelInfo.resize(4); // max number of remote heads
     for (auto ch: dev.channelConnections) {
@@ -470,7 +470,11 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
 
     if (!dev->channelConnections.empty()) {
-        app->setStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
+        app->getStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
+        // Set the resolution read from config file
+
+
+
         dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
         dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
         app->lastActiveDevice = dev->name;
@@ -544,6 +548,8 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     if (rc < 0) {
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
     }
+
+    camPtr.reset();
 }
 
 void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {

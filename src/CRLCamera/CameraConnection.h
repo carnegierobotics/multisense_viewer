@@ -51,7 +51,7 @@ private:
 
     bool setNetworkAdapterParameters(MultiSense::Device &dev, bool b);
 
-    void setStreamingModes(MultiSense::Device &dev);
+    void getStreamingModes(MultiSense::Device &dev);
 
     void initCameraModes(std::vector<std::string> *modes, std::vector<crl::multisense::system::DeviceMode> vector);
 

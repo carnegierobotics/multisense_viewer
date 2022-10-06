@@ -232,12 +232,23 @@ private:
                                  ImGuiCond_Always);
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
+        ImVec2 backButtonPos  = ImGui::GetCursorScreenPos();
 
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 30.0f, 0.0f));
         ImGui::SameLine();
+
         ImGui::PushFont(handles->info->font18);
         ImGui::Text("Viewing");
         ImGui::PopFont();
+
+        backButtonPos.x += handles->info->viewingAreaWidth - 100.0f;
+        ImGui::SetCursorScreenPos(backButtonPos);
+        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+        if (ImGui::Button("Back", ImVec2(100.0f, 20.0f))) {
+            page[PAGE_CONFIGURE_DEVICE] = false;
+            drawActionPage = true;
+        }
+        ImGui::PopStyleColor();
 
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
         ImGui::SameLine();
@@ -522,16 +533,18 @@ private:
 
                 ImVec4 bg_col = MultiSense::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
-                ImGui::Dummy(ImVec2(40.0f, 80.0f));
+                ImGui::Dummy(ImVec2(40.0f, 40.0f));
 
                 // Text
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
+                ImGui::PushFont(handles->info->font18);
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
                 ImGui::Text("1. Choose Layout");
                 ImGui::PopStyleColor();
 
                 // Image buttons
+                ImGui::Dummy(ImVec2(00.0f, 5.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
                 if (ImGui::ImageButton("Single", handles->info->imageButtonTextureDescriptor[6], size, uv0,
@@ -558,12 +571,14 @@ private:
                                        bg_col, tint_col))
                     dev.layout = PREVIEW_LAYOUT_NINE;
 
-
+                ImGui::Dummy(ImVec2(00.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
                 ImGui::Text("2. Choose Sensor Resolution");
                 ImGui::PopStyleColor();
+                ImGui::PopFont();
+                ImGui::Dummy(ImVec2(00.0f, 7.0));
 
                 for (int i = 0; i < dev.channelInfo.size(); ++i) {
                     if (dev.channelInfo[i].state != AR_STATE_ACTIVE)
@@ -724,11 +739,6 @@ private:
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Control")) {
-
-                        if (ImGui::Button("Back")) {
-                            page[PAGE_CONFIGURE_DEVICE] = false;
-                            drawActionPage = true;
-                        }
 
                         drawVideoPreviewGuiOverlay(handles, dev, true);
                         ImGui::EndTabItem();

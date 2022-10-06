@@ -28,6 +28,7 @@ public:
     ~CRLPhysicalCamera() {
         // TODO FREE RESOURCES MEMBER VARIABLES
         for (auto& ch: channelMap) {
+            //std::scoped_lock<std::mutex>(mutexMap.at(ch.first));
             stop("All", ch.first);
             crl::multisense::Channel::Destroy(ch.second);
         }
@@ -111,7 +112,7 @@ private:
     };
 
     std::vector<crl::multisense::DataSource> enabledSources{};
-    std::map<uint32_t, crl::multisense::Channel *> channelMap;
+    std::map<uint32_t, crl::multisense::Channel *> channelMap{};
     std::unordered_map<crl::multisense::DataSource,BufferPair> buffers_{};
     std::map<uint32_t, std::unordered_map<crl::multisense::DataSource,BufferPair>> buffersMap{};
     std::unordered_map<crl::multisense::DataSource, crl::multisense::image::Header> imagePointers{};

@@ -44,15 +44,11 @@ void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vt
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 void
-CRLCameraModels::Model::createMeshDeviceLocal(VkRender::Vertex *_vertices, uint32_t vertexCount, glm::uint32 *_indices,
-                                              uint32_t
-                                              indexCount) {
-
-
-    size_t vertexBufferSize = vertexCount * sizeof(VkRender::Vertex);
-    size_t indexBufferSize = indexCount * sizeof(uint32_t);
-    mesh.vertexCount = vertexCount;
-    mesh.indexCount = indexCount;
+CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex>& vertices, const std::vector<uint32_t>& indices) {
+    size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
+    size_t indexBufferSize = indices.size() * sizeof(uint32_t);
+    mesh.vertexCount = vertices.size();
+    mesh.indexCount = indices.size();
 
     struct StagingBuffer {
         VkBuffer buffer;
@@ -67,7 +63,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(VkRender::Vertex *_vertices, uint3
             vertexBufferSize,
             &vertexStaging.buffer,
             &vertexStaging.memory,
-            _vertices));
+            (void *) vertices.data()));
     // Index data
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
@@ -76,7 +72,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(VkRender::Vertex *_vertices, uint3
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                _indices));
+                (void *) indices.data()));
     }
 
     // Create device local buffers
@@ -122,8 +118,6 @@ CRLCameraModels::Model::createMeshDeviceLocal(VkRender::Vertex *_vertices, uint3
         vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
         vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
     }
-
-
 }
 
 

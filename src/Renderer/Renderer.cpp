@@ -29,36 +29,6 @@ void Renderer::prepareRenderer() {
     createSelectionFramebuffer();
     createSelectionBuffer();
     cameraConnection = std::make_unique<CameraConnection>();
-
-    /** LOAD PREVIOUS CONNECTION PROFILE IF THEY EXIST
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    SI_Error rc = ini.LoadFile("crl.ini");
-    if (rc < 0) { /* handle error  }
-    else {
-        // A serial number is the section identifier of a profile of the ini file
-        CSimpleIniA::TNamesDepend sections;
-        ini.GetAllSections(sections);
-        for (auto& section : sections) {
-            std::string profileName = ini.GetValue(section.pItem, "ProfileName");
-            std::string IP = ini.GetValue(section.pItem, "IP");
-            std::string cameraName = ini.GetValue(section.pItem, "CameraName");
-            int interfaceIndex = std::stoi(ini.GetValue(section.pItem, "AdapterIndex"));
-            std::string adapterName = ini.GetValue(section.pItem, "AdapterName");
-            MultiSense::Device el;
-            el.name = profileName;
-            el.IP = IP;
-            el.state = AR_STATE_JUST_ADDED;
-            el.cameraName = cameraName;
-            el.interfaceName = adapterName;
-            el.clicked = true;
-            el.interfaceIndex = interfaceIndex;
-            el.serialName = section.pItem;
-            guiManager->handles.devices->emplace_back(el);
-        }
-    }
-
-    */
     // Prefer to load the model only once, so load it in first setup
     buildScript("MultiSenseCamera");
 }
@@ -131,7 +101,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     pLogger->info("Registered script: {} in factory", scriptName.c_str());
     // Run Once
     Base::RenderUtils vars{};
-    vars.device = vulkanDevice;
+    vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain.imageCount;
     vars.picking = &selection;
@@ -172,7 +142,6 @@ void Renderer::render() {
     renderData.width = width;
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
-    guiManager->handles.mouseBtns = &mouseButtons;
     // Update GUI
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
@@ -381,8 +350,7 @@ void Renderer::windowResized() {
 
 void Renderer::cleanUp() {
     for (auto &dev: *guiManager->handles.devices)
-        CameraConnection::disconnectCRLCameraTask(cameraConnection.get(),
-                                                  &dev); // TODO Note: potentially unsafe usage. Casting smart pointer cameraConnection to void* then back to CameraConnection * with uses context in static function
+        cameraConnection->saveProfileAndDisconnect(&dev);
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file
@@ -645,4 +613,21 @@ void Renderer::destroySelectionBuffer() {
     // Clean up staging resources
     vkFreeMemory(vulkanDevice->logicalDevice, selectionMemory, nullptr);
     vkDestroyBuffer(vulkanDevice->logicalDevice, selectionBuffer, nullptr);
+}
+
+void Renderer::mouseMoved(double x, double y, bool &handled) {
+    float dx = mousePos.x - x;
+    float dy = mousePos.y - y;
+
+    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
+        glm::vec3 rot(dy * camera.rotationSpeed, -dx*camera.rotationSpeed, 0.0f);
+        camera.rotate(rot);
+    }
+    if (mouseButtons.right) {
+    }
+    if (mouseButtons.middle) {
+        camera.translate(glm::vec3((float)-dx * 0.01f, (float)-dy * 0.01f, 0.0f));
+    }
+    mousePos = glm::vec2((float) x, (float) y);
+
 }

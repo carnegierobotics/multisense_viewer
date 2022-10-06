@@ -604,13 +604,13 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
 void CRLPhysicalCamera::setHDR(bool hdr) {
     crl::multisense::Status status = channelMap[0]->getImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
-        Log::Logger::getInstance()->info("Unable to query image configuration");
+        Log::Logger::getInstance()->info("Unable to query hdr image configuration");
     }
 
     infoMap[0].imgConf.setHdr(hdr);
     status = channelMap[0]->setImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
-        Log::Logger::getInstance()->info("Unable to set image configuration");
+        Log::Logger::getInstance()->info("Unable to set hdr configuration");
     }
     this->updateCameraInfo(0);
 }

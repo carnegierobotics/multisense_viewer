@@ -37,7 +37,9 @@ public:
 
     struct Model {
         explicit Model(const Base::RenderUtils *renderUtils);
+
         ~Model();
+
 /**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
         CRLCameraDataType modelType{};
@@ -83,15 +85,14 @@ public:
 
         void createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize);
 
-        void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>>& fileName);
+        void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName);
 
         void
-        createMeshDeviceLocal(VkRender::Vertex *_vertices, uint32_t vertexCount, unsigned int *_indices,
-                              uint32_t indexCount);
+        createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices, const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
         void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setTexture(VkRender::MP4Frame* frame);
+        void setTexture(VkRender::MP4Frame *frame);
 
         void setTexture(VkRender::YUVTexture *tex);
 
@@ -103,24 +104,25 @@ public:
     /**@brief Primitive for a surface */
     struct ImageData {
         struct {
-            void *vertices{};
+            std::vector<VkRender::Vertex> vertices{};
+            std::vector<uint32_t> indices;
             uint32_t vertexCount{};
-            uint32_t *indices{};
+            //uint32_t *indices{};
             uint32_t indexCount{};
         } quad{};
 
         /**@brief Generates a Quad with texture coordinates. Arguments are offset values */
-        ImageData(float x = 0.0f, float y = 0.0f) {
+        explicit ImageData(float x = 0.0f, float y = 0.0f) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
             quad.vertexCount = vertexCount;
             quad.indexCount = indexCount;
             // Virtual class can generate some mesh data here
-            quad.vertices = calloc(vertexCount, sizeof(VkRender::Vertex));
-            quad.indices = static_cast<uint32_t *>(calloc(indexCount, sizeof(uint32_t)));
+            quad.vertices.resize(vertexCount);
+            quad.indices.resize(indexCount);
 
-            auto *vP = (VkRender::Vertex *) quad.vertices;
-            auto *iP = (uint32_t *) quad.indices;
+            auto *vP = quad.vertices.data();
+            auto *iP = quad.indices.data();
 
             VkRender::Vertex vertex[4]{};
             vertex[0].pos = glm::vec3(-1.0f, -1.0f + y, 0.0f);
@@ -189,7 +191,7 @@ protected:
     void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo, Model *model);
 
     void
-    createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& vector, Model *model,
+    createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
                          ScriptType type, const Base::RenderUtils *renderUtils);
 };
 

@@ -73,7 +73,7 @@ public:
     uint32_t ethernetComboIndex = 0;
     size_t resultsComboIndex = -1;
 
-    void OnAttach() override {
+    void onAttach() override {
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
         autoConnect.setEventCallback(SideBar::onEvent);
         gifFrameTimer = std::chrono::steady_clock::now();
@@ -83,8 +83,12 @@ public:
 
     }
 
+    void onDetach() override {
 
-    void OnUIRender(MultiSense::GuiObjectHandles *handles) override {
+    }
+
+
+    void onUIRender(MultiSense::GuiObjectHandles *handles) override {
         ;
 
 

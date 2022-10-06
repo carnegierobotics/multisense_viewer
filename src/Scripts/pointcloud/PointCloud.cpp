@@ -17,6 +17,7 @@ void PointCloud::update() {
     if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
         model->draw = false;
         Log::Logger::getInstance()->info("Size mismatch with image size and imgconf in pointcloud");
+        prepareTexture();
         return;
     }
 
@@ -44,12 +45,12 @@ void PointCloud::update() {
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
-    auto *d = (VkRender::UBOMatrix *) bufferOneData;
+    auto& d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
+    auto& d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -90,7 +91,8 @@ void PointCloud::prepareTexture() {
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     width = imgConf.width();
     height = imgConf.height();
-    meshData = new VkRender::Vertex[width * height];
+    std::vector<VkRender::Vertex> meshData{};
+    meshData.resize(width * height);
     int v = 0;
     // first few rows and cols (20) are discarded in the shader anyway
     for (int i = 20; i < width-20; ++i) {
@@ -100,9 +102,8 @@ void PointCloud::prepareTexture() {
             v++;
         }
     }
-    const uint32_t vtxBufSize = width * height;
-    model->createMeshDeviceLocal((VkRender::Vertex *) meshData, vtxBufSize, nullptr, 0);
-    delete[] meshData;
+    model->createMeshDeviceLocal(meshData);
+
     renderData.crlCamera->get()->preparePointCloud(width, height);
     model->createEmtpyTexture(width, height, textureType);
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -110,7 +111,7 @@ void PointCloud::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
-    auto *buf = (VkRender::PointCloudParam *) bufferThreeData;
+    auto *buf = (VkRender::PointCloudParam *) bufferThreeData.get();
     buf->kInverse = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);

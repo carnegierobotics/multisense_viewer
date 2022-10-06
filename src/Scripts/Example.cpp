@@ -31,20 +31,18 @@ void Example::update() {
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    auto *d = (VkRender::UBOMatrix *) bufferOneData;
+    auto &d = bufferOneData;
     d->model = mat.model;
 
 
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto *d2 = (VkRender::FragShaderParams *) bufferTwoData;
+    auto &d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -2.0f, -3.0f), 1.0f);
     d2->viewPos = renderData.camera->viewPos;
-
-    bufferThreeData = selection;
 }
 
 void Example::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {

@@ -115,8 +115,6 @@ set(ENGINE_SRC
         src/Scripts/objects/MultiSenseCamera.h
         src/Scripts/pointcloud/PointCloud.cpp
         src/Scripts/pointcloud/PointCloud.h
-        src/Scripts/pointcloud/VirtualPointCloud.cpp
-        src/Scripts/pointcloud/VirtualPointCloud.h
         src/Scripts/video/physical/Single/SingleLayout.cpp
         src/Scripts/video/physical/Single/SingleLayout.h
         src/Scripts/video/physical/Double/DoubleLayout.cpp

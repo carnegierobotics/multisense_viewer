@@ -64,7 +64,7 @@ public:
         glm::mat4 localMatrix();
         glm::mat4 getMatrix();
         void update();
-        ~Node();
+        ~Node() = default;
     };
 
     struct Skin {
@@ -111,7 +111,12 @@ public:
             vkFreeMemory(device->logicalDevice, indices.memory, nullptr);
             vkDestroyBuffer(device->logicalDevice, vertices.buffer, nullptr);
             vkDestroyBuffer(device->logicalDevice, indices.buffer, nullptr);
+
+            for(auto* node : linearNodes){
+                delete node;
+            }
         }
+
         VulkanDevice *device;
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;

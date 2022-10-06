@@ -170,32 +170,6 @@ struct ExposureParams {
 
 
 namespace MultiSense {
-
-	/** @brief
-		struct StreamingModes {
-			/** @brief Name of this streaming mode (i.e: front camera)
-			std::string name;
-			std::string attachedScript;
-			/** @brief Which gui index is selected
-			CameraStreamInfoFlag streamIndex = AR_PREVIEW_ONE;
-			/** @brief Current camera streaming state
-			CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-			/** @brief In which order is this streaming mode presented in the viewing area
-			uint32_t streamingOrder = 0;
-			/** @brief Camera streaming modes
-			std::vector<std::string> modes;
-			/** @brief Camera streaming sources
-			std::vector<std::string> sources;
-			uint32_t selectedModeIndex = 0;
-			uint32_t selectedSourceIndex = 0;
-			/** @brief Which mode is currently selected
-			CRLCameraResolution selectedStreamingMode{};
-			/** @brief Which source is currently selected
-			std::string selectedStreamingSource = "Select sensor resolution";
-
-		};
-	*/
-
 	/** @brief  */
 	struct Parameters {
 		ExposureParams ep{};
@@ -223,24 +197,19 @@ namespace MultiSense {
 	struct PreviewWindow {
 		std::vector<std::string> availableSources{}; // Human-readable names of camera sources
 		std::vector<std::string> availableRemoteHeads{};
-
 		std::string selectedSource = "Source";
 		uint32_t selectedSourceIndex = 0;
-
 		int hoveredPixelInfo{};
 		uint32_t selectedRemoteHeadIndex = 0;
-
 	};
 
 	struct ChannelInfo {
 		uint32_t index = 0;
 		std::vector<std::string> availableSources{}; // Human-readable names of camera sources
 		ArConnectionState state = AR_STATE_DISCONNECTED;
-
 		std::vector<std::string> modes{};
 		uint32_t selectedModeIndex = 0;
 		CRLCameraResolution selectedMode{};
-
 		std::vector<std::string> requestedStreams{};
 		std::vector<std::string> enabledStreams{};
 	};
@@ -277,20 +246,11 @@ namespace MultiSense {
 		bool pixelInfoEnable = false;
 		bool useImuData = false;
 		CursorPixelInformation pixelInfo{};
-		bool useLoadedProfile = false;
-
 		std::vector<uint32_t> channelConnections{};
 		/** @brief object containing all adjustable parameters to the camera */
 		Parameters parameters{};
 
 		Page selectedPreviewTab = TAB_2D_PREVIEW;
-		/** @brief  Showing point cloud view*/
-		bool pointCloud = false;
-		/** @brief  Showing depth image stream*/
-		bool depthImage = false;
-		/** @brief  Showing color image stream*/
-		bool colorImage = false;
-
 		/** @brief Show a default preview with some selected streams*/
 		bool button = false;
 	};

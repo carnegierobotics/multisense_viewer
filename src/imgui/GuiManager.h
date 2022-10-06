@@ -33,6 +33,10 @@ namespace MultiSense {
         GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass& renderPass, const uint32_t& width, const uint32_t& height);
 
         ~GuiManager(){
+            for (const auto& layerStack: m_LayerStack) {
+                layerStack->onDetach();
+            }
+
             vkDestroyPipeline(device->logicalDevice, pipeline, nullptr);
             vkDestroyPipelineCache(device->logicalDevice, pipelineCache, nullptr);
             vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
@@ -58,7 +62,7 @@ namespace MultiSense {
         template<typename T>
         void pushLayer() {
             static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
-            m_LayerStack.emplace_back(std::make_shared<T>())->OnAttach();
+            m_LayerStack.emplace_back(std::make_shared<T>())->onAttach();
         }
 
     private:

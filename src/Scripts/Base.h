@@ -28,16 +28,15 @@ public:
         Buffer bufferFour;
     };
 
-    // TODO DELETE POINTERS AS WELL
-    void *bufferOneData{};
-    void *bufferTwoData{};
-    void *bufferThreeData{};
-    void *bufferFourData{};
+    std::unique_ptr<VkRender::UBOMatrix> bufferOneData{};
+    std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
+    std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
+    std::unique_ptr<VkRender::ZoomParam> bufferFourData{};
 
     std::vector<VkShaderModule> shaderModules{};
 
     struct RenderUtils {
-        VulkanDevice *device{};
+        VulkanDevice* device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
         std::vector<UniformBufferSet> uniformBuffers;
@@ -134,30 +133,12 @@ public:
         if (renderData.crlCamera->get() != nullptr)
             update();
 
-        // If initialized
-        if (renderUtils.uniformBuffers.empty())
-            return;
-
         UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
         if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
-            // TODO unceesarry mapping and unmapping occurring here.
-            currentUB.bufferOne.map();
-            memcpy(currentUB.bufferOne.mapped, bufferOneData, sizeof(VkRender::UBOMatrix));
-            currentUB.bufferOne.unmap();
-
-            currentUB.bufferTwo.map();
-            memcpy(currentUB.bufferTwo.mapped, bufferTwoData, sizeof(VkRender::FragShaderParams));
-            currentUB.bufferTwo.unmap();
-
-            currentUB.bufferThree.map();
-            memcpy(currentUB.bufferThree.mapped, bufferThreeData, sizeof(VkRender::PointCloudParam));
-            currentUB.bufferThree.unmap();
-
-            currentUB.bufferFour.map();
-            memcpy(currentUB.bufferFour.mapped, bufferFourData, sizeof(VkRender::ZoomParam));
-            currentUB.bufferFour.unmap();
-
-
+            memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
+            memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
+            memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
+            memcpy(currentUB.bufferFour.mapped, bufferFourData.get(), sizeof(VkRender::ZoomParam));
         }
     }
 
@@ -173,32 +154,35 @@ public:
         lastLogTime = std::chrono::steady_clock::now();
 
 
-        bufferOneData = new VkRender::UBOMatrix();
-        bufferTwoData = new VkRender::FragShaderParams();
-        bufferThreeData = new VkRender::PointCloudParam();
-        bufferFourData = new VkRender::ZoomParam();
+        bufferOneData = std::make_unique<VkRender::UBOMatrix>();
+        bufferTwoData = std::make_unique<VkRender::FragShaderParams>();
+        bufferThreeData = std::make_unique<VkRender::PointCloudParam>();
+        bufferFourData = std::make_unique<VkRender::ZoomParam>();
 
         for (auto &uniformBuffer: renderUtils.uniformBuffers) {
-
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                              &uniformBuffer.bufferOne, sizeof(VkRender::UBOMatrix));
+            uniformBuffer.bufferOne.map();
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                              &uniformBuffer.bufferTwo, sizeof(VkRender::FragShaderParams));
+            uniformBuffer.bufferTwo.map();
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                              &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
+            uniformBuffer.bufferThree.map();
 
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                              &uniformBuffer.bufferFour, sizeof(VkRender::ZoomParam));
+            uniformBuffer.bufferFour.map();
 
         }
 
@@ -221,6 +205,13 @@ public:
     void onDestroyScript() {
         for (auto * shaderModule: shaderModules) {
             vkDestroyShaderModule(renderUtils.device->logicalDevice, shaderModule, nullptr);
+        }
+
+        for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+            uniformBuffer.bufferOne.unmap();
+            uniformBuffer.bufferTwo.unmap();
+            uniformBuffer.bufferThree.unmap();
+            uniformBuffer.bufferFour.unmap();
         }
 
         onDestroy();

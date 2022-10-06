@@ -56,7 +56,7 @@ namespace MultiSense {
 
         {
             for (auto &layer: m_LayerStack) {
-                layer->OnUIRender(&handles);
+                layer->onUIRender(&handles);
 
             }
         }

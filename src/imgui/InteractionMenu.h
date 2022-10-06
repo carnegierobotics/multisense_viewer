@@ -18,8 +18,15 @@ public:
 
     }
 
+    void onDetach() override {
 
-    void OnUIRender(MultiSense::GuiObjectHandles *handles) override {
+    }
+
+    void onAttach() override {
+
+    }
+
+    void onUIRender(MultiSense::GuiObjectHandles *handles) override {
         if (handles->devices->empty()) return;
         bool allUnavailable = true;
         for (auto &d: *handles->devices) {
@@ -68,7 +75,7 @@ public:
             ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
             int imageButtonHeight = 100;
-            const char *labels[3] = {"Preview Device", "Device Information", "Configure Device"};
+            const char *labels[3] = {"Preview Device \n!(Not implemented)", "Device Information \n!(Not implemented)", "Configure Device"};
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::ShowDemoWindow();
 
@@ -96,11 +103,9 @@ public:
                 ImGui::PushID(i);
 
                 ImGui::ImageButton(labels[i], handles->info->imageButtonTextureDescriptor[i], size, uv0, uv1,
-                                       bg_col, tint_col);
+                                   bg_col, tint_col);
                 ImGui::PopID();
                 ImGui::SetItemAllowOverlap();
-
-
 
                 ImGui::PushFont(handles->info->font18);
                 ImGui::SetCursorPos(ImVec2(xOffset + ((100.0f - ImGui::CalcTextSize(labels[i]).x) / 2),
@@ -126,7 +131,7 @@ public:
                 ImGui::SetCursorScreenPos(pos);
                 bool hovered = false;
                 bool held = false;
-                if(ImGui::HoveredInvisibleButton(labels[i], &hovered, &held, btnSize, 0))
+                if (ImGui::HoveredInvisibleButton(labels[i], &hovered, &held, btnSize, 0))
                     page[i] = true;
 
                 ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(
@@ -146,7 +151,6 @@ public:
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
-
 
     void buildDeviceInformation(MultiSense::GuiObjectHandles *handles) {
         bool pOpen = true;
@@ -355,18 +359,7 @@ private:
                                                           0.0f,
                                                           0);
 
-
-                /*
-                // extension of top bar in different color
-                ImVec2 topBarRectMinExtended(viewAreaElementPosX, topBarRectMax.y);
-                ImVec2 topBarRectMaxExtended(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
-                                             topBarRectMax.y + 5.0f);
-
-                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMinExtended, topBarRectMaxExtended,
-                                                          ImColor(MultiSense::CRLGray424Main), 0.0f,
-                                                          0);
-                */
-                // Left bar
+                // left bar
 
                 ImVec2 leftBarMin(viewAreaElementPosX, topBarRectMax.y);
                 ImVec2 leftBarMax(viewAreaElementPosX + (handles->info->previewBorderPadding / 2),
@@ -625,7 +618,7 @@ private:
             // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
             std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
             // Disable IMU as well in 2D
-            auto& chInfo = dev.channelInfo.front();
+            auto &chInfo = dev.channelInfo.front();
             if (dev.useImuData)
                 pointCloudSources.emplace_back("IMU");
             for (const auto &source: pointCloudSources) {
@@ -673,15 +666,12 @@ private:
                 }
                 ImGui::EndCombo();
             }
-
-
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
             ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
             ImGui::PopStyleColor();
-
 
             /*
             if (dev.useImuData) {
@@ -693,9 +683,7 @@ private:
                 Utils::removeFromVector(&dev.userRequestedSources, "IMU");
             }
    */
-
             dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
-
             if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
                 chInfo.requestedStreams.emplace_back("Disparity Left");
                 Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
@@ -704,9 +692,11 @@ private:
                 chInfo.requestedStreams.emplace_back("Luma Rectified Left");
                 Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
-
+            // Check if mouse hover a window
         }
 
+        handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
+                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow));
 
     }
 
@@ -978,7 +968,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Duty_Cycle",
                                    &d.parameters.light.dutyCycle, 0,
-                                   100);
+                                   100, "%.0f"); // showing 0 float precision not using int cause underlying libmultisense is a float
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1054,7 +1044,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Framerate",
                                    &d.parameters.fps, 1,
-                                   30);
+                                   30, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1068,7 +1058,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
                                    &d.parameters.gain, 1.68,
-                                   3);
+                                   14.2, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1081,8 +1071,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Gamma",
-                                   &d.parameters.gamma, 0,
-                                   3);
+                                   &d.parameters.gamma, 1.1,
+                                   2.2, "%.2f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1096,7 +1086,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
                                    &d.parameters.stereoPostFilterStrength, 0,
-                                   1);
+                                   1,"%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

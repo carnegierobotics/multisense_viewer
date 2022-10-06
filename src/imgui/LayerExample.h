@@ -17,7 +17,7 @@ public:
 
 
     /** Called once upon this object creation**/
-    void OnAttach() override {
+    void onAttach() override {
 
     }
 
@@ -27,7 +27,7 @@ public:
     }
 
     /** Called once per frame **/
-    void OnUIRender(MultiSense::GuiObjectHandles *_handles) override {
+    void onUIRender(MultiSense::GuiObjectHandles *_handles) override {
         // Create a Button
         /*
         bool clicked = ImGui::Button("Dont Click", ImVec2(150.0f, 50.0f));
@@ -36,6 +36,11 @@ public:
             throw std::runtime_error("Dont click it");
         //demo to learn more: https://github.com/ocornut/imgui
          */
+
+    }
+
+    /** Called once upon this object destruction **/
+    void onDetach () override {
 
     }
 };

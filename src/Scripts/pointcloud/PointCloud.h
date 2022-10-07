@@ -29,9 +29,7 @@ public:
     static std::string GetFactoryName() { return "PointCloud"; }
 
     /** @brief Setup function called one during engine prepare **/
-    void setup() override {};
-    /** @brief Setup function called one during engine prepare **/
-    void setup(Base::Render r) override;
+    void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief update function called once per frame **/
@@ -52,7 +50,6 @@ public:
     Page selectedPreviewTab = TAB_NONE;
     uint32_t width{}, height{};
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
-    CRLCameraDataType textureType{};
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

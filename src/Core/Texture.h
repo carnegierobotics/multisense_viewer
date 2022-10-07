@@ -159,11 +159,11 @@ public:
 
     void createDefaultSampler();
 
-    void updateTextureFromBuffer(VkRender::TextureData *tex);
+    void updateTextureFromBuffer();
 
-    void updateTextureFromBufferYUV(VkRender::TextureData *tex);
+    void updateTextureFromBufferYUV();
 
-    void updateTextureFromBufferYUV(VkRender::MP4Frame *frame);
+    //void updateTextureFromBufferYUV(VkRender::MP4Frame *frame);
 
 };
 

@@ -229,8 +229,7 @@ namespace ImGui {
     ImageButtonText(const char *str_id, int *idx, int defaultValue, const ImVec2 btnSize, ImTextureID user_texture_id,
                     const ImVec2 &size,
                     const ImVec2 &uv0,
-                    const ImVec2 &uv1,
-                    const ImVec4 &bg_col, const ImVec4 &tint_col) {
+                    const ImVec2 &uv1, const ImVec4 &tint_col) {
         ImGuiContext &g = *GImGui;
         ImGuiWindow *window = g.CurrentWindow;
         if (window->SkipItems)
@@ -301,7 +300,6 @@ namespace ImGui {
                   0);   // Flags not supported by this function
         ImGuiContext &g = *GImGui;
         ImGuiWindow *ref_window = g.HoveredWindow;
-        ImGuiWindow *cur_window = g.CurrentWindow;
         if (ref_window == NULL)
             return false;
 

@@ -27,7 +27,7 @@ void MultiSenseCamera::update() {
 
     if (imuEnabled) {
         VkRender::Rotation rot{};
-        renderData.crlCamera->get()->getImuRotation(&rot);
+        //renderData.crlCamera->get()->getImuRotation(&rot);
         float P = (rot.pitch - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
         float R = (rot.roll - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
         //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", P, R, rot.pitch, rot.roll);

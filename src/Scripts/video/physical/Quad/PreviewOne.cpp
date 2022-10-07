@@ -6,7 +6,7 @@
 #include "GLFW/glfw3.h"
 
 
-void PreviewOne::setup(Base::Render r) {
+void PreviewOne::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -16,25 +16,21 @@ void PreviewOne::setup(Base::Render r) {
 }
 
 void PreviewOne::update() {
+    if (playbackSate != AR_PREVIEW_PLAYING || selectedPreviewTab != TAB_2D_PREVIEW)
+        return;
+
+    // There might be some delay for when the camera actually sets the resolution therefore add this check so we dont render to a texture that does not match the actual camere frame size
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
             prepareTexture();
             return;
         }
-
-        auto* tex = new VkRender::TextureData(textureType);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
-            model->setTexture(tex);
-            model->setZoom();
-            if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
-                free(tex->data);
-            else {
-                free(tex->planar.data[0]);
-                free(tex->planar.data[1]);
-            }
+        auto tex = std::make_unique<VkRender::TextureData>(textureType);
+        model->getTextureDataPointer(tex.get());
+        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
+            model->updateTexture(textureType);
         }
-        delete tex;
     }
 
     VkRender::UBOMatrix mat{};
@@ -134,8 +130,8 @@ void PreviewOne::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
 void PreviewOne::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
     float row = dev.row[0];
     float col = dev.col[0];
-    scaleX = (uiHandle->info->viewAreaElementSizeX / 1280.0f) * (1280.0f / uiHandle->info->width);
-    scaleY = (uiHandle->info->viewAreaElementSizeY / 720.0f) * (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
     float viewAreaElementPosX = offsetX + (uiHandle->info->viewAreaElementSizeX/2) + (col * uiHandle->info->viewAreaElementSizeX) + (col * 10.0f);
     centerX = 2 * (viewAreaElementPosX) / uiHandle->info->width - 1; // map between -1 to 1q

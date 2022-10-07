@@ -12,10 +12,8 @@ VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) 
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    width = 1920;
-    height = 1080;
-    width = 1280;
-    height = 720;
+    width = 1400;
+    height = 1010;
     window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetWindowUserPointer(window, this);
@@ -505,7 +503,6 @@ void VulkanRenderer::windowResize() {
         return;
     }
     backendInitialized = false;
-    resized = true;
 
     // Ensure all operations on the device have been finished before destroying resources
     vkQueueWaitIdle(queue);

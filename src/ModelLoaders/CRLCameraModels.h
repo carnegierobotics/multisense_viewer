@@ -78,7 +78,7 @@ public:
 
         std::unique_ptr<Texture2D> texture;
         std::unique_ptr<TextureVideo> textureVideo;
-        std::unique_ptr<TextureVideo> textureVideoDepthMap;
+        std::unique_ptr<TextureVideo> textureColorMap;
 
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
@@ -88,15 +88,16 @@ public:
         void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName);
 
         void
-        createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices, const std::vector<uint32_t> &indices = std::vector<uint32_t>());
+        createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
+                              const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
         void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void setTexture(VkRender::MP4Frame *frame);
-
-        void setTexture(VkRender::YUVTexture *tex);
+        void updateTexture(CRLCameraDataType type);
 
         void setTexture(VkRender::TextureData *tex);
+
+        void getTextureDataPointer(VkRender::TextureData *tex) const;
 
         void setZoom();
     };

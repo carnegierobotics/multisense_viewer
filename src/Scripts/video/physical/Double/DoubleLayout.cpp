@@ -6,7 +6,7 @@
 #include "GLFW/glfw3.h"
 
 
-void DoubleLayout::setup(Base::Render r) {
+void DoubleLayout::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -16,27 +16,21 @@ void DoubleLayout::setup(Base::Render r) {
 }
 
 void DoubleLayout::update() {
-    if (playbackSate != AR_PREVIEW_PLAYING)
+    if (playbackSate != AR_PREVIEW_PLAYING || selectedPreviewTab != TAB_2D_PREVIEW)
         return;
 
+    // There might be some delay for when the camera actually sets the resolution therefore add this check so we dont render to a texture that does not match the actual camere frame size
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
             prepareTexture();
             return;
         }
-        auto *tex = new VkRender::TextureData(textureType);
-        if (renderData.crlCamera->get()->getCameraStream(src, tex, remoteHeadIndex)) {
-            model->setTexture(tex);
-            model->setZoom();
-            if (tex->type == AR_DISPARITY_IMAGE || tex->type == AR_GRAYSCALE_IMAGE)
-                free(tex->data);
-            else {
-                free(tex->planar.data[0]);
-                free(tex->planar.data[1]);
-            }
+        auto tex = std::make_unique<VkRender::TextureData>(textureType);
+        model->getTextureDataPointer(tex.get());
+        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
+            model->updateTexture(textureType);
         }
-        delete tex;
     }
 
     VkRender::UBOMatrix mat{};
@@ -144,8 +138,8 @@ void DoubleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHand
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
-    scaleX = (uiHandle->info->viewAreaElementSizeX / 1280.0f) * (1280.0f / uiHandle->info->width);
-    scaleY = (uiHandle->info->viewAreaElementSizeY / 720.0f) * (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
 }
 
 

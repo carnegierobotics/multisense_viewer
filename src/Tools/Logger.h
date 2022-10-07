@@ -243,33 +243,27 @@ namespace Log {
         void enableFileLogging();
 
         uint32_t frameNumber = 0;
+
+        void operator=(const Logger &obj) = delete;
+
     protected:
         Logger();
         ~Logger();
-
-
-
         // Wrapper function for lock/unlock
         // For Extensible feature, lock and unlock should be in protected
         void lock();
-
         void unlock();
-
         std::string getCurrentTime();
-
     private:
         /*
         void info(const char *fmt, ...);
          */
-        void _info(const char *text) throw();
+        void _info(const char *text) noexcept;
 
         void logIntoFile(std::string &data);
 
         void logOnConsole(std::string &data);
 
-        Logger(const Logger &obj) {}
-
-        void operator=(const Logger &obj) {}
 
     private:
         static Logger *m_Instance;
@@ -277,8 +271,8 @@ namespace Log {
 
         std::mutex m_Mutex{};
 
-        LogLevel m_LogLevel;
-        LogType m_LogType;
+        LogLevel m_LogLevel{};
+        LogType m_LogType{};
 
     };
 

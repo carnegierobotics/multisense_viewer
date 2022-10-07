@@ -91,7 +91,7 @@ namespace Validation {
         return extensions;
     }
 
-    static bool checkValidationLayerSupport(const std::vector<const char *> validationLayerName ) {
+    static bool checkValidationLayerSupport(const std::vector<const char *>& validationLayerName ) {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 

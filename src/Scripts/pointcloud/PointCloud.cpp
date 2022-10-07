@@ -6,10 +6,12 @@
 #include <glm/gtx/string_cast.hpp>
 
 
-void PointCloud::setup(Base::Render r) {
+void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
     model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
+    model->modelType = AR_POINT_CLOUD;
+
 }
 
 void PointCloud::update() {
@@ -22,19 +24,17 @@ void PointCloud::update() {
     }
 
     if (model->draw) {
-        auto *tex = new VkRender::TextureData(AR_DISPARITY_IMAGE);
-        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", tex, remoteHeadIndex)) {
-            model->setTexture(tex);
-            free(tex->data);
+        auto tex = std::make_unique<VkRender::TextureData>(AR_POINT_CLOUD);
+        model->getTextureDataPointer(tex.get());
+        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex.get(), remoteHeadIndex)) {
+            model->updateTexture(tex->type);
         }
 
-        auto *tex2 = new VkRender::TextureData(AR_POINT_CLOUD);
-        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex2, remoteHeadIndex)) {
-            model->setTexture(tex2);
-            free(tex2->data);
+        auto depthTex = std::make_unique<VkRender::TextureData>(AR_DISPARITY_IMAGE);
+        model->getTextureDataPointer(depthTex.get());
+        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", depthTex.get(), remoteHeadIndex)) {
+            model->updateTexture(depthTex->type);
         }
-        delete tex;
-        delete tex2;
     }
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
@@ -45,12 +45,12 @@ void PointCloud::update() {
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
-    auto& d = bufferOneData;
+    auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto& d2 = bufferTwoData;
+    auto &d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -73,7 +73,6 @@ void PointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
-            textureType = AR_POINT_CLOUD;
             prepareTexture();
         }
     }
@@ -87,7 +86,6 @@ void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 
 void PointCloud::prepareTexture() {
-    model->modelType = textureType;
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     width = imgConf.width();
     height = imgConf.height();
@@ -95,17 +93,17 @@ void PointCloud::prepareTexture() {
     meshData.resize(width * height);
     int v = 0;
     // first few rows and cols (20) are discarded in the shader anyway
-    for (int i = 20; i < width-20; ++i) {
+    for (int i = 20; i < width - 20; ++i) {
         for (int j = 20; j < height - 20; ++j) {
             meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
-            meshData[v].uv0 = glm::vec2(1.0f- ((float) i / (float) width), 1.0f - ((float) j / (float) height));
+            meshData[v].uv0 = glm::vec2(1.0f - ((float) i / (float) width), 1.0f - ((float) j / (float) height));
             v++;
         }
     }
     model->createMeshDeviceLocal(meshData);
 
     renderData.crlCamera->get()->preparePointCloud(width, height);
-    model->createEmtpyTexture(width, height, textureType);
+    model->createEmtpyTexture(width, height, AR_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},

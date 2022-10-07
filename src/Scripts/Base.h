@@ -72,7 +72,6 @@ public:
      * @param camHandle: Handle to currently connected camera
      * Called if the script type is: ArCameraScript and
      * the cameraHandle has been initialized by the CameraConnection Class */
-    virtual void setup(Render r) {};
 
     virtual void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
 
@@ -188,11 +187,7 @@ public:
 
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
-        if (getType() == AR_SCRIPT_TYPE_CRL_CAMERA || getType() == AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY ||
-            getType() == AR_SCRIPT_TYPE_POINT_CLOUD)
-            setup(renderData);
-        else
-            setup();
+        setup();
 
         renderData.drawThisScript = true;
     }

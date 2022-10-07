@@ -128,7 +128,7 @@ namespace Populate {
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCreateInfo.pNext = NULL;
         framebufferCreateInfo.layers = 1;
-        framebufferCreateInfo.attachmentCount = 2;
+        framebufferCreateInfo.attachmentCount = attachmentCount;
         framebufferCreateInfo.pAttachments = attachments;
         framebufferCreateInfo.width = width;
         framebufferCreateInfo.height = height;

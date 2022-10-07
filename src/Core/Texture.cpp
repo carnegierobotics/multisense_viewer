@@ -1263,14 +1263,14 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     updateDescriptor();
 
     // Create empty buffers we can copy our texture data to
-    size = (VkDeviceSize) width * height * 2;
+
 
 
     // Create sampler dependt on image format
     switch (format) {
         case VK_FORMAT_R16_UNORM:
-        case VK_FORMAT_R8_UNORM:
         case VK_FORMAT_R16_UINT:
+            size = (VkDeviceSize) width * height * 2;
         CHECK_RESULT(device->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1278,6 +1278,16 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
                 &stagingBuffer,
                 &stagingMemory));
 
+            CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+            break;
+        case VK_FORMAT_R8_UNORM:
+            size = (VkDeviceSize) width * height;
+            CHECK_RESULT(device->createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    size,
+                    &stagingBuffer,
+                    &stagingMemory));
             CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, size, 0, (void **) &data));
             break;
         case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
@@ -1305,19 +1315,13 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 }
 
 
-void TextureVideo::updateTextureFromBuffer(VkRender::TextureData *tex) {
-    if (size < tex->len) {
-        Log::Logger::getInstance()->info("Size mismatch between texture type {} image and camera image", (int) tex->type);
-        return;
-    }
-    memcpy(data, tex->data, tex->len);
+void TextureVideo::updateTextureFromBuffer() {
 
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;
     subresourceRange.levelCount = mipLevels;
     subresourceRange.layerCount = 1;
-
 
     VkBufferImageCopy bufferCopyRegion = {};
     bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1365,21 +1369,10 @@ void TextureVideo::updateTextureFromBuffer(VkRender::TextureData *tex) {
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     device->flushCommandBuffer(copyCmd, device->transferQueue);
-
-
 }
 
 
-void TextureVideo::updateTextureFromBufferYUV(VkRender::TextureData *tex) {
-    if (size < tex->planar.len[0] || size < tex->planar.len[1]) {
-        Log::Logger::getInstance()->info("Size mismatch between color texture image and camera image");
-        return;
-    }
-
-    memcpy(data, tex->planar.data[1], tex->planar.len[1]);
-    memcpy(data2, tex->planar.data[0], tex->planar.len[0]); // TODO copy error
-
-
+void TextureVideo::updateTextureFromBufferYUV() {
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;
@@ -1405,8 +1398,6 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::TextureData *tex) {
     bufferCopyRegionChroma.imageExtent.height = height / 2;
     bufferCopyRegionChroma.imageExtent.depth = 1;
     bufferCopyRegionChroma.bufferOffset = 0;
-
-
 
     // Use a separate command buffer for texture loading
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -1458,7 +1449,7 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::TextureData *tex) {
 
 
 }
-
+/*
 void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
 
 
@@ -1591,7 +1582,7 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
     vkDestroyBuffer(device->logicalDevice, plane2, nullptr);
 
 }
-
+*/
 VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) {
 
     // YUV TEXTURE SAMPLER

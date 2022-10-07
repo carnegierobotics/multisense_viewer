@@ -120,37 +120,45 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
     }
 }
 
-
-void CRLCameraModels::Model::setTexture(VkRender::TextureData *tex) {
-
-    switch (tex->type) {
+void CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
+    switch (type) {
         case AR_POINT_CLOUD:
-            textureVideoDepthMap->updateTextureFromBuffer(tex);
+            textureColorMap->updateTextureFromBuffer();
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
-            textureVideo->updateTextureFromBuffer(tex);
+            textureVideo->updateTextureFromBuffer();
             break;
         case AR_COLOR_IMAGE_YUV420:
-            textureVideo->updateTextureFromBufferYUV(tex);
+            textureVideo->updateTextureFromBufferYUV();
             break;
         case AR_YUV_PLANAR_FRAME:
             break;
         case AR_CAMERA_IMAGE_NONE:
             break;
     }
-
 }
 
-void CRLCameraModels::Model::setTexture(VkRender::YUVTexture *tex) {
+void CRLCameraModels::Model::setTexture(VkRender::TextureData *tex) {
 
-    //textureVideo->updateTextureFromBufferYUV(tex);
-
-}
-
-void CRLCameraModels::Model::setTexture(VkRender::MP4Frame *frame) {
-
-    textureVideo->updateTextureFromBufferYUV(frame);
+/*
+     switch (AR_DISPARITY_IMAGE) {
+        case AR_POINT_CLOUD:
+            textureColorMap->updateTextureFromBuffer();
+            break;
+        case AR_GRAYSCALE_IMAGE:
+        case AR_DISPARITY_IMAGE:
+            textureVideo->updateTextureFromBuffer();
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+            textureVideo->updateTextureFromBufferYUV();
+            break;
+        case AR_YUV_PLANAR_FRAME:
+            break;
+        case AR_CAMERA_IMAGE_NONE:
+            break;
+    }
+ */
 
 }
 
@@ -186,9 +194,9 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
         case AR_POINT_CLOUD:
             format = VK_FORMAT_R16_UNORM;
             // two textures are needed for point clouds. this one for coloring and other for displacement
-            textureVideoDepthMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
-                                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                                  VK_FORMAT_R8_UNORM);
+            textureColorMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                                                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                             VK_FORMAT_R8_UNORM);
             break;
         case AR_YUV_PLANAR_FRAME:
             format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
@@ -207,6 +215,26 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
 void CRLCameraModels::Model::setZoom() {
 
 
+}
+
+void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) const {
+    switch (tex->type) {
+        case AR_POINT_CLOUD:
+            tex->data = textureColorMap->data;
+            break;
+        case AR_GRAYSCALE_IMAGE:
+        case AR_DISPARITY_IMAGE:
+            tex->data = textureVideo->data;
+            break;
+        case AR_COLOR_IMAGE_YUV420:
+            tex->data = textureVideo->data;
+            //tex->data2 = textureVideo->data2;
+        break;
+        case AR_YUV_PLANAR_FRAME:
+            break;
+        case AR_CAMERA_IMAGE_NONE:
+            break;
+    }
 }
 
 
@@ -349,7 +377,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, cons
         writeDescriptorSets[3].descriptorCount = 1;
         writeDescriptorSets[3].dstSet = descriptors[i];
         writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->textureVideoDepthMap->descriptor;
+        writeDescriptorSets[3].pImageInfo = &model->textureColorMap->descriptor;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);

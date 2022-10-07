@@ -380,7 +380,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
             rc = ini.SaveFile("NetConfigBackup.ini");
         }
 
-
+        */
         /*** Call ioctl to get configure network interface ***/
 
         /// note: prepare the two struct sockaddr_in

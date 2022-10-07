@@ -60,12 +60,11 @@ public:
 
     std::string title = "-1";
     std::string name = "VulkanRenderer";
-    /** This application is written against Vulkan API v.1.2+ **/
+    /** @brief This application is written against Vulkan API v.1.2+ **/
     uint32_t apiVersion = VK_API_VERSION_1_2;
     bool backendInitialized = false;
-    bool resized = false;
-    uint32_t width = 1920;
-    uint32_t height = 1080;
+    uint32_t width = 1920;      // Default values - Actual values set in constructor
+    uint32_t height = 1080;     // Default values - Actual values set in constructor
 
     /** @brief Encapsulated physical and logical vulkan device */
     std::unique_ptr<VulkanDevice> vulkanDevice{};
@@ -178,10 +177,7 @@ protected:
     // Descriptor set pool
     // Pipeline cache object
     VkPipelineCache pipelineCache{};
-
-
     VkRender::ObjectPicking selection{};
-
     // Handle to Debug Utils
     VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 

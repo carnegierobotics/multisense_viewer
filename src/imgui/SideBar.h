@@ -533,7 +533,6 @@ private:
 
             ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
             ImVec2 uv1 = ImVec2(1.0f, 1.0f);
-            ImVec4 bg_col = MultiSense::CRLGray424Main;         // Match bg color
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
@@ -542,15 +541,13 @@ private:
 
             (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
-                                    bg_col,
-                                    tint_col));
+                                                                        tint_col));
 
 
             ImGui::SameLine(0, 25.0f);
             (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
-                                    bg_col,
-                                    tint_col));
+                                                                        tint_col));
 
 
             /*

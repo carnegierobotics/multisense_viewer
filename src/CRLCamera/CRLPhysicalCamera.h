@@ -17,9 +17,6 @@
 #include "MultiSense/src/Core/Definitions.h"
 #include "include/MultiSense/MultiSenseChannel.hh"
 
-
-
-
 class ImageBufferWrapper {
 public:
     ImageBufferWrapper(crl::multisense::Channel *driver,
@@ -36,20 +33,15 @@ public:
     [[nodiscard]] const crl::multisense::image::Header& data() const noexcept {
         return data_;
     }
-
     ImageBufferWrapper operator=(const ImageBufferWrapper &) = delete;
 private:
-
     crl::multisense::Channel *driver_ = nullptr;
     void *callbackBuffer_;
     const crl::multisense::image::Header data_;
-
 };
 
 class ImageDataBase {
-
 public:
-
     void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper>& buf) {
         // Lock
         std::lock_guard<std::mutex> lock(mut);
@@ -69,33 +61,23 @@ private:
 class ChannelWrapper
 {
 public:
-
     explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1):
-            channelPtr_(crl::multisense::Channel::Create(ipAddress, remoteHeadChannel))
-    {
+            channelPtr_(crl::multisense::Channel::Create(ipAddress, remoteHeadChannel)){
        dataBase = new ImageDataBase();
     }
-
-    ~ChannelWrapper()
-    {
+    ~ChannelWrapper(){
         delete dataBase;
-
         if (channelPtr_) {
             crl::multisense::Channel::Destroy(channelPtr_);
         }
     }
-
-    crl::multisense::Channel* ptr() noexcept
-    {
+    crl::multisense::Channel* ptr() noexcept{
         return channelPtr_;
     }
     ImageDataBase* dataBase{};
-
     ChannelWrapper(const ChannelWrapper&) = delete;
     ChannelWrapper operator=(const ChannelWrapper&) = delete;
-
 private:
-
     crl::multisense::Channel* channelPtr_ = nullptr;
 };
 
@@ -132,50 +114,34 @@ public:
         glm::mat4 kInverseMatrix{};
     };
 
-    std::unordered_map<uint32_t, CameraInfo> infoMap;
-
-    bool start(const std::string &dataSourceStr, uint32_t remoteHeadID);
-
-    bool stop(const std::string &dataSourceStr, uint32_t idx);
-
-    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx);
-
-    void preparePointCloud(uint32_t i, uint32_t i1);
-
-    void setResolution(CRLCameraResolution resolution, uint32_t channelID);
-
-    void setExposureParams(ExposureParams p);
-
-    void setWhiteBalance(WhiteBalanceParams param);
-
-    void setLighting(LightingParams light);
-
-    void setPostFilterStrength(float filterStrength);
-
-    void setGamma(float gamma);
-
-    void setFps(float fps, uint32_t index);
-
-    void setGain(float gain);
-
-    void setHDR(bool hdr);
-
+    // Functions to interface to the camera
     std::vector<uint32_t> connect(const std::string &ip, bool isRemoteHead);
+    bool start(const std::string &dataSourceStr, uint32_t remoteHeadID);
+    bool stop(const std::string &dataSourceStr, uint32_t idx);
+    bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx);
+    void preparePointCloud(uint32_t i, uint32_t i1);
+    void setResolution(CRLCameraResolution resolution, uint32_t channelID);
+    void setExposureParams(ExposureParams p, uint32_t channelID);
+    void setWhiteBalance(WhiteBalanceParams param, uint32_t channelID);
+    void setLighting(LightingParams light, uint32_t channelID);
+    void setPostFilterStrength(float filterStrength, uint32_t channelID);
+    void setGamma(float gamma, uint32_t channelID);
+    void setFps(float fps, uint32_t index);
+    void setGain(float gain, uint32_t channelID);
+    void setHDR(bool hdr, uint32_t channelID);
+    void setMtu(uint32_t mtu, uint32_t channelID);
 
     CameraInfo getCameraInfo(uint32_t idx);
 
 private:
     std::unordered_map<uint32_t, std::unique_ptr<ChannelWrapper>> channelMap{};
     std::unordered_map<uint32_t, CRLCameraResolution> currentResolutionMap{};
-
+    std::unordered_map<uint32_t, CameraInfo> infoMap;
+    std::mutex setCameraDataMutex;
     /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */
     void addCallbacks(uint32_t idx);
-
-    static void remoteHeadOneCallback(const crl::multisense::image::Header &header, void *userDataP);
-
+    static void remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP);
     void updateCameraInfo(uint32_t idx);
-
-    void setMtu(uint32_t mtu, uint32_t channelID);
 };
 
 

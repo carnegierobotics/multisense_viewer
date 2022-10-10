@@ -62,7 +62,7 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, uint32_t channelI
     }
 }
 
-void CRLPhysicalCamera::remoteHeadOneCallback(const crl::multisense::image::Header &header, void *userDataP) {
+void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto p = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
     p->callbackTime = std::chrono::steady_clock::now();
     p->startTime = std::chrono::steady_clock::now();
@@ -79,7 +79,7 @@ void CRLPhysicalCamera::addCallbacks(uint32_t idx) {
         num_sources += (d & 1);
         d >>= 1;
     }
-    if (channelMap[idx]->ptr()->addIsolatedCallback(remoteHeadOneCallback, infoMap[idx].supportedSources, this) !=
+    if (channelMap[idx]->ptr()->addIsolatedCallback(remoteHeadCallback, infoMap[idx].supportedSources, this) !=
         crl::multisense::Status_Ok)
         std::cerr << "Adding callback failed!\n";
 }
@@ -89,8 +89,6 @@ CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(uint32_t idx) {
 }
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx) {
-    // TODO Fix with proper conditions for checking if a frame is good or not
-
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span =
             std::chrono::duration_cast<std::chrono::duration<float>>(time - startTime);
@@ -136,8 +134,6 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
             std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
             return true;
 
-        case AR_YUV_PLANAR_FRAME:
-            break;
         case AR_DISPARITY_IMAGE:
             if (header->data().bitsPerPixel != 16) {
                 std::cerr << "Unsupported disparity pixel depth" << std::endl;
@@ -149,7 +145,8 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
                 return false;
             std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
             return true;
-        case AR_CAMERA_IMAGE_NONE:
+        default:
+            Log::Logger::getInstance()->info("This texture type is not supported {}", (int)tex->type);
             break;
     }
     return false;
@@ -178,53 +175,54 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
 }
 
 
-void CRLPhysicalCamera::updateCameraInfo(uint32_t idx) {
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getImageConfig(infoMap[idx].imgConf)) {
+void CRLPhysicalCamera::updateCameraInfo(uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to update Light config");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getNetworkConfig(infoMap[idx].netConfig)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getNetworkConfig(infoMap[channelID].netConfig)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "netConfig");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getVersionInfo(infoMap[idx].versionInfo)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getVersionInfo(infoMap[channelID].versionInfo)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "versionInfo");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getDeviceInfo(infoMap[idx].devInfo)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "devInfo");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getDeviceModes(infoMap[idx].supportedDeviceModes)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedDeviceModes");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getImageCalibration(infoMap[idx].camCal)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].camCal)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "camCal");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getEnabledStreams(infoMap[idx].supportedSources)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedSources");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getMtu(infoMap[idx].sensorMTU)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "sensorMTU");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getLightingConfig(infoMap[idx].lightConf)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "lightConf");
         return;
     }
 
-    if (crl::multisense::Status_Ok != channelMap[idx]->ptr()->getImageCalibration(infoMap[idx].calibration)) {
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "calibration");
         return;
     }
-
 }
 
 
-void CRLPhysicalCamera::setGamma(float gamma) {
+void CRLPhysicalCamera::setGamma(float gamma, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query gamma configuration");
@@ -234,11 +232,14 @@ void CRLPhysicalCamera::setGamma(float gamma) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set gamma configuration");
     }
-
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verify Gamma");
+    }
+    Log::Logger::getInstance()->info("verified Gamma");
 }
 
 void CRLPhysicalCamera::setFps(float fps, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
     crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
@@ -249,11 +250,14 @@ void CRLPhysicalCamera::setFps(float fps, uint32_t channelID) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
-
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verify fps");
+    }
+    Log::Logger::getInstance()->info("verified fps");
 }
 
-void CRLPhysicalCamera::setGain(float gain) {
+void CRLPhysicalCamera::setGain(float gain, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
 
     if (crl::multisense::Status_Ok != status) {
@@ -268,11 +272,15 @@ void CRLPhysicalCamera::setGain(float gain) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to update Gain");
+    }
+    Log::Logger::getInstance()->info("verified Gain");
 }
 
 
 void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
     if (resolution == currentResolutionMap[channelID] || resolution == CRL_RESOLUTION_NONE)
         return;
@@ -305,10 +313,13 @@ void CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, uint32_t c
         return;
     }
 
-    this->updateCameraInfo(channelID);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verify resolution");
+    }
 }
 
-void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
+void CRLPhysicalCamera::setExposureParams(ExposureParams p, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
@@ -331,10 +342,15 @@ void CRLPhysicalCamera::setExposureParams(ExposureParams p) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verify Exposure params");
+    }
+    Log::Logger::getInstance()->info("verified Exposure params");
 }
 
-void CRLPhysicalCamera::setPostFilterStrength(float filter) {
+void CRLPhysicalCamera::setPostFilterStrength(float filter, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query image configuration");
@@ -344,10 +360,15 @@ void CRLPhysicalCamera::setPostFilterStrength(float filter) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verified post filter strength");
+    }
+    Log::Logger::getInstance()->info("verified post filter strength");
 }
 
-void CRLPhysicalCamera::setHDR(bool hdr) {
+void CRLPhysicalCamera::setHDR(bool hdr, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query hdr image configuration");
@@ -358,10 +379,16 @@ void CRLPhysicalCamera::setHDR(bool hdr) {
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set hdr configuration");
     }
-    this->updateCameraInfo(0);
+
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to verifiy HDR");
+    }
+    Log::Logger::getInstance()->info("verified HDR");
 }
 
-void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
+void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
     crl::multisense::Status status = channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
     //
     // Check to see if the configuration query succeeded
@@ -382,11 +409,16 @@ void CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
-    this->updateCameraInfo(0);
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+        Log::Logger::getInstance()->info("Failed to update white balance");
+    }
+    Log::Logger::getInstance()->info("verified WhiteBalance params");
 
 }
 
-void CRLPhysicalCamera::setLighting(LightingParams param) {
+void CRLPhysicalCamera::setLighting(LightingParams param, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
     crl::multisense::Status status = channelMap[0]->ptr()->getLightingConfig(infoMap[0].lightConf);
 
     if (crl::multisense::Status_Ok != status) {
@@ -406,14 +438,26 @@ void CRLPhysicalCamera::setLighting(LightingParams param) {
         Log::Logger::getInstance()->info("Unable to set image configuration");
     }
 
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
+        Log::Logger::getInstance()->info("Failed to update '{}' ", "Lightning");
+    }
+    Log::Logger::getInstance()->info("verified '{}'", "Lightning");
 
 }
 
 void CRLPhysicalCamera::setMtu(uint32_t mtu, uint32_t channelID) {
+    std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
     int status = channelMap[channelID]->ptr()->setMtu(mtu);
     if (status != crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
     } else {
         Log::Logger::getInstance()->info("Set MTU to {}", mtu);
     }
+
+    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
+        Log::Logger::getInstance()->info("Failed to update '{}'", "sensorMTU");
+    }
+    Log::Logger::getInstance()->info("verified '{}' to {}", "sensorMTU", mtu);
+
 }

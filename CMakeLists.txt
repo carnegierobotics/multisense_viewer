@@ -107,8 +107,6 @@ set(ENGINE_SRC
         src/ModelLoaders/CRLCameraModels.h
         src/ModelLoaders/glTFModel.cpp
         src/ModelLoaders/glTFModel.h
-        src/ModelLoaders/MeshModel.cpp
-        src/ModelLoaders/MeshModel.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
         src/Scripts/Example.cpp

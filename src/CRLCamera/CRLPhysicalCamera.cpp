@@ -18,7 +18,7 @@ std::vector<uint32_t> CRLPhysicalCamera::connect(const std::string &ip, bool isR
     // else create only one and place it at 0th index.
     for (uint32_t i = 0; i < (isRemoteHead ? (crl::multisense::Remote_Head_3 + 1) : 1); ++i) {
         channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i) : std::make_unique<ChannelWrapper>(ip);
-        if (channelMap[i] != nullptr) {
+        if (channelMap[i].get()->ptr() != nullptr) {
             updateCameraInfo(i);
             setMtu(7200, i);
             // Start some timers

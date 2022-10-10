@@ -100,7 +100,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     }
     pLogger->info("Registered script: {} in factory", scriptName.c_str());
     // Run Once
-    Base::RenderUtils vars{};
+    VkRender::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain->imageCount;

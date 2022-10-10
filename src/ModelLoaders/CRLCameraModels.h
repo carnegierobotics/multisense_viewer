@@ -14,7 +14,7 @@
 
 #include <MultiSense/src/Core/Texture.h>
 #include <MultiSense/src/Tools/Macros.h>
-#include <MultiSense/src/Scripts/Base.h>
+#include <MultiSense/src/Scripts/Private/Base.h>
 #include "include/MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/Core/Definitions.h>
 
@@ -36,7 +36,7 @@ public:
     }
 
     struct Model {
-        explicit Model(const Base::RenderUtils *renderUtils);
+        explicit Model(const VkRender::RenderUtils *renderUtils);
 
         ~Model();
 
@@ -182,18 +182,18 @@ protected:
 
     const VulkanDevice *vulkanDevice = nullptr;
 
-    void createImageDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
+    void createImageDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
-    void createPointCloudDescriptors(Model *model, const std::vector<Base::UniformBufferSet> &ubo);
+    void createPointCloudDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
 
-    void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo, Model *model);
+    void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo, Model *model);
 
     void
     createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
-                         ScriptType type, const Base::RenderUtils *renderUtils);
+                         ScriptType type, const VkRender::RenderUtils *renderUtils);
 };
 
 

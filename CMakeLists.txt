@@ -75,16 +75,26 @@ add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 
+
+file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        "src/Scripts/Objects/*.h")
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "// Generated from Cmake\n")
+foreach (src ${SCRIPT_HEADERS})
+    file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "\#include \"MultiSense/" ${src} "\"\n")
+endforeach(src ${SCRIPT_HEADERS})
+file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        "src/Scripts/Objects/*.cpp")
+
 set(ENGINE_SRC
         src/Core/Definitions.h
         src/Core/KeyInput.h
-        src/Scripts/Base.h
+        src/Scripts/Private/Base.h
         src/Core/Buffer.cpp
         src/Core/Buffer.h
         src/Core/Camera.h
         src/CRLCamera/CameraConnection.cpp
         src/CRLCamera/CameraConnection.h
-        src/Scripts/ScriptBuilder.h
+        src/Scripts/Private/ScriptBuilder.h
         src/Core/Texture.cpp
         src/Core/Texture.h
         src/Core/Validation.h
@@ -109,37 +119,16 @@ set(ENGINE_SRC
         src/ModelLoaders/glTFModel.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
-        src/Scripts/Example.cpp
-        src/Scripts/Example.h
-        src/Scripts/objects/MultiSenseCamera.cpp
-        src/Scripts/objects/MultiSenseCamera.h
-        src/Scripts/pointcloud/PointCloud.cpp
-        src/Scripts/pointcloud/PointCloud.h
-        src/Scripts/video/physical/Single/SingleLayout.cpp
-        src/Scripts/video/physical/Single/SingleLayout.h
-        src/Scripts/video/physical/Double/DoubleLayout.cpp
-        src/Scripts/video/physical/Double/DoubleLayout.h
-        src/Scripts/video/physical/Double/DoubleLayoutBot.cpp
-        src/Scripts/video/physical/Double/DoubleLayoutBot.h
 
-        src/Scripts/video/physical/Quad/PreviewOne.cpp
-        src/Scripts/video/physical/Quad/PreviewOne.h
-        src/Scripts/video/physical/Quad/PreviewTwo.cpp
-        src/Scripts/video/physical/Quad/PreviewTwo.h
-        src/Scripts/video/physical/Quad/Three.cpp
-        src/Scripts/video/physical/Quad/Three.h
-        src/Scripts/video/physical/Quad/Four.cpp
-        src/Scripts/video/physical/Quad/Four.h
+        ${SCRIPT_HEADERS}
+        ${SCRIPT_SRC}
 
-        src/Scripts/video/physical/ScriptHeader.h
         src/Tools/Macros.h
         src/Tools/Populate.h
         src/Tools/Utils.h
         src/Tools/Logger.h
         src/Tools/Logger.cpp
-        src/Scripts/video/physical/ScriptHeader.h
         )
-
 
 if (WIN32)
 

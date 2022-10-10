@@ -20,14 +20,6 @@ class CameraConnection; // forward declaration of this class to speed up compile
 class Base {
 public:
 
-    /**@brief A standard set of uniform buffers */
-    struct UniformBufferSet {
-        Buffer bufferOne;
-        Buffer bufferTwo;
-        Buffer bufferThree;
-        Buffer bufferFour;
-    };
-
     std::unique_ptr<VkRender::UBOMatrix> bufferOneData{};
     std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
     std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
@@ -35,13 +27,7 @@ public:
 
     std::vector<VkShaderModule> shaderModules{};
 
-    struct RenderUtils {
-        VulkanDevice* device{};
-        uint32_t UBCount = 0;
-        VkRenderPass *renderPass{};
-        std::vector<UniformBufferSet> uniformBuffers;
-        const VkRender::ObjectPicking* picking;
-    } renderUtils{};
+    VkRender::RenderUtils renderUtils{};
 
     struct Render {
         uint32_t index;
@@ -132,7 +118,7 @@ public:
         if (renderData.crlCamera->get() != nullptr)
             update();
 
-        UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
+        VkRender::UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
         if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
             memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
@@ -141,7 +127,7 @@ public:
         }
     }
 
-    void createUniformBuffers(const RenderUtils &utils, Base::Render rData) {
+    void createUniformBuffers(const VkRender::RenderUtils &utils, Base::Render rData) {
         if (this->getType() == AR_SCRIPT_TYPE_DISABLED)
             return;
         renderData = std::move(rData);

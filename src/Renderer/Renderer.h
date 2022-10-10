@@ -16,24 +16,12 @@
 #include <filesystem>
 
 #include <MultiSense/src/Core/VulkanRenderer.h>
-#include <MultiSense/src/Scripts/Base.h>
-#include <MultiSense/src/Scripts/ScriptBuilder.h>
+#include <MultiSense/src/Scripts/Private/Base.h>
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/src/Tools/Macros.h>
 #include <MultiSense/src/CRLCamera/CameraConnection.h>
 
-// Include Scripts
-//
-//#include <MultiSense/src/Scripts/Example.h>
-
-#include <MultiSense/src/Scripts/objects/MultiSenseCamera.h>
-#include <MultiSense/src/Scripts/pointcloud/PointCloud.h>
-#include <MultiSense/src/Scripts/video/physical/Single/SingleLayout.h>
-#include <MultiSense/src/Scripts/video/physical/Double/DoubleLayout.h>
-#include <MultiSense/src/Scripts/video/physical/Double/DoubleLayoutBot.h>
-#include <MultiSense/src/Scripts/video/physical/Quad/Three.h>
-#include <MultiSense/src/Scripts/video/physical/Quad/PreviewOne.h>
-#include <MultiSense/src/Scripts/video/physical/Quad/PreviewTwo.h>
-#include <MultiSense/src/Scripts/video/physical/Quad/Four.h>
+#include "MultiSense/src/Scripts/Private/ScriptHeader.h"
 
 class Renderer : VulkanRenderer {
 

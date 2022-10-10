@@ -2,25 +2,28 @@
 // Created by magnus on 9/19/22.
 //
 
-#ifndef MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H
-#define MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H
+#ifndef MULTISENSE_VIEWER_PREVIEWTWO_H
+#define MULTISENSE_VIEWER_PREVIEWTWO_H
 
-#include <MultiSense/src/Scripts/video/physical/ScriptHeader.h>
-
-class DoubleLayoutBot: public Base, public RegisteredInFactory<DoubleLayoutBot>, CRLCameraModels
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
+#include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
+#include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
+#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
+class PreviewTwo: public Base, public RegisteredInFactory<PreviewTwo>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    DoubleLayoutBot() {
+    PreviewTwo() {
         s_bRegistered;
     }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DoubleLayoutBot>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PreviewTwo>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "DoubleLayoutBot"; }
+    static std::string GetFactoryName() { return "PreviewTwo"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -43,6 +46,7 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
+    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -64,5 +68,4 @@ public:
     void prepareTexture();
 };
 
-
-#endif //MULTISENSE_VIEWER_DOUBLELAYOUTBOT_H
+#endif //MULTISENSE_VIEWER_PREVIEWTWO_H

@@ -78,7 +78,7 @@ public:
 private:
     std::unique_ptr<MultiSense::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<Base>> scripts{};
-    std::vector<std::string> scriptNames;  // TODO Replace with generated script names from CMAKE
+    std::vector<std::string> scriptNames;  // TODO Generate the scriptnames with CMAKE and fetch them from there instead
 
     std::unique_ptr<CameraConnection> cameraConnection{};
     Base::Render renderData{};

@@ -103,7 +103,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
             continue;
         for (const auto &requested: ch.requestedStreams) {
             if (!Utils::isInVector(ch.enabledStreams, requested)) {
-                pool->Push(CameraConnection::startStreamTaskRemoteHead, this, dev, requested, ch.index);
+                pool->Push(CameraConnection::startStreamTask, this, dev, requested, ch.index);
                 ch.enabledStreams.emplace_back(requested);
             }
         }
@@ -115,7 +115,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
             continue;
         for (const auto &enabled: ch.enabledStreams) {
             if (!Utils::isInVector(ch.requestedStreams, enabled)) {
-                pool->Push(CameraConnection::stopStreamTaskRemoteHead, this, dev, enabled, ch.index);
+                pool->Push(CameraConnection::stopStreamTask, this, dev, enabled, ch.index);
                 Utils::removeFromVector(&ch.enabledStreams, enabled);
             }
         }
@@ -270,7 +270,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 
 bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool shouldConfigNetwork) {
 
-    hostAddress = dev.IP;
+    std::string hostAddress = dev.IP;
 
     // TODO recheck if we want to start using exceptions for stuff or if this is fine
     try {
@@ -326,7 +326,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
         bzero(ifr.ifr_name, IFNAMSIZ);
         strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
-        /*** Call ioctl to get network device configuration ***/
+        /*** Call ioctl to get and backup current network device configuration ***/
         /*
         std::string ipAddressBackup = "";
         std::string subnetMaskBackup = "";
@@ -448,7 +448,6 @@ void CameraConnection::deleteIniEntry(CSimpleIniA *ini, std::string section, std
 CameraConnection::~CameraConnection() {
     // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
     // stops all streams on the camera
-    camPtr.reset();
 #ifndef WIN32
     if (sd != -1)
         close(sd);
@@ -477,11 +476,9 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
 
         dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
         dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
-        app->lastActiveDevice = dev->name;
         dev->state = AR_STATE_ACTIVE;
     } else {
         dev->state = AR_STATE_UNAVAILABLE;
-        app->lastActiveDevice = "-1";
     }
 
 
@@ -535,7 +532,6 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     }
     // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
     // save the data back to the file
-    lastActiveDevice = "-1";
     if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
         int done = ini.Delete(CRLSerialNumber.c_str(), nullptr);
         dev->state = AR_STATE_REMOVE_FROM_LIST;
@@ -557,7 +553,7 @@ void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::De
     auto *ep = reinterpret_cast<ExposureParams *>(arg1);
 
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setExposureParams(*ep);
+    app->camPtr->setExposureParams(*ep, 0);
     app->updateFromCameraParameters(dev, 0);
 }
 
@@ -565,7 +561,7 @@ void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *ep = reinterpret_cast<WhiteBalanceParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setWhiteBalance(*ep);
+    app->camPtr->setWhiteBalance(*ep, 0);
     app->updateFromCameraParameters(dev, 0);
 }
 
@@ -574,11 +570,11 @@ void CameraConnection::setAdditionalParametersTask(void *context, float fps, flo
                                                    MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setGamma(gamma);
-    app->camPtr->setGain(gain);
+    app->camPtr->setGamma(gamma, index);
+    app->camPtr->setGain(gain, index);
     app->camPtr->setFps(fps, index);
-    app->camPtr->setPostFilterStrength(spfs);
-    app->camPtr->setHDR(hdr);
+    app->camPtr->setPostFilterStrength(spfs, index);
+    app->camPtr->setHDR(hdr, index);
     app->updateFromCameraParameters(dev, index);
 
 }
@@ -587,41 +583,31 @@ void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::De
     auto *app = reinterpret_cast<CameraConnection *>(context);
     auto *light = reinterpret_cast<LightingParams *>(arg1);
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setLighting(*light);
+    app->camPtr->setLighting(*light, 0);
     app->updateFromCameraParameters(dev, 0);
-    // TODO implement
 }
-
-
-void CameraConnection::startStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
-                                                 uint32_t remoteHeadIndex) {
-    auto *app = reinterpret_cast<CameraConnection *>(context);
-
-    if (app->camPtr->start(src, remoteHeadIndex));
-    else
-        Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
-
-
-}
-
-void CameraConnection::stopStreamTaskRemoteHead(void *context, MultiSense::Device *dev, std::string src,
-                                                uint32_t remoteHeadIndex) {
-    auto *app = reinterpret_cast<CameraConnection *>(context);
-
-    if (app->camPtr->stop(src, remoteHeadIndex));
-    else
-        Log::Logger::getInstance()->info("Failed to disable stream {}", src);
-
-}
-
 
 void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, uint32_t idx) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setResolution(arg1, idx);
-
 }
 
+void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, std::string src,
+                                       uint32_t remoteHeadIndex) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    if (app->camPtr->start(src, remoteHeadIndex));
+    else
+        Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
+}
+
+void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, std::string src,
+                                      uint32_t remoteHeadIndex) {
+    auto *app = reinterpret_cast<CameraConnection *>(context);
+    if (app->camPtr->stop(src, remoteHeadIndex));
+    else
+        Log::Logger::getInstance()->info("Failed to disable stream {}", src);
+}
 
 void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint32_t index) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.

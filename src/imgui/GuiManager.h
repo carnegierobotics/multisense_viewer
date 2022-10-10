@@ -27,26 +27,19 @@ namespace MultiSense {
 
     class GuiManager {
     public:
-
         GuiObjectHandles handles{};
-
         GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass& renderPass, const uint32_t& width, const uint32_t& height);
-
         ~GuiManager(){
-            for (const auto& layerStack: m_LayerStack) {
+            for (const auto& layerStack: m_LayerStack)
                 layerStack->onDetach();
-            }
-
             vkDestroyPipeline(device->logicalDevice, pipeline, nullptr);
             vkDestroyPipelineCache(device->logicalDevice, pipelineCache, nullptr);
             vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
             vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
-
             for (auto * shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->logicalDevice, shaderModule, nullptr);
             }
-
         };
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
@@ -55,7 +48,6 @@ namespace MultiSense {
         void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass);
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer);
-
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers();
 
@@ -71,10 +63,13 @@ namespace MultiSense {
             glm::vec2 scale;
             glm::vec2 translate;
         } pushConstBlock{};
+
+        // GuiManager framework
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
-        std::vector<Texture2D> fontTexture;
-        //std::unique_ptr<Texture2D> iconTexture;
+
+        // Textures
         std::vector<Texture2D> iconTextures;
+        std::vector<Texture2D> fontTexture;
         std::unique_ptr<Texture2D> gifTexture[99];
 
         // Vulkan resources for rendering the UI
@@ -90,12 +85,11 @@ namespace MultiSense {
         std::vector<VkDescriptorSet> fontDescriptors{};
         std::vector<VkDescriptorSet> imageIconDescriptors{};
         std::vector<VkShaderModule> shaderModules{};
-
         VkDescriptorSet gifImageDescriptors[20]{};     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
         VulkanDevice *device;
 
+        // Initialization functions
         void initializeFonts();
-
         ImFont *AddDefaultFont(float pixel_size);
         ImFont *loadFontFromFileName(std::string file, float fontSize);
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);

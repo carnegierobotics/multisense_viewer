@@ -44,7 +44,8 @@ void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vt
 
 // TODO change signature to CreateMesh(), and let function decide if its device local or not
 void
-CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex>& vertices, const std::vector<uint32_t>& indices) {
+CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
+                                              const std::vector<uint32_t> &indices) {
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
     size_t indexBufferSize = indices.size() * sizeof(uint32_t);
     mesh.vertexCount = vertices.size();
@@ -228,8 +229,8 @@ void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) c
             break;
         case AR_COLOR_IMAGE_YUV420:
             tex->data = textureVideo->data;
-            //tex->data2 = textureVideo->data2;
-        break;
+            tex->data2 = textureVideo->data2;
+            break;
         case AR_YUV_PLANAR_FRAME:
             break;
         case AR_CAMERA_IMAGE_NONE:
@@ -273,7 +274,8 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<Base::
 
 }
 
-void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
+void
+CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 
@@ -338,7 +340,8 @@ void CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, cons
 }
 
 void
-CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
+CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
+                                             const std::vector<Base::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 
@@ -547,12 +550,12 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 }
 
 
-void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo>& vector, Model *model,
+void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
                                            ScriptType type, const Base::RenderUtils *renderUtils) {
 
     this->vulkanDevice = renderUtils->device;
 
-    if (initializedPipeline){
+    if (initializedPipeline) {
         vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
         vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
         vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);

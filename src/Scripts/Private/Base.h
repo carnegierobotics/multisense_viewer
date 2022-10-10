@@ -54,6 +54,9 @@ public:
     /**@brief Pure virtual function called only once when VK is ready to render*/
     virtual void setup() {};
 
+    /**@brief Pure virtual function called to enable/disable drawing of this script*/
+    virtual void setDrawMethod(ScriptType type) {};
+
     /**@brief Virtual function called once when VK is ready to render with camera handle
      * @param camHandle: Handle to currently connected camera
      * Called if the script type is: ArCameraScript and
@@ -128,22 +131,15 @@ public:
     }
 
     void createUniformBuffers(const VkRender::RenderUtils &utils, Base::Render rData) {
-        if (this->getType() == AR_SCRIPT_TYPE_DISABLED)
-            return;
         renderData = std::move(rData);
-
         renderUtils = utils;
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
-
         startTime = std::chrono::steady_clock::now();
         lastLogTime = std::chrono::steady_clock::now();
-
-
         bufferOneData = std::make_unique<VkRender::UBOMatrix>();
         bufferTwoData = std::make_unique<VkRender::FragShaderParams>();
         bufferThreeData = std::make_unique<VkRender::PointCloudParam>();
         bufferFourData = std::make_unique<VkRender::ZoomParam>();
-
         for (auto &uniformBuffer: renderUtils.uniformBuffers) {
             renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -170,11 +166,8 @@ public:
             uniformBuffer.bufferFour.map();
 
         }
-
-
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
         setup();
-
         renderData.drawThisScript = true;
     }
 

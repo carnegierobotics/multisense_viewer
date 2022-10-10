@@ -34,13 +34,14 @@ public:
     ScriptType getType() override {return type;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) override;
-
+    /** @brief Method to enable/disable drawing of this script **/
+    void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
     void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_CRL_CAMERA;
+    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     std::unique_ptr<CRLCameraModels::Model> model;
 

@@ -37,7 +37,7 @@ public:
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<CRLPhysicalCamera>* crlCamera;
+        std::unique_ptr<CRLPhysicalCamera> *crlCamera;
         ScriptType type;
         Log::Logger *pLogger;
         uint32_t height;
@@ -48,45 +48,59 @@ public:
 
     virtual ~Base() = default;
 
-    /**@brief Pure virtual function called once every frame*/
-    virtual void update() {};
-
     /**@brief Pure virtual function called only once when VK is ready to render*/
-    virtual void setup() {};
-
+    virtual void setup() {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function setup not overridden for {} script", renderData.scriptName);
+    };
+    /**@brief Pure virtual function called once every frame*/
+    virtual void update() {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
+    };
+    /**@brief Pure virtual function called each frame*/
+    virtual void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function onUIUpdate not overridden for {} script", renderData.scriptName);
+    };
     /**@brief Pure virtual function called to enable/disable drawing of this script*/
-    virtual void setDrawMethod(ScriptType type) {};
-
-    /**@brief Virtual function called once when VK is ready to render with camera handle
-     * @param camHandle: Handle to currently connected camera
-     * Called if the script type is: ArCameraScript and
-     * the cameraHandle has been initialized by the CameraConnection Class */
-
+    virtual void setDrawMethod(ScriptType type) {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function setDrawMethod not overridden for {} script", renderData.scriptName);
+    };
+    /**@brief Virtual function called when resize event is triggered from the platform os*/
     virtual void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function onWindowResize not overridden for {} script", renderData.scriptName);
+    };
+    /**@brief Called once script is requested for deletion */
+    virtual void onDestroy() {
+        if (getType() != AR_SCRIPT_TYPE_DISABLED)
+            Log::Logger::getInstance()->info("Function onDestroy not overridden for {} script", renderData.scriptName);
 
     };
+    /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
+    virtual ScriptType getType() {
+        return AR_SCRIPT_TYPE_DISABLED;
+    }
 
-    void windowResize(Render *data, const MultiSense::GuiObjectHandles* uiHandle) {
+
+    void windowResize(Render *data, const MultiSense::GuiObjectHandles *uiHandle) {
         updateRenderData(data);
 
         onWindowResize(uiHandle);
     }
 
-    /**@brief Pure virtual function called on every UI update, also each frame*/
-    virtual void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {};
 
-    void uiUpdate(const MultiSense::GuiObjectHandles* uiHandle) {
+
+    void uiUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
         if (!this->renderData.drawThisScript)
             return;
 
-        if (renderData.crlCamera != NULL)
+        if (renderData.crlCamera != nullptr)
             onUIUpdate(uiHandle);
 
     }
-
-
-    /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-    virtual ScriptType getType() { return AR_SCRIPT_TYPE_DISABLED; }
 
     void drawScript(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
@@ -101,18 +115,17 @@ public:
             renderData.pLogger->info("Draw-number: {} for script: {}", (int) renderData.scriptDrawCount,
                                      renderData.scriptName.c_str());
         }
-
-
         draw(commandBuffer, i, b);
-
         if (i == 0)
             renderData.scriptDrawCount++;
 
     };
 
-    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {};
+    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+        Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
-    /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
+    };
+
     void updateUniformBufferData(Render *data) {
         updateRenderData(data);
 
@@ -121,7 +134,7 @@ public:
         if (renderData.crlCamera->get() != nullptr)
             update();
 
-        VkRender::UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
+        VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
         if (renderData.type != AR_SCRIPT_TYPE_DISABLED) {
             memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
             memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
@@ -171,13 +184,9 @@ public:
         renderData.drawThisScript = true;
     }
 
-
-    /**@brief Called once script is deleted */
-    virtual void onDestroy() {};
-
     /**@brief Call to delete the attached script. */
     void onDestroyScript() {
-        for (auto * shaderModule: shaderModules) {
+        for (auto *shaderModule: shaderModules) {
             vkDestroyShaderModule(renderUtils.device->logicalDevice, shaderModule, nullptr);
         }
 

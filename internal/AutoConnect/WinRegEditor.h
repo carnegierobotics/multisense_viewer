@@ -204,7 +204,6 @@ public:
 private:
 	HKEY findAdapterKey(std::string driverDesc) {
 		HKEY queryKey;
-		HKEY hKey;
 		DWORD lResult2 = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e972-e325-11ce-bfc1-08002be10318}", 0, KEY_READ, &queryKey);
 		// Open the GUID class 4d36e972-e325-11ce-bfc1-08002be10318
 		// List the sub keys in this category. I will be looking for devices with iftype = 6
@@ -279,12 +278,14 @@ private:
 					else {
 						std::string description((const char*)data);
 						if (description == driverDesc) {
+							HKEY hKey;
 
 							// Open new Key here
 							std::string adapterlpKey = "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e972-e325-11ce-bfc1-08002be10318}\\" + std::string(achKey);
-							LPCSTR lpKeyName = adapterlpKey.c_str();
-							DWORD lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, lpKeyName, 0, KEY_READ | KEY_SET_VALUE, &hKey);
-
+							DWORD lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, adapterlpKey.c_str(), 0, KEY_READ | KEY_SET_VALUE, &hKey);
+							if (lResult != ERROR_SUCCESS) {
+								printf("Failed to retrieve the adapter key\n");
+							}
 							RegCloseKey(queryKey);
 							printf("Got the adapter key\n");
 							return hKey;

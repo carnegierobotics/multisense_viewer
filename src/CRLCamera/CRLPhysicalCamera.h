@@ -94,8 +94,8 @@ public:
     ~CRLPhysicalCamera() {
         // TODO FREE RESOURCES MEMBER VARIABLES
         for (auto &ch: channelMap) {
-            //std::scoped_lock<std::mutex>(mutexMap.at(ch.first));
-            stop("All", ch.first);
+            if (ch.second.get()->ptr() != nullptr)
+                stop("All", ch.first);
         }
     }
 

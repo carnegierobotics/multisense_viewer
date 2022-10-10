@@ -151,7 +151,7 @@ protected:
     // Depth buffer format (selected during Vulkan initialization)
     VkFormat depthFormat{};
     // Wraps the swap chain to present images (framebuffers) to the windowing system
-    VulkanSwapchain swapchain{};
+    std::unique_ptr<VulkanSwapchain> swapchain;
     // Synchronization semaphores
     struct {
         // Swap chain image presentation

@@ -13,6 +13,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include "Definitions.h"
 
 typedef struct SwapChainBuffers {
     VkImage image;
@@ -33,13 +34,13 @@ public:
     std::vector<VkImage> images{};
     std::vector<SwapChainBuffer> buffers{};
     uint32_t queueNodeIndex = UINT32_MAX;
-    void initSurface(GLFWwindow *window);
-    void connect(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device);
+
     void create(uint32_t* width, uint32_t* height, bool vsync = false);
     VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex);
     VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
     void cleanup();
 
+    VulkanSwapchain(MultiSense::SwapChainCreateInfo info, uint32_t *width, uint32_t *height);
 };
 
 

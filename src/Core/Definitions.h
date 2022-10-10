@@ -13,6 +13,7 @@
 #include "MultiSense/src/Tools/Logger.h"
 #include "map"
 #include "unordered_map"
+#include "GLFW/glfw3.h"
 #include <utility>
 
 #define NUM_YUV_DATA_POINTERS 3
@@ -171,6 +172,14 @@ struct ExposureParams {
 
 
 namespace MultiSense {
+    typedef struct SwapChainCreateInfo {
+        GLFWwindow *pWindow{};
+        bool vsync = false;
+        VkInstance instance{};
+        VkPhysicalDevice physicalDevice{};
+        VkDevice device{};
+    } SwapChainCreateInfo;
+
     /** @brief  */
     struct Parameters {
         ExposureParams ep{};
@@ -336,12 +345,12 @@ namespace VkRender {
 
     struct TextureData {
         explicit TextureData(CRLCameraDataType texType) :
-        type(texType){
+                type(texType) {
 
         }
 
-        uint8_t* data{};
-        uint8_t* data2{};
+        uint8_t *data{};
+        uint8_t *data2{};
         uint32_t len = 0;
         CRLCameraDataType type = AR_CAMERA_IMAGE_NONE;
 

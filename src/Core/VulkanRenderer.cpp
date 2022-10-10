@@ -143,7 +143,6 @@ bool VulkanRenderer::initVulkan() {
     vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
     // Find a suitable depth format
     depthFormat = Utils::findDepthFormat(physicalDevice);
-    swapchain.connect(instance, physicalDevice, device);
     // Create synchronization objects
     VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
     semaphoreCreateInfo.flags =
@@ -171,7 +170,7 @@ bool VulkanRenderer::initVulkan() {
 
 VulkanRenderer::~VulkanRenderer() {
     // CleanUP all vulkan resources
-    swapchain.cleanup();
+    swapchain->cleanup();
     // Object picking resources
     vkDestroyRenderPass(device, selection.renderPass, nullptr);
     vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
@@ -186,11 +185,11 @@ VulkanRenderer::~VulkanRenderer() {
     vkDestroyImageView(device, depthStencil.view, nullptr);
     vkFreeMemory(device, depthStencil.mem, nullptr);
     vkDestroyCommandPool(device, cmdPool, nullptr);
-    for(auto* fence : waitFences){
+    for (auto *fence: waitFences) {
         vkDestroyFence(device, fence, nullptr);
     }
     vkDestroyRenderPass(device, renderPass, nullptr);
-    for(auto* fb : frameBuffers){
+    for (auto *fb: frameBuffers) {
         vkDestroyFramebuffer(device, fb, nullptr);
     }
     vkDestroyPipelineCache(device, pipelineCache, nullptr);
@@ -278,9 +277,9 @@ void VulkanRenderer::setupMainFramebuffer() {
     VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(width, height, attachments.data(),
                                                                                     attachments.size(),
                                                                                     renderPass);
-    frameBuffers.resize(swapchain.imageCount);
+    frameBuffers.resize(swapchain->imageCount);
     for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-        attachments[0] = swapchain.buffers[i].view;
+        attachments[0] = swapchain->buffers[i].view;
         VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
     }
@@ -290,7 +289,7 @@ void VulkanRenderer::setupRenderPass() {
     {
         std::array<VkAttachmentDescription, 2> attachments = {};
         // Color attachment
-        attachments[0].format = swapchain.colorFormat;
+        attachments[0].format = swapchain->colorFormat;
         attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
         attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -437,7 +436,7 @@ void VulkanRenderer::setupRenderPass() {
 void VulkanRenderer::createCommandPool() {
     VkCommandPoolCreateInfo cmdPoolInfo = {};
     cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    cmdPoolInfo.queueFamilyIndex = swapchain.queueNodeIndex;
+    cmdPoolInfo.queueFamilyIndex = swapchain->queueNodeIndex;
     cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     VkResult result = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &cmdPool);
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
@@ -445,7 +444,7 @@ void VulkanRenderer::createCommandPool() {
 
 void VulkanRenderer::createCommandBuffers() {
     // Create one command buffer for each swap chain image and reuse for rendering
-    drawCmdBuffers.resize(swapchain.imageCount);
+    drawCmdBuffers.resize(swapchain->imageCount);
 
     VkCommandBufferAllocateInfo cmdBufAllocateInfo =
             Populate::commandBufferAllocateInfo(
@@ -468,7 +467,6 @@ void VulkanRenderer::createSynchronizationPrimitives() {
 }
 
 
-
 void VulkanRenderer::createPipelineCache() {
     VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
     pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -478,9 +476,14 @@ void VulkanRenderer::createPipelineCache() {
 
 
 void VulkanRenderer::prepare() {
-    swapchain.initSurface(window);
+    MultiSense::SwapChainCreateInfo info{};
+    info.instance = instance;
+    info.pWindow = window;
+    info.physicalDevice = physicalDevice;
+    info.device = device;
+    swapchain = std::make_unique<VulkanSwapchain>(info, &width, &height);
+
     createCommandPool();
-    swapchain.create(&width, &height, settings.vsync);
     createCommandBuffers();
     createSynchronizationPrimitives();
     setupDepthStencil();
@@ -509,7 +512,7 @@ void VulkanRenderer::windowResize() {
     vkDeviceWaitIdle(device);
 
     // Recreate swap chain
-    swapchain.create(&width, &height);
+    swapchain->create(&width, &height);
 
     // Recreate the frame buffers
     vkDestroyImageView(device, depthStencil.view, nullptr);
@@ -596,7 +599,7 @@ void VulkanRenderer::renderLoop() {
 
 void VulkanRenderer::prepareFrame() {
     // Acquire the next image from the swap chain
-    VkResult result = swapchain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+    VkResult result = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
     // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
         windowResize();
@@ -615,7 +618,7 @@ void VulkanRenderer::prepareFrame() {
 void VulkanRenderer::submitFrame() {
     vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
 
-    VkResult result = swapchain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+    VkResult result = swapchain->queuePresent(queue, currentBuffer, semaphores.renderComplete);
     if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
@@ -630,7 +633,7 @@ void VulkanRenderer::submitFrame() {
 
 /** CALLBACKS **/
 void VulkanRenderer::setWindowSize(uint32_t _width, uint32_t _height) {
-    if (frameID > 1){
+    if (frameID > 1) {
         destWidth = _width;
         destHeight = _height;
         windowResize();

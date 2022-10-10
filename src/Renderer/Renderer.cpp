@@ -103,7 +103,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     Base::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
-    vars.UBCount = swapchain.imageCount;
+    vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     renderData.scriptName = scriptName;
     // Run script setup function

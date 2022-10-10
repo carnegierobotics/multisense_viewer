@@ -30,11 +30,13 @@ public:
 	uint32_t index;
 	bool ready = false;
 	std::string name;
+	std::string adapterDesc;
 
 	WinRegEditor(std::string lpKey, std::string adapterDescription, uint32_t index) {
 		// {7a71db7f-b10a-4fa2-8493-30ad4e2a947d}
 		this->name = lpKey;
 		this->index = index;
+		this->adapterDesc = adapterDescription;
 
 		DWORD lResult = RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\" + lpKey).c_str(), 0, KEY_READ | KEY_SET_VALUE, &tcpIpKey);
 		adapterKey = findAdapterKey(adapterDescription);
@@ -132,6 +134,10 @@ public:
 			}
 		}
 		if (!ini.SectionExists(name.c_str())) {
+			ret = ini.SetValue(name.c_str(), "Description", adapterDesc.c_str());
+			ret = ini.SetValue(name.c_str(), "Index", std::to_string(index).c_str());
+			ret = ini.SetValue(name.c_str(), "Key", name.c_str());
+
 			ret = ini.SetValue(name.c_str(), "IPAddress", backup.IPAddress.c_str());
 			ret = ini.SetValue(name.c_str(), "SubnetMask", backup.SubnetMask.c_str());
 			ret = ini.SetValue(name.c_str(), "EnableDHCP", std::to_string(backup.EnableDHCP).c_str());

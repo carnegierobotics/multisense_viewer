@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <MultiSense/src/Scripts/ScriptBuilder.h>
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/src/ModelLoaders/glTFModel.h>
 #include <MultiSense/src/imgui/Layer.h>
 

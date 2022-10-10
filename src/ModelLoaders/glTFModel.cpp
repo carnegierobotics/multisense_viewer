@@ -550,7 +550,7 @@ void glTFModel::createDescriptorSetLayout() {
     CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &descriptorSetLayoutCI, nullptr,&descriptorSetLayout))
 }
 
-void glTFModel::createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo) {
+void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
     descriptors.resize(count);
 
     // Check for how many image descriptors
@@ -752,7 +752,7 @@ void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineSh
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 }
 
-void glTFModel::createRenderPipeline(const Base::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
+void glTFModel::createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
     this->vulkanDevice = utils.device;
     createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);

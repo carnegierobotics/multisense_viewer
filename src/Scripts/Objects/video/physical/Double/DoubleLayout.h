@@ -5,7 +5,11 @@
 #ifndef MULTISENSE_VIEWER_DOUBLELAYOUT_H
 #define MULTISENSE_VIEWER_DOUBLELAYOUT_H
 
-#include <MultiSense/src/Scripts/video/physical/ScriptHeader.h>
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
+#include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
+#include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
+#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
 class DoubleLayout: public Base, public RegisteredInFactory<DoubleLayout>, CRLCameraModels
 {

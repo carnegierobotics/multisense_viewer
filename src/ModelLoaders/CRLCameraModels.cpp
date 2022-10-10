@@ -15,7 +15,7 @@ void CRLCameraModels::loadFromFile(std::string filename, float scale) {
 
 }
 
-CRLCameraModels::Model::Model(const Base::RenderUtils *renderUtils) {
+CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
 
@@ -239,7 +239,7 @@ void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) c
 }
 
 
-void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo,
+void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo,
                                         CRLCameraModels::Model *model) {
     descriptors.resize(count);
 
@@ -275,7 +275,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<Base::
 }
 
 void
-CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<Base::UniformBufferSet> &ubo) {
+CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<VkRender::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 
@@ -341,7 +341,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std
 
 void
 CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
-                                             const std::vector<Base::UniformBufferSet> &ubo) {
+                                             const std::vector<VkRender::UniformBufferSet> &ubo) {
 
     for (auto i = 0; i < ubo.size(); i++) {
 
@@ -551,7 +551,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
 
 void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
-                                           ScriptType type, const Base::RenderUtils *renderUtils) {
+                                           ScriptType type, const VkRender::RenderUtils *renderUtils) {
 
     this->vulkanDevice = renderUtils->device;
 

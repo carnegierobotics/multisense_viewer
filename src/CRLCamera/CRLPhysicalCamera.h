@@ -94,7 +94,7 @@ public:
     ~CRLPhysicalCamera() {
         // TODO FREE RESOURCES MEMBER VARIABLES
         for (auto &ch: channelMap) {
-            if (ch.second.get()->ptr() != nullptr)
+            if (ch.second->ptr() != nullptr)
                 stop("All", ch.first);
         }
     }

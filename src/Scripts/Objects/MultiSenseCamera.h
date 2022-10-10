@@ -1,38 +1,28 @@
-//
-// Created by magnus on 4/11/22.
-//
+#pragma once
 
-#ifndef MULTISENSE_POINTCLOUD_H
-#define MULTISENSE_POINTCLOUD_H
 
-#include <MultiSense/src/Scripts/ScriptBuilder.h>
-#include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
-#include <MultiSense/src/imgui/Layer.h>
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
+#include <MultiSense/src/ModelLoaders/glTFModel.h>
 #include "MultiSense/src/Renderer/Renderer.h"
-#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
-class PointCloud: public Base, public RegisteredInFactory<PointCloud>, CRLCameraModels
+class MultiSenseCamera: public Base, public RegisteredInFactory<MultiSenseCamera>, glTFModel
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    PointCloud() {
+    MultiSenseCamera() {
         s_bRegistered;
     }
-
-    void onDestroy() override{
-
-    }
+    ~MultiSenseCamera() = default;
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PointCloud>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "PointCloud"; }
+    static std::string GetFactoryName() { return "MultiSenseCamera"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
-    /** @brief update function called once per frame **/
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
@@ -40,23 +30,13 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_POINT_CLOUD;
+    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
-    std::unique_ptr<CRLCameraModels::Model> model;
+    Page previewTab{};
 
-    uint32_t remoteHeadIndex = 0;
-    std::vector<std::string> startedSources{};
-    CameraPlaybackFlags playbackSate{};
-    Page selectedPreviewTab = TAB_NONE;
-    uint32_t width{}, height{};
-    CRLCameraResolution res = CRL_RESOLUTION_NONE;
+    void *selection = (void *) "0";
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
-    int point = 0;
-
-    void prepareTexture();
+    bool imuEnabled = false;
 };
-
-
-#endif //MULTISENSE_POINTCLOUD_H

@@ -13,7 +13,6 @@
 #include "MultiSense/src/Core/Texture.h"
 
 #include <MultiSense/external/glm/glm/gtc/type_ptr.hpp>
-#include "MultiSense/src/Scripts/Base.h"
 #include <MultiSense/src/Tools/Macros.h>
 
 // Changing this value here also requires changing it in the vertex shader
@@ -183,7 +182,7 @@ public:
 
     void createDescriptorSetLayout();
 
-    void createDescriptors(uint32_t count, const std::vector<Base::UniformBufferSet> &ubo);
+    void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
 
     void setupNodeDescriptorSet(Node *node);
 
@@ -193,7 +192,7 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i);
     void drawNode(Node *node, VkCommandBuffer commandBuffer);
 
-    void createRenderPipeline(const Base::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
+    void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
 };
 
 

@@ -14,6 +14,8 @@
 #include "map"
 #include "unordered_map"
 #include "GLFW/glfw3.h"
+#include "Buffer.h"
+#include "VulkanDevice.h"
 #include <utility>
 
 #define NUM_YUV_DATA_POINTERS 3
@@ -24,8 +26,11 @@ typedef enum ScriptType {
     AR_SCRIPT_TYPE_DISABLED,
     AR_SCRIPT_TYPE_DEFAULT,
     AR_SCRIPT_TYPE_CRL_CAMERA,
-    AR_SCRIPT_TYPE_CRL_CAMERA_SETUP_ONLY,
-    AR_SCRIPT_TYPE_POINT_CLOUD
+    AR_SCRIPT_TYPE_POINT_CLOUD,
+    AR_SCRIPT_TYPE_LAYOUT_SINGLE,
+    AR_SCRIPT_TYPE_LAYOUT_DOUBLE_TOP,
+    AR_SCRIPT_TYPE_LAYOUT_DOUBLE_BOT,
+    AR_SCRIPT_TYPE_LAYOUT_QUAD_ONE
 } ScriptType;
 
 
@@ -172,6 +177,8 @@ struct ExposureParams {
 
 
 namespace MultiSense {
+
+
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
         bool vsync = false;
@@ -336,6 +343,7 @@ namespace MultiSense {
 
 }
 namespace VkRender {
+
     struct YUVTexture {
         void *data[NUM_YUV_DATA_POINTERS]{};
         uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
@@ -450,6 +458,24 @@ namespace VkRender {
         VkDeviceMemory depthMem{};
 
     };
+
+
+    /**@brief A standard set of uniform buffers */
+    struct UniformBufferSet {
+        Buffer bufferOne;
+        Buffer bufferTwo;
+        Buffer bufferThree;
+        Buffer bufferFour;
+    };
+
+    struct RenderUtils {
+        VulkanDevice* device{};
+        uint32_t UBCount = 0;
+        VkRenderPass *renderPass{};
+        std::vector<UniformBufferSet> uniformBuffers;
+        const VkRender::ObjectPicking* picking;
+    };
+
 
 }
 

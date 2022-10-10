@@ -1,27 +1,30 @@
 //
-// Created by magnus on 9/19/22.
+// Created by magnus on 9/16/22.
 //
 
-#ifndef MULTISENSE_VIEWER_FOUR_H
-#define MULTISENSE_VIEWER_FOUR_H
+#ifndef MULTISENSE_VIEWER_SINGLELAYOUT_H
+#define MULTISENSE_VIEWER_SINGLELAYOUT_H
 
+#include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
+#include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
+#include <MultiSense/src/imgui/Layer.h>
+#include "MultiSense/src/Renderer/Renderer.h"
+#include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
-#include <MultiSense/src/Scripts/video/physical/ScriptHeader.h>
-
-class Four: public Base, public RegisteredInFactory<Four>, CRLCameraModels
+class SingleLayout: public Base, public RegisteredInFactory<SingleLayout>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    Four() {
+    SingleLayout() {
         s_bRegistered;
     }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Four>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<SingleLayout>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "Four"; }
+    static std::string GetFactoryName() { return "SingleLayout"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -67,4 +70,5 @@ public:
 };
 
 
-#endif //MULTISENSE_VIEWER_FOUR_H
+
+#endif //MULTISENSE_VIEWER_SINGLELAYOUT_H

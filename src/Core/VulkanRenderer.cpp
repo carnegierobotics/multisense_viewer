@@ -143,7 +143,7 @@ bool VulkanRenderer::initVulkan() {
     vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
     // Find a suitable depth format
     depthFormat = Utils::findDepthFormat(physicalDevice);
-    // Create synchronization objects
+    // Create synchronization Objects
     VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
     semaphoreCreateInfo.flags =
             // Create a semaphore used to synchronize image presentation

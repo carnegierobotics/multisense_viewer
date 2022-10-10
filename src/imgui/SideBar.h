@@ -58,7 +58,7 @@ public:
     bool btnAdd = false;
     bool skipUserFriendlySleepDelay = false;
     bool dontRunAutoConnect = false;
-    bool showRestartAutoButton = false;
+    bool enableConnectButton = true;
     enum {
         VIRTUAL_CONNECT = 0,
         MANUAL_CONNECT = 1,
@@ -112,7 +112,7 @@ public:
         // If it is too long then just remove some word towards the end.
         if (txtSize.x > handles->info->sidebarWidth) {
             std::string devName = handles->info->deviceName;
-            while (txtSize.x > handles->info->sidebarWidth){
+            while (txtSize.x > handles->info->sidebarWidth) {
                 devName.erase(devName.find_last_of(' '), devName.length());
                 txtSize = ImGui::CalcTextSize(devName.c_str());
             }
@@ -191,7 +191,6 @@ private:
         if (event == "Finished") {
             app->autoConnect.setShouldProgramClose(true);
             app->dontRunAutoConnect = true;
-            app->showRestartAutoButton = true;
         }
         app->AddLog(color, "[INFO] %s\n", event.c_str());
     }
@@ -265,8 +264,8 @@ private:
 
 
         // Check for root privileges before launching
-        bool admin = elevated();
-        if (admin) {
+        bool notAdmin = elevated();
+        if (notAdmin) {
             Log::Logger::getInstance()->info(
                     "Program is not run as root. This is required to use the auto connect feature");
             AddLog(2, "Admin privileges is required to run the Auto-Connect feature");
@@ -453,7 +452,7 @@ private:
 
     void addDeviceButton(MultiSense::GuiObjectHandles *handles) {
 
-        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) -( handles->info->addDeviceWidth / 2),
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
         ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
@@ -541,13 +540,13 @@ private:
 
             (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
-                                                                        tint_col));
+                                    tint_col));
 
 
             ImGui::SameLine(0, 25.0f);
             (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
-                                                                        tint_col));
+                                    tint_col));
 
 
             /*
@@ -813,6 +812,20 @@ private:
                 ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
                 ImGui::SameLine(0, 20.0f);
                 ImGui::Checkbox("  Remote Head", &handles->nextIsRemoteHead);
+
+                if (handles->configureNetwork) {
+                    if (elevated()) {
+                        ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLRed);
+                        ImGui::Dummy(ImVec2(40.0f, 10.0));
+                        ImGui::Dummy(ImVec2(20.0f, 0.0));
+                        ImGui::SameLine();
+                        ImGui::Text("Launch app as admin to \nconfigure system network");
+                        enableConnectButton = false;
+                        ImGui::PopStyleColor();
+                    }
+
+                } else
+                    enableConnectButton = true;
                 ImGui::PopStyleColor();
 
             } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
@@ -830,12 +843,12 @@ private:
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
             ImGui::SameLine(0, 110.0f);
-            if (!entry.ready(handles->devices, entry)) {
+            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            if (!entry.ready(handles->devices, entry)) {
+            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
@@ -846,7 +859,7 @@ private:
                 autoConnect.stop();
             }
 
-            if (btnConnect && entry.ready(handles->devices, entry)) {
+            if (btnConnect && entry.ready(handles->devices, entry) && enableConnectButton) {
                 createDefaultElement(handles, entry);
                 ImGui::CloseCurrentPopup();
             }

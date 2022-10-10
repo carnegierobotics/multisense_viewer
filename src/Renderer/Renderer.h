@@ -78,10 +78,12 @@ public:
 private:
     std::unique_ptr<MultiSense::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<Base>> scripts{};
+    std::vector<std::string> scriptNames;  // TODO Replace with generated script names from CMAKE
+
     std::unique_ptr<CameraConnection> cameraConnection{};
-    std::vector<std::string> scriptNames;
     Base::Render renderData{};
     bool renderSelectionPass = false;
+
     // Create a host-visible staging buffer that contains the raw image data
     VkBuffer selectionBuffer{};
     VkDeviceMemory selectionMemory{};
@@ -107,6 +109,7 @@ protected:
     void buildScript(const std::string &scriptName);
 
     void deleteScript(const std::string &scriptName);
+
 
 
 

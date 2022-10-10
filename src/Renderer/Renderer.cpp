@@ -202,6 +202,15 @@ void Renderer::render() {
                     scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
             }
+
+            switch (dev.selectedPreviewTab) {
+                case TAB_3D_POINT_CLOUD:
+                    scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    break;
+                default:
+                    scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    break;
+            }
         } else {
             scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);

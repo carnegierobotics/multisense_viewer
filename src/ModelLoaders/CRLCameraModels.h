@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include  <memory>
 
 #include <MultiSense/src/Core/Texture.h>
 #include <MultiSense/src/Tools/Macros.h>
-#include <MultiSense/src/Scripts/Private/Base.h>
 #include "include/MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/src/Core/Definitions.h>
 

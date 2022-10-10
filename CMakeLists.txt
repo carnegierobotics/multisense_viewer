@@ -78,10 +78,20 @@ set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "src/Scripts/Objects/*.h")
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "// Generated from Cmake\n")
+string(TIMESTAMP Today)
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "// Generated from Cmake ${Today} \n")
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Classes.txt "# Generated from Cmake ${Today} \n")
+
 foreach (src ${SCRIPT_HEADERS})
     file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "\#include \"MultiSense/" ${src} "\"\n")
 endforeach(src ${SCRIPT_HEADERS})
+
+foreach (src ${SCRIPT_HEADERS})
+            string(REGEX MATCH "[^\\/]+$" var ${src})
+            string(REGEX MATCH "^[^.]+" res ${var})
+            file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Classes.txt ${res} \n)
+endforeach(src ${SCRIPT_HEADERS})
+
 file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "src/Scripts/Objects/*.cpp")
 

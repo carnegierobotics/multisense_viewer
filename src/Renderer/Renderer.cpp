@@ -10,11 +10,10 @@
 #else
 
 #include <sys/socket.h>
-#include <net/if.h>
 #include <netinet/in.h>
-#include <linux/sockios.h>
-#include <sys/ioctl.h>
-#include <arpa/inet.h>
+#include <sstream>
+#include <fstream>
+
 
 #endif
 
@@ -29,8 +28,19 @@ void Renderer::prepareRenderer() {
     createSelectionFramebuffer();
     createSelectionBuffer();
     cameraConnection = std::make_unique<CameraConnection>();
+
     // Prefer to load the model only once, so load it in first setup
-    buildScript("MultiSenseCamera");
+    // Load Object Scripts from file
+    std::ifstream infile(Utils::getAssetsPath() + "Tools/Classes.txt");
+    std::string line;
+    while (std::getline(infile, line))
+    {
+        // Skip comment # line
+        if (line.find('#') != std::string::npos)
+            continue;
+
+        buildScript(line);
+    }
 }
 
 
@@ -147,81 +157,68 @@ void Renderer::render() {
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork,
                                  guiManager->handles.nextIsRemoteHead);
+
+    // Enable scripts depending on gui layout chosen
+    for (auto &dev: *guiManager->handles.devices) {
+        if (dev.state == AR_STATE_ACTIVE) {
+            renderSelectionPass = dev.pixelInfoEnable;
+            switch (dev.layout) {
+                case PREVIEW_LAYOUT_SINGLE:
+                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    break;
+                case PREVIEW_LAYOUT_DOUBLE:
+                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+
+                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    break;
+                case PREVIEW_LAYOUT_QUAD:
+                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+
+                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    break;
+                default:
+                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    break;
+            }
+        } else {
+            scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        }
+    }
+
     // Run update function on active camera Scripts and build them if not built
     for (int i = 0; i < guiManager->handles.devices->size(); ++i) {
         if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)
             guiManager->handles.devices->erase(guiManager->handles.devices->begin() + i);
     }
 
-    // TODO Rework conditions to when Scripts are built to more human readable code
-    for (auto &dev: *guiManager->handles.devices) {
-        if (dev.state == AR_STATE_ACTIVE) {
-            renderSelectionPass = dev.pixelInfoEnable;
-            if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
-
-                std::string scriptName = "PointCloud";
-                buildScript(scriptName);
-                if (!Utils::isInVector(dev.attachedScripts, scriptName))
-                    dev.attachedScripts.emplace_back(scriptName);
-
-
-            } else {
-                deleteScript("PointCloud");
-
-                if (dev.layout == PREVIEW_LAYOUT_SINGLE) {
-                    std::string scriptName = "SingleLayout";
-                    buildScript(scriptName);
-                    if (!Utils::isInVector(dev.attachedScripts, scriptName))
-                        dev.attachedScripts.emplace_back(scriptName);
-                } else {
-                    deleteScript("SingleLayout");
-                }
-
-                if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
-                    std::string scriptName = "DoubleLayout";
-                    buildScript(scriptName);
-
-                    if (!Utils::isInVector(dev.attachedScripts, "DoubleLayout"))
-                        dev.attachedScripts.emplace_back("DoubleLayout");
-                    scriptName = "DoubleLayoutBot";
-                    buildScript(scriptName);
-
-                    if (!Utils::isInVector(dev.attachedScripts, "DoubleLayoutBot"))
-                        dev.attachedScripts.emplace_back("DoubleLayoutBot");
-                } else {
-                    deleteScript("DoubleLayout");
-                    deleteScript("DoubleLayoutBot");
-
-                }
-
-                if (dev.layout == PREVIEW_LAYOUT_QUAD) {
-                    buildScript("PreviewOne");
-                    buildScript("PreviewTwo");
-                    buildScript("Three");
-                    buildScript("Four");
-                    if (!Utils::isInVector(dev.attachedScripts, "PreviewOne"))
-                        dev.attachedScripts.emplace_back("PreviewOne");
-                    if (!Utils::isInVector(dev.attachedScripts, "PreviewTwo"))
-                        dev.attachedScripts.emplace_back("PreviewTwo");
-                    if (!Utils::isInVector(dev.attachedScripts, "Three"))
-                        dev.attachedScripts.emplace_back("Three");
-                    if (!Utils::isInVector(dev.attachedScripts, "Four"))
-                        dev.attachedScripts.emplace_back("Four");
-                } else {
-                    deleteScript("PreviewOne");
-                    deleteScript("PreviewTwo");
-                    deleteScript("Three");
-                    deleteScript("Four");
-                }
-            }
-        }
-        // Check if camera connection was MultiSense RESET and clean up all Scripts attached to that camera connection
-        if (dev.state == AR_STATE_RESET) {
-            // delete all Scripts attached to device
-            for (const std::string &script: dev.attachedScripts)
-                deleteScript(script);
-        }
-    }
 
     // UiUpdate on Scripts with const handle to GUI
     for (auto &script: scripts) {

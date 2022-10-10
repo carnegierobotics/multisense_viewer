@@ -31,6 +31,7 @@ public:
 	bool ready = false;
 	std::string name;
 	std::string adapterDesc;
+	HKEY startupKeyRes{};
 
 	WinRegEditor(std::string lpKey, std::string adapterDescription, uint32_t index) {
 		// {7a71db7f-b10a-4fa2-8493-30ad4e2a947d}
@@ -46,6 +47,27 @@ public:
 		else {
 			ready = true;
 		}
+
+		long res = RegCreateKeyA(
+			HKEY_LOCAL_MACHINE,
+			"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+			&startupKeyRes
+		);
+
+		if (res != ERROR_SUCCESS)
+			printf("Something went wrong creating RunOnce Key\n");
+
+		std::string cmd = "\"C:\\Program Files (x86)\\MultiSense Viewer\\Assets\\Tools\\windows\\RegistryBackup.exe\"";
+
+		res = RegSetKeyValueA(
+			startupKeyRes,
+			NULL,
+			"RevertSettings",
+			REG_SZ,
+			cmd.c_str(),
+			cmd.size()
+		);
+
 	}
 
 	struct PreChange {
@@ -54,6 +76,20 @@ public:
 		std::string SubnetMask = "";
 		std::string JumboPacket = "";
 	}backup;
+
+	void dontLaunchOnReboot() {
+		LSTATUS res =  RegDeleteKeyValueA(
+			startupKeyRes,
+			NULL,
+			"RevertSettings"
+		);
+
+		if (res != ERROR_SUCCESS) {
+			printf("Failed to delete key: revert settings on reboot\n");
+		}
+
+		RegCloseKey(startupKeyRes);
+	}
 
 	void restartNetAdapters() {
 		std::string strIdx = std::to_string(index);

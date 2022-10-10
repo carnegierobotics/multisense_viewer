@@ -359,6 +359,7 @@ void Renderer::cleanUp() {
     for (const auto& dev : *guiManager->handles.devices) {
         WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
         regEditor.revertSettings();
+        regEditor.dontLaunchOnReboot(); // No need to run reset exe on boot
         regEditor.restartNetAdapters(); // Make changes into effect
     }
 

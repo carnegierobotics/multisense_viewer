@@ -580,15 +580,4 @@ namespace MultiSense {
         return font;
     }
 
-    ImFont *GuiManager::AddDefaultFont(float pixel_size) {
-        ImGuiIO &io = ImGui::GetIO();
-        ImFontConfig config;
-        config.SizePixels = pixel_size;
-        config.OversampleH = 2;
-        config.OversampleV = 1;
-        config.FontDataOwnedByAtlas = false;
-        ImFont *font = io.Fonts->AddFontDefault(&config);
-        return font;
-    }
-
 };

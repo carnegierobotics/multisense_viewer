@@ -69,7 +69,7 @@ private:
     std::vector<std::string> scriptNames;  // TODO Generate the scriptnames with CMAKE and fetch them from there instead
 
     std::unique_ptr<CameraConnection> cameraConnection{};
-    Base::Render renderData{};
+    VkRender::RenderData renderData{};
     bool renderSelectionPass = false;
 
     // Create a host-visible staging buffer that contains the raw image data

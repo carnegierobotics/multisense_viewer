@@ -90,7 +90,6 @@ namespace MultiSense {
 
         // Initialization functions
         void initializeFonts();
-        ImFont *AddDefaultFont(float pixel_size);
         ImFont *loadFontFromFileName(std::string file, float fontSize);
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
         void loadAnimatedGif(const std::string &file);

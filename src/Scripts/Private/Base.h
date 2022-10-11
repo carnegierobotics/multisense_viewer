@@ -83,11 +83,14 @@ public:
     virtual ScriptType getType() {
         return AR_SCRIPT_TYPE_DISABLED;
     }
+    /**@brief Record draw command into a VkCommandBuffer */
+    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+        Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
+    };
 
     void windowResize(Render *data, const MultiSense::GuiObjectHandles *uiHandle) {
         updateRenderData(data);
-
         onWindowResize(uiHandle);
     }
 
@@ -96,7 +99,6 @@ public:
     void uiUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
         if (!this->renderData.drawThisScript)
             return;
-
         if (renderData.crlCamera != nullptr)
             onUIUpdate(uiHandle);
 
@@ -121,10 +123,6 @@ public:
 
     };
 
-    virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-        Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
-
-    };
 
     void updateUniformBufferData(Render *data) {
         updateRenderData(data);

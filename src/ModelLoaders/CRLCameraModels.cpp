@@ -452,7 +452,7 @@ void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT) {
 }
 
 void
-CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
+CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
                                 VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT) {
     createPipelineLayout(pLayoutT);
 
@@ -460,7 +460,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
     inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     VkPrimitiveTopology topology;
-    if (type == AR_SCRIPT_TYPE_POINT_CLOUD)
+    if (type == AR_POINT_CLOUD)
         topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
     else
         topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -551,7 +551,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
 
 void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
-                                           ScriptType type, const VkRender::RenderUtils *renderUtils) {
+                                           const VkRender::RenderUtils *renderUtils) {
 
     this->vulkanDevice = renderUtils->device;
 
@@ -566,10 +566,10 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
 
     createDescriptorSetLayout(model);
     createDescriptors(renderUtils->UBCount, renderUtils->uniformBuffers, model);
-    createPipeline(*renderUtils->renderPass, vector, type, &pipeline, &pipelineLayout);
+    createPipeline(*renderUtils->renderPass, vector, model->modelType, &pipeline, &pipelineLayout);
 
     // Create selection pipeline as well
-    createPipeline(renderUtils->picking->renderPass, vector, type, &selectionPipeline, &selectionPipelineLayout);
+    createPipeline(renderUtils->picking->renderPass, vector, model->modelType, &selectionPipeline, &selectionPipelineLayout);
     initializedPipeline = true;
 }
 

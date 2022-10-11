@@ -100,7 +100,7 @@ void DoubleLayout::prepareTexture() {
 
 
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
     model->draw = true;
 }
 

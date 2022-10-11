@@ -186,14 +186,14 @@ protected:
 
     void createPointCloudDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
-    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type,
+    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
 
     void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo, Model *model);
 
     void
     createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
-                         ScriptType type, const VkRender::RenderUtils *renderUtils);
+                         const VkRender::RenderUtils *renderUtils);
 };
 
 

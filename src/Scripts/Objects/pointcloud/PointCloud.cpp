@@ -108,7 +108,7 @@ void PointCloud::prepareTexture() {
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
-    CRLCameraModels::createRenderPipeline(shaders, model.get(), type, &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
     auto *buf = (VkRender::PointCloudParam *) bufferThreeData.get();
     buf->kInverse = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
     buf->height = static_cast<float>(height);

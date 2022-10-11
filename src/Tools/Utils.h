@@ -487,19 +487,18 @@ namespace Utils {
         if (is.is_open()) {
             std::streamsize size = is.tellg();
             is.seekg(0, std::ios::beg);
-            char *shaderCode = new char[size];
-            is.read(shaderCode, size);
+            std::vector<char> shaderCode(size);
+            is.read(shaderCode.data(), size);
             is.close();
 
             assert(size > 0);
             VkShaderModuleCreateInfo moduleCreateInfo{};
             moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             moduleCreateInfo.codeSize = size;
-            moduleCreateInfo.pCode = (uint32_t *) shaderCode;
+            moduleCreateInfo.pCode = (uint32_t *) shaderCode.data();
             VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr, module);
             if (res != VK_SUCCESS)
                 throw std::runtime_error("Failed to create shader module");
-            delete[] shaderCode;
         } else {
             Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
         }

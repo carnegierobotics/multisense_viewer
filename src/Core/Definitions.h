@@ -11,16 +11,20 @@
 #include "include/MultiSense/MultiSenseTypes.hh"
 
 #include "MultiSense/src/Tools/Logger.h"
-#include "map"
 #include "unordered_map"
+#include "memory"
 #include "GLFW/glfw3.h"
 #include "Buffer.h"
 #include "VulkanDevice.h"
+#include "Camera.h"
+#include "KeyInput.h"
 #include <utility>
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
+
+class CRLPhysicalCamera;
 
 typedef enum ScriptType {
     AR_SCRIPT_TYPE_DISABLED,
@@ -353,14 +357,22 @@ namespace VkRender {
 
     struct TextureData {
         explicit TextureData(CRLCameraDataType texType) :
-                type(texType) {
+                m_type(texType) {
 
+        }
+
+        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height) :
+                m_type(texType),
+                m_width(width),
+                m_height(height){
+
+            m_len = width * height;
         }
 
         uint8_t *data{};
         uint8_t *data2{};
-        uint32_t len = 0;
-        CRLCameraDataType type = AR_CAMERA_IMAGE_NONE;
+        uint32_t m_len = 0, m_height = 0, m_width = 0;
+        CRLCameraDataType m_type = AR_CAMERA_IMAGE_NONE;
 
         struct {
             void *data[NUM_YUV_DATA_POINTERS]{};
@@ -468,12 +480,30 @@ namespace VkRender {
         Buffer bufferFour;
     };
 
+    /** containing Vulkan Resources for rendering **/
     struct RenderUtils {
-        VulkanDevice* device{};
+        VulkanDevice *device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
         std::vector<UniformBufferSet> uniformBuffers;
-        const VkRender::ObjectPicking* picking;
+        const VkRender::ObjectPicking *picking;
+    };
+
+    /**@brief grouping containing useful pointers used to render scripts **/
+    struct RenderData {
+        uint32_t index;
+        Camera *camera = nullptr;
+        float deltaT = 0.0f;
+        bool drawThisScript = false;
+        float scriptRuntime = 0.0f;
+        int scriptDrawCount = 0;
+        std::string scriptName;
+        std::unique_ptr<CRLPhysicalCamera> *crlCamera;
+        ScriptType type;
+        Log::Logger *pLogger;
+        uint32_t height;
+        uint32_t width;
+        const Input *input;
     };
 
 

@@ -28,24 +28,7 @@ public:
     std::vector<VkShaderModule> shaderModules{};
 
     VkRender::RenderUtils renderUtils{};
-
-    struct Render {
-        uint32_t index;
-        Camera *camera = nullptr;
-        float deltaT = 0.0f;
-        bool drawThisScript = false;
-        float scriptRuntime = 0.0f;
-        int scriptDrawCount = 0;
-        std::string scriptName;
-        std::unique_ptr<CRLPhysicalCamera> *crlCamera;
-        ScriptType type;
-        Log::Logger *pLogger;
-        uint32_t height;
-        uint32_t width;
-        const Input *input;
-    } renderData{};
-
-
+    VkRender::RenderData renderData{};
     virtual ~Base() = default;
 
     /**@brief Pure virtual function called only once when VK is ready to render*/
@@ -89,7 +72,7 @@ public:
 
     };
 
-    void windowResize(Render *data, const MultiSense::GuiObjectHandles *uiHandle) {
+    void windowResize(VkRender::RenderData *data, const MultiSense::GuiObjectHandles *uiHandle) {
         updateRenderData(data);
         onWindowResize(uiHandle);
     }
@@ -124,12 +107,12 @@ public:
     };
 
 
-    void updateUniformBufferData(Render *data) {
+    void updateUniformBufferData(VkRender::RenderData *data) {
         updateRenderData(data);
 
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
-        if (renderData.crlCamera->get() != nullptr)
+        if (*renderData.crlCamera != nullptr)
             update();
 
         VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
@@ -141,7 +124,7 @@ public:
         }
     }
 
-    void createUniformBuffers(const VkRender::RenderUtils &utils, Base::Render rData) {
+    void createUniformBuffers(const VkRender::RenderUtils &utils, VkRender::RenderData rData) {
         renderData = std::move(rData);
         renderUtils = utils;
         renderUtils.uniformBuffers.resize(renderUtils.UBCount);
@@ -227,7 +210,7 @@ protected:
     std::chrono::steady_clock::time_point lastLogTime;
 
 
-    void updateRenderData(Render *data) {
+    void updateRenderData(VkRender::RenderData *data) {
         this->renderData.camera = data->camera;
         this->renderData.crlCamera = data->crlCamera;
         this->renderData.deltaT = data->deltaT;

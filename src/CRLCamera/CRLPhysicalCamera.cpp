@@ -66,7 +66,8 @@ void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header 
     auto p = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
     p->callbackTime = std::chrono::steady_clock::now();
     p->startTime = std::chrono::steady_clock::now();
-    p->channelMap[0]->dataBase->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->channelMap[0]->ptr(), header));
+    p->channelMap[0]->dataBase->updateImageBuffer(
+            std::make_shared<ImageBufferWrapper>(p->channelMap[0]->ptr(), header));
 }
 
 void CRLPhysicalCamera::addCallbacks(uint32_t idx) {
@@ -128,8 +129,12 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
     if (header == nullptr)
         return false;
 
-    switch (tex->type) {
+    switch (tex->m_type) {
         case AR_COLOR_IMAGE_YUV420:
+            if (header->data().source != src || tex->m_width != header->data().width ||
+                tex->m_height != header->data().height)
+                return false;
+
             std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
             std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
             return true;
@@ -141,12 +146,14 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
             }
         case AR_GRAYSCALE_IMAGE:
         case AR_POINT_CLOUD:
-            if (header->data().source != src)
+            if (header->data().source != src || tex->m_width != header->data().width ||
+                tex->m_height != header->data().height)
                 return false;
+
             std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
             return true;
         default:
-            Log::Logger::getInstance()->info("This texture type is not supported {}", (int)tex->type);
+            Log::Logger::getInstance()->info("This texture type is not supported {}", (int) tex->m_type);
             break;
     }
     return false;
@@ -193,7 +200,8 @@ void CRLPhysicalCamera::updateCameraInfo(uint32_t channelID) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "devInfo");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
+    if (crl::multisense::Status_Ok !=
+        channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedDeviceModes");
         return;
     }
@@ -201,7 +209,8 @@ void CRLPhysicalCamera::updateCameraInfo(uint32_t channelID) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "camCal");
         return;
     }
-    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
+    if (crl::multisense::Status_Ok !=
+        channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "supportedSources");
         return;
     }
@@ -214,7 +223,8 @@ void CRLPhysicalCamera::updateCameraInfo(uint32_t channelID) {
         return;
     }
 
-    if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
+    if (crl::multisense::Status_Ok !=
+        channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "calibration");
         return;
     }
@@ -431,7 +441,7 @@ void CRLPhysicalCamera::setLighting(LightingParams param, uint32_t channelID) {
         infoMap[0].lightConf.setDutyCycle(param.dutyCycle);
 
     infoMap[0].lightConf.setNumberOfPulses(param.numLightPulses);
-    infoMap[0].lightConf.setLedStartupTime(param.startupTime);
+    infoMap[0].lightConf.setStartupTime(param.startupTime);
     infoMap[0].lightConf.setFlash(param.flashing);
     status = channelMap[0]->ptr()->setLightingConfig(infoMap[0].lightConf);
     if (crl::multisense::Status_Ok != status) {

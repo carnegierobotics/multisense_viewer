@@ -356,11 +356,6 @@ namespace VkRender {
     };
 
     struct TextureData {
-        explicit TextureData(CRLCameraDataType texType) :
-                m_type(texType) {
-
-        }
-
         explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height) :
                 m_type(texType),
                 m_width(width),

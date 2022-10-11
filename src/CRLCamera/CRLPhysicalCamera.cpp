@@ -131,7 +131,7 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
 
     switch (tex->m_type) {
         case AR_COLOR_IMAGE_YUV420:
-            if (header->data().source != src || tex->m_width != header->data().width ||
+            if ((header->data().source | headerTwo->data().source) != src || tex->m_width != header->data().width ||
                 tex->m_height != header->data().height)
                 return false;
 

@@ -26,7 +26,8 @@ void PreviewTwo::update(){
             prepareTexture();
             return;
         }
-        auto tex = std::make_unique<VkRender::TextureData>(textureType);
+        const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+        auto tex = std::make_unique<VkRender::TextureData>(textureType, conf.width(), conf.height());
         model->getTextureDataPointer(tex.get());
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             model->updateTexture(textureType);

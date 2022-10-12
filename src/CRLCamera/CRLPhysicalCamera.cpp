@@ -90,6 +90,9 @@ CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(uint32_t idx) {
 }
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex, uint32_t idx) {
+    if (channelMap[idx].get() == nullptr)
+        return false;
+
     auto time = std::chrono::steady_clock::now();
     std::chrono::duration<float> time_span =
             std::chrono::duration_cast<std::chrono::duration<float>>(time - startTime);

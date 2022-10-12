@@ -60,7 +60,7 @@ public:
     float centerY = 0.0f;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
-    uint32_t remoteHeadIndex = 0;
+    int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
     uint32_t width = 0, height = 0;

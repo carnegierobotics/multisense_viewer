@@ -627,6 +627,82 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
                 ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
                 ImGui::PopStyleColor();
+
+                // Draw Recording options
+                {
+                    ImGui::Dummy(ImVec2(0.0f, 50.0f));
+                    ImVec2 posMin = ImGui::GetCursorScreenPos();
+                    ImVec2 posMax = posMin;
+                    posMax.x += handles->info->controlAreaWidth;
+                    posMax.y += 2.0f;
+                    ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax, ImColor(MultiSense::CRLGray421));
+
+                    ImGui::Dummy(ImVec2(0.0f, 30.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::PushFont(handles->info->font18);
+                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::Text("Recording");
+                    ImGui::PopFont();
+                    ImGui::SameLine();
+                    ImGui::HelpMarker(" \n Saves the streams that are active in the viewing area \n ");
+                    // if start then show gif spinner
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImVec2 btnSize(120.0f, 30.0f);
+                    std::string btnText = dev.isRecording ? "Stop" : "Start";
+                    if (ImGui::Button(btnText.c_str(), btnSize)) {
+                        dev.isRecording = dev.isRecording ? false : true;
+                    }
+
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    // open Dialog Simple
+                    if (dev.isRecording) {
+                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
+                        ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::TextColorGray);
+
+                    }
+                    if (ImGui::Button("Choose Location", btnSize))
+                        ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                    ImGui::SetNextItemWidth(
+                            handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+                    ImGui::InputText("##SaveFolderLocation", dev.outputSaveFolder.data(),
+                                     dev.outputSaveFolder.size() + 1);
+                    ImGui::PopStyleVar();
+
+                    if (dev.isRecording) {
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopItemFlag();
+                    }
+
+                    // display
+                    //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
+                    //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLDarkGray425);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(500.0f, 200.0f),
+                                                             ImVec2(600.0f, 600.0f))) {
+                        // action if OK
+                        if (ImGuiFileDialog::Instance()->IsOk()) {
+                            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                            dev.outputSaveFolder = filePathName;
+                            // action
+                        }
+
+                        // close
+                        ImGuiFileDialog::Instance()->Close();
+                    }
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar();
+                }
+
             }
 
             if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
@@ -654,78 +730,6 @@ private:
                             "Removed {} from user requested sources because it is not in use anymore", source);
                 }
             }
-
-
-            // Draw Recording options
-            ImGui::Dummy(ImVec2(0.0f, 50.0f));
-            ImVec2 posMin = ImGui::GetCursorScreenPos();
-            ImVec2 posMax = posMin;
-            posMax.x += handles->info->controlAreaWidth;
-            posMax.y += 2.0f;
-            ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax, ImColor(MultiSense::CRLGray421));
-
-            ImGui::Dummy(ImVec2(0.0f, 30.0f));
-            ImGui::Dummy(ImVec2(40.0f, 0.0f));
-            ImGui::SameLine();
-            ImGui::PushFont(handles->info->font18);
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-            ImGui::Text("Recording");
-            ImGui::PopFont();
-            ImGui::SameLine();
-            ImGui::HelpMarker(" \n Saves the streams that are active in the viewing area \n ");
-            // if start then show gif spinner
-            ImGui::PopStyleColor();
-
-            ImGui::Dummy(ImVec2(40.0f, 0.0f));
-            ImGui::SameLine();
-            ImVec2 btnSize(120.0f, 30.0f);
-            std::string btnText = dev.isRecording ? "Stop" : "Start";
-            if(ImGui::Button(btnText.c_str(), btnSize)){
-                dev.isRecording = dev.isRecording ? false : true;
-            }
-
-            ImGui::Dummy(ImVec2(40.0f, 0.0f));
-            ImGui::SameLine();
-            // open Dialog Simple
-            if (dev.isRecording) {
-                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
-                ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::TextColorGray);
-
-            }
-            if (ImGui::Button("Choose Location", btnSize))
-                ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
-
-            ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
-            ImGui::SetNextItemWidth(handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
-            ImGui::InputText("##SaveFolderLocation", dev.outputSaveFolder.data(), dev.outputSaveFolder.size() + 1);
-            ImGui::PopStyleVar();
-
-            if (dev.isRecording) {
-                ImGui::PopStyleColor(2);
-                ImGui::PopItemFlag();
-            }
-
-            // display
-            //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
-            //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLDarkGray425);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-            if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(500.0f, 200.0f),
-                                                     ImVec2(600.0f, 600.0f))) {
-                // action if OK
-                if (ImGuiFileDialog::Instance()->IsOk()) {
-                    std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                    dev.outputSaveFolder = filePathName;
-                    // action
-                }
-
-                // close
-                ImGuiFileDialog::Instance()->Close();
-            }
-            ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
 
 
         } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {

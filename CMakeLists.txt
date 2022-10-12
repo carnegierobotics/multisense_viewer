@@ -24,9 +24,7 @@ option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
 add_subdirectory(${GLFW_DIR} glfw_binary EXCLUDE_FROM_ALL)
 include_directories(${GLFW_DIR}/include)
 
-# Dear ImGui
-set(IMGUI_DIR external/imgui)
-include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+
 # GLM
 set(GLM_DIR external/glm)
 include_directories(${GLM_DIR})
@@ -60,14 +58,24 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 set(FMT_DIR external/fmt)  
 add_subdirectory(${FMT_DIR})
 
-# add source files
+# add ImGUI source files
+#Also Include ImGUi Custom FileDialog Extension
+# Dear ImGui
+set(IMGUI_DIR external/imgui)
+set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
+
+include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+include_directories(${IMGUI_FILEDIALOG_DIR})
+
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
         src/imgui/custom/imgui_user.h
-        src/imgui/custom/imgui_user.inl
+        src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(src/imgui/custom)
+
+
 
 # LIBMULTISENSE
 add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
@@ -98,6 +106,7 @@ file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 set(ENGINE_SRC
         src/Core/Definitions.h
         src/Core/KeyInput.h
+        src/Tools/Utils.cpp
         src/Scripts/Private/Base.h
         src/Core/Buffer.cpp
         src/Core/Buffer.h
@@ -129,15 +138,15 @@ set(ENGINE_SRC
         src/ModelLoaders/glTFModel.h
         src/Renderer/Renderer.cpp
         src/Renderer/Renderer.h
-
-        ${SCRIPT_HEADERS}
-        ${SCRIPT_SRC}
-
         src/Tools/Macros.h
         src/Tools/Populate.h
         src/Tools/Utils.h
         src/Tools/Logger.h
         src/Tools/Logger.cpp
+        src/Tools/stb_include.cpp
+
+        ${SCRIPT_HEADERS}
+        ${SCRIPT_SRC}
         )
 
 if (WIN32)

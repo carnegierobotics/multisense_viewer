@@ -20,15 +20,6 @@
 namespace MultiSense {
 
     struct GuiLayerUpdateInfo {
-
-        GuiLayerUpdateInfo(){
-
-        }
-
-        ~GuiLayerUpdateInfo(){
-
-        }
-
         bool firstFrame{};
         float width{};
         float height{};
@@ -53,7 +44,7 @@ namespace MultiSense {
 
         // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
         struct {
-            unsigned char* pixels = nullptr;
+            unsigned char *pixels = nullptr;
             ImTextureID image[20]{};
             uint32_t id{};
             uint32_t lastFrame = 0;
@@ -61,37 +52,29 @@ namespace MultiSense {
             uint32_t height{};
             uint32_t imageSize{};
             uint32_t totalFrames{};
-            uint32_t* delay{};
+            uint32_t *delay{};
         } gif{};
 
         /** @brief ImGUI Overlay on previews window sizes */
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
         float previewBorderPadding = 60.0f;
-
         /** @brief add device button params */
         float addDeviceBottomPadding = 70.0f;
         float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
-
         /** @brief Height of popupModal*/
         float popupHeight = 500.0f;
         /** @brief Width of popupModal*/
         float popupWidth = 450.0f;
-
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
-
         /** @brief size of Control Area*/
         float controlAreaWidth = 440.0f, controlAreaHeight = height;
         int numControlTabs = 4;
-
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
-
-
         bool hoverState = false;
     };
-
 
 
 /** @brief Handle which is the communication from GUI to Scripts */
@@ -107,9 +90,9 @@ namespace MultiSense {
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
         bool disableCameraRotationFromGUI = false;
-        const Input* input{};
+        const Input *input{};
 
-        ~GuiObjectHandles(){
+        ~GuiObjectHandles() {
             delete devices;
         }
     };
@@ -146,9 +129,9 @@ namespace MultiSense {
 
         virtual ~Layer() = default;
 
-        virtual void onAttach()  = 0;
+        virtual void onAttach() = 0;
 
-        virtual void onDetach()  = 0;
+        virtual void onDetach() = 0;
 
         virtual void onUIRender(GuiObjectHandles *handles) = 0;
 

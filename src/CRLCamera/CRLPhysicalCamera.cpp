@@ -66,7 +66,8 @@ void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header 
     auto p = reinterpret_cast<CRLPhysicalCamera *>(userDataP);
     p->callbackTime = std::chrono::steady_clock::now();
     p->startTime = std::chrono::steady_clock::now();
-    p->channelMap[0]->dataBase->updateImageBuffer(
+
+    p->channelMap[0]->imageBuffer->updateImageBuffer(
             std::make_shared<ImageBufferWrapper>(p->channelMap[0]->ptr(), header));
 }
 
@@ -110,30 +111,32 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
     if (stringSrc == "Color Aux") {
         colorSource = crl::multisense::Source_Chroma_Aux;
         lumaSource = crl::multisense::Source_Luma_Aux;
-        header = channelMap[0]->dataBase->getImageBuffer(idx, lumaSource);
-        headerTwo = channelMap[0]->dataBase->getImageBuffer(idx, colorSource);
+        header = channelMap[0]->imageBuffer->getImageBuffer(idx, lumaSource);
+        headerTwo = channelMap[0]->imageBuffer->getImageBuffer(idx, colorSource);
         if (headerTwo == nullptr)
             return false;
 
     } else if (stringSrc == "Color Rectified Aux") {
         colorSource = crl::multisense::Source_Chroma_Rectified_Aux;
         lumaSource = crl::multisense::Source_Luma_Rectified_Aux;
-        header = channelMap[0]->dataBase->getImageBuffer(idx, lumaSource);
-        headerTwo = channelMap[0]->dataBase->getImageBuffer(idx, colorSource);
+        header = channelMap[0]->imageBuffer->getImageBuffer(idx, lumaSource);
+        headerTwo = channelMap[0]->imageBuffer->getImageBuffer(idx, colorSource);
         if (headerTwo == nullptr)
             return false;
     } else {
-        header = channelMap[0]->dataBase->getImageBuffer(idx, src);
+        header = channelMap[0]->imageBuffer->getImageBuffer(idx, src);
     }
 
     if (header == nullptr)
         return false;
 
-    switch (tex->m_type) {
+    switch (tex->m_Type) {
         case AR_COLOR_IMAGE_YUV420:
-            if ((header->data().source | headerTwo->data().source) != src || tex->m_width != header->data().width ||
-                tex->m_height != header->data().height)
+            if ((header->data().source | headerTwo->data().source) != src || tex->m_Width != header->data().width ||
+                tex->m_Height != header->data().height)
                 return false;
+            tex->m_Id = header->data().frameId;
+            tex->m_Id2 = headerTwo->data().frameId;
 
             std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
             std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
@@ -146,14 +149,14 @@ bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::Texture
             }
         case AR_GRAYSCALE_IMAGE:
         case AR_POINT_CLOUD:
-            if (header->data().source != src || tex->m_width != header->data().width ||
-                tex->m_height != header->data().height)
+            if (header->data().source != src || tex->m_Width != header->data().width ||
+                tex->m_Height != header->data().height)
                 return false;
-
+            tex->m_Id = header->data().frameId;
             std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
             return true;
         default:
-            Log::Logger::getInstance()->info("This texture type is not supported {}", (int) tex->m_type);
+            Log::Logger::getInstance()->info("This texture type is not supported {}", (int) tex->m_Type);
             break;
     }
     return false;
@@ -172,12 +175,14 @@ void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
     const double tx = c.tx();
     const double cxRight = infoMap[0].calibration.right.P[0][2] * xScale;
 
+    // Rename
     glm::mat4 kInverseMatrix(
             glm::vec4(fy * tx, 0, 0, -fy * cx * tx),
             glm::vec4(0, fx * tx, 0, -fx * cy * tx),
             glm::vec4(0, 0, 0, fx * fy * tx),
             glm::vec4(0, 0, -fy, fy * (cx - cxRight)));
 
+    // keep as is
     infoMap[0].kInverseMatrix = glm::transpose(kInverseMatrix);
 }
 

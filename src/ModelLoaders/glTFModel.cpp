@@ -9,9 +9,7 @@
 
 #include "glTFModel.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 
-#include "stb_image.h"
 
 
 void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, VkQueue transferQueue, float scale) {

@@ -219,7 +219,7 @@ void CRLCameraModels::Model::setZoom() {
 }
 
 void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) const {
-    switch (tex->m_type) {
+    switch (tex->m_Type) {
         case AR_POINT_CLOUD:
             tex->data = textureColorMap->data;
             break;

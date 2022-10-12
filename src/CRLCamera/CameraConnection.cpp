@@ -544,8 +544,6 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     if (rc < 0) {
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
     }
-
-    camPtr.reset();
 }
 
 void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {

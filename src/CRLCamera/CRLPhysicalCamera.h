@@ -49,7 +49,7 @@ public:
         imagePointersMap[0][buf->data().source] = buf;
     }
     // Question: making it a return statement initiates a copy? Pass by reference and return image pointer?
-    std::shared_ptr<ImageBufferWrapper> &getImageBuffer(uint32_t idx, crl::multisense::DataSource src) {
+    std::shared_ptr<ImageBufferWrapper> getImageBuffer(uint32_t idx, crl::multisense::DataSource src) {
         std::lock_guard<std::mutex> lock(mut);
         return imagePointersMap[idx][src];
     }
@@ -63,10 +63,10 @@ class ChannelWrapper
 public:
     explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1):
             channelPtr_(crl::multisense::Channel::Create(ipAddress, remoteHeadChannel)){
-       dataBase = new ImageDataBase();
+        imageBuffer = new ImageDataBase(); //TODO Rename
     }
     ~ChannelWrapper(){
-        delete dataBase;
+        delete imageBuffer;
         if (channelPtr_) {
             crl::multisense::Channel::Destroy(channelPtr_);
         }
@@ -74,7 +74,7 @@ public:
     crl::multisense::Channel* ptr() noexcept{
         return channelPtr_;
     }
-    ImageDataBase* dataBase{};
+    ImageDataBase* imageBuffer{};
     ChannelWrapper(const ChannelWrapper&) = delete;
     ChannelWrapper operator=(const ChannelWrapper&) = delete;
 private:
@@ -134,7 +134,7 @@ public:
     CameraInfo getCameraInfo(uint32_t idx);
 
 private:
-    std::unordered_map<uint32_t, std::unique_ptr<ChannelWrapper>> channelMap{};
+    std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
     std::unordered_map<uint32_t, CRLCameraResolution> currentResolutionMap{};
     std::unordered_map<uint32_t, CameraInfo> infoMap;
     std::mutex setCameraDataMutex;

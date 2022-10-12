@@ -27,9 +27,9 @@ void SingleLayout::update() {
             return;
         }
         const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = std::make_unique<VkRender::TextureData>(textureType, conf.width(), conf.height());
-        model->getTextureDataPointer(tex.get());
-        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
+        auto tex = VkRender::TextureData(textureType, conf.width(), conf.height());
+        model->getTextureDataPointer(&tex);
+        if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
             model->updateTexture(textureType);
         }
     }
@@ -121,6 +121,9 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
+
+        saveImage = dev.isRecording;
+        saveImagePath = dev.outputSaveFolder;
         transformToUISpace(uiHandle, dev);
     }
 }

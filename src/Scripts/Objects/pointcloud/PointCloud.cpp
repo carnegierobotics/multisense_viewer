@@ -28,13 +28,13 @@ void PointCloud::update() {
         auto tex = std::make_unique<VkRender::TextureData>(AR_POINT_CLOUD, conf.width(), conf.height());
         model->getTextureDataPointer(tex.get());
         if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex.get(), remoteHeadIndex)) {
-            model->updateTexture(tex->m_type);
+            model->updateTexture(tex->m_Type);
         }
 
         auto depthTex = std::make_unique<VkRender::TextureData>(AR_DISPARITY_IMAGE, conf.width(), conf.height());
         model->getTextureDataPointer(depthTex.get());
         if (renderData.crlCamera->get()->getCameraStream("Disparity Left", depthTex.get(), remoteHeadIndex)) {
-            model->updateTexture(depthTex->m_type);
+            model->updateTexture(depthTex->m_Type);
         }
     }
     VkRender::UBOMatrix mat{};

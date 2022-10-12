@@ -272,7 +272,7 @@ namespace MultiSense {
         bool pixelInfoEnable = false;
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
-        std::vector<uint32_t> channelConnections{};
+        std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

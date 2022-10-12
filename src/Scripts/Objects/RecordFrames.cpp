@@ -34,6 +34,7 @@ void RecordFrames::update() {
                 Log::Logger::getInstance()->info("Saving image {} from source {}", tex.m_Id, src);
                 void* copyData = malloc(tex.m_Len);
                 std::memcpy(copyData, tex.data, tex.m_Len);
+
                 threadPool->Push(Utils::saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex, copyData);
                 ids[src] = tex.m_Id;
             }

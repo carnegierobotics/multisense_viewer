@@ -51,13 +51,13 @@ private:
     static void setExposureTask(void * context, void* arg1, MultiSense::Device* dev);
     static void setWhiteBalanceTask(void * context, void* arg1, MultiSense::Device* dev);
     static void setLightingTask(void * context, void* arg1, MultiSense::Device* dev);
-    static void setResolutionTask(void * context, CRLCameraResolution arg1, uint32_t idx);
+    static void setResolutionTask(void * context, CRLCameraResolution arg1, crl::multisense::RemoteHeadChannel idx);
     static void setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                            bool hdr, uint32_t index,
+                                            bool hdr, crl::multisense::RemoteHeadChannel index,
                                             MultiSense::Device *dev);
     static void connectCRLCameraTask(void* context, MultiSense::Device* dev, bool remoteHead, bool config);
-    static void startStreamTask(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);
-    static void stopStreamTask(void *context, MultiSense::Device *dev, std::string src, uint32_t remoteHeadIndex);
+    static void startStreamTask(void *context, MultiSense::Device *dev, std::string src, crl::multisense::RemoteHeadChannel remoteHeadIndex);
+    static void stopStreamTask(void *context, MultiSense::Device *dev, std::string src, crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
     std::vector<uint32_t> maskArrayAll = {
             crl::multisense::Source_Luma_Left,

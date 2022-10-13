@@ -287,14 +287,18 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
     if (shouldConfigNetwork) {
 
 #ifdef WIN32
-
+        
         WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-        if (regEditor.ready) {
+        if (regEditor.ready && !dev.systemNetworkChanged) {
             regEditor.readAndBackupRegisty();
-            regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
+            //regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
             regEditor.setJumboPacket("9014");
             regEditor.restartNetAdapters();
             std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+            if (regEditor.setStaticIp(dev.interfaceIndex, hostAddress, "255.255.255.0")) {
+                dev.systemNetworkChanged = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             // TODO
             // 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
             // If possible then wait for a windows event that triggers when the adapter is ready

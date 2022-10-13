@@ -364,9 +364,7 @@ void Renderer::cleanUp() {
     // Reset Windows registry from backup file
     for (const auto& dev : *guiManager->handles.devices) {
         WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-        regEditor.revertSettings();
-
-        regEditor.dontLaunchOnReboot(); // No need to run reset exe on boot
+        regEditor.resetJumbo();
         regEditor.restartNetAdapters(); // Make changes into effect
     }
 

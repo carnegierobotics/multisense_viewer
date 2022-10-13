@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
-
 set(ARCHITECTURE "amd64")
+
 # Libraries
 find_package(Vulkan REQUIRED)
 
@@ -39,6 +39,7 @@ include_directories(external/tinygltf/)
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
 set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
 include_directories(${MULTISENSE_SRC})
+add_subdirectory(${MULTISENSE_SRC})
 
 # Ini file parser SimpleIni
 set(SimpleIni_DIR external/simpleini)
@@ -66,7 +67,7 @@ set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
 
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 include_directories(${IMGUI_FILEDIALOG_DIR})
-
+ 
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
@@ -76,12 +77,7 @@ set(IMGUI_SRC
 INCLUDE_DIRECTORIES(src/imgui/custom)
 
 
-
-# LIBMULTISENSE
-add_subdirectory(${MULTISENSE_SRC} EXCLUDE_FROM_ALL)
-
-
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni")
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense")
 
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -190,19 +186,18 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
-    add_subdirectory(internal/LibMultiSenseWindows)
     add_subdirectory(internal/winpcap)
+    add_subdirectory(internal/LibMultiSenseWindows)
 
-
-    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} MultiSenseWindows) 
+    add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
+    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect MultiSenseWindows) 
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)
 
-
+     
     # create a list of files to copy
     set( THIRD_PARTY_DLLS
     #FFMPEG

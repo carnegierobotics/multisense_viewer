@@ -16,7 +16,7 @@ std::vector<crl::multisense::RemoteHeadChannel> CRLPhysicalCamera::connect(const
     std::vector<crl::multisense::RemoteHeadChannel> indices;
     // If RemoteHead then attempt to connect 4 LibMultiSense channels
     // else create only one and place it at 0th index.
-    for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
+    for (crl::multisense::RemoteHeadChannel i = 0; i < (crl::multisense::Remote_Head_3); ++i) {
         channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i) : std::make_unique<ChannelWrapper>(ip);
         if (channelMap[i].get()->ptr() != nullptr) {
             updateCameraInfo(i);

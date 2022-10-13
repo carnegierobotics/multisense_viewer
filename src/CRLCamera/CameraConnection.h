@@ -10,7 +10,6 @@
 #include "MultiSense/external/simpleini/SimpleIni.h"
 #include "ThreadPool.h"
 #include "CRLPhysicalCamera.h"
-
 #define NUM_THREADS 3
 
 /**
@@ -34,7 +33,6 @@ public:
 private:
     int sd = -1;
     std::mutex writeParametersMtx{};
-
 
     void updateActiveDevice(MultiSense::Device *dev);
     bool setNetworkAdapterParameters(MultiSense::Device &dev, bool b);

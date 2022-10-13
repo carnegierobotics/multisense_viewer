@@ -6,24 +6,27 @@
 #include <assert.h>
 #include <vector>
 #include <fstream>
+#include <iphlpapi.h>
 
 #pragma comment(lib,"Advapi32.lib")
 
-#include <MultiSense/external/simpleini/SimpleIni.h>
+#include "../../external/simpleini/SimpleIni.h"
 
-// Needed parameters for this program:
+// Needed parameters for this winreg to configure static IP address:
 // 1. Interface UUID name to: Disable DHCP, Set IP address and subnet mask	: To modify the correct adapter
 // 2. IP Address and Subnet mask											: To sync camera and pc to same network
 // 3. Interface Description (Lenovo USB Ethernet)							: To set MTU/Enable Jumbo
 // 4. Interface Index to													: To restart adapter effectively applying changes
 
-
+// Needed parameters for this winreg to configure temporary IP address:
+//  The IPv4 address exists only as long as the adapter object exists. Restarting the computer destroys the IPv4 address, as does manually resetting the network interface card (NIC).
+// To create non-persistent ipv4 address pass into the constructor:
+// 1. adapter index
+// 2. IP address to configure
+// 3. SubNet Mask
 class WinRegEditor {
 
-	/**@brief
-	@param lpkey: suggestion {7a71db7f-b10a-4fa2-8493-30ad4e2a947d}
-	@param adapterDescription: Lenovo USB Ethernet
-	**/
+
 public:
 	HKEY tcpIpKey;
 	HKEY adapterKey;
@@ -33,6 +36,40 @@ public:
 	std::string adapterDesc;
 	HKEY startupKeyRes{};
 
+	// non-persistent IP
+	ULONG NTEContext = 0;
+	ULONG NTEInstance = 0;
+
+	WinRegEditor(uint32_t ifIndex, std::string ipv4Addr, std::string subnetMask) {
+
+		setStaticIp(ifIndex, ipv4Addr, subnetMask);
+	}
+
+	bool setStaticIp(uint32_t ifIndex, std::string ipv4Addr, std::string subnetMask) {
+		UINT  iaIPAddress = inet_addr(ipv4Addr.c_str());
+		UINT iaIPMask = inet_addr(subnetMask.c_str());
+
+		DWORD dwRetVal = AddIPAddress(iaIPAddress, iaIPMask, ifIndex,
+			&NTEContext, &NTEInstance);
+		if (dwRetVal != NO_ERROR) {
+			printf("AddIPAddress call failed with %d\n", dwRetVal);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool deleteStaticIP() {
+		DWORD dwRetVal = DeleteIPAddress(NTEContext);
+		if (dwRetVal != NO_ERROR) {
+			printf("\tDeleteIPAddress failed with error: %d\n", dwRetVal);
+		}
+	}
+
+	/**@brief
+	@param lpkey: suggestion {7a71db7f-b10a-4fa2-8493-30ad4e2a947d}
+	@param adapterDescription: Lenovo USB Ethernet
+	**/
 	WinRegEditor(std::string lpKey, std::string adapterDescription, uint32_t index) {
 		// {7a71db7f-b10a-4fa2-8493-30ad4e2a947d}
 		this->name = lpKey;
@@ -78,7 +115,7 @@ public:
 	}backup;
 
 	void dontLaunchOnReboot() {
-		LSTATUS res =  RegDeleteKeyValueA(
+		LSTATUS res = RegDeleteKeyValueA(
 			startupKeyRes,
 			NULL,
 			"RevertSettings"
@@ -222,6 +259,13 @@ public:
 		else {
 			std::cout << "Set *JumboPacket on device: " << "Lenovo USB Ethernet" << std::endl;
 		}
+	}
+
+	int resetJumbo() {
+		if (!parseBackupIni())
+			return -1;
+
+		return setJumboPacket(backup.JumboPacket);
 	}
 
 	bool parseBackupIni() {

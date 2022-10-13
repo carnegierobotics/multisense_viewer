@@ -9,7 +9,6 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include <sys/stat.h>
 #include "cassert"
 #include "iostream"
 
@@ -17,6 +16,14 @@
 #include "MultiSense/src/Core/Definitions.h"
 #include "Logger.h"
 #include "MultiSense/src/imgui/Layer.h"
+
+#ifdef WIN32
+#include <direct.h>
+
+#else
+#include <sys/stat.h>
+
+#endif
 
 #include "stb_image_write.h"
 
@@ -527,7 +534,11 @@ namespace Utils {
         std::string directory = path + "/" + stringSrc;
         std::string filePath = directory + "/";
 
+#ifdef WIN32
+        int check = _mkdir(directory.c_str());
+#else
         int check = mkdir(directory.c_str(), 0777);
+#endif
 // check if directory is created or not
         if (!check)
             printf("Directory created\n");

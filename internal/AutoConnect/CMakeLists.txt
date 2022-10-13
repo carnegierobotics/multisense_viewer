@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 project(AutoConnect LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 20)
 
-set(LIBMULTISENSE_PATH "../../external/LibMultiSense")
-
 if (WIN32)
 
     if (NOT CMAKE_BUILD_TYPE)
@@ -27,10 +25,10 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
     IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/wpcap.lib")
 
-    message(CURRENT PATH: ${CMAKE_CURRENT_SOURCE_DIR} | ${BUILD_AUTOCONNECT_LIB})
+    message(CURRENT PATH: ${CMAKE_BINARY_DIR} | ${BUILD_AUTOCONNECT_LIB})
 
     add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h "WinRegEditor.h")
-    target_link_libraries(LibAutoConnect winpcap iphlpapi SimpleIni)
+    target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi )
 
 
     if (MSVC)

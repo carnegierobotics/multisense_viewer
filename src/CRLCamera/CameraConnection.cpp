@@ -287,14 +287,18 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
     if (shouldConfigNetwork) {
 
 #ifdef WIN32
-
+        
         WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-        if (regEditor.ready) {
+        if (regEditor.ready && !dev.systemNetworkChanged) {
             regEditor.readAndBackupRegisty();
-            regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
+            //regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
             regEditor.setJumboPacket("9014");
             regEditor.restartNetAdapters();
             std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+            if (regEditor.setStaticIp(dev.interfaceIndex, hostAddress, "255.255.255.0")) {
+                dev.systemNetworkChanged = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             // TODO
             // 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
             // If possible then wait for a windows event that triggers when the adapter is ready
@@ -469,11 +473,8 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
 
     if (!dev->channelConnections.empty()) {
-        app->getStreamingModes(*dev); // TODO Race condition in altering the *dev piece of memory
+        app->getStreamingModes(*dev);
         // Set the resolution read from config file
-
-
-
         dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
         dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
         dev->state = AR_STATE_ACTIVE;
@@ -544,8 +545,6 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     if (rc < 0) {
         Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
     }
-
-    camPtr.reset();
 }
 
 void CameraConnection::setExposureTask(void *context, void *arg1, MultiSense::Device *dev) {
@@ -566,15 +565,15 @@ void CameraConnection::setWhiteBalanceTask(void *context, void *arg1, MultiSense
 }
 
 void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                                   bool hdr, uint32_t index,
+                                                   bool hdr, crl::multisense::RemoteHeadChannel index,
                                                    MultiSense::Device *dev) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
-    app->camPtr->setGamma(gamma, index);
-    app->camPtr->setGain(gain, index);
-    app->camPtr->setFps(fps, index);
-    app->camPtr->setPostFilterStrength(spfs, index);
-    app->camPtr->setHDR(hdr, index);
+    if(!app->camPtr->setGamma(gamma, index))return;
+    if(!app->camPtr->setGain(gain, index)) return;
+    if(!app->camPtr->setFps(fps, index)) return;
+    if(!app->camPtr->setPostFilterStrength(spfs, index)) return;
+    if(!app->camPtr->setHDR(hdr, index)) return;
     app->updateFromCameraParameters(dev, index);
 
 }
@@ -587,14 +586,14 @@ void CameraConnection::setLightingTask(void *context, void *arg1, MultiSense::De
     app->updateFromCameraParameters(dev, 0);
 }
 
-void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, uint32_t idx) {
+void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, crl::multisense::RemoteHeadChannel idx) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setResolution(arg1, idx);
 }
 
 void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, std::string src,
-                                       uint32_t remoteHeadIndex) {
+                                       crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     if (app->camPtr->start(src, remoteHeadIndex));
     else
@@ -602,7 +601,7 @@ void CameraConnection::startStreamTask(void *context, MultiSense::Device *dev, s
 }
 
 void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, std::string src,
-                                      uint32_t remoteHeadIndex) {
+                                      crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     if (app->camPtr->stop(src, remoteHeadIndex));
     else
@@ -611,7 +610,7 @@ void CameraConnection::stopStreamTask(void *context, MultiSense::Device *dev, st
 
 void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev, uint32_t index) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
-    const auto &conf = camPtr->getCameraInfo(0).imgConf;
+    const auto &conf = camPtr->getCameraInfo(index).imgConf;
     auto *p = &dev->parameters;
     p->ep.exposure = conf.exposure();
     p->ep.autoExposure = conf.autoExposure();

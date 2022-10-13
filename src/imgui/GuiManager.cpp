@@ -14,10 +14,11 @@
 
 #include <MultiSense/src/Tools/Macros.h>
 #include "GuiManager.h"
-#include "stb_image.h"
 #include "SideBar.h"
 #include "InteractionMenu.h"
 #include "LayerExample.h"
+
+#include "stb_image.h"
 
 namespace MultiSense {
 

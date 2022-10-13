@@ -8,6 +8,7 @@
 #include "Layer.h"
 #include "imgui_user.h"
 #include "GLFW/glfw3.h"
+#include "ImGuiFileDialog.h"
 
 class InteractionMenu : public MultiSense::Layer {
 public:
@@ -75,7 +76,8 @@ public:
             ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
             int imageButtonHeight = 100;
-            const char *labels[3] = {"Preview Device \n!(Not implemented)", "Device Information \n!(Not implemented)", "Configure Device"};
+            const char *labels[3] = {"Preview Device \n!(Not implemented)", "Device Information \n!(Not implemented)",
+                                     "Configure Device"};
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::ShowDemoWindow();
 
@@ -232,7 +234,7 @@ private:
                                  ImGuiCond_Always);
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
-        ImVec2 backButtonPos  = ImGui::GetCursorScreenPos();
+        ImVec2 backButtonPos = ImGui::GetCursorScreenPos();
 
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 30.0f, 0.0f));
         ImGui::SameLine();
@@ -283,7 +285,7 @@ private:
 
     }
 
-    void createDoubleWindowPreview(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
+    void createWindowPreviews(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
         handles->info->viewingAreaWidth =
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
@@ -594,6 +596,7 @@ private:
                         ImGui::SameLine();
                     }
 
+                    // Resolution selection box
                     ImGui::SetNextItemWidth(250);
                     std::string resLabel = "##Resolution" + std::to_string(i);
                     auto &chInfo = dev.channelInfo[i];
@@ -624,13 +627,89 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
                 ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
                 ImGui::PopStyleColor();
+
+                // Draw Recording options
+                {
+                    ImGui::Dummy(ImVec2(0.0f, 50.0f));
+                    ImVec2 posMin = ImGui::GetCursorScreenPos();
+                    ImVec2 posMax = posMin;
+                    posMax.x += handles->info->controlAreaWidth;
+                    posMax.y += 2.0f;
+                    ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax, ImColor(MultiSense::CRLGray421));
+
+                    ImGui::Dummy(ImVec2(0.0f, 30.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::PushFont(handles->info->font18);
+                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::Text("Recording");
+                    ImGui::PopFont();
+                    ImGui::SameLine();
+                    ImGui::HelpMarker(" \n Saves the streams that are active in the viewing area \n ");
+                    // if start then show gif spinner
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImVec2 btnSize(120.0f, 30.0f);
+                    std::string btnText = dev.isRecording ? "Stop" : "Start";
+                    if (ImGui::Button(btnText.c_str(), btnSize)) {
+                        dev.isRecording = dev.isRecording ? false : true;
+                    }
+
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    // open Dialog Simple
+                    if (dev.isRecording) {
+                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
+                        ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::TextColorGray);
+
+                    }
+                    if (ImGui::Button("Choose Location", btnSize))
+                        ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                    ImGui::SetNextItemWidth(
+                            handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+                    ImGui::InputText("##SaveFolderLocation", dev.outputSaveFolder.data(),
+                                     dev.outputSaveFolder.size() + 1);
+                    ImGui::PopStyleVar();
+
+                    if (dev.isRecording) {
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopItemFlag();
+                    }
+
+                    // display
+                    //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
+                    //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLDarkGray425);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(500.0f, 200.0f),
+                                                             ImVec2(600.0f, 600.0f))) {
+                        // action if OK
+                        if (ImGuiFileDialog::Instance()->IsOk()) {
+                            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                            dev.outputSaveFolder = filePathName;
+                            // action
+                        }
+
+                        // close
+                        ImGuiFileDialog::Instance()->Close();
+                    }
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar();
+                }
+
             }
 
             if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
-                createDoubleWindowPreview(handles, dev);
+                createWindowPreviews(handles, dev);
             }
 
-
+            // Some Point cloud enable/disable sources logic
             // Remove these two sources if we switch between 3D to 2D and we are not using the sources in 2D
             std::vector<std::string> pointCloudSources({"Disparity Left", "Luma Rectified Left"});
             // Disable IMU as well in 2D
@@ -713,7 +792,8 @@ private:
         }
 
         handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
-                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemActive());
+                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) ||
+                                                 ImGui::IsAnyItemActive());
 
     }
 
@@ -980,7 +1060,8 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Duty_Cycle",
                                    &d.parameters.light.dutyCycle, 0,
-                                   100, "%.0f"); // showing 0 float precision not using int cause underlying libmultisense is a float
+                                   100,
+                                   "%.0f"); // showing 0 float precision not using int cause underlying libmultisense is a float
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1098,7 +1179,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
                                    &d.parameters.stereoPostFilterStrength, 0,
-                                   1,"%.1f");
+                                   1, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

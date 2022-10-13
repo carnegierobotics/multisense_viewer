@@ -212,26 +212,32 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 	std::string str = "Setting host address to: " + hostAddress;
 	eventCallback(str, context, 0);
 
-	WinRegEditor regEditor(adapter.networkAdapter, adapter.description, adapter.index);
-	if (regEditor.ready) {
-		str = "Configuring NetAdapter...";
-		eventCallback(str, context, 0);
-		regEditor.readAndBackupRegisty();	
-		regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
-		regEditor.setJumboPacket("9014");
-		regEditor.restartNetAdapters();
+	/* STATIC CONFIGURATION */
+	WinRegEditor regEditorStatic(adapter.networkAdapter, adapter.description, adapter.index);
+	if (regEditorStatic.ready) {
+		//str = "Configuring NetAdapter...";
+		//eventCallback(str, context, 0);
+		//regEditor.readAndBackupRegisty();	
+		//regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
+		//regEditor.setJumboPacket("9014");
+		//regEditor.restartNetAdapters();
 		// 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
 		// If possible then wait for a windows event that triggers when the adapter is ready
+		// std::this_thread::sleep_for(std::chrono::milliseconds(8000));
 		// TODO: thread_sleep - Explanation above
-		std::this_thread::sleep_for(std::chrono::milliseconds(8000));
 		str = "Finished Configuration";
 		eventCallback(str, context, 0);
 		// Wait for adapter to come back online
 	}
-
-	// Attempt to connect to camera and post some info
+	// - Non persistent configuration
 	str = "Checking for camera at: " + address;
 	eventCallback(str, context, 0);
+	WinRegEditor regEditor(adapter.index, hostAddress, "255.255.255.0");
+	std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+
+	// Attempt to connect to camera and post some info
+
 	cameraInterface = crl::multisense::Channel::Create(address);
 
 	if (cameraInterface == nullptr && connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {

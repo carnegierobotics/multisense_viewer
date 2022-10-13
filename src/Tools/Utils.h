@@ -17,6 +17,16 @@
 #include "Logger.h"
 #include "MultiSense/src/imgui/Layer.h"
 
+#ifdef WIN32
+#include <direct.h>
+
+#else
+#include <sys/stat.h>
+
+#endif
+
+#include "stb_image_write.h"
+
 namespace Utils {
 
     static std::string getShadersPath() {
@@ -143,7 +153,7 @@ namespace Utils {
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
-    inline    bool isInVector(const std::vector<std::string>& v, const std::string &str) {
+    inline bool isInVector(const std::vector<std::string> &v, const std::string &str) {
         if (std::find(v.begin(), v.end(), str) != v.end())
             return true;
         return false;
@@ -481,7 +491,7 @@ namespace Utils {
     }
 
 
-    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule* module) {
+    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *module) {
         std::ifstream is(fileName, std::ios::binary | std::ios::ate);
 
         if (is.is_open()) {
@@ -516,7 +526,43 @@ namespace Utils {
             return 0;
     }
 
+    static void
+    saveImageToFile(CRLCameraDataType type, const std::string &path, std::string stringSrc, VkRender::TextureData tex,
+                    void *data) {
 
-}
+        std::string fileName = std::to_string(tex.m_Id);
+        std::string directory = path + "/" + stringSrc;
+        std::string filePath = directory + "/";
+
+#ifdef WIN32
+        int check = _mkdir(directory.c_str());
+#else
+        int check = mkdir(directory.c_str(), 0777);
+#endif
+// check if directory is created or not
+        if (!check)
+            printf("Directory created\n");
+
+        std::string fullPathName = filePath + fileName;
+        switch (type) {
+            case AR_POINT_CLOUD:
+                break;
+            case AR_GRAYSCALE_IMAGE:
+                stbi_write_png((fullPathName + ".png").c_str(), tex.m_Width, tex.m_Height, 1, data,
+                               tex.m_Width);
+                break;
+            case AR_DISPARITY_IMAGE:
+                break;
+            case AR_COLOR_IMAGE_YUV420:
+                break;
+            case AR_YUV_PLANAR_FRAME:
+                break;
+            case AR_CAMERA_IMAGE_NONE:
+                break;
+        }
+
+    free(data);
+    }
+};
 
 #endif //MULTISENSE_UTILS_H

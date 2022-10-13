@@ -262,19 +262,23 @@ namespace MultiSense {
         std::vector<ChannelInfo> channelInfo;
         CRLCameraBaseUnit baseUnit{};
 
+        /**@brief location for which this device should save recorded frames **/
+        std::string outputSaveFolder = "/path/to/folder/";
+        bool isRecording = false;
+
         std::vector<std::string> attachedScripts{};
         float row[9] = {0};
         float col[9] = {0};
         bool pixelInfoEnable = false;
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
-        std::vector<uint32_t> channelConnections{};
+        std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         /** @brief Show a default preview with some selected streams*/
-        bool button = false;
+        bool systemNetworkChanged = false;
     };
 
 
@@ -357,28 +361,16 @@ namespace VkRender {
 
     struct TextureData {
         explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height) :
-                m_type(texType),
-                m_width(width),
-                m_height(height){
-
-            m_len = width * height;
+                m_Type(texType),
+                m_Width(width),
+                m_Height(height){
+            m_Len = width * height;
         }
 
         uint8_t *data{};
         uint8_t *data2{};
-        uint32_t m_len = 0, m_height = 0, m_width = 0;
-        CRLCameraDataType m_type = AR_CAMERA_IMAGE_NONE;
-
-        struct {
-            void *data[NUM_YUV_DATA_POINTERS]{};
-            uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
-            VkFlags *formats[NUM_YUV_DATA_POINTERS]{};
-            VkFormat format{};
-        } planar;
-
-        ~TextureData() {
-
-        }
+        uint32_t m_Len = 0, m_Height = 0, m_Width = 0, m_Id{}, m_Id2{};
+        CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
     };
 
     struct Vertex {

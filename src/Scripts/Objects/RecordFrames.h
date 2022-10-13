@@ -1,9 +1,10 @@
 //
-// Created by magnus on 9/16/22.
+// Created by magnus on 10/12/22.
 //
 
-#ifndef MULTISENSE_VIEWER_SINGLELAYOUT_H
-#define MULTISENSE_VIEWER_SINGLELAYOUT_H
+#ifndef MULTISENSE_VIEWER_RECORDFRAMES_H
+#define MULTISENSE_VIEWER_RECORDFRAMES_H
+
 
 #include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/src/ModelLoaders/CRLCameraModels.h>
@@ -11,20 +12,20 @@
 #include "MultiSense/src/Renderer/Renderer.h"
 #include "MultiSense/src/CRLCamera/CRLPhysicalCamera.h"
 
-class SingleLayout: public Base, public RegisteredInFactory<SingleLayout>, CRLCameraModels
+class RecordFrames: public Base, public RegisteredInFactory<RecordFrames>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    SingleLayout() {
+    RecordFrames() {
         s_bRegistered;
     }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<SingleLayout>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<RecordFrames>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "SingleLayout"; }
+    static std::string GetFactoryName() { return "RecordFrames"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -41,9 +42,10 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
+    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<CRLCameraModels::Model> model;
+    std::unique_ptr<ThreadPool> threadPool;
 
     int count = 1;
     void *selection = (void *) "0";
@@ -56,8 +58,9 @@ public:
     float scaleY = 0.25f;
     float centerX = 0.0f;
     float centerY = 0.0f;
-    std::string src;
-    uint32_t remoteHeadIndex = 0;
+    std::vector<std::string> sources;
+    std::unordered_map<std::string, uint32_t> ids;
+    int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
     uint32_t width = 0, height = 0;
@@ -68,9 +71,11 @@ public:
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
     void transformToUISpace(const MultiSense::GuiObjectHandles * handles, const MultiSense::Device& element);
 
-    void prepareTexture();
+    void emptyTexture();
 };
 
 
 
-#endif //MULTISENSE_VIEWER_SINGLELAYOUT_H
+
+
+#endif //MULTISENSE_VIEWER_RECORDFRAMES_H

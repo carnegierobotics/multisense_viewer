@@ -23,8 +23,6 @@
 #define NUM_IMAGE_ICONS 9
 
 namespace MultiSense {
-
-
     class GuiManager {
     public:
         GuiObjectHandles handles{};
@@ -51,6 +49,7 @@ namespace MultiSense {
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers();
 
+        /** @brief Push a new GUI Layer to the layer stack. Layers are drawn in the order they are pushed. **/
         template<typename T>
         void pushLayer() {
             static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");

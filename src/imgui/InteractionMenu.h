@@ -443,9 +443,10 @@ private:
                             const bool is_selected = (window.selectedRemoteHeadIndex == n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
-                                window.selectedRemoteHeadIndex = std::stoi(window.availableRemoteHeads[n]);
+                                window.selectedRemoteHead = std::stoi(window.availableRemoteHeads[n]);
+                                window.selectedRemoteHeadIndex = n;
                                 Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
-                                                                 window.selectedRemoteHeadIndex, index);
+                                                                 window.selectedRemoteHead, index);
                             }
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                             if (is_selected) {
@@ -458,7 +459,7 @@ private:
                 }
 
                 // Set the avaiable sources according to the selected remote head
-                window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+                window.availableSources = dev.channelInfo[window.selectedRemoteHead].availableSources;
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
@@ -472,17 +473,7 @@ private:
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
-
-                            /*
-                            if (dev.selectedSourceMap.contains(index)) {
-                                bool inUse = false;
-                                for (const auto &source: dev.selectedSourceMap) {
-                                    if (dev.selectedSourceMap[index] == source.second && index != source.first)
-                                        inUse = true;
-                                }
-                            }
-                             */
-                            if (// !inUse &&
+                            if (
                                     Utils::removeFromVector(
                                             &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                             window.selectedSource)) {
@@ -869,6 +860,27 @@ private:
         {
             float textSpacing = 90.0f;
             ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+
+            if (d.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Head 1", &d.configRemoteHead, 0))
+                    d.parameters.update = true;
+                ImGui::SameLine(0, 10.0f);
+
+                if (ImGui::RadioButton("Head 2", &d.configRemoteHead, 1))
+                    d.parameters.update = true;
+                ImGui::SameLine(0, 10.0f);
+
+                if (ImGui::RadioButton("Head 3", &d.configRemoteHead, 2))
+                    d.parameters.update = true;
+                ImGui::SameLine(0, 10.0f);
+                if (ImGui::RadioButton("Head 4", &d.configRemoteHead, 3))
+                    d.parameters.update = true;
+
+            }
+
 
             ImGui::PushFont(handles->info->font18);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));

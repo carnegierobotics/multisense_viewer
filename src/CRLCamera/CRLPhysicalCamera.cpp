@@ -20,7 +20,7 @@ std::vector<crl::multisense::RemoteHeadChannel> CRLPhysicalCamera::connect(const
         channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i) : std::make_unique<ChannelWrapper>(ip);
         if (channelMap[i].get()->ptr() != nullptr) {
             updateCameraInfo(i);
-            setMtu(7200);
+            setMtu(7200, i);
             addCallbacks(i);
             indices.emplace_back(i);
         }
@@ -483,10 +483,10 @@ bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::Remot
     return true;
 }
 
-bool CRLPhysicalCamera::setMtu(uint32_t mtu) {
+bool CRLPhysicalCamera::setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel id) {
     std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-    int status = channelMap[0]->ptr()->setMtu((int32_t) mtu);
+    int status = channelMap[id]->ptr()->setMtu((int32_t) mtu);
     if (status != crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
         return false;
@@ -495,7 +495,7 @@ bool CRLPhysicalCamera::setMtu(uint32_t mtu) {
         return true;
     }
 
-    if (crl::multisense::Status_Ok != channelMap[0]->ptr()->getMtu(infoMap[0].sensorMTU)) {
+    if (crl::multisense::Status_Ok != channelMap[id]->ptr()->getMtu(infoMap[id].sensorMTU)) {
         Log::Logger::getInstance()->info("Failed to update '{}'", "sensorMTU");
         return false;
     }

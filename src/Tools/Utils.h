@@ -21,6 +21,7 @@
 #include <direct.h>
 
 #else
+
 #include <sys/stat.h>
 
 #endif
@@ -528,7 +529,7 @@ namespace Utils {
 
     static void
     saveImageToFile(CRLCameraDataType type, const std::string &path, std::string stringSrc, VkRender::TextureData tex,
-                    void *data) {
+                    void *data, void *data2 = nullptr) {
 
         std::string fileName = std::to_string(tex.m_Id);
         std::string directory = path + "/" + stringSrc;
@@ -551,9 +552,60 @@ namespace Utils {
                 stbi_write_png((fullPathName + ".png").c_str(), tex.m_Width, tex.m_Height, 1, data,
                                tex.m_Width);
                 break;
-            case AR_DISPARITY_IMAGE:
+            case AR_DISPARITY_IMAGE: {
+                auto *d = (uint16_t *) data;
+                std::vector<uint8_t> buf;
+                buf.reserve(tex.m_Width * tex.m_Height);
+                for (int i = 0; i < tex.m_Width * tex.m_Height; ++i) {
+                    d[i] /= 16;
+                    uint8_t lsb = d[i] & 0x000000FF;
+                    buf.emplace_back(lsb);
+                }
+                stbi_write_png((fullPathName + ".png").c_str(), tex.m_Width, tex.m_Height, 1, buf.data(),
+                               tex.m_Width);
+            }
                 break;
             case AR_COLOR_IMAGE_YUV420:
+                // Normalize ycbcr
+            {
+                float Kr = 0.33f, Kg = 0.33f, Kb = 0.33f;
+                auto Y = (uint8_t *) data;
+                auto C = (uint8_t *) data2;
+                std::vector<uint8_t> buf;
+                buf.reserve(tex.m_Width * tex.m_Height * 3);
+
+                glm::mat3 colorMatrix(0.0f);
+                colorMatrix[0][0] = 1.0f;
+                colorMatrix[0][1] = 1.0f;
+                colorMatrix[0][2] = 1.0f;
+
+                colorMatrix[1][0] = 1.0f;
+                colorMatrix[1][1] = -(Kb / Kr) * (2 - (2 * Kb));
+                colorMatrix[1][2] = 2 - (2 * Kb);
+
+                colorMatrix[2][0] = 2 - (2 * Kr);
+                colorMatrix[2][1] = -(Kr / Kg) * (2 - (2 * Kr));
+                colorMatrix[2][2] = 0;
+
+
+                for (int i = 0; i < tex.m_Width * tex.m_Height; ++i) {
+                    float normY = (Y[i] / 219.0f) - 16.0f;
+                    int idx = std::floor(i / 2.0f);
+
+                    float normCb = (C[idx] / 224.0f) - 128.0f;
+                    float normCr = (C[idx] / 224.0f) - 128.0f;
+                    glm::vec3 ycbcr(normY, normCb, normCr);
+
+                    glm::vec3 rgb = colorMatrix * ycbcr;
+                    buf.emplace_back((uint8_t )rgb.r * 255);
+                    buf.emplace_back((uint8_t )rgb.g * 255) ;
+                    buf.emplace_back((uint8_t )rgb.b * 255);
+                }
+                stbi_write_png((fullPathName + ".png").c_str(), tex.m_Width, tex.m_Height, 1, buf.data(),
+                               tex.m_Width * 3);
+            }
+
+
                 break;
             case AR_YUV_PLANAR_FRAME:
                 break;
@@ -561,7 +613,7 @@ namespace Utils {
                 break;
         }
 
-    free(data);
+        free(data);
     }
 };
 

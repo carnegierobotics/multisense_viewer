@@ -642,7 +642,7 @@ private:
                     ImGui::SameLine();
                     ImGui::PushFont(handles->info->font18);
                     ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-                    ImGui::Text("Recording");
+                    ImGui::Text("Recording !? Not finished yet");
                     ImGui::PopFont();
                     ImGui::SameLine();
                     ImGui::HelpMarker(" \n Saves the streams that are active in the viewing area \n ");

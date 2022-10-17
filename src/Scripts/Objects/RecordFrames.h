@@ -21,6 +21,12 @@ public:
         s_bRegistered;
     }
     void onDestroy() override{
+        for (const auto& buf : dataBufferMap){
+            free(buf.second);
+        }
+        for (const auto& buf : dataBufferMapSecondary){
+            free(buf.second);
+        }
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<RecordFrames>(); }
@@ -37,12 +43,12 @@ public:
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
     void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override {}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
-    std::unique_ptr<CRLCameraModels::Model> model;
     std::unique_ptr<ThreadPool> threadPool;
 
     bool saveImage = false;
@@ -50,10 +56,12 @@ public:
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     int16_t remoteHeadIndex = 0;
-    uint32_t width = 0, height = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
-    void emptyTexture();
+    std::unordered_map<std::string, uint8_t*> dataBufferMap;
+    std::unordered_map<std::string, uint8_t*> dataBufferMapSecondary;
+
+    bool initializeBuffers = false;
 };
 
 

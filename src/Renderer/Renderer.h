@@ -87,7 +87,6 @@ private:
     glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -0.5f);
     glm::vec3 defaultCameraRotation = glm::vec3(-4.4f, -3.2f , 0.0f);
 
-
     void windowResized() override;
     void addDeviceFeatures() override;
     void buildCommandBuffers() override;

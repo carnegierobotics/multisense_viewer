@@ -105,7 +105,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             continue;
         for (const auto &requested: ch.requestedStreams) {
-            if (!Utils::isInVector(ch.enabledStreams, requested)) {
+            if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Source") {
                 pool->Push(CameraConnection::startStreamTask, this, requested, ch.index);
                 ch.enabledStreams.emplace_back(requested);
             }
@@ -117,7 +117,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             continue;
         for (const auto &enabled: ch.enabledStreams) {
-            if (!Utils::isInVector(ch.requestedStreams, enabled)) {
+            if (!Utils::isInVector(ch.requestedStreams, enabled) && !enabled.empty()) {
                 pool->Push(CameraConnection::stopStreamTask, this, enabled, ch.index);
                 Utils::removeFromVector(&ch.enabledStreams, enabled);
             }

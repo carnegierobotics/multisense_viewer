@@ -263,7 +263,7 @@ namespace MultiSense {
         CRLCameraBaseUnit baseUnit{};
 
         /**@brief location for which this device should save recorded frames **/
-        std::string outputSaveFolder = "/path/to/folder/";
+        std::string outputSaveFolder = "/home/magnus/CLionProjects/MultiSense/cmake-build-debug/Out";
         bool isRecording = false;
 
         std::vector<std::string> attachedScripts{};
@@ -364,7 +364,23 @@ namespace VkRender {
                 m_Type(texType),
                 m_Width(width),
                 m_Height(height){
-            m_Len = width * height;
+
+            switch (texType) {
+                case AR_POINT_CLOUD:
+                case AR_GRAYSCALE_IMAGE:
+                    m_Len = width * height;
+                    break;
+                case AR_COLOR_IMAGE_YUV420:
+                case AR_YUV_PLANAR_FRAME:
+                    m_Len = width * height;
+                    break;
+                case AR_DISPARITY_IMAGE:
+                    m_Len = width * height * 2;
+                    break;
+
+                default:
+                    break;
+            }
         }
 
         uint8_t *data{};

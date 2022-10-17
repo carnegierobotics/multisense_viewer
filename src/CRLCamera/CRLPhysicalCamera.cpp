@@ -51,6 +51,10 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
     if (channelMap[channelID] == nullptr)
         return false;
     crl::multisense::DataSource src = Utils::stringToDataSource(dataSourceStr);
+    if (!src){
+        Log::Logger::getInstance()->info("Failed to recognize '{}' source", dataSourceStr.c_str());
+        return false;
+    }
     bool status = channelMap[channelID]->ptr()->stopStreams(src);
     if (status == crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
@@ -491,8 +495,7 @@ bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::Remot
 bool CRLPhysicalCamera::setMtu(uint32_t mtu) {
     std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-    // TODO Question about MTU for remote head. Can it differ among different channels?
-    int status = channelMap[0]->ptr()->setMtu(mtu);
+    int status = channelMap[0]->ptr()->setMtu((int32_t) mtu);
     if (status != crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
         return false;

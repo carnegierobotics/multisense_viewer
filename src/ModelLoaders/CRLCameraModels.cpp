@@ -11,10 +11,6 @@ void CRLCameraModels::destroy(VkDevice device) {
 
 }
 
-void CRLCameraModels::loadFromFile(std::string filename, float scale) {
-
-}
-
 CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
@@ -30,7 +26,6 @@ CRLCameraModels::Model::~Model() {
 }
 
 
-// TODO change signature to CreateMesh(), and let function decide if its device local or not
 void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize) {
     mesh.vertexCount = vtxBufferSize;
     CHECK_RESULT(vulkanDevice->createBuffer(
@@ -42,7 +37,6 @@ void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vt
             _vertices))
 }
 
-// TODO change signature to CreateMesh(), and let function decide if its device local or not
 void
 CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                                               const std::vector<uint32_t> &indices) {

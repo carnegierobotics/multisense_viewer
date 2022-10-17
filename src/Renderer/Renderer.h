@@ -51,22 +51,28 @@ public:
 
     ~Renderer()= default;
 
+    /**
+     * @brief runs the renderer loop
+     */
+    void run() {
+        VulkanRenderer::renderLoop();
+    }
+
+    /**
+     * @brief cleans up resources on application exist
+     */
+    void cleanUp();
+
+private:
+
     void render() override;
 
     void prepareRenderer();
 
-    void cleanUp();
 
-    void run() {
-        VulkanRenderer::renderLoop();
-
-        cleanUp();
-    }
-
-private:
     std::unique_ptr<MultiSense::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<Base>> scripts{};
-    std::vector<std::string> scriptNames;  // TODO Generate the scriptnames with CMAKE and fetch them from there instead
+    std::vector<std::string> builtScriptNames; 
 
     std::unique_ptr<CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
@@ -77,36 +83,31 @@ private:
     VkDeviceMemory selectionMemory{};
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements memReqs{};
-protected:
 
     glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -0.5f);
     glm::vec3 defaultCameraRotation = glm::vec3(-4.4f, -3.2f , 0.0f);
 
+
     void windowResized() override;
-
     void addDeviceFeatures() override;
-
     void buildCommandBuffers() override;
-
     void mouseMoved(double x, double y, bool&handled) override;
 
     /**
-     *
-     * \brief creates instances from classes located in src/Scripts directory. Usually each class here represents object(s) in the scene
+     * @brief creates instances from classes located in src/Scripts/Objects directory.
+     * Usually each class here represents object(s) in the scene
      */
     void buildScript(const std::string &scriptName);
 
+    /**
+     * @brief deletes a script if stored in \refitem builtScriptNames
+     * @param scriptName name of script to delete
+     */
     void deleteScript(const std::string &scriptName);
 
-
-
-
     void createSelectionFramebuffer();
-
     void createSelectionImages();
-
     void destroySelectionBuffer();
-
     void createSelectionBuffer();
 };
 

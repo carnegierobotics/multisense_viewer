@@ -33,8 +33,6 @@ public:
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
-    /** @brief called after renderer has handled a window resize event **/
-    void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
@@ -47,29 +45,13 @@ public:
     std::unique_ptr<CRLCameraModels::Model> model;
     std::unique_ptr<ThreadPool> threadPool;
 
-    int count = 1;
-    void *selection = (void *) "0";
-    float up = -1.3f;
     bool saveImage = false;
     std::string saveImagePath;
-    Page selectedPreviewTab = TAB_NONE;
-    float posY = 0.0f;
-    float scaleX = 0.25f;
-    float scaleY = 0.25f;
-    float centerX = 0.0f;
-    float centerY = 0.0f;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     int16_t remoteHeadIndex = 0;
-    CRLCameraResolution res = CRL_RESOLUTION_NONE;
-    CameraPlaybackFlags playbackSate{};
     uint32_t width = 0, height = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
-
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
-
-    /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const MultiSense::GuiObjectHandles * handles, const MultiSense::Device& element);
 
     void emptyTexture();
 };

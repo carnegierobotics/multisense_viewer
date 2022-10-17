@@ -162,7 +162,7 @@ public:
         }
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
 
-        if (getType() != AR_SCRIPT_TYPE_SETUP_ON_DEVICE_CONNECT)
+
             setup();
 
         renderData.drawThisScript = true;

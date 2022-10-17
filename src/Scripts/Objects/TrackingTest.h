@@ -10,9 +10,9 @@
 #include <MultiSense/src/Scripts/Private/ScriptBuilder.h>
 #include "MultiSense/src/Renderer/Renderer.h"
 #include "MultiSense/src/Features/VisualOdometry.h"
-#include "MultiSense/src/ModelLoaders/CRLCameraModels.h"
+#include "MultiSense/src/ModelLoaders/glTFModel.h"
 
-class TrackingTest: public Base, public RegisteredInFactory<TrackingTest>, CRLCameraModels
+class TrackingTest: public Base, public RegisteredInFactory<TrackingTest>, glTFModel
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -39,7 +39,6 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
     std::unique_ptr<VisualOdometry> vo;
-    std::unique_ptr<CRLCameraModels::Model> model;
 
     Page previewTab{};
     bool initialized = false;

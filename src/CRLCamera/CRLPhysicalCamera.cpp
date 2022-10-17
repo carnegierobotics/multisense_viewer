@@ -100,6 +100,8 @@ CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(crl::multisense::
 
 bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex,
                                         crl::multisense::RemoteHeadChannel channelID) {
+    if (channelMap[channelID] == nullptr)
+        return false;
 
     auto src = Utils::stringToDataSource(stringSrc);
     crl::multisense::DataSource colorSource;

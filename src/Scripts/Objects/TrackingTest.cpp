@@ -7,25 +7,54 @@
 void TrackingTest::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    model->draw = false;
 
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 
     vo = std::make_unique<VisualOdometry>();
+
+    model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
+                       renderUtils.device->transferQueue, 1.0f);
+
+
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
+                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
+                                                            {loadShader("myScene/spv/box.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
+
+
+    // Obligatory call to prepare render resources for glTFModel.
+    glTFModel::createRenderPipeline(renderUtils, shaders);
+
 }
 
 void TrackingTest::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (model->draw)
-        CRLCameraModels::draw(commandBuffer, i, model.get(), b);
+    if (previewTab == TAB_3D_POINT_CLOUD && b)
+        glTFModel::draw(commandBuffer, i);
 }
 
 void TrackingTest::update() {
+    vo->setPMat(renderData.crlCamera->get()->getCameraInfo(0).calibration, renderData.crlCamera->get()->getCameraInfo(0).imgConf.tx());
+
+    auto left = VkRender::TextureData(AR_GRAYSCALE_IMAGE, width, height);
+    left.data = (uint8_t *) malloc(width * height);
+    auto right = VkRender::TextureData(AR_GRAYSCALE_IMAGE, width, height);
+    right.data = (uint8_t *) malloc(width * height);
+    auto depth = VkRender::TextureData(AR_DISPARITY_IMAGE, width, height);
+    depth.data = (uint8_t *) malloc(width * height * 2);
+    glm::vec3 translation(0.0f, 0.0f, 0.0f);
+    if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &left, 0) &&
+        renderData.crlCamera->get()->getCameraStream("Luma Rectified Right", &right, 0))
+        translation = vo->update(left, right, depth);
+
+    free(left.data);
+    free(right.data);
+    free(depth.data);
+
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
-
+    mat.model = glm::translate(mat.model, (translation * glm::vec3(0.01f, 0.01f, 0.01f)));
     mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 
     auto &d = bufferOneData;
     d->model = mat.model;
@@ -37,13 +66,6 @@ void TrackingTest::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->viewPos;
-
-    auto tex = VkRender::TextureData(AR_GRAYSCALE_IMAGE, width, height);
-    tex.data = (uint8_t *) malloc(width * height);
-    //if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, 0))
-    //    vo->update(tex, tex, tex);
-    free(tex.data);
-
 }
 
 

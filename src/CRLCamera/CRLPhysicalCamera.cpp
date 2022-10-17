@@ -67,7 +67,6 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
 
 void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
-    printf("ImageCallback\n");
     p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
 }
 

@@ -8,25 +8,14 @@
 #include "opencv4/opencv2/opencv.hpp"
 #include "MultiSense/src/Core/Definitions.h"
 #include "Feature.h"
+#include "MultiSense/MultiSenseTypes.hh"
 
 class VisualOdometry {
 
 public:
-    VisualOdometry(){
-
-        // Create some random colors
-        cv::RNG rng;
-        for(int i = 0; i < 100; i++)
-        {
-            int r = rng.uniform(0, 256);
-            int g = rng.uniform(0, 256);
-            int b = rng.uniform(0, 256);
-            colors.emplace_back(r,g,b);
-        }
-
-    };
-
-    void update(VkRender::TextureData left, VkRender::TextureData right, VkRender::TextureData depth);
+    VisualOdometry();
+    glm::vec3 update(VkRender::TextureData left, VkRender::TextureData right, VkRender::TextureData depth);
+    void setPMat(crl::multisense::image::Calibration calibration, float tx);
 
 private:
     cv::Mat m_Rotation;
@@ -38,13 +27,21 @@ private:
     cv::Mat m_Trajectory;
     cv::Mat m_Points4D, m_Points3D;
     cv::Mat m_ImageLeft_t0, m_ImageLeft_t1;
+    cv::Mat m_ImageRight_t0, m_ImageRight_t1;
+    cv::Mat m_ImageDepth_t0, m_ImageDepth_t1;
+
+    cv::Mat m_PLeft, m_PRight;
     uint32_t trackedFrames = 0;
 
     std::vector<cv::Scalar> colors{};
     FeatureSet featureSet{};
 
+    int m_FrameID = 0;
+
     void matchingFeatures(std::vector<cv::Point2f> *pointsLeft_t0, std::vector<cv::Point2f> *pointsLeft_t1,
                           FeatureSet *currentVOFeatures);
+
+    bool addNewFeatures = true;
 };
 
 

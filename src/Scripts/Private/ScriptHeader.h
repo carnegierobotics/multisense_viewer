@@ -1,6 +1,7 @@
-// Generated from Cmake 2022-10-12T08:48:11 
+// Generated from Cmake 2022-10-13T12:37:13 
 #include "MultiSense/src/Scripts/Objects/Example.h"
 #include "MultiSense/src/Scripts/Objects/MultiSenseCamera.h"
+#include "MultiSense/src/Scripts/Objects/RecordFrames.h"
 #include "MultiSense/src/Scripts/Objects/TrackingTest.h"
 #include "MultiSense/src/Scripts/Objects/pointcloud/PointCloud.h"
 #include "MultiSense/src/Scripts/Objects/video/physical/Double/DoubleLayout.h"

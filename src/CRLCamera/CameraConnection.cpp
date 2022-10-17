@@ -297,7 +297,7 @@ bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool
             //regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
             regEditor.setJumboPacket("9014");
             regEditor.restartNetAdapters();
-            std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
             if (regEditor.setStaticIp(dev.interfaceIndex, hostAddress, "255.255.255.0")) {
                 dev.systemNetworkChanged = true;
             }

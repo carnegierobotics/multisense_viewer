@@ -16,7 +16,7 @@ std::vector<crl::multisense::RemoteHeadChannel> CRLPhysicalCamera::connect(const
     std::vector<crl::multisense::RemoteHeadChannel> indices;
     // If RemoteHead then attempt to connect 4 LibMultiSense channels
     // else create only one and place it at 0th index.
-    for (crl::multisense::RemoteHeadChannel i = 0; i < (crl::multisense::Remote_Head_3); ++i) {
+    for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
         channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i) : std::make_unique<ChannelWrapper>(ip);
         if (channelMap[i].get()->ptr() != nullptr) {
             updateCameraInfo(i);
@@ -67,18 +67,7 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
 
 void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
-
-    // Debug break options
-    switch (p->imageBuffer->id) {
-        case 0:
-            break;
-        case 1:
-            break;
-        case 2:
-            break;
-        case 3:
-            break;
-    }
+    printf("ImageCallback\n");
     p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
 }
 
@@ -93,9 +82,12 @@ void CRLPhysicalCamera::addCallbacks(crl::multisense::RemoteHeadChannel channelI
         d >>= 1;
     }
     if (channelMap[channelID]->ptr()->addIsolatedCallback(remoteHeadCallback, infoMap[channelID].supportedSources,
-                                                    channelMap[channelID].get()) !=
-        crl::multisense::Status_Ok)
-        std::cerr << "Adding callback failed!\n";
+        channelMap[channelID].get()) ==
+        crl::multisense::Status_Ok) {
+        Log::Logger::getInstance()->info("Added callback for channel {}", channelID);
+    }
+    else 
+        Log::Logger::getInstance()->info("Failed to add callback for channel {}", channelID);
 }
 
 CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(crl::multisense::RemoteHeadChannel idx) {

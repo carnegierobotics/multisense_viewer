@@ -72,8 +72,8 @@ private:
 
 class ChannelWrapper {
 public:
-    explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1):
-            channelPtr_(crl::multisense::Channel::Create(ipAddress, remoteHeadChannel)){
+    explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1){
+        channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
         imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel);
     }
 

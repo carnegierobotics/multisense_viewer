@@ -197,15 +197,14 @@ namespace MultiSense {
         WhiteBalanceParams wb{};
         LightingParams light{};
 
-        bool initialized = false;
-
         float gain = 1.0f;
         float fps = 30.0f;
         float stereoPostFilterStrength = 0.5f;
         bool hdrEnabled = false;
         float gamma = 2.0f;
 
-        bool update = false;
+        bool update = true;
+        bool updateGuiParams = true;
     };
 
     struct CursorPixelInformation {
@@ -222,6 +221,7 @@ namespace MultiSense {
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
         uint32_t selectedRemoteHeadIndex = 0;
+        uint32_t selectedRemoteHead = 0;
     };
 
     struct ChannelInfo {
@@ -273,6 +273,7 @@ namespace MultiSense {
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
+        int configRemoteHead = 0;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

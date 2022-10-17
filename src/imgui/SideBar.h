@@ -711,6 +711,7 @@ private:
                 ImGui::PopStyleColor(2);
                 ImGui::PopStyleVar();
 
+                ImGui::Dummy(ImVec2(20.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);

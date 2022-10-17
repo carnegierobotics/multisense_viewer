@@ -41,8 +41,8 @@
 
 void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
     auto *p = &dev->parameters;
-    if (!dev->parameters.initialized) {
-        const auto &conf = camPtr->getCameraInfo(0).imgConf;
+    if (dev->parameters.updateGuiParams) {
+        const auto &conf = camPtr->getCameraInfo(dev->configRemoteHead).imgConf;
         p->ep.exposure = conf.exposure();
         p->ep.autoExposure = conf.autoExposure();
         p->ep.exposureSource = conf.exposureSource();
@@ -63,14 +63,15 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
         p->wb.whiteBalanceRed = conf.whiteBalanceRed();
 
-        const auto &lightConf = camPtr->getCameraInfo(0).lightConf;
+        const auto &lightConf = camPtr->getCameraInfo(dev->configRemoteHead).lightConf;
         p->light.numLightPulses = lightConf.getNumberOfPulses();
         p->light.dutyCycle = lightConf.getDutyCycle(0);
         p->light.flashing = lightConf.getFlash();
         p->light.startupTime = lightConf.getStartupTime();
 
         p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
-        p->initialized = true;
+
+        dev->parameters.updateGuiParams = false;
     }
 
     for (auto &ch: dev->channelInfo) {

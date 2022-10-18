@@ -5,7 +5,7 @@
     #define WIN_DEBUG
 #endif
 
-#include <MultiSense/src/Renderer/Renderer.h>
+#include <MultiSense/Src/Renderer/Renderer.h>
 int main() {
     Renderer app("MultiSense Viewer");
     app.run();

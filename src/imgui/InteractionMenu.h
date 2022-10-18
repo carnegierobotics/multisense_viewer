@@ -272,9 +272,17 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
 
         ImGui::SameLine();
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
+        }
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
+        }
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+            ImGui::PopItemFlag();
+            ImGui::PopStyleColor();
         }
         ImGui::PopStyleColor();
         ImGui::End();
@@ -433,9 +441,7 @@ private:
 
                 if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
-                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
-                                                                                      std::to_string(
-                                                                                              window.selectedRemoteHeadIndex))];
+                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads, std::to_string(window.selectedRemoteHeadIndex))];
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
@@ -443,11 +449,12 @@ private:
                             const bool is_selected = (window.selectedRemoteHeadIndex == n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
-                                window.selectedRemoteHead = std::stoi(window.availableRemoteHeads[n]);
-                                window.selectedRemoteHeadIndex = n;
-                                Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
-                                                                 window.selectedRemoteHead, index);
+                                    window.selectedRemoteHeadIndex = n;
+                                    Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
+                                                                     window.selectedRemoteHeadIndex, index);
+
                             }
+
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                             if (is_selected) {
                                 ImGui::SetItemDefaultFocus();
@@ -458,8 +465,9 @@ private:
                     ImGui::PopStyleColor();
                 }
 
-                // Set the avaiable sources according to the selected remote head
-                window.availableSources = dev.channelInfo[window.selectedRemoteHead].availableSources;
+                // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
+                    window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
@@ -866,18 +874,18 @@ private:
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
                 if (ImGui::RadioButton("Head 1", &d.configRemoteHead, 0))
-                    d.parameters.update = true;
+                    d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
                 if (ImGui::RadioButton("Head 2", &d.configRemoteHead, 1))
-                    d.parameters.update = true;
+                    d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
                 if (ImGui::RadioButton("Head 3", &d.configRemoteHead, 2))
-                    d.parameters.update = true;
+                    d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
                 if (ImGui::RadioButton("Head 4", &d.configRemoteHead, 3))
-                    d.parameters.update = true;
+                    d.parameters.updateGuiParams = true;
 
             }
 

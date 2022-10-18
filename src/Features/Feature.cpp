@@ -36,7 +36,7 @@ void deleteUnmatchFeatures(std::vector<cv::Point2f> &points0, std::vector<cv::Po
 void featureDetectionFast(cv::Mat image, std::vector<cv::Point2f> &points) {
 //uses FAST as for feature dection, modify parameters as necessary
     std::vector<cv::KeyPoint> keypoints;
-    int fast_threshold = 10;
+    int fast_threshold = 20;
     bool nonmaxSuppression = true;
     cv::FAST(image, keypoints, fast_threshold, nonmaxSuppression);
     cv::KeyPoint::convert(keypoints, points, std::vector<int>());
@@ -206,8 +206,8 @@ void trackingFrame2Frame(cv::Mat &projMatrl, cv::Mat &projMatrr,
                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                        inliers, flags);
 
-    std::cout << "translation: " << translation.t() << std::endl;
-
+    std::cout << "translation: " << translation.t() * 100 << std::endl;
+    translation *= 50;
     if (!mono_rotation) {
         cv::Rodrigues(rvec, rotation);
     }
@@ -320,10 +320,10 @@ void integrateOdometryStereo(int frame_i, cv::Mat& rigid_body_transformation, cv
 void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose)
 {
     // draw estimated trajectory
-    int x = int(pose.at<double>(0)) * 10 + 600;
-    int y = int(pose.at<double>(2)) * 10 + 300;
+    int x = int(pose.at<double>(0)) + 600;
+    int y = int(pose.at<double>(2)) + 300;
 
-    circle(trajectory, cv::Point(x, y) , 4, CV_RGB(255,0,0), 2);
+    circle(trajectory, cv::Point(x, y) ,1, CV_RGB(255,0,0), 2);
 
     // rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
     // sprintf(text, "FPS: %02f", fps);

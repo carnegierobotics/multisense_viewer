@@ -250,8 +250,6 @@ public:
 	int setJumboPacket(std::string value) {
 		// Set *JumboPacket
 		DWORD ret = RegSetValueExA(adapterKey, "*JumboPacket", 0, REG_SZ, (const BYTE*)value.c_str(), value.size());
-
-		backup.JumboPacket.push_back((char)"\0");
 		if (ret != ERROR_SUCCESS) {
 			std::cout << "Failed to Set *JumboPacket\n";
 			return -1;

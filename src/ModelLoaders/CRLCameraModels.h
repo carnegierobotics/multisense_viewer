@@ -40,7 +40,7 @@ public:
 
         ~Model();
 
-/**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
+        /**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
         bool draw = true;
         CRLCameraDataType modelType{};
 
@@ -166,31 +166,72 @@ public:
 
     void destroy(VkDevice device);
 
-    void loadFromFile(std::string filename, float scale = 1.0f);
-
-    void createDescriptorSetLayout(Model *pModel);
-
-    //void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, ScriptType type);
-
-    void createPipelineLayout(VkPipelineLayout *pT);
-
+    /**
+     * Call to draw model
+     * @param commandBuffer handle to commandbuffer to record drawing command
+     * @param i index of swapchain image to render to
+     * @param model modeol to draw
+     * @param b if we want to render additional pipeline
+     */
     void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b = true);
-
-    //void createDescriptors(uint32_t count, std::vector<Base::UniformBufferSet> ubo, CRLCameraModels::Model *model);
 
 protected:
 
     const VulkanDevice *vulkanDevice = nullptr;
 
+    /***
+     * @brief Helper function
+     * @param pModel
+     */
+    void createDescriptorSetLayout(Model *pModel);
+
+
+    /**
+     * @brief Helper function
+     * Create the pipeline layout
+     * @param pT pointer to store pipelinelayout object
+     */
+    void createPipelineLayout(VkPipelineLayout *pT);
+
+    /**
+     * @brief Bind a default descriptor layout to the pipeline for images
+     * @param model Which model to configure
+     * @param ubo reference to uniform buffers
+     */
     void createImageDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
+    /**
+     * Bind a default descriptor layout fo the pipline for point clouds
+     * @param model Which model to configure
+     * @param ubo reference to uniform buffers
+     */
     void createPointCloudDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
+    /**
+     * Create render pipeline
+     * @param pT Handle to render pass
+     * @param vector vector with shaders
+     * @param type what kind of camera data we expect to handle
+     * @param pPipelineT additional pipeline
+     * @param pLayoutT additional pipeline layout
+     */
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
 
+    /**
+     * Create descriptors for this model
+     * @param count number of descriptorsets needed
+     * @param ubo reference to uniform buffers
+     * @param model which model to configure
+     */
     void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo, Model *model);
 
+    /**
+     * Creates the render pipeline using helper functions from this class
+     * @param vector vector of shaders
+     * @param model model to configure
+     * @param renderUtils handle to render utilities from the scripts base \refitem Base class
+     */
     void
     createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
                          const VkRender::RenderUtils *renderUtils);

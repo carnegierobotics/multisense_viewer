@@ -677,7 +677,6 @@ private:
                     ImGui::Text("Select:");
                 }
                 ImGui::PopStyleColor();
-
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 static bool selected = false;
@@ -712,6 +711,12 @@ private:
                 ImGui::PopStyleColor(2);
                 ImGui::PopStyleVar();
 
+                ImGui::Dummy(ImVec2(20.0f, 10.0));
+                ImGui::Dummy(ImVec2(20.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::Checkbox(" Remote Head", &handles->nextIsRemoteHead);
+                ImGui::PopStyleColor();
 
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/

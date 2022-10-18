@@ -122,8 +122,6 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             prepareTexture();
         }
 
-        saveImage = dev.isRecording;
-        saveImagePath = dev.outputSaveFolder;
         transformToUISpace(uiHandle, dev);
     }
 }

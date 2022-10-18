@@ -9,5 +9,7 @@
 int main() {
     Renderer app("MultiSense Viewer");
     app.run();
+    app.cleanUp();
+
     return 0;
 }

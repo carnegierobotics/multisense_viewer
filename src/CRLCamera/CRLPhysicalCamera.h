@@ -72,8 +72,8 @@ private:
 
 class ChannelWrapper {
 public:
-    explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1):
-            channelPtr_(crl::multisense::Channel::Create(ipAddress, remoteHeadChannel)){
+    explicit ChannelWrapper(const std::string &ipAddress, crl::multisense::RemoteHeadChannel remoteHeadChannel = -1){
+        channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
         imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel);
     }
 
@@ -239,7 +239,7 @@ public:
      * @param mtu Which value to set
      * @return if the value was successfully set
     */
-    bool setMtu(uint32_t mtu);
+    bool setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel id);
     /**@brief Get a struct of the current camera settings \ref CameraInfo
      *
      * @param idx Which remote head to select

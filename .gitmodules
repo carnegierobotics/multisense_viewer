@@ -10,15 +10,15 @@
 [submodule "external/tinygltf"]
 	path = external/tinygltf
 	url = https://github.com/syoyo/tinygltf
-[submodule "external/LibMultiSense"]
+[submodule "external/LibMultiSifcense"]
 	path = external/LibMultiSense
 	url = https://github.com/carnegierobotics/LibMultiSense
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt
-[submodule "external/simpleini"]
-	path = external/simpleini
-	url = https://github.com/brofield/simpleini
 [submodule "external/ImGuiFileDialog"]
 	path = external/ImGuiFileDialog
 	url = https://github.com/aiekick/ImGuiFileDialog
+[submodule "external/simpleini"]
+	path = external/simpleini
+	url = https://github.com/brofield/simpleini

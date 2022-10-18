@@ -43,7 +43,7 @@ private:
 
     bool addNewFeatures = true;
 
-    void runVO(cv::Mat imageLeft_t1, cv::Mat imageRight_t1);
+    void runVO(cv::Mat imageLeft_t1, cv::Mat imageRight_t1, glm::vec3 *pos);
 };
 
 

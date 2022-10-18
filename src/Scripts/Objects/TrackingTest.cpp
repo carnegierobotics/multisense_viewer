@@ -52,7 +52,7 @@ void TrackingTest::update() {
 
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, (translation * glm::vec3(0.01f, 0.01f, 0.01f)));
+    mat.model = glm::translate(mat.model, (translation * glm::vec3(0.01f, 0.01f, -0.01f)));
     mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 

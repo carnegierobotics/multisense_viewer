@@ -35,10 +35,12 @@ glm::vec3 VisualOdometry::update(VkRender::TextureData left, VkRender::TextureDa
 */
     m_ImageLeft_t1 = cv::Mat(left.m_Height, left.m_Width, CV_8UC1, left.data);
     m_ImageRight_t1 = cv::Mat(right.m_Height, right.m_Width, CV_8UC1, right.data);
-    runVO(m_ImageLeft_t1, m_ImageRight_t1);
+    glm::vec3 positions;
+    runVO(m_ImageLeft_t1, m_ImageRight_t1, &positions);
+    return positions;
 }
 
-void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
+void VisualOdometry::runVO(cv::Mat imageLeft_t1, cv::Mat imageRight_t1, glm::vec3 *pos) {
     m_ImageLeft_t1 = imageLeft_t1;
     m_ImageRight_t1 = imageRight_t1;
 
@@ -52,8 +54,7 @@ void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
 
     /** FIND FEATURES **/
 
-    addNewFeatures = featureSet.points.size() < 2000;
-    if (addNewFeatures) {
+    if ( featureSet.points.size() < 4000) {
         std::vector<cv::Point2f> points_new;
         featureDetectionFast(m_ImageLeft_t0, points_new);
         featureSet.points.insert(featureSet.points.end(), points_new.begin(), points_new.end());
@@ -67,7 +68,7 @@ void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
     // --------------------------------------------------------
     // Feature tracking using KLT tracker, bucketing and circular matching
     // --------------------------------------------------------
-    int bucket_size = m_ImageLeft_t0.rows / 10;
+    int bucket_size = m_ImageLeft_t0.rows / 100;
     int features_per_bucket = 1;
     bucketingFeatures(m_ImageLeft_t0, featureSet, bucket_size, features_per_bucket);
 
@@ -143,8 +144,7 @@ void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
     display(m_FrameID, m_Trajectory, xyz);
 
 
-    int x = int(xyz.at<double>(0));
-    int z = int(xyz.at<double>(2));
+
     //printf("Translation (x, z) (%d, %d)\n", x, z);
 
 
@@ -153,6 +153,9 @@ void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
     m_ImageDepth_t0 = m_ImageDepth_t1.clone();
     m_FrameID++;
     cv::waitKey(1);
+    pos->x = int(xyz.at<double>(0));
+    pos->y = int(xyz.at<double>(1));
+    pos->z = int(xyz.at<double>(2));
 }
 
 void VisualOdometry::setPMat(crl::multisense::image::Calibration calib, float tx) {

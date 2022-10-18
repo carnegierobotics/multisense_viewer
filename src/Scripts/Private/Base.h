@@ -161,7 +161,10 @@ public:
 
         }
         renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
-        setup();
+
+
+            setup();
+
         renderData.drawThisScript = true;
     }
 

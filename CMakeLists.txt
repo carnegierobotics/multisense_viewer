@@ -24,7 +24,6 @@ option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
 add_subdirectory(${GLFW_DIR} glfw_binary EXCLUDE_FROM_ALL)
 include_directories(${GLFW_DIR}/include)
 
-
 # GLM
 set(GLM_DIR external/glm)
 include_directories(${GLM_DIR})
@@ -67,7 +66,7 @@ set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
 
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 include_directories(${IMGUI_FILEDIALOG_DIR})
- 
+
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
@@ -143,6 +142,10 @@ set(ENGINE_SRC
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
+        src/Features/VisualOdometry.cpp
+        src/Features/VisualOdometry.h
+        src/Features/Feature.cpp
+        src/Features/Feature.h
         )
 
 if (WIN32)
@@ -190,14 +193,14 @@ if (WIN32)
     add_subdirectory(internal/LibMultiSenseWindows)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect MultiSenseWindows) 
+    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect MultiSenseWindows)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)
 
-     
+
     # create a list of files to copy
     set( THIRD_PARTY_DLLS
     #FFMPEG
@@ -264,8 +267,11 @@ endforeach( file_i )
 
 else () ## Linux
 
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIR})
+
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -ltbb ${OpenCV_LIBS})
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

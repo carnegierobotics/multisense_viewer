@@ -177,18 +177,19 @@ void trackingFrame2Frame(cv::Mat &projMatrl, cv::Mat &projMatrr,
     //recovering the pose and the essential cv::matrix
     cv::Mat E, mask;
     cv::Mat translation_mono = cv::Mat::zeros(3, 1, CV_64F);
-    if (mono_rotation) {
-        E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
-        cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
-        // std::cout << "recoverPose rotation: " << rotation << std::endl;
-    }
+    E = cv::findEssentialMat(pointsLeft_t0, pointsLeft_t1, focal, principle_point, cv::RANSAC, 0.999, 1.0, mask);
+    cv::recoverPose(E, pointsLeft_t0, pointsLeft_t1, rotation, translation_mono, focal, principle_point, mask);
+    // std::cout << "recoverPose rotation: " << rotation << std::endl;
+
     // ------------------------------------------------
     // Translation (t) estimation by use solvePnPRansac
     // ------------------------------------------------
     cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);
     cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
     cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) <<
-            projMatrl.at<float>(0, 0), projMatrl.at<float>(0,1), projMatrl.at<float>(0, 2),
+                                                      projMatrl.at<float>(0, 0), projMatrl.at<float>(0,
+                                                                                                     1), projMatrl.at<float>(
+            0, 2),
             projMatrl.at<float>(1, 0), projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2),
             projMatrl.at<float>(2, 0), projMatrl.at<float>(2, 1), projMatrl.at<float>(2, 2));
     // projMatrl.at<float>(1, 1), projMatrl.at<float>(1, 2), projMatrl.at<float>(1, 3));
@@ -206,14 +207,13 @@ void trackingFrame2Frame(cv::Mat &projMatrl, cv::Mat &projMatrr,
                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                        inliers, flags);
 
-    std::cout << "translation: " << translation.t() * 100 << std::endl;
+    std::cout << "translation: " << translation.t() * 1000 << std::endl;
     translation *= 50;
     if (!mono_rotation) {
         cv::Rodrigues(rvec, rotation);
     }
 
 }
-
 
 
 void displayTracking(cv::Mat &imageLeft_t1,
@@ -243,37 +243,32 @@ void displayTracking(cv::Mat &imageLeft_t1,
     cv::imshow("vis ", vis);
 }
 
-bool isRotationMatrix(cv::Mat &R)
-{
+bool isRotationMatrix(cv::Mat &R) {
     cv::Mat Rt;
     transpose(R, Rt);
     cv::Mat shouldBeIdentity = Rt * R;
-    cv::Mat I = cv::Mat::eye(3,3, shouldBeIdentity.type());
+    cv::Mat I = cv::Mat::eye(3, 3, shouldBeIdentity.type());
 
-    return  norm(I, shouldBeIdentity) < 1e-6;
+    return norm(I, shouldBeIdentity) < 1e-6;
 
 }
 
-cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
-{
+cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R) {
 
     assert(isRotationMatrix(R));
 
-    float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+    float sy = sqrt(R.at<double>(0, 0) * R.at<double>(0, 0) + R.at<double>(1, 0) * R.at<double>(1, 0));
 
     bool singular = sy < 1e-6; // If
 
     float x, y, z;
-    if (!singular)
-    {
-        x = atan2(R.at<double>(2,1) , R.at<double>(2,2));
-        y = atan2(-R.at<double>(2,0), sy);
-        z = atan2(R.at<double>(1,0), R.at<double>(0,0));
-    }
-    else
-    {
-        x = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-        y = atan2(-R.at<double>(2,0), sy);
+    if (!singular) {
+        x = atan2(R.at<double>(2, 1), R.at<double>(2, 2));
+        y = atan2(-R.at<double>(2, 0), sy);
+        z = atan2(R.at<double>(1, 0), R.at<double>(0, 0));
+    } else {
+        x = atan2(-R.at<double>(1, 2), R.at<double>(1, 1));
+        y = atan2(-R.at<double>(2, 0), sy);
         z = 0;
     }
     return cv::Vec3f(x, y, z);
@@ -281,8 +276,9 @@ cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
 }
 
 
-void integrateOdometryStereo(int frame_i, cv::Mat& rigid_body_transformation, cv::Mat& frame_pose, const cv::Mat& rotation, const cv::Mat& translation_stereo)
-{
+void
+integrateOdometryStereo(int frame_i, cv::Mat &rigid_body_transformation, cv::Mat &frame_pose, const cv::Mat &rotation,
+                        const cv::Mat &translation_stereo) {
 
     // std::cout << "rotation" << rotation << std::endl;
     // std::cout << "translation_stereo" << translation_stereo << std::endl;
@@ -295,85 +291,75 @@ void integrateOdometryStereo(int frame_i, cv::Mat& rigid_body_transformation, cv
 
     // std::cout << "rigid_body_transformation" << rigid_body_transformation << std::endl;
 
-    double scale = sqrt((translation_stereo.at<double>(0))*(translation_stereo.at<double>(0))
-                        + (translation_stereo.at<double>(1))*(translation_stereo.at<double>(1))
-                        + (translation_stereo.at<double>(2))*(translation_stereo.at<double>(2)));
+    double scale = sqrt((translation_stereo.at<double>(0)) * (translation_stereo.at<double>(0))
+                        + (translation_stereo.at<double>(1)) * (translation_stereo.at<double>(1))
+                        + (translation_stereo.at<double>(2)) * (translation_stereo.at<double>(2)));
 
     rigid_body_transformation = rigid_body_transformation.inv();
     //frame_pose = frame_pose * rigid_body_transformation;
 
     // if ((scale>0.1)&&(translation_stereo.at<double>(2) > translation_stereo.at<double>(0)) && (translation_stereo.at<double>(2) > translation_stereo.at<double>(1)))
-    if (scale > 0.01)
-    {
+    if (scale > 0.01) {
         // std::cout << "Rpose" << Rpose << std::endl;
 
         frame_pose = frame_pose * rigid_body_transformation;
 
-    }
-    else
-    {
+    } else {
         //std::cout << "[WARNING] scale below 0.01, or incorrect translation" << std::endl;
     }
 }
 
 
-void display(int frame_id, cv::Mat& trajectory, cv::Mat& pose)
-{
+void display(int frame_id, cv::Mat &trajectory, cv::Mat &pose) {
     // draw estimated trajectory
     int x = int(pose.at<double>(0)) + 600;
     int y = int(pose.at<double>(2)) + 300;
 
-    circle(trajectory, cv::Point(x, y) ,1, CV_RGB(255,0,0), 2);
+    circle(trajectory, cv::Point(x, y), 1, CV_RGB(255, 0, 0), 2);
 
     // rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
     // sprintf(text, "FPS: %02f", fps);
     // putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
 
-    cv::imshow( "Trajectory", trajectory );
+    cv::imshow("Trajectory", trajectory);
 }
 
 
-void bucketingFeatures(cv::Mat& image, FeatureSet& current_features, int bucket_size, int features_per_bucket)
-{
+void bucketingFeatures(cv::Mat &image, FeatureSet &current_features, int bucket_size, int features_per_bucket) {
 // This function buckets features
 // image: only use for getting dimension of the image
 // bucket_size: bucket size in pixel is bucket_size*bucket_size
 // features_per_bucket: number of selected features per bucket
     int image_height = image.rows;
     int image_width = image.cols;
-    int buckets_nums_height = image_height/bucket_size;
-    int buckets_nums_width = image_width/bucket_size;
+    int buckets_nums_height = image_height / bucket_size;
+    int buckets_nums_width = image_width / bucket_size;
     int buckets_number = buckets_nums_height * buckets_nums_width;
 
     std::vector<Bucket> Buckets;
 
     // initialize all the buckets
-    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++)
-    {
-        for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++)
-        {
+    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++) {
+        for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++) {
             Buckets.push_back(Bucket(features_per_bucket));
         }
     }
 
     // bucket all current features into buckets by their location
     int buckets_nums_height_idx, buckets_nums_width_idx, buckets_idx;
-    for (int i = 0; i < current_features.points.size(); ++i)
-    {
-        buckets_nums_height_idx = current_features.points[i].y/bucket_size;
-        buckets_nums_width_idx = current_features.points[i].x/bucket_size;
-        buckets_idx = buckets_nums_height_idx*buckets_nums_width + buckets_nums_width_idx;
+    for (int i = 0; i < current_features.points.size(); ++i) {
+        buckets_nums_height_idx = current_features.points[i].y / bucket_size;
+        buckets_nums_width_idx = current_features.points[i].x / bucket_size;
+        buckets_idx = buckets_nums_height_idx * buckets_nums_width + buckets_nums_width_idx;
         Buckets[buckets_idx].add_feature(current_features.points[i], current_features.ages[i]);
 
     }
 
     // get features back from buckets
     current_features.clear();
-    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++)
-    {
-        for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++)
-        {
-            buckets_idx = buckets_idx_height*buckets_nums_width + buckets_idx_width;
+    for (int buckets_idx_height = 0; buckets_idx_height <= buckets_nums_height; buckets_idx_height++) {
+        for (int buckets_idx_width = 0; buckets_idx_width <= buckets_nums_width; buckets_idx_width++) {
+            buckets_idx = buckets_idx_height * buckets_nums_width + buckets_idx_width;
             Buckets[buckets_idx].get_features(current_features);
         }
     }

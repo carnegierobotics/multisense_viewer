@@ -97,15 +97,15 @@ void Renderer::buildCommandBuffers() {
 
 void Renderer::buildScript(const std::string &scriptName) {
     // Do not recreate script if already created
-    auto it = std::find(scriptNames.begin(), scriptNames.end(), scriptName);
-    if (it != scriptNames.end())
+    auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
+    if (it != builtScriptNames.end())
         return;
-    scriptNames.emplace_back(scriptName);
+    builtScriptNames.emplace_back(scriptName);
     scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
 
     if (scripts[scriptName].get() == nullptr) {
         pLogger->error("Failed to register script {}. Did you remember to include it in renderer.h?", scriptName);
-        scriptNames.erase(std::find(scriptNames.begin(), scriptNames.end(), scriptName));
+        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
         return;
     }
     pLogger->info("Registered script: {} in factory", scriptName.c_str());
@@ -121,11 +121,11 @@ void Renderer::buildScript(const std::string &scriptName) {
 }
 
 void Renderer::deleteScript(const std::string &scriptName) {
-    if (scriptNames.empty())
+    if (builtScriptNames.empty())
         return;
-    auto it = std::find(scriptNames.begin(), scriptNames.end(), scriptName);
-    if (it != scriptNames.end())
-        scriptNames.erase(it);
+    auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
+    if (it != builtScriptNames.end())
+        builtScriptNames.erase(it);
     else
         return;
     pLogger->info("Deleting Script: {}", scriptName.c_str());
@@ -472,13 +472,13 @@ void Renderer::cleanUp() {
 
 
     // Clear script and scriptnames
-    for (const auto &scriptName: scriptNames) {
+    for (const auto &scriptName: builtScriptNames) {
         pLogger->info("Deleting Script: {}", scriptName.c_str());
         scripts[scriptName].get()->onDestroyScript();
         scripts[scriptName].reset();
         scripts.erase(scriptName);
     }
-    scriptNames.clear();
+    builtScriptNames.clear();
 
     destroySelectionBuffer();
 

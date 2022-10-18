@@ -63,7 +63,7 @@ namespace MultiSense {
         float addDeviceBottomPadding = 70.0f;
         float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
         /** @brief Height of popupModal*/
-        float popupHeight = 500.0f;
+        float popupHeight = 600.0f;
         /** @brief Width of popupModal*/
         float popupWidth = 450.0f;
         /**@brief size of control area tabs*/

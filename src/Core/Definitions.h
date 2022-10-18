@@ -197,8 +197,6 @@ namespace MultiSense {
         WhiteBalanceParams wb{};
         LightingParams light{};
 
-        bool initialized = false;
-
         float gain = 1.0f;
         float fps = 30.0f;
         float stereoPostFilterStrength = 0.5f;
@@ -206,6 +204,7 @@ namespace MultiSense {
         float gamma = 2.0f;
 
         bool update = false;
+        bool updateGuiParams = true;
     };
 
     struct CursorPixelInformation {
@@ -221,7 +220,7 @@ namespace MultiSense {
         std::string selectedSource = "Source";
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
-        uint32_t selectedRemoteHeadIndex = 0;
+        crl::multisense::RemoteHeadChannel  selectedRemoteHeadIndex = 0;
     };
 
     struct ChannelInfo {
@@ -263,7 +262,7 @@ namespace MultiSense {
         CRLCameraBaseUnit baseUnit{};
 
         /**@brief location for which this device should save recorded frames **/
-        std::string outputSaveFolder = "/path/to/folder/";
+        std::string outputSaveFolder = "/home/magnus/CLionProjects/MultiSense/cmake-build-debug/Out";
         bool isRecording = false;
 
         std::vector<std::string> attachedScripts{};
@@ -273,6 +272,7 @@ namespace MultiSense {
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
+        int configRemoteHead = 0;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 
@@ -364,7 +364,23 @@ namespace VkRender {
                 m_Type(texType),
                 m_Width(width),
                 m_Height(height){
-            m_Len = width * height;
+
+            switch (texType) {
+                case AR_POINT_CLOUD:
+                case AR_GRAYSCALE_IMAGE:
+                    m_Len = width * height;
+                    break;
+                case AR_COLOR_IMAGE_YUV420:
+                case AR_YUV_PLANAR_FRAME:
+                    m_Len = width * height;
+                    break;
+                case AR_DISPARITY_IMAGE:
+                    m_Len = width * height * 2;
+                    break;
+
+                default:
+                    break;
+            }
         }
 
         uint8_t *data{};

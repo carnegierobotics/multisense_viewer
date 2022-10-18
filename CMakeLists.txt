@@ -70,82 +70,82 @@ include_directories(${IMGUI_FILEDIALOG_DIR})
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
         ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
-        src/imgui/custom/imgui_user.h
-        src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
+        Src/imgui/custom/imgui_user.h
+        Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
-INCLUDE_DIRECTORIES(src/imgui/custom)
+INCLUDE_DIRECTORIES(Src/imgui/custom)
 
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense")
 
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        "src/Scripts/Objects/*.h")
+        "Src/Scripts/Objects/*.h")
 string(TIMESTAMP Today)
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "// Generated from Cmake ${Today} \n")
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Classes.txt "# Generated from Cmake ${Today} \n")
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "// Generated from Cmake ${Today} \n")
+file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/Scripts.txt "# Generated from Cmake ${Today} \n")
 
-foreach (src ${SCRIPT_HEADERS})
-    file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/src/Scripts/Private/ScriptHeader.h "\#include \"MultiSense/" ${src} "\"\n")
-endforeach(src ${SCRIPT_HEADERS})
+foreach (Src ${SCRIPT_HEADERS})
+    file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "\#include \"MultiSense/" ${Src} "\"\n")
+endforeach(Src ${SCRIPT_HEADERS})
 
-foreach (src ${SCRIPT_HEADERS})
-            string(REGEX MATCH "[^\\/]+$" var ${src})
+foreach (Src ${SCRIPT_HEADERS})
+            string(REGEX MATCH "[^\\/]+$" var ${Src})
             string(REGEX MATCH "^[^.]+" res ${var})
-            file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Classes.txt ${res} \n)
-endforeach(src ${SCRIPT_HEADERS})
+            file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/Scripts.txt ${res} \n)
+endforeach(Src ${SCRIPT_HEADERS})
 
 file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        "src/Scripts/Objects/*.cpp")
+        "Src/Scripts/Objects/*.cpp")
 
 set(ENGINE_SRC
-        src/Core/Definitions.h
-        src/Core/KeyInput.h
-        src/Tools/Utils.cpp
-        src/Scripts/Private/Base.h
-        src/Core/Buffer.cpp
-        src/Core/Buffer.h
-        src/Core/Camera.h
-        src/CRLCamera/CameraConnection.cpp
-        src/CRLCamera/CameraConnection.h
-        src/Scripts/Private/ScriptBuilder.h
-        src/Core/Texture.cpp
-        src/Core/Texture.h
-        src/Core/Validation.h
-        src/Core/VulkanDevice.cpp
-        src/Core/VulkanDevice.h
-        src/Core/VulkanRenderer.cpp
-        src/Core/VulkanRenderer.h
-        src/Core/VulkanSwapchain.cpp
-        src/Core/VulkanSwapchain.h
-        src/CRLCamera/ThreadPool.h
-        src/CRLCamera/CRLPhysicalCamera.cpp
-        src/CRLCamera/CRLPhysicalCamera.h
-        src/imgui/GuiManager.cpp
-        src/imgui/GuiManager.h
-        src/imgui/InteractionMenu.h
-        src/imgui/Layer.h
-        src/imgui/SideBar.h
-        src/imgui/LayerExample.h
-        src/ModelLoaders/CRLCameraModels.cpp
-        src/ModelLoaders/CRLCameraModels.h
-        src/ModelLoaders/glTFModel.cpp
-        src/ModelLoaders/glTFModel.h
-        src/Renderer/Renderer.cpp
-        src/Renderer/Renderer.h
-        src/Tools/Macros.h
-        src/Tools/Populate.h
-        src/Tools/Utils.h
-        src/Tools/Logger.h
-        src/Tools/Logger.cpp
-        src/Tools/stb_include.cpp
+        Src/Core/Definitions.h
+        Src/Core/KeyInput.h
+        Src/Tools/Utils.cpp
+        Src/Scripts/Private/Base.h
+        Src/Core/Buffer.cpp
+        Src/Core/Buffer.h
+        Src/Core/Camera.h
+        Src/CRLCamera/CameraConnection.cpp
+        Src/CRLCamera/CameraConnection.h
+        Src/Scripts/Private/ScriptBuilder.h
+        Src/Core/Texture.cpp
+        Src/Core/Texture.h
+        Src/Core/Validation.h
+        Src/Core/VulkanDevice.cpp
+        Src/Core/VulkanDevice.h
+        Src/Core/VulkanRenderer.cpp
+        Src/Core/VulkanRenderer.h
+        Src/Core/VulkanSwapchain.cpp
+        Src/Core/VulkanSwapchain.h
+        Src/CRLCamera/ThreadPool.h
+        Src/CRLCamera/CRLPhysicalCamera.cpp
+        Src/CRLCamera/CRLPhysicalCamera.h
+        Src/imgui/GuiManager.cpp
+        Src/imgui/GuiManager.h
+        Src/imgui/InteractionMenu.h
+        Src/imgui/Layer.h
+        Src/imgui/SideBar.h
+        Src/imgui/LayerExample.h
+        Src/ModelLoaders/CRLCameraModels.cpp
+        Src/ModelLoaders/CRLCameraModels.h
+        Src/ModelLoaders/glTFModel.cpp
+        Src/ModelLoaders/glTFModel.h
+        Src/Renderer/Renderer.cpp
+        Src/Renderer/Renderer.h
+        Src/Tools/Macros.h
+        Src/Tools/Populate.h
+        Src/Tools/Utils.h
+        Src/Tools/Logger.h
+        Src/Tools/Logger.cpp
+        Src/Tools/stb_include.cpp
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        src/Features/VisualOdometry.cpp
-        src/Features/VisualOdometry.h
-        src/Features/Feature.cpp
-        src/Features/Feature.h
+        Src/Features/VisualOdometry.cpp
+        Src/Features/VisualOdometry.h
+        Src/Features/Feature.cpp
+        Src/Features/Feature.h
         )
 
 if (WIN32)

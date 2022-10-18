@@ -4,8 +4,7 @@ out/
 .vs
 .idea
 /Assets/compiler
-/Assets/Tools/Classes.txt
-src/Scripts/Private/ScriptHeader.h
+Assets/Generated
 /Assets/shaders/myScene/spv
 /compiler
 experimental_features
@@ -13,4 +12,4 @@ experimental_features
 /Assets/Tools/windows/mycert.pfx
 /Assets/Tools/windows/CreateCARoot.cmd
 /Assets/Tools/windows/cert.pfx
-/src/Scripts/Private/ScriptHeader.h
+/Src/Scripts/Private/ScriptHeader.h

@@ -4,6 +4,8 @@ out/
 .vs
 .idea
 /Assets/compiler
+/Assets/Tools/Classes.txt
+src/Scripts/Private/ScriptHeader.h
 /Assets/shaders/myScene/spv
 /compiler
 experimental_features

@@ -74,19 +74,19 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         dev->parameters.updateGuiParams = false;
     }
 
-        if (dev->parameters.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
-                       p->stereoPostFilterStrength, p->hdrEnabled, dev, dev->configRemoteHead);
+    if (dev->parameters.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+        pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
+                   p->stereoPostFilterStrength, p->hdrEnabled, dev, dev->configRemoteHead);
 
-        if (dev->parameters.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, dev->configRemoteHead);
+    if (dev->parameters.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+        pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, dev->configRemoteHead);
 
-        if (dev->parameters.wb.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, dev->configRemoteHead);
+    if (dev->parameters.wb.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+        pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, dev->configRemoteHead);
 
-        if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
-        // Set the correct resolution. Will only update if changed.
+    if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+        pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
+    // Set the correct resolution. Will only update if changed.
 
     for (auto &ch: dev->channelInfo) {
         if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode && pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
@@ -134,8 +134,11 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *devices, bool shou
         if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET) {
             // Only call this task if it is not already running
             saveProfileAndDisconnect(&dev);
-            for (auto ch: dev.channelConnections)
-                camPtr->stop("All", ch); // This operation may be blocking because we dont want to stop our threadpool before we know camPtr->stop is finished
+            if (dev.state == AR_STATE_RESET) {
+                for (auto ch: dev.channelConnections)
+                    camPtr->stop("All", ch); // This operation may be blocking because we dont want to stop our threadpool before we know camPtr->stop is finished
+
+            }
             pool->Stop();
             return;
         }
@@ -154,7 +157,8 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *devices, bool shou
             }
             if (resetOtherDevice) {
                 for (auto ch: dev.channelConnections)
-                    camPtr->stop("All", ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection
+                    camPtr->stop("All",
+                                 ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection
 
                 saveProfileAndDisconnect(otherDev);
             }
@@ -541,7 +545,8 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     }
 }
 
-void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, MultiSense::Device *dev,  crl::multisense::RemoteHeadChannel remoteHeadIndex) {
+void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, MultiSense::Device *dev,
+                                       crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
     std::scoped_lock lock(app->writeParametersMtx);
@@ -549,14 +554,16 @@ void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, Mult
     app->updateFromCameraParameters(dev, remoteHeadIndex);
 }
 
-void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, MultiSense::Device *dev, crl::multisense::RemoteHeadChannel remoteHeadIndex) {
+void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, MultiSense::Device *dev,
+                                           crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setWhiteBalance(*arg1, remoteHeadIndex);
     app->updateFromCameraParameters(dev, remoteHeadIndex);
 }
 
-void CameraConnection::setLightingTask(void *context, LightingParams *arg1, MultiSense::Device *dev,  crl::multisense::RemoteHeadChannel remoteHeadIndex) {
+void CameraConnection::setLightingTask(void *context, LightingParams *arg1, MultiSense::Device *dev,
+                                       crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     app->camPtr->setLighting(*arg1, remoteHeadIndex);
@@ -564,7 +571,8 @@ void CameraConnection::setLightingTask(void *context, LightingParams *arg1, Mult
 }
 
 void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                                   bool hdr, MultiSense::Device *dev, crl::multisense::RemoteHeadChannel index) {
+                                                   bool hdr, MultiSense::Device *dev,
+                                                   crl::multisense::RemoteHeadChannel index) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
     if (!app->camPtr->setGamma(gamma, index))return;
@@ -582,7 +590,7 @@ CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, crl
     app->camPtr->setResolution(arg1, idx);
 }
 
-void CameraConnection::startStreamTask(void* context, std::string src,
+void CameraConnection::startStreamTask(void *context, std::string src,
                                        crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     if (app->camPtr->start(src, remoteHeadIndex));
@@ -590,7 +598,7 @@ void CameraConnection::startStreamTask(void* context, std::string src,
         Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
 }
 
-void CameraConnection::stopStreamTask(void* context,std::string src,
+void CameraConnection::stopStreamTask(void *context, std::string src,
                                       crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     if (app->camPtr->stop(src, remoteHeadIndex));
@@ -598,7 +606,8 @@ void CameraConnection::stopStreamTask(void* context,std::string src,
         Log::Logger::getInstance()->info("Failed to disable stream {}", src);
 }
 
-void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev,  crl::multisense::RemoteHeadChannel remoteHeadIndex) const {
+void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev,
+                                                  crl::multisense::RemoteHeadChannel remoteHeadIndex) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
     const auto &conf = camPtr->getCameraInfo(remoteHeadIndex).imgConf;
     auto *p = &dev->parameters;

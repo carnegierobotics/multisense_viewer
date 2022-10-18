@@ -38,7 +38,7 @@ bool CRLPhysicalCamera::start(const std::string &dataSourceStr, crl::multisense:
     // Start stream
     int32_t status = channelMap[channelID]->ptr()->startStreams(source);
     if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Enabled stream: {} at remote head {}",
+        Log::Logger::getInstance()->info("Enabled stream: {} on channel {}",
                                          Utils::dataSourceToString(source).c_str(), channelID);
         return true;
     } else
@@ -57,7 +57,7 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
     }
     bool status = channelMap[channelID]->ptr()->stopStreams(src);
     if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Stopped camera stream {}", dataSourceStr.c_str());
+        Log::Logger::getInstance()->info("Stopped camera stream {} on channel {}", dataSourceStr.c_str(), channelID);
         return true;
     } else {
         Log::Logger::getInstance()->info("Failed to stop stream {}", dataSourceStr.c_str());
@@ -67,6 +67,7 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
 
 void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
+    Log::Logger::getInstance()->info("Received image {}x{} on channel {} with source {}", header.width, header.height, p->imageBuffer->id, header.source);
     p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
 }
 
@@ -235,17 +236,19 @@ void CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel chan
 
 bool CRLPhysicalCamera::setGamma(float gamma, crl::multisense::RemoteHeadChannel channelID) {
     std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-    crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[0].imgConf);
+    crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to query gamma configuration");
         return false;
     }
     infoMap[channelID].imgConf.setGamma(gamma);
-    status = channelMap[channelID]->ptr()->setImageConfig(infoMap[0].imgConf);
+    status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
     if (crl::multisense::Status_Ok != status) {
         Log::Logger::getInstance()->info("Unable to set gamma configuration");
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verify Gamma");
         return false;
@@ -267,6 +270,8 @@ bool CRLPhysicalCamera::setFps(float fps, crl::multisense::RemoteHeadChannel cha
         Log::Logger::getInstance()->info("Unable to set image configuration");
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verify fps");
         return false;
@@ -290,6 +295,8 @@ bool CRLPhysicalCamera::setGain(float gain, crl::multisense::RemoteHeadChannel c
         Log::Logger::getInstance()->info("Unable to set image configuration");
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
 
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to update Gain");
@@ -332,6 +339,8 @@ bool CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multi
         Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height, depth, ret);
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
 
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verify resolution");
@@ -367,6 +376,8 @@ bool CRLPhysicalCamera::setExposureParams(ExposureParams p, crl::multisense::Rem
         return false;
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verify Exposure params");
         return false;
@@ -388,6 +399,9 @@ bool CRLPhysicalCamera::setPostFilterStrength(float filter, crl::multisense::Rem
         Log::Logger::getInstance()->info("Unable to set image configuration");
         return false;
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verified post filter strength");
         return false;
@@ -410,6 +424,8 @@ bool CRLPhysicalCamera::setHDR(bool hdr, crl::multisense::RemoteHeadChannel chan
         Log::Logger::getInstance()->info("Unable to set hdr configuration");
         return false;
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to verifiy HDR");
@@ -443,6 +459,8 @@ bool CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param, crl::multisens
         return false;
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
         Log::Logger::getInstance()->info("Failed to update white balance");
         return false;
@@ -474,6 +492,7 @@ bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::Remot
         Log::Logger::getInstance()->info("Unable to set image configuration");
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
         Log::Logger::getInstance()->info("Failed to update '{}' ", "Lightning");

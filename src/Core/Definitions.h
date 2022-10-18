@@ -203,7 +203,7 @@ namespace MultiSense {
         bool hdrEnabled = false;
         float gamma = 2.0f;
 
-        bool update = true;
+        bool update = false;
         bool updateGuiParams = true;
     };
 
@@ -220,8 +220,7 @@ namespace MultiSense {
         std::string selectedSource = "Source";
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
-        uint32_t selectedRemoteHeadIndex = 0;
-        uint32_t selectedRemoteHead = 0;
+        crl::multisense::RemoteHeadChannel  selectedRemoteHeadIndex = 0;
     };
 
     struct ChannelInfo {

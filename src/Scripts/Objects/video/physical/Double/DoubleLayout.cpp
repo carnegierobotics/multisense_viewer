@@ -23,10 +23,9 @@ void DoubleLayout::update() {
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
-            prepareTexture();
             return;
         }
-        const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+        const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = std::make_unique<VkRender::TextureData>(textureType, conf.width(), conf.height());
         model->getTextureDataPointer(tex.get());
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
@@ -40,12 +39,12 @@ void DoubleLayout::update() {
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 / scaleX), centerY * (1 / scaleY), 0.0f));
 
-    auto& d = bufferOneData;
+    auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto& d2 = bufferTwoData;
+    auto &d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -56,9 +55,6 @@ void DoubleLayout::update() {
 
 void DoubleLayout::prepareTexture() {
     model->modelType = textureType;
-
-
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -82,10 +78,8 @@ void DoubleLayout::prepareTexture() {
             return;
     }
 
-
-    width = imgConf.width();
-    height = imgConf.height();
-
+    Log::Logger::getInstance()->info("Preparing texture image {}, {} on preview {}, channel: {}", width, height, "One",
+                                     remoteHeadIndex);
     model->createEmtpyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
     ImageData imgData;
@@ -113,11 +107,13 @@ void DoubleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
         playbackSate = dev.playbackStatus;
 
         auto &preview = dev.win.at(AR_PREVIEW_ONE);
+
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
         if (preview.selectedSource == "Source") {
             // dont draw or update
             model->draw = false;
         }
+
 
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
@@ -127,6 +123,7 @@ void DoubleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             prepareTexture();
         }
+
 
         transformToUISpace(uiHandle, dev);
     }
@@ -139,8 +136,10 @@ void DoubleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHand
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
-    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
-    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
+             (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY - uiHandle->info->previewBorderPadding) / 720.0f) *
+             (720 / uiHandle->info->height);
 }
 
 

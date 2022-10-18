@@ -74,25 +74,20 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
         dev->parameters.updateGuiParams = false;
     }
 
-    for (auto &ch: dev->channelInfo) {
-        if (ch.state != AR_STATE_ACTIVE)
-            continue;
-
         if (dev->parameters.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
-                       p->stereoPostFilterStrength, p->hdrEnabled, dev, ch.index);
+                       p->stereoPostFilterStrength, p->hdrEnabled, dev, dev->configRemoteHead);
 
         if (dev->parameters.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, ch.index);
+            pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, dev->configRemoteHead);
 
         if (dev->parameters.wb.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, ch.index);
+            pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, dev->configRemoteHead);
 
         if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, ch.index);
+            pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
         // Set the correct resolution. Will only update if changed.
 
-    }
     for (auto &ch: dev->channelInfo) {
         if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode && pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
             pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
@@ -187,6 +182,8 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *devices, bool shou
 
 void CameraConnection::getProfileFromIni(MultiSense::Device &dev) {
     dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
+    dev.win.clear();
+
     for (auto ch: dev.channelConnections) {
         MultiSense::ChannelInfo chInfo;
         chInfo.availableSources.clear();
@@ -228,15 +225,12 @@ void CameraConnection::getProfileFromIni(MultiSense::Device &dev) {
                 for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                     if (i == AR_PREVIEW_POINT_CLOUD)
                         continue;
-
                     std::string key = "Preview" + std::to_string(i + 1);
                     std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
                     std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
                     if (!source.empty()) {
-
                         dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
                         dev.win[i].selectedRemoteHeadIndex = std::stoi(remoteHeadIndex);
-
                         Log::Logger::getInstance()->info(
                                 ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                 source.substr(0, source.find_last_of(':')),
@@ -248,7 +242,6 @@ void CameraConnection::getProfileFromIni(MultiSense::Device &dev) {
                 }
             }
         }
-
         dev.channelInfo.at(ch) = chInfo;
     }
 }
@@ -476,8 +469,8 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
     if (!dev->channelConnections.empty()) {
         app->getProfileFromIni(*dev);
         // Set the resolution read from config file
-        dev->cameraName = app->camPtr->getCameraInfo(0).devInfo.name;
-        dev->serialName = app->camPtr->getCameraInfo(0).devInfo.serialNumber;
+        dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
+        dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
         dev->state = AR_STATE_ACTIVE;
     } else {
         dev->state = AR_STATE_UNAVAILABLE;
@@ -629,5 +622,5 @@ void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev,  crl:
     p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
     p->wb.whiteBalanceRed = conf.whiteBalanceRed();
     p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
-    dev->parameters.update = false;
+    dev->parameters.updateGuiParams = false;
 }

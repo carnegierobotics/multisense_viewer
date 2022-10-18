@@ -449,7 +449,7 @@ private:
                             const bool is_selected = (window.selectedRemoteHeadIndex == n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
-                                    window.selectedRemoteHeadIndex = n;
+                                    window.selectedRemoteHeadIndex =  (crl::multisense::RemoteHeadChannel ) std::stoi(window.availableRemoteHeads[n]);
                                     Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
                                                                      window.selectedRemoteHeadIndex, index);
 

@@ -3,7 +3,7 @@
 //
 
 #include "VisualOdometry.h"
-
+#include "thread"
 
 VisualOdometry::VisualOdometry() {
     m_Rotation = cv::Mat::eye(3, 3, CV_64F);
@@ -16,23 +16,38 @@ VisualOdometry::VisualOdometry() {
     m_FramePose32 = cv::Mat::eye(4, 4, CV_32F);
 
     std::cout << "frame_pose " << m_FramePose << std::endl;
-    m_Trajectory = cv::Mat::zeros(600, 1200, CV_8UC3);
-
+    m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
 }
 
-
 glm::vec3 VisualOdometry::update(VkRender::TextureData left, VkRender::TextureData right, VkRender::TextureData depth) {
+    /*std::string filepath = "/home/magnus/PycharmProjects/simple_visual_odometry/data/data_odometry_gray/dataset/sequences/00/";
+    char file[200];
+    sprintf(file, "image_0/%06d.png", m_FrameID);
+
+    // sprintf(file, "image_0/%010d.png", frame_id);
+    std::string filename = filepath + std::string(file);
+    cv::Mat imageLeft = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+    sprintf(file, "image_1/%06d.png", m_FrameID);
+
+    // sprintf(file, "image_0/%010d.png", frame_id);
+    filename = filepath + std::string(file);
+    cv::Mat imageRight = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+*/
     m_ImageLeft_t1 = cv::Mat(left.m_Height, left.m_Width, CV_8UC1, left.data);
     m_ImageRight_t1 = cv::Mat(right.m_Height, right.m_Width, CV_8UC1, right.data);
-    m_ImageDepth_t1 = cv::Mat(depth.m_Height, depth.m_Width, CV_8UC1, depth.data);
-    //ppendNewFeatures(m_ImageLeft_t1, &featureSet);
+    runVO(m_ImageLeft_t1, m_ImageRight_t1);
+}
+
+void VisualOdometry::runVO( cv::Mat imageLeft_t1,  cv::Mat imageRight_t1){
+    m_ImageLeft_t1 = imageLeft_t1;
+    m_ImageRight_t1 = imageRight_t1;
 
     if (m_FrameID == 0) {
         m_ImageLeft_t0 = m_ImageLeft_t1.clone();
         m_ImageRight_t0 = m_ImageRight_t1.clone();
         m_ImageDepth_t0 = m_ImageDepth_t1.clone();
         m_FrameID++;
-        return {0.0f, 0.0f, 0.0f};
+        return;
     }
 
     /** FIND FEATURES **/
@@ -97,7 +112,7 @@ glm::vec3 VisualOdometry::update(VkRender::TextureData left, VkRender::TextureDa
         m_ImageRight_t0 = m_ImageRight_t1.clone();
         m_ImageDepth_t0 = m_ImageDepth_t1.clone();
         m_FrameID++;
-        return glm::vec3(0.0f, 0.0f, 0.0f);
+        return;
     }
 
     cv::triangulatePoints(m_PLeft, m_PRight, pointsLeft_t0, pointsRight_t0, points4D_t0);
@@ -138,29 +153,35 @@ glm::vec3 VisualOdometry::update(VkRender::TextureData left, VkRender::TextureDa
     m_ImageDepth_t0 = m_ImageDepth_t1.clone();
     m_FrameID++;
     cv::waitKey(1);
-
-    return {x, 0.0f, z};
-
 }
 
 void VisualOdometry::setPMat(crl::multisense::image::Calibration calib, float tx) {
-    /*
+
+/*
+    float fx = 718.85f;
+    float fy = 718.85f;
+    float cx = 607.19f;
+    float cy = -386.144;
+
+    tx = 386.15
+ */
+
+
     float fx = calib.left.P[0][0] / 2;
     float fy = calib.left.P[1][1] / 2;
     float cx = calib.left.P[0][2] / 2;
     float cy = calib.left.P[1][2] / 2;
-     */
-    float fx = calib.left.P[0][0] / 2;
-    float fy = calib.left.P[1][1] / 2;
-    float cx = calib.left.P[0][2] / 2;
-    float cy = calib.left.P[1][2] / 2;
+
     m_PLeft = (cv::Mat_<float>(3, 4) << fx, 0., cx, 0., 0., fy, cy, 0., 0, 0., 1., 0.);
+
 
     fx = calib.right.P[0][0] / 2;
     fy = calib.right.P[1][1] / 2;
     cx = calib.right.P[0][2] / 2;
     cy = calib.right.P[1][2] / 2;
-    m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, tx * fx, 0., fy, cy, 0., 0, 0., 1., 0.);
+
+
+     m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, fx* tx, 0., fy, cy, 0., 0, 0., 1., 0.);
 
 
 }

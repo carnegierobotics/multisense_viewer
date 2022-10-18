@@ -23,6 +23,7 @@ void DoubleLayout::update() {
     if (model->draw) {
         if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
             model->draw = false;
+            prepareTexture();
             return;
         }
         const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
@@ -80,6 +81,11 @@ void DoubleLayout::prepareTexture() {
 
     Log::Logger::getInstance()->info("Preparing texture image {}, {} on preview {}, channel: {}", width, height, "One",
                                      remoteHeadIndex);
+
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+
+    width = imgConf.width();
+    height = imgConf.height();
     model->createEmtpyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
     ImageData imgData;

@@ -28,6 +28,17 @@
 
 #include "stb_image_write.h"
 
+extern "C" {
+#include<libavutil/avutil.h>
+#include<libavutil/imgutils.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+
+}
+#include "opencv2/opencv.hpp"
+#include "thread"
+
 namespace Utils {
 
     static std::string getShadersPath() {
@@ -528,7 +539,7 @@ namespace Utils {
     }
 
     static void
-    saveImageToFile(CRLCameraDataType type, const std::string &path, std::string stringSrc, VkRender::TextureData tex,
+    saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string& stringSrc, VkRender::TextureData tex,
                     void *data, void *data2 = nullptr) {
 
         std::string fileName = std::to_string(tex.m_Id);
@@ -568,41 +579,66 @@ namespace Utils {
             case AR_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
             {
-                float Kr = 0.33f, Kg = 0.33f, Kb = 0.33f;
-                auto Y = (uint8_t *) data;
-                auto C = (uint8_t *) data2;
-                std::vector<uint8_t> buf;
-                buf.reserve(tex.m_Width * tex.m_Height * 3);
+                int width = tex.m_Width;
+                int height = tex.m_Height;
 
-                glm::mat3 colorMatrix(0.0f);
-                colorMatrix[0][0] = 1.0f;
-                colorMatrix[0][1] = 1.0f;
-                colorMatrix[0][2] = 1.0f;
-
-                colorMatrix[1][0] = 1.0f;
-                colorMatrix[1][1] = -(Kb / Kr) * (2 - (2 * Kb));
-                colorMatrix[1][2] = 2 - (2 * Kb);
-
-                colorMatrix[2][0] = 2 - (2 * Kr);
-                colorMatrix[2][1] = -(Kr / Kg) * (2 - (2 * Kr));
-                colorMatrix[2][2] = 0;
-
-
-                for (int i = 0; i < tex.m_Width * tex.m_Height; ++i) {
-                    float normY = (Y[i] / 219.0f) - 16.0f;
-                    int idx = std::floor(i / 2.0f);
-
-                    float normCb = (C[idx] / 224.0f) - 128.0f;
-                    float normCr = (C[idx] / 224.0f) - 128.0f;
-                    glm::vec3 ycbcr(normY, normCb, normCr);
-
-                    glm::vec3 rgb = colorMatrix * ycbcr;
-                    buf.emplace_back((uint8_t )rgb.r * 255);
-                    buf.emplace_back((uint8_t )rgb.g * 255) ;
-                    buf.emplace_back((uint8_t )rgb.b * 255);
+                AVFrame *src;
+                src = av_frame_alloc();
+                if (!src) {
+                    fprintf(stderr, "Could not allocate video frame\n");
                 }
-                stbi_write_png((fullPathName + ".png").c_str(), tex.m_Width, tex.m_Height, 1, buf.data(),
-                               tex.m_Width * 3);
+                src->format = AV_PIX_FMT_YUV420P;
+                src->width  = width;
+                src->height = height;
+                int ret = av_image_alloc(src->data, src->linesize, src->width, src->height,
+                                         static_cast<AVPixelFormat>(src->format), 32);
+                if (ret < 0) {
+                    fprintf(stderr, "Could not allocate raw picture buffer\n");
+                    exit(1);
+                }
+                src->data[0] = tex.data;
+                auto* d = (uint16_t*) tex.data2;
+                for (int i = 0; i < tex.m_Height / 2 * tex.m_Width/2; ++i) {
+                    src->data[1][i] = d[i] & 0xff;
+                    src->data[2][i] = (d[i] >> (8)) & 0xff;
+                }
+                AVFrame *dst;
+                dst = av_frame_alloc();
+                if (!dst) {
+                    fprintf(stderr, "Could not allocate video frame\n");
+                }
+                dst->format = AV_PIX_FMT_RGB24;
+                dst->width  = width;
+                dst->height = height;
+                ret = av_image_alloc(dst->data, dst->linesize, dst->width, dst->height,
+                                         static_cast<AVPixelFormat>(dst->format), 8);
+                if (ret < 0) {
+                    fprintf(stderr, "Could not allocate raw picture buffer\n");
+                    exit(1);
+                }
+
+                SwsContext *conversion = sws_getContext(width,
+                                                        height,
+                                                        (AVPixelFormat) AV_PIX_FMT_YUV420P,
+                                                        width,
+                                                        height,
+                                                        AV_PIX_FMT_RGB24,
+                                                        SWS_FAST_BILINEAR,
+                                                        NULL,
+                                                        NULL,
+                                                        NULL);
+
+                sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
+                sws_freeContext(conversion);
+
+                stbi_write_png((fullPathName + ".png").c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
+
+
+                cv::Mat img(cv::Size(tex.m_Width, tex.m_Height), CV_8UC3, dst->data[0]);
+                cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
+                cv::imshow("img", img);
+                cv::waitKey(1);
+
             }
 
 
@@ -612,8 +648,112 @@ namespace Utils {
             case AR_CAMERA_IMAGE_NONE:
                 break;
         }
+    }
 
-        free(data);
+
+    static void
+    saveImageToFile2(CRLCameraDataType type, const std::string &path, const std::string& stringSrc, std::shared_ptr<VkRender::TextureData>& ptr) {
+
+        std::string fileName = std::to_string(ptr->m_Id);
+        std::string directory = path + "/" + stringSrc;
+        std::string filePath = directory + "/";
+
+#ifdef WIN32
+        int check = _mkdir(directory.c_str());
+#else
+        int check = mkdir(directory.c_str(), 0777);
+#endif
+// check if directory is created or not
+        if (!check)
+            printf("Directory created\n");
+
+        std::string fullPathName = filePath + fileName;
+        switch (type) {
+            case AR_POINT_CLOUD:
+                break;
+            case AR_GRAYSCALE_IMAGE:
+                stbi_write_png((fullPathName + ".png").c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
+                               ptr->m_Width);
+                break;
+            case AR_DISPARITY_IMAGE: {
+                auto *d = (uint16_t *) ptr->data;
+                std::vector<uint8_t> buf;
+                buf.reserve(ptr->m_Width * ptr->m_Height);
+                for (int i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
+                    d[i] /= 16;
+                    uint8_t lsb = d[i] & 0x000000FF;
+                    buf.emplace_back(lsb);
+                }
+                stbi_write_png((fullPathName + ".png").c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
+                               ptr->m_Width);
+            }
+                break;
+            case AR_COLOR_IMAGE_YUV420:
+                // Normalize ycbcr
+            {
+                int width = ptr->m_Width;
+                int height = ptr->m_Height;
+
+                AVFrame *src;
+                src = av_frame_alloc();
+                if (!src) {
+                    fprintf(stderr, "Could not allocate video frame\n");
+                }
+                src->format = AV_PIX_FMT_YUV420P;
+                src->width  = width;
+                src->height = height;
+                int ret = av_image_alloc(src->data, src->linesize, src->width, src->height,
+                                         static_cast<AVPixelFormat>(src->format), 32);
+                if (ret < 0) {
+                    fprintf(stderr, "Could not allocate raw picture buffer\n");
+                }
+
+                std::memcpy(src->data[0], ptr->data, ptr->m_Len);
+                auto* d = (uint16_t*) ptr->data2;
+                for (int i = 0; i < ptr->m_Height / 2 * ptr->m_Width/2; ++i) {
+                    src->data[1][i] = d[i] & 0xff;
+                    src->data[2][i] = (d[i] >> (8)) & 0xff;
+                }
+
+                AVFrame *dst;
+                dst = av_frame_alloc();
+                if (!dst) {
+                    fprintf(stderr, "Could not allocate video frame\n");
+                }
+                dst->format = AV_PIX_FMT_RGB24;
+                dst->width  = width;
+                dst->height = height;
+                ret = av_image_alloc(dst->data, dst->linesize, dst->width, dst->height,
+                                     static_cast<AVPixelFormat>(dst->format), 8);
+                if (ret < 0) {
+                    fprintf(stderr, "Could not allocate raw picture buffer\n");
+                }
+                SwsContext *conversion = sws_getContext(width,
+                                                        height,
+                                                        (AVPixelFormat) AV_PIX_FMT_YUV420P,
+                                                        width,
+                                                        height,
+                                                        AV_PIX_FMT_RGB24,
+                                                        SWS_FAST_BILINEAR,
+                                                        NULL,
+                                                        NULL,
+                                                        NULL);
+                sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
+                sws_freeContext(conversion);
+                stbi_write_png((fullPathName + ".png").c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
+
+                av_freep(&src->data[0]);
+                av_frame_free(&src);
+                av_freep(&dst->data[0]);
+                av_frame_free(&dst);
+
+            }
+                break;
+            case AR_YUV_PLANAR_FRAME:
+                break;
+            case AR_CAMERA_IMAGE_NONE:
+                break;
+        }
     }
 };
 

@@ -31,7 +31,7 @@ void Renderer::prepareRenderer() {
 
     // Prefer to load the model only once, so load it in first setup
     // Load Object Scripts from file
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Classes.txt");
+    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
     std::string line;
     while (std::getline(infile, line))
     {
@@ -59,7 +59,7 @@ void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.870f, 0.878f, 0.862f, 1.0f}};
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -250,7 +250,7 @@ void Renderer::render() {
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {{0.870f, 0.878f, 0.862f, 1.0f}};
+        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
         clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);

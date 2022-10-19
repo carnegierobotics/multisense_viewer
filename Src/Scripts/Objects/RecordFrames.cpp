@@ -20,22 +20,12 @@ void RecordFrames::update() {
 
     for (const auto &src: sources) {
         const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(src), conf.width(), conf.height());
+        auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), false);
 
-        tex.data = dataBufferMap[src];
-        if (dataBufferMapSecondary.find(src) != dataBufferMapSecondary.end())
-            tex.data2 = dataBufferMapSecondary[src];
-
-        if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
-            if (threadPool->getTaskListSize() < 100 && ids[src] != tex.m_Id) {
-
-                Log::Logger::getInstance()->info("Saving image {} from source {}", tex.m_Id, src);
-
-                auto* data = (uint8_t*) malloc(tex.m_Len);
-                std::memcpy(data, tex.data, tex.m_Len);
-                threadPool->Push(Utils::saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex, data,
-                                 tex.data2);
-                ids[src] = tex.m_Id;
+        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
+            if (threadPool->getTaskListSize() < STACK_SIZE_100) {
+                Log::Logger::getInstance()->info("Saving image {} from source {}", tex->m_Id, src);
+                threadPool->Push(Utils::saveImageToFile2, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex);
             }
         }
 

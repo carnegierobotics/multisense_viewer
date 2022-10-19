@@ -23,6 +23,7 @@
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
+#define STACK_SIZE_100 100
 
 class CRLPhysicalCamera;
 
@@ -360,10 +361,11 @@ namespace VkRender {
     };
 
     struct TextureData {
-        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height) :
+        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool persist = true) :
                 m_Type(texType),
                 m_Width(width),
-                m_Height(height){
+                m_Height(height),
+                persistent(persist){
 
             switch (texType) {
                 case AR_POINT_CLOUD:
@@ -373,6 +375,7 @@ namespace VkRender {
                 case AR_COLOR_IMAGE_YUV420:
                 case AR_YUV_PLANAR_FRAME:
                     m_Len = width * height;
+                    m_Len2 = width * height / 2;
                     break;
                 case AR_DISPARITY_IMAGE:
                     m_Len = width * height * 2;
@@ -381,12 +384,28 @@ namespace VkRender {
                 default:
                     break;
             }
+
+            if (!persistent){
+                data = (uint8_t*) malloc(m_Len);
+                data2 = (uint8_t*) malloc(m_Len2);
+            }
+        }
+
+        ~TextureData(){
+            if (!persistent) {
+                free(data);
+                free(data2);
+            }
         }
 
         uint8_t *data{};
         uint8_t *data2{};
-        uint32_t m_Len = 0, m_Height = 0, m_Width = 0, m_Id{}, m_Id2{};
+        uint32_t m_Len = 0, m_Len2 = 0, m_Height = 0, m_Width = 0, m_Id{}, m_Id2{};
         CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
+
+    private:
+        bool persistent = true;
+
     };
 
     struct Vertex {

@@ -67,7 +67,7 @@ bool CRLPhysicalCamera::stop(const std::string &dataSourceStr, crl::multisense::
 
 void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
     auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
-    Log::Logger::getInstance()->info("Received image {}x{} on channel {} with source {}", header.width, header.height, p->imageBuffer->id, header.source);
+    //Log::Logger::getInstance()->info("Received image {}x{} on channel {} with source {}", header.width, header.height, p->imageBuffer->id, header.source);
     p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
 }
 

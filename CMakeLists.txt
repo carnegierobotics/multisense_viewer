@@ -146,7 +146,7 @@ set(ENGINE_SRC
         Src/Features/VisualOdometry.h
         Src/Features/Feature.cpp
         Src/Features/Feature.h
-        )
+        Src/imgui/Background.h)
 
 if (WIN32)
 

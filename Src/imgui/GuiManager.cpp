@@ -19,6 +19,7 @@
 #include "LayerExample.h"
 
 #include "stb_image.h"
+#include "Background.h"
 
 namespace MultiSense {
 
@@ -33,6 +34,7 @@ namespace MultiSense {
 
         initializeFonts();
 
+        pushLayer<Background>();
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
         pushLayer<LayerExample>();

@@ -5,10 +5,11 @@
 #ifndef MULTISENSE_VIEWER_VISUALODOMETRY_H
 #define MULTISENSE_VIEWER_VISUALODOMETRY_H
 
-#include "opencv4/opencv2/opencv.hpp"
+#include "opencv2/opencv.hpp"
 #include "MultiSense/Src/Core/Definitions.h"
 #include "Feature.h"
 #include "MultiSense/MultiSenseTypes.hh"
+
 
 class VisualOdometry {
 

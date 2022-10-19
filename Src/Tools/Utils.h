@@ -36,8 +36,6 @@ extern "C" {
 #include <libswscale/swscale.h>
 
 }
-#include "opencv2/opencv.hpp"
-#include "thread"
 
 namespace Utils {
 
@@ -634,12 +632,6 @@ namespace Utils {
                 sws_freeContext(conversion);
 
                 stbi_write_png((fullPathName + ".png").c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
-
-
-                cv::Mat img(cv::Size(tex.m_Width, tex.m_Height), CV_8UC3, dst->data[0]);
-                cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
-                cv::imshow("img", img);
-                cv::waitKey(1);
 
             }
 

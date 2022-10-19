@@ -14,6 +14,9 @@ set(ARCHITECTURE "amd64")
 # Libraries
 find_package(Vulkan REQUIRED)
 
+set(OpenCV_DIR "C:\\opencv\\build")
+find_package(OpenCV REQUIRED)
+
 # GLFW
 set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo
 option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
@@ -75,8 +78,8 @@ set(IMGUI_SRC
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
 
-
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense")
+include_directories(${OpenCV_INCLUDE_DIR})
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense;${OpenCV_LIBS}")
 
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -267,11 +270,9 @@ endforeach( file_i )
 
 else () ## Linux
 
-    find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIR})
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

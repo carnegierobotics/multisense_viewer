@@ -14,9 +14,6 @@ set(ARCHITECTURE "amd64")
 # Libraries
 find_package(Vulkan REQUIRED)
 
-set(OpenCV_DIR "C:\\opencv\\build")
-find_package(OpenCV REQUIRED)
-
 # GLFW
 set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo
 option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
@@ -77,10 +74,7 @@ set(IMGUI_SRC
         Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
-
-include_directories(${OpenCV_INCLUDE_DIR})
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense;${OpenCV_LIBS}")
-
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "Src/Scripts/Objects/*.h")
@@ -145,10 +139,6 @@ set(ENGINE_SRC
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        Src/Features/VisualOdometry.cpp
-        Src/Features/VisualOdometry.h
-        Src/Features/Feature.cpp
-        Src/Features/Feature.h
         Src/imgui/Background.h)
 
 if (WIN32)

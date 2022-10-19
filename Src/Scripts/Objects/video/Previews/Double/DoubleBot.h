@@ -2,28 +2,28 @@
 // Created by magnus on 9/19/22.
 //
 
-#ifndef MULTISENSE_VIEWER_PREVIEWONE_H
-#define MULTISENSE_VIEWER_PREVIEWONE_H
+#ifndef MULTISENSE_VIEWER_DOUBLEBOT_H
+#define MULTISENSE_VIEWER_DOUBLEBOT_H
 
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
-class PreviewOne: public Base, public RegisteredInFactory<PreviewOne>, CRLCameraModels
+class DoubleBot: public Base, public RegisteredInFactory<DoubleBot>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    PreviewOne() {
+    DoubleBot() {
         s_bRegistered;
     }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<PreviewOne>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DoubleBot>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "PreviewOne"; }
+    static std::string GetFactoryName() { return "DoubleBot"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -47,7 +47,6 @@ public:
     int count = 1;
     void *selection = (void *) "0";
     float up = -1.3f;
-    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -56,10 +55,10 @@ public:
     float centerY = 0.0f;
     std::string src;
     uint32_t remoteHeadIndex = 0;
-    CRLCameraResolution res{};
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width{}, height{};
-    CRLCameraDataType textureType{};
+    uint32_t width = 0, height = 0;
+    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
@@ -69,4 +68,5 @@ public:
     void prepareTexture();
 };
 
-#endif //MULTISENSE_VIEWER_PREVIEWONE_H
+
+#endif //MULTISENSE_VIEWER_DOUBLEBOT_H

@@ -1,30 +1,29 @@
 //
-// Created by magnus on 9/16/22.
+// Created by magnus on 9/19/22.
 //
 
-#ifndef MULTISENSE_VIEWER_DOUBLELAYOUT_H
-#define MULTISENSE_VIEWER_DOUBLELAYOUT_H
+#ifndef MULTISENSE_VIEWER_TWO_H
+#define MULTISENSE_VIEWER_TWO_H
 
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
-
-class DoubleLayout: public Base, public RegisteredInFactory<DoubleLayout>, CRLCameraModels
+class Two: public Base, public RegisteredInFactory<Two>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    DoubleLayout() {
+    Two() {
         s_bRegistered;
     }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DoubleLayout>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Two>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "DoubleLayout"; }
+    static std::string GetFactoryName() { return "Two"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -56,7 +55,7 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    int16_t remoteHeadIndex = 0;
+    uint32_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
     uint32_t width = 0, height = 0;
@@ -70,5 +69,4 @@ public:
     void prepareTexture();
 };
 
-
-#endif //MULTISENSE_VIEWER_DOUBLELAYOUT_H
+#endif //MULTISENSE_VIEWER_TWO_H

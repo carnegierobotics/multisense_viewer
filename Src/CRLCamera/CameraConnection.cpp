@@ -593,9 +593,7 @@ CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, crl
 void CameraConnection::startStreamTask(void *context, std::string src,
                                        crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
-    if (app->camPtr->start(src, remoteHeadIndex));
-    else
-        Log::Logger::getInstance()->info("Failed to enabled stream {}", src);
+    app->camPtr->start(src, remoteHeadIndex);
 }
 
 void CameraConnection::stopStreamTask(void *context, std::string src,

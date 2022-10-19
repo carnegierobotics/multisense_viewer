@@ -123,6 +123,8 @@ namespace Utils {
         if (d == "Luma Right") return crl::multisense::Source_Luma_Right;
         if (d == "Luma Rectified Left") return crl::multisense::Source_Luma_Rectified_Left;
         if (d == "Luma Rectified Right") return crl::multisense::Source_Luma_Rectified_Right;
+        if (d == "Luma Compressed Rectified Left") return crl::multisense::Source_Compressed_Rectified_Left;
+        if (d == "Luma Compressed Left") return crl::multisense::Source_Compressed_Left;
         if (d == "Color Left") return crl::multisense::Source_Chroma_Left;
         if (d == "Source Color Right") return crl::multisense::Source_Chroma_Right;
         if (d == "Disparity Left") return crl::multisense::Source_Disparity_Left;

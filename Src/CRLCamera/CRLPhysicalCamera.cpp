@@ -38,11 +38,11 @@ bool CRLPhysicalCamera::start(const std::string &dataSourceStr, crl::multisense:
     // Start stream
     int32_t status = channelMap[channelID]->ptr()->startStreams(source);
     if (status == crl::multisense::Status_Ok) {
-        Log::Logger::getInstance()->info("Enabled stream: {} on channel {}",
+        Log::Logger::getInstance()->info("Started stream: {} on channel {}",
                                          Utils::dataSourceToString(source).c_str(), channelID);
         return true;
     } else
-        Log::Logger::getInstance()->info("Failed to flashing stream: {}  status code {}",
+        Log::Logger::getInstance()->info("Failed to start stream: {}  status code {}",
                                          Utils::dataSourceToString(source).c_str(), status);
     return false;
 }
@@ -81,7 +81,7 @@ void CRLPhysicalCamera::addCallbacks(crl::multisense::RemoteHeadChannel channelI
         num_sources += (d & 1);
         d >>= 1;
     }
-    if (channelMap[channelID]->ptr()->addIsolatedCallback(remoteHeadCallback, infoMap[channelID].supportedSources,
+    if (channelMap[channelID]->ptr()->addIsolatedCallback(remoteHeadCallback, infoMap[channelID].supportedSources | crl::multisense::Source_Compressed_Rectified_Left,
         channelMap[channelID].get()) ==
         crl::multisense::Status_Ok) {
         Log::Logger::getInstance()->info("Added callback for channel {}", channelID);

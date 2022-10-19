@@ -641,10 +641,10 @@ private:
                     ImGui::SameLine();
                     ImGui::PushFont(handles->info->font18);
                     ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
-                    ImGui::Text("Recording !? Not finished yet");
+                    ImGui::Text("Recording");
                     ImGui::PopFont();
                     ImGui::SameLine();
-                    ImGui::HelpMarker(" \n Saves the streams that are active in the viewing area \n ");
+                    ImGui::HelpMarker(" \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 

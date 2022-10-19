@@ -165,39 +165,39 @@ void Renderer::render() {
             switch (dev.layout) {
                 case PREVIEW_LAYOUT_SINGLE:
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
                 case PREVIEW_LAYOUT_DOUBLE:
-                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
 
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
                 case PREVIEW_LAYOUT_QUAD:
-                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
                     scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
                     scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
 
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
                 default:
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
@@ -213,10 +213,10 @@ void Renderer::render() {
             }
         } else {
             scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("DoubleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("DoubleLayoutBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("PreviewOne")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("PreviewTwo")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         }

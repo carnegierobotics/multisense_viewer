@@ -263,7 +263,7 @@ namespace MultiSense {
         CRLCameraBaseUnit baseUnit{};
 
         /**@brief location for which this device should save recorded frames **/
-        std::string outputSaveFolder = "/home/magnus/CLionProjects/MultiSense/cmake-build-debug/Out";
+        std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
 
         std::vector<std::string> attachedScripts{};

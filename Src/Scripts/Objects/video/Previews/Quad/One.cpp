@@ -2,11 +2,11 @@
 // Created by magnus on 5/8/22.
 //
 
-#include "PreviewOne.h"
+#include "One.h"
 #include "GLFW/glfw3.h"
 
 
-void PreviewOne::setup() {
+void One::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -15,7 +15,7 @@ void PreviewOne::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void PreviewOne::update() {
+void One::update() {
     if (playbackSate != AR_PREVIEW_PLAYING || selectedPreviewTab != TAB_2D_PREVIEW)
         return;
 
@@ -54,7 +54,7 @@ void PreviewOne::update() {
 }
 
 
-void PreviewOne::prepareTexture() {
+void One::prepareTexture() {
     model->modelType = textureType;
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
@@ -102,7 +102,7 @@ void PreviewOne::prepareTexture() {
     model->draw = true;
 }
 
-void PreviewOne::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+void One::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const MultiSense::Device &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
@@ -128,7 +128,7 @@ void PreviewOne::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void PreviewOne::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+void One::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
     float row = dev.row[0];
     float col = dev.col[0];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -141,13 +141,13 @@ void PreviewOne::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandl
 
 
 
-void PreviewOne::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void One::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && playbackSate != AR_PREVIEW_NONE && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 
 }
 
-void PreviewOne::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void One::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

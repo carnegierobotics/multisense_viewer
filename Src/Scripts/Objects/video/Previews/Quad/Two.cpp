@@ -2,11 +2,11 @@
 // Created by magnus on 9/19/22.
 //
 
-#include "PreviewTwo.h"
+#include "Two.h"
 #include "GLFW/glfw3.h"
 
 
-void PreviewTwo::setup() {
+void Two::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -15,7 +15,7 @@ void PreviewTwo::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void PreviewTwo::update(){
+void Two::update(){
     if (playbackSate != AR_PREVIEW_PLAYING || selectedPreviewTab != TAB_2D_PREVIEW)
         return;
 
@@ -54,7 +54,7 @@ void PreviewTwo::update(){
 }
 
 
-void PreviewTwo::prepareTexture() {
+void Two::prepareTexture() {
     model->modelType = textureType;
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
@@ -102,7 +102,7 @@ void PreviewTwo::prepareTexture() {
     model->draw = true;
 }
 
-void PreviewTwo::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+void Two::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const MultiSense::Device &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
@@ -128,7 +128,7 @@ void PreviewTwo::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void PreviewTwo::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+void Two::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
     float row = dev.row[0];
     float col = dev.col[1];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -139,14 +139,14 @@ void PreviewTwo::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandl
     centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY/2.0f)  + ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height - 1; // map between -1 to 1
 }
 
-void PreviewTwo::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Two::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 
 }
 
-void PreviewTwo::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void Two::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const auto &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

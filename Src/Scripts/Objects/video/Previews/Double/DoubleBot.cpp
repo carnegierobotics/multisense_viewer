@@ -1,12 +1,12 @@
 //
-// Created by magnus on 5/8/22.
+// Created by magnus on 9/19/22.
 //
 
-#include "DoubleLayout.h"
+#include "DoubleBot.h"
 #include "GLFW/glfw3.h"
 
 
-void DoubleLayout::setup() {
+void DoubleBot::setup() {
     // Prepare a model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -15,7 +15,7 @@ void DoubleLayout::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
 }
 
-void DoubleLayout::update() {
+void DoubleBot::update() {
     if (playbackSate != AR_PREVIEW_PLAYING || selectedPreviewTab != TAB_2D_PREVIEW)
         return;
 
@@ -26,26 +26,25 @@ void DoubleLayout::update() {
             prepareTexture();
             return;
         }
-        const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+        const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = std::make_unique<VkRender::TextureData>(textureType, conf.width(), conf.height());
         model->getTextureDataPointer(tex.get());
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             model->updateTexture(textureType);
         }
     }
-
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
     mat.model = glm::translate(mat.model, glm::vec3(centerX * (1 / scaleX), centerY * (1 / scaleY), 0.0f));
 
-    auto &d = bufferOneData;
+    auto& d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto &d2 = bufferTwoData;
+    auto& d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
@@ -54,8 +53,11 @@ void DoubleLayout::update() {
 }
 
 
-void DoubleLayout::prepareTexture() {
+void DoubleBot::prepareTexture() {
     model->modelType = textureType;
+
+
+    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
 
@@ -79,13 +81,10 @@ void DoubleLayout::prepareTexture() {
             return;
     }
 
-    Log::Logger::getInstance()->info("Preparing texture image {}, {} on preview {}, channel: {}", width, height, "One",
-                                     remoteHeadIndex);
-
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
 
     width = imgConf.width();
     height = imgConf.height();
+
     model->createEmtpyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
     ImageData imgData;
@@ -105,21 +104,18 @@ void DoubleLayout::prepareTexture() {
     model->draw = true;
 }
 
-void DoubleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+void DoubleBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     for (const MultiSense::Device &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
         playbackSate = dev.playbackStatus;
-
-        auto &preview = dev.win.at(AR_PREVIEW_ONE);
-
+        auto &preview = dev.win.at(AR_PREVIEW_TWO);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
         if (preview.selectedSource == "Source") {
             // dont draw or update
             model->draw = false;
         }
-
 
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
@@ -130,32 +126,29 @@ void DoubleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
             prepareTexture();
         }
 
-
         transformToUISpace(uiHandle, dev);
     }
 }
 
-void DoubleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+void DoubleBot::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
-                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
-                    ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[1]) * uiHandle->info->viewAreaElementSizeY) +
+                    ((dev.row[1]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
-    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
-             (1280.0f / uiHandle->info->width);
-    scaleY = ((uiHandle->info->viewAreaElementSizeY - uiHandle->info->previewBorderPadding) / 720.0f) *
-             (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
 }
 
-
-void DoubleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void DoubleBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (model->draw && selectedPreviewTab == TAB_2D_PREVIEW)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 
+
 }
 
-void DoubleLayout::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void DoubleBot::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
     for (auto &dev: *uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

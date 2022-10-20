@@ -299,7 +299,7 @@ private:
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
+        if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
         int cols = 0, rows = 0;
@@ -360,13 +360,17 @@ private:
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
+                if(dev.layout == PREVIEW_LAYOUT_DOUBLE){
+                    viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
+                }
+
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
 
                 static bool open = true;
                 ImGuiWindowFlags window_flags =
                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                        ImGuiWindowFlags_NoScrollWithMouse;
+                        ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
                 ImGui::Begin((std::string("View Area") + std::to_string(index)).c_str(), &open, window_flags);

@@ -103,7 +103,7 @@ void Four::prepareTexture() {
 }
 
 void Four::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+    for (const MultiSense::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
@@ -150,7 +150,7 @@ void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void Four::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (auto &dev: *uiHandle->devices) {
+    for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

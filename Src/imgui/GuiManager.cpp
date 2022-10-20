@@ -19,7 +19,6 @@
 #include "LayerExample.h"
 
 #include "stb_image.h"
-#include "Background.h"
 
 namespace MultiSense {
 
@@ -34,7 +33,6 @@ namespace MultiSense {
 
         initializeFonts();
 
-        pushLayer<Background>();
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
         pushLayer<LayerExample>();
@@ -208,7 +206,7 @@ namespace MultiSense {
         assert(fragShaderStage.module != VK_NULL_HANDLE);
         shaderModules.push_back(frgModule);
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaders {vtxShaderStage, fragShaderStage};
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaders{vtxShaderStage, fragShaderStage};
 
 
         ImGuiStyle &style = ImGui::GetStyle();
@@ -368,12 +366,14 @@ namespace MultiSense {
                                             &descriptorSetLayout));
 
 
-        uint32_t imageDescriptorSamplerCount = 13;
+        uint32_t imageDescriptorSamplerCount = 1;
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
 
         };
-        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 13);
+        uint32_t fontCount = 3, iconCount = 10, gifImageCount = 20;
+        uint32_t setCount = fontCount+iconCount+gifImageCount;
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
         CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
         fontTexture.reserve(3);
@@ -399,13 +399,11 @@ namespace MultiSense {
         loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_nine_layout.png", 9);
 
 
-
-        //loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
+        loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
 
     }
 
 
-    // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
     void GuiManager::loadAnimatedGif(const std::string &file) {
         int width = 0, height = 0, depth = 0, comp = 0;
         int *delays = nullptr;
@@ -432,9 +430,11 @@ namespace MultiSense {
         handles.info->gif.totalFrames = depth;
         handles.info->gif.imageSize = imageSize;
         handles.info->gif.delay = (uint32_t *) delays;
+        gifImageDescriptors.reserve(depth + 1);
 
 
         for (int i = 0; i < depth; ++i) {
+            VkDescriptorSet dSet;
             gifTexture[i] = std::make_unique<Texture2D>(device);
 
             gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
@@ -443,65 +443,32 @@ namespace MultiSense {
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
-            // Descriptor Layout
-
-            {
-                std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-                setLayoutBindings = {
-                        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                };
-
-
-                VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
-                        setLayoutBindings.data(),
-                        setLayoutBindings.size());
-
-                CHECK_RESULT(
-                        vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
-                                                    &descriptorSetLayout));
-            }
-
-            // Descriptor Pool
-            {
-                uint32_t imageDescriptorSamplerCount = (3 * 5);
-                std::vector<VkDescriptorPoolSize> poolSizes = {
-                        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
-
-                };
-                VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, 5);
-                CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-
-
-            }
-
-            // descriptors
-
             // Create Descriptor Set:
-            {
-                VkDescriptorSetAllocateInfo alloc_info = {};
-                alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                alloc_info.descriptorPool = descriptorPool;
-                alloc_info.descriptorSetCount = 1;
-                alloc_info.pSetLayouts = &descriptorSetLayout;
-                CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &gifImageDescriptors[i]));
-            }
+
+            VkDescriptorSetAllocateInfo alloc_info = {};
+            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            alloc_info.descriptorPool = descriptorPool;
+            alloc_info.descriptorSetCount = 1;
+            alloc_info.pSetLayouts = &descriptorSetLayout;
+            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &dSet));
+
 
             // Update the Descriptor Set:
-            {
 
-                VkWriteDescriptorSet write_desc[1] = {};
-                write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                write_desc[0].dstSet = gifImageDescriptors[i];
-                write_desc[0].descriptorCount = 1;
-                write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                write_desc[0].pImageInfo = &gifTexture[i]->descriptor;
-                vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
-            }
 
-            handles.info->gif.image[i] = reinterpret_cast<void *>(gifImageDescriptors[i]);
+            VkWriteDescriptorSet write_desc[1] = {};
+            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_desc[0].dstSet = dSet;
+            write_desc[0].descriptorCount = 1;
+            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write_desc[0].pImageInfo = &gifTexture[i]->descriptor;
+            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+
+            handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
             handles.info->gif.pixels += handles.info->gif.imageSize;
-        }
 
+            gifImageDescriptors.emplace_back(dSet);
+        }
     }
 
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {

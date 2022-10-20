@@ -153,7 +153,7 @@ public:
         ImGui::Spacing();
         ImGui::Spacing();
 
-        if (!handles->devices->empty())
+        if (!handles->devices.empty())
             sidebarElements(handles);
 
 
@@ -315,7 +315,7 @@ private:
         el.interfaceIndex = entry.interfaceIndex;
         el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
 
-        handles->devices->emplace_back(el);
+        handles->devices.emplace_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName,
@@ -324,9 +324,9 @@ private:
 
 
     void sidebarElements(MultiSense::GuiObjectHandles *handles) {
-        auto *devices = handles->devices;
-        for (int i = 0; i < devices->size(); ++i) {
-            auto &e = devices->at(i);
+        auto& devices = handles->devices;
+        for (int i = 0; i < devices.size(); ++i) {
+            auto &e = devices.at(i);
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
@@ -380,7 +380,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
             if (ImGui::SmallButton("X")) {
                 // delete and disconnect devices
-                handles->devices->at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
+                handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(3);
                 ImGui::EndChild();
@@ -590,10 +590,10 @@ private:
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
                 // Create child window regardless of gif spinner state in order to keep cursor position constant
-                //ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-                //if (autoConnect.running)
-                //addSpinnerGif(handles);
-                //ImGui::EndChild();
+                ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+                if (autoConnect.running)
+                addSpinnerGif(handles);
+                ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "

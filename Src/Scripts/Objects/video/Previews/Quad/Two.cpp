@@ -103,7 +103,7 @@ void Two::prepareTexture() {
 }
 
 void Two::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+    for (const MultiSense::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -147,7 +147,7 @@ void Two::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void Two::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const auto &dev: *uiHandle->devices) {
+    for (const auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

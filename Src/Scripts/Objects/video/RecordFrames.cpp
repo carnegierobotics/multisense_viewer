@@ -30,7 +30,7 @@ void RecordFrames::update() {
 }
 
 void RecordFrames::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+    for (const MultiSense::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

@@ -33,7 +33,7 @@ public:
      * @param shouldConfigNetwork if user have ticked the "configure network" checkbox
      * @param isRemoteHead if the connected device is a remote head, also selected by user
      */
-    void onUIUpdate(std::vector<MultiSense::Device> *devices, bool shouldConfigNetwork, bool isRemoteHead);
+    void onUIUpdate(std::vector<MultiSense::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead);
 
     /**@brief Writes the current state of *dev to crl.ini configuration file
      * @param dev which profile to save to crl.ini

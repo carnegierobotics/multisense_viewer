@@ -70,7 +70,7 @@ namespace MultiSense {
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/
         float controlAreaWidth = 440.0f, controlAreaHeight = height;
-        int numControlTabs = 4;
+        int numControlTabs = 2;
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
         bool hoverState = false;
@@ -80,7 +80,7 @@ namespace MultiSense {
 /** @brief Handle which is the communication from GUI to Scripts */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
-        std::vector<Device> *devices = new std::vector<Device>();
+        std::vector<Device> devices;
         /** @brief Static info used in creation of gui */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
 
@@ -93,9 +93,6 @@ namespace MultiSense {
         const Input *input{};
         std::array<float, 4> clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
 
-        ~GuiObjectHandles() {
-            delete devices;
-        }
     };
 
     static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);

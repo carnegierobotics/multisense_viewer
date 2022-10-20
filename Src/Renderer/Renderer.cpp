@@ -163,7 +163,7 @@ void Renderer::render() {
                                  guiManager->handles.nextIsRemoteHead);
 
     // Enable scripts depending on gui layout chosen
-    for (auto &dev: *guiManager->handles.devices) {
+    for (auto &dev: guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             renderSelectionPass = dev.pixelInfoEnable;
             switch (dev.layout) {
@@ -227,9 +227,9 @@ void Renderer::render() {
     }
 
     // Run update function on active camera Scripts and build them if not built
-    for (int i = 0; i < guiManager->handles.devices->size(); ++i) {
-        if (guiManager->handles.devices->at(i).state == AR_STATE_REMOVE_FROM_LIST)
-            guiManager->handles.devices->erase(guiManager->handles.devices->begin() + i);
+    for (int i = 0; i < guiManager->handles.devices.size(); ++i) {
+        if (guiManager->handles.devices.at(i).state == AR_STATE_REMOVE_FROM_LIST)
+            guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
     }
 
 
@@ -309,7 +309,7 @@ void Renderer::render() {
         uint8_t *data = nullptr;
         CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, selectionMemory, 0, memReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->logicalDevice, selectionMemory);
-        for (auto &dev: *guiManager->handles.devices) {
+        for (auto &dev: guiManager->handles.devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
             uint32_t idx = uint32_t((mousePos.x + (width * mousePos.y)) * 4);
@@ -361,7 +361,7 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    for (auto &dev: *guiManager->handles.devices)
+    for (auto &dev: guiManager->handles.devices)
         cameraConnection->saveProfileAndDisconnect(&dev);
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32

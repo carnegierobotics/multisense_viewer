@@ -771,9 +771,9 @@ private:
                     if (a.supports && !Utils::isInVector(interfaceDescriptionList, a.description)) {
                         interfaceDescriptionList.push_back(a.description);
                         indexList.push_back(a.index);
-
-                        if (Utils::isInVector(interfaceDescriptionList, "No adapters found")) {
-                            Utils::delFromVector(interfaceDescriptionList, "No adapters found");
+                        std::string str = "No adapters found";
+                        if (Utils::isInVector(interfaceDescriptionList, str)) {
+                            Utils::delFromVector(&interfaceDescriptionList, str);
                             auto newEndIterator = std::remove(indexList.begin(), indexList.end(), 0);
                         }
                     }

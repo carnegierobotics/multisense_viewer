@@ -184,10 +184,11 @@ namespace Utils {
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
-    inline bool delFromVector(std::vector<std::string> v, const std::string &str) {
-        auto itr = std::find(v.begin(), v.end(), str);
-        if (itr != v.end()) {
-            v.erase(itr);
+    template <typename T>
+    inline bool delFromVector(std::vector<T> *v, const T &str) {
+        auto itr = std::find(v->begin(), v->end(), str);
+        if (itr != v->end()) {
+            v->erase(itr);
             return true;
         }
         return false;

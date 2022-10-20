@@ -28,9 +28,9 @@ public:
     }
 
     void onUIRender(MultiSense::GuiObjectHandles *handles) override {
-        if (handles->devices->empty()) return;
+        if (handles->devices.empty()) return;
         bool allUnavailable = true;
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             if (d.state == AR_STATE_ACTIVE)
                 allUnavailable = false;
         }
@@ -39,7 +39,7 @@ public:
             return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             if (d.state == AR_STATE_RESET) {
                 std::fill_n(page, PAGE_TOTAL_PAGES, false);
                 drawActionPage = true;
@@ -199,7 +199,7 @@ private:
 
 
     void buildConfigurationPreview(MultiSense::GuiObjectHandles *handles) {
-        for (auto &dev: *handles->devices) {
+        for (auto &dev: handles->devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
             // Control page
@@ -828,7 +828,7 @@ private:
         ImGui::Begin("ControlArea", &pOpen, window_flags);
 
 
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             // Create dropdown
             if (d.state == AR_STATE_ACTIVE) {
 
@@ -848,7 +848,7 @@ private:
                         buildConfigurationTab(handles, dev);
                         ImGui::EndTabItem();
                     }
-
+                    /*
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Future Tab 1")) {
 
@@ -860,6 +860,7 @@ private:
                         ImGui::EndTabItem();
 
                     }
+                     */
 
                     ImGui::EndTabBar();
                 }

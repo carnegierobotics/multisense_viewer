@@ -316,7 +316,7 @@ namespace MultiSense {
             interfaceIndex = 0;
         }
 
-        bool ready(const std::vector<MultiSense::Device> *devices, const EntryConnectDevice &entry) const {
+        bool ready(const std::vector<MultiSense::Device> &devices, const EntryConnectDevice &entry) const {
 
             bool profileNameEmpty = entry.profileName.empty();
             bool profileNameTaken = false;
@@ -328,7 +328,7 @@ namespace MultiSense {
 
 
             // Loop through devices and check that it doesn't exist already.
-            for (auto &d: *devices) {
+            for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
                     Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,

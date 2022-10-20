@@ -105,7 +105,7 @@ void DoubleBot::prepareTexture() {
 }
 
 void DoubleBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+    for (const MultiSense::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -149,7 +149,7 @@ void DoubleBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void DoubleBot::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (auto &dev: *uiHandle->devices) {
+    for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

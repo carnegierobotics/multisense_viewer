@@ -83,8 +83,9 @@ namespace MultiSense {
         VkDescriptorSetLayout descriptorSetLayout{};
         std::vector<VkDescriptorSet> fontDescriptors{};
         std::vector<VkDescriptorSet> imageIconDescriptors{};
+        std::vector<VkDescriptorSet> gifImageDescriptors{};
+
         std::vector<VkShaderModule> shaderModules{};
-        VkDescriptorSet gifImageDescriptors[20]{};     // TODO crude and "quick" implementation. Lots of missed memory and uses more memory than necessary. Fix in the future
         VulkanDevice *device;
 
         // Initialization functions
@@ -92,7 +93,6 @@ namespace MultiSense {
         ImFont *loadFontFromFileName(std::string file, float fontSize);
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
         void loadAnimatedGif(const std::string &file);
-        void loadNextGifFrame();
     };
 };
 #endif //MULTISENSE_GUIMANAGER_H

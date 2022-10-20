@@ -123,12 +123,12 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
 }
 
 void
-CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *devices, bool shouldConfigNetwork, bool isRemoteHead) {
+CameraConnection::onUIUpdate(std::vector<MultiSense::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
     // If no device is connected then return
-    if (devices == nullptr)
+    if (devices.empty())
         return;
     // Check for actions on each element
-    for (auto &dev: *devices) {
+    for (auto &dev: devices) {
 
         // If we have requested to reset a connection or want to remove it from saved profiles
         if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET) {
@@ -147,7 +147,7 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> *devices, bool shou
             // reset other active device if present. So loop over all devices again.
             bool resetOtherDevice = false;
             MultiSense::Device *otherDev;
-            for (auto &d: *devices) {
+            for (auto &d: devices) {
                 if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
                     d.state = AR_STATE_RESET;
                     Log::Logger::getInstance()->info("Call to reset state requested for profile {}", d.name);

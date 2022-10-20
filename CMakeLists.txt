@@ -136,7 +136,8 @@ set(ENGINE_SRC
         Src/Tools/Logger.h
         Src/Tools/Logger.cpp
         Src/Tools/stb_include.cpp
-
+        Src/VO/Features/Feature.cpp
+        Src/VO/Features/VisualOdometry.cpp
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
         Src/imgui/Background.h)
@@ -260,9 +261,10 @@ endforeach( file_i )
 
 else () ## Linux
 
-
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

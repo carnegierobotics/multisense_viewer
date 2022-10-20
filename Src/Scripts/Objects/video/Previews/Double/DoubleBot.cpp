@@ -133,7 +133,7 @@ void DoubleBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
 void DoubleBot::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
-    centerY = 2 * (uiHandle->info->tabAreaHeight +
+    centerY = 2 * (uiHandle->info->tabAreaHeight + uiHandle->accumulatedActiveScroll +
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[1]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[1]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 

@@ -263,6 +263,7 @@ private:
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
+            handles->clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
         }
         ImGui::PopStyleColor();
 
@@ -272,15 +273,17 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
 
         ImGui::SameLine();
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
         }
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
+            handles->clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+
         }
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PopItemFlag();
             ImGui::PopStyleColor();
         }
@@ -360,7 +363,7 @@ private:
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
-                if(dev.layout == PREVIEW_LAYOUT_DOUBLE){
+                if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
 
@@ -445,7 +448,9 @@ private:
 
                 if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
-                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads, std::to_string(window.selectedRemoteHeadIndex))];
+                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
+                                                                                      std::to_string(
+                                                                                              window.selectedRemoteHeadIndex))];
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
@@ -453,9 +458,10 @@ private:
                             const bool is_selected = (window.selectedRemoteHeadIndex == n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
-                                window.selectedRemoteHeadIndex =  (crl::multisense::RemoteHeadChannel ) std::stoi(window.availableRemoteHeads[n]);
-                                    Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
-                                                                     window.selectedRemoteHeadIndex, index);
+                                window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
+                                        window.availableRemoteHeads[n]);
+                                Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
+                                                                 window.selectedRemoteHeadIndex, index);
 
                             }
 
@@ -470,7 +476,7 @@ private:
                 }
 
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
-                    window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+                window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
 
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
@@ -519,6 +525,11 @@ private:
                 dev.playbackStatus = AR_PREVIEW_PLAYING;
                 ImGui::PopStyleColor();
                 ImGui::PopStyleColor(); // PopupBg
+
+
+                /** Color rest of area in the background color exluding previews**/
+
+
                 ImGui::End();
                 index++;
             }
@@ -648,7 +659,8 @@ private:
                     ImGui::Text("Recording");
                     ImGui::PopFont();
                     ImGui::SameLine();
-                    ImGui::HelpMarker(" \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
+                    ImGui::HelpMarker(
+                            " \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 

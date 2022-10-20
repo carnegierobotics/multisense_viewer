@@ -33,8 +33,7 @@ void Renderer::prepareRenderer() {
     // Load Object Scripts from file
     std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
     std::string line;
-    while (std::getline(infile, line))
-    {
+    while (std::getline(infile, line)) {
         // Skip comment # line
         if (line.find('#') != std::string::npos)
             continue;
@@ -59,7 +58,12 @@ void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[0].color = {{
+                                    guiManager->handles.clearColor[0],
+                                    guiManager->handles.clearColor[1],
+                                    guiManager->handles.clearColor[2],
+                                    guiManager->handles.clearColor[3]
+                            }};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -398,73 +402,73 @@ void Renderer::cleanUp() {
 
 
         */
-        /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
-        /*
-        int sd = -1;
-        if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
-            Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
-                                              strerror(errno));
-        }
-        // Specify interface name
-        const char *interface = dev.interfaceName.c_str();
-        if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
-            Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
-                                              strerror(errno));
-        };
-
-        struct ifreq ifr{};
-        /// note: no pointer here
-        struct sockaddr_in inet_addr{}, subnet_mask{};
-        // get interface name
-        // Prepare the struct ifreq
-        bzero(ifr.ifr_name, IFNAMSIZ);
-        strncpy(ifr.ifr_name, interface, IFNAMSIZ);
-
-        /// note: prepare the two struct sockaddr_in
-
-
-
-
-         */
-        /*** Call ioctl to get configure network interface ***/
-        /*
-        /// put addr in ifr structure
-        inet_addr.sin_family = AF_INET;
-        int inet_addr_config_result = inet_pton(AF_INET, ip.c_str(), &(inet_addr.sin_addr));
-        memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
-        int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
-        if (ioctl_result < 0) {
-            fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
-            Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
-                                              strerror(errno));
-        }
-
-
-        /// put mask in ifr structure
-        memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
-        subnet_mask.sin_family = AF_INET;
-        int subnet_mask_config_result = inet_pton(AF_INET, netmask.c_str(), &(subnet_mask.sin_addr));
-        ioctl_result= ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
-        if (ioctl_result < 0) {
-            fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
-            Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}",
-                                              dev.interfaceName,
-                                              strerror(errno));
-        }
-
-
-        strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
-        ifr.ifr_mtu = mtu; //your MTU size here
-        if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
-            Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
-                                              dev.interfaceName.c_str());
-        } else {
-            Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", mtu,
-                                              dev.interfaceName.c_str());
-        }
+    /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
+    /*
+    int sd = -1;
+    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
+        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
+                                          strerror(errno));
     }
-         */
+    // Specify interface name
+    const char *interface = dev.interfaceName.c_str();
+    if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
+        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
+                                          strerror(errno));
+    };
+
+    struct ifreq ifr{};
+    /// note: no pointer here
+    struct sockaddr_in inet_addr{}, subnet_mask{};
+    // get interface name
+    // Prepare the struct ifreq
+    bzero(ifr.ifr_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+    /// note: prepare the two struct sockaddr_in
+
+
+
+
+     */
+    /*** Call ioctl to get configure network interface ***/
+    /*
+    /// put addr in ifr structure
+    inet_addr.sin_family = AF_INET;
+    int inet_addr_config_result = inet_pton(AF_INET, ip.c_str(), &(inet_addr.sin_addr));
+    memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+    int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
+                                          strerror(errno));
+    }
+
+
+    /// put mask in ifr structure
+    memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+    subnet_mask.sin_family = AF_INET;
+    int subnet_mask_config_result = inet_pton(AF_INET, netmask.c_str(), &(subnet_mask.sin_addr));
+    ioctl_result= ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}",
+                                          dev.interfaceName,
+                                          strerror(errno));
+    }
+
+
+    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+    ifr.ifr_mtu = mtu; //your MTU size here
+    if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+        Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
+                                          dev.interfaceName.c_str());
+    } else {
+        Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", mtu,
+                                          dev.interfaceName.c_str());
+    }
+}
+     */
 
 #endif
 
@@ -628,13 +632,13 @@ void Renderer::mouseMoved(double x, double y, bool &handled) {
     float dy = mousePos.y - y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
-        glm::vec3 rot(dy * camera.rotationSpeed, -dx*camera.rotationSpeed, 0.0f);
+        glm::vec3 rot(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f);
         camera.rotate(rot);
     }
     if (mouseButtons.right) {
     }
     if (mouseButtons.middle) {
-        camera.translate(glm::vec3((float)-dx * 0.01f, (float)-dy * 0.01f, 0.0f));
+        camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
     }
     mousePos = glm::vec2((float) x, (float) y);
 

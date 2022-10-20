@@ -91,6 +91,7 @@ namespace MultiSense {
         float accumulatedActiveScroll = 0.0f;
         bool disableCameraRotationFromGUI = false;
         const Input *input{};
+        std::array<float, 4> clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
 
         ~GuiObjectHandles() {
             delete devices;

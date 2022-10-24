@@ -36,6 +36,10 @@ namespace VkRender {
 
 		virtual ~Base() = default;
 
+
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+        DISABLE_WARNING_EMPTY_BODY
 		/**@brief Pure virtual function called only once when VK is ready to render*/
 		virtual void setup() {
 			if (getType() != AR_SCRIPT_TYPE_DISABLED);
@@ -48,8 +52,6 @@ namespace VkRender {
 				//Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
 		};
 
-		DISABLE_WARNING_PUSH
-			DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 			/**@brief Pure virtual function called each frame*/
 			virtual void onUIUpdate(const VkRender::GuiObjectHandles* uiHandle) {
 			if (getType() != AR_SCRIPT_TYPE_DISABLED);

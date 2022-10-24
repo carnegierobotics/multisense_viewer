@@ -28,7 +28,6 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        return;
         if (handles->devices.empty()) return;
         bool allUnavailable = true;
         for (auto &d: handles->devices) {

@@ -12,7 +12,7 @@
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 
-class RecordFrames: public Base, public RegisteredInFactory<RecordFrames>, CRLCameraModels
+class RecordFrames: public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -36,14 +36,14 @@ public:
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
-    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override {}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
-    std::unique_ptr<ThreadPool> threadPool;
+    std::unique_ptr<VkRender::ThreadPool> threadPool;
 
     bool saveImage = false;
     std::string saveImagePath;

@@ -7,7 +7,7 @@
 
 void RecordFrames::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
-    threadPool = std::make_unique<ThreadPool>();
+    threadPool = std::make_unique<VkRender::ThreadPool>();
 
 }
 
@@ -17,7 +17,7 @@ void RecordFrames::update() {
 
     for (const auto &src: sources) {
         const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), false);
+        auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), true);
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             if (threadPool->getTaskListSize() < STACK_SIZE_100) {
@@ -29,8 +29,8 @@ void RecordFrames::update() {
     }
 }
 
-void RecordFrames::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: uiHandle->devices) {
+void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

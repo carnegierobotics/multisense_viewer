@@ -125,7 +125,7 @@ public:
         glm::mat4 kInverseMatrix{};
     };
 
-    /**@brief Connects to a MultiSense device
+    /**@brief Connects to a VkRender device
      *
      * @param ip Which IP the camera is located on
      * @param isRemoteHead If the device is a remote head or not
@@ -136,7 +136,7 @@ public:
     /**@brief Starts the desired stream if supported
      *
      * @param stringSrc source described in string (also shown in UI)
-     * @param remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ MultiSense device
+     * @param remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ VkRender device
      * @return If the requested stream was started
      */
     bool start(const std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHeadID);
@@ -144,17 +144,17 @@ public:
     /**@brief Stops the desired stream.
      *
     * @param stringSrc source described in string (also shown in UI)
-    * @param remoteHeadID which remote head to stop a stream. ID of 0 can also be a non-remotehead/ MultiSense device
+    * @param remoteHeadID which remote head to stop a stream. ID of 0 can also be a non-remotehead/ VkRender device
     * @return If the requested stream was stopped. Returns true also if the stream was never started.
     */
     bool stop(const std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHeadID);
 
-    /**@brief Connects the MultiSense interface with the Renderer interface. Functions camera data into a \ref VkRender::TextureData object
+    /**@brief Connects the VkRender interface with the Renderer interface. Functions camera data into a \ref VkRender::TextureData object
     *  Renderer should preallocate memory as this function will not do so.
     *
     * @param stringSrc source described in string (also shown in UI)
     * @param tex Pointer to a texture data struct with pre-allocated memory
-    * @param remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ MultiSense device
+    * @param remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ VkRender device
     * @return If true if a frame was copied into the 'tex' object
     */
     bool getCameraStream(std::string stringSrc, VkRender::TextureData *tex, crl::multisense::RemoteHeadChannel idx);
@@ -202,7 +202,7 @@ public:
     */
     bool setPostFilterStrength(float filterStrength, crl::multisense::RemoteHeadChannel channelID);
 
-    /**@brief Sets the desired gamma value to the MultiSense device
+    /**@brief Sets the desired gamma value to the VkRender device
      *
      * @param gamma Value to set
      * @param channelID which remote head to select

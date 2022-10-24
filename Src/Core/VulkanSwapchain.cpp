@@ -258,7 +258,7 @@ void VulkanSwapchain::cleanup()
     swapChain = VK_NULL_HANDLE;
 }
 
-VulkanSwapchain::VulkanSwapchain(MultiSense::SwapChainCreateInfo info, uint32_t *width, uint32_t *height) {
+VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *width, uint32_t *height) {
     if (glfwCreateWindowSurface(info.instance, info.pWindow, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
 

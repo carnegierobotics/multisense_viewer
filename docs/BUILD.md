@@ -1,3 +1,12 @@
+- [Code structure](#code-structure)
+- [Setting up development environment](#setting-up-development-environment)
+    * [Ubuntu](#ubuntu)
+    * [Windows](#windows)
+        - [Clone this repo using git](#clone-this-repo-using-git)
+        - [Tested with Visual Studio 2022.](#tested-with-visual-studio-2022)
+    
+# Code structure
+![Alt text](MainClasses.png?raw=true "Title")
 
 # Setting up development environment
 ## Ubuntu

@@ -6,7 +6,7 @@
 #include <MultiSense/Src/imgui/Layer.h>
 
 /** Example class for Scripts. Inherits Base and RegisteredInFactory by default, but can be extended with any class in the ModelLoaders folder **/
-class Example: public Base, public RegisteredInFactory<Example>
+class Example: public VkRender::Base, public VkRender::RegisteredInFactory<Example>
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -25,7 +25,7 @@ public:
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
     ScriptType getType() override {return type;}
     /** @brief update function called once per frame with a const UI reference handle **/
-    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

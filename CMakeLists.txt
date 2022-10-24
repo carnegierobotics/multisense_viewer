@@ -139,7 +139,7 @@ set(ENGINE_SRC
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        Src/imgui/Background.h)
+        )
 
 if (WIN32)
 
@@ -225,7 +225,7 @@ endforeach( file_i )
 
     ### INSTALL TARGETS ###
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE})
-    # MultiSense Viewer DLL and libraries
+    # VkRender Viewer DLL and libraries
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
@@ -255,7 +255,7 @@ endforeach( file_i )
         endif ()
     endif ()
 
-    # install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
+    # install(TARGETS VkRender-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 
 else () ## Linux

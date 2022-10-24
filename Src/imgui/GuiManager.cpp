@@ -20,7 +20,7 @@
 
 #include "stb_image.h"
 
-namespace MultiSense {
+namespace VkRender {
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
                            const uint32_t &height) {
@@ -215,12 +215,12 @@ namespace MultiSense {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_PopupBg] = MultiSense::CRLCoolGray;
-        style.Colors[ImGuiCol_WindowBg] = MultiSense::CRLCoolGray;
-        style.Colors[ImGuiCol_Tab] = MultiSense::CRLRed;
-        style.Colors[ImGuiCol_TabActive] = MultiSense::CRLRedActive;
-        style.Colors[ImGuiCol_TabHovered] = MultiSense::CRLRedHover;
-        style.Colors[ImGuiCol_Button] = MultiSense::CRLBlueIsh;
+        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLCoolGray;
+        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLCoolGray;
+        style.Colors[ImGuiCol_Tab] = VkRender::CRLRed;
+        style.Colors[ImGuiCol_TabActive] = VkRender::CRLRedActive;
+        style.Colors[ImGuiCol_TabHovered] = VkRender::CRLRedHover;
+        style.Colors[ImGuiCol_Button] = VkRender::CRLBlueIsh;
 
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
 

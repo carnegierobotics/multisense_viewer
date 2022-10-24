@@ -105,7 +105,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     if (it != builtScriptNames.end())
         return;
     builtScriptNames.emplace_back(scriptName);
-    scripts[scriptName] = ComponentMethodFactory::Create(scriptName);
+    scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
 
     if (scripts[scriptName].get() == nullptr) {
         pLogger->error("Failed to register script {}. Did you remember to include it in renderer.h?", scriptName);

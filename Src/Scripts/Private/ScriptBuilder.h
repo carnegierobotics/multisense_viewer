@@ -17,6 +17,8 @@
 // Based of self registering factory
 // cppstories https://www.cppstories.com/2018/02/factory-selfregister/
 
+namespace VkRender {
+
 
 class ComponentMethodFactory {
 public:
@@ -58,7 +60,7 @@ protected:
 
 template<typename T >
 bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
-
+};
 
 
 

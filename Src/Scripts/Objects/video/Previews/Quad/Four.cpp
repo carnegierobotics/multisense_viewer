@@ -102,8 +102,8 @@ void Four::prepareTexture() {
     model->draw = true;
 }
 
-void Four::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: uiHandle->devices) {
+void Four::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 
@@ -130,7 +130,7 @@ void Four::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void Four::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, const MultiSense::Device& dev) {
+void Four::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
     float row = dev.row[2];
     float col = dev.col[1];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -149,7 +149,7 @@ void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void Four::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void Four::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

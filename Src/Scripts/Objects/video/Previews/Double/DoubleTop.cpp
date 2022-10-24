@@ -105,8 +105,8 @@ void DoubleTop::prepareTexture() {
     model->draw = true;
 }
 
-void DoubleTop::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: uiHandle->devices) {
+void DoubleTop::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -135,7 +135,7 @@ void DoubleTop::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void DoubleTop::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+void DoubleTop::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, VkRender::Device dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight + uiHandle->accumulatedActiveScroll +
@@ -155,7 +155,7 @@ void DoubleTop::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void DoubleTop::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void DoubleTop::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

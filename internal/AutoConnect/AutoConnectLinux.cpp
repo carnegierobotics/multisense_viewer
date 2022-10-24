@@ -21,13 +21,17 @@ std::vector<AutoConnect::Result> AutoConnectLinux::findEthernetAdapters(bool log
     auto ifn = if_nameindex();
     auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
     for (auto i = ifn; i->if_name; ++i) {
         struct {
-            struct ethtool_link_settings req;
+            struct ethtool_link_settings req{};
             __u32 link_mode_data[3 * 127];
         } ecmd{};
         Result adapter(i->if_name, false);
 
+#pragma GCC diagnostic pop
 
         // Filter out docker adapters.
         if (strstr(i->if_name, "docker") != NULL)
@@ -84,7 +88,7 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
     app->eventCallback("Started detection service", app->context, 0);
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
-    int i = 0;
+    size_t i = 0;
     // Loop keeps retrying to connect on supported network adapters.
     while (app->loopAdapters) {
         if (i >= adapters.size()) {
@@ -216,7 +220,7 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
 
                 if (ret == FOUND_CAMERA) {
                     app->ignoreAdapters.push_back(adapter);
-                    app->onFoundCamera(adapter);
+                    app->onFoundCamera();
                     // Disable promscious mode
 
 
@@ -278,10 +282,10 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
 
     /// note: prepare the two struct sockaddr_in
     inet_addr.sin_family = AF_INET;
-    int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+   inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
 
     subnet_mask.sin_family = AF_INET;
-    int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+    inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
 
 
     // Call ioctl to configure network devices
@@ -334,7 +338,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
     }
 }
 
-void AutoConnectLinux::onFoundCamera(Result supportResult) {
+void AutoConnectLinux::onFoundCamera() {
     success = true;
     callback(result, context);
 
@@ -374,9 +378,9 @@ crl::multisense::Channel *AutoConnectLinux::getCameraChannel() {
     return cameraInterface;
 }
 
-void AutoConnectLinux::setDetectedCallback(void (*param)(Result result1, void *ctx), void *context) {
+void AutoConnectLinux::setDetectedCallback(void (*param)(Result result1, void *ctx), void *_context) {
     callback = param;
-    this->context = context;
+    this->context = _context;
 
 }
 

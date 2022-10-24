@@ -55,7 +55,7 @@ public:
     virtual void start(std::vector<Result> vector) = 0;
     virtual void onFoundAdapters(std::vector<Result> vector, bool logEvent) = 0;
     virtual AutoConnect::FoundCameraOnIp onFoundIp(std::string string, Result adapter, int camera_fd) = 0;
-    virtual void onFoundCamera(Result supportResult) = 0;
+    virtual void onFoundCamera() = 0;
     virtual void stop() = 0;
 
     bool shouldProgramRun = false;

@@ -9,7 +9,7 @@
 #include "string"
 
 /**
- * @brief Custom IMGUI modules made for this project
+ * @brief Custom IMGUI modules made for this projectble
  */
 namespace ImGui {
 

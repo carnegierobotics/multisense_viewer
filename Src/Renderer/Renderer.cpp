@@ -623,9 +623,9 @@ void Renderer::destroySelectionBuffer() {
     vkDestroyBuffer(vulkanDevice->m_LogicalDevice, selectionBuffer, nullptr);
 }
 
-void Renderer::mouseMoved(double x, double y, bool &handled) {
-    float dx = mousePos.x - x;
-    float dy = mousePos.y - y;
+void Renderer::mouseMoved(float x, float y, bool &handled) {
+    float dx = mousePos.x - (float)x;
+    float dy = mousePos.y - (float)y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
         glm::vec3 rot(dy * camera.m_RotationSpeed, -dx * camera.m_RotationSpeed, 0.0f);

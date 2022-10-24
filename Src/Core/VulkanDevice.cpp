@@ -307,7 +307,7 @@ VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkComma
 */
 VkResult
 VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size,
-                           VkBuffer *buffer, VkDeviceMemory *memory, void *data) {
+                           VkBuffer *buffer, VkDeviceMemory *memory, void *data) const {
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = Populate::bufferCreateInfo(usageFlags, size);
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;

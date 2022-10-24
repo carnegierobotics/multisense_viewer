@@ -48,7 +48,6 @@ public:
     std::unique_ptr<CRLCameraModels::Model> model;
 
     int count = 1;
-    void *selection = (void *) "0";
     float up = -1.3f;
     bool saveImage = false;
     std::string saveImagePath;

@@ -169,7 +169,7 @@ namespace VkRender::MultiSense {
 
 
     void CRLPhysicalCamera::preparePointCloud(uint32_t width) {
-        const double xScale = 1.0 / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
+        const float xScale = 1.0 / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
                                       static_cast<double>(width)));
         // From LibMultisenseUtility
         crl::multisense::image::Config c = infoMap[0].imgConf;

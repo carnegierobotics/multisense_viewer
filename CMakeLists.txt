@@ -7,6 +7,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith")
+# Not enabled flags but could be nice to enable
+# -Wundef -Wcast-qual  -Wdouble-promotion
+
 
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")

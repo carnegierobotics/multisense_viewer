@@ -656,7 +656,7 @@ private:
                 std::chrono::duration<float> time_span =
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
 
-                if (time_span.count() > 0.35 && autoConnect.running) {
+                if (time_span.count() > 0.35f && autoConnect.running) {
                     searchingTextAnimTimer = std::chrono::steady_clock::now();
                     dots.append(".");
 

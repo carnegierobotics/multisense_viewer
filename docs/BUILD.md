@@ -1,3 +1,4 @@
+## Table of Contents:
 - [Code structure](#code-structure)
 - [Setting up development environment](#setting-up-development-environment)
     * [Ubuntu](#ubuntu)

@@ -40,7 +40,7 @@ public:
     VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
     void cleanup();
 
-    VulkanSwapchain(MultiSense::SwapChainCreateInfo info, uint32_t *width, uint32_t *height);
+    VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *width, uint32_t *height);
 };
 
 

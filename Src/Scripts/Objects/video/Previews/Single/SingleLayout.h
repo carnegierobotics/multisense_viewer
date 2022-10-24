@@ -11,7 +11,7 @@
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 
-class SingleLayout: public Base, public RegisteredInFactory<SingleLayout>, CRLCameraModels
+class SingleLayout: public VkRender::Base, public VkRender::RegisteredInFactory<SingleLayout>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -33,11 +33,11 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
     /** @brief called after renderer has handled a window resize event **/
-    void onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
-    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
@@ -66,7 +66,7 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const MultiSense::GuiObjectHandles * handles, const MultiSense::Device& element);
+    void transformToUISpace(const VkRender::GuiObjectHandles * handles, const VkRender::Device& element);
 
     void prepareTexture();
 };

@@ -39,7 +39,7 @@
 #define MAX_TASK_STACK_SIZE 3
 #define MAX_NUM_REMOTEHEADS 4
 
-void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
+void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
     auto *p = &dev->parameters;
     if (dev->parameters.updateGuiParams) {
         const auto &conf = camPtr->getCameraInfo(dev->configRemoteHead).imgConf;
@@ -123,7 +123,7 @@ void CameraConnection::updateActiveDevice(MultiSense::Device *dev) {
 }
 
 void
-CameraConnection::onUIUpdate(std::vector<MultiSense::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
+CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
     // If no device is connected then return
     if (devices.empty())
         return;
@@ -146,7 +146,7 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> &devices, bool shou
         if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
             // reset other active device if present. So loop over all devices again.
             bool resetOtherDevice = false;
-            MultiSense::Device *otherDev;
+            VkRender::Device *otherDev;
             for (auto &d: devices) {
                 if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
                     d.state = AR_STATE_RESET;
@@ -164,7 +164,7 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> &devices, bool shou
             }
             dev.state = AR_STATE_CONNECTING;
             // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
-            pool = std::make_unique<ThreadPool>(1);
+            pool = std::make_unique<VkRender::ThreadPool>(1);
             // Perform connection by pushing a connect task.
             pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, isRemoteHead, shouldConfigNetwork);
             break;
@@ -184,12 +184,12 @@ CameraConnection::onUIUpdate(std::vector<MultiSense::Device> &devices, bool shou
     }
 }
 
-void CameraConnection::getProfileFromIni(MultiSense::Device &dev) {
+void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
     dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
     dev.win.clear();
 
     for (auto ch: dev.channelConnections) {
-        MultiSense::ChannelInfo chInfo;
+        VkRender::ChannelInfo chInfo;
         chInfo.availableSources.clear();
         chInfo.modes.clear();
         chInfo.availableSources.emplace_back("Source");
@@ -272,7 +272,7 @@ void CameraConnection::filterAvailableSources(std::vector<std::string> *sources,
 }
 
 
-bool CameraConnection::setNetworkAdapterParameters(MultiSense::Device &dev, bool shouldConfigNetwork) {
+bool CameraConnection::setNetworkAdapterParameters(VkRender::Device &dev, bool shouldConfigNetwork) {
     std::string hostAddress = dev.IP;
     try {
         std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
@@ -460,7 +460,7 @@ CameraConnection::~CameraConnection() {
 }
 
 
-void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *dev, bool isRemoteHead,
+void CameraConnection::connectCRLCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead,
                                             bool shouldConfigNetwork) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);
@@ -483,7 +483,7 @@ void CameraConnection::connectCRLCameraTask(void *context, MultiSense::Device *d
 
 }
 
-void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
+void CameraConnection::saveProfileAndDisconnect(VkRender::Device *dev) {
     Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                      dev->cameraName.c_str());
     // Save settings to file. Attempt to create a new file if it doesn't exist
@@ -545,7 +545,7 @@ void CameraConnection::saveProfileAndDisconnect(MultiSense::Device *dev) {
     }
 }
 
-void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, MultiSense::Device *dev,
+void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, VkRender::Device *dev,
                                        crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
 
@@ -554,7 +554,7 @@ void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, Mult
     app->updateFromCameraParameters(dev, remoteHeadIndex);
 }
 
-void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, MultiSense::Device *dev,
+void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, VkRender::Device *dev,
                                            crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -562,7 +562,7 @@ void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *ar
     app->updateFromCameraParameters(dev, remoteHeadIndex);
 }
 
-void CameraConnection::setLightingTask(void *context, LightingParams *arg1, MultiSense::Device *dev,
+void CameraConnection::setLightingTask(void *context, LightingParams *arg1, VkRender::Device *dev,
                                        crl::multisense::RemoteHeadChannel remoteHeadIndex) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -571,7 +571,7 @@ void CameraConnection::setLightingTask(void *context, LightingParams *arg1, Mult
 }
 
 void CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                                   bool hdr, MultiSense::Device *dev,
+                                                   bool hdr, VkRender::Device *dev,
                                                    crl::multisense::RemoteHeadChannel index) {
     auto *app = reinterpret_cast<CameraConnection *>(context);
     std::scoped_lock lock(app->writeParametersMtx);
@@ -604,7 +604,7 @@ void CameraConnection::stopStreamTask(void *context, std::string src,
         Log::Logger::getInstance()->info("Failed to disable stream {}", src);
 }
 
-void CameraConnection::updateFromCameraParameters(MultiSense::Device *dev,
+void CameraConnection::updateFromCameraParameters(VkRender::Device *dev,
                                                   crl::multisense::RemoteHeadChannel remoteHeadIndex) const {
     // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
     const auto &conf = camPtr->getCameraInfo(remoteHeadIndex).imgConf;

@@ -102,8 +102,8 @@ void Three::prepareTexture() {
     model->draw = true;
 }
 
-void Three::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: uiHandle->devices) {
+void Three::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -129,7 +129,7 @@ void Three::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void Three::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+void Three::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, VkRender::Device dev) {
     float row = dev.row[2];
     float col = dev.col[0];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -147,7 +147,7 @@ void Three::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void Three::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void Three::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

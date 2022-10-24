@@ -41,7 +41,7 @@ void PointCloud::update() {
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
 
-    // 24 degree rotation to compensate for MultiSense S27 24 degree camera slant.
+    // 24 degree rotation to compensate for VkRender S27 24 degree camera slant.
     //mat.model = glm::rotate(mat.model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
@@ -59,7 +59,7 @@ void PointCloud::update() {
 }
 
 
-void PointCloud::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
@@ -111,7 +111,7 @@ void PointCloud::prepareTexture() {
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
     auto *buf = (VkRender::PointCloudParam *) bufferThreeData.get();
-    buf->kInverse = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
+    buf->Q = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     model->draw = true;

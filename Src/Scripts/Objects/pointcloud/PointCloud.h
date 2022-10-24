@@ -11,7 +11,7 @@
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 
-class PointCloud: public Base, public RegisteredInFactory<PointCloud>, CRLCameraModels
+class PointCloud: public VkRender::Base, public VkRender::RegisteredInFactory<PointCloud>, CRLCameraModels
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -34,7 +34,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
     /** @brief UI update function called once per frame **/
-    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 

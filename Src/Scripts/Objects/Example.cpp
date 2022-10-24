@@ -45,6 +45,6 @@ void Example::update() {
     d2->viewPos = renderData.camera->viewPos;
 }
 
-void Example::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
+void Example::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 
 }

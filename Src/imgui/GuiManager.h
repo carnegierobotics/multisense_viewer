@@ -22,7 +22,7 @@
 #define NUM_TEXTURES 3
 #define NUM_IMAGE_ICONS 9
 
-namespace MultiSense {
+namespace VkRender {
     class GuiManager {
     public:
         GuiObjectHandles handles{};

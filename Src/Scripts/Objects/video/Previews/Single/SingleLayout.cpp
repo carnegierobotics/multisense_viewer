@@ -101,8 +101,8 @@ void SingleLayout::prepareTexture() {
     model->draw = true;
 }
 
-void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: uiHandle->devices) {
+void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -126,7 +126,7 @@ void SingleLayout::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void SingleLayout::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, const MultiSense::Device &dev) {
+void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
@@ -145,7 +145,7 @@ void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 }
 
-void SingleLayout::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
+void SingleLayout::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;

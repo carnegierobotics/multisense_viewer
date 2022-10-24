@@ -476,7 +476,7 @@ void VulkanRenderer::createPipelineCache() {
 
 
 void VulkanRenderer::prepare() {
-    MultiSense::SwapChainCreateInfo info{};
+    VkRender::SwapChainCreateInfo info{};
     info.instance = instance;
     info.pWindow = window;
     info.physicalDevice = physicalDevice;

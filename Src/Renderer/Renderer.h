@@ -23,7 +23,7 @@
 
 #include "MultiSense/Assets/Generated/ScriptHeader.h"
 
-class Renderer : VulkanRenderer {
+class Renderer : VkRender::VulkanRenderer {
 
 public:
 
@@ -74,7 +74,7 @@ private:
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames; 
 
-    std::unique_ptr<CameraConnection> cameraConnection{};
+    std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = false;
 

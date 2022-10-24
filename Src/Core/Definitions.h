@@ -22,10 +22,13 @@
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
-#define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
+#define INTERVAL_10_SECONDS 10
+#define INTERVAL_1_SECOND 1
 #define STACK_SIZE_100 100
 
-class CRLPhysicalCamera;
+namespace VkRender::MultiSense {
+    class CRLPhysicalCamera;
+}
 
 typedef enum ScriptType {
     AR_SCRIPT_TYPE_DISABLED,
@@ -541,7 +544,7 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<CRLPhysicalCamera> *crlCamera;
+        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera;
         ScriptType type;
         Log::Logger *pLogger;
         uint32_t height;

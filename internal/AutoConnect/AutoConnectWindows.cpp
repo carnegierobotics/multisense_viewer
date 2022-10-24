@@ -259,7 +259,7 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 
 }
 
-void AutoConnectWindows::onFoundCamera(Result supportResult) {
+void AutoConnectWindows::onFoundCamera() {
 	callback(result, context);
 
 	crl::multisense::Channel::Destroy(cameraInterface);

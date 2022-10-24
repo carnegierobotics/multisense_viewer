@@ -24,7 +24,7 @@ public:
     /** @Brief Function called when a new IP is found. Return false if you want to keep searching or true to stop further IP searching **/
     AutoConnect::FoundCameraOnIp onFoundIp(std::string address, Result adapter, int camera_fd) override;
     /** @Brief Function called when a camera has been found by a successfully connection by LibMultiSense **/
-    void onFoundCamera(Result supportResult) override;
+    void onFoundCamera() override;
     /** @Brief boolean set to true in onFoundCamera() **/
     bool isConnected() { return success; }
 

@@ -413,11 +413,12 @@ namespace VkRender {
                 free(data2);
             }
         }
-
+        CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
+        uint32_t m_Width= 0;
+        uint32_t m_Height = 0;
         uint8_t *data{};
         uint8_t *data2{};
-        uint32_t m_Len = 0, m_Len2 = 0, m_Height = 0, m_Width = 0, m_Id{}, m_Id2{};
-        CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
+        uint32_t m_Len = 0, m_Len2 = 0 , m_Id{}, m_Id2{};
 
     private:
         bool m_Manual = true;

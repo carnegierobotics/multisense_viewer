@@ -45,7 +45,7 @@ public:
     std::vector<std::string> interfaceDescriptionList;
     std::vector<uint32_t> indexList;
 
-    VkRender::EntryConnectDevice entry;
+    VkRender::EntryConnectDevice m_Entry;
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
 
     uint32_t gifFrameIndex = 0;
@@ -325,7 +325,7 @@ private:
 
     void sidebarElements(VkRender::GuiObjectHandles *handles) {
         auto& devices = handles->devices;
-        for (int i = 0; i < devices.size(); ++i) {
+        for (size_t i = 0; i < devices.size(); ++i) {
             auto &e = devices.at(i);
             std::string buttonIdentifier;
             // Set colors based on state
@@ -513,7 +513,7 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-            ImGui::Funcs::MyInputText("##inputProfileName", &entry.profileName);
+            ImGui::Funcs::MyInputText("##inputProfileName", &m_Entry.profileName);
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
 
 
@@ -536,7 +536,6 @@ private:
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::BeginChild("IconChild", ImVec2(handles->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-            static bool active = false;
 
             (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
@@ -567,7 +566,7 @@ private:
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
-                entry.cameraName = "AutoConnect";
+                m_Entry.cameraName = "AutoConnect";
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
@@ -581,7 +580,7 @@ private:
                         dontRunAutoConnect = false;
                         entryConnectDeviceList.clear();
                         autoConnect.clearSearchedAdapters();
-                        entry.reset();
+                        m_Entry.reset();
                     }
                     ImGui::PopStyleColor();
                 }
@@ -589,7 +588,7 @@ private:
                 ImGui::SameLine();
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
-                // Create child window regardless of gif spinner state in order to keep cursor position constant
+                // Create child window regardless of gif spinner state in order to keep cursor m_Position constant
                 ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 if (autoConnect.running)
                 addSpinnerGif(handles);
@@ -694,7 +693,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::BeginChild("##ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true, 0);
-                for (int n = 0; n < entryConnectDeviceList.size(); n++) {
+                for (size_t n = 0; n < entryConnectDeviceList.size(); n++) {
 
                     if (ImGui::Selectable(entryConnectDeviceList[n].cameraName.c_str(), resultsComboIndex == n,
                                           ImGuiSelectableFlags_DontClosePopups,
@@ -702,7 +701,7 @@ private:
 
                         resultsComboIndex = n;
                         entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile name if user inputted this before auto-connect is finished
-                        entry = entryConnectDeviceList[n];
+                        m_Entry = entryConnectDeviceList[n];
                         selected = true;
 
                     }
@@ -734,7 +733,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                ImGui::Funcs::MyInputText("##inputIP", &entry.IP);
+                ImGui::Funcs::MyInputText("##inputIP", &m_Entry.IP);
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 {
@@ -774,7 +773,6 @@ private:
 
                         if (Utils::isInVector(interfaceDescriptionList, "No adapters found")) {
                             Utils::delFromVector(interfaceDescriptionList, "No adapters found");
-                            auto newEndIterator = std::remove(indexList.begin(), indexList.end(), 0);
                         }
                     }
                 }
@@ -787,16 +785,16 @@ private:
                 }
 
 
-                entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
-                entry.interfaceIndex = indexList[ethernetComboIndex];
+                m_Entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                m_Entry.interfaceIndex = indexList[ethernetComboIndex];
                 if (!adapters.empty())
-                    entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
+                    m_Entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                if (ImGui::BeginCombo("##SelectAdapter", entry.description.c_str(), flags)) {
-                    for (int n = 0; n < interfaceDescriptionList.size(); n++) {
+                if (ImGui::BeginCombo("##SelectAdapter", m_Entry.description.c_str(), flags)) {
+                    for (size_t n = 0; n < interfaceDescriptionList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
                         if (ImGui::Selectable(interfaceDescriptionList[n].c_str(), is_selected))
                             ethernetComboIndex = n;
@@ -808,7 +806,7 @@ private:
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
-                entry.cameraName = "Manual";
+                m_Entry.cameraName = "Manual";
 
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
@@ -835,9 +833,9 @@ private:
 
             } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == VIRTUAL_CONNECT) {
-                entry.profileName = "Virtual Camera";
-                entry.interfaceName = "lol";
-                entry.cameraName = "Virtual Camera";
+                m_Entry.profileName = "Virtual Camera";
+                m_Entry.interfaceName = "lol";
+                m_Entry.cameraName = "Virtual Camera";
             }
 
 
@@ -848,12 +846,12 @@ private:
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
             ImGui::SameLine(0, 110.0f);
-            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
@@ -864,8 +862,8 @@ private:
                 autoConnect.stop();
             }
 
-            if (btnConnect && entry.ready(handles->devices, entry) && enableConnectButton) {
-                createDefaultElement(handles, entry);
+            if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
+                createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
             }
 

@@ -2,13 +2,15 @@
 // Created by magnus on 10/12/22.
 //
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#include "Macros.h"
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_TYPE_LIMITS
+DISABLE_WARNING_MISSING_INITIALIZERS
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
-#pragma GCC diagnostic pop
+DISABLE_WARNING_POP

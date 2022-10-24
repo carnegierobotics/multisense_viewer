@@ -8,7 +8,6 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 class One: public VkRender::Base, public VkRender::RegisteredInFactory<One>, CRLCameraModels
 {
@@ -16,8 +15,11 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     One() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
@@ -54,7 +56,7 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    uint32_t remoteHeadIndex = 0;
+    int16_t remoteHeadIndex = 0;
     CRLCameraResolution res{};
     CameraPlaybackFlags playbackSate{};
     uint32_t width{}, height{};

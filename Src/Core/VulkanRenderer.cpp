@@ -32,9 +32,6 @@ namespace VkRender {
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = name.c_str();
         appInfo.pEngineName = name.c_str();
-        if (&vkEnumerateInstanceVersion) {
-            vkEnumerateInstanceVersion(&apiVersion);
-        }
         appInfo.apiVersion = apiVersion;
         pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
@@ -214,8 +211,10 @@ namespace VkRender {
 
     }
 
-    void VulkanRenderer::mouseMoved(double x, double y, bool &handled) {
 
+    void VulkanRenderer::mouseMoved(double x, double y, bool &handled) {
+        mousePos = glm::vec2(x, y);
+        handled = true;
     }
 
     void VulkanRenderer::windowResized() {
@@ -650,9 +649,13 @@ namespace VkRender {
     }
 
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter((unsigned short) codepoint);
+        DISABLE_WARNING_POP
+
     }
 
 
@@ -730,6 +733,8 @@ namespace VkRender {
 
     }
 
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
     void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
 
@@ -767,6 +772,8 @@ namespace VkRender {
         myApp->mouseButtons.wheel -= (float) (yoffset * myApp->mouseScrollSpeed);
         io.MouseWheel += 0.5f * (float) yoffset;
     }
+
+    DISABLE_WARNING_POP
 
     VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const {
         if (devices.empty())

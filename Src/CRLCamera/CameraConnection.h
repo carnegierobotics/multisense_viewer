@@ -5,7 +5,6 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include <MultiSense/Src/imgui/Layer.h>
 #include <memory>
 #include "MultiSense/external/simpleini/SimpleIni.h"
 #include "ThreadPool.h"
@@ -75,11 +74,11 @@ namespace VkRender::MultiSense {
             void
             initCameraModes(std::vector<std::string> *modes, std::vector<crl::multisense::system::DeviceMode> vector);
 
-            // Add ini entry with log lines
-            /**@brief Add a .ini entry and log it*/
+            // Add ini m_Entry with log lines
+            /**@brief Add a .ini m_Entry and log it*/
             static void addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value);
 
-            /**@brief Delete a .ini entry and log it*/
+            /**@brief Delete a .ini m_Entry and log it*/
             static void deleteIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value);
 
             // Caller functions for every *Task function is meant to be a threaded function

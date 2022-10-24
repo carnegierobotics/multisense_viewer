@@ -180,7 +180,7 @@ namespace VkRender::MultiSense {
             *
             * @param width Width of desired image to construct Q matrix for. Used to obtain correct scaling
             */
-            void preparePointCloud(uint32_t width, uint32_t height);
+            void preparePointCloud(uint32_t width);
 
             /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
              *

@@ -8,7 +8,6 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 
 class DoubleTop: public VkRender::Base, public VkRender::RegisteredInFactory<DoubleTop>, CRLCameraModels
@@ -17,8 +16,11 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     DoubleTop() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/

@@ -453,7 +453,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
-    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B};
+    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
     viewCreateInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.image = image;
@@ -823,7 +823,8 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
 VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) {
 
     // YUV TEXTURE SAMPLER
-    VkSamplerYcbcrConversionCreateInfo info = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
+    VkSamplerYcbcrConversionCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO;
 
     // Which 3x3 YUV to RGB matrix is used?
     // 601 is generally used for SD content.

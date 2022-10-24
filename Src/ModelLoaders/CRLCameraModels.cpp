@@ -7,10 +7,6 @@
 #include "stb_image.h"
 
 
-void CRLCameraModels::destroy(VkDevice device) {
-
-}
-
 CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
@@ -23,18 +19,6 @@ CRLCameraModels::Model::~Model() {
         vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.indices.buffer, nullptr);
         vkFreeMemory(vulkanDevice->logicalDevice, mesh.indices.memory, nullptr);
     }
-}
-
-
-void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize) {
-    mesh.vertexCount = vtxBufferSize;
-    CHECK_RESULT(vulkanDevice->createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vtxBufferSize,
-            &mesh.vertices.buffer,
-            &mesh.vertices.memory,
-            _vertices))
 }
 
 void
@@ -134,29 +118,6 @@ void CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
     }
 }
 
-void CRLCameraModels::Model::setTexture(VkRender::TextureData *tex) {
-
-/*
-     switch (AR_DISPARITY_IMAGE) {
-        case AR_POINT_CLOUD:
-            textureColorMap->updateTextureFromBuffer();
-            break;
-        case AR_GRAYSCALE_IMAGE:
-        case AR_DISPARITY_IMAGE:
-            textureVideo->updateTextureFromBuffer();
-            break;
-        case AR_COLOR_IMAGE_YUV420:
-            textureVideo->updateTextureFromBufferYUV();
-            break;
-        case AR_YUV_PLANAR_FRAME:
-            break;
-        case AR_CAMERA_IMAGE_NONE:
-            break;
-    }
- */
-
-}
-
 void
 CRLCameraModels::Model::setTexture(
         const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName) {
@@ -164,7 +125,6 @@ CRLCameraModels::Model::setTexture(
 
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
@@ -207,10 +167,6 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
 
 }
 
-void CRLCameraModels::Model::setZoom() {
-
-
-}
 
 void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) const {
     switch (tex->m_Type) {
@@ -271,7 +227,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
 void
 CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<VkRender::UniformBufferSet> &ubo) {
 
-    for (auto i = 0; i < ubo.size(); i++) {
+    for (size_t i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -287,21 +243,21 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std
         writeDescriptorSets[0].descriptorCount = 1;
         writeDescriptorSets[0].dstSet = descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
 
         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[1].descriptorCount = 1;
         writeDescriptorSets[1].dstSet = descriptors[i];
         writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.descriptorBufferInfo;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
 
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[2].descriptorCount = 1;
         writeDescriptorSets[2].dstSet = descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
 
         if (model->textureVideo->device == nullptr) {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -325,7 +281,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std
             writeDescriptorSets[4].descriptorCount = 1;
             writeDescriptorSets[4].dstSet = descriptors[i];
             writeDescriptorSets[4].dstBinding = 4;
-            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.descriptorBufferInfo;
+            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.m_DescriptorBufferInfo;
         }
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -337,7 +293,7 @@ void
 CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
                                              const std::vector<VkRender::UniformBufferSet> &ubo) {
 
-    for (auto i = 0; i < ubo.size(); i++) {
+    for (size_t i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -353,14 +309,14 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
         writeDescriptorSets[0].descriptorCount = 1;
         writeDescriptorSets[0].dstSet = descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
 
         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[1].descriptorCount = 1;
         writeDescriptorSets[1].dstSet = descriptors[i];
         writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
 
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

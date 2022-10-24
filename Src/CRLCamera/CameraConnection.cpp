@@ -407,10 +407,10 @@ namespace VkRender::MultiSense {
 
             /// note: prepare the two struct sockaddr_in
             inet_addr.sin_family = AF_INET;
-            int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+            inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
 
             subnet_mask.sin_family = AF_INET;
-            int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+            inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
 
             /// put addr in ifr structure
             memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
@@ -521,7 +521,7 @@ namespace VkRender::MultiSense {
         }
         std::string CRLSerialNumber = dev->serialName;
         // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
-        // new entry given we have a valid ini file entry
+        // new m_Entry given we have a valid ini file m_Entry
         if (rc >= 0 && !CRLSerialNumber.empty()) {
             // Profile Data
             addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev->name);
@@ -537,7 +537,6 @@ namespace VkRender::MultiSense {
                         dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
-                auto &chInfo = dev->channelInfo[ch];
                 for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                     if (i == AR_PREVIEW_POINT_CLOUD)
                         continue;
@@ -549,7 +548,7 @@ namespace VkRender::MultiSense {
                 }
             }
         }
-        // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
+        // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
         // save the data back to the file
         if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
@@ -658,7 +657,7 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         if (app->camPtr->getStatus(remoteHeadIndex, msg)) {
-            Log::Logger::getInstance()->info("Channel {} Uptime: {:.1f}s",remoteHeadIndex, msg->uptime);
+            Log::Logger::getInstance()->info("Channel {} Uptime: {:.1f}s", remoteHeadIndex, msg->uptime);
             app->m_FailedGetStatusCount = 0;
         } else {
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,

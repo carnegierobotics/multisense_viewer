@@ -1,10 +1,12 @@
+
+
 #include "Example.h"
 
 void Example::setup() {
     printf("MyModelExample setup\n");
 
     std::string fileName;
-    //model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device, renderUtils.device->transferQueue, 1.0f);
+    //m_Model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device, renderUtils.device->transferQueue, 1.0f);
 
 
     // Shader loading
@@ -18,9 +20,6 @@ void Example::setup() {
     //glTFModel::createRenderPipeline(renderUtils, shaders);
 }
 
-void Example::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    //glTFModel::draw(commandBuffer, i);
-}
 
 void Example::update() {
 
@@ -42,9 +41,5 @@ void Example::update() {
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -2.0f, -3.0f), 1.0f);
-    d2->viewPos = renderData.camera->viewPos;
-}
-
-void Example::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-
+    d2->viewPos = renderData.camera->m_ViewPos;
 }

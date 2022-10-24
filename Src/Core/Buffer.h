@@ -16,11 +16,11 @@
 */
 struct Buffer
 {
-    VkDevice device{};
-    VkBuffer buffer = VK_NULL_HANDLE;
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkDescriptorBufferInfo descriptorBufferInfo{};
-    VkDeviceSize size = 0;
+    VkDevice m_Device{};
+    VkBuffer m_Buffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_Memory = VK_NULL_HANDLE;
+    VkDescriptorBufferInfo m_DescriptorBufferInfo{};
+    VkDeviceSize m_Size = 0;
     VkDeviceSize alignment = 0;
     void* mapped = nullptr;
     /** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */

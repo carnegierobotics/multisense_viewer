@@ -46,12 +46,12 @@ struct VulkanDevice {
     ~VulkanDevice();
 
     uint32_t
-    getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
+    getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags propertyFlags, VkBool32 *memTypeFound = nullptr) const;
 
     uint32_t getQueueFamilyIndex(VkQueueFlagBits queueFlags) const;
 
     VkResult
-    createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char *> enabledExtensions,
+    createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<const char *> enabledExtensions,
                         void *pNextChain, bool useSwapChain = true,
                         VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 

@@ -12,7 +12,7 @@
 #include "MultiSense/Src/VO/Features/VisualOdometry.h"
 #include "MultiSense/Src/ModelLoaders/glTFModel.h"
 
-class TrackingTest: public Base, public RegisteredInFactory<TrackingTest>, glTFModel
+class TrackingTest: public VkRender::Base, public VkRender::RegisteredInFactory<TrackingTest>, glTFModel
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -33,7 +33,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
 
-    void onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

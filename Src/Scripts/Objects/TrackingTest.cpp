@@ -70,8 +70,8 @@ void TrackingTest::update() {
 }
 
 
-void TrackingTest::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const auto &d: *uiHandle->devices) {
+void TrackingTest::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const auto &d: uiHandle->devices) {
         if (d.state != AR_STATE_ACTIVE)
             continue;
 

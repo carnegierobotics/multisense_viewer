@@ -34,7 +34,7 @@
 #define ONE_SECOND 1
 
 
-// TODO Really long and confusing class. But it handles the sidebar and the pop up modal connect device
+// TODO Really long and confusing class. But it handles the sidebar and the pop up modal connect m_Device
 class SideBar : public VkRender::Layer {
 public:
 
@@ -203,7 +203,7 @@ private:
         crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
         if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info(
-                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
+                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long m_Name: {}, Camera returned m_Name {}",
                     res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
                     info.name.c_str());
 
@@ -220,7 +220,7 @@ private:
                 app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
             }
         } else {
-            Log::Logger::getInstance()->info("Failed to fetch camera name from VkRender device");
+            Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
 
         }
 
@@ -488,7 +488,7 @@ private:
             ImGui::PushFont(handles->info->font24);
             std::string title = "Connect to VkRender";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
-            float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a title in center of popup window
+            float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a m_Title in center of popup window
 
 
             ImGui::Dummy(ImVec2(0.0f, size.y));
@@ -497,7 +497,7 @@ private:
             ImGui::Text("%s", title.c_str());
             ImGui::PopFont();
             //ImGui::Separator();
-            //ImGui::InputText("Profile name##1", inputName.data(),inputFieldNameLength);
+            //ImGui::InputText("Profile m_Name##1", inputName.data(),inputFieldNameLength);
 
             ImGui::Dummy(ImVec2(0.0f, 25.0f));
 
@@ -700,7 +700,7 @@ private:
                                           ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
 
                         resultsComboIndex = n;
-                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile name if user inputted this before auto-connect is finished
+                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished
                         m_Entry = entryConnectDeviceList[n];
                         selected = true;
 

@@ -55,11 +55,11 @@ namespace VkRender::MultiSense {
             void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper> &buf) {
                 // Lock
                 std::lock_guard<std::mutex> lock(mut);
-                // replace latest data into image pointers
+                // replace latest data into m_Image pointers
                 imagePointersMap[id][buf->data().source] = buf;
             }
 
-            // Question: making it a return statement initiates a copy? Pass by reference and return image pointer?
+            // Question: making it a return statement initiates a copy? Pass by reference and return m_Image pointer?
             std::shared_ptr<ImageBufferWrapper> getImageBuffer(uint32_t idx, crl::multisense::DataSource src) {
                 std::lock_guard<std::mutex> lock(mut);
                 return imagePointersMap[idx][src];
@@ -134,10 +134,10 @@ namespace VkRender::MultiSense {
                 glm::mat4 kInverseMatrix{};
             };
 
-            /**@brief Connects to a VkRender device
+            /**@brief Connects to a VkRender m_Device
              *
              * @param[in] ip Which IP the camera is located on
-             * @param[in] isRemoteHead If the device is a remote head or not
+             * @param[in] isRemoteHead If the m_Device is a remote head or not
              * @return vector containing the list of successful connections. Numbered by crl::multisense::RemoteHeadChannel ids
              */
             std::vector<crl::multisense::RemoteHeadChannel> connect(const std::string &ip, bool isRemoteHead);
@@ -145,7 +145,7 @@ namespace VkRender::MultiSense {
             /**@brief Starts the desired stream if supported
              *
              * @param[in] stringSrc source described in string (also shown in UI)
-             * @param[in] remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ VkRender device
+             * @param[in] remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ VkRender m_Device
              * @return If the requested stream was started
              */
             bool start(const std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHeadID);
@@ -153,7 +153,7 @@ namespace VkRender::MultiSense {
             /**@brief Stops the desired stream.
              *
             * @param[in] stringSrc source described in string (also shown in UI)
-            * @param[in] remoteHeadID which remote head to stop a stream. ID of 0 can also be a non-remotehead/ VkRender device
+            * @param[in] remoteHeadID which remote head to stop a stream. ID of 0 can also be a non-remotehead/ VkRender m_Device
             * @return If the requested stream was stopped. Returns true also if the stream was never started.
             */
             bool stop(const std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHeadID);
@@ -162,7 +162,7 @@ namespace VkRender::MultiSense {
             *
             * @param[in] stringSrc source described in string (also shown in UI)
             * @param[out] tex Pointer to a texture data struct \refitem TextureData with pre-allocated memory
-            * @param[in] remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ MultiSense device
+            * @param[in] remoteHeadID which remote head to start a stream. ID of 0 can also be a non-remotehead/ MultiSense m_Device
             * @return If true if a frame was copied into the 'tex' object
             */
             bool
@@ -170,7 +170,7 @@ namespace VkRender::MultiSense {
 
 
             /**
-             * @brief get a status update from the MultiSense device
+             * @brief get a status update from the MultiSense m_Device
              * @param[in] channelID Which channel to fetch status for
              * @param[out] msg Parameter to be filled
              * @return
@@ -178,7 +178,7 @@ namespace VkRender::MultiSense {
             bool getStatus(crl::multisense::RemoteHeadChannel channelID, crl::multisense::system::StatusMessage *msg);
             /**@brief Constructs the Q matrix from the calibration data
             *
-            * @param width Width of desired image to construct Q matrix for. Used to obtain correct scaling
+            * @param width Width of desired m_Image to construct Q matrix for. Used to obtain correct scaling
             */
             void preparePointCloud(uint32_t width);
 
@@ -222,7 +222,7 @@ namespace VkRender::MultiSense {
             */
             bool setPostFilterStrength(float filterStrength, crl::multisense::RemoteHeadChannel channelID);
 
-            /**@brief Sets the desired gamma value to the VkRender device
+            /**@brief Sets the desired gamma value to the VkRender m_Device
              *
              * @param[in] gamma Value to set
              * @param[in] channelID which remote head to select

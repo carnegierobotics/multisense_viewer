@@ -189,7 +189,7 @@ namespace VkRender {
         /**@brief Call to delete the attached script. */
         void onDestroyScript() {
             for (auto *shaderModule: shaderModules) {
-                vkDestroyShaderModule(renderUtils.device->logicalDevice, shaderModule, nullptr);
+                vkDestroyShaderModule(renderUtils.device->m_LogicalDevice, shaderModule, nullptr);
             }
 
             for (auto &uniformBuffer: renderUtils.uniformBuffers) {
@@ -212,7 +212,7 @@ namespace VkRender {
 
             VkShaderModule module;
             Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
-                              renderUtils.device->logicalDevice, &module);
+                              renderUtils.device->m_LogicalDevice, &module);
             assert(module != VK_NULL_HANDLE);
 
             shaderModules.emplace_back(module);

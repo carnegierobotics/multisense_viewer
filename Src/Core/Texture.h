@@ -31,18 +31,18 @@
 
 class Texture {
 public:
-    VulkanDevice *device;
-    VkImage image;
-    VkImageLayout imageLayout;
-    VkDeviceMemory deviceMemory;
-    VkImageView view;
-    uint32_t width = 0, height = 0;
-    uint32_t mipLevels;
-    uint32_t layerCount;
-    VkDescriptorImageInfo descriptor;
-    VkSampler sampler;
-    VkSamplerYcbcrConversion YUVSamplerToRGB;
-    VkFormat format;
+    VulkanDevice *m_Device;
+    VkImage m_Image;
+    VkImageLayout m_ImageLayout;
+    VkDeviceMemory m_DeviceMemory;
+    VkImageView m_View;
+    uint32_t m_Width = 0, m_Height = 0;
+    uint32_t m_MipLevels;
+    uint32_t m_LayerCount;
+    VkDescriptorImageInfo m_Descriptor;
+    VkSampler m_Sampler;
+    VkSamplerYcbcrConversion m_YUVSamplerToRGB;
+    VkFormat m_Format;
 
     struct TextureSampler {
         VkFilter magFilter;
@@ -61,17 +61,17 @@ public:
 
 
     ~Texture() {
-        if (width != 0 && height != 0) {
-            vkDestroyImageView(device->logicalDevice, view, nullptr);
-            vkDestroyImage(device->logicalDevice, image, nullptr);
-            if (sampler) {
-                vkDestroySampler(device->logicalDevice, sampler, nullptr);
+        if (m_Width != 0 && m_Height != 0) {
+            vkDestroyImageView(m_Device->m_LogicalDevice, m_View, nullptr);
+            vkDestroyImage(m_Device->m_LogicalDevice, m_Image, nullptr);
+            if (m_Sampler) {
+                vkDestroySampler(m_Device->m_LogicalDevice, m_Sampler, nullptr);
             }
-            vkFreeMemory(device->logicalDevice, deviceMemory, nullptr);
+            vkFreeMemory(m_Device->m_LogicalDevice, m_DeviceMemory, nullptr);
         }
     }
     //ktxResult loadKTXFile(std::string filename, ktxTexture **target);
-    // Load a texture from a glTF image (stored as vector of chars loaded via stb_image) and generate a full mip chaing for it
+    // Load a texture from a glTF m_Image (stored as vector of chars loaded via stb_image) and generate a full mip chaing for it
 
 };
 
@@ -97,7 +97,7 @@ public:
 
 
     explicit Texture2D(VulkanDevice *const pDevice) {
-        device = pDevice;
+        m_Device = pDevice;
     }
 
     void fromBuffer(
@@ -121,7 +121,7 @@ public:
 class TextureVideo : public Texture {
 
 public:
-    // Create a host-visible staging buffer that contains the raw image data
+    // Create a host-visible staging buffer that contains the raw m_Image data
     VkBuffer stagingBuffer{};
     VkDeviceMemory stagingMemory{};
     VkDeviceSize size{};
@@ -134,21 +134,21 @@ public:
 
     ~TextureVideo() {
 
-        switch (format) {
+        switch (m_Format) {
             case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
             case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-                vkUnmapMemory(device->logicalDevice, stagingMemory2);
-                vkFreeMemory(device->logicalDevice, stagingMemory2, nullptr);
-                vkDestroyBuffer(device->logicalDevice, stagingBuffer2, nullptr);
-                vkDestroySamplerYcbcrConversion(device->logicalDevice, YUVSamplerToRGB, nullptr);
-                vkUnmapMemory(device->logicalDevice, stagingMemory);
-                vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-                vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory2);
+                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory2, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer2, nullptr);
+                vkDestroySamplerYcbcrConversion(m_Device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory);
+                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer, nullptr);
                 break;
             default:
-                vkUnmapMemory(device->logicalDevice, stagingMemory);
-                vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-                vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory);
+                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer, nullptr);
         }
     }
 

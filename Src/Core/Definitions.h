@@ -263,9 +263,9 @@ namespace VkRender {
         std::string interfaceName;
         uint32_t interfaceIndex = 0;
         std::string interfaceDescription;
-        /** @brief Flag for registering if device is clicked in sidebar */
+        /** @brief Flag for registering if m_Device is clicked in sidebar */
         bool clicked = false;
-        /** @brief Current connection state for this device */
+        /** @brief Current connection state for this m_Device */
         ArConnectionState state = AR_STATE_UNAVAILABLE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
@@ -274,7 +274,7 @@ namespace VkRender {
         std::vector<ChannelInfo> channelInfo;
         CRLCameraBaseUnit baseUnit{};
 
-        /**@brief location for which this device should save recorded frames **/
+        /**@brief location for which this m_Device should save recorded frames **/
         std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
 
@@ -354,7 +354,7 @@ namespace VkRender {
                 }
                 if (d.name == entry.profileName) {
                     profileNameTaken = true;
-                    Log::Logger::getInstance()->info("Profile name '{}' already taken", entry.profileName);
+                    Log::Logger::getInstance()->info("Profile m_Name '{}' already taken", entry.profileName);
                 }
 
             }
@@ -478,9 +478,9 @@ namespace VkRender {
     struct PointCloudParam {
         /** @brief Q Matrix. See PointCloudUtility in LibMultiSense for calculation of this */
         glm::mat4 Q{};
-        /** @brief Width of depth image*/
+        /** @brief Width of depth m_Image*/
         float width{};
-        /** @brief Height of depth image*/
+        /** @brief Height of depth m_Image*/
         float height{};
     };
 
@@ -594,7 +594,7 @@ namespace VkRender {
         float sidebarWidth = 200.0f;
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
-        /**@brief Physical Graphics device used*/
+        /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
         /**@brief Title of Application */
         std::string title = "TitleName";
@@ -626,7 +626,7 @@ namespace VkRender {
         float viewAreaElementSizeY = {0};
         float viewAreaElementSizeX = {0};
         float previewBorderPadding = 60.0f;
-        /** @brief add device button params */
+        /** @brief add m_Device button params */
         float addDeviceBottomPadding = 70.0f;
         float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
         /** @brief Height of popupModal*/

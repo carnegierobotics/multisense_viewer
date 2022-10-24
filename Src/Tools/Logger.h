@@ -48,7 +48,7 @@
 
 
 #if __has_include(<format>)
-#include <format>
+#include <m_Format>
 #endif
 
 
@@ -94,19 +94,19 @@ namespace Log {
     } LogType;
 
     struct FormatString {
-        fmt::string_view str;
+        fmt::string_view m_Str;
 #ifdef HAS_SOURCE_LOCATION
-        std::source_location loc;
-        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : str(str), loc(loc) {}
+        std::source_location m_Loc;
+        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str), m_Loc(loc) {}
 #endif
 
 #ifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
-        std::experimental::source_location loc;
-        FormatString(const char *str, const  std::experimental::source_location &loc =  std::experimental::source_location::current()) : str(str), loc(loc) {}
+        std::experimental::source_location m_Loc;
+        FormatString(const char *m_Str, const  std::experimental::source_location &m_Loc =  std::experimental::source_location::current()) : m_Str(m_Str), m_Loc(m_Loc) {}
 #endif
 
 #ifdef  NO_SOURCE_LOCATION
-        FormatString(const char *str) : str(str) {}
+        FormatString(const char *m_Str) : m_Str(m_Str) {}
 #endif
 
 
@@ -121,7 +121,7 @@ namespace Log {
         void _error(const char *text) throw();
 
         /**@brief Using templates to allow user to use formattet logging.
-     * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */
+     * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>
         void error(const FormatString &format, Args &&... args) {
             vinfo(format, fmt::make_format_args(args...));
@@ -130,9 +130,9 @@ namespace Log {
 
         void error(const FormatString &format, fmt::format_args args) {
 #if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
-            const auto &loc = format.loc;
+            const auto &loc = format.m_Loc;
             std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
 
             std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
             preText.append(s);
@@ -142,7 +142,7 @@ namespace Log {
             _error(msg.c_str());
 #else
             std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
             _error(s.c_str());
 
 #endif
@@ -175,10 +175,10 @@ namespace Log {
         //void info(std::ostringstream& stream) throw();
 
 
-        //void info(std::string &text, const source::source_location &loc = source::source_location::current()) noexcept;
+        //void info(std::string &text, const source::source_location &m_Loc = source::source_location::current()) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
-         * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */
+         * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
 
         template<typename... Args>
         void info(const FormatString &format, Args &&... args) {
@@ -189,9 +189,9 @@ namespace Log {
         void vinfo(const FormatString &format, fmt::format_args args) {
 #if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
 
-            const auto &loc = format.loc;
+            const auto &loc = format.m_Loc;
             std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
 
             std::string preText = fmt::format(" {}:{}: ", loc.file_name(), loc.line());
             preText.append(s);
@@ -204,7 +204,7 @@ namespace Log {
             _info(msg.c_str());
 #else
             std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.str, args);
+            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
             s = s.insert(0, (std::to_string(frameNumber) + "  ")) ;
             _info(s.c_str());
 #endif

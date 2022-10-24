@@ -71,7 +71,7 @@ namespace VkRender::MultiSense {
 
     void CRLPhysicalCamera::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
         auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
-        //Log::Logger::getInstance()->info("Received image {}x{} on channel {} with source {}", header.width, header.height, p->imageBuffer->id, header.source);
+        //Log::Logger::getInstance()->info("Received m_Image {}x{} on channel {} with source {}", header.m_Width, header.m_Height, p->imageBuffer->id, header.source);
         p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
     }
 
@@ -277,14 +277,14 @@ namespace VkRender::MultiSense {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
         infoMap[channelID].imgConf.setFps(fps);
 
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
@@ -302,7 +302,7 @@ namespace VkRender::MultiSense {
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
 
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
 
@@ -310,7 +310,7 @@ namespace VkRender::MultiSense {
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
 
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
@@ -339,7 +339,7 @@ namespace VkRender::MultiSense {
         }
         int ret = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (ret != crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->error("failed to get image config");
+            Log::Logger::getInstance()->error("failed to get m_Image config");
         }
         if (Utils::valueToCameraResolution(infoMap[channelID].imgConf.width(), infoMap[channelID].imgConf.height(),
                                            infoMap[channelID].imgConf.disparities()) ==
@@ -378,7 +378,7 @@ namespace VkRender::MultiSense {
 
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
         if (p.autoExposure) {
@@ -395,7 +395,7 @@ namespace VkRender::MultiSense {
         infoMap[channelID].imgConf.setExposureSource(p.exposureSource);
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
 
@@ -414,13 +414,13 @@ namespace VkRender::MultiSense {
 
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
         infoMap[channelID].imgConf.setStereoPostFilterStrength(filter);
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
 
@@ -439,7 +439,7 @@ namespace VkRender::MultiSense {
 
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query hdr image configuration");
+            Log::Logger::getInstance()->info("Unable to query hdr m_Image configuration");
             return false;
         }
 
@@ -468,7 +468,7 @@ namespace VkRender::MultiSense {
         //
         // Check to see if the configuration query succeeded
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
         if (param.autoWhiteBalance) {
@@ -482,7 +482,7 @@ namespace VkRender::MultiSense {
         }
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
 
@@ -504,7 +504,7 @@ namespace VkRender::MultiSense {
                 infoMap[channelID].lightConf);
 
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query image configuration");
+            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
             return false;
         }
 
@@ -518,7 +518,7 @@ namespace VkRender::MultiSense {
         infoMap[channelID].lightConf.setFlash(param.flashing);
         status = channelMap[channelID]->ptr()->setLightingConfig(infoMap[channelID].lightConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set image configuration");
+            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));

@@ -28,12 +28,12 @@ public:
 
     ~CRLCameraModels() {
         if (vulkanDevice != nullptr) {
-            vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
-            vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
-            vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
-            vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
-            vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
-            vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
+            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+            vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, selectionPipeline, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, selectionPipelineLayout, nullptr);
         }
     }
 
@@ -163,7 +163,7 @@ public:
     /**
      * Call to draw m_Model
      * @param commandBuffer handle to commandbuffer to record drawing command
-     * @param i index of swapchain image to render to
+     * @param i index of swapchain m_Image to render to
      * @param model modeol to draw
      * @param b if we want to render additional pipeline
      */
@@ -188,14 +188,14 @@ protected:
     void createPipelineLayout(VkPipelineLayout *pT);
 
     /**
-     * @brief Bind a default descriptor layout to the pipeline for images
+     * @brief Bind a default m_Descriptor layout to the pipeline for images
      * @param model Which m_Model to configure
      * @param ubo reference to uniform buffers
      */
     void createImageDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
     /**
-     * Bind a default descriptor layout fo the pipline for point clouds
+     * Bind a default m_Descriptor layout fo the pipline for point clouds
      * @param model Which m_Model to configure
      * @param ubo reference to uniform buffers
      */

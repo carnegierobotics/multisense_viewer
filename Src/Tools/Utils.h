@@ -327,7 +327,7 @@ namespace Utils {
             }
         }
 
-        throw std::runtime_error("failed to find supported format!");
+        throw std::runtime_error("failed to find supported m_Format!");
     }
 
     inline VkFormat findDepthFormat(VkPhysicalDevice physicalDevice) {
@@ -337,8 +337,8 @@ namespace Utils {
     }
 
 
-    // Create an image memory barrier for changing the layout of
-    // an image and put it into an active command buffer
+    // Create an m_Image memory barrier for changing the layout of
+    // an m_Image and put it into an active command buffer
     // See chapter 11.4 "Image Layout" for details
 
     inline void setImageLayout(
@@ -349,7 +349,7 @@ namespace Utils {
             VkImageSubresourceRange subresourceRange,
             VkPipelineStageFlags srcStageMask,
             VkPipelineStageFlags dstStageMask) {
-        // Create an image barrier object
+        // Create an m_Image barrier object
         VkImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -392,19 +392,19 @@ namespace Utils {
 
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 // Image is a transfer source
-                // Make sure any reads from the image have been finished
+                // Make sure any reads from the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
                 // Image is a transfer destination
-                // Make sure any writes to the image have been finished
+                // Make sure any writes to the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
                 // Image is read by a shader
-                // Make sure any shader reads from the image have been finished
+                // Make sure any shader reads from the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
             default:
@@ -413,17 +413,17 @@ namespace Utils {
         }
 
         // Target layouts (new)
-        // Destination access mask controls the dependency for the new image layout
+        // Destination access mask controls the dependency for the new m_Image layout
         switch (newImageLayout) {
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
                 // Image will be used as a transfer destination
-                // Make sure any writes to the image have been finished
+                // Make sure any writes to the m_Image have been finished
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 // Image will be used as a transfer source
-                // Make sure any reads from the image have been finished
+                // Make sure any reads from the m_Image have been finished
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
 
@@ -441,8 +441,8 @@ namespace Utils {
                 break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                // Image will be read in a shader (sampler, input attachment)
-                // Make sure any writes to the image have been finished
+                // Image will be read in a shader (m_Sampler, input attachment)
+                // Make sure any writes to the m_Image have been finished
                 if (imageMemoryBarrier.srcAccessMask == 0) {
                     imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
                 }

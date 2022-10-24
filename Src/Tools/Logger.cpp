@@ -24,7 +24,7 @@ namespace Log {
 
     Logger *Logger::m_Instance = nullptr;
 
-// Log file name. File name should be change from here only
+// Log file m_Name. File m_Name should be change from here only
     const string logFileName = "logger.log";
 
     Logger::Logger() {
@@ -170,12 +170,12 @@ namespace Log {
         }
     }
     /*
-    void Logger::info(std::string &text, const std::source_location& loc) throw() {
+    void Logger::info(std::string &text, const std::source_location& m_Loc) throw() {
         _info(text.data());
     }
 
     void Logger::info(std::ostringstream &stream) throw() {
-        string text = stream.str();
+        string text = stream.m_Str();
         _info(text.data());
     }
 
@@ -190,7 +190,7 @@ namespace Log {
         va_end(args);
         if(len < 0) return;
 
-        // format message
+        // m_Format message
         std::vector<char> msg;
         msg.resize(len + 1);
         //char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs

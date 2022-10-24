@@ -31,7 +31,7 @@ namespace VkRender::MultiSense {
             /**@brief Called once per frame with a handle to the devices UI information block
              * @param devices vector of devices 1:1 relationship with elements shown in sidebar
              * @param[in] shouldConfigNetwork if user have ticked the "configure network" checkbox
-             * @param[in] isRemoteHead if the connected device is a remote head, also selected by user
+             * @param[in] isRemoteHead if the connected m_Device is a remote head, also selected by user
              */
             void onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead);
 
@@ -41,7 +41,7 @@ namespace VkRender::MultiSense {
             void saveProfileAndDisconnect(VkRender::Device *dev);
 
         private:
-            /**@brief file descriptor to configure network settings on Linux */
+            /**@brief file m_Descriptor to configure network settings on Linux */
             int m_FD = -1;
             /** @brief get status attempt counter */
             int m_FailedGetStatusCount = 0;
@@ -52,8 +52,8 @@ namespace VkRender::MultiSense {
             std::mutex writeParametersMtx{};
 
             /**
-             * @brief Function called once per update by \refitem onUIUpdate if we have an active device
-             * @param[out] dev which profile this device is connected to
+             * @brief Function called once per update by \refitem onUIUpdate if we have an active m_Device
+             * @param[out] dev which profile this m_Device is connected to
              */
             void updateActiveDevice(VkRender::Device *dev);
 

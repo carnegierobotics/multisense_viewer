@@ -21,7 +21,7 @@ void RecordFrames::update() {
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             if (threadPool->getTaskListSize() < STACK_SIZE_100) {
-                Log::Logger::getInstance()->info("Saving image {} from source {}", tex->m_Id, src);
+                Log::Logger::getInstance()->info("Saving m_Image {} from source {}", tex->m_Id, src);
                 threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex);
             }
         }

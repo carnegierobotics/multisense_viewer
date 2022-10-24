@@ -13,9 +13,9 @@ namespace VkRender {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        width = 1400;
-        height = 1010;
-        window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+        m_Width = 1400;
+        m_Height = 1010;
+        window = glfwCreateWindow(m_Width, m_Height, title.c_str(), nullptr, nullptr);
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
         glfwSetKeyCallback(window, VulkanRenderer::keyCallback);
@@ -30,8 +30,8 @@ namespace VkRender {
         settings.validation = enableValidation;
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = name.c_str();
-        appInfo.pEngineName = name.c_str();
+        appInfo.pApplicationName = m_Name.c_str();
+        appInfo.pEngineName = m_Name.c_str();
         appInfo.apiVersion = apiVersion;
         pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
@@ -88,11 +88,11 @@ namespace VkRender {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
         }
-        // Get list of devices and capabilities of each device
+        // Get list of devices and capabilities of each m_Device
         uint32_t gpuCount = 0;
         err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
         if (err != VK_SUCCESS or gpuCount == 0) {
-            throw std::runtime_error("No device with vulkan support found");
+            throw std::runtime_error("No m_Device with vulkan support found");
         }
         // Enumerate devices
         std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
@@ -100,11 +100,11 @@ namespace VkRender {
         if (err != VK_SUCCESS) {
             throw std::runtime_error("Could not enumerate physical devices");
         }
-        // Select physical device to be used for the Vulkan example
-        // Defaults to the first device unless anything else specified
+        // Select physical m_Device to be used for the Vulkan example
+        // Defaults to the first m_Device unless anything else specified
         physicalDevice = pickPhysicalDevice(physicalDevices);
-        // If pyshyical device supports vulkan version > apiVersion then create new instance with this version.
-        // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
+        // If pyshyical m_Device supports vulkan version > apiVersion then create new instance with this version.
+        // Store m_Properties (including limits), m_Features and memory m_Properties of the physical m_Device (so that examples can check against them)
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
@@ -112,7 +112,7 @@ namespace VkRender {
         VkPhysicalDeviceVulkan11Features features;
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
         features.pNext = nullptr;
-        // Derived examples can override this to set actual features (based on above readings) to flashing for logical device creation
+        // Derived examples can override this to set actual m_Features (based on above readings) to flashing for logical m_Device creation
         addDeviceFeatures();
         VkPhysicalDeviceFeatures2 features2;
         features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -121,7 +121,7 @@ namespace VkRender {
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
-        // If available then: Add KHR_SAMPLER_YCBCR For Color camera data format.
+        // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {
             enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             pLogger->info("Enabling YCBCR Sampler Extension");
@@ -129,29 +129,29 @@ namespace VkRender {
             pLogger->error("YCBCR Sampler support not found!");
         }
 
-        // Vulkan device creation
-        // This is firstUpdate by a separate class that gets a logical device representation
-        // and encapsulates functions related to a device
+        // Vulkan m_Device creation
+        // This is firstUpdate by a separate class that gets a logical m_Device representation
+        // and encapsulates functions related to a m_Device
         vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
-            throw std::runtime_error("Failed to create logical device");
+            throw std::runtime_error("Failed to create logical m_Device");
 
-        device = vulkanDevice->logicalDevice;
-        // Get a graphics queue from the device
-        vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
-        // Find a suitable depth format
+        device = vulkanDevice->m_LogicalDevice;
+        // Get a graphics queue from the m_Device
+        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.graphics, 0, &queue);
+        // Find a suitable depth m_Format
         depthFormat = Utils::findDepthFormat(physicalDevice);
         // Create synchronization Objects
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         semaphoreCreateInfo.flags =
-                // Create a semaphore used to synchronize image presentation
-                // Ensures that the image is displayed before we start submitting new commands to the queue
+                // Create a semaphore used to synchronize m_Image presentation
+                // Ensures that the m_Image is displayed before we start submitting new commands to the queue
         err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
         if (err)
             throw std::runtime_error("Failed to create semaphore");
         // Create a semaphore used to synchronize command submission
-        // Ensures that the image is not presented until all commands have been submitted and executed
+        // Ensures that the m_Image is not presented until all commands have been submitted and executed
         err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
         if (err)
             throw std::runtime_error("Failed to create semaphore");
@@ -197,7 +197,7 @@ namespace VkRender {
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 
-        vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical device before instance
+        vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // CleanUp GLFW window
         glfwDestroyWindow(window);
@@ -230,7 +230,7 @@ namespace VkRender {
         imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = depthFormat;
-        imageCI.extent = {width, height, 1};
+        imageCI.extent = {m_Width, m_Height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -238,7 +238,7 @@ namespace VkRender {
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         VkResult result = vkCreateImage(device, &imageCI, nullptr, &depthStencil.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
 
         VkMemoryRequirements memReqs{};
         vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
@@ -249,9 +249,9 @@ namespace VkRender {
         memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         result = vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.mem);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth image memory");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
         result = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth image memory");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
 
         VkImageViewCreateInfo imageViewCI{};
         imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -268,14 +268,14 @@ namespace VkRender {
             imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
         result = vkCreateImageView(device, &imageViewCI, nullptr, &depthStencil.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
     }
 
     void VulkanRenderer::setupMainFramebuffer() {
         // Depth/Stencil attachment is the same for all frame buffers
         std::array<VkImageView, 2> attachments{};
         attachments[1] = depthStencil.view;
-        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(width, height,
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
                                                                                         attachments.data(),
                                                                                         attachments.size(),
                                                                                         renderPass);
@@ -445,7 +445,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::createCommandBuffers() {
-        // Create one command buffer for each swap chain image and reuse for rendering
+        // Create one command buffer for each swap chain m_Image and reuse for rendering
         drawCmdBuffers.resize(swapchain->imageCount);
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
@@ -483,7 +483,7 @@ namespace VkRender {
         info.pWindow = window;
         info.physicalDevice = physicalDevice;
         info.device = device;
-        swapchain = std::make_unique<VulkanSwapchain>(info, &width, &height);
+        swapchain = std::make_unique<VulkanSwapchain>(info, &m_Width, &m_Height);
 
         createCommandPool();
         createCommandBuffers();
@@ -509,12 +509,12 @@ namespace VkRender {
         }
         backendInitialized = false;
 
-        // Ensure all operations on the device have been finished before destroying resources
+        // Ensure all operations on the m_Device have been finished before destroying resources
         vkQueueWaitIdle(queue);
         vkDeviceWaitIdle(device);
 
         // Recreate swap chain
-        swapchain->create(&width, &height);
+        swapchain->create(&m_Width, &m_Height);
 
         // Recreate the frame buffers
         vkDestroyImageView(device, depthStencil.view, nullptr);
@@ -536,10 +536,10 @@ namespace VkRender {
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
 
-        if ((width > 0.0f) && (height > 0.0f)) {
-            camera.updateAspectRatio((float) width / (float) height);
+        if ((m_Width > 0.0f) && (m_Height > 0.0f)) {
+            camera.updateAspectRatio((float) m_Width / (float) m_Height);
         }
-        pLogger->info("Window Resized. New size is: {} x {}", width, height);
+        pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
 
         // Notify derived class
         windowResized();
@@ -550,8 +550,8 @@ namespace VkRender {
 
 
     void VulkanRenderer::renderLoop() {
-        destWidth = width;
-        destHeight = height;
+        destWidth = m_Width;
+        destHeight = m_Height;
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
 
         while (!glfwWindowShouldClose(window)) {
@@ -563,7 +563,7 @@ namespace VkRender {
             runTime = elapsed_seconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2((float) width, (float) height);
+            io.DisplaySize = ImVec2((float) m_Width, (float) m_Height);
             io.DeltaTime = frameTimer;
             io.WantCaptureMouse = true;
             io.MousePos = ImVec2(mousePos.x, mousePos.y);
@@ -593,20 +593,20 @@ namespace VkRender {
             frameTimer = (float) tDiff / 1000.0f;
             camera.update(frameTimer);
         }
-        // Flush device to make sure all resources can be freed before we start cleanup
+        // Flush m_Device to make sure all resources can be freed before we start cleanup
         if (device != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(device);
         }
     }
 
     void VulkanRenderer::prepareFrame() {
-        // Acquire the next image from the swap chain
+        // Acquire the next m_Image from the swap chain
         VkResult result = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
         // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
         if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
             windowResize();
         } else if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to acquire next image");
+            throw std::runtime_error("Failed to acquire next m_Image");
 
         // Use a fence to wait until the command buffer has finished execution before using it again
         result = vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX);
@@ -628,7 +628,7 @@ namespace VkRender {
                 return;
             }
         } else if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to acquire next image");
+            throw std::runtime_error("Failed to acquire next m_Image");
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for Queue Idle");
     }
@@ -793,7 +793,7 @@ namespace VkRender {
                 return d;
             }
         }
-        // If no discrete GPU were found just return the first device found
+        // If no discrete GPU were found just return the first m_Device found
         return devices[0];
     }
 
@@ -816,7 +816,7 @@ namespace VkRender {
             else if (key_name[0] >= 'A' && key_name[0] <= 'Z')          { key = GLFW_KEY_A + (key_name[0] - 'A'); }
             else if (const char* p = strchr(char_names, key_name[0]))   { key = char_keys[p - char_names]; }
         }
-        // if (action == GLFW_PRESS) printf("key %d scancode %d name '%s'\n", key, scancode, key_name);
+        // if (action == GLFW_PRESS) printf("key %d scancode %d m_Name '%s'\n", key, scancode, key_name);
 #else
         IM_UNUSED(scancode);
 #endif

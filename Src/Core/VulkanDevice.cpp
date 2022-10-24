@@ -54,18 +54,18 @@ VulkanDevice::~VulkanDevice() {
 	* Get the index of a memory type that has all the requested property bits set
 	*
 	* @param typeBits Bit mask with bits set for each memory type supported by the resource to request for (from VkMemoryRequirements)
-	* @param properties Bit mask of properties for the memory type to request
+	* @param propertyFlags Bit mask of propertyFlags for the memory type to request
 	* @param (Optional) memTypeFound Pointer to a bool that is set to true if a matching memory type has been found
 	*
 	* @return Index of the requested memory type
 	*
-	* @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
+	* @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested propertyFlags
 	*/
 uint32_t
-VulkanDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound) const {
+VulkanDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags propertyFlags, VkBool32 *memTypeFound) const {
     for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
         if ((typeBits & 1) == 1) {
-            if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if ((memoryProperties.memoryTypes[i].propertyFlags & propertyFlags) == propertyFlags) {
                 if (memTypeFound) {
                     *memTypeFound = true;
                 }
@@ -129,7 +129,7 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags) const {
 /**
 	* Create the logical device based on the assigned physical device, also gets default queue family indices
 	*
-	* @param enabledFeatures Can be used to flashing certain features upon device creation
+	* @param enabled Can be used to flashing certain features upon device creation
 	* @param pNextChain Optional chain of pointer to extension structures
 	* @param useSwapChain Set to false for headless rendering to omit the swapchain device extensions
 	* @param requestedQueueTypes Bit flags specifying the queue types to be requested from the device
@@ -137,7 +137,7 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags) const {
 	* @return VkResult of the device creation call
 	*/
 VkResult
-VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char *> enabledExtensions,
+VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<const char *> enabledExtensions,
                                   void *pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes) {
     // Desired queues need to be requested upon logical device creation
     // Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
@@ -209,13 +209,13 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std:
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-    deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+    deviceCreateInfo.pEnabledFeatures = &enabled;
 
     // If a pNext(Chain) has been passed, we need to add it to the device creation info
     VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
     if (pNextChain) {
         physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-        physicalDeviceFeatures2.features = enabledFeatures;
+        physicalDeviceFeatures2.features = enabled;
         physicalDeviceFeatures2.pNext = pNextChain;
         deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.pNext = &physicalDeviceFeatures2;
@@ -240,7 +240,7 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std:
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     }
 
-    this->enabledFeatures = enabledFeatures;
+    this->enabledFeatures = enabled;
 
     VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
     if (result != VK_SUCCESS) {
@@ -370,18 +370,18 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
 */
 VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
                                     Buffer *buffer, VkDeviceSize size, void *data) {
-    buffer->device = logicalDevice;
+    buffer->m_Device = logicalDevice;
 
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = Populate::bufferCreateInfo(usageFlags, size);
-    VkResult res = vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer);
+    VkResult res = vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->m_Buffer);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create Buffer");
 
     // Create the memory backing up the buffer handle
     VkMemoryRequirements memReqs;
     VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
-    vkGetBufferMemoryRequirements(logicalDevice, buffer->buffer, &memReqs);
+    vkGetBufferMemoryRequirements(logicalDevice, buffer->m_Buffer, &memReqs);
     memAlloc.allocationSize = memReqs.size;
     // Find a memory type index that fits the properties of the buffer
     memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
@@ -392,12 +392,12 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
         memAlloc.pNext = &allocFlagsInfo;
     }
-    res = vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory);
+    res = vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->m_Memory);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate memory");
 
     buffer->alignment = memReqs.alignment;
-    buffer->size = size;
+    buffer->m_Size = size;
     buffer->usageFlags = usageFlags;
     buffer->memoryPropertyFlags = memoryPropertyFlags;
 
@@ -429,17 +429,17 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
 * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
 */
 void VulkanDevice::copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion) {
-    assert(dst->size <= src->size);
-    assert(src->buffer);
+    assert(dst->m_Size <= src->m_Size);
+    assert(src->m_Buffer);
     VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
     VkBufferCopy bufferCopy{};
     if (copyRegion == nullptr) {
-        bufferCopy.size = src->size;
+        bufferCopy.size = src->m_Size;
     } else {
         bufferCopy = *copyRegion;
     }
 
-    vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
+    vkCmdCopyBuffer(copyCmd, src->m_Buffer, dst->m_Buffer, 1, &bufferCopy);
 
     flushCommandBuffer(copyCmd, queue);
 }

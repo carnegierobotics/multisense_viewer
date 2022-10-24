@@ -7,6 +7,8 @@
 
 #include "Layer.h"
 
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -46,4 +48,5 @@ public:
     }
 };
 
+DISABLE_WARNING_POP
 #endif //MULTISENSE_VIEWER_LAYEREXAMPLE_H

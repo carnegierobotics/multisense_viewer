@@ -85,7 +85,7 @@ namespace VkRender {
         // Update buffers only if vertex or index count has been changed compared to current buffer size
 
         // Vertex buffer
-        if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
+        if ((vertexBuffer.m_Buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
             vertexBuffer.unmap();
             vertexBuffer.destroy();
             if (VK_SUCCESS !=
@@ -98,7 +98,7 @@ namespace VkRender {
         }
 
         // Index buffer
-        if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
+        if ((indexBuffer.m_Buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
             indexBuffer.unmap();
             indexBuffer.destroy();
             if (VK_SUCCESS !=
@@ -155,8 +155,8 @@ namespace VkRender {
         if (imDrawData->CmdListsCount > 0) {
 
             VkDeviceSize offsets[1] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.m_Buffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
@@ -304,8 +304,6 @@ namespace VkRender {
         ::pipelineCreateInfo(pipelineLayout,
                              renderPass);
 
-
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
         pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
         pipelineCreateInfo.pRasterizationState = &rasterizationState;

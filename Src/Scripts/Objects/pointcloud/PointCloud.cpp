@@ -41,11 +41,11 @@ void PointCloud::update() {
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 0.0f));
 
-    // 24 degree rotation to compensate for VkRender S27 24 degree camera slant.
-    //mat.model = glm::rotate(mat.model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
+    //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-    //mat.model = glm::translate(mat.model, glm::vec3(2.8, 0.4, -5));
+    //mat.m_Model = glm::translate(mat.m_Model, glm::vec3(2.8, 0.4, -5));
     auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
@@ -55,7 +55,7 @@ void PointCloud::update() {
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->viewPos;
+    d2->viewPos = renderData.camera->m_ViewPos;
 }
 
 
@@ -94,8 +94,8 @@ void PointCloud::prepareTexture() {
     meshData.resize(width * height);
     int v = 0;
     // first few rows and cols (20) are discarded in the shader anyway
-    for (int i = 20; i < width - 20; ++i) {
-        for (int j = 20; j < height - 20; ++j) {
+    for (uint32_t i = 20; i < width - 20; ++i) {
+        for (uint32_t j = 20; j < height - 20; ++j) {
             meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
             meshData[v].uv0 = glm::vec2(1.0f - ((float) i / (float) width), 1.0f - ((float) j / (float) height));
             v++;
@@ -103,7 +103,7 @@ void PointCloud::prepareTexture() {
     }
     model->createMeshDeviceLocal(meshData);
 
-    renderData.crlCamera->get()->preparePointCloud(width, height);
+    renderData.crlCamera->get()->preparePointCloud(width);
     model->createEmtpyTexture(width, height, AR_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);

@@ -15,7 +15,6 @@
 #include "vulkan/vulkan_core.h"
 #include "MultiSense/Src/Core/Definitions.h"
 #include "Logger.h"
-#include "MultiSense/Src/imgui/Layer.h"
 
 #ifdef WIN32
 #include <direct.h>
@@ -27,6 +26,7 @@
 #endif
 
 #include "stb_image_write.h"
+#include "Macros.h"
 
 extern "C" {
 #include<libavutil/avutil.h>
@@ -38,7 +38,8 @@ extern "C" {
 }
 
 namespace Utils {
-
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FUNCTION
     static std::string getShadersPath() {
         return "./Assets/Shaders/";
     }
@@ -162,6 +163,7 @@ namespace Utils {
 
         return AR_CAMERA_IMAGE_NONE;
     }
+    DISABLE_WARNING_POP
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
@@ -530,7 +532,6 @@ namespace Utils {
     template<typename T>
     size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
         // Find given element in vector
-        size_t result;
         auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
         if (it != vecOfElements.end())
             return std::distance(vecOfElements.begin(), it);

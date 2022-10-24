@@ -12,13 +12,13 @@
 
 
 
-void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, VkQueue transferQueue, float scale) {
+void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *_device, VkQueue transferQueue, float scale) {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF gltfContext;
     std::string error;
     std::string warning;
 
-    this->device = device;
+    this->m_Device = _device;
 
     bool binary = false;
     size_t extpos = filename.rfind('.', filename.length());
@@ -29,6 +29,10 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
     bool fileLoaded = binary ? gltfContext.LoadBinaryFromFile(&gltfModel, &error, &warning, filename.c_str())
                              : gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filename.c_str());
 
+    if (!fileLoaded){
+        std::cerr << warning << std::endl;
+        return;
+    }
     std::vector<uint32_t> indexBuffer;
     std::vector<Vertex> vertexBuffer;
 
@@ -39,7 +43,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
     }
 
     loadTextureSamplers(gltfModel);
-    loadTextures(gltfModel, device, transferQueue);
+    loadTextures(gltfModel, m_Device, transferQueue);
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
 
@@ -57,7 +61,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
 
     // Create staging buffers
     // Vertex data
-    CHECK_RESULT(device->createBuffer(
+    CHECK_RESULT(m_Device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             vertexBufferSize,
@@ -66,7 +70,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
             vertexBuffer.data()));
     // Index data
     if (indexBufferSize > 0) {
-        CHECK_RESULT(device->createBuffer(
+        CHECK_RESULT(m_Device->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 indexBufferSize,
@@ -77,7 +81,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
 
     // Create device local buffers
     // Vertex buffer
-    CHECK_RESULT(device->createBuffer(
+    CHECK_RESULT(m_Device->createBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             vertexBufferSize,
@@ -85,7 +89,7 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
             &vertices.memory));
     // Index buffer
     if (indexBufferSize > 0) {
-        CHECK_RESULT(device->createBuffer(
+        CHECK_RESULT(m_Device->createBuffer(
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 indexBufferSize,
@@ -95,19 +99,19 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = vertexBufferSize;
-    device->copyVkBuffer(&vertexStaging.buffer, &vertices.buffer, &copyRegion);
+    m_Device->copyVkBuffer(&vertexStaging.buffer, &vertices.buffer, &copyRegion);
 
     if (indexBufferSize > 0) {
         copyRegion.size = indexBufferSize;
-        device->copyVkBuffer(&indexStaging.buffer, &indices.buffer, &copyRegion);
+        m_Device->copyVkBuffer(&indexStaging.buffer, &indices.buffer, &copyRegion);
     }
 
 
-    vkDestroyBuffer(device->logicalDevice, vertexStaging.buffer, nullptr);
-    vkFreeMemory(device->logicalDevice, vertexStaging.memory, nullptr);
+    vkDestroyBuffer(m_Device->logicalDevice, vertexStaging.buffer, nullptr);
+    vkFreeMemory(m_Device->logicalDevice, vertexStaging.memory, nullptr);
     if (indexBufferSize > 0) {
-        vkDestroyBuffer(device->logicalDevice, indexStaging.buffer, nullptr);
-        vkFreeMemory(device->logicalDevice, indexStaging.memory, nullptr);
+        vkDestroyBuffer(m_Device->logicalDevice, indexStaging.buffer, nullptr);
+        vkFreeMemory(m_Device->logicalDevice, indexStaging.memory, nullptr);
     }
 
 
@@ -115,8 +119,8 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *device, 
 
 // TODO: Support multiple children Nodes
 void glTFModel::drawNode(Node *node, VkCommandBuffer commandBuffer) {
-    //if (node->mesh)
-        for (Primitive primitive: model.primitives) {
+    //if (node->m_Mesh)
+        for (Primitive primitive: m_Model.primitives) {
             vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
         }
 
@@ -133,22 +137,22 @@ void glTFModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertices.buffer, offsets);
-    if (model.indices.buffer != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_Model.vertices.buffer, offsets);
+    if (m_Model.indices.buffer != VK_NULL_HANDLE) {
+        vkCmdBindIndexBuffer(commandBuffer, m_Model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     }
-    for (auto &node: model.nodes) {
+    for (auto &node: m_Model.nodes) {
         drawNode(node, commandBuffer);
     }
 }
 
 /**
  * Function to load each node specificed in glTF format.
- * Recursive call which also loads childnodes and creates and transforms the mesh.
+ * Recursive call which also loads childnodes and creates and transforms the m_Mesh.
  *
  */
 void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex,
-                                const tinygltf::Model &model, std::vector<uint32_t> &indexBuffer,
+                                const tinygltf::Model &_model, std::vector<uint32_t> &indexBuffer,
                                 std::vector<Vertex> &vertexBuffer, float globalscale) {
 
     auto *newNode = new Node{};
@@ -164,7 +168,6 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
         translation = glm::make_vec3(node.translation.data());
         newNode->translation = translation;
     }
-    glm::mat4 rotation = glm::mat4(1.0f);
     if (node.rotation.size() == 4) {
         glm::quat q = glm::make_quat(node.rotation.data());
         newNode->rotation = glm::mat4(q);
@@ -181,19 +184,18 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
     // Node with children
     if (node.children.size() > 0) {
         for (size_t i = 0; i < node.children.size(); i++) {
-            loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indexBuffer, vertexBuffer,
+            loadNode(newNode, _model.nodes[node.children[i]], node.children[i], _model, indexBuffer, vertexBuffer,
                      globalscale);
         }
     }
 
-    // Node contains mesh data
+    // Node contains m_Mesh data
     if (node.mesh > -1) {
-        const tinygltf::Mesh mesh = model.meshes[node.mesh];
+        const tinygltf::Mesh mesh = _model.meshes[node.mesh];
         for (auto &primitive: mesh.primitives) {
             uint32_t indexStart = static_cast<uint32_t>(indexBuffer.size());
             uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
             uint32_t indexCount = 0;
-            uint32_t vertexCount = 0;
             glm::vec3 posMin{};
             glm::vec3 posMax{};
             bool hasSkin = false;
@@ -220,48 +222,47 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
                 // Position attribute is required
                 assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
 
-                const tinygltf::Accessor &posAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
-                const tinygltf::BufferView &posView = model.bufferViews[posAccessor.bufferView];
-                bufferPos = reinterpret_cast<const float *>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+                const tinygltf::Accessor &posAccessor = _model.accessors[primitive.attributes.find("POSITION")->second];
+                const tinygltf::BufferView &posView = _model.bufferViews[posAccessor.bufferView];
+                bufferPos = reinterpret_cast<const float *>(&(_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
                 posMin = glm::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
                 posMax = glm::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
-                vertexCount = static_cast<uint32_t>(posAccessor.count);
                 posByteStride = posAccessor.ByteStride(posView) ? (posAccessor.ByteStride(posView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
 
                 if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
-                    const tinygltf::Accessor &normAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
-                    const tinygltf::BufferView &normView = model.bufferViews[normAccessor.bufferView];
-                    bufferNormals = reinterpret_cast<const float *>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+                    const tinygltf::Accessor &normAccessor = _model.accessors[primitive.attributes.find("NORMAL")->second];
+                    const tinygltf::BufferView &normView = _model.bufferViews[normAccessor.bufferView];
+                    bufferNormals = reinterpret_cast<const float *>(&(_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
                     normByteStride = normAccessor.ByteStride(normView) ? (normAccessor.ByteStride(normView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC3);
                 }
 
                 if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
-                    const tinygltf::Accessor &uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-                    const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
-                    bufferTexCoordSet0 = reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor &uvAccessor = _model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+                    const tinygltf::BufferView &uvView = _model.bufferViews[uvAccessor.bufferView];
+                    bufferTexCoordSet0 = reinterpret_cast<const float *>(&(_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
                     uv0ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
                 }
                 if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end()) {
-                    const tinygltf::Accessor &uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
-                    const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
-                    bufferTexCoordSet1 = reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor &uvAccessor = _model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
+                    const tinygltf::BufferView &uvView = _model.bufferViews[uvAccessor.bufferView];
+                    bufferTexCoordSet1 = reinterpret_cast<const float *>(&(_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
                     uv1ByteStride = uvAccessor.ByteStride(uvView) ? (uvAccessor.ByteStride(uvView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC2);
                 }
 
                 // Skinning
                 // Joints
                 if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end()) {
-                    const tinygltf::Accessor &jointAccessor = model.accessors[primitive.attributes.find("JOINTS_0")->second];
-                    const tinygltf::BufferView &jointView = model.bufferViews[jointAccessor.bufferView];
-                    bufferJoints = &(model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
+                    const tinygltf::Accessor &jointAccessor = _model.accessors[primitive.attributes.find("JOINTS_0")->second];
+                    const tinygltf::BufferView &jointView = _model.bufferViews[jointAccessor.bufferView];
+                    bufferJoints = &(_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
                     jointComponentType = jointAccessor.componentType;
                     jointByteStride = jointAccessor.ByteStride(jointView) ? (jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointComponentType)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC4);
                 }
 
                 if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end()) {
-                    const tinygltf::Accessor &weightAccessor = model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-                    const tinygltf::BufferView &weightView = model.bufferViews[weightAccessor.bufferView];
-                    bufferWeights = reinterpret_cast<const float *>(&(model.buffers[weightView.buffer].data[weightAccessor.byteOffset + weightView.byteOffset]));
+                    const tinygltf::Accessor &weightAccessor = _model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
+                    const tinygltf::BufferView &weightView = _model.bufferViews[weightAccessor.bufferView];
+                    bufferWeights = reinterpret_cast<const float *>(&(_model.buffers[weightView.buffer].data[weightAccessor.byteOffset + weightView.byteOffset]));
                     weightByteStride = weightAccessor.ByteStride(weightView) ? (weightAccessor.ByteStride(weightView) / sizeof(float)) : tinygltf::GetNumComponentsInType(TINYGLTF_TYPE_VEC4);
                 }
 
@@ -307,9 +308,9 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
             // Indices
             if (hasIndices)
             {
-                const tinygltf::Accessor &accessor = model.accessors[primitive.indices > -1 ? primitive.indices : 0];
-                const tinygltf::BufferView &bufferView = model.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+                const tinygltf::Accessor &accessor = _model.accessors[primitive.indices > -1 ? primitive.indices : 0];
+                const tinygltf::BufferView &bufferView = _model.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer &buffer = _model.buffers[bufferView.buffer];
 
                 indexCount = static_cast<uint32_t>(accessor.count);
                 const void *dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
@@ -341,7 +342,7 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
                         return;
                 }
             }
-            Primitive newPrimitive(indexStart, indexCount, vertexCount);
+            Primitive newPrimitive(indexStart, indexCount);
             primitives.push_back(newPrimitive);
         }
     }
@@ -457,8 +458,8 @@ void glTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture(device);
-    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
+    Texture2D texture(m_Device);
+    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_Device, m_Device->transferQueue);
     textureIndices.baseColor = 0;
     textures.push_back(texture);
 
@@ -487,8 +488,8 @@ void glTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
         throw std::runtime_error("failed to load texture image!");
     }
 
-    Texture2D texture(device);
-    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, device, device->transferQueue);
+    Texture2D texture(m_Device);
+    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_Device, m_Device->transferQueue);
     textureIndices.normalMap = 1;
     textures.push_back(texture);
 
@@ -507,16 +508,9 @@ glTFModel::glTFModel() {
 }
 
 
-glTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount, uint32_t vertexCount) {
+glTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount) {
     this->firstIndex = _firstIndex;
     this->indexCount = indexCount;
-    this->vertexCount = vertexCount;
-    hasIndices = indexCount > 0;
-
-}
-
-void glTFModel::Primitive::setBoundingBox(glm::vec3 min, glm::vec3 max) {
-
 }
 
 void glTFModel::createDescriptorSetLayout() {
@@ -529,12 +523,12 @@ void glTFModel::createDescriptorSetLayout() {
     };
 
 
-    if (model.textureIndices.baseColor != -1) {
+    if (m_Model.textureIndices.baseColor != -1) {
         setLayoutBindings.push_back(
                 {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
     }
 
-    if (model.textureIndices.normalMap != -1) {
+    if (m_Model.textureIndices.normalMap != -1) {
         setLayoutBindings.push_back(
                 {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
 
@@ -557,7 +551,7 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
      * Create Descriptor Pool
      */
 
-    uint32_t uniformDescriptorCount = (3 * count + (uint32_t)model.nodes.size());
+    uint32_t uniformDescriptorCount = (3 * count + (uint32_t)m_Model.nodes.size());
     uint32_t imageDescriptorSamplerCount = (3 * count * 3);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
@@ -565,14 +559,14 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
 
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-        static_cast<uint32_t>(count + model.nodes.size()));
+        static_cast<uint32_t>(count + m_Model.nodes.size()));
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
     /**
      * Create Descriptor Sets
      */
-    for (auto i = 0; i < descriptors.size(); i++) {
+    for (size_t i = 0; i < descriptors.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -588,21 +582,21 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
         writeDescriptorSets[0].descriptorCount = 1;
         writeDescriptorSets[0].dstSet = descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
 
         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[1].descriptorCount = 1;
         writeDescriptorSets[1].dstSet = descriptors[i];
         writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.descriptorBufferInfo;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
 
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[2].descriptorCount = 1;
         writeDescriptorSets[2].dstSet = descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
 
         vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -623,7 +617,7 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
                                             &descriptorSetLayoutNode));
 
         // Per-Node descriptor set
-        for (auto &node: model.nodes) {
+        for (auto &node: m_Model.nodes) {
             setupNodeDescriptorSet(node);
         }
     }

@@ -28,9 +28,9 @@ public:
 
         Result() = default;
 
-        Result(const char *name, uint8_t supports) {
+        Result(const char *name, uint8_t supp) {
             this->networkAdapter = name;
-            this->supports = supports;
+            this->supports = supp;
         }
         bool supports{}; // 0: for bad, 1: for good
         bool searched = false;

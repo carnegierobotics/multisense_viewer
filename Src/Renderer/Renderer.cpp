@@ -29,7 +29,7 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
-    // Prefer to load the model only once, so load it in first setup
+    // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
     std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
     std::string line;
@@ -227,7 +227,7 @@ void Renderer::render() {
     }
 
     // Run update function on active camera Scripts and build them if not built
-    for (int i = 0; i < guiManager->handles.devices.size(); ++i) {
+    for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
         if (guiManager->handles.devices.at(i).state == AR_STATE_REMOVE_FROM_LIST)
             guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
     }
@@ -605,12 +605,8 @@ void Renderer::createSelectionBuffer() {
             &selectionBuffer,
             &selectionMemory));
 
-
     // Create the memory backing up the buffer handle
     vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, selectionBuffer, &memReqs);
-    VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
-    memAlloc.allocationSize = memReqs.size;
-
     bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     bufferCopyRegion.imageSubresource.mipLevel = 0;
     bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
@@ -642,4 +638,5 @@ void Renderer::mouseMoved(double x, double y, bool &handled) {
     }
     mousePos = glm::vec2((float) x, (float) y);
 
+    handled = true;
 }

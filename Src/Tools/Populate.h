@@ -581,7 +581,7 @@ namespace Populate {
         return bindSparseInfo;
     }
 
-    /** @brief Initialize a map entry for a shader specialization constant */
+    /** @brief Initialize a map m_Entry for a shader specialization constant */
     inline VkSpecializationMapEntry specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size)
     {
         VkSpecializationMapEntry specializationMapEntry{};

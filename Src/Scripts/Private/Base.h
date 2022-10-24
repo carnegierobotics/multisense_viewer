@@ -13,6 +13,7 @@
 #include "GLFW/glfw3.h"
 #include "MultiSense/Src/Core/KeyInput.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
+#include "MultiSense/Src/Tools/Macros.h"
 
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
@@ -47,6 +48,8 @@ namespace VkRender {
                 Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
         };
 
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
         /**@brief Pure virtual function called each frame*/
         virtual void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != AR_SCRIPT_TYPE_DISABLED)
@@ -86,6 +89,7 @@ namespace VkRender {
             Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
         };
+        DISABLE_WARNING_POP
 
         void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
             updateRenderData(data);

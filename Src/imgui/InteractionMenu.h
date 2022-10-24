@@ -359,7 +359,7 @@ private:
 
                 dev.row[index] = float(row);
                 dev.col[index] = float(col);
-                // Calculate window position
+                // Calculate window m_Position
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
@@ -454,8 +454,8 @@ private:
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
-                        for (int n = 0; n < window.availableRemoteHeads.size(); n++) {
-                            const bool is_selected = (window.selectedRemoteHeadIndex == n);
+                        for (size_t n = 0; n < window.availableRemoteHeads.size(); n++) {
+                            const bool is_selected = (window.selectedRemoteHeadIndex == (crl::multisense::RemoteHeadChannel) n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
                                 window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
@@ -487,7 +487,7 @@ private:
 
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < window.availableSources.size(); n++) {
+                    for (size_t n = 0; n < window.availableSources.size(); n++) {
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
@@ -596,7 +596,7 @@ private:
                 ImGui::PopFont();
                 ImGui::Dummy(ImVec2(00.0f, 7.0));
 
-                for (int i = 0; i < dev.channelInfo.size(); ++i) {
+                for (size_t i = 0; i < dev.channelInfo.size(); ++i) {
                     if (dev.channelInfo[i].state != AR_STATE_ACTIVE)
                         continue;
 
@@ -618,7 +618,7 @@ private:
                         continue;
                     if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
-                        for (int n = 0; n < chInfo.modes.size(); n++) {
+                        for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
                             if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
                                 chInfo.selectedModeIndex = n;
@@ -762,7 +762,7 @@ private:
             dev.playbackStatus = AR_PREVIEW_PLAYING;
             if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
-                for (int n = 0; n < chInfo.modes.size(); n++) {
+                for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);
                     if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
                         chInfo.selectedModeIndex = n;
@@ -879,8 +879,6 @@ private:
     }
 
     void buildConfigurationTab(VkRender::GuiObjectHandles *handles, VkRender::Device &d) {
-        bool active = false;
-        //ImGui::ShowDemoWindow();
         // Exposure Tab
         {
             float textSpacing = 90.0f;
@@ -1002,10 +1000,10 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Enable Auto:";
-                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
+                std::string txtAutoConfig = "Enable Auto:";
+                ImVec2 txtSizeAutoConfig = ImGui::CalcTextSize(txtAutoConfig.c_str());
+                ImGui::Text("%s", txtAutoConfig.c_str());
+                ImGui::SameLine(0, textSpacing - txtSizeAutoConfig.x);
                 ImGui::Checkbox("##EnableAutoWhiteBalance", &d.parameters.wb.autoWhiteBalance);
                 d.parameters.wb.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1080,10 +1078,10 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Enable Flashing:";
-                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
+                std::string txtEnableFlash = "Enable Flashing:";
+                ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
+                ImGui::Text("%s", txtEnableFlash.c_str());
+                ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
                 ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing);
                 d.parameters.light.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));

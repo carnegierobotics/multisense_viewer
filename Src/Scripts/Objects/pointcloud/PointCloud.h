@@ -8,7 +8,6 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 
 class PointCloud: public VkRender::Base, public VkRender::RegisteredInFactory<PointCloud>, CRLCameraModels
@@ -17,8 +16,11 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     PointCloud() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
 
     void onDestroy() override{
 
@@ -44,7 +46,7 @@ public:
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
-    uint32_t remoteHeadIndex = 0;
+    int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;

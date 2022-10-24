@@ -7,7 +7,7 @@
 
 
 void SingleLayout::setup() {
-    // Prepare a model for drawing a texture onto
+    // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
@@ -49,7 +49,7 @@ void SingleLayout::update() {
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->viewPos;
+    d2->viewPos = renderData.camera->m_ViewPos;
 
 }
 
@@ -93,7 +93,7 @@ void SingleLayout::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create quad and store it locally on the GPU
-    ImageData imgData;
+    ImageData imgData{};
     model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create graphics render pipeline

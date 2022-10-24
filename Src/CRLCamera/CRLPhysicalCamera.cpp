@@ -145,10 +145,13 @@ namespace VkRender::MultiSense {
                 return true;
 
             case AR_DISPARITY_IMAGE:
+
+                DISABLE_WARNING_PUSH
+                DISABLE_WARNING_IMPLICIT_FALLTHROUGH
                 if (header->data().bitsPerPixel != 16) {
                     std::cerr << "Unsupported disparity pixel depth" << std::endl;
-                    break;
-                }
+                    return false;
+                }DISABLE_WARNING_POP
             case AR_GRAYSCALE_IMAGE:
             case AR_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data().width ||
@@ -165,7 +168,7 @@ namespace VkRender::MultiSense {
     }
 
 
-    void CRLPhysicalCamera::preparePointCloud(uint32_t width, uint32_t height) {
+    void CRLPhysicalCamera::preparePointCloud(uint32_t width) {
         const double xScale = 1.0 / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
                                       static_cast<double>(width)));
         // From LibMultisenseUtility
@@ -542,7 +545,8 @@ namespace VkRender::MultiSense {
         }
     }
 
-    bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID, crl::multisense::system::StatusMessage* msg) {
+    bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID,
+                                      crl::multisense::system::StatusMessage *msg) {
         crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }

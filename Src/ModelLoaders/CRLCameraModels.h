@@ -42,7 +42,7 @@ public:
 
         ~Model();
 
-        /**@brief Property to flashing/disable drawing of this model. Set to false if you want to control when to draw the model. */
+        /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
         bool draw = true;
         CRLCameraDataType modelType{};
 
@@ -85,8 +85,6 @@ public:
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
 
-        void createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize);
-
         void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName);
 
         void
@@ -97,11 +95,7 @@ public:
 
         void updateTexture(CRLCameraDataType type);
 
-        void setTexture(VkRender::TextureData *tex);
-
         void getTextureDataPointer(VkRender::TextureData *tex) const;
-
-        void setZoom();
     };
 
     /**@brief Primitive for a surface */
@@ -115,12 +109,12 @@ public:
         } quad{};
 
         /**@brief Generates a Quad with texture coordinates. Arguments are offset values */
-        explicit ImageData(float x = 0.0f, float y = 0.0f) {
+        explicit ImageData(float y = 0.0f) {
             int vertexCount = 4;
             int indexCount = 2 * 3;
             quad.vertexCount = vertexCount;
             quad.indexCount = indexCount;
-            // Virtual class can generate some mesh data here
+            // Virtual class can generate some m_Mesh data here
             quad.vertices.resize(vertexCount);
             quad.indices.resize(indexCount);
 
@@ -166,10 +160,8 @@ public:
     VkPipelineLayout pipelineLayout{};
     VkPipelineLayout selectionPipelineLayout{};
 
-    void destroy(VkDevice device);
-
     /**
-     * Call to draw model
+     * Call to draw m_Model
      * @param commandBuffer handle to commandbuffer to record drawing command
      * @param i index of swapchain image to render to
      * @param model modeol to draw
@@ -197,14 +189,14 @@ protected:
 
     /**
      * @brief Bind a default descriptor layout to the pipeline for images
-     * @param model Which model to configure
+     * @param model Which m_Model to configure
      * @param ubo reference to uniform buffers
      */
     void createImageDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
     /**
      * Bind a default descriptor layout fo the pipline for point clouds
-     * @param model Which model to configure
+     * @param model Which m_Model to configure
      * @param ubo reference to uniform buffers
      */
     void createPointCloudDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
@@ -221,17 +213,17 @@ protected:
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
 
     /**
-     * Create descriptors for this model
+     * Create descriptors for this m_Model
      * @param count number of descriptorsets needed
      * @param ubo reference to uniform buffers
-     * @param model which model to configure
+     * @param model which m_Model to configure
      */
     void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo, Model *model);
 
     /**
      * Creates the render pipeline using helper functions from this class
      * @param vector vector of shaders
-     * @param model model to configure
+     * @param model m_Model to configure
      * @param renderUtils handle to render utilities from the scripts base \refitem Base class
      */
     void

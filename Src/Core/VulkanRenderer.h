@@ -106,7 +106,7 @@ namespace VkRender {
         /** @brief (Virtual) Called when the camera view has changed */
         virtual void viewChanged();
 
-        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is firstUpdate */
+        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseMoved(double x, double y, bool &handled);
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
@@ -229,7 +229,7 @@ namespace VkRender {
 
         void setWindowSize(uint32_t width, uint32_t height);
 
-        /** @brief Default function to handle cursor position input, calls the override function mouseMoved(...) **/
+        /** @brief Default function to handle cursor m_Position input, calls the override function mouseMoved(...) **/
         void handleMouseMove(int32_t x, int32_t y);
 
         [[nodiscard]] VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const;

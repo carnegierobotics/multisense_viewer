@@ -12,7 +12,7 @@
  *         pushLayer<[LayerName]>();
  *
 **/
-class LayerExample : public MultiSense::Layer {
+class LayerExample : public VkRender::Layer {
 public:
 
 
@@ -27,7 +27,7 @@ public:
     }
 
     /** Called once per frame **/
-    void onUIRender(MultiSense::GuiObjectHandles *_handles) override {
+    void onUIRender(VkRender::GuiObjectHandles *_handles) override {
         // Create a Button
 
         /*

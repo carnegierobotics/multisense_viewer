@@ -104,8 +104,8 @@ void DoubleBot::prepareTexture() {
     model->draw = true;
 }
 
-void DoubleBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+void DoubleBot::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -130,10 +130,10 @@ void DoubleBot::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void DoubleBot::transformToUISpace(const MultiSense::GuiObjectHandles *uiHandle, MultiSense::Device dev) {
+void DoubleBot::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, VkRender::Device dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
-    centerY = 2 * (uiHandle->info->tabAreaHeight +
+    centerY = 2 * (uiHandle->info->tabAreaHeight + uiHandle->accumulatedActiveScroll +
                    ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[1]) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.row[1]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
@@ -148,8 +148,8 @@ void DoubleBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void DoubleBot::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (auto &dev: *uiHandle->devices) {
+void DoubleBot::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

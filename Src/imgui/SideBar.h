@@ -35,7 +35,7 @@
 
 
 // TODO Really long and confusing class. But it handles the sidebar and the pop up modal connect device
-class SideBar : public MultiSense::Layer {
+class SideBar : public VkRender::Layer {
 public:
 
     // Create global object for convenience in other functions
@@ -45,8 +45,8 @@ public:
     std::vector<std::string> interfaceDescriptionList;
     std::vector<uint32_t> indexList;
 
-    MultiSense::EntryConnectDevice entry;
-    std::vector<MultiSense::EntryConnectDevice> entryConnectDeviceList;
+    VkRender::EntryConnectDevice entry;
+    std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
 
     uint32_t gifFrameIndex = 0;
     std::chrono::steady_clock::time_point gifFrameTimer;
@@ -68,7 +68,7 @@ public:
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<int> colors;
-    ImVec4 lastLogTextColor = MultiSense::TextColorGray;
+    ImVec4 lastLogTextColor = VkRender::TextColorGray;
 
     uint32_t ethernetComboIndex = 0;
     size_t resultsComboIndex = -1;
@@ -88,7 +88,7 @@ public:
     }
 
 
-    void onUIRender(MultiSense::GuiObjectHandles *handles) override {
+    void onUIRender(VkRender::GuiObjectHandles *handles) override {
         ;
 
 
@@ -97,7 +97,7 @@ public:
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLGray424Main);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLGray424Main);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
@@ -153,7 +153,7 @@ public:
         ImGui::Spacing();
         ImGui::Spacing();
 
-        if (!handles->devices->empty())
+        if (!handles->devices.empty())
             sidebarElements(handles);
 
 
@@ -214,13 +214,13 @@ private:
             }
 
             if (!ipExists) {
-                MultiSense::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
-                                                     res.description};
+                VkRender::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
+                                                   res.description};
                 app->entryConnectDeviceList.push_back(entry);
                 app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
             }
         } else {
-            Log::Logger::getInstance()->info("Failed to fetch camera name from MultiSense device");
+            Log::Logger::getInstance()->info("Failed to fetch camera name from VkRender device");
 
         }
 
@@ -302,8 +302,8 @@ private:
 
     }
 
-    void createDefaultElement(MultiSense::GuiObjectHandles *handles, const MultiSense::EntryConnectDevice &entry) {
-        MultiSense::Device el;
+    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {
+        VkRender::Device el;
 
         el.name = entry.profileName;
         el.IP = entry.IP;
@@ -315,7 +315,7 @@ private:
         el.interfaceIndex = entry.interfaceIndex;
         el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
 
-        handles->devices->emplace_back(el);
+        handles->devices.emplace_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName,
@@ -323,10 +323,10 @@ private:
     }
 
 
-    void sidebarElements(MultiSense::GuiObjectHandles *handles) {
-        auto *devices = handles->devices;
-        for (int i = 0; i < devices->size(); ++i) {
-            auto &e = devices->at(i);
+    void sidebarElements(VkRender::GuiObjectHandles *handles) {
+        auto& devices = handles->devices;
+        for (int i = 0; i < devices.size(); ++i) {
+            auto &e = devices.at(i);
             std::string buttonIdentifier;
             // Set colors based on state
             switch (e.state) {
@@ -334,27 +334,27 @@ private:
                     break;
                 case AR_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
                     break;
                 case AR_STATE_ACTIVE:
                     buttonIdentifier = "Active";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray421);
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     break;
                 case AR_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
                     break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
                     break;
                 case AR_STATE_UNAVAILABLE:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLDarkGray425);
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLDarkGray425);
                     buttonIdentifier = "Unavailable";
                     break;
                 case AR_STATE_JUST_ADDED:
@@ -377,10 +377,10 @@ private:
 
 
             // Stop execution here
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
             if (ImGui::SmallButton("X")) {
                 // delete and disconnect devices
-                handles->devices->at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
+                handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(3);
                 ImGui::EndChild();
@@ -450,12 +450,12 @@ private:
         }
     }
 
-    void addDeviceButton(MultiSense::GuiObjectHandles *handles) {
+    void addDeviceButton(VkRender::GuiObjectHandles *handles) {
 
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
-        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLBlueIsh);
+        ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
         btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
 
         ImGui::PopStyleColor();
@@ -465,7 +465,7 @@ private:
         }
     }
 
-    void addPopup(MultiSense::GuiObjectHandles *handles) {
+    void addPopup(VkRender::GuiObjectHandles *handles) {
         ImGui::SetNextWindowSize(ImVec2(handles->info->popupWidth, handles->info->popupHeight), ImGuiCond_Always);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -483,10 +483,10 @@ private:
             headerPosMax.x += handles->info->popupWidth;
             headerPosMax.y += 50.0f;
             ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
-                                                      ImColor(MultiSense::CRLRed), 10.0f, 0);
+                                                      ImColor(VkRender::CRLRed), 10.0f, 0);
 
             ImGui::PushFont(handles->info->font24);
-            std::string title = "Connect to MultiSense";
+            std::string title = "Connect to VkRender";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
             float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a title in center of popup window
 
@@ -505,10 +505,10 @@ private:
 
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
             ImGui::Text("1. Profile Name:");
             ImGui::PopStyleColor();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::CRLDarkGray425);
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::CRLDarkGray425);
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
@@ -520,7 +520,7 @@ private:
             /** SELECT METHOD FOR CONNECTION FIELD */
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
             ImGui::Text("2. Select method for connection:");
             ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -571,7 +571,7 @@ private:
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Text("Status:");
                 if (dontRunAutoConnect) {
                     ImGui::SameLine(0, 15.0f);
@@ -590,10 +590,10 @@ private:
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
                 // Create child window regardless of gif spinner state in order to keep cursor position constant
-                //ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-                //if (autoConnect.running)
-                //addSpinnerGif(handles);
-                //ImGui::EndChild();
+                ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+                if (autoConnect.running)
+                addSpinnerGif(handles);
+                ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
@@ -602,7 +602,7 @@ private:
                                   " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
 
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLDarkGray425);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLDarkGray425);
                 const char *id = "Log Window";
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
 
@@ -623,13 +623,13 @@ private:
                             int col = colors[line_no + 1];
                             switch (col) {
                                 case 0:
-                                    lastLogTextColor = MultiSense::TextColorGray;
+                                    lastLogTextColor = VkRender::TextColorGray;
                                     break;
                                 case 1:
-                                    lastLogTextColor = MultiSense::TextGreenColor;
+                                    lastLogTextColor = VkRender::TextGreenColor;
                                     break;
                                 case 2:
-                                    lastLogTextColor = MultiSense::TextRedColor;
+                                    lastLogTextColor = VkRender::TextRedColor;
                                     break;
                             }
                         }
@@ -667,7 +667,7 @@ private:
                 } else if (!autoConnect.running)
                     dots = ".";
 
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
 
                 if (entryConnectDeviceList.empty() && autoConnect.running) {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
@@ -688,7 +688,7 @@ private:
                 }
                 // Header
                 // HeaderHovered
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, MultiSense::CRLDarkGray425);
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 5.0f));
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -714,7 +714,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Checkbox(" Remote Head", &handles->nextIsRemoteHead);
                 ImGui::PopStyleColor();
 
@@ -724,13 +724,13 @@ private:
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                     ImGui::Text("Camera IP:");
                     ImGui::PopStyleColor();
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 }
 
-                ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::CRLDarkGray425);
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::CRLDarkGray425);
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
@@ -740,7 +740,7 @@ private:
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine(0.0f, 10.0f);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                     ImGui::Text("Select network adapter:");
                     ImGui::PopStyleColor();
                     ImGui::SameLine(0.0f, 10.0f);
@@ -813,14 +813,14 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
                 ImGui::SameLine(0, 20.0f);
                 ImGui::Checkbox("  Remote Head", &handles->nextIsRemoteHead);
 
                 if (handles->configureNetwork) {
                     if (elevated()) {
-                        ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLRed);
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLRed);
                         ImGui::Dummy(ImVec2(40.0f, 10.0));
                         ImGui::Dummy(ImVec2(20.0f, 0.0));
                         ImGui::SameLine();
@@ -850,7 +850,7 @@ private:
             ImGui::SameLine(0, 110.0f);
             if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
             if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
@@ -875,7 +875,7 @@ private:
         ImGui::PopStyleVar(5); // popup style vars
     }
 
-    void addSpinnerGif(MultiSense::GuiObjectHandles *handles) {
+    void addSpinnerGif(VkRender::GuiObjectHandles *handles) {
 
         ImVec2 size = ImVec2(40.0f,
                              40.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization

@@ -23,7 +23,7 @@
 
 #include "MultiSense/Assets/Generated/ScriptHeader.h"
 
-class Renderer : VulkanRenderer {
+class Renderer : VkRender::VulkanRenderer {
 
 public:
 
@@ -42,7 +42,7 @@ public:
         backendInitialized = true;
         pLogger->info("Initialized Backend");
 
-        guiManager = std::make_unique<MultiSense::GuiManager>(vulkanDevice.get(), renderPass, width, height);
+        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, width, height);
 
         prepareRenderer();
         pLogger->info("Prepared Renderer");
@@ -70,11 +70,11 @@ private:
     void prepareRenderer();
 
 
-    std::unique_ptr<MultiSense::GuiManager> guiManager{};
-    std::map<std::string, std::unique_ptr<Base>> scripts{};
+    std::unique_ptr<VkRender::GuiManager> guiManager{};
+    std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames; 
 
-    std::unique_ptr<CameraConnection> cameraConnection{};
+    std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = false;
 

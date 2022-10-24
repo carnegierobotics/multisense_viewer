@@ -47,7 +47,6 @@ public:
     std::unique_ptr<CRLCameraModels::Model> model;
 
     int count = 1;
-    void *selection = (void *) "0";
     float up = -1.3f;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;

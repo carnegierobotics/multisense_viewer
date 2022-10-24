@@ -53,7 +53,6 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                 &indexStaging.memory,
                 (void *) indices.data()));
     }
-
     // Create m_Device local buffers
     // Vertex buffer
     if (mesh.vertices.buffer != VK_NULL_HANDLE) {

@@ -90,7 +90,7 @@ private:
     void windowResized() override;
     void addDeviceFeatures() override;
     void buildCommandBuffers() override;
-    void mouseMoved(double x, double y, bool&handled) override;
+    void mouseMoved(float x, float y, bool&handled) override;
 
     /**
      * @brief creates instances from classes located in src/Scripts/Objects directory.

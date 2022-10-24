@@ -20,18 +20,19 @@
 
 #elif defined(__GNUC__) || defined(__clang__)
 #define DO_PRAGMA(X) _Pragma(#X)
-#define DISABLE_WARNING_PUSH           DO_PRAGMA(GCC diagnostic push)
-#define DISABLE_WARNING_POP            DO_PRAGMA(GCC diagnostic pop)
-#define DISABLE_WARNING(warningName)   DO_PRAGMA(GCC diagnostic ignored #warningName)
+#define DISABLE_WARNING_PUSH                                      DO_PRAGMA(GCC diagnostic push)
+#define DISABLE_WARNING_POP                                       DO_PRAGMA(GCC diagnostic pop)
+#define DISABLE_WARNING(warningName)                              DO_PRAGMA(GCC diagnostic ignored #warningName)
 
-#define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER    DISABLE_WARNING(-Wunused-parameter)
-#define DISABLE_WARNING_UNREFERENCED_VARIABLE            DISABLE_WARNING(-Wunused-variable)
-#define DISABLE_WARNING_UNUSED_VARIABLE                     DISABLE_WARNING(-Wunused-value)
-
-#define DISABLE_WARNING_IMPLICIT_FALLTHROUGH             DISABLE_WARNING(-Wimplicit-fallthrough)
-#define DISABLE_WARNING_TYPE_LIMITS                      DISABLE_WARNING(-Wtype-limits)
-#define DISABLE_WARNING_MISSING_INITIALIZERS             DISABLE_WARNING(-Wmissing-field-initializers)
-#define DISABLE_WARNING_UNREFERENCED_FUNCTION            DISABLE_WARNING(-Wunused-function)
+#define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER             DISABLE_WARNING(-Wunused-parameter)
+#define DISABLE_WARNING_UNREFERENCED_VARIABLE                     DISABLE_WARNING(-Wunused-variable)
+#define DISABLE_WARNING_UNUSED_VARIABLE                           DISABLE_WARNING(-Wunused-value)
+#define DISABLE_WARNING_CAST_QUALIFIERS                           DISABLE_WARNING(-Wcast-qual)
+#define DISABLE_WARNING_DOUBLE_PROMOTION                          DISABLE_WARNING(-Wdouble-promotion)
+#define DISABLE_WARNING_IMPLICIT_FALLTHROUGH                      DISABLE_WARNING(-Wimplicit-fallthrough)
+#define DISABLE_WARNING_TYPE_LIMITS                               DISABLE_WARNING(-Wtype-limits)
+#define DISABLE_WARNING_MISSING_INITIALIZERS                      DISABLE_WARNING(-Wmissing-field-initializers)
+#define DISABLE_WARNING_UNREFERENCED_FUNCTION                     DISABLE_WARNING(-Wunused-function)
 // other warnings you want to deactivate...
 
 #else

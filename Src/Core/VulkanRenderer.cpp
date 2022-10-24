@@ -212,7 +212,7 @@ namespace VkRender {
     }
 
 
-    void VulkanRenderer::mouseMoved(double x, double y, bool &handled) {
+    void VulkanRenderer::mouseMoved(float x, float y, bool &handled) {
         mousePos = glm::vec2(x, y);
         handled = true;
     }
@@ -715,21 +715,21 @@ namespace VkRender {
         }
     }
 
-    void VulkanRenderer::handleMouseMove(int32_t x, int32_t y) {
+    void VulkanRenderer::handleMouseMove(float x, float y) {
         bool handled = false;
         if (settings.overlay) {
             ImGuiIO &io = ImGui::GetIO();
             io.WantCaptureMouse = true;
         }
 
-        mouseMoved((float) x, (float) y, handled);
+        mouseMoved(x, y, handled);
         viewChanged();
 
     }
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        myApp->handleMouseMove((int32_t) xPos, (int32_t) yPos);
+        myApp->handleMouseMove((float) xPos, (float) yPos);
 
     }
 
@@ -769,7 +769,7 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseButtons.wheel -= (float) (yoffset * myApp->mouseScrollSpeed);
+        myApp->mouseButtons.wheel -= ((float)yoffset * myApp->mouseScrollSpeed);
         io.MouseWheel += 0.5f * (float) yoffset;
     }
 

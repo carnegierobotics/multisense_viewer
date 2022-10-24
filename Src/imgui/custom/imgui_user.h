@@ -8,6 +8,9 @@
 #include "imgui_internal.h"
 #include "string"
 
+/**
+ * @brief Custom IMGUI modules made for this projectble
+ */
 namespace ImGui {
 
 //IMGUI_API bool          CustomSelectable(const char* label, bool* p_selected, ImGuiSelectableFlags flags = 0, const ImVec2& size = ImVec2(0, 0));      // "bool* p_selected" point to the selection state (read-write), as a convenient helper.

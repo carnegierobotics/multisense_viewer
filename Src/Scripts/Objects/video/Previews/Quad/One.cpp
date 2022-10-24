@@ -102,8 +102,8 @@ void One::prepareTexture() {
     model->draw = true;
 }
 
-void One::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+void One::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -128,7 +128,7 @@ void One::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void One::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+void One::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, VkRender::Device dev) {
     float row = dev.row[0];
     float col = dev.col[0];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -147,8 +147,8 @@ void One::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void One::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (auto &dev: *uiHandle->devices) {
+void One::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

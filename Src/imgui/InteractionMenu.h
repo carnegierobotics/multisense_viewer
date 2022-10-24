@@ -10,7 +10,7 @@
 #include "GLFW/glfw3.h"
 #include "ImGuiFileDialog.h"
 
-class InteractionMenu : public MultiSense::Layer {
+class InteractionMenu : public VkRender::Layer {
 public:
 
 // Create global object for convenience in other functions
@@ -27,10 +27,10 @@ public:
 
     }
 
-    void onUIRender(MultiSense::GuiObjectHandles *handles) override {
-        if (handles->devices->empty()) return;
+    void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        if (handles->devices.empty()) return;
         bool allUnavailable = true;
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             if (d.state == AR_STATE_ACTIVE)
                 allUnavailable = false;
         }
@@ -39,7 +39,7 @@ public:
             return;
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             if (d.state == AR_STATE_RESET) {
                 std::fill_n(page, PAGE_TOTAL_PAGES, false);
                 drawActionPage = true;
@@ -72,7 +72,7 @@ public:
             ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
             ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLCoolGray);
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLCoolGray);
             ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
             int imageButtonHeight = 100;
@@ -100,7 +100,7 @@ public:
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
-                ImVec4 bg_col = MultiSense::CRLCoolGray;         // Match bg color
+                ImVec4 bg_col = VkRender::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
                 ImGui::PushID(i);
 
@@ -113,7 +113,7 @@ public:
                 ImGui::SetCursorPos(ImVec2(xOffset + ((100.0f - ImGui::CalcTextSize(labels[i]).x) / 2),
                                            (handles->info->height / 2) + ((float) imageButtonHeight / 2) + 8));
                 float posX = ImGui::GetCursorScreenPos().x;
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Text("%s", labels[i]);
                 ImGui::PopStyleColor();
 
@@ -137,8 +137,8 @@ public:
                     page[i] = true;
 
                 ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(
-                        hovered && held ? MultiSense::CRLBlueIshTransparent2 :
-                        hovered ? MultiSense::CRLBlueIshTransparent : MultiSense::CRLCoolGrayTransparent), 5.0f);
+                        hovered && held ? VkRender::CRLBlueIshTransparent2 :
+                        hovered ? VkRender::CRLBlueIshTransparent : VkRender::CRLCoolGrayTransparent), 5.0f);
 
                 ImGui::SameLine();
             }
@@ -154,14 +154,14 @@ private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, false};
     bool drawActionPage = true;
 
-    void buildDeviceInformation(MultiSense::GuiObjectHandles *handles) {
+    void buildDeviceInformation(VkRender::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLCoolGray); // TODO USE named colors
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLCoolGray);
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -175,14 +175,14 @@ private:
         ImGui::End();
     }
 
-    void buildPreview(MultiSense::GuiObjectHandles *handles) {
+    void buildPreview(VkRender::GuiObjectHandles *handles) {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->height));
 
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLCoolGray);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLCoolGray);
         ImGui::Begin("InteractionMenu", &pOpen, window_flags);
 
 
@@ -198,8 +198,8 @@ private:
     }
 
 
-    void buildConfigurationPreview(MultiSense::GuiObjectHandles *handles) {
-        for (auto &dev: *handles->devices) {
+    void buildConfigurationPreview(VkRender::GuiObjectHandles *handles) {
+        for (auto &dev: handles->devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
             // Control page
@@ -215,7 +215,7 @@ private:
         }
     }
 
-    void createViewingArea(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
+    void createViewingArea(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
 
         /** CREATE TOP NAVIGATION BAR **/
         bool pOpen = true;
@@ -225,7 +225,7 @@ private:
 
         ImGui::SetNextWindowPos(
                 ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLCoolGray);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLCoolGray);
 
         handles->info->viewingAreaWidth =
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
@@ -245,7 +245,7 @@ private:
 
         backButtonPos.x += handles->info->viewingAreaWidth - 100.0f;
         ImGui::SetCursorScreenPos(backButtonPos);
-        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+        ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
         if (ImGui::Button("Back", ImVec2(100.0f, 20.0f))) {
             page[PAGE_CONFIGURE_DEVICE] = false;
             drawActionPage = true;
@@ -256,31 +256,34 @@ private:
         ImGui::SameLine();
 
         if (dev.selectedPreviewTab == TAB_2D_PREVIEW)
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRedActive);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRedActive);
         else
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
 
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
+            handles->clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
         }
         ImGui::PopStyleColor();
 
         if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD)
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRedActive);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRedActive);
         else
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::CRLRed);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
 
         ImGui::SameLine();
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
+            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
         }
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
+            handles->clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+
         }
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD){
+        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PopItemFlag();
             ImGui::PopStyleColor();
         }
@@ -293,13 +296,13 @@ private:
 
     }
 
-    void createWindowPreviews(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
+    void createWindowPreviews(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
         handles->info->viewingAreaWidth =
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         // Equation is a (to-do)
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && !handles->input->getButton(GLFW_KEY_LEFT_CONTROL)) {
+        if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
         }
         int cols = 0, rows = 0;
@@ -360,13 +363,17 @@ private:
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
+                if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
+                    viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
+                }
+
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
 
                 static bool open = true;
                 ImGuiWindowFlags window_flags =
                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                        ImGuiWindowFlags_NoScrollWithMouse;
+                        ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
                 ImGui::Begin((std::string("View Area") + std::to_string(index)).c_str(), &open, window_flags);
@@ -376,7 +383,7 @@ private:
                 ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
                 ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
                                      viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
-                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(MultiSense::CRLBlueIsh),
+                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(VkRender::CRLBlueIsh),
                                                           0.0f,
                                                           0);
 
@@ -387,7 +394,7 @@ private:
                                   topBarRectMax.y + handles->info->viewAreaElementSizeY -
                                   (handles->info->previewBorderPadding * 0.5f));
 
-                ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(MultiSense::CRLGray424Main),
+                ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(VkRender::CRLGray424Main),
                                                           0.0f,
                                                           0);
 
@@ -400,7 +407,7 @@ private:
                                    topBarRectMax.y + handles->info->viewAreaElementSizeY -
                                    (handles->info->previewBorderPadding * 0.5f));
 
-                ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(MultiSense::CRLGray424Main),
+                ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(VkRender::CRLGray424Main),
                                                           0.0f,
                                                           0);
 
@@ -412,7 +419,7 @@ private:
                                     (handles->info->previewBorderPadding / 2.0f));
 
                 ImGui::GetWindowDrawList()->AddRectFilled(bottomBarMin, bottomBarMax,
-                                                          ImColor(MultiSense::CRLGray424Main),
+                                                          ImColor(VkRender::CRLGray424Main),
                                                           0.0f,
                                                           0);
 
@@ -440,8 +447,10 @@ private:
                 auto &window = dev.win[index];
 
                 if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
-                    ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
-                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads, std::to_string(window.selectedRemoteHeadIndex))];
+                    ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
+                    std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
+                                                                                      std::to_string(
+                                                                                              window.selectedRemoteHeadIndex))];
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
@@ -449,9 +458,10 @@ private:
                             const bool is_selected = (window.selectedRemoteHeadIndex == n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
-                                window.selectedRemoteHeadIndex =  (crl::multisense::RemoteHeadChannel ) std::stoi(window.availableRemoteHeads[n]);
-                                    Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
-                                                                     window.selectedRemoteHeadIndex, index);
+                                window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
+                                        window.availableRemoteHeads[n]);
+                                Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
+                                                                 window.selectedRemoteHeadIndex, index);
 
                             }
 
@@ -466,14 +476,14 @@ private:
                 }
 
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
-                    window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+                window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
 
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
                 std::string previewValue;
-                ImGui::PushStyleColor(ImGuiCol_PopupBg, MultiSense::CRLBlueIsh);
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
 
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
@@ -515,13 +525,18 @@ private:
                 dev.playbackStatus = AR_PREVIEW_PLAYING;
                 ImGui::PopStyleColor();
                 ImGui::PopStyleColor(); // PopupBg
+
+
+                /** Color rest of area in the background color exluding previews**/
+
+
                 ImGui::End();
                 index++;
             }
         }
     }
 
-    void drawVideoPreviewGuiOverlay(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev,
+    void drawVideoPreviewGuiOverlay(VkRender::GuiObjectHandles *handles, VkRender::Device &dev,
                                     bool withStreamControls) {
 
         if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
@@ -532,7 +547,7 @@ private:
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
-                ImVec4 bg_col = MultiSense::CRLCoolGray;         // Match bg color
+                ImVec4 bg_col = VkRender::CRLCoolGray;         // Match bg color
                 ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);       // No tint
                 ImGui::Dummy(ImVec2(40.0f, 40.0f));
 
@@ -540,7 +555,7 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushFont(handles->info->font18);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Text("1. Choose Layout");
                 ImGui::PopStyleColor();
 
@@ -575,7 +590,7 @@ private:
                 ImGui::Dummy(ImVec2(00.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Text("2. Choose Sensor Resolution");
                 ImGui::PopStyleColor();
                 ImGui::PopFont();
@@ -589,7 +604,7 @@ private:
                     ImGui::SameLine();
                     if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
                         std::string descriptionText = "Remote head " + std::to_string(i) + ":";
-                        ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                         ImGui::Text("%s", descriptionText.c_str());
                         ImGui::PopStyleColor();
                         ImGui::SameLine();
@@ -623,7 +638,7 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
                 ImGui::PopStyleColor();
 
@@ -634,17 +649,18 @@ private:
                     ImVec2 posMax = posMin;
                     posMax.x += handles->info->controlAreaWidth;
                     posMax.y += 2.0f;
-                    ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax, ImColor(MultiSense::CRLGray421));
+                    ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax, ImColor(VkRender::CRLGray421));
 
                     ImGui::Dummy(ImVec2(0.0f, 30.0f));
                     ImGui::Dummy(ImVec2(40.0f, 0.0f));
                     ImGui::SameLine();
                     ImGui::PushFont(handles->info->font18);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                     ImGui::Text("Recording");
                     ImGui::PopFont();
                     ImGui::SameLine();
-                    ImGui::HelpMarker(" \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
+                    ImGui::HelpMarker(
+                            " \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 
@@ -661,8 +677,8 @@ private:
                     // open Dialog Simple
                     if (dev.isRecording) {
                         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                        ImGui::PushStyleColor(ImGuiCol_Button, MultiSense::TextColorGray);
-                        ImGui::PushStyleColor(ImGuiCol_FrameBg, MultiSense::TextColorGray);
+                        ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
+                        ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
 
                     }
                     if (ImGui::Button("Choose Location", btnSize))
@@ -684,7 +700,7 @@ private:
                     // display
                     //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
                     //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
-                    ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLDarkGray425);
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                     if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(500.0f, 200.0f),
                                                              ImVec2(600.0f, 600.0f))) {
@@ -735,7 +751,7 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
             ImGui::Text("1. Choose Sensor Resolution");
             ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -764,7 +780,7 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
             ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
             ImGui::PopStyleColor();
 
@@ -796,7 +812,7 @@ private:
 
     }
 
-    void createControlArea(MultiSense::GuiObjectHandles *handles, MultiSense::Device &dev) {
+    void createControlArea(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -807,12 +823,12 @@ private:
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15.0f);
 
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, MultiSense::CRLCoolGray);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLCoolGray);
         ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
         ImGui::Begin("ControlArea", &pOpen, window_flags);
 
 
-        for (auto &d: *handles->devices) {
+        for (auto &d: handles->devices) {
             // Create dropdown
             if (d.state == AR_STATE_ACTIVE) {
 
@@ -832,7 +848,7 @@ private:
                         buildConfigurationTab(handles, dev);
                         ImGui::EndTabItem();
                     }
-
+                    /*
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem("Future Tab 1")) {
 
@@ -844,6 +860,7 @@ private:
                         ImGui::EndTabItem();
 
                     }
+                     */
 
                     ImGui::EndTabBar();
                 }
@@ -854,20 +871,20 @@ private:
         // Draw border between control and viewing area
         ImVec2 lineMin(handles->info->sidebarWidth + handles->info->controlAreaWidth - 3.0f, 0.0f);
         ImVec2 lineMax(lineMin.x + 3.0f, handles->info->height);
-        ImGui::GetWindowDrawList()->AddRectFilled(lineMin, lineMax, ImColor(MultiSense::CRLGray424Main), 0.0f,
+        ImGui::GetWindowDrawList()->AddRectFilled(lineMin, lineMax, ImColor(VkRender::CRLGray424Main), 0.0f,
                                                   0);
         ImGui::Dummy(ImVec2(0.0f, handles->info->height - ImGui::GetCursorPosY()));
         ImGui::End();
         ImGui::PopStyleVar(3);
     }
 
-    void buildConfigurationTab(MultiSense::GuiObjectHandles *handles, MultiSense::Device &d) {
+    void buildConfigurationTab(VkRender::GuiObjectHandles *handles, VkRender::Device &d) {
         bool active = false;
         //ImGui::ShowDemoWindow();
         // Exposure Tab
         {
             float textSpacing = 90.0f;
-            ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextGray);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
 
             if (d.baseUnit == CRL_BASE_REMOTE_HEAD) {
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -914,7 +931,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.ep.exposure),
                                  10, 30000);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
@@ -926,7 +943,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Max",
                                  reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10,
                                  35000);
@@ -940,7 +957,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Decay",
                                  reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 0, 20);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
@@ -953,7 +970,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##TargetIntensity",
                                    &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
@@ -966,7 +983,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Threshold", &d.parameters.ep.autoExposureThresh,
                                    0, 1);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
@@ -1000,7 +1017,7 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::SliderFloat("##WBRed",
                                        &d.parameters.wb.whiteBalanceRed, 0.25f,
                                        4.0f);
@@ -1014,7 +1031,7 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::SliderFloat("##WBBlue",
                                        &d.parameters.wb.whiteBalanceBlue, 0.25f,
                                        4.0f);
@@ -1027,7 +1044,7 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::SliderFloat("##WBTreshold",
                                        &d.parameters.wb.autoWhiteBalanceThresh, 0.0,
                                        1.0f);
@@ -1041,7 +1058,7 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::SliderInt("##DecayRateWB",
                                      reinterpret_cast<int *>(&d.parameters.wb.autoWhiteBalanceDecay), 0,
                                      20);
@@ -1077,7 +1094,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Duty_Cycle",
                                    &d.parameters.light.dutyCycle, 0,
                                    100,
@@ -1092,7 +1109,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##LightSelection",
                                  reinterpret_cast<int *>(&d.parameters.light.selection), -1,
                                  3);
@@ -1107,7 +1124,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Pulses",
                                  reinterpret_cast<int *>(&d.parameters.light.numLightPulses), 10,
                                  35000);
@@ -1121,7 +1138,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Startup Time",
                                  reinterpret_cast<int *>(&d.parameters.light.startupTime), 1,
                                  100);
@@ -1154,7 +1171,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Framerate",
                                    &d.parameters.fps, 1,
                                    30, "%.1f");
@@ -1168,7 +1185,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
                                    &d.parameters.gain, 1.68,
                                    14.2, "%.1f");
@@ -1182,7 +1199,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gamma",
                                    &d.parameters.gamma, 1.1,
                                    2.2, "%.2f");
@@ -1196,7 +1213,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, MultiSense::CRLTextWhite);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
                                    &d.parameters.stereoPostFilterStrength, 0,
                                    1, "%.1f");

@@ -22,10 +22,13 @@
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
-#define INTERVAL_10_SECONDS_LOG_DRAW_COUNT 10
+#define INTERVAL_10_SECONDS 10
+#define INTERVAL_1_SECOND 1
 #define STACK_SIZE_100 100
 
-class CRLPhysicalCamera;
+namespace VkRender::MultiSense {
+    class CRLPhysicalCamera;
+}
 
 typedef enum ScriptType {
     AR_SCRIPT_TYPE_DISABLED,
@@ -181,9 +184,13 @@ struct ExposureParams {
 };
 
 
-namespace MultiSense {
-
-
+/**
+ * @brief MAIN RENDER NAMESPACE. This namespace contains all Render resources presented by the backend of this renderer engine.
+ */
+namespace VkRender {
+    /**
+     * @brief GLFW and Vulkan combination to create a SwapChain
+     */
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
         bool vsync = false;
@@ -192,7 +199,7 @@ namespace MultiSense {
         VkDevice device{};
     } SwapChainCreateInfo;
 
-    /** @brief  */
+    /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
     struct Parameters {
         ExposureParams ep{};
         WhiteBalanceParams wb{};
@@ -221,7 +228,7 @@ namespace MultiSense {
         std::string selectedSource = "Source";
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
-        crl::multisense::RemoteHeadChannel  selectedRemoteHeadIndex = 0;
+        crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
     };
 
     struct ChannelInfo {
@@ -236,6 +243,9 @@ namespace MultiSense {
         bool updateResolutionMode = true;
     };
 
+    /**
+     * @brief UI Block for a MultiSense Device connection. Contains connection information and user configuration such as selected previews, recording info and more..
+     */
     struct Device {
         /** @brief Profile Name information  */
         std::string name = "Profile #1"; // TODO Remove if remains Unused
@@ -282,9 +292,9 @@ namespace MultiSense {
         bool systemNetworkChanged = false;
     };
 
-
+    /** @brief An initialized object needed to create a \refitem Device */
     struct EntryConnectDevice {
-        std::string profileName = "MultiSense";
+        std::string profileName = "VkRender";
         std::string IP = "10.66.171.21";
         std::string interfaceName;
         std::string description;
@@ -316,8 +326,13 @@ namespace MultiSense {
             interfaceIndex = 0;
         }
 
-        bool ready(const std::vector<MultiSense::Device> *devices, const EntryConnectDevice &entry) const {
-
+        /**
+         * @brief Utility function to check if the requested profile in \ref entry is not conflicting with any of the previously connected devices in the sidebar
+         * @param devices list of current devices
+         * @param entry new connection to be added
+         * @return true of we can add this new profile to list. False if not
+         */
+        bool ready(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) const {
             bool profileNameEmpty = entry.profileName.empty();
             bool profileNameTaken = false;
             bool IPEmpty = entry.IP.empty();
@@ -328,7 +343,7 @@ namespace MultiSense {
 
 
             // Loop through devices and check that it doesn't exist already.
-            for (auto &d: *devices) {
+            for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
                     Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,
@@ -350,49 +365,50 @@ namespace MultiSense {
         }
     };
 
-}
-namespace VkRender {
-
-    struct YUVTexture {
-        void *data[NUM_YUV_DATA_POINTERS]{};
-        uint32_t len[NUM_YUV_DATA_POINTERS] = {0};
-        VkFlags *formats[NUM_YUV_DATA_POINTERS]{};
-        VkFormat format{};
-    };
-
+    /**
+     * @brief Container for bridging the gap between a VkRender Frame and the viewer render resources
+     */
     struct TextureData {
-        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool persist = true) :
+        /**
+         * @brief Default Constructor. Sizes between texture and camera frame must match!
+         * Can use a memory pointer to GPU memory as memory store option or handle memory manually with \refitem manualMemoryMgmt.
+         * @param texType Which texture type this is to be used with. Used to calculate the size of the texture
+         * @param width Width of texture/frame
+         * @param height Width of texture/frame
+         * @param manualMemoryMgmt true: Malloc memory with this object, false: dont malloc memory, default = false
+         */
+        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool manualMemoryMgmt = false) :
                 m_Type(texType),
                 m_Width(width),
                 m_Height(height),
-                persistent(persist){
+                m_Manual(manualMemoryMgmt) {
 
-            switch (texType) {
+            switch (m_Type) {
                 case AR_POINT_CLOUD:
                 case AR_GRAYSCALE_IMAGE:
-                    m_Len = width * height;
+                    m_Len = m_Width * m_Height;
                     break;
                 case AR_COLOR_IMAGE_YUV420:
                 case AR_YUV_PLANAR_FRAME:
-                    m_Len = width * height;
-                    m_Len2 = width * height / 2;
+                    m_Len = m_Width * m_Height;
+                    m_Len2 = m_Width * m_Height / 2;
                     break;
                 case AR_DISPARITY_IMAGE:
-                    m_Len = width * height * 2;
+                    m_Len = m_Width * m_Height * 2;
                     break;
 
                 default:
                     break;
             }
 
-            if (!persistent){
-                data = (uint8_t*) malloc(m_Len);
-                data2 = (uint8_t*) malloc(m_Len2);
+            if (m_Manual) {
+                data = (uint8_t *) malloc(m_Len);
+                data2 = (uint8_t *) malloc(m_Len2);
             }
         }
 
-        ~TextureData(){
-            if (!persistent) {
+        ~TextureData() {
+            if (m_Manual) {
                 free(data);
                 free(data2);
             }
@@ -404,10 +420,13 @@ namespace VkRender {
         CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
 
     private:
-        bool persistent = true;
+        bool m_Manual = true;
 
     };
 
+    /**
+     * @brief Default Vertex information
+     */
     struct Vertex {
         glm::vec3 pos{};
         glm::vec3 normal{};
@@ -424,16 +443,6 @@ namespace VkRender {
         float yaw = 0;
     };
 
-    struct MP4Frame {
-        void *plane0 = nullptr;
-        void *plane1 = nullptr;
-        void *plane2 = nullptr;
-
-        uint32_t plane0Size = 0;
-        uint32_t plane1Size = 0;
-        uint32_t plane2Size = 0;
-    };
-
     struct MouseButtons {
         bool left = false;
         bool right = false;
@@ -441,13 +450,18 @@ namespace VkRender {
         float wheel = 0.0f;
     };
 
-
+    /**
+     * @brief Default MVP matrix
+     */
     struct UBOMatrix {
         glm::mat4 projection{};
         glm::mat4 view{};
         glm::mat4 model{};
     };
 
+    /**
+     * @brief Basic lighting params for simple light calculation
+     */
     struct FragShaderParams {
         glm::vec4 lightColor{};
         glm::vec4 objectColor{};
@@ -455,12 +469,21 @@ namespace VkRender {
         glm::vec4 viewPos{};
     };
 
+    /**
+     * @brief Memory block for point clouds
+     */
     struct PointCloudParam {
-        glm::mat4 kInverse{};
+        /** @brief Q Matrix. See PointCloudUtility in LibMultiSense for calculation of this */
+        glm::mat4 Q{};
+        /** @brief Width of depth image*/
         float width{};
+        /** @brief Height of depth image*/
         float height{};
     };
 
+    /**
+     * @brief TODO: Unfinished. Put zoom information into shader. Meant for zooming
+     */
     struct ZoomParam {
         float zoom{};
 
@@ -469,15 +492,16 @@ namespace VkRender {
         }
     };
 
-    struct PointCloudShader {
-        glm::vec4 pos[NUM_POINTS]{};
-        glm::vec4 col[NUM_POINTS]{};
-    };
-
+    /**
+     * @brief TODO: Unfinished. Put mouse cursor position information into shader. Meant for zooming
+     */
     struct MousePositionPushConstant {
         glm::vec2 position{};
     };
 
+    /**
+     * @brief Vulkan resources for the cursor information pipeline
+     */
     struct ObjectPicking {
         // Global render pass for frame buffer writes
         VkRenderPass renderPass{};
@@ -494,7 +518,7 @@ namespace VkRender {
     };
 
 
-    /**@brief A standard set of uniform buffers */
+    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
     struct UniformBufferSet {
         Buffer bufferOne;
         Buffer bufferTwo;
@@ -502,7 +526,7 @@ namespace VkRender {
         Buffer bufferFour;
     };
 
-    /** containing Vulkan Resources for rendering **/
+    /** containing Basic Vulkan Resources for rendering **/
     struct RenderUtils {
         VulkanDevice *device{};
         uint32_t UBCount = 0;
@@ -511,7 +535,7 @@ namespace VkRender {
         const VkRender::ObjectPicking *picking;
     };
 
-    /**@brief grouping containing useful pointers used to render scripts **/
+    /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
         uint32_t index;
         Camera *camera = nullptr;
@@ -520,7 +544,7 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<CRLPhysicalCamera> *crlCamera;
+        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera;
         ScriptType type;
         Log::Logger *pLogger;
         uint32_t height;

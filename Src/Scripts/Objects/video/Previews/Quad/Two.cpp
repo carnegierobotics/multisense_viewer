@@ -102,8 +102,8 @@ void Two::prepareTexture() {
     model->draw = true;
 }
 
-void Two::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const MultiSense::Device &dev: *uiHandle->devices) {
+void Two::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -128,7 +128,7 @@ void Two::onUIUpdate(const MultiSense::GuiObjectHandles *uiHandle) {
     }
 }
 
-void Two::transformToUISpace(const MultiSense::GuiObjectHandles * uiHandle, MultiSense::Device dev) {
+void Two::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, VkRender::Device dev) {
     float row = dev.row[0];
     float col = dev.col[1];
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
@@ -146,8 +146,8 @@ void Two::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 }
 
-void Two::onWindowResize(const MultiSense::GuiObjectHandles *uiHandle) {
-    for (const auto &dev: *uiHandle->devices) {
+void Two::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    for (const auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
 

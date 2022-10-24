@@ -18,7 +18,9 @@
 #include "include/MultiSense/MultiSenseTypes.hh"
 #include <MultiSense/Src/Core/Definitions.h>
 
-
+/***
+ * @brief Bridges the gap between rendering vulkan images with data from MultiSense cameras. Tightly integrated with \refitem VkRender::TextureData
+ */
 class CRLCameraModels {
 
 public:

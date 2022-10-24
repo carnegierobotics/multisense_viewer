@@ -35,7 +35,7 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
         sources.clear();
-        for (auto window: dev.win) {
+        for (const auto& window: dev.win) {
             if (!Utils::isInVector(sources, window.second.selectedSource))
                 sources.emplace_back(window.second.selectedSource);
         }

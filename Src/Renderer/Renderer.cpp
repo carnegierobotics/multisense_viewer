@@ -27,7 +27,7 @@ void Renderer::prepareRenderer() {
     createSelectionImages();
     createSelectionFramebuffer();
     createSelectionBuffer();
-    cameraConnection = std::make_unique<CameraConnection>();
+    cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
     // Prefer to load the model only once, so load it in first setup
     // Load Object Scripts from file
@@ -404,15 +404,15 @@ void Renderer::cleanUp() {
         */
     /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
     /*
-    int sd = -1;
-    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    int m_FD = -1;
+    if ((m_FD = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
         Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
                                           strerror(errno));
     }
     // Specify interface name
     const char *interface = dev.interfaceName.c_str();
-    if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
+    if (setsockopt(m_FD, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
         Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
                                           strerror(errno));
     };
@@ -437,7 +437,7 @@ void Renderer::cleanUp() {
     inet_addr.sin_family = AF_INET;
     int inet_addr_config_result = inet_pton(AF_INET, ip.c_str(), &(inet_addr.sin_addr));
     memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
-    int ioctl_result = ioctl(sd, SIOCSIFADDR, &ifr);  // Set IP address
+    int ioctl_result = ioctl(m_FD, SIOCSIFADDR, &ifr);  // Set IP address
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
         Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
@@ -449,7 +449,7 @@ void Renderer::cleanUp() {
     memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
     subnet_mask.sin_family = AF_INET;
     int subnet_mask_config_result = inet_pton(AF_INET, netmask.c_str(), &(subnet_mask.sin_addr));
-    ioctl_result= ioctl(sd, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+    ioctl_result= ioctl(m_FD, SIOCSIFNETMASK, &ifr);   // Set subnet mask
     if (ioctl_result < 0) {
         fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
         Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}",
@@ -460,7 +460,7 @@ void Renderer::cleanUp() {
 
     strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
     ifr.ifr_mtu = mtu; //your MTU size here
-    if (ioctl(sd, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+    if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
         Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
                                           dev.interfaceName.c_str());
     } else {

@@ -6,7 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow")
 
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
@@ -55,11 +55,6 @@ add_subdirectory(${AUTOCONNECT_SRC})
 ## FFMPEG
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 
-# FMT
-# Used for logging purposes
-set(FMT_DIR external/fmt)  
-add_subdirectory(${FMT_DIR})
-
 # add ImGUI source files
 #Also Include ImGUi Custom FileDialog Extension
 # Dear ImGui
@@ -76,7 +71,7 @@ set(IMGUI_SRC
         Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;fmt::fmt;SimpleIni;MultiSense")
+set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;SimpleIni;MultiSense")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "Src/Scripts/Objects/*.h")
@@ -263,7 +258,7 @@ else () ## Linux
 
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb -lfmt )
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

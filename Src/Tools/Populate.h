@@ -72,7 +72,7 @@ namespace Populate {
         return renderPassCreateInfo;
     }
 
-    /** @brief Initialize an image memory barrier with no image transfer ownership */
+    /** @brief Initialize an m_Image memory barrier with no m_Image transfer ownership */
     inline VkImageMemoryBarrier imageMemoryBarrier()
     {
         VkImageMemoryBarrier imageMemoryBarrier {};
@@ -82,7 +82,7 @@ namespace Populate {
         return imageMemoryBarrier;
     }
 
-    /** @brief Initialize a buffer memory barrier with no image transfer ownership */
+    /** @brief Initialize a buffer memory barrier with no m_Image transfer ownership */
     inline VkBufferMemoryBarrier bufferMemoryBarrier()
     {
         VkBufferMemoryBarrier bufferMemoryBarrier {};

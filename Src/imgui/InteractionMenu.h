@@ -84,7 +84,7 @@ public:
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
                 float imageSpacingX = 200.0f;
 
-                // width of menu buttons layout. Needed to draw on center of screen.
+                // m_Width of menu buttons layout. Needed to draw on center of screen.
                 float xOffset = ((handles->info->width - handles->info->sidebarWidth) / 2) -
                                 (((float) imageSpacingX * (float) PAGE_CONFIGURE_DEVICE) +
                                  ((float) PAGE_TOTAL_PAGES * 100.0f) / 2) +

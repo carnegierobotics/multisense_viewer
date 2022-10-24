@@ -139,7 +139,7 @@ namespace VkRender::MultiSense {
 
     void
     CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
-        // If no device is connected then return
+        // If no m_Device is connected then return
         if (devices.empty())
             return;
         // Check for actions on each element
@@ -158,9 +158,9 @@ namespace VkRender::MultiSense {
                 pool->Stop();
                 return;
             }
-            // Connect if we click a device in the sidebar or if it is just added by add device btn
+            // Connect if we click a m_Device in the sidebar or if it is just added by add m_Device btn
             if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
-                // reset other active device if present. So loop over all devices again.
+                // reset other active m_Device if present. So loop over all devices again.
                 bool resetOtherDevice = false;
                 VkRender::Device *otherDev;
                 for (auto &d: devices) {
@@ -192,7 +192,7 @@ namespace VkRender::MultiSense {
             }
 
             updateActiveDevice(&dev);
-            // Disable if we click a device already connected
+            // Disable if we click a m_Device already connected
             if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}", dev.name);
@@ -333,7 +333,7 @@ namespace VkRender::MultiSense {
 
                 return false;
             }
-            // Specify interface name
+            // Specify interface m_Name
             const char *interface = dev.interfaceName.c_str();
             if (setsockopt(m_FD, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
                 Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
@@ -343,12 +343,12 @@ namespace VkRender::MultiSense {
             struct ifreq ifr{};
             /// note: no pointer here
             struct sockaddr_in inet_addr{}, subnet_mask{};
-            /* get interface name */
+            /* get interface m_Name */
             /* Prepare the struct ifreq */
             bzero(ifr.ifr_name, IFNAMSIZ);
             strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
-            /*** Call ioctl to get and backup current network device configuration ***/
+            /*** Call ioctl to get and backup current network m_Device configuration ***/
             /*
             std::string ipAddressBackup = "";
             std::string subnetMaskBackup = "";
@@ -432,7 +432,7 @@ namespace VkRender::MultiSense {
                                                   strerror(errno));
             }
 
-            strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+            strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
             ifr.ifr_mtu = 7200; //your MTU size here
             if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
                 Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,

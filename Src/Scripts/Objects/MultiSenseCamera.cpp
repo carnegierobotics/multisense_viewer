@@ -2,7 +2,7 @@
 
 void MultiSenseCamera::setup() {
     m_Model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
-                         renderUtils.device->transferQueue, 1.0f);
+                         renderUtils.device->m_TransferQueue, 1.0f);
 
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",

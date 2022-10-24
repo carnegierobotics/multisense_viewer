@@ -50,9 +50,9 @@ VkResult Buffer::bind(VkDeviceSize offset) {
 }
 
 /**
-* Setup the default descriptor for this buffer
+* Setup the default m_Descriptor for this buffer
 *
-* @param size (Optional) Size of the memory range of the descriptor
+* @param size (Optional) Size of the memory range of the m_Descriptor
 * @param offset (Optional) Byte offset from beginning
 *
 */
@@ -75,7 +75,7 @@ void Buffer::copyTo(void *data, VkDeviceSize size) {
 }
 
 /**
-* Flush a memory range of the buffer to make it visible to the device
+* Flush a memory range of the buffer to make it visible to the m_Device
 *
 * @note Only required for non-coherent memory
 *

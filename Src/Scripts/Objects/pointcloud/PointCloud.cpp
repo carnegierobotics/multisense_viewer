@@ -18,7 +18,7 @@ void PointCloud::update() {
 
     if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
         model->draw = false;
-        Log::Logger::getInstance()->info("Size mismatch with image size and imgconf in pointcloud");
+        Log::Logger::getInstance()->info("Size mismatch with m_Image size and imgconf in pointcloud");
         prepareTexture();
         return;
     }

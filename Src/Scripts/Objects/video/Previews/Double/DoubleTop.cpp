@@ -79,7 +79,7 @@ void DoubleTop::prepareTexture() {
             return;
     }
 
-    Log::Logger::getInstance()->info("Preparing texture image {}, {} on preview {}, channel: {}", width, height, "One",
+    Log::Logger::getInstance()->info("Preparing texture m_Image {}, {} on preview {}, channel: {}", width, height, "One",
                                      remoteHeadIndex);
 
     auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;

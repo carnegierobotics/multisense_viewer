@@ -9,10 +9,10 @@
 
 
 /**
-* Create the swapchain and get its images with given width and height
+* Create the swapchain and get its images with given m_Width and m_Height
 *
-* @param width Pointer to the width of the swapchain (may be adjusted to fit the requirements of the swapchain)
-* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
+* @param width Pointer to the m_Width of the swapchain (may be adjusted to fit the requirements of the swapchain)
+* @param height Pointer to the m_Height of the swapchain (may be adjusted to fit the requirements of the swapchain)
 * @param vsync (Optional) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 */
 void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
@@ -20,10 +20,10 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     // Store the current swap chain handle so we can use it later on to ease up recreation
     VkSwapchainKHR oldSwapchain = swapChain;
 
-    // Get physical device surface properties and formats
+    // Get physical m_Device surface m_Properties and formats
     VkSurfaceCapabilitiesKHR surfCaps;
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps);
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get device surface formats");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get m_Device surface formats");
 
     // Get available present modes
     uint32_t presentModeCount;
@@ -36,7 +36,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get present modes ");
 
     VkExtent2D swapchainExtent = {};
-    // If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
+    // If m_Width (and m_Height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
     if (surfCaps.currentExtent.width == (uint32_t)-1)
     {
         // If the surface size is undefined, the size is set to
@@ -96,9 +96,9 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
         preTransform = surfCaps.currentTransform;
     }
 
-    // Find a supported composite alpha format (not all devices support alpha opaque)
+    // Find a supported composite alpha m_Format (not all devices support alpha opaque)
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    // Simply select the first composite alpha format available
+    // Simply select the first composite alpha m_Format available
     std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
@@ -162,7 +162,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     result = vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get swapchain images");
 
-    // Get the swap chain buffers containing the image and imageview
+    // Get the swap chain buffers containing the m_Image and imageview
     buffers.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
     {
@@ -189,34 +189,34 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
         colorAttachmentView.image = buffers[i].image;
 
         result = vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain image views");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain m_Image views");
     }
 }
 
 /**
-* Acquires the next image in the swap chain
+* Acquires the next m_Image in the swap chain
 *
-* @param presentCompleteSemaphore (Optional) Semaphore that is signaled when the image is ready for use
-* @param imageIndex Pointer to the image index that will be increased if the next image could be acquired
+* @param presentCompleteSemaphore (Optional) Semaphore that is signaled when the m_Image is ready for use
+* @param imageIndex Pointer to the m_Image index that will be increased if the next m_Image could be acquired
 *
-* @note The function will always wait until the next image has been acquired by setting timeout to UINT64_MAX
+* @note The function will always wait until the next m_Image has been acquired by setting timeout to UINT64_MAX
 *
-* @return VkResult of the image acquisition
+* @return VkResult of the m_Image acquisition
 */
 VkResult VulkanSwapchain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t *imageIndex)
 {
-    // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
+    // By setting timeout to UINT64_MAX we will always wait until the next m_Image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
     return vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
 }
 
 
 /**
-* Queue an image for presentation
+* Queue an m_Image for presentation
 *
-* @param queue Presentation queue for presenting the image
-* @param imageIndex Index of the swapchain image to queue for presentation
-* @param waitSemaphore (Optional) Semaphore that is waited on before the image is presented (only used if != VK_NULL_HANDLE)
+* @param queue Presentation queue for presenting the m_Image
+* @param imageIndex Index of the swapchain m_Image to queue for presentation
+* @param waitSemaphore (Optional) Semaphore that is waited on before the m_Image is presented (only used if != VK_NULL_HANDLE)
 *
 * @return VkResult of the queue presentation
 */
@@ -228,7 +228,7 @@ VkResult VulkanSwapchain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSem
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &swapChain;
     presentInfo.pImageIndices = &imageIndex;
-    // Check if a wait semaphore has been specified to wait for before presenting the image
+    // Check if a wait semaphore has been specified to wait for before presenting the m_Image
     if (waitSemaphore != VK_NULL_HANDLE)
     {
         presentInfo.pWaitSemaphores = &waitSemaphore;
@@ -264,7 +264,7 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
 
     }
 
-    // Get avilable queue familty properties
+    // Get avilable queue familty m_Properties
     uint32_t queueCount;
     vkGetPhysicalDeviceQueueFamilyProperties(info.physicalDevice, &queueCount, NULL);
     assert(queueCount >= 1);
@@ -322,15 +322,15 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
     // Get list of supported surface formats
     uint32_t formatCount;
     VkResult result = vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, surface, &formatCount, NULL);
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get device surface formats");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get m_Device surface formats");
     assert(formatCount > 0);
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, surface, &formatCount, surfaceFormats.data());
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get device surface formats");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get m_Device surface formats");
 
-    // If the surface format list only includes one m_Entry with VK_FORMAT_UNDEFINED,
-    // there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+    // If the surface m_Format list only includes one m_Entry with VK_FORMAT_UNDEFINED,
+    // there is no preferred m_Format, so we assume VK_FORMAT_B8G8R8A8_UNORM
     if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
     {
         colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -338,7 +338,7 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
     }
     else
     {
-        // iterate over the list of available surface format and
+        // iterate over the list of available surface m_Format and
         // check for the presence of VK_FORMAT_B8G8R8A8_UNORM
         bool found_B8G8R8A8_UNORM = false;
         for (auto&& surfaceFormat : surfaceFormats)
@@ -353,7 +353,7 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
         }
 
         // in case VK_FORMAT_B8G8R8A8_UNORM is not available
-        // select the first available color format
+        // select the first available color m_Format
         if (!found_B8G8R8A8_UNORM)
         {
             colorFormat = surfaceFormats[0].format;

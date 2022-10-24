@@ -26,8 +26,8 @@ public:
     VulkanDevice *vulkanDevice = nullptr;
 
     struct Primitive {
-        uint32_t firstIndex{};
-        uint32_t indexCount{};
+        uint32_t m_FirstIndex{};
+        uint32_t m_IndexCount{};
         Primitive(uint32_t _firstIndex, uint32_t indexCount);
     };
 
@@ -101,10 +101,10 @@ public:
     struct Model {
 
         ~Model(){
-            vkFreeMemory(m_Device->logicalDevice, vertices.memory, nullptr);
-            vkFreeMemory(m_Device->logicalDevice, indices.memory, nullptr);
-            vkDestroyBuffer(m_Device->logicalDevice, vertices.buffer, nullptr);
-            vkDestroyBuffer(m_Device->logicalDevice, indices.buffer, nullptr);
+            vkFreeMemory(m_Device->m_LogicalDevice, vertices.memory, nullptr);
+            vkFreeMemory(m_Device->m_LogicalDevice, indices.memory, nullptr);
+            vkDestroyBuffer(m_Device->m_LogicalDevice, vertices.buffer, nullptr);
+            vkDestroyBuffer(m_Device->m_LogicalDevice, indices.buffer, nullptr);
 
             for(auto* node : linearNodes){
                 delete node;

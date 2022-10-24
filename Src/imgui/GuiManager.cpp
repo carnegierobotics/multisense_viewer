@@ -28,7 +28,7 @@ namespace VkRender {
         ImGui::CreateContext();
 
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
-        handles.info->deviceName = device->properties.deviceName;
+        handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "GuiManager";
 
         initializeFonts();
@@ -187,7 +187,7 @@ namespace VkRender {
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
         VkShaderModule vtxModule;
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->logicalDevice, &vtxModule);
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -197,7 +197,7 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->logicalDevice, &frgModule);
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -238,7 +238,7 @@ namespace VkRender {
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        if (vkCreatePipelineCache(device->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) !=
+        if (vkCreatePipelineCache(device->m_LogicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) !=
             VK_SUCCESS)
             throw std::runtime_error("Failed to create Pipeline Cache");
 
@@ -251,7 +251,7 @@ namespace VkRender {
         pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
         if (
-                vkCreatePipelineLayout(device->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
+                vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
                 VK_SUCCESS)
             throw std::runtime_error("Failed to create pipeline layout");
 
@@ -340,7 +340,7 @@ namespace VkRender {
 
         pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-        if (vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
+        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
             throw std::runtime_error("Failed to create graphics pipeline");
     }
@@ -360,7 +360,7 @@ namespace VkRender {
                 setLayoutBindings.data(),
                 setLayoutBindings.size());
         CHECK_RESULT(
-                vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
                                             &descriptorSetLayout));
 
 
@@ -372,7 +372,7 @@ namespace VkRender {
         uint32_t fontCount = 3, iconCount = 10, gifImageCount = 20;
         uint32_t setCount = fontCount+iconCount+gifImageCount;
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
-        CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+        CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
         fontTexture.reserve(3);
         fontDescriptors.reserve(3);
@@ -416,7 +416,7 @@ namespace VkRender {
         if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
             pixels = stbi_load_gif_from_memory(buffer.data(), size, &delays, &width, &height, &depth, &comp, channels);
             if (!pixels)
-                throw std::runtime_error("failed to load texture image: " + file);
+                throw std::runtime_error("failed to load texture m_Image: " + file);
         }
         uint32_t imageSize = width * height * channels;
 
@@ -437,7 +437,7 @@ namespace VkRender {
 
             gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                       handles.info->gif.width, handles.info->gif.height, device,
-                                      device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                      device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
@@ -448,7 +448,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &dSet));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &dSet));
 
 
             // Update the Descriptor Set:
@@ -459,8 +459,8 @@ namespace VkRender {
             write_desc[0].dstSet = dSet;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &gifTexture[i]->descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &gifTexture[i]->m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
 
             handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
             handles.info->gif.pixels += handles.info->gif.imageSize;
@@ -474,12 +474,12 @@ namespace VkRender {
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
         if (!pixels) {
-            throw std::runtime_error("failed to load texture image: " + file);
+            throw std::runtime_error("failed to load texture m_Image: " + file);
         }
 
         iconTextures.emplace_back(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
                                   static_cast<uint32_t>(texHeight), device,
-                                  device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                  device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         {
@@ -488,7 +488,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptors[i]));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &imageIconDescriptors[i]));
         }
         // Update the Descriptor Set:
         {
@@ -498,8 +498,8 @@ namespace VkRender {
             write_desc[0].dstSet = imageIconDescriptors[i];
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTextures[i].descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &iconTextures[i].m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
 
         handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(imageIconDescriptors[i]);
@@ -522,7 +522,7 @@ namespace VkRender {
         fontTexture.emplace_back(pixels, uploadSize,
                                  VK_FORMAT_R8G8B8A8_UNORM,
                                  width, height, device,
-                                 device->transferQueue);
+                                 device->m_TransferQueue);
         VkDescriptorSet descriptor;
         fontDescriptors.push_back(descriptor);
         // descriptors
@@ -533,7 +533,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &fontDescriptors.back()));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &fontDescriptors.back()));
         }
         // Update the Descriptor Set:
         {
@@ -542,8 +542,8 @@ namespace VkRender {
             write_desc[0].dstSet = fontDescriptors.back();
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &fontTexture.back().descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &fontTexture.back().m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
         return font;
     }

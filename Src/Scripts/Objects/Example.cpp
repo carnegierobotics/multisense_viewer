@@ -6,7 +6,7 @@ void Example::setup() {
     printf("MyModelExample setup\n");
 
     std::string fileName;
-    //m_Model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device, renderUtils.device->transferQueue, 1.0f);
+    //m_Model.loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.m_Device, renderUtils.m_Device->m_TransferQueue, 1.0f);
 
 
     // Shader loading

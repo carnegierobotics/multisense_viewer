@@ -32,7 +32,7 @@ public:
      * @param title Title of application
      */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
-        this->title = title;
+        this->m_Title = title;
         // Create Log C++ Interface
         pLogger = Log::Logger::getInstance();
         Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
@@ -42,7 +42,7 @@ public:
         backendInitialized = true;
         pLogger->info("Initialized Backend");
 
-        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, width, height);
+        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
 
         prepareRenderer();
         pLogger->info("Prepared Renderer");
@@ -78,11 +78,11 @@ private:
     VkRender::RenderData renderData{};
     bool renderSelectionPass = false;
 
-    // Create a host-visible staging buffer that contains the raw image data
+    // Create a host-visible staging buffer that contains the raw m_Image data
     VkBuffer selectionBuffer{};
     VkDeviceMemory selectionMemory{};
     VkBufferImageCopy bufferCopyRegion{};
-    VkMemoryRequirements memReqs{};
+    VkMemoryRequirements m_MemReqs{};
 
     glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -0.5f);
     glm::vec3 defaultCameraRotation = glm::vec3(-4.4f, -3.2f , 0.0f);
@@ -100,7 +100,7 @@ private:
 
     /**
      * @brief deletes a script if stored in \refitem builtScriptNames
-     * @param scriptName name of script to delete
+     * @param scriptName m_Name of script to delete
      */
     void deleteScript(const std::string &scriptName);
 

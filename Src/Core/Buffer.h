@@ -11,7 +11,7 @@
 #include <cassert>
 
 /**
-* @brief Encapsulates access to a Vulkan buffer backed up by device memory
+* @brief Encapsulates access to a Vulkan buffer backed up by m_Device memory
 * @note To be filled by an external source like the VulkanDevice
 */
 struct Buffer

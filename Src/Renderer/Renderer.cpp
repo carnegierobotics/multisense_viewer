@@ -19,9 +19,9 @@
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
-    camera.setPerspective(60.0f, (float) width / (float) height, 0.001f, 1024.0f);
-    camera.rotationSpeed = 0.2f;
-    camera.movementSpeed = 1.0f;
+    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
+    camera.m_RotationSpeed = 0.2f;
+    camera.m_MovementSpeed = 1.0f;
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(defaultCameraRotation);
     createSelectionImages();
@@ -46,7 +46,7 @@ void Renderer::prepareRenderer() {
 void Renderer::addDeviceFeatures() {
     if (deviceFeatures.fillModeNonSolid) {
         enabledFeatures.fillModeNonSolid = VK_TRUE;
-        // Wide lines must be present for line width > 1.0f
+        // Wide lines must be present for line m_Width > 1.0f
         if (deviceFeatures.wideLines) {
             enabledFeatures.wideLines = VK_TRUE;
         }
@@ -70,13 +70,13 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.renderPass = renderPass;
     renderPassBeginInfo.renderArea.offset.x = 0;
     renderPassBeginInfo.renderArea.offset.y = 0;
-    renderPassBeginInfo.renderArea.extent.width = width;
-    renderPassBeginInfo.renderArea.extent.height = height;
+    renderPassBeginInfo.renderArea.extent.width = m_Width;
+    renderPassBeginInfo.renderArea.extent.height = m_Height;
     renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassBeginInfo.pClearValues = clearValues.data();
 
-    const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
-    const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
+    const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
+    const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
 
     for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i) {
         renderPassBeginInfo.framebuffer = frameBuffers[i];
@@ -152,8 +152,8 @@ void Renderer::render() {
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
     renderData.pLogger = pLogger;
-    renderData.height = height;
-    renderData.width = width;
+    renderData.height = m_Height;
+    renderData.width = m_Width;
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
     // Update GUI
@@ -256,15 +256,15 @@ void Renderer::render() {
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
         clearValues[1].depthStencil = {1.0f, 0};
-        const VkViewport viewport = Populate::viewport((float) width, (float) height, 0.0f, 1.0f);
-        const VkRect2D scissor = Populate::rect2D((int32_t) width, (int32_t) height, 0, 0);
+        const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
+        const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
 
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = width;
-        renderPassBeginInfo.renderArea.extent.height = height;
+        renderPassBeginInfo.renderArea.extent.width = m_Width;
+        renderPassBeginInfo.renderArea.extent.height = m_Height;
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.renderPass = selection.renderPass;
@@ -307,13 +307,13 @@ void Renderer::render() {
         vulkanDevice->flushCommandBuffer(copyCmd, queue);
         // Copy texture data into staging buffer
         uint8_t *data = nullptr;
-        CHECK_RESULT(vkMapMemory(vulkanDevice->logicalDevice, selectionMemory, 0, memReqs.size, 0, (void **) &data));
-        vkUnmapMemory(vulkanDevice->logicalDevice, selectionMemory);
+        CHECK_RESULT(vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
+        vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
-            uint32_t idx = uint32_t((mousePos.x + (width * mousePos.y)) * 4);
-            if (idx > width * height * 4)
+            uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
+            if (idx > m_Width * m_Height * 4)
                 continue;
 
             uint32_t val = data[idx];
@@ -346,8 +346,8 @@ void Renderer::windowResized() {
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
     renderData.pLogger = pLogger;
-    renderData.height = height;
-    renderData.width = width;
+    renderData.height = m_Height;
+    renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;
 
     // Update gui with new res
@@ -410,7 +410,7 @@ void Renderer::cleanUp() {
         Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
                                           strerror(errno));
     }
-    // Specify interface name
+    // Specify interface m_Name
     const char *interface = dev.interfaceName.c_str();
     if (setsockopt(m_FD, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
         Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
@@ -420,7 +420,7 @@ void Renderer::cleanUp() {
     struct ifreq ifr{};
     /// note: no pointer here
     struct sockaddr_in inet_addr{}, subnet_mask{};
-    // get interface name
+    // get interface m_Name
     // Prepare the struct ifreq
     bzero(ifr.ifr_name, IFNAMSIZ);
     strncpy(ifr.ifr_name, interface, IFNAMSIZ);
@@ -458,7 +458,7 @@ void Renderer::cleanUp() {
     }
 
 
-    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
     ifr.ifr_mtu = mtu; //your MTU size here
     if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
         Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
@@ -496,7 +496,7 @@ void Renderer::createSelectionFramebuffer() {
     std::array<VkImageView, 2> attachments{};
     attachments[0] = selection.colorView;
     attachments[1] = selection.depthView;
-    VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(width, height, attachments.data(),
+    VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height, attachments.data(),
                                                                                     attachments.size(),
                                                                                     selection.renderPass);
     VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &selection.frameBuffer);
@@ -506,7 +506,7 @@ void Renderer::createSelectionFramebuffer() {
 void Renderer::createSelectionImages() {
     // Create picking images
     {
-        // Create optimal tiled target image
+        // Create optimal tiled target m_Image
         VkImageCreateInfo colorImage = Populate::imageCreateInfo();
         colorImage.imageType = VK_IMAGE_TYPE_2D;
         colorImage.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -516,7 +516,7 @@ void Renderer::createSelectionImages() {
         colorImage.tiling = VK_IMAGE_TILING_OPTIMAL;
         colorImage.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         colorImage.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorImage.extent = {width, height, 1};
+        colorImage.extent = {m_Width, m_Height, 1};
         colorImage.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         CHECK_RESULT(vkCreateImage(device, &colorImage, nullptr, &selection.colorImage));
@@ -549,14 +549,14 @@ void Renderer::createSelectionImages() {
         colorAttachmentView.image = selection.colorImage;
 
         VkResult result = vkCreateImageView(device, &colorAttachmentView, nullptr, &selection.colorView);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain image views");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain m_Image views");
 
         /**DEPTH IMAGE*/
         VkImageCreateInfo imageCI{};
         imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = depthFormat;
-        imageCI.extent = {width, height, 1};
+        imageCI.extent = {m_Width, m_Height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -564,7 +564,7 @@ void Renderer::createSelectionImages() {
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         result = vkCreateImage(device, &imageCI, nullptr, &selection.depthImage);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
 
         vkGetImageMemoryRequirements(device, selection.depthImage, &memReqs);
 
@@ -574,9 +574,9 @@ void Renderer::createSelectionImages() {
         memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         result = vkAllocateMemory(device, &memAllloc, nullptr, &selection.depthMem);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth image memory");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
         result = vkBindImageMemory(device, selection.depthImage, selection.depthMem, 0);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth image memory");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
 
         VkImageViewCreateInfo imageViewCI{};
         imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -593,7 +593,7 @@ void Renderer::createSelectionImages() {
             imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
         result = vkCreateImageView(device, &imageViewCI, nullptr, &selection.depthView);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
     }
 }
 
@@ -601,26 +601,26 @@ void Renderer::createSelectionBuffer() {
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            width * height * 4,
+            m_Width * m_Height * 4,
             &selectionBuffer,
             &selectionMemory));
 
     // Create the memory backing up the buffer handle
-    vkGetBufferMemoryRequirements(vulkanDevice->logicalDevice, selectionBuffer, &memReqs);
+    vkGetBufferMemoryRequirements(vulkanDevice->m_LogicalDevice, selectionBuffer, &m_MemReqs);
     bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     bufferCopyRegion.imageSubresource.mipLevel = 0;
     bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
     bufferCopyRegion.imageSubresource.layerCount = 1;
-    bufferCopyRegion.imageExtent.width = width;
-    bufferCopyRegion.imageExtent.height = height;
+    bufferCopyRegion.imageExtent.width = m_Width;
+    bufferCopyRegion.imageExtent.height = m_Height;
     bufferCopyRegion.imageExtent.depth = 1;
     bufferCopyRegion.bufferOffset = 0;
 }
 
 void Renderer::destroySelectionBuffer() {
     // Clean up staging resources
-    vkFreeMemory(vulkanDevice->logicalDevice, selectionMemory, nullptr);
-    vkDestroyBuffer(vulkanDevice->logicalDevice, selectionBuffer, nullptr);
+    vkFreeMemory(vulkanDevice->m_LogicalDevice, selectionMemory, nullptr);
+    vkDestroyBuffer(vulkanDevice->m_LogicalDevice, selectionBuffer, nullptr);
 }
 
 void Renderer::mouseMoved(double x, double y, bool &handled) {
@@ -628,7 +628,7 @@ void Renderer::mouseMoved(double x, double y, bool &handled) {
     float dy = mousePos.y - y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
-        glm::vec3 rot(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f);
+        glm::vec3 rot(dy * camera.m_RotationSpeed, -dx * camera.m_RotationSpeed, 0.0f);
         camera.rotate(rot);
     }
     if (mouseButtons.right) {

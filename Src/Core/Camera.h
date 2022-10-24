@@ -61,9 +61,9 @@ public:
     glm::vec3 m_Position = glm::vec3();
     glm::vec4 m_ViewPos = glm::vec4();
 
-    float rotationSpeed = 1.0f;
-    float movementSpeed = 1.0f;
-    float speedModifier = 50.0f;
+    float m_RotationSpeed = 1.0f;
+    float m_MovementSpeed = 1.0f;
+    float m_SpeedModifier = 50.0f;
 
     bool updated = false;
     bool flipY = false;
@@ -146,12 +146,12 @@ public:
 
     void setRotationSpeed(float rotationSpeed)
     {
-        this->rotationSpeed = rotationSpeed * speedModifier;
+        this->m_RotationSpeed = rotationSpeed * m_SpeedModifier;
     }
 
     void setMovementSpeed(float movementSpeed)
     {
-        this->movementSpeed = movementSpeed * speedModifier;
+        this->m_MovementSpeed = movementSpeed * m_SpeedModifier;
     }
 
     void update(float deltaTime)
@@ -168,7 +168,7 @@ public:
                 camFront.z = cos(glm::radians(m_Rotation.x)) * cos(glm::radians(m_Rotation.y));
                 camFront = glm::normalize(camFront);
 
-                float moveSpeed = deltaTime * movementSpeed;
+                float moveSpeed = deltaTime * m_MovementSpeed;
 
                 if (keys.up)
                     m_Position += camFront * moveSpeed;
@@ -185,7 +185,7 @@ public:
     };
 
     // Update camera passing separate axis data (gamepad)
-    // Returns true if view or m_Position has been changed
+    // Returns true if m_View or m_Position has been changed
     bool updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
     {
         bool retVal = false;
@@ -193,7 +193,7 @@ public:
         if (type == CameraType::firstperson)
         {
             // Use the common console thumbstick layout
-            // Left = view, right = move
+            // Left = m_View, right = move
 
             const float deadZone = 0.0015f;
             const float range = 1.0f - deadZone;
@@ -204,8 +204,8 @@ public:
             camFront.z = cos(glm::radians(m_Rotation.x)) * cos(glm::radians(m_Rotation.y));
             camFront = glm::normalize(camFront);
 
-            float moveSpeed = deltaTime * movementSpeed * 2.0f;
-            float rotSpeed = deltaTime * rotationSpeed * 50.0f;
+            float moveSpeed = deltaTime * m_MovementSpeed * 2.0f;
+            float rotSpeed = deltaTime * m_RotationSpeed * 50.0f;
 
             // Move
             if (fabsf(axisLeft.y) > deadZone)

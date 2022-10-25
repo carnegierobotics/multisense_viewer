@@ -131,7 +131,7 @@ namespace VkRender::MultiSense {
                 std::vector<uint8_t *> rawImages{};
                 int sensorMTU = 0;
                 crl::multisense::image::Calibration calibration{};
-                glm::mat4 kInverseMatrix{};
+                glm::mat4 QMat{};
             };
 
             /**@brief Connects to a VkRender m_Device

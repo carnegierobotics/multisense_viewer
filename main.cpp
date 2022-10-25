@@ -3,7 +3,9 @@
 // Can be usefull for reading std::out ...
 
 #ifdef WIN32
-#define WIN_DEBUG
+    #define WIN_DEBUG
+#else
+    #define DEBUG
 #endif
 
 

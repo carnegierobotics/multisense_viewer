@@ -89,8 +89,6 @@ public:
 
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        ;
-
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
@@ -324,7 +322,7 @@ private:
 
 
     void sidebarElements(VkRender::GuiObjectHandles *handles) {
-        auto& devices = handles->devices;
+        auto &devices = handles->devices;
         for (size_t i = 0; i < devices.size(); ++i) {
             auto &e = devices.at(i);
             std::string buttonIdentifier;
@@ -461,8 +459,13 @@ private:
         ImGui::PopStyleColor();
         if (btnAdd) {
             ImGui::OpenPopup("add_device_modal");
-
         }
+
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
+                                   handles->info->height - 20.0f));
+        ImGui::Checkbox("Show Debug", &handles->showDebugWindow);
+
+
     }
 
     void addPopup(VkRender::GuiObjectHandles *handles) {
@@ -591,7 +594,7 @@ private:
                 // Create child window regardless of gif spinner state in order to keep cursor m_Position constant
                 ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 if (autoConnect.running)
-                addSpinnerGif(handles);
+                    addSpinnerGif(handles);
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);

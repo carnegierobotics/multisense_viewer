@@ -22,6 +22,7 @@ public:
         s_bRegistered;
         DISABLE_WARNING_POP}
     void onDestroy() override{
+        stbi_image_free(pixels);
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<SingleLayout>(); }
@@ -49,8 +50,8 @@ public:
 
     int count = 1;
     float up = -1.3f;
-    bool saveImage = false;
-    std::string saveImagePath;
+    bool usingDefaultTexture = false;
+    unsigned char* pixels;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -62,6 +63,7 @@ public:
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
     uint32_t width = 0, height = 0;
+    int texWidth = 0, texHeight = 0, texChannels = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
@@ -69,7 +71,9 @@ public:
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
     void transformToUISpace(const VkRender::GuiObjectHandles * handles, const VkRender::Device& element);
 
-    void prepareTexture();
+    void prepareMultiSenseTexture();
+
+    void prepareDefaultTexture();
 };
 
 

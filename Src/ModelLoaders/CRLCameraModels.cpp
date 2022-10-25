@@ -105,13 +105,13 @@ void CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
+        case AR_COLOR_IMAGE:
             textureVideo->updateTextureFromBuffer();
             break;
         case AR_COLOR_IMAGE_YUV420:
             textureVideo->updateTextureFromBufferYUV();
             break;
         case AR_YUV_PLANAR_FRAME:
-            break;
         case AR_CAMERA_IMAGE_NONE:
             break;
     }
@@ -120,21 +120,13 @@ void CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
 void
 CRLCameraModels::Model::setTexture(
         const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName) {
-    // Create texture m_Image if not created
 
-    int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture m_Image!");
-    }
-
-    textureIndices.baseColor = 0;
 
 }
 
 void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
     Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height, (int) texType);
-    VkFormat format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+    VkFormat format{};
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
             format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
@@ -155,6 +147,9 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
         case AR_YUV_PLANAR_FRAME:
             format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
             break;
+        case AR_COLOR_IMAGE:
+            format = VK_FORMAT_R8G8B8A8_UNORM;
+            break;
         default:
             std::cerr << "Texture type not supported yet" << std::endl;
             break;
@@ -174,6 +169,7 @@ void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) c
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
+        case AR_COLOR_IMAGE:
             tex->data = textureVideo->data;
             break;
         case AR_COLOR_IMAGE_YUV420:
@@ -211,6 +207,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
         case AR_DISPARITY_IMAGE:
         case AR_GRAYSCALE_IMAGE:
         case AR_COLOR_IMAGE_YUV420:
+        case AR_COLOR_IMAGE:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
@@ -362,6 +359,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
         case AR_YUV_PLANAR_FRAME:
         case AR_COLOR_IMAGE_YUV420:
         case AR_GRAYSCALE_IMAGE:
+        case AR_COLOR_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},

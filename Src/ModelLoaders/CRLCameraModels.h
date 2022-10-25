@@ -65,11 +65,6 @@ public:
 
         } mesh{};
 
-        struct TextureIndices {
-            uint32_t baseColor = -1;
-            uint32_t normalMap = -1;
-        };
-
         struct Dimensions {
             glm::vec3 min = glm::vec3(FLT_MAX);
             glm::vec3 max = glm::vec3(-FLT_MAX);
@@ -83,7 +78,6 @@ public:
         std::unique_ptr<TextureVideo> textureColorMap;
 
         std::vector<Texture::TextureSampler> textureSamplers;
-        TextureIndices textureIndices;
 
         void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName);
 

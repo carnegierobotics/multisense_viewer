@@ -226,8 +226,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::setupDepthStencil() {
-        VkImageCreateInfo imageCI{};
-        imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = depthFormat;
         imageCI.extent = {m_Width, m_Height, 1};
@@ -243,8 +242,7 @@ namespace VkRender {
         VkMemoryRequirements memReqs{};
         vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
 
-        VkMemoryAllocateInfo memAllloc{};
-        memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        VkMemoryAllocateInfo memAllloc = Populate::memoryAllocateInfo();
         memAllloc.allocationSize = memReqs.size;
         memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -253,8 +251,7 @@ namespace VkRender {
         result = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
 
-        VkImageViewCreateInfo imageViewCI{};
-        imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCI.image = depthStencil.image;
         imageViewCI.format = depthFormat;
@@ -289,7 +286,7 @@ namespace VkRender {
 
     void VulkanRenderer::setupRenderPass() {
         {
-            std::array<VkAttachmentDescription, 2> attachments = {};
+            std::array<VkAttachmentDescription, 2> attachments{};
             // Color attachment
             attachments[0].format = swapchain->colorFormat;
             attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -309,15 +306,15 @@ namespace VkRender {
             attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference colorReference = {};
+            VkAttachmentReference colorReference {};
             colorReference.attachment = 0;
             colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference depthReference = {};
+            VkAttachmentReference depthReference {};
             depthReference.attachment = 1;
             depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-            VkSubpassDescription subpassDescription = {};
+            VkSubpassDescription subpassDescription{};
             subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             subpassDescription.colorAttachmentCount = 1;
             subpassDescription.pColorAttachments = &colorReference;
@@ -347,8 +344,7 @@ namespace VkRender {
             dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
             dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-            VkRenderPassCreateInfo renderPassInfo = {};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+            VkRenderPassCreateInfo renderPassInfo = Populate::renderPassCreateInfo();
             renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             renderPassInfo.pAttachments = attachments.data();
             renderPassInfo.subpassCount = 1;
@@ -436,8 +432,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::createCommandPool() {
-        VkCommandPoolCreateInfo cmdPoolInfo = {};
-        cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        VkCommandPoolCreateInfo cmdPoolInfo = Populate::commandPoolCreateInfo();
         cmdPoolInfo.queueFamilyIndex = swapchain->queueNodeIndex;
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         VkResult result = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &cmdPool);

@@ -187,7 +187,7 @@ namespace VkRender {
 
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
-        VkShaderModule vtxModule;
+        VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -228,7 +228,7 @@ namespace VkRender {
 
         // Dimensions
         ImGuiIO *io = &ImGui::GetIO();
-        io->DisplaySize = ImVec2(width, height);
+        io->DisplaySize = ImVec2((float)width, (float)height);
         io->DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
         // Initialize all Vulkan resources used by the ui
@@ -359,7 +359,7 @@ namespace VkRender {
 
         VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),
-                setLayoutBindings.size());
+                (uint32_t) setLayoutBindings.size());
         CHECK_RESULT(
                 vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
                                             &descriptorSetLayout));
@@ -415,7 +415,7 @@ namespace VkRender {
         stbi_uc *pixels = nullptr;
         std::vector<stbi_uc> buffer(size);
         if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
-            pixels = stbi_load_gif_from_memory(buffer.data(), size, &delays, &width, &height, &depth, &comp, channels);
+            pixels = stbi_load_gif_from_memory(buffer.data(),static_cast<int> (size), &delays, &width, &height, &depth, &comp, channels);
             if (!pixels)
                 throw std::runtime_error("failed to load texture m_Image: " + file);
         }
@@ -429,11 +429,11 @@ namespace VkRender {
         handles.info->gif.totalFrames = depth;
         handles.info->gif.imageSize = imageSize;
         handles.info->gif.delay = (uint32_t *) delays;
-        gifImageDescriptors.reserve(depth + 1);
+        gifImageDescriptors.reserve((size_t) depth + 1);
 
 
         for (int i = 0; i < depth; ++i) {
-            VkDescriptorSet dSet;
+            VkDescriptorSet dSet{};
             gifTexture[i] = std::make_unique<Texture2D>(device);
 
             gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,

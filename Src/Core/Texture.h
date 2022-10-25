@@ -31,18 +31,18 @@
 
 class Texture {
 public:
-    VulkanDevice *m_Device;
-    VkImage m_Image;
-    VkImageLayout m_ImageLayout;
-    VkDeviceMemory m_DeviceMemory;
-    VkImageView m_View;
+    VulkanDevice *m_Device = nullptr;
+    VkImage m_Image{};
+    VkImageLayout m_ImageLayout{};
+    VkDeviceMemory m_DeviceMemory{};
+    VkImageView m_View{};
     uint32_t m_Width = 0, m_Height = 0;
-    uint32_t m_MipLevels;
-    uint32_t m_LayerCount;
-    VkDescriptorImageInfo m_Descriptor;
-    VkSampler m_Sampler;
-    VkSamplerYcbcrConversion m_YUVSamplerToRGB;
-    VkFormat m_Format;
+    uint32_t m_MipLevels = 0;
+    uint32_t m_LayerCount = 0;
+    VkDescriptorImageInfo m_Descriptor{};
+    VkSampler m_Sampler{};
+    VkSamplerYcbcrConversion m_YUVSamplerToRGB{};
+    VkFormat m_Format{};
 
     struct TextureSampler {
         VkFilter magFilter;
@@ -56,8 +56,6 @@ public:
     Texture() = default;
 
     void updateDescriptor();
-
-    void destroy() const;
 
 
     ~Texture() {

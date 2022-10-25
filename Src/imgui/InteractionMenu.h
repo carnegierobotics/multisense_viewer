@@ -505,7 +505,7 @@ private:
                             }
 
 
-                            window.selectedSourceIndex = n;
+                            window.selectedSourceIndex = static_cast<uint32_t>(n);
                             window.selectedSource = window.availableSources[window.selectedSourceIndex];
                             Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
                                                              window.selectedSource, index);
@@ -626,7 +626,7 @@ private:
                         for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
                             if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
-                                chInfo.selectedModeIndex = n;
+                                chInfo.selectedModeIndex = static_cast<uint32_t>(n);
                                 chInfo.selectedMode = Utils::stringToCameraResolution(
                                         chInfo.modes[chInfo.selectedModeIndex]);
                                 chInfo.updateResolutionMode = true;
@@ -770,7 +770,7 @@ private:
                 for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);
                     if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
-                        chInfo.selectedModeIndex = n;
+                        chInfo.selectedModeIndex = static_cast<uint32_t>(n);
                         chInfo.selectedMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
                         chInfo.updateResolutionMode = true;
@@ -1190,8 +1190,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
-                                   &d.parameters.gain, 1.68,
-                                   14.2, "%.1f");
+                                   &d.parameters.gain, 1.68f,
+                                   14.2f, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1204,8 +1204,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gamma",
-                                   &d.parameters.gamma, 1.1,
-                                   2.2, "%.2f");
+                                   &d.parameters.gamma, 1.1f,
+                                   2.2f, "%.2f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1218,8 +1218,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
-                                   &d.parameters.stereoPostFilterStrength, 0,
-                                   1, "%.1f");
+                                   &d.parameters.stereoPostFilterStrength, 0.0f,
+                                   1.0f, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

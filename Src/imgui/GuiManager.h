@@ -86,7 +86,7 @@ namespace VkRender {
         std::vector<VkDescriptorSet> gifImageDescriptors{};
 
         std::vector<VkShaderModule> shaderModules{};
-        VulkanDevice *device;
+        VulkanDevice *device = nullptr;
 
         // Initialization functions
         void initializeFonts();

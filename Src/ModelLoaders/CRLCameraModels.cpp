@@ -26,8 +26,8 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                                               const std::vector<uint32_t> &indices) {
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
     size_t indexBufferSize = indices.size() * sizeof(uint32_t);
-    mesh.vertexCount = vertices.size();
-    mesh.indexCount = indices.size();
+    mesh.vertexCount =static_cast<uint32_t>( vertices.size());
+    mesh.indexCount = static_cast<uint32_t>(indices.size());
 
     struct StagingBuffer {
         VkBuffer buffer;
@@ -380,7 +380,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
         setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo->m_Sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
-                                                                                               setLayoutBindings.size());
+                                                                                               static_cast<uint32_t>(setLayoutBindings.size()));
     CHECK_RESULT(
             vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout));
 }

@@ -227,6 +227,29 @@ namespace Utils {
         return CRL_RESOLUTION_NONE;
     }
 
+    inline std::string cameraResolutionToString(const CRLCameraResolution &res) {
+        switch (res) {
+            case CRL_RESOLUTION_960_600_64:
+                return "960 x 600 x 64";
+            case CRL_RESOLUTION_960_600_128:
+                return "960 x 600 x 128";
+            case CRL_RESOLUTION_960_600_256:
+                return "960 x 600 x 256";
+            case CRL_RESOLUTION_1920_1200_64:
+                return "1920 x 1200 x 64";
+            case CRL_RESOLUTION_1920_1200_128:
+                return "1920 x 1200 x 128";
+            case CRL_RESOLUTION_1920_1200_256:
+                return "1920 x 1200 x 256";
+            case CRL_RESOLUTION_1024_1024_128:
+                return "1024 x 1024 x 128";
+            case CRL_RESOLUTION_2048_1088_256:
+                return "2048 x 1088 x 256";
+            case CRL_RESOLUTION_NONE:
+                return "Resolution not supported";
+        }
+    }
+
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
     inline void
     cameraResolutionToValue(CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {

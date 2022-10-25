@@ -36,7 +36,9 @@
 #include <string_view>
 
 #if __has_include(<source_location>)
+
 #   include <source_location>
+
 #   define HAS_SOURCE_LOCATION
 #elif __has_include(<experimental/filesystem>)
 #   include <experimental/source_location>
@@ -57,6 +59,9 @@
 // POSIX Socket Header File(s)
 #include <cerrno>
 #include <pthread.h>
+#include <queue>
+#include <unordered_map>
+#include "MultiSense/Src/Core/Definitions.h"
 
 #endif
 
@@ -91,7 +96,10 @@ namespace Log {
         fmt::string_view m_Str;
 #ifdef HAS_SOURCE_LOCATION
         std::source_location m_Loc;
-        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str), m_Loc(loc) {}
+
+        FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str),
+                                                                                                           m_Loc(loc) {}
+
 #endif
 
 #ifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
@@ -102,15 +110,43 @@ namespace Log {
 #ifdef  NO_SOURCE_LOCATION
         FormatString(const char *m_Str) : m_Str(m_Str) {}
 #endif
+    };
 
+    struct Metrics {
+        std::queue<std::string> logQueue;
+        struct {
+            const VkRender::Device* dev = nullptr;
 
+            std::unordered_map<std::string, uint32_t> sourceReceiveMapCounter;
+            std::vector<std::string> enabledSources;
+            std::vector<std::string> requestedSources;
+            std::vector<std::string> disabledSources;
 
+            double upTime = 0.0f;
+        } device;
+
+        struct {
+
+            CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+            uint32_t width = 0, height = 0;
+            uint32_t texWidth = 0, texHeight = 0;
+
+            CRLCameraResolution res = CRL_RESOLUTION_NONE;
+            std::string src;
+            bool usingDefaultTexture = false;
+
+            int empty = 0;
+
+        } preview;
     };
 
     class Logger {
     public:
 
         static Logger *getInstance() noexcept;
+
+        static Metrics *getLogMetrics() noexcept;
+
         // Interface for Error Log
         void _error(const char *text) throw();
 
@@ -194,7 +230,7 @@ namespace Log {
             std::size_t found = preText.find_last_of('/');
             std::string msg = preText.substr(found + 1);
 
-            msg = msg.insert(0, (std::to_string(frameNumber) + "  ")) ;
+            msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
             _info(msg.c_str());
 #else
             std::string s;
@@ -242,12 +278,17 @@ namespace Log {
 
     protected:
         Logger();
+
         ~Logger();
+
         // Wrapper function for lock/unlock
         // For Extensible feature, lock and unlock should be in protected
         void lock();
+
         void unlock();
+
         std::string getCurrentTime();
+
     private:
         /*
         void info(const char *fmt, ...);
@@ -261,6 +302,7 @@ namespace Log {
 
     private:
         static Logger *m_Instance;
+        static Metrics *m_Metrics;
         std::ofstream m_File;
 
         std::mutex m_Mutex{};

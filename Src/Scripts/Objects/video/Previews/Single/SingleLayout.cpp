@@ -22,6 +22,7 @@ void SingleLayout::setup() {
                                          (Utils::getTexturePath() + "no_image_tex.png"));
     }
     prepareDefaultTexture();
+    updateLog();
 }
 
 void SingleLayout::update() {
@@ -57,7 +58,7 @@ void SingleLayout::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
-
+    updateLog();
 }
 
 void SingleLayout::prepareDefaultTexture() {
@@ -164,4 +165,16 @@ void SingleLayout::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
     }
+}
+
+void SingleLayout::updateLog(){
+    auto* met = Log::Logger::getLogMetrics();
+    met->preview.height = height;
+    met->preview.width = width;
+    met->preview.texHeight = texHeight;
+    met->preview.texWidth = texWidth;
+    met->preview.src = src;
+    met->preview.textureType = textureType;
+    met->preview.usingDefaultTexture = usingDefaultTexture;
+    met->preview.res = res;
 }

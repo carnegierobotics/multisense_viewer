@@ -16,6 +16,7 @@
 #include <memory>
 #include "MultiSense/Src/Core/Definitions.h"
 #include "include/MultiSense/MultiSenseChannel.hh"
+#include "MultiSense/Src/Tools/Utils.h"
 
 namespace VkRender::MultiSense {
 
@@ -57,6 +58,9 @@ namespace VkRender::MultiSense {
                 std::lock_guard<std::mutex> lock(mut);
                 // replace latest data into m_Image pointers
                 imagePointersMap[id][buf->data().source] = buf;
+
+                Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[Utils::dataSourceToString(buf->data().source)]++;
+
             }
 
             // Question: making it a return statement initiates a copy? Pass by reference and return m_Image pointer?

@@ -511,7 +511,7 @@ private:
                                                              window.selectedSource, index);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
-                                                   window.selectedSource)) {
+                                                   window.selectedSource) && window.selectedSource != "Source") {
                                 dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
                                         window.selectedSource);
                                 Log::Logger::getInstance()->info(
@@ -621,7 +621,7 @@ private:
                     auto &chInfo = dev.channelInfo[i];
                     if (chInfo.state != AR_STATE_ACTIVE)
                         continue;
-                    if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
+                    if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
                         for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
@@ -765,7 +765,7 @@ private:
             std::string resLabel = "##Resolution";
             auto &chInfo = dev.channelInfo.front();
             dev.playbackStatus = AR_PREVIEW_PLAYING;
-            if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
+            if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);

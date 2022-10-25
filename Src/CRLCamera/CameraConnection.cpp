@@ -129,12 +129,15 @@ namespace VkRender::MultiSense {
             crl::multisense::system::StatusMessage status;
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
-                    std::chrono::duration_cast<std::chrono::duration<float>>(time - getStatusTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
-                getStatusTimer = std::chrono::steady_clock::now();
+                queryStatusTimer = std::chrono::steady_clock::now();
                 pool->Push(CameraConnection::getStatusTask, this, ch.index, &status);
             }
         }
+
+
+        Log::Logger::getLogMetrics()->device.dev = dev;
     }
 
     void
@@ -201,11 +204,10 @@ namespace VkRender::MultiSense {
         }
     }
 
-    void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
+    void CameraConnection::updateUIDataBlock(VkRender::Device &dev) {
         dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
         dev.win.clear();
-
-        for (auto ch: dev.channelConnections) {
+        for (crl::multisense::RemoteHeadChannel ch: dev.channelConnections) {
             VkRender::ChannelInfo chInfo;
             chInfo.availableSources.clear();
             chInfo.modes.clear();
@@ -215,11 +217,22 @@ namespace VkRender::MultiSense {
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
-            chInfo.selectedMode = CRL_RESOLUTION_NONE;
-            // Check for previous user profiles attached to this hardware
+            auto imgConf = camPtr->getCameraInfo(ch).imgConf;
+            chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(), imgConf.disparities());
+
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
             }
+
+            dev.channelInfo.at(ch) = chInfo;
+        }
+    }
+
+    void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
+        dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
+        dev.win.clear();
+
+        for (auto ch: dev.channelConnections) {
             CSimpleIniA ini;
             ini.SetUnicode();
             SI_Error rc = ini.LoadFile("crl.ini");
@@ -240,8 +253,8 @@ namespace VkRender::MultiSense {
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
-                    chInfo.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
-                    chInfo.selectedModeIndex = std::stoi(mode);
+                    dev.channelInfo.at(ch).selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
+                    dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
                     for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                         if (i == AR_PREVIEW_POINT_CLOUD)
@@ -256,14 +269,11 @@ namespace VkRender::MultiSense {
                                     ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                     source.substr(0, source.find_last_of(':')),
                                     i + 1, ch);
-
-                            chInfo.requestedStreams.emplace_back(dev.win[i].selectedSource);
-
+                            dev.channelInfo.at(ch).requestedStreams.emplace_back(dev.win[i].selectedSource);
                         }
                     }
                 }
             }
-            dev.channelInfo.at(ch) = chInfo;
         }
     }
 
@@ -489,12 +499,13 @@ namespace VkRender::MultiSense {
         // If we successfully connect
         dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
         if (!dev->channelConnections.empty()) {
-            app->getProfileFromIni(*dev);
+            //app->getProfileFromIni(*dev);
+            app->updateUIDataBlock(*dev);
             // Set the resolution read from config file
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
             app->m_FailedGetStatusCount = 0;
-            app->getStatusTimer = std::chrono::steady_clock::now();
+            app->queryStatusTimer = std::chrono::steady_clock::now();
             dev->state = AR_STATE_ACTIVE;
         } else {
             dev->state = AR_STATE_UNAVAILABLE;
@@ -657,7 +668,7 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         if (app->camPtr->getStatus(remoteHeadIndex, msg)) {
-            Log::Logger::getInstance()->info("Channel {} Uptime: {:.1f}s", remoteHeadIndex, msg->uptime);
+            Log::Logger::getLogMetrics()->device.upTime = msg->uptime;
             app->m_FailedGetStatusCount = 0;
         } else {
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,
@@ -667,4 +678,6 @@ namespace VkRender::MultiSense {
         // Increment a counter
 
     }
+
+
 }

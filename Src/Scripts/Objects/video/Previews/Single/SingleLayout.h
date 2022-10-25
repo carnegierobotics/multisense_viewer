@@ -48,7 +48,6 @@ public:
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
-    int count = 1;
     float up = -1.3f;
     bool usingDefaultTexture = false;
     unsigned char* pixels;
@@ -74,6 +73,8 @@ public:
     void prepareMultiSenseTexture();
 
     void prepareDefaultTexture();
+
+    void updateLog();
 };
 
 

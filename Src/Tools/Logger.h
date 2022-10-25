@@ -45,14 +45,8 @@
 #   define NO_SOURCE_LOCATION
 #endif
 
-
-
-#if __has_include(<format>)
-#include <m_Format>
-#endif
-
-
 #include <fmt/core.h>
+
 #include <mutex>
 
 #ifdef WIN32

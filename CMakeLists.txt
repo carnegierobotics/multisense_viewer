@@ -6,9 +6,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith")
-# Not enabled flags but could be nice to enable
-# -Wundef -Wcast-qual  -Wdouble-promotion
+if (UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith")
+    # Not enabled flags but could be nice to enable
+    # -Wundef -Wcast-qual  -Wdouble-promotion
+endif (UNIX)
+
 
 
 set(VERSION_MAJOR "1")
@@ -50,6 +53,11 @@ set(SimpleIni_DIR external/simpleini)
 set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
 add_library(SimpleIni STATIC ${SimpleIni_SRC})
 
+# FMT
+# Used for logging purposes
+set(FMT_DIR external/fmt)  
+add_subdirectory(${FMT_DIR})
+
 # Internal Library
 set(AUTOCONNECT_SRC "internal/AutoConnect/")
 include_directories(${AUTOCONNECT_SRC})
@@ -57,6 +65,7 @@ add_subdirectory(${AUTOCONNECT_SRC})
 
 ## FFMPEG
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
+
 
 # add ImGUI source files
 #Also Include ImGUi Custom FileDialog Extension
@@ -74,7 +83,7 @@ set(IMGUI_SRC
         Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
-set(LIBRARIES "glfw;Vulkan::Vulkan;LibAutoConnect;SimpleIni;MultiSense")
+set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "Src/Scripts/Objects/*.h")
@@ -261,7 +270,7 @@ else () ## Linux
 
 
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb -lfmt )
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb)
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer)

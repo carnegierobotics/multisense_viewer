@@ -8,14 +8,14 @@
 #ifdef WIN32
 #include <WinRegEditor.h>
 #else
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sstream>
 #include <fstream>
-
-
 #endif
+
+#include <array>
+
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
@@ -56,15 +56,18 @@ void Renderer::addDeviceFeatures() {
 
 void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
+    cmdBufInfo.flags = 0;
+    cmdBufInfo.pNext = nullptr;
+    cmdBufInfo.pInheritanceInfo = nullptr;
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{
-                                    guiManager->handles.clearColor[0],
-                                    guiManager->handles.clearColor[1],
-                                    guiManager->handles.clearColor[2],
-                                    guiManager->handles.clearColor[3]
-                            }};
-    clearValues[1].depthStencil = {1.0f, 0};
+    std::array<VkClearValue, 2> clearValues{0};
+    clearValues[0].color.float32[0] = guiManager->handles.clearColor[0];
+    clearValues[0].color.float32[1] = guiManager->handles.clearColor[1];
+    clearValues[0].color.float32[2] = guiManager->handles.clearColor[2];
+    clearValues[0].color.float32[3] = guiManager->handles.clearColor[3];
+
+    clearValues[1].depthStencil.depth = 1.0f;
+    clearValues[1].depthStencil.stencil = 0;
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;
@@ -254,7 +257,10 @@ void Renderer::render() {
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+        clearValues[0].color.float32[0] = guiManager->handles.clearColor[0];
+        clearValues[0].color.float32[1] = guiManager->handles.clearColor[1];
+        clearValues[0].color.float32[2] = guiManager->handles.clearColor[2];
+        clearValues[0].color.float32[3] = guiManager->handles.clearColor[3];
         clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
@@ -366,7 +372,7 @@ void Renderer::cleanUp() {
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file
-    for (const auto& dev : *guiManager->handles.devices) {
+    for (const auto& dev : guiManager->handles.devices) {
         WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
         regEditor.resetJumbo();
         regEditor.restartNetAdapters(); // Make changes into effect

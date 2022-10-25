@@ -9,7 +9,7 @@
 
 
 VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
-    assert(m_PhysicalDevice);
+    assert(physicalDevice);
     this->m_PhysicalDevice = physicalDevice;
     // Store property m_Features and such for the m_Device. Can be used for later
     // Device m_Properties also contain limits and sparse m_Properties

@@ -348,7 +348,7 @@ private:
 				{
 					printf(TEXT("(%d) %s\n"), i + 1, achKey);
 					// For each subkey
-					HKEY subHKey;
+					HKEY subHKey{};
 
 					DWORD dwType = 0;
 					DWORD size = 256;

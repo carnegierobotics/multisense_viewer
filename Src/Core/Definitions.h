@@ -524,10 +524,10 @@ namespace VkRender {
 
     /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
     struct UniformBufferSet {
-        Buffer bufferOne;
-        Buffer bufferTwo;
-        Buffer bufferThree;
-        Buffer bufferFour;
+        Buffer bufferOne{};
+        Buffer bufferTwo{};
+        Buffer bufferThree{};
+        Buffer bufferFour{};
     };
 
     /** containing Basic Vulkan Resources for rendering **/
@@ -535,25 +535,25 @@ namespace VkRender {
         VulkanDevice *device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
-        std::vector<UniformBufferSet> uniformBuffers;
-        const VkRender::ObjectPicking *picking;
+        std::vector<UniformBufferSet> uniformBuffers{};
+        const VkRender::ObjectPicking* picking = nullptr;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
-        uint32_t index;
+        uint32_t index = 0;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
         bool drawThisScript = false;
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera;
-        ScriptType type;
-        Log::Logger *pLogger;
-        uint32_t height;
-        uint32_t width;
-        const Input *input;
+        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera{};
+        ScriptType type{};
+        Log::Logger* pLogger = nullptr;
+        uint32_t height = 0;
+        uint32_t width = 0;
+        const Input* input = nullptr;
     };
 
 

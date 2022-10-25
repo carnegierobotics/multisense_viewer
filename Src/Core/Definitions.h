@@ -20,6 +20,7 @@
 #include "KeyInput.h"
 #include "imgui.h"
 #include <utility>
+#include <array>
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
@@ -271,7 +272,7 @@ namespace VkRender {
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
-        std::vector<ChannelInfo> channelInfo;
+        std::vector<ChannelInfo> channelInfo{};
         CRLCameraBaseUnit baseUnit{};
 
         /**@brief location for which this m_Device should save recorded frames **/
@@ -657,8 +658,15 @@ namespace VkRender {
         float accumulatedActiveScroll = 0.0f;
         bool disableCameraRotationFromGUI = false;
         const Input *input{};
-        std::array<float, 4> clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
+        std::array<float, 4> clearColor{};
 
+        /*@brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
+        GuiObjectHandles() {
+            clearColor[0] = 0.870f;
+            clearColor[1] = 0.878f;
+            clearColor[2] = 0.862f;
+            clearColor[3] = 1.0f;
+        }
     };
 }
 

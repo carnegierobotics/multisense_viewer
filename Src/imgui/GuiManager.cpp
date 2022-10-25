@@ -150,7 +150,8 @@ namespace VkRender {
         int32_t vertexOffset = 0;
         int32_t indexOffset = 0;
 
-        if (imDrawData == nullptr) return;
+        if (imDrawData == nullptr) 
+            return;
 
         if (imDrawData->CmdListsCount > 0) {
 
@@ -158,9 +159,9 @@ namespace VkRender {
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.m_Buffer, offsets);
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
-            for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
+            for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
-
+                 
 
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
@@ -523,7 +524,7 @@ namespace VkRender {
                                  VK_FORMAT_R8G8B8A8_UNORM,
                                  width, height, device,
                                  device->m_TransferQueue);
-        VkDescriptorSet descriptor;
+        VkDescriptorSet descriptor{};
         fontDescriptors.push_back(descriptor);
         // descriptors
         // Create Descriptor Set:

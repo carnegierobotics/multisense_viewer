@@ -28,6 +28,7 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        return;
         if (handles->devices.empty()) return;
         bool allUnavailable = true;
         for (auto &d: handles->devices) {
@@ -263,7 +264,10 @@ private:
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
-            handles->clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
+            handles->clearColor[0] = 0.870f;
+            handles->clearColor[1] = 0.878f;
+            handles->clearColor[2] = 0.862f;
+            handles->clearColor[3] = 1.0f;
         }
         ImGui::PopStyleColor();
 
@@ -280,8 +284,10 @@ private:
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
-            handles->clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-
+            handles->clearColor[0] = 0.0f;
+            handles->clearColor[1] = 0.0f;
+            handles->clearColor[2] = 0.0f;
+            handles->clearColor[3] = 1.0f;
         }
         if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PopItemFlag();

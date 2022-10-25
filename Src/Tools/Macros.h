@@ -16,6 +16,14 @@
 
 #define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER    DISABLE_WARNING(4100)
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION            DISABLE_WARNING(4505)
+
+#define DISABLE_WARNING_UNREFERENCED_VARIABLE                    
+#define DISABLE_WARNING_UNUSED_VARIABLE                          
+#define DISABLE_WARNING_CAST_QUALIFIERS                          
+#define DISABLE_WARNING_DOUBLE_PROMOTION                         
+#define DISABLE_WARNING_IMPLICIT_FALLTHROUGH                     
+#define DISABLE_WARNING_TYPE_LIMITS                              
+#define DISABLE_WARNING_MISSING_INITIALIZERS                     
 // other warnings you want to deactivate...
 
 #elif defined(__GNUC__) || defined(__clang__)

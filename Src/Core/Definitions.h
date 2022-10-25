@@ -9,8 +9,6 @@
 #include "glm/glm.hpp"
 #include "vulkan/vulkan_core.h"
 #include "include/MultiSense/MultiSenseTypes.hh"
-
-#include "MultiSense/Src/Tools/Logger.h"
 #include "unordered_map"
 #include "memory"
 #include "GLFW/glfw3.h"
@@ -280,7 +278,6 @@ namespace VkRender {
         std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
 
-        std::vector<std::string> attachedScripts{};
         float row[9] = {0};
         float col[9] = {0};
         bool pixelInfoEnable = false;
@@ -296,78 +293,6 @@ namespace VkRender {
         bool systemNetworkChanged = false;
     };
 
-    /** @brief An initialized object needed to create a \refitem Device */
-    struct EntryConnectDevice {
-        std::string profileName = "VkRender";
-        std::string IP = "10.66.171.21";
-        std::string interfaceName;
-        std::string description;
-        uint32_t interfaceIndex{};
-
-        std::string cameraName;
-
-        EntryConnectDevice() = default;
-
-        EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx, std::string desc) : IP(
-                std::move(ip)),
-                                                                                                                    interfaceName(
-                                                                                                                            std::move(
-                                                                                                                                    iName)),
-                                                                                                                    description(
-                                                                                                                            std::move(
-                                                                                                                                    desc)),
-                                                                                                                    interfaceIndex(
-                                                                                                                            idx),
-                                                                                                                    cameraName(
-                                                                                                                            std::move(
-                                                                                                                                    camera)) {
-        }
-
-        void reset() {
-            profileName = "";
-            IP = "";
-            interfaceName = "";
-            interfaceIndex = 0;
-        }
-
-        /**
-         * @brief Utility function to check if the requested profile in \ref m_Entry is not conflicting with any of the previously connected devices in the sidebar
-         * @param devices list of current devices
-         * @param entry new connection to be added
-         * @return true of we can add this new profile to list. False if not
-         */
-        bool ready(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) const {
-            bool profileNameEmpty = entry.profileName.empty();
-            bool profileNameTaken = false;
-            bool IPEmpty = entry.IP.empty();
-            bool adapterNameEmpty = entry.interfaceName.empty();
-
-            bool AdapterAndIPInTaken = false;
-
-
-
-            // Loop through devices and check that it doesn't exist already.
-            for (auto &d: devices) {
-                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    AdapterAndIPInTaken = true;
-                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,
-                                                     entry.interfaceName);
-
-                }
-                if (d.name == entry.profileName) {
-                    profileNameTaken = true;
-                    Log::Logger::getInstance()->info("Profile m_Name '{}' already taken", entry.profileName);
-                }
-
-            }
-
-            bool ready = true;
-            if (profileNameEmpty || profileNameTaken || IPEmpty || adapterNameEmpty || AdapterAndIPInTaken)
-                ready = false;
-
-            return ready;
-        }
-    };
 
     /**
      * @brief Container for bridging the gap between a VkRender Frame and the viewer render resources
@@ -551,7 +476,6 @@ namespace VkRender {
         std::string scriptName;
         std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera{};
         ScriptType type{};
-        Log::Logger* pLogger = nullptr;
         uint32_t height = 0;
         uint32_t width = 0;
         const Input* input = nullptr;
@@ -597,9 +521,9 @@ namespace VkRender {
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
         /**@brief Width of sidebar*/
-        float debuggerHeight = 960.0f * 0.75f;
+        float debuggerWidth = 960.0f * 0.75f;
         /**@brief Size of elements in sidebar */
-        float debuggerWidth = 480.0f * 0.75f;
+        float debuggerHeight = 480.0f * 0.75f;
         /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
         /**@brief Title of Application */

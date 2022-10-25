@@ -5,6 +5,7 @@
 #include "CRLCameraModels.h"
 
 #include "stb_image.h"
+#include "MultiSense/Src/Tools/Logger.h"
 
 
 CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {

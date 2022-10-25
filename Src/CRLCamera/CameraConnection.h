@@ -46,7 +46,7 @@ namespace VkRender::MultiSense {
             /** @brief get status attempt counter */
             int m_FailedGetStatusCount = 0;
             /** @brief get status timer */
-            std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> getStatusTimer;
+            std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
             /**@brief mutex to prevent multiple threads to communicate with camera.
              * could be omitted if threadpool will always consist of one thread */
             std::mutex writeParametersMtx{};
@@ -192,6 +192,8 @@ namespace VkRender::MultiSense {
                     crl::multisense::Source_Compressed_Aux,
                     crl::multisense::Source_Compressed_Rectified_Aux
             };
+
+            void updateUIDataBlock(VkRender::Device &dev);
         };
 
     }

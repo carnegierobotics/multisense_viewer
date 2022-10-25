@@ -150,7 +150,6 @@ void Renderer::render() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
-    renderData.pLogger = pLogger;
     renderData.height = m_Height;
     renderData.width = m_Width;
     renderData.input = &input;
@@ -347,7 +346,6 @@ void Renderer::windowResized() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentBuffer;
-    renderData.pLogger = pLogger;
     renderData.height = m_Height;
     renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;

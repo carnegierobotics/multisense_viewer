@@ -113,7 +113,7 @@ namespace VkRender {
 				std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
 			if (time_span.count() > INTERVAL_10_SECONDS || renderData.scriptDrawCount == 0) {
 				lastLogTime = std::chrono::steady_clock::now();
-				renderData.pLogger->info("Draw-number: {} for script: {}", (int)renderData.scriptDrawCount,
+				Log::Logger::getInstance()->info("Draw-number: {} for script: {}", (int)renderData.scriptDrawCount,
 					renderData.scriptName.c_str());
 			}
 			draw(commandBuffer, i, b);
@@ -234,7 +234,6 @@ namespace VkRender {
 			this->renderData.crlCamera = data->crlCamera;
 			this->renderData.deltaT = data->deltaT;
 			this->renderData.index = data->index;
-			this->renderData.pLogger = data->pLogger;
 			this->renderData.height = data->height;
 			this->renderData.width = data->width;
 			this->renderData.type = getType();

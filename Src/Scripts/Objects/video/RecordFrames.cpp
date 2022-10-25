@@ -33,10 +33,6 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const VkRender::Device &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
-        saveImage = dev.isRecording;
-
-        if (!saveImage)
-            return;
 
         sources.clear();
         for (const auto& window: dev.win) {
@@ -45,6 +41,7 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         }
 
         saveImagePath = dev.outputSaveFolder;
+        saveImage = dev.isRecording;
     }
 }
 

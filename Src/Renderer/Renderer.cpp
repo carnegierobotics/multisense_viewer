@@ -57,19 +57,13 @@ void Renderer::addDeviceFeatures() {
 void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
     cmdBufInfo.flags = 0;
-    cmdBufInfo.pNext = nullptr;
     cmdBufInfo.pInheritanceInfo = nullptr;
 
     std::vector<VkClearValue> clearValues{};
     clearValues.resize(2);
 
-    clearValues[0].color.float32[0] = 0.0f;;
-    clearValues[0].color.float32[1] = 0.0f;;
-    clearValues[0].color.float32[2] = 0.0f;;
-    clearValues[0].color.float32[3] = 1.0f;;
-
-    clearValues[1].depthStencil.depth = 1.0f;
-    clearValues[1].depthStencil.stencil = (uint32_t) 0;
+    clearValues[0] = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1] = { {1.0f, 0.0f} };
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;

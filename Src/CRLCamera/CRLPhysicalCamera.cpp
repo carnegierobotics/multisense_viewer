@@ -157,7 +157,7 @@ namespace VkRender::MultiSense {
                 if (header->data().source != src || tex->m_Width != header->data().width ||
                     tex->m_Height != header->data().height)
                     return false;
-                tex->m_Id = header->data().frameId;
+                tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
                 return true;
             default:
@@ -169,8 +169,8 @@ namespace VkRender::MultiSense {
 
 
     void CRLPhysicalCamera::preparePointCloud(uint32_t width) {
-        const float xScale = 1.0f / ((static_cast<double>(infoMap[0].devInfo.imagerWidth) /
-                                      static_cast<double>(width)));
+        const float xScale = 1.0f / ((static_cast<float>(infoMap[0].devInfo.imagerWidth) /
+                                      static_cast<float>(width)));
         // From LibMultisenseUtility
         crl::multisense::image::Config c = infoMap[0].imgConf;
         const float &fx = c.fx();

@@ -26,6 +26,7 @@
 #endif
 
 #include "stb_image_write.h"
+#include "stb_image.h"
 #include "Macros.h"
 
 extern "C" {
@@ -538,6 +539,7 @@ namespace Utils {
         else
             return 0;
     }
+
 
 
 

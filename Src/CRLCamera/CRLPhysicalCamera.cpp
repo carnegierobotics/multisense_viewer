@@ -192,7 +192,7 @@ namespace VkRender::MultiSense {
         Q[2][3] = -fy;
         Q[3][3] = fy * (cx - cxRight);
         // keep as is
-        infoMap[0].kInverseMatrix = Q;
+        infoMap[0].QMat = Q; //TODO Rename
     }
 
 

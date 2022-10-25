@@ -48,6 +48,7 @@ typedef enum ScriptType {
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
     AR_GRAYSCALE_IMAGE,
+    AR_COLOR_IMAGE,
     AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
     AR_CAMERA_IMAGE_NONE,
@@ -595,6 +596,10 @@ namespace VkRender {
         float sidebarWidth = 200.0f;
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
+        /**@brief Width of sidebar*/
+        float debuggerHeight = 960.0f * 0.75f;
+        /**@brief Size of elements in sidebar */
+        float debuggerWidth = 480.0f * 0.75f;
         /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
         /**@brief Title of Application */
@@ -667,6 +672,8 @@ namespace VkRender {
             clearColor[2] = 0.862f;
             clearColor[3] = 1.0f;
         }
+
+        bool showDebugWindow = true;
     };
 }
 

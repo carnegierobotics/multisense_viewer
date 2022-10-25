@@ -7,12 +7,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized ")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
     # Not enabled flags but could be nice to enable
     # -Wundef -Wcast-qual  -Wdouble-promotion
 endif()
-
-
 
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
@@ -23,8 +21,7 @@ set(ARCHITECTURE "amd64")
 find_package(Vulkan REQUIRED)
 
 # GLFW
-set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo
-option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
+set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo  option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
 option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
 option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
 option(GLFW_INSTALL "Generate installation target" OFF)
@@ -147,7 +144,7 @@ set(ENGINE_SRC
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        )
+        Src/imgui/DebugWindow.h)
 
 if (WIN32)
 

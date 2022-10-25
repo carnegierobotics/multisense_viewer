@@ -440,8 +440,11 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
             samplerYcbcrConversionInfo = createYUV420Sampler(format);
             viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
-
             // Create YUV m_Sampler
+            break;
+
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            createDefaultSampler();
             break;
         default:
             std::cerr << "No texture m_Sampler for that m_Format yet\n";
@@ -497,8 +500,6 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 
     // Create empty buffers we can copy our texture data to
 
-
-
     // Create m_Sampler dependt on m_Image m_Format
     switch (format) {
         case VK_FORMAT_R16_UNORM:
@@ -544,6 +545,18 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
                     &stagingBuffer2,
                     &stagingMemory2));
             CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory2, 0, size, 0, (void **) &data2));
+            break;
+
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            size = (VkDeviceSize) m_Width * m_Height * 4;
+            CHECK_RESULT(device->createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    size,
+                    &stagingBuffer,
+                    &stagingMemory));
+
+            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
             break;
         default:
             std::cerr << "No video texture type for that m_Format yet\n";

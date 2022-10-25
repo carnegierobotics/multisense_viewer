@@ -19,6 +19,7 @@
 #include "LayerExample.h"
 
 #include "stb_image.h"
+#include "DebugWindow.h"
 
 namespace VkRender {
 
@@ -36,6 +37,7 @@ namespace VkRender {
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
         pushLayer<LayerExample>();
+        pushLayer<DebugWindow>();
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
 
@@ -216,8 +218,8 @@ namespace VkRender {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLCoolGray;
-        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLCoolGray;
+        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLDarkGray425;
+        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLDarkGray425;
         style.Colors[ImGuiCol_Tab] = VkRender::CRLRed;
         style.Colors[ImGuiCol_TabActive] = VkRender::CRLRedActive;
         style.Colors[ImGuiCol_TabHovered] = VkRender::CRLRedHover;
@@ -473,7 +475,7 @@ namespace VkRender {
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
+        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * texChannels;
         if (!pixels) {
             throw std::runtime_error("failed to load texture m_Image: " + file);
         }

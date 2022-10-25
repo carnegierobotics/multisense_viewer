@@ -9,7 +9,6 @@
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
-    model->setTexture(Utils::getTexturePath() + "neist_point.jpg");
     model->modelType = AR_POINT_CLOUD;
 
 }
@@ -111,7 +110,7 @@ void PointCloud::prepareTexture() {
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
     auto *buf = (VkRender::PointCloudParam *) bufferThreeData.get();
-    buf->Q = renderData.crlCamera->get()->getCameraInfo(0).kInverseMatrix;
+    buf->Q = renderData.crlCamera->get()->getCameraInfo(0).QMat;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     model->draw = true;

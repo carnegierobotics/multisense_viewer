@@ -303,7 +303,7 @@ private:
     }
 
     void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {
-        VkRender::Device el;
+        VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
@@ -315,7 +315,7 @@ private:
         el.interfaceIndex = entry.interfaceIndex;
         el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
 
-        handles->devices.emplace_back(el);
+        handles->devices.push_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName,
@@ -797,7 +797,7 @@ private:
                     for (size_t n = 0; n < interfaceDescriptionList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
                         if (ImGui::Selectable(interfaceDescriptionList[n].c_str(), is_selected))
-                            ethernetComboIndex = n;
+                            ethernetComboIndex = static_cast<uint32_t>(n);
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)

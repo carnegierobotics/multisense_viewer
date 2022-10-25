@@ -60,14 +60,16 @@ void Renderer::buildCommandBuffers() {
     cmdBufInfo.pNext = nullptr;
     cmdBufInfo.pInheritanceInfo = nullptr;
 
-    std::array<VkClearValue, 2> clearValues{0};
-    clearValues[0].color.float32[0] = guiManager->handles.clearColor[0];
-    clearValues[0].color.float32[1] = guiManager->handles.clearColor[1];
-    clearValues[0].color.float32[2] = guiManager->handles.clearColor[2];
-    clearValues[0].color.float32[3] = guiManager->handles.clearColor[3];
+    std::vector<VkClearValue> clearValues{};
+    clearValues.resize(2);
+
+    clearValues[0].color.float32[0] = 0.0f;;
+    clearValues[0].color.float32[1] = 0.0f;;
+    clearValues[0].color.float32[2] = 0.0f;;
+    clearValues[0].color.float32[3] = 1.0f;;
 
     clearValues[1].depthStencil.depth = 1.0f;
-    clearValues[1].depthStencil.stencil = 0;
+    clearValues[1].depthStencil.stencil = (uint32_t) 0;
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;

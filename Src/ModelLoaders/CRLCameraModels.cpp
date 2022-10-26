@@ -134,12 +134,6 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
     return true;
 }
 
-void
-CRLCameraModels::Model::setTexture(
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName) {
-
-
-}
 
 void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
     Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height, (int) texType);

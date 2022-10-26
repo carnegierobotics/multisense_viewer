@@ -18,6 +18,7 @@
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
 namespace VkRender {
+
 	/**
 	 * @brief Base class for scripts that can be attached to renderer. See @refitem Example for how to implement a script.
 	 */

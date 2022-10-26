@@ -17,6 +17,7 @@
 #include "MultiSense/Src/Core/Definitions.h"
 #include "include/MultiSense/MultiSenseChannel.hh"
 #include "MultiSense/Src/Tools/Utils.h"
+#include "MultiSense/Src/Scripts/Private/TextureDataDef.h"
 
 namespace VkRender::MultiSense {
 

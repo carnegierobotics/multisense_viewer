@@ -164,7 +164,7 @@ public:
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
                 ImVec2 posMin = ImGui::GetItemRectMin();
                 ImGui::Dummy(ImVec2(2.0f, 0.0f)); ImGui::SameLine();
-                ImGui::Text("Enabled Sources:");
+                ImGui::Text("Application Enabled Sources:");
                 for (const auto &enabled: dev.enabledStreams) {
                     ImGui::Dummy(ImVec2(10.0f, 0.0f)); ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
@@ -172,7 +172,7 @@ public:
                     ImGui::PopStyleColor();
                 }
                 ImGui::Dummy(ImVec2(2.0f, 0.0f)); ImGui::SameLine();
-                ImGui::Text("Requested Sources:");
+                ImGui::Text("UI Requested Sources:");
                 ImVec2 posMax = ImGui::GetItemRectMax();
                 for (const auto &req: dev.requestedStreams) {
 

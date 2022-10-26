@@ -47,9 +47,10 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     std::unique_ptr<CRLCameraModels::Model> model;
+    std::unique_ptr<CRLCameraModels::Model> noImageModel;
 
     float up = -1.3f;
-    bool usingDefaultTexture = false;
+    bool drawDefaultTexture = true;
     unsigned char* pixels;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
@@ -61,7 +62,6 @@ public:
     int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width = 0, height = 0;
     int texWidth = 0, texHeight = 0, texChannels = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
@@ -74,7 +74,7 @@ public:
 
     void prepareDefaultTexture();
 
-    void updateLog();
+    void updateLog() const;
 };
 
 

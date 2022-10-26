@@ -16,6 +16,7 @@
 #include <MultiSense/Src/Core/Texture.h>
 #include <MultiSense/Src/Tools/Macros.h>
 #include "include/MultiSense/MultiSenseTypes.hh"
+#include "MultiSense/Src/Scripts/Private/TextureDataDef.h"
 #include <MultiSense/Src/Core/Definitions.h>
 
 /***
@@ -26,21 +27,21 @@ class CRLCameraModels {
 public:
     CRLCameraModels() = default;
 
-    ~CRLCameraModels() {
-        if (vulkanDevice != nullptr) {
-            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
-            vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
-            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, selectionPipeline, nullptr);
-            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, selectionPipelineLayout, nullptr);
-        }
-    }
-
+    ~CRLCameraModels()  = default;
     struct Model {
         explicit Model(const VkRender::RenderUtils *renderUtils);
 
         ~Model();
+
+        std::vector<VkDescriptorSet> descriptors;
+        VkDescriptorSetLayout descriptorSetLayout{};
+        VkDescriptorPool descriptorPool{};
+        VkPipeline pipeline{};
+        VkPipeline selectionPipeline{}; // TODO destroy object
+        bool initializedPipeline = false;
+
+        VkPipelineLayout pipelineLayout{};
+        VkPipelineLayout selectionPipelineLayout{};
 
         /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
         bool draw = true;
@@ -85,11 +86,11 @@ public:
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                               const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
-        void createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
+        void createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
 
-        void updateTexture(CRLCameraDataType type);
+        bool updateTexture(CRLCameraDataType type);
 
-        void getTextureDataPointer(VkRender::TextureData *tex) const;
+        bool getTextureDataPointers(VkRender::TextureData *tex) const;
     };
 
     /**@brief Primitive for a surface */
@@ -144,15 +145,7 @@ public:
         }
     };
 
-    std::vector<VkDescriptorSet> descriptors;
-    VkDescriptorSetLayout descriptorSetLayout{};
-    VkDescriptorPool descriptorPool{};
-    VkPipeline pipeline{};
-    VkPipeline selectionPipeline{}; // TODO destroy object
-    bool initializedPipeline = false;
 
-    VkPipelineLayout pipelineLayout{};
-    VkPipelineLayout selectionPipelineLayout{};
 
     /**
      * Call to draw m_Model
@@ -179,7 +172,7 @@ protected:
      * Create the pipeline layout
      * @param pT pointer to store pipelinelayout object
      */
-    void createPipelineLayout(VkPipelineLayout *pT);
+    void createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout const &layout);
 
     /**
      * @brief Bind a default m_Descriptor layout to the pipeline for images
@@ -204,7 +197,7 @@ protected:
      * @param pLayoutT additional pipeline layout
      */
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
-                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT);
+                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel);
 
     /**
      * Create descriptors for this m_Model
@@ -223,6 +216,7 @@ protected:
     void
     createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
                          const VkRender::RenderUtils *renderUtils);
+
 };
 
 

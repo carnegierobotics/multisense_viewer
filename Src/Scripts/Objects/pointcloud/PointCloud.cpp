@@ -24,16 +24,16 @@ void PointCloud::update() {
 
     if (model->draw) {
         const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = std::make_unique<VkRender::TextureData>(AR_POINT_CLOUD, conf.width(), conf.height());
-        model->getTextureDataPointer(tex.get());
-        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", tex.get(), remoteHeadIndex)) {
-            model->updateTexture(tex->m_Type);
+        auto tex = VkRender::TextureData(AR_POINT_CLOUD, conf.width(), conf.height());
+        model->getTextureDataPointers(&tex);
+        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
+            model->updateTexture(tex.m_Type);
         }
 
-        auto depthTex = std::make_unique<VkRender::TextureData>(AR_DISPARITY_IMAGE, conf.width(), conf.height());
-        model->getTextureDataPointer(depthTex.get());
-        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", depthTex.get(), remoteHeadIndex)) {
-            model->updateTexture(depthTex->m_Type);
+        auto depthTex = VkRender::TextureData(AR_DISPARITY_IMAGE, conf.width(), conf.height());
+        model->getTextureDataPointers(&depthTex);
+        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
+            model->updateTexture(depthTex.m_Type);
         }
     }
     VkRender::UBOMatrix mat{};
@@ -103,7 +103,7 @@ void PointCloud::prepareTexture() {
     model->createMeshDeviceLocal(meshData);
 
     renderData.crlCamera->get()->preparePointCloud(width);
-    model->createEmtpyTexture(width, height, AR_POINT_CLOUD);
+    model->createEmptyTexture(width, height, AR_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("myScene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},

@@ -144,7 +144,7 @@ set(ENGINE_SRC
 
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        Src/imgui/DebugWindow.h)
+        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
 if (WIN32)
 

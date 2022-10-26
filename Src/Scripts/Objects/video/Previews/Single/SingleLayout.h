@@ -51,7 +51,7 @@ public:
 
     float up = -1.3f;
     bool drawDefaultTexture = true;
-    unsigned char* pixels;
+    unsigned char* pixels{};
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -64,7 +64,8 @@ public:
     CameraPlaybackFlags playbackSate{};
     int texWidth = 0, texHeight = 0, texChannels = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
-
+    int64_t lastPresentedFrameID = -1;
+    std::chrono::steady_clock::time_point lastPresentTime;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */

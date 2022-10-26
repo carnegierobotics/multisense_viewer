@@ -135,13 +135,23 @@ namespace VkRender::MultiSense {
             case AR_COLOR_IMAGE_YUV420:
                 if ((header->data().source | headerTwo->data().source) != src ||
                     tex->m_Width != header->data().width ||
-                    tex->m_Height != header->data().height)
+                    tex->m_Height < header->data().height)
                     return false;
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 tex->m_Id2 = static_cast<uint32_t>(headerTwo->data().frameId);
 
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
                 std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
+
+                // Copy extra zeros to the bottom row if heights does not match
+                if (tex->m_Height != header->data().height){
+                    uint32_t diff = tex->m_Height - header->data().height;
+                    std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);
+
+                    diff = tex->m_Height - headerTwo->data().height;
+                    std::memset(tex->data2 + headerTwo->data().imageLength, 0x00, diff * tex->m_Width);
+                }
+
                 return true;
 
             case AR_DISPARITY_IMAGE:
@@ -159,6 +169,13 @@ namespace VkRender::MultiSense {
                     return false;
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
+
+                // Copy extra zeros (black pixels) to the bottom row if heights does not match
+                if (tex->m_Height != header->data().height){
+                    uint32_t diff = tex->m_Height - header->data().height;
+                    std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);
+                }
+
                 return true;
             default:
                 Log::Logger::getInstance()->info("This texture type is not supported {}", (int) tex->m_Type);

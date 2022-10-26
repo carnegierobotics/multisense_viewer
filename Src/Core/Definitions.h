@@ -459,6 +459,8 @@ namespace VkRender {
         float debuggerWidth = 960.0f * 0.75f;
         /**@brief Size of elements in sidebar */
         float debuggerHeight = 480.0f * 0.75f;
+        /**@brief Width of sidebar*/
+        float metricsWidth = 150.0f;
         /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
         /**@brief Title of Application */
@@ -469,6 +471,7 @@ namespace VkRender {
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
         /**@brief value for current frame timer*/
         float frameTimer{};
+        uint64_t frameID = 0;
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
         ImFont *font13{}, *font18{}, *font24{};
 
@@ -492,7 +495,7 @@ namespace VkRender {
         float viewAreaElementSizeX = {0};
         float previewBorderPadding = 60.0f;
         /** @brief add m_Device button params */
-        float addDeviceBottomPadding = 70.0f;
+        float addDeviceBottomPadding = 90.0f;
         float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
         /** @brief Height of popupModal*/
         float popupHeight = 600.0f;

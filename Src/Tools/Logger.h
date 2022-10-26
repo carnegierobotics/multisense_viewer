@@ -113,31 +113,37 @@ namespace Log {
     };
 
     struct Metrics {
+        // InfoLogs
         std::queue<std::string> logQueue;
+        /// MultiSense device
         struct {
+            struct {
+                std::string apiBuildDate;
+                uint32_t apiVersion;
+                std::string firmwareBuildDate;
+                uint32_t firmwareVersion;
+                uint64_t hardwareVersion;
+                uint64_t hardwareMagic;
+                uint64_t sensorFpgaDna;
+            }info ;
             const VkRender::Device* dev = nullptr;
-
             std::unordered_map<std::string, uint32_t> sourceReceiveMapCounter;
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
             std::vector<std::string> disabledSources;
-
             double upTime = 0.0f;
         } device;
-
+        /// SingleLayout Preview
         struct {
-
             CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
             uint32_t width = 0, height = 0;
             uint32_t texWidth = 0, texHeight = 0;
-
             CRLCameraResolution res = CRL_RESOLUTION_NONE;
             std::string src;
             bool usingDefaultTexture = false;
-
             int empty = 0;
-
         } preview;
+
     };
 
     class Logger {

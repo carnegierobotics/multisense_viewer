@@ -100,51 +100,6 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
 
-        ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
-        float xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-        ImGui::Dummy(ImVec2(xOffset, 0.0f));
-        ImGui::SameLine();
-        ImGui::Text("%s", handles->info->title.c_str());
-
-        txtSize = ImGui::CalcTextSize(handles->info->deviceName.c_str());
-        // If it is too long then just remove some word towards the end.
-        if (txtSize.x > handles->info->sidebarWidth) {
-            std::string devName = handles->info->deviceName;
-            while (txtSize.x > handles->info->sidebarWidth) {
-                devName.erase(devName.find_last_of(' '), devName.length());
-                txtSize = ImGui::CalcTextSize(devName.c_str());
-            }
-            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-            ImGui::Dummy(ImVec2(xOffset, 0.0f));
-            ImGui::SameLine();
-            ImGui::Text("%s", devName.c_str());
-        } else {
-            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-            ImGui::Dummy(ImVec2(xOffset, 0.0f));
-            ImGui::SameLine();
-            ImGui::Text("%s", handles->info->deviceName.c_str());
-        }
-
-
-        // Update frame time display
-        if (handles->info->firstFrame) {
-            std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
-                        handles->info->frameTimes.end());
-            float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
-            handles->info->frameTimes.back() = frameTime;
-            if (frameTime < handles->info->frameTimeMin) {
-                handles->info->frameTimeMin = frameTime;
-            }
-            if (frameTime > handles->info->frameTimeMax) {
-                handles->info->frameTimeMax = frameTime;
-            }
-        }
-
-        ImGui::Dummy(ImVec2(5.0f, 0.0f));
-        ImGui::SameLine();
-        ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, "fps", handles->info->frameTimeMin,
-                         handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
-
 
         addPopup(handles);
 
@@ -462,7 +417,8 @@ private:
         }
 
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
-                                   handles->info->height - 20.0f));
+                                   handles->info->height - handles->info->addDeviceBottomPadding +
+                                   handles->info->addDeviceHeight + 5.0f));
         ImGui::Checkbox("Show Debug", &handles->showDebugWindow);
 
 

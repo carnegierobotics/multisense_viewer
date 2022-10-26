@@ -47,9 +47,7 @@ public:
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
-    int count = 1;
     float up = -1.3f;
-    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -60,15 +58,21 @@ public:
     int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
     CameraPlaybackFlags playbackSate{};
-    uint32_t width = 0, height = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+    int64_t lastPresentedFrameID = -1;
+    std::chrono::steady_clock::time_point lastPresentTime;
+    int texWidth = 0, texHeight = 0, texChannels = 0;
+    unsigned char* pixels{};
+    std::unique_ptr<CRLCameraModels::Model> noImageModel;
+    bool drawDefaultTexture = true;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const VkRender::GuiObjectHandles * handles, VkRender::Device element);
+    void transformToUISpace(const VkRender::GuiObjectHandles * handles, const VkRender::Device& element);
 
-    void prepareTexture();
+    void prepareMultiSenseTexture();
+    void prepareDefaultTexture();
 };
 
 

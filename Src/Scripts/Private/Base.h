@@ -15,6 +15,7 @@
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 #include "MultiSense/Src/Tools/Macros.h"
 
+#define TOLERATE_FRAME_NUM_SKIP 3
 
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
 namespace VkRender {

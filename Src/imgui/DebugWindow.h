@@ -61,7 +61,8 @@ public:
 
             ImGui::Separator();
 
-            if (ImGui::BeginChild("scrolling", ImVec2(pHandles->info->debuggerWidth - 100.0f, 0), false,
+            if (ImGui::BeginChild("scrolling", ImVec2(pHandles->info->debuggerWidth - pHandles->info->metricsWidth, 0),
+                                  false,
                                   ImGuiWindowFlags_HorizontalScrollbar)) {
                 if (clear)
                     Clear();
@@ -151,32 +152,111 @@ public:
         }
 
         ImGui::SameLine();
-        auto met = Log::Logger::getLogMetrics();
-
         if (ImGui::BeginChild("Metrics", ImVec2(0.0f, 0.0f), false)) {
-            if (met->device.dev != nullptr) {
-                ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
+            {
+                // Renderer Info
+                ImGui::Text("Renderer Info");
+                ImGui::Dummy(ImVec2(5.0f, 5.0f));
+
+                ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
+                float xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+                ImGui::Dummy(ImVec2(xOffset, 0.0f));
+                ImGui::SameLine();
+                ImGui::Text("%s", handles->info->title.c_str());
+
+                txtSize = ImGui::CalcTextSize(handles->info->deviceName.c_str());
+                // If it is too long then just remove some word towards the end.
+                if (txtSize.x > handles->info->sidebarWidth) {
+                    std::string devName = handles->info->deviceName;
+                    while (txtSize.x > handles->info->sidebarWidth) {
+                        devName.erase(devName.find_last_of(' '), devName.length());
+                        txtSize = ImGui::CalcTextSize(devName.c_str());
+                    }
+                    xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+                    ImGui::Dummy(ImVec2(xOffset, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("%s", devName.c_str());
+                } else {
+                    xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
+                    ImGui::Dummy(ImVec2(xOffset, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("%s", handles->info->deviceName.c_str());
+                }
+
+
+                // Update frame time display
+                if (handles->info->firstFrame) {
+                    std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
+                                handles->info->frameTimes.end());
+                    float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
+                    handles->info->frameTimes.back() = frameTime;
+                    if (frameTime < handles->info->frameTimeMin) {
+                        handles->info->frameTimeMin = frameTime;
+                    }
+                    if (frameTime > handles->info->frameTimeMax) {
+                        handles->info->frameTimeMax = frameTime;
+                    }
+                }
+
+                ImGui::Dummy(ImVec2(5.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, nullptr,
+                                 handles->info->frameTimeMin,
+                                 handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
+
+                ImGui::Dummy(ImVec2(5.0f, 0.0f));
+
+                ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
+                ImGui::Text("Frame: %lu", handles->info->frameID);
+
+            }
+            ImGui::Separator();
+
+            auto met = Log::Logger::getLogMetrics();
+
+            if (met->device.dev != nullptr) {
                 auto &dev = met->device.dev->channelInfo[0];
+                std::stringstream stream;
+                std::string res;
+
                 ImGui::Text("Device: %s", met->device.dev->cameraName.c_str());
+                ImGui::Text("API build date: %s", met->device.info.apiBuildDate.c_str());
+
+                ImGui::Text("API version: 0x%s", fmt::format("{:x}", met->device.info.apiVersion).c_str());
+                ImGui::Text("Firmware build date: %s", met->device.info.firmwareBuildDate.c_str());
+                stream << std::hex << met->device.info.firmwareVersion;
+                ImGui::Text("Firmware version: 0x%s", fmt::format("{:x}", met->device.info.firmwareVersion).c_str());
+                stream << std::hex << met->device.info.hardwareVersion;
+                ImGui::Text("Hardware version: 0x%s", fmt::format("{:x}", met->device.info.hardwareVersion).c_str());
+                stream << std::hex << met->device.info.hardwareMagic;
+                ImGui::Text("Hardware magic: 0x%s", fmt::format("{:x}", met->device.info.hardwareMagic).c_str());
+                stream << std::hex << met->device.info.sensorFpgaDna;
+                ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
+                ImGui::Separator();
+
                 ImGui::Text("Selected Mode %s", Utils::cameraResolutionToString(dev.selectedMode).c_str());
 
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
                 ImVec2 posMin = ImGui::GetItemRectMin();
-                ImGui::Dummy(ImVec2(2.0f, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(2.0f, 0.0f));
+                ImGui::SameLine();
                 ImGui::Text("Application Enabled Sources:");
                 for (const auto &enabled: dev.enabledStreams) {
-                    ImGui::Dummy(ImVec2(10.0f, 0.0f)); ImGui::SameLine();
+                    ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                    ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
                     ImGui::Text("%s", enabled.c_str());
                     ImGui::PopStyleColor();
                 }
-                ImGui::Dummy(ImVec2(2.0f, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(2.0f, 0.0f));
+                ImGui::SameLine();
                 ImGui::Text("UI Requested Sources:");
                 ImVec2 posMax = ImGui::GetItemRectMax();
                 for (const auto &req: dev.requestedStreams) {
 
-                    ImGui::Dummy(ImVec2(10.0f, 0.0f)); ImGui::SameLine();
+                    ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                    ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
                     ImGui::Text("%s", req.c_str());
                     ImGui::PopStyleColor();
@@ -185,36 +265,22 @@ public:
                     if (posMaxTmp.x > posMax.x)
                         posMax = posMaxTmp;
                 }
-                posMax.x += 5;
-                posMax.y += 3;
-                draw_list->AddRect(posMin, posMax, IM_COL32(25, 25, 25, 255));
-            }
 
-            ImGui::Separator();
-            ImGui::Text("Uptime: %f.2", met->device.upTime);
-            for (const auto &src: met->device.sourceReceiveMapCounter) {
-                ImGui::Text("%s ", src.first.c_str());
-                ImGui::SameLine();
-                ImGui::Text("%d", src.second);
+
+                ImGui::Separator();
+                for (const auto &src: met->device.sourceReceiveMapCounter) {
+                    ImGui::Text("%s ", src.first.c_str());
+                    ImGui::SameLine();
+                    ImGui::Text("%d", src.second);
+                }
+                ImGui::Text("Uptime: %.2f", met->device.upTime);
             }
             ImGui::Separator();
 
-            {
-                ImGui::Dummy(ImVec2(0.0f, 10.0f));
-                ImGui::Text("Preview One, using default: %s", met->preview.usingDefaultTexture ? "True" : "False");
-                ImGui::Text("MultiSense Texture (WxH): %dx%d : %d", met->preview.width, met->preview.height,
-                            met->preview.textureType);
-                ImGui::Text("Default Texture (WxH): %dx%d : %d", met->preview.texWidth, met->preview.texHeight,
-                            met->preview.textureType);
-                ImGui::Text("Src: %s", met->preview.src.c_str());
-            }
 
         }
         ImGui::EndChild();
-
-
         ImGui::ShowDemoWindow();
-
         ImGui::End();
 
     }

@@ -44,7 +44,7 @@ void SingleLayout::update() {
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
         float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
-        if (time_span.count() > (frameTime) &&
+        if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
         lastPresentedFrameID == tex.m_Id){
             drawDefaultTexture = true;
             return;

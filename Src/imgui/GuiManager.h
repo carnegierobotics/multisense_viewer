@@ -30,13 +30,13 @@ namespace VkRender {
         ~GuiManager(){
             for (const auto& layerStack: m_LayerStack)
                 layerStack->onDetach();
-            vkDestroyPipeline(device->logicalDevice, pipeline, nullptr);
-            vkDestroyPipelineCache(device->logicalDevice, pipelineCache, nullptr);
-            vkDestroyPipelineLayout(device->logicalDevice, pipelineLayout, nullptr);
-            vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
-            vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
+            vkDestroyPipeline(device->m_LogicalDevice, pipeline, nullptr);
+            vkDestroyPipelineCache(device->m_LogicalDevice, pipelineCache, nullptr);
+            vkDestroyPipelineLayout(device->m_LogicalDevice, pipelineLayout, nullptr);
+            vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
+            vkDestroyDescriptorSetLayout(device->m_LogicalDevice, descriptorSetLayout, nullptr);
             for (auto * shaderModule: shaderModules) {
-                vkDestroyShaderModule(device->logicalDevice, shaderModule, nullptr);
+                vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
         };
 
@@ -86,7 +86,7 @@ namespace VkRender {
         std::vector<VkDescriptorSet> gifImageDescriptors{};
 
         std::vector<VkShaderModule> shaderModules{};
-        VulkanDevice *device;
+        VulkanDevice *device = nullptr;
 
         // Initialization functions
         void initializeFonts();

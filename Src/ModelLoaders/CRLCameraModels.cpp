@@ -5,36 +5,29 @@
 #include "CRLCameraModels.h"
 
 #include "stb_image.h"
+#include "MultiSense/Src/Tools/Logger.h"
 
-
-void CRLCameraModels::destroy(VkDevice device) {
-
-}
 
 CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
 
 CRLCameraModels::Model::~Model() {
-    vkFreeMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, nullptr);
-    vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.vertices.buffer, nullptr);
+    vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.vertices.memory, nullptr);
+    vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.vertices.buffer, nullptr);
 
     if (mesh.indexCount > 0) {
-        vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.indices.buffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, mesh.indices.memory, nullptr);
+        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.indices.buffer, nullptr);
+        vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.indices.memory, nullptr);
     }
-}
 
+    vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+    vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, selectionPipeline, nullptr);
+    vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, selectionPipelineLayout, nullptr);
 
-void CRLCameraModels::Model::createMesh(VkRender::Vertex *_vertices, uint32_t vtxBufferSize) {
-    mesh.vertexCount = vtxBufferSize;
-    CHECK_RESULT(vulkanDevice->createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vtxBufferSize,
-            &mesh.vertices.buffer,
-            &mesh.vertices.memory,
-            _vertices))
 }
 
 void
@@ -42,8 +35,8 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                                               const std::vector<uint32_t> &indices) {
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
     size_t indexBufferSize = indices.size() * sizeof(uint32_t);
-    mesh.vertexCount = vertices.size();
-    mesh.indexCount = indices.size();
+    mesh.vertexCount = static_cast<uint32_t>( vertices.size());
+    mesh.indexCount = static_cast<uint32_t>(indices.size());
 
     struct StagingBuffer {
         VkBuffer buffer;
@@ -69,15 +62,14 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                 &indexStaging.memory,
                 (void *) indices.data()));
     }
-
-    // Create device local buffers
+    // Create m_Device local buffers
     // Vertex buffer
     if (mesh.vertices.buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.vertices.buffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, mesh.vertices.memory, nullptr);
+        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.vertices.buffer, nullptr);
+        vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.vertices.memory, nullptr);
         if (indexBufferSize > 0) {
-            vkDestroyBuffer(vulkanDevice->logicalDevice, mesh.indices.buffer, nullptr);
-            vkFreeMemory(vulkanDevice->logicalDevice, mesh.indices.memory, nullptr);
+            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.indices.buffer, nullptr);
+            vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.indices.memory, nullptr);
         }
     }
     CHECK_RESULT(vulkanDevice->createBuffer(
@@ -105,77 +97,47 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
         copyRegion.size = indexBufferSize;
         vkCmdCopyBuffer(copyCmd, indexStaging.buffer, mesh.indices.buffer, 1, &copyRegion);
     }
-    vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->transferQueue, true);
-    vkDestroyBuffer(vulkanDevice->logicalDevice, vertexStaging.buffer, nullptr);
-    vkFreeMemory(vulkanDevice->logicalDevice, vertexStaging.memory, nullptr);
+    vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->m_TransferQueue, true);
+    vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
+    vkFreeMemory(vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
 
     if (indexBufferSize > 0) {
-        vkDestroyBuffer(vulkanDevice->logicalDevice, indexStaging.buffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, indexStaging.memory, nullptr);
+        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, indexStaging.buffer, nullptr);
+        vkFreeMemory(vulkanDevice->m_LogicalDevice, indexStaging.memory, nullptr);
     }
 }
 
-void CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
+bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
+    if (textureVideo->m_Format == VK_FORMAT_R8G8B8A8_UNORM && type != AR_COLOR_IMAGE) {
+        Log::Logger::getInstance()->error(
+                "updateTexture: Format between Vulkan Texture and Expected MultiSense Texture mismatch: {} and {}",
+                (int) textureVideo->m_Format, (int) type);
+        return false;
+    }
+
     switch (type) {
         case AR_POINT_CLOUD:
             textureColorMap->updateTextureFromBuffer();
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
+        case AR_COLOR_IMAGE:
             textureVideo->updateTextureFromBuffer();
             break;
         case AR_COLOR_IMAGE_YUV420:
             textureVideo->updateTextureFromBufferYUV();
             break;
         case AR_YUV_PLANAR_FRAME:
-            break;
         case AR_CAMERA_IMAGE_NONE:
             break;
     }
+    return true;
 }
 
-void CRLCameraModels::Model::setTexture(VkRender::TextureData *tex) {
 
-/*
-     switch (AR_DISPARITY_IMAGE) {
-        case AR_POINT_CLOUD:
-            textureColorMap->updateTextureFromBuffer();
-            break;
-        case AR_GRAYSCALE_IMAGE:
-        case AR_DISPARITY_IMAGE:
-            textureVideo->updateTextureFromBuffer();
-            break;
-        case AR_COLOR_IMAGE_YUV420:
-            textureVideo->updateTextureFromBufferYUV();
-            break;
-        case AR_YUV_PLANAR_FRAME:
-            break;
-        case AR_CAMERA_IMAGE_NONE:
-            break;
-    }
- */
-
-}
-
-void
-CRLCameraModels::Model::setTexture(
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName) {
-    // Create texture image if not created
-
-    int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
-    }
-
-    textureIndices.baseColor = 0;
-
-}
-
-void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
-    Log::Logger::getInstance()->info("Preparing Texture image {}, {}, with type {}", width, height, (int) texType);
-    VkFormat format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType) {
+    Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height, (int) texType);
+    VkFormat format{};
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
             format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
@@ -196,6 +158,9 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
         case AR_YUV_PLANAR_FRAME:
             format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
             break;
+        case AR_COLOR_IMAGE:
+            format = VK_FORMAT_R8G8B8A8_UNORM;
+            break;
         default:
             std::cerr << "Texture type not supported yet" << std::endl;
             break;
@@ -207,18 +172,16 @@ void CRLCameraModels::Model::createEmtpyTexture(uint32_t width, uint32_t height,
 
 }
 
-void CRLCameraModels::Model::setZoom() {
 
+bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) const {
 
-}
-
-void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) const {
     switch (tex->m_Type) {
         case AR_POINT_CLOUD:
             tex->data = textureColorMap->data;
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
+        case AR_COLOR_IMAGE:
             tex->data = textureVideo->data;
             break;
         case AR_COLOR_IMAGE_YUV420:
@@ -226,16 +189,20 @@ void CRLCameraModels::Model::getTextureDataPointer(VkRender::TextureData *tex) c
             tex->data2 = textureVideo->data2;
             break;
         case AR_YUV_PLANAR_FRAME:
-            break;
         case AR_CAMERA_IMAGE_NONE:
             break;
     }
+
+    if (tex->data2 == nullptr && tex->m_Type == AR_COLOR_IMAGE_YUV420)
+        return false;
+
+    return true;
 }
 
 
 void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo,
                                         CRLCameraModels::Model *model) {
-    descriptors.resize(count);
+    model->descriptors.resize(count);
 
     uint32_t uniformDescriptorCount = (4 * count);
     uint32_t imageDescriptorSamplerCount = (3 * count);
@@ -245,7 +212,8 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
 
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
-    CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+    CHECK_RESULT(
+            vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &model->descriptorPool));
 
 
     /**
@@ -256,6 +224,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
         case AR_DISPARITY_IMAGE:
         case AR_GRAYSCALE_IMAGE:
         case AR_COLOR_IMAGE_YUV420:
+        case AR_COLOR_IMAGE:
             createImageDescriptors(model, ubo);
             break;
         case AR_POINT_CLOUD:
@@ -269,66 +238,68 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
 }
 
 void
-CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model, const std::vector<VkRender::UniformBufferSet> &ubo) {
+CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
+                                        const std::vector<VkRender::UniformBufferSet> &ubo) {
 
-    for (auto i = 0; i < ubo.size(); i++) {
+    for (size_t i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorPool = model->descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = &model->descriptorSetLayout;
         descriptorSetAllocInfo.descriptorSetCount = 1;
-        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              &model->descriptors[i]));
 
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets(model->modelType == AR_DISPARITY_IMAGE ? 5 : 4);
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[0].descriptorCount = 1;
-        writeDescriptorSets[0].dstSet = descriptors[i];
+        writeDescriptorSets[0].dstSet = model->descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
 
         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[1].descriptorCount = 1;
-        writeDescriptorSets[1].dstSet = descriptors[i];
+        writeDescriptorSets[1].dstSet = model->descriptors[i];
         writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.descriptorBufferInfo;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
 
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[2].descriptorCount = 1;
-        writeDescriptorSets[2].dstSet = descriptors[i];
+        writeDescriptorSets[2].dstSet = model->descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
 
-        if (model->textureVideo->device == nullptr) {
+        if (model->textureVideo->m_Device == nullptr) {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             writeDescriptorSets[3].descriptorCount = 1;
-            writeDescriptorSets[3].dstSet = descriptors[i];
+            writeDescriptorSets[3].dstSet = model->descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
-            writeDescriptorSets[3].pImageInfo = &model->texture->descriptor;
+            writeDescriptorSets[3].pImageInfo = &model->texture->m_Descriptor;
         } else {
             writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             writeDescriptorSets[3].descriptorCount = 1;
-            writeDescriptorSets[3].dstSet = descriptors[i];
+            writeDescriptorSets[3].dstSet = model->descriptors[i];
             writeDescriptorSets[3].dstBinding = 3;
-            writeDescriptorSets[3].pImageInfo = &model->textureVideo->descriptor;
+            writeDescriptorSets[3].pImageInfo = &model->textureVideo->m_Descriptor;
         }
 
         if (model->modelType == AR_DISPARITY_IMAGE) {
             writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             writeDescriptorSets[4].descriptorCount = 1;
-            writeDescriptorSets[4].dstSet = descriptors[i];
+            writeDescriptorSets[4].dstSet = model->descriptors[i];
             writeDescriptorSets[4].dstBinding = 4;
-            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.descriptorBufferInfo;
+            writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.m_DescriptorBufferInfo;
         }
 
-        vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+        vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
     }
 }
@@ -337,54 +308,55 @@ void
 CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
                                              const std::vector<VkRender::UniformBufferSet> &ubo) {
 
-    for (auto i = 0; i < ubo.size(); i++) {
+    for (size_t i = 0; i < ubo.size(); i++) {
 
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorPool = model->descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = &model->descriptorSetLayout;
         descriptorSetAllocInfo.descriptorSetCount = 1;
-        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->logicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              &model->descriptors[i]));
 
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[0].descriptorCount = 1;
-        writeDescriptorSets[0].dstSet = descriptors[i];
+        writeDescriptorSets[0].dstSet = model->descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.descriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
 
         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[1].descriptorCount = 1;
-        writeDescriptorSets[1].dstSet = descriptors[i];
+        writeDescriptorSets[1].dstSet = model->descriptors[i];
         writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferThree.descriptorBufferInfo;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
 
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptorSets[2].descriptorCount = 1;
-        writeDescriptorSets[2].dstSet = descriptors[i];
+        writeDescriptorSets[2].dstSet = model->descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pImageInfo = &model->textureVideo->descriptor;
+        writeDescriptorSets[2].pImageInfo = &model->textureVideo->m_Descriptor;
 
         writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptorSets[3].descriptorCount = 1;
-        writeDescriptorSets[3].dstSet = descriptors[i];
+        writeDescriptorSets[3].dstSet = model->descriptors[i];
         writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->textureColorMap->descriptor;
+        writeDescriptorSets[3].pImageInfo = &model->textureColorMap->m_Descriptor;
 
-        vkUpdateDescriptorSets(vulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+        vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
     }
 
 }
 
-void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
+void CRLCameraModels::createDescriptorSetLayout(Model *model) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-    switch (pModel->modelType) {
+    switch (model->modelType) {
         case AR_DISPARITY_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
@@ -407,6 +379,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
         case AR_YUV_PLANAR_FRAME:
         case AR_COLOR_IMAGE_YUV420:
         case AR_GRAYSCALE_IMAGE:
+        case AR_COLOR_IMAGE:
             setLayoutBindings = {
                     {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -421,17 +394,18 @@ void CRLCameraModels::createDescriptorSetLayout(Model *pModel) {
     }
 
     // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-    if (nullptr != pModel->textureVideo->sampler) {
-        setLayoutBindings[3].pImmutableSamplers = &pModel->textureVideo->sampler;
+    if (nullptr != model->textureVideo->m_Sampler) {
+        setLayoutBindings[3].pImmutableSamplers = &model->textureVideo->m_Sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
-                                                                                               setLayoutBindings.size());
+                                                                                               static_cast<uint32_t>(setLayoutBindings.size()));
     CHECK_RESULT(
-            vkCreateDescriptorSetLayout(vulkanDevice->logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout));
+            vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr,
+                                        &model->descriptorSetLayout));
 }
 
-void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT) {
-    VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, const VkDescriptorSetLayout &layout) {
+    VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&layout, 1);
 
     VkPushConstantRange pushconstantRanges{};
 
@@ -442,13 +416,14 @@ void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT) {
     info.pPushConstantRanges = &pushconstantRanges;
     info.pushConstantRangeCount = 1;
 
-    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->logicalDevice, &info, nullptr, pT))
+    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &info, nullptr, pT))
 }
 
 void
-CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
-                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT) {
-    createPipelineLayout(pLayoutT);
+CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector,
+                                CRLCameraDataType type,
+                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *model) {
+    createPipelineLayout(pLayoutT, model->descriptorSetLayout);
 
     // Vertex bindings an attributes
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -524,7 +499,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
     VkGraphicsPipelineCreateInfo pipelineCI{};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineCI.layout = pipelineLayout;
+    pipelineCI.layout = model->pipelineLayout;
     pipelineCI.renderPass = pT;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pVertexInputState = &vertexInputStateCI;
@@ -538,7 +513,8 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     pipelineCI.pStages = vector.data();
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->logicalDevice, nullptr, 1, &pipelineCI, nullptr, pPipelineT));
+    CHECK_RESULT(
+            vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, pPipelineT));
 
 
 }
@@ -549,34 +525,36 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
 
     this->vulkanDevice = renderUtils->device;
 
-    if (initializedPipeline) {
-        vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
-        vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(vulkanDevice->logicalDevice, pipeline, nullptr);
-        vkDestroyPipeline(vulkanDevice->logicalDevice, selectionPipeline, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->logicalDevice, selectionPipelineLayout, nullptr);
+    if (model->initializedPipeline) {
+        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, model->descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, model->descriptorPool, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, model->pipelineLayout, nullptr);
+        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, model->pipeline, nullptr);
+        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, model->selectionPipeline, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, model->selectionPipelineLayout, nullptr);
     }
 
     createDescriptorSetLayout(model);
     createDescriptors(renderUtils->UBCount, renderUtils->uniformBuffers, model);
-    createPipeline(*renderUtils->renderPass, vector, model->modelType, &pipeline, &pipelineLayout);
+    createPipeline(*renderUtils->renderPass, vector, model->modelType, &model->pipeline, &model->pipelineLayout,
+                   model);
 
     // Create selection pipeline as well
-    createPipeline(renderUtils->picking->renderPass, vector, model->modelType, &selectionPipeline, &selectionPipelineLayout);
-    initializedPipeline = true;
+    createPipeline(renderUtils->picking->renderPass, vector, model->modelType, &model->selectionPipeline,
+                   &model->selectionPipelineLayout, model);
+    model->initializedPipeline = true;
 }
 
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b) {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                            &descriptors[i], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, model->pipelineLayout, 0, 1,
+                            &model->descriptors[i], 0, nullptr);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, b ? pipeline : selectionPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, b ? model->pipeline : model->selectionPipeline);
 
 
     VkRender::MousePositionPushConstant constants{};
     constants.position = glm::vec2(640, 360);
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+    vkCmdPushConstants(commandBuffer, model->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(VkRender::MousePositionPushConstant), &constants);
 
 

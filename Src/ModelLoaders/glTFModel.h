@@ -26,15 +26,10 @@ public:
     VulkanDevice *vulkanDevice = nullptr;
 
     struct Primitive {
-        uint32_t firstIndex{};
-        uint32_t indexCount{};
-        uint32_t vertexCount{};
-        bool hasIndices{};
-        Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount);
-        void setBoundingBox(glm::vec3 min, glm::vec3 max);
+        uint32_t m_FirstIndex{};
+        uint32_t m_IndexCount{};
+        Primitive(uint32_t _firstIndex, uint32_t indexCount);
     };
-
-
 
     struct Mesh {
         VulkanDevice *device;
@@ -47,7 +42,7 @@ public:
             void *mapped;
         } uniformBuffer{};
 
-    } mesh;
+    } m_Mesh;
 
     struct Node {
         Node *parent;
@@ -106,17 +101,17 @@ public:
     struct Model {
 
         ~Model(){
-            vkFreeMemory(device->logicalDevice, vertices.memory, nullptr);
-            vkFreeMemory(device->logicalDevice, indices.memory, nullptr);
-            vkDestroyBuffer(device->logicalDevice, vertices.buffer, nullptr);
-            vkDestroyBuffer(device->logicalDevice, indices.buffer, nullptr);
+            vkFreeMemory(m_Device->m_LogicalDevice, vertices.memory, nullptr);
+            vkFreeMemory(m_Device->m_LogicalDevice, indices.memory, nullptr);
+            vkDestroyBuffer(m_Device->m_LogicalDevice, vertices.buffer, nullptr);
+            vkDestroyBuffer(m_Device->m_LogicalDevice, indices.buffer, nullptr);
 
             for(auto* node : linearNodes){
                 delete node;
             }
         }
 
-        VulkanDevice *device;
+        VulkanDevice *m_Device;
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
         std::vector<Primitive> primitives;
@@ -154,7 +149,7 @@ public:
         } dimensions{};
 
         void destroy(VkDevice device);
-        void loadNode(glTFModel::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
+        void loadNode(glTFModel::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& _model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
         void loadSkins(tinygltf::Model& gltfModel);
         void loadTextures(tinygltf::Model& gltfModel, VulkanDevice* device, VkQueue transferQueue);
         VkSamplerAddressMode getVkWrapMode(int32_t wrapMode);
@@ -168,7 +163,7 @@ public:
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
 
         void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-    } model{};
+    } m_Model{};
 
 
     std::vector<VkDescriptorSet> descriptors;

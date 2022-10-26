@@ -225,7 +225,7 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 		// If possible then wait for a windows event that triggers when the adapter is ready
 		// std::this_thread::sleep_for(std::chrono::milliseconds(8000));
 		// TODO: thread_sleep - Explanation above
-		str = "Finished Configuration";
+		str = "Configuration...";
 		eventCallback(str, context, 0);
 		// Wait for adapter to come back online
 	}
@@ -329,15 +329,15 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 
 		app->startTime = time(nullptr);
 
-		pcap_if_t* alldevs;
-		pcap_t* adhandle;
-		int res;
+		pcap_if_t* alldevs{};
+		pcap_t* adhandle{};
+		int res = 0;
 		char errbuf[PCAP_ERRBUF_SIZE];
-		struct tm* ltime;
+		struct tm* ltime{};
 		char timestr[16];
-		struct pcap_pkthdr* header;
-		const u_char* pkt_data;
-		time_t local_tv_sec;
+		struct pcap_pkthdr* header{};
+		const u_char* pkt_data{};
+		time_t local_tv_sec{};
 
 		/* Open the adapter */
 		if ((adhandle = pcap_open_live(adapter.networkAdapterLongName.c_str(),    // name of the device
@@ -412,7 +412,7 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 
 				if (ret == FOUND_CAMERA) {
 					app->ignoreAdapters.push_back(adapter);
-					app->onFoundCamera(adapter);
+					app->onFoundCamera();
 					pcap_close(adhandle);
 					break;
 				}

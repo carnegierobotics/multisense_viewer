@@ -15,7 +15,6 @@
 #include "vulkan/vulkan_core.h"
 #include "MultiSense/Src/Core/Definitions.h"
 #include "Logger.h"
-#include "MultiSense/Src/imgui/Layer.h"
 
 #ifdef WIN32
 #include <direct.h>
@@ -27,6 +26,8 @@
 #endif
 
 #include "stb_image_write.h"
+#include "stb_image.h"
+#include "Macros.h"
 
 extern "C" {
 #include<libavutil/avutil.h>
@@ -38,7 +39,8 @@ extern "C" {
 }
 
 namespace Utils {
-
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FUNCTION
     static std::string getShadersPath() {
         return "./Assets/Shaders/";
     }
@@ -162,6 +164,7 @@ namespace Utils {
 
         return AR_CAMERA_IMAGE_NONE;
     }
+    DISABLE_WARNING_POP
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
@@ -223,6 +226,30 @@ namespace Utils {
         if (resolution == "1024 x 1024 x 128x") return CRL_RESOLUTION_1024_1024_128;
         if (resolution == "2048 x 1088 x 256x") return CRL_RESOLUTION_2048_1088_256;
         return CRL_RESOLUTION_NONE;
+    }
+
+    inline std::string cameraResolutionToString(const CRLCameraResolution &res) {
+        switch (res) {
+            case CRL_RESOLUTION_960_600_64:
+                return "960 x 600 x 64";
+            case CRL_RESOLUTION_960_600_128:
+                return "960 x 600 x 128";
+            case CRL_RESOLUTION_960_600_256:
+                return "960 x 600 x 256";
+            case CRL_RESOLUTION_1920_1200_64:
+                return "1920 x 1200 x 64";
+            case CRL_RESOLUTION_1920_1200_128:
+                return "1920 x 1200 x 128";
+            case CRL_RESOLUTION_1920_1200_256:
+                return "1920 x 1200 x 256";
+            case CRL_RESOLUTION_1024_1024_128:
+                return "1024 x 1024 x 128";
+            case CRL_RESOLUTION_2048_1088_256:
+                return "2048 x 1088 x 256";
+            case CRL_RESOLUTION_NONE:
+                return "Resolution not supported";
+        }
+        return "Resolution not supported";
     }
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
@@ -326,7 +353,7 @@ namespace Utils {
             }
         }
 
-        throw std::runtime_error("failed to find supported format!");
+        throw std::runtime_error("failed to find supported m_Format!");
     }
 
     inline VkFormat findDepthFormat(VkPhysicalDevice physicalDevice) {
@@ -336,8 +363,8 @@ namespace Utils {
     }
 
 
-    // Create an image memory barrier for changing the layout of
-    // an image and put it into an active command buffer
+    // Create an m_Image memory barrier for changing the layout of
+    // an m_Image and put it into an active command buffer
     // See chapter 11.4 "Image Layout" for details
 
     inline void setImageLayout(
@@ -348,7 +375,7 @@ namespace Utils {
             VkImageSubresourceRange subresourceRange,
             VkPipelineStageFlags srcStageMask,
             VkPipelineStageFlags dstStageMask) {
-        // Create an image barrier object
+        // Create an m_Image barrier object
         VkImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -391,19 +418,19 @@ namespace Utils {
 
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 // Image is a transfer source
-                // Make sure any reads from the image have been finished
+                // Make sure any reads from the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
                 // Image is a transfer destination
-                // Make sure any writes to the image have been finished
+                // Make sure any writes to the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
                 // Image is read by a shader
-                // Make sure any shader reads from the image have been finished
+                // Make sure any shader reads from the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
             default:
@@ -412,17 +439,17 @@ namespace Utils {
         }
 
         // Target layouts (new)
-        // Destination access mask controls the dependency for the new image layout
+        // Destination access mask controls the dependency for the new m_Image layout
         switch (newImageLayout) {
             case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
                 // Image will be used as a transfer destination
-                // Make sure any writes to the image have been finished
+                // Make sure any writes to the m_Image have been finished
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 break;
 
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 // Image will be used as a transfer source
-                // Make sure any reads from the image have been finished
+                // Make sure any reads from the m_Image have been finished
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
 
@@ -440,8 +467,8 @@ namespace Utils {
                 break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-                // Image will be read in a shader (sampler, input attachment)
-                // Make sure any writes to the image have been finished
+                // Image will be read in a shader (m_Sampler, input attachment)
+                // Make sure any writes to the m_Image have been finished
                 if (imageMemoryBarrier.srcAccessMask == 0) {
                     imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
                 }
@@ -531,13 +558,13 @@ namespace Utils {
     template<typename T>
     size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
         // Find given element in vector
-        size_t result;
         auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
         if (it != vecOfElements.end())
             return std::distance(vecOfElements.begin(), it);
         else
             return 0;
     }
+
 
 
 

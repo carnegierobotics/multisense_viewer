@@ -87,7 +87,7 @@ namespace VkRender {
             return res;
         }
 
-        uint32_t getTaskListSize() {
+        size_t getTaskListSize() {
             return tasks_.size();
         }
 

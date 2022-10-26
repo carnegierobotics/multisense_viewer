@@ -5,13 +5,13 @@
 #ifndef MULTISENSE_CAMERACONNECTION_H
 #define MULTISENSE_CAMERACONNECTION_H
 
-#include <MultiSense/Src/imgui/Layer.h>
 #include <memory>
 #include "MultiSense/external/simpleini/SimpleIni.h"
 #include "ThreadPool.h"
 #include "CRLPhysicalCamera.h"
 
 #define NUM_THREADS 3
+#define MAX_FAILED_STATUS_ATTEMPTS 4
 
 namespace VkRender::MultiSense {
 /**
@@ -32,7 +32,7 @@ namespace VkRender::MultiSense {
             /**@brief Called once per frame with a handle to the devices UI information block
              * @param devices vector of devices 1:1 relationship with elements shown in sidebar
              * @param[in] shouldConfigNetwork if user have ticked the "configure network" checkbox
-             * @param[in] isRemoteHead if the connected device is a remote head, also selected by user
+             * @param[in] isRemoteHead if the connected m_Device is a remote head, also selected by user
              */
             void onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead);
 
@@ -42,19 +42,19 @@ namespace VkRender::MultiSense {
             void saveProfileAndDisconnect(VkRender::Device *dev);
 
         private:
-            /**@brief file descriptor to configure network settings on Linux */
+            /**@brief file m_Descriptor to configure network settings on Linux */
             int m_FD = -1;
             /** @brief get status attempt counter */
             int m_FailedGetStatusCount = 0;
             /** @brief get status timer */
-            std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> getStatusTimer;
+            std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
             /**@brief mutex to prevent multiple threads to communicate with camera.
              * could be omitted if threadpool will always consist of one thread */
             std::mutex writeParametersMtx{};
 
             /**
-             * @brief Function called once per update by \refitem onUIUpdate if we have an active device
-             * @param[out] dev which profile this device is connected to
+             * @brief Function called once per update by \refitem onUIUpdate if we have an active m_Device
+             * @param[out] dev which profile this m_Device is connected to
              */
             void updateActiveDevice(VkRender::Device *dev);
 
@@ -75,11 +75,11 @@ namespace VkRender::MultiSense {
             void
             initCameraModes(std::vector<std::string> *modes, std::vector<crl::multisense::system::DeviceMode> vector);
 
-            // Add ini entry with log lines
-            /**@brief Add a .ini entry and log it*/
+            // Add ini m_Entry with log lines
+            /**@brief Add a .ini m_Entry and log it*/
             static void addIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value);
 
-            /**@brief Delete a .ini entry and log it*/
+            /**@brief Delete a .ini m_Entry and log it*/
             static void deleteIniEntry(CSimpleIniA *ini, std::string section, std::string key, std::string value);
 
             // Caller functions for every *Task function is meant to be a threaded function
@@ -116,7 +116,7 @@ namespace VkRender::MultiSense {
              * @param[in] index Which remote-head to select
              * */
             static void
-            setResolutionTask(void *context, CRLCameraResolution arg1,
+            setResolutionTask(void *context, CRLCameraResolution arg1,  VkRender::Device *dev,
                               crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
             /**@brief Set parameters to the sensor. Grouped together as in the UI
@@ -163,7 +163,7 @@ namespace VkRender::MultiSense {
              * @param[in] remoteHeadIndex id of remote head to select
              * @param[out] msg if a status was received. This object is filled with the latest information
              */
-            static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex, crl::multisense::system::StatusMessage* msg);
+            static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
             /**@brief Update the UI block using the active information block from the physical camera
              * @param[in] dev profile to update UI from
@@ -193,6 +193,8 @@ namespace VkRender::MultiSense {
                     crl::multisense::Source_Compressed_Aux,
                     crl::multisense::Source_Compressed_Rectified_Aux
             };
+
+            void updateUIDataBlock(VkRender::Device &dev);
         };
 
     }

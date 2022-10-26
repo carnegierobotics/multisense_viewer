@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>
 #include <cstring>
 #include <iostream>
+#include "MultiSense/Src/Tools/Macros.h"
 
 
 #ifdef NDEBUG
@@ -26,7 +27,9 @@ const bool enableValidationLayers = true;
 
 namespace Validation {
 
-
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+    DISABLE_WARNING_UNREFERENCED_FUNCTION
 // - Debug utilities
     static VkResult
     CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -49,7 +52,6 @@ namespace Validation {
         }
     }
 
-
     static VKAPI_ATTR VkBool32 VKAPI_CALL
     debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
                   const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
@@ -61,8 +63,10 @@ namespace Validation {
         /*else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
             std::cout << "validation INFO: " << pCallbackData->pMessage << std::endl;
         }*/
+
         return VK_FALSE;
     }
+
 
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
         createInfo = {};
@@ -140,6 +144,8 @@ namespace Validation {
         }
         return true;
     }
+
+DISABLE_WARNING_POP
 };
 
 #endif //MULTISENSE_VALIDATION_H

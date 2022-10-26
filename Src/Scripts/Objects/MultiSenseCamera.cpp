@@ -1,8 +1,8 @@
 #include "MultiSenseCamera.h"
 
 void MultiSenseCamera::setup() {
-    model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
-                       renderUtils.device->transferQueue, 1.0f);
+    m_Model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
+                         renderUtils.device->m_TransferQueue, 1.0f);
 
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
@@ -46,7 +46,7 @@ void MultiSenseCamera::update() {
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->viewPos;
+    d2->viewPos = renderData.camera->m_ViewPos;
 
 }
 

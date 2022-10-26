@@ -300,6 +300,11 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
                     break;
+                case AR_STATE_LOST_CONNECTION:
+                    buttonIdentifier = "Lost connection...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
+                    break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);

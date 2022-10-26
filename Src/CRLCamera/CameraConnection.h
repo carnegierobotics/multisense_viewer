@@ -11,6 +11,7 @@
 #include "CRLPhysicalCamera.h"
 
 #define NUM_THREADS 3
+#define MAX_FAILED_STATUS_ATTEMPTS 4
 
 namespace VkRender::MultiSense {
 /**
@@ -38,7 +39,7 @@ namespace VkRender::MultiSense {
             /**@brief Writes the current state of *dev to crl.ini configuration file
              * @param[in] dev which profile to save to crl.ini
              */
-            void saveProfileAndDisconnect(VkRender::Device *dev);
+            void saveProfile(VkRender::Device *dev);
 
         private:
             /**@brief file m_Descriptor to configure network settings on Linux */

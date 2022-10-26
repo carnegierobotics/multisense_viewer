@@ -225,6 +225,7 @@ void Renderer::render() {
             scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         }
     }
 
@@ -365,7 +366,7 @@ void Renderer::windowResized() {
 
 void Renderer::cleanUp() {
     for (auto &dev: guiManager->handles.devices)
-        cameraConnection->saveProfileAndDisconnect(&dev);
+        cameraConnection->saveProfile(&dev);
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file

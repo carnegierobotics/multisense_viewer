@@ -93,7 +93,7 @@ namespace VkRender::MultiSense {
         for (auto &ch: dev->channelInfo) {
             if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode,dev, ch.index);
+                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, dev, ch.index);
                 ch.updateResolutionMode = false;
             }
 
@@ -142,22 +142,16 @@ namespace VkRender::MultiSense {
 
     void
     CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
-        // If no m_Device is connected then return
         if (devices.empty())
             return;
-        // Check for actions on each element
+
         for (auto &dev: devices) {
 
-            // If we have requested to reset a connection or want to remove it from saved profiles
-            if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET) {
-                // Only call this task if it is not already running
-                saveProfileAndDisconnect(&dev);
-                if (dev.state == AR_STATE_RESET) {
-                    for (auto ch: dev.channelConnections)
-                        camPtr->stop("All",
-                                     ch); // This operation may be blocking because we dont want to stop our threadpool before we know camPtr->stop is finished
-
-                }
+            // If we have requested (previous frame) to reset a connection or want to remove it from saved profiles
+            if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET ||
+                dev.state == AR_STATE_LOST_CONNECTION) {
+                dev.selectedPreviewTab = TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
+                saveProfile(&dev);
                 pool->Stop();
                 return;
             }
@@ -176,10 +170,7 @@ namespace VkRender::MultiSense {
                 }
                 if (resetOtherDevice) {
                     for (auto ch: dev.channelConnections)
-                        camPtr->stop("All",
-                                     ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection
-
-                    saveProfileAndDisconnect(otherDev);
+                        camPtr->stop("All", ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection                    saveProfile(otherDev);
                 }
                 dev.state = AR_STATE_CONNECTING;
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
@@ -200,6 +191,16 @@ namespace VkRender::MultiSense {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}", dev.name);
                 dev.state = AR_STATE_RESET;
+                for (auto ch: dev.channelConnections)
+                    pool->Push(stopStreamTask, this, "All", ch);
+            }
+
+            // Disable if we lost connection
+            if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
+                // Disable all streams and delete camPtr on next update
+                Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
+                                                 dev.name);
+                dev.state = AR_STATE_LOST_CONNECTION;
             }
         }
     }
@@ -218,7 +219,8 @@ namespace VkRender::MultiSense {
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
             auto imgConf = camPtr->getCameraInfo(ch).imgConf;
-            chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(), imgConf.disparities());
+            chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
+                                                                 imgConf.disparities());
 
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
@@ -227,8 +229,8 @@ namespace VkRender::MultiSense {
         }
 
         // Update Debug Window
-        auto& info = Log::Logger::getLogMetrics()->device.info;
-        const auto& cInfo = camPtr->getCameraInfo(0).versionInfo;
+        auto &info = Log::Logger::getLogMetrics()->device.info;
+        const auto &cInfo = camPtr->getCameraInfo(0).versionInfo;
 
         info.firmwareBuildDate = cInfo.sensorFirmwareBuildDate;
         info.firmwareVersion = cInfo.sensorFirmwareVersion;
@@ -526,7 +528,7 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::saveProfileAndDisconnect(VkRender::Device *dev) {
+    void CameraConnection::saveProfile(VkRender::Device *dev) {
         Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                          dev->cameraName.c_str());
         // Save settings to file. Attempt to create a new file if it doesn't exist
@@ -573,6 +575,7 @@ namespace VkRender::MultiSense {
         }
         // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
         // save the data back to the file
+
         if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
             dev->state = AR_STATE_REMOVE_FROM_LIST;

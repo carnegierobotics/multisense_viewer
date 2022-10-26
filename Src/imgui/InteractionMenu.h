@@ -28,15 +28,21 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        if (handles->devices.empty()) return;
         bool allUnavailable = true;
         for (auto &d: handles->devices) {
             if (d.state == AR_STATE_ACTIVE)
                 allUnavailable = false;
         }
 
-        if (allUnavailable)
+        if (allUnavailable) {
+            // Use background color again
+            handles->clearColor[0] = VkRender::CRLCoolGray.x;
+            handles->clearColor[1] = VkRender::CRLCoolGray.y;
+            handles->clearColor[2] = VkRender::CRLCoolGray.z;
+            handles->clearColor[3] = VkRender::CRLCoolGray.w;
+
             return;
+        }
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: handles->devices) {
@@ -263,10 +269,10 @@ private:
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
-            handles->clearColor[0] = 0.870f;
-            handles->clearColor[1] = 0.878f;
-            handles->clearColor[2] = 0.862f;
-            handles->clearColor[3] = 1.0f;
+            handles->clearColor[0] = VkRender::CRLCoolGray.x;
+            handles->clearColor[1] = VkRender::CRLCoolGray.y;
+            handles->clearColor[2] = VkRender::CRLCoolGray.z;
+            handles->clearColor[3] = VkRender::CRLCoolGray.w;
         }
         ImGui::PopStyleColor();
 
@@ -283,10 +289,10 @@ private:
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
-            handles->clearColor[0] = 0.0f;
-            handles->clearColor[1] = 0.0f;
-            handles->clearColor[2] = 0.0f;
-            handles->clearColor[3] = 1.0f;
+            handles->clearColor[0] = VkRender::CRL3DBackground.x;
+            handles->clearColor[1] = VkRender::CRL3DBackground.y;
+            handles->clearColor[2] = VkRender::CRL3DBackground.z;
+            handles->clearColor[3] = VkRender::CRL3DBackground.w;
         }
         if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PopItemFlag();

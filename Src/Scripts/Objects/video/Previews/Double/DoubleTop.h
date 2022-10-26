@@ -22,6 +22,7 @@ public:
         s_bRegistered;
         DISABLE_WARNING_POP    }
     void onDestroy() override{
+        stbi_image_free(pixels);
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DoubleTop>(); }

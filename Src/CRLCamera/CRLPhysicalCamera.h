@@ -87,6 +87,10 @@ namespace VkRender::MultiSense {
 
             ~ChannelWrapper() {
                 delete imageBuffer;
+                // Reset image counter for debugger
+                for (auto& src : Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
+                    src.second = 0;
+
                 if (channelPtr_) {
                     crl::multisense::Channel::Destroy(channelPtr_);
                 }

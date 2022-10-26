@@ -64,12 +64,13 @@ typedef enum ArConnectionState {
     AR_STATE_CONNECTING = 1,
     AR_STATE_ACTIVE = 2,
     AR_STATE_INACTIVE = 3,
-    AR_STATE_RESET = 4,
-    AR_STATE_DISCONNECTED = 5,
-    AR_STATE_UNAVAILABLE = 6,
-    AR_STATE_DISCONNECT_AND_FORGET = 7,
-    AR_STATE_REMOVE_FROM_LIST = 8,
-    AR_STATE_JUST_ADDED = 9
+    AR_STATE_LOST_CONNECTION = 4,
+    AR_STATE_RESET = 5,
+    AR_STATE_DISCONNECTED = 6,
+    AR_STATE_UNAVAILABLE = 7,
+    AR_STATE_DISCONNECT_AND_FORGET = 8,
+    AR_STATE_REMOVE_FROM_LIST = 9,
+    AR_STATE_JUST_ADDED = 10
 } ArConnectionState;
 
 
@@ -445,6 +446,7 @@ namespace VkRender {
     static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
     static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
+    static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
 
 
     struct GuiLayerUpdateInfo {

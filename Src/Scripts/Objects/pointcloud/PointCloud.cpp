@@ -15,12 +15,6 @@ void PointCloud::setup() {
 
 void PointCloud::update() {
 
-    if (renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.width() != width) {
-        model->draw = false;
-        Log::Logger::getInstance()->info("Size mismatch with m_Image size and imgconf in pointcloud");
-        prepareTexture();
-        return;
-    }
 
     if (model->draw) {
         const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
@@ -86,9 +80,9 @@ void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 
 void PointCloud::prepareTexture() {
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-    width = imgConf.width();
-    height = imgConf.height();
+    uint32_t width = 0, height = 0, depth = 0;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
+
     std::vector<VkRender::Vertex> meshData{};
     meshData.resize(width * height);
     int v = 0;

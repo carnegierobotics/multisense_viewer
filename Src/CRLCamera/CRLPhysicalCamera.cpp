@@ -189,6 +189,9 @@ namespace VkRender::MultiSense {
         const float xScale = 1.0f / ((static_cast<float>(infoMap[0].devInfo.imagerWidth) /
                                       static_cast<float>(width)));
         // From LibMultisenseUtility
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
         crl::multisense::image::Config c = infoMap[0].imgConf;
         const float &fx = c.fx();
         const float &fy = c.fy();

@@ -436,6 +436,7 @@ private:
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLCoolGray);
 
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
@@ -833,7 +834,7 @@ private:
 
             ImGui::EndPopup();
         }
-
+        ImGui::PopStyleColor();
         ImGui::PopStyleVar(5); // popup style vars
     }
 

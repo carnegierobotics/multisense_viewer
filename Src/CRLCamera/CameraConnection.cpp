@@ -245,10 +245,7 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
-        dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
-        dev.win.clear();
-
+    void CameraConnection::getProfileFromIni(VkRender::Device &dev) const {
         for (auto ch: dev.channelConnections) {
             CSimpleIniA ini;
             ini.SetUnicode();
@@ -279,9 +276,9 @@ namespace VkRender::MultiSense {
                         std::string key = "Preview" + std::to_string(i + 1);
                         std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
                         std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
-                        if (!source.empty()) {
+                        if (!source.empty() && source != std::string("Source:" + remoteHeadIndex)) {
                             dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
-                            dev.win[i].selectedRemoteHeadIndex = std::stoi(remoteHeadIndex);
+                            dev.win[i].selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(remoteHeadIndex);
                             Log::Logger::getInstance()->info(
                                     ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                     source.substr(0, source.find_last_of(':')),
@@ -518,6 +515,7 @@ namespace VkRender::MultiSense {
         if (!dev->channelConnections.empty()) {
             //app->getProfileFromIni(*dev);
             app->updateUIDataBlock(*dev);
+            app->getProfileFromIni(*dev);
             // Set the resolution read from config file
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;

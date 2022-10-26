@@ -50,7 +50,6 @@ public:
     std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
-    uint32_t width{}, height{};
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;

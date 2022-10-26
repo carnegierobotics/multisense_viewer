@@ -279,7 +279,7 @@ public:
 
         }
         ImGui::EndChild();
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
         ImGui::End();
 
     }

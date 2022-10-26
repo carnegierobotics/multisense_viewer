@@ -59,11 +59,11 @@
 // POSIX Socket Header File(s)
 #include <cerrno>
 #include <pthread.h>
+#endif
+
 #include <queue>
 #include <unordered_map>
 #include "MultiSense/Src/Core/Definitions.h"
-
-#endif
 
 namespace Log {
     // Direct Interface for logging into log file or console using MACRO(s)

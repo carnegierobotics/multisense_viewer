@@ -221,7 +221,7 @@ namespace VkRender::MultiSense {
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
-            auto imgConf = camPtr->getCameraInfo(ch).imgConf;
+            const auto& imgConf = camPtr->getCameraInfo(ch).imgConf;
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
 

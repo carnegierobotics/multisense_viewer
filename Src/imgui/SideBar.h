@@ -738,7 +738,7 @@ private:
                         indexList.push_back(a.index);
 
                         if (Utils::isInVector(interfaceDescriptionList, "No adapters found")) {
-                            Utils::delFromVector(interfaceDescriptionList, "No adapters found");
+                            Utils::delFromVector(&interfaceDescriptionList, std::string("No adapters found"));
                         }
                     }
                 }

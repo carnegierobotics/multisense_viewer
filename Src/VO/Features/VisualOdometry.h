@@ -9,6 +9,7 @@
 #include "MultiSense/Src/Core/Definitions.h"
 #include "Feature.h"
 #include "MultiSense/MultiSenseTypes.hh"
+#include "MultiSense/Src/Scripts/Private/TextureDataDef.h"
 
 
 class VisualOdometry {

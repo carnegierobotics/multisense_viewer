@@ -155,7 +155,7 @@ namespace VkRender::MultiSense {
             case AR_GRAYSCALE_IMAGE:
             case AR_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data().width ||
-                    tex->m_Height != header->data().height)
+                    tex->m_Height < header->data().height)
                     return false;
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);

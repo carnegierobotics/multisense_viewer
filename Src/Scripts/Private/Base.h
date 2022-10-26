@@ -225,7 +225,7 @@ namespace VkRender {
 			return shaderStage;
 		}
 
-	protected:
+	private:
 		std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
 		std::chrono::steady_clock::time_point lastLogTime;
 

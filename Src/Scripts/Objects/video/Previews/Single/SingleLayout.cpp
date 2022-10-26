@@ -18,11 +18,14 @@ void SingleLayout::setup() {
     noImageModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,STBI_rgb_alpha);
+    pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
+                       STBI_rgb_alpha);
     if (!pixels) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath() + "no_image_tex.png"));
     }
+
+    lastPresentTime = std::chrono::steady_clock::now();
     prepareDefaultTexture();
     updateLog();
 }
@@ -36,10 +39,26 @@ void SingleLayout::update() {
     model->getTextureDataPointers(&tex);
     // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
+        // If we have already presented this frame id and
+        std::chrono::duration<float> time_span =
+                std::chrono::duration_cast<std::chrono::duration<float>>(
+                        std::chrono::steady_clock::now() - lastPresentTime);
+        float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
+        if (time_span.count() > (frameTime) &&
+        lastPresentedFrameID == tex.m_Id){
+            drawDefaultTexture = true;
+            return;
+       }
+
+        // update timer
+        if (lastPresentedFrameID != tex.m_Id){
+            lastPresentTime = std::chrono::steady_clock::now();
+        }
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
         if (model->updateTexture(textureType)) {
             drawDefaultTexture = false;
+            lastPresentedFrameID = tex.m_Id;
         } else {
             prepareMultiSenseTexture();
             return;
@@ -69,18 +88,15 @@ void SingleLayout::update() {
 }
 
 void SingleLayout::prepareDefaultTexture() {
-
     noImageModel->modelType = AR_COLOR_IMAGE;
     noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
     std::string vertexShaderFileName = "myScene/spv/quad.vert";
     std::string fragmentShaderFileName = "myScene/spv/quad.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
-                                                            {fs}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, noImageModel.get(), &renderUtils);
-
     auto defTex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
     if (noImageModel->getTextureDataPointers(defTex.get())) {
         std::memcpy(defTex->data, pixels, texWidth * texHeight * texChannels);

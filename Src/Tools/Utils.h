@@ -248,6 +248,7 @@ namespace Utils {
             case CRL_RESOLUTION_NONE:
                 return "Resolution not supported";
         }
+        return "Resolution not supported";
     }
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */

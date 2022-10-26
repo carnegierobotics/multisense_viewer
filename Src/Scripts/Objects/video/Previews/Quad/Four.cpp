@@ -27,9 +27,9 @@ void Four::update(){
             return;
         }
         const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = std::make_unique<VkRender::TextureData>(textureType, conf.width(), conf.height());
-        model->getTextureDataPointer(tex.get());
-        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
+        auto tex = VkRender::TextureData(textureType, conf.width(), conf.height());
+        model->getTextureDataPointers(&tex);
+        if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
             model->updateTexture(textureType);
         }
     }
@@ -83,7 +83,7 @@ void Four::prepareTexture() {
     width = imgConf.width();
     height = imgConf.height();
 
-    model->createEmtpyTexture(width, height, textureType);
+    model->createEmptyTexture(width, height, textureType);
     //auto *imgData = new ImageData(posXMin, posXMax, posYMin, posYMax);
 
 

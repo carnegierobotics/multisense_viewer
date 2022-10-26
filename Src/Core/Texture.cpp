@@ -80,7 +80,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
     CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAllocInfo, nullptr, &stagingMemory));
     CHECK_RESULT(vkBindBufferMemory(device->m_LogicalDevice, stagingBuffer, stagingMemory, 0));
 
-    uint8_t* data = nullptr;
+    uint8_t *data = nullptr;
     CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
     vkUnmapMemory(device->m_LogicalDevice, stagingMemory);
@@ -370,7 +370,8 @@ Texture2D::Texture2D(void *buffer, VkDeviceSize bufferSize, VkFormat format, uin
                      VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
                      VkImageLayout imageLayout) {
 
-    fromBuffer(buffer, bufferSize, format, texWidth, texHeight, device, copyQueue, filter, imageUsageFlags, imageLayout);
+    fromBuffer(buffer, bufferSize, format, texWidth, texHeight, device, copyQueue, filter, imageUsageFlags,
+               imageLayout);
 }
 
 /**
@@ -456,7 +457,8 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
-    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
+                                 VK_COMPONENT_SWIZZLE_A};
     viewCreateInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.image = m_Image;
@@ -505,63 +507,46 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
         case VK_FORMAT_R16_UNORM:
         case VK_FORMAT_R16_UINT:
             size = (VkDeviceSize) m_Width * m_Height * 2;
-        CHECK_RESULT(device->createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                size,
-                &stagingBuffer,
-                &stagingMemory));
-
-            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
             break;
         case VK_FORMAT_R8_UNORM:
             size = (VkDeviceSize) m_Width * m_Height;
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    size,
-                    &stagingBuffer,
-                    &stagingMemory));
-            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
             break;
         case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
             size = (VkDeviceSize) m_Width * m_Height;
-
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    size,
-                    &stagingBuffer,
-                    &stagingMemory));
-            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
-
-            size = (VkDeviceSize) m_Width * m_Height;
-
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    size,
-                    &stagingBuffer2,
-                    &stagingMemory2));
-            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory2, 0, size, 0, (void **) &data2));
-            break;
-
+            size2 = (VkDeviceSize) m_Width * m_Height / 2;
         case VK_FORMAT_R8G8B8A8_UNORM:
             size = (VkDeviceSize) m_Width * m_Height * 4;
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    size,
-                    &stagingBuffer,
-                    &stagingMemory));
-
-            CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
             break;
         default:
             std::cerr << "No video texture type for that m_Format yet\n";
             break;
     }
+
+    CHECK_RESULT(device->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            size,
+            &stagingBuffer,
+            &stagingMemory));
+
+    CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+
+    Log::Logger::getInstance()->info("Allocated Texture GPU memory {} bytes with format {}", size, (int) format);
+
+    if (size2 != 0){
+        CHECK_RESULT(device->createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                size2,
+                &stagingBuffer2,
+                &stagingMemory2));
+        CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory2, 0, size2, 0, (void **) &data2));
+        Log::Logger::getInstance()->info("Allocated Secondary Texture GPU memory {} bytes with format {}", size2, (int) format);
+
+    }
+
+
 }
 
 
@@ -699,6 +684,7 @@ void TextureVideo::updateTextureFromBufferYUV() {
 
 
 }
+
 /*
 void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
 

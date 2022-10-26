@@ -10,15 +10,18 @@ void SingleLayout::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    noImageModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
 
     // Create quad and store it locally on the GPU
     ImageData imgData{};
     model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+    noImageModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+
     // Create texture m_Image if not created
     pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
                        STBI_rgb_alpha);
     if (!pixels) {
-        Log::Logger::getInstance()->info("Failed to log texture image {}",
+        Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath() + "no_image_tex.png"));
     }
     prepareDefaultTexture();
@@ -29,17 +32,22 @@ void SingleLayout::update() {
     if (selectedPreviewTab != TAB_2D_PREVIEW)
         return;
 
-    auto tex = VkRender::TextureData(textureType, width, height);
-    model->getTextureDataPointer(&tex);
-    // If we get an image successfully render it, otherwise revert to default image
+    auto tex = VkRender::TextureData(textureType, res);
+
+    model->getTextureDataPointers(&tex);
+    // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
-        model->updateTexture(textureType);
+        // If we get MultiSense images then
+        // Update the texture or update the GPU Texture
+        if (model->updateTexture(textureType)) {
+            drawDefaultTexture = false;
+        } else {
+            prepareMultiSenseTexture();
+            return;
+        }
+        // If we didn't receive a valid MultiSense image then draw default texture
     } else {
-        auto defTex = VkRender::TextureData(AR_COLOR_IMAGE, texWidth, texHeight);
-        prepareDefaultTexture();
-        model->getTextureDataPointer(&defTex);
-        std::memcpy(defTex.data, pixels, texWidth * texHeight * texChannels);
-        model->updateTexture(defTex.m_Type);
+            drawDefaultTexture = true;
     }
 
     VkRender::UBOMatrix mat{};
@@ -63,22 +71,22 @@ void SingleLayout::update() {
 
 void SingleLayout::prepareDefaultTexture() {
 
-    if (!usingDefaultTexture) {
-        model->modelType = AR_COLOR_IMAGE;
-        textureType = AR_COLOR_IMAGE;
-        model->createEmtpyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
-        std::string vertexShaderFileName = "myScene/spv/quad.vert";
-        std::string fragmentShaderFileName = "myScene/spv/quad.frag";
-        VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
-        VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
-        std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
-                                                                {fs}};
-        // Create graphics render pipeline
-        CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
-        usingDefaultTexture = true;
+    noImageModel->modelType = AR_COLOR_IMAGE;
+    noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
+    std::string vertexShaderFileName = "myScene/spv/quad.vert";
+    std::string fragmentShaderFileName = "myScene/spv/quad.frag";
+    VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
+    VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
+    // Create graphics render pipeline
+    CRLCameraModels::createRenderPipeline(shaders, noImageModel.get(), &renderUtils);
+
+    auto defTex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
+    if (noImageModel->getTextureDataPointers(defTex.get())) {
+        std::memcpy(defTex->data, pixels, texWidth * texHeight * texChannels);
+        noImageModel->updateTexture(defTex->m_Type);
     }
-
-
 }
 
 void SingleLayout::prepareMultiSenseTexture() {
@@ -102,21 +110,17 @@ void SingleLayout::prepareMultiSenseTexture() {
             std::cerr << "Invalid Texture type" << std::endl;
             return;
     }
-
-
-    auto imgConf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-    width = imgConf.width();
-    height = imgConf.height();
-    model->modelType = textureType;
-    model->createEmtpyTexture(width, height, textureType);
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
+
+    uint32_t width = 0, height = 0, depth = 0;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
+    model->modelType = textureType;
+    model->createEmptyTexture(width, height, textureType);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
-
-    usingDefaultTexture = false;
 }
 
 void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
@@ -127,13 +131,13 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         playbackSate = dev.playbackStatus;
         auto &preview = dev.win.at(AR_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
-        textureType = Utils::CRLSourceToTextureType(src);
 
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             src = preview.selectedSource;
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
+            textureType = Utils::CRLSourceToTextureType(src);
             prepareMultiSenseTexture();
         }
 
@@ -156,8 +160,13 @@ void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle
 
 
 void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == TAB_2D_PREVIEW)
-        CRLCameraModels::draw(commandBuffer, i, model.get(), b);
+    if (selectedPreviewTab == TAB_2D_PREVIEW){
+        if (drawDefaultTexture)
+            CRLCameraModels::draw(commandBuffer, i, noImageModel.get(), b);
+        else
+            CRLCameraModels::draw(commandBuffer, i, model.get(), b);
+
+    }
 }
 
 void SingleLayout::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
@@ -167,14 +176,12 @@ void SingleLayout::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     }
 }
 
-void SingleLayout::updateLog(){
-    auto* met = Log::Logger::getLogMetrics();
-    met->preview.height = height;
-    met->preview.width = width;
+void SingleLayout::updateLog() const {
+    auto *met = Log::Logger::getLogMetrics();
     met->preview.texHeight = texHeight;
     met->preview.texWidth = texWidth;
     met->preview.src = src;
     met->preview.textureType = textureType;
-    met->preview.usingDefaultTexture = usingDefaultTexture;
+    met->preview.usingDefaultTexture = drawDefaultTexture;
     met->preview.res = res;
 }

@@ -122,7 +122,8 @@ public:
     // Create a host-visible staging buffer that contains the raw m_Image data
     VkBuffer stagingBuffer{};
     VkDeviceMemory stagingMemory{};
-    VkDeviceSize size{};
+    VkDeviceSize size = 0;
+    VkDeviceSize size2 = 0;
     uint8_t *data{};
     VkBuffer stagingBuffer2{};
     VkDeviceMemory stagingMemory2{};

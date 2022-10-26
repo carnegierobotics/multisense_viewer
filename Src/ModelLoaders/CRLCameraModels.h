@@ -80,8 +80,6 @@ public:
 
         std::vector<Texture::TextureSampler> textureSamplers;
 
-        void setTexture(const std::basic_string<char, std::char_traits<char>, std::allocator<char>> &fileName);
-
         void
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                               const std::vector<uint32_t> &indices = std::vector<uint32_t>());

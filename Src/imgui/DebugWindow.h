@@ -42,7 +42,7 @@ public:
                     LineOffsets.push_back(old_size + 1);
         }
 
-        void Draw(const char *title, VkRender::GuiObjectHandles *pHandles) {
+        void Draw(VkRender::GuiObjectHandles *pHandles) {
             // Options menu
             if (ImGui::BeginPopup("Options")) {
                 ImGui::Checkbox("Auto-scroll", &AutoScroll);
@@ -142,7 +142,7 @@ public:
         ImGui::SetNextWindowSize(ImVec2(handles->info->debuggerWidth, handles->info->debuggerHeight),
                                  ImGuiCond_FirstUseEver);
         ImGui::Begin("Debugger Window", &pOpen, window_flags);
-        window.Draw("Logger", handles);
+        window.Draw(handles);
 
         auto &log = Log::Logger::getLogMetrics()->logQueue;
 
@@ -238,7 +238,6 @@ public:
                 ImGui::Text("Selected Mode %s", Utils::cameraResolutionToString(dev.selectedMode).c_str());
 
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
-                ImVec2 posMin = ImGui::GetItemRectMin();
                 ImGui::Dummy(ImVec2(2.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::Text("Application Enabled Sources:");

@@ -151,7 +151,7 @@ namespace VkRender::MultiSense {
             if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET ||
                 dev.state == AR_STATE_LOST_CONNECTION) {
                 dev.selectedPreviewTab = TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
-                saveProfile(&dev);
+                saveProfileAndDisconnect(&dev);
                 pool->Stop();
                 return;
             }
@@ -170,7 +170,10 @@ namespace VkRender::MultiSense {
                 }
                 if (resetOtherDevice) {
                     for (auto ch: dev.channelConnections)
-                        camPtr->stop("All", ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection                    saveProfile(otherDev);
+                        camPtr->stop("All",
+                                     ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection                    saveProfileAndDisconnect(otherDev);
+
+                    saveProfileAndDisconnect(otherDev);
                 }
                 dev.state = AR_STATE_CONNECTING;
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
@@ -528,7 +531,7 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::saveProfile(VkRender::Device *dev) {
+    void CameraConnection::saveProfileAndDisconnect(VkRender::Device *dev) {
         Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                          dev->cameraName.c_str());
         // Save settings to file. Attempt to create a new file if it doesn't exist

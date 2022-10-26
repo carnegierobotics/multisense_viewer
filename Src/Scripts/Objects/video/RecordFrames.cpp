@@ -148,5 +148,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             break;
         case AR_CAMERA_IMAGE_NONE:
             break;
+        case AR_COLOR_IMAGE:
+            break;
     }
 }

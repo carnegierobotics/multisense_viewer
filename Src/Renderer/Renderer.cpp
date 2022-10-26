@@ -366,7 +366,7 @@ void Renderer::windowResized() {
 
 void Renderer::cleanUp() {
     for (auto &dev: guiManager->handles.devices)
-        cameraConnection->saveProfile(&dev);
+        cameraConnection->saveProfileAndDisconnect(&dev);
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file

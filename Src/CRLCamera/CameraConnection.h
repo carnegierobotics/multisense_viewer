@@ -39,7 +39,7 @@ namespace VkRender::MultiSense {
             /**@brief Writes the current state of *dev to crl.ini configuration file
              * @param[in] dev which profile to save to crl.ini
              */
-            void saveProfile(VkRender::Device *dev);
+            void saveProfileAndDisconnect(VkRender::Device *dev);
 
         private:
             /**@brief file m_Descriptor to configure network settings on Linux */

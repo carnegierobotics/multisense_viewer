@@ -515,6 +515,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
             size = (VkDeviceSize) m_Width * m_Height;
             size2 = (VkDeviceSize) m_Width * m_Height / 2;
+            break;
         case VK_FORMAT_R8G8B8A8_UNORM:
             size = (VkDeviceSize) m_Width * m_Height * 4;
             break;

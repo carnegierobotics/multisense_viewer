@@ -8,7 +8,6 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 class One: public VkRender::Base, public VkRender::RegisteredInFactory<One>, CRLCameraModels
 {
@@ -16,9 +15,13 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     One() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
     void onDestroy() override{
+        stbi_image_free(pixels);
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<One>(); }
@@ -43,10 +46,7 @@ public:
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
-    int count = 1;
-    void *selection = (void *) "0";
     float up = -1.3f;
-    bool coordinateTransformed = false;
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -54,18 +54,26 @@ public:
     float centerX = 0.0f;
     float centerY = 0.0f;
     std::string src;
-    uint32_t remoteHeadIndex = 0;
+    int16_t remoteHeadIndex = 0;
     CRLCameraResolution res{};
     CameraPlaybackFlags playbackSate{};
-    uint32_t width{}, height{};
     CRLCameraDataType textureType{};
+
+    int64_t lastPresentedFrameID = -1;
+    std::chrono::steady_clock::time_point lastPresentTime;
+    int texWidth = 0, texHeight = 0, texChannels = 0;
+    unsigned char* pixels{};
+    std::unique_ptr<CRLCameraModels::Model> noImageModel;
+    bool drawDefaultTexture = true;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const VkRender::GuiObjectHandles * handles, VkRender::Device element);
+    void transformToUISpace(const VkRender::GuiObjectHandles * handles, const VkRender::Device& element);
 
-    void prepareTexture();
+    void prepareMultiSenseTexture();
+
+    void prepareDefaultTexture();
 };
 
 #endif //MULTISENSE_VIEWER_ONE_H

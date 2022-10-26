@@ -93,7 +93,7 @@ namespace VkRender::MultiSense {
         for (auto &ch: dev->channelInfo) {
             if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, dev, ch.index);
                 ch.updateResolutionMode = false;
             }
 
@@ -126,41 +126,37 @@ namespace VkRender::MultiSense {
 
         /** Get status update for each connected channel **/
         for (auto &ch: dev->channelInfo) {
-            crl::multisense::system::StatusMessage status;
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
-                    std::chrono::duration_cast<std::chrono::duration<float>>(time - getStatusTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
-                getStatusTimer = std::chrono::steady_clock::now();
-                pool->Push(CameraConnection::getStatusTask, this, ch.index, &status);
+                queryStatusTimer = std::chrono::steady_clock::now();
+                pool->Push(CameraConnection::getStatusTask, this, ch.index);
             }
         }
+
+
+        Log::Logger::getLogMetrics()->device.dev = dev;
     }
 
     void
     CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
-        // If no device is connected then return
         if (devices.empty())
             return;
-        // Check for actions on each element
+
         for (auto &dev: devices) {
 
-            // If we have requested to reset a connection or want to remove it from saved profiles
-            if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET) {
-                // Only call this task if it is not already running
+            // If we have requested (previous frame) to reset a connection or want to remove it from saved profiles
+            if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET ||
+                dev.state == AR_STATE_LOST_CONNECTION) {
+                dev.selectedPreviewTab = TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
                 saveProfileAndDisconnect(&dev);
-                if (dev.state == AR_STATE_RESET) {
-                    for (auto ch: dev.channelConnections)
-                        camPtr->stop("All",
-                                     ch); // This operation may be blocking because we dont want to stop our threadpool before we know camPtr->stop is finished
-
-                }
                 pool->Stop();
                 return;
             }
-            // Connect if we click a device in the sidebar or if it is just added by add device btn
+            // Connect if we click a m_Device in the sidebar or if it is just added by add m_Device btn
             if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
-                // reset other active device if present. So loop over all devices again.
+                // reset other active m_Device if present. So loop over all devices again.
                 bool resetOtherDevice = false;
                 VkRender::Device *otherDev;
                 for (auto &d: devices) {
@@ -174,7 +170,7 @@ namespace VkRender::MultiSense {
                 if (resetOtherDevice) {
                     for (auto ch: dev.channelConnections)
                         camPtr->stop("All",
-                                     ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection
+                                     ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection                    saveProfileAndDisconnect(otherDev);
 
                     saveProfileAndDisconnect(otherDev);
                 }
@@ -192,20 +188,30 @@ namespace VkRender::MultiSense {
             }
 
             updateActiveDevice(&dev);
-            // Disable if we click a device already connected
+            // Disable if we click a m_Device already connected
             if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}", dev.name);
                 dev.state = AR_STATE_RESET;
+                for (auto ch: dev.channelConnections)
+                    pool->Push(stopStreamTask, this, "All", ch);
+            }
+
+            // Disable if we lost connection
+            std::scoped_lock lock(writeParametersMtx);
+            if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
+                // Disable all streams and delete camPtr on next update
+                Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
+                                                 dev.name);
+                dev.state = AR_STATE_LOST_CONNECTION;
             }
         }
     }
 
-    void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
+    void CameraConnection::updateUIDataBlock(VkRender::Device &dev) {
         dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
         dev.win.clear();
-
-        for (auto ch: dev.channelConnections) {
+        for (crl::multisense::RemoteHeadChannel ch: dev.channelConnections) {
             VkRender::ChannelInfo chInfo;
             chInfo.availableSources.clear();
             chInfo.modes.clear();
@@ -215,11 +221,35 @@ namespace VkRender::MultiSense {
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
-            chInfo.selectedMode = CRL_RESOLUTION_NONE;
-            // Check for previous user profiles attached to this hardware
+            const auto& imgConf = camPtr->getCameraInfo(ch).imgConf;
+            chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
+                                                                 imgConf.disparities());
+
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
             }
+            dev.channelInfo.at(ch) = chInfo;
+        }
+
+        // Update Debug Window
+        auto &info = Log::Logger::getLogMetrics()->device.info;
+        const auto &cInfo = camPtr->getCameraInfo(0).versionInfo;
+
+        info.firmwareBuildDate = cInfo.sensorFirmwareBuildDate;
+        info.firmwareVersion = cInfo.sensorFirmwareVersion;
+        info.apiBuildDate = cInfo.apiBuildDate;
+        info.apiVersion = cInfo.apiVersion;
+        info.hardwareMagic = cInfo.sensorHardwareMagic;
+        info.hardwareVersion = cInfo.sensorHardwareVersion;
+        info.sensorFpgaDna = cInfo.sensorFpgaDna;
+
+    }
+
+    void CameraConnection::getProfileFromIni(VkRender::Device &dev) {
+        dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
+        dev.win.clear();
+
+        for (auto ch: dev.channelConnections) {
             CSimpleIniA ini;
             ini.SetUnicode();
             SI_Error rc = ini.LoadFile("crl.ini");
@@ -240,8 +270,8 @@ namespace VkRender::MultiSense {
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
-                    chInfo.selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
-                    chInfo.selectedModeIndex = std::stoi(mode);
+                    dev.channelInfo.at(ch).selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
+                    dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
                     for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                         if (i == AR_PREVIEW_POINT_CLOUD)
@@ -256,14 +286,11 @@ namespace VkRender::MultiSense {
                                     ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                     source.substr(0, source.find_last_of(':')),
                                     i + 1, ch);
-
-                            chInfo.requestedStreams.emplace_back(dev.win[i].selectedSource);
-
+                            dev.channelInfo.at(ch).requestedStreams.emplace_back(dev.win[i].selectedSource);
                         }
                     }
                 }
             }
-            dev.channelInfo.at(ch) = chInfo;
         }
     }
 
@@ -333,7 +360,7 @@ namespace VkRender::MultiSense {
 
                 return false;
             }
-            // Specify interface name
+            // Specify interface m_Name
             const char *interface = dev.interfaceName.c_str();
             if (setsockopt(m_FD, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
                 Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
@@ -343,12 +370,12 @@ namespace VkRender::MultiSense {
             struct ifreq ifr{};
             /// note: no pointer here
             struct sockaddr_in inet_addr{}, subnet_mask{};
-            /* get interface name */
+            /* get interface m_Name */
             /* Prepare the struct ifreq */
             bzero(ifr.ifr_name, IFNAMSIZ);
             strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
-            /*** Call ioctl to get and backup current network device configuration ***/
+            /*** Call ioctl to get and backup current network m_Device configuration ***/
             /*
             std::string ipAddressBackup = "";
             std::string subnetMaskBackup = "";
@@ -407,10 +434,10 @@ namespace VkRender::MultiSense {
 
             /// note: prepare the two struct sockaddr_in
             inet_addr.sin_family = AF_INET;
-            int inet_addr_config_result = inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
+            inet_pton(AF_INET, hostAddress.c_str(), &(inet_addr.sin_addr));
 
             subnet_mask.sin_family = AF_INET;
-            int subnet_mask_config_result = inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
+            inet_pton(AF_INET, "255.255.255.0", &(subnet_mask.sin_addr));
 
             /// put addr in ifr structure
             memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
@@ -432,7 +459,7 @@ namespace VkRender::MultiSense {
                                                   strerror(errno));
             }
 
-            strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface name where you want to set the MTU
+            strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
             ifr.ifr_mtu = 7200; //your MTU size here
             if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
                 Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
@@ -489,12 +516,13 @@ namespace VkRender::MultiSense {
         // If we successfully connect
         dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
         if (!dev->channelConnections.empty()) {
-            app->getProfileFromIni(*dev);
+            //app->getProfileFromIni(*dev);
+            app->updateUIDataBlock(*dev);
             // Set the resolution read from config file
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
             app->m_FailedGetStatusCount = 0;
-            app->getStatusTimer = std::chrono::steady_clock::now();
+            app->queryStatusTimer = std::chrono::steady_clock::now();
             dev->state = AR_STATE_ACTIVE;
         } else {
             dev->state = AR_STATE_UNAVAILABLE;
@@ -521,7 +549,7 @@ namespace VkRender::MultiSense {
         }
         std::string CRLSerialNumber = dev->serialName;
         // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
-        // new entry given we have a valid ini file entry
+        // new m_Entry given we have a valid ini file m_Entry
         if (rc >= 0 && !CRLSerialNumber.empty()) {
             // Profile Data
             addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev->name);
@@ -537,7 +565,6 @@ namespace VkRender::MultiSense {
                         dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
-                auto &chInfo = dev->channelInfo[ch];
                 for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                     if (i == AR_PREVIEW_POINT_CLOUD)
                         continue;
@@ -549,8 +576,9 @@ namespace VkRender::MultiSense {
                 }
             }
         }
-        // delete entry if we gave the disconnect and reset flag Otherwise just normal disconnect
+        // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
         // save the data back to the file
+
         if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
             dev->state = AR_STATE_REMOVE_FROM_LIST;
@@ -604,11 +632,12 @@ namespace VkRender::MultiSense {
     }
 
     void
-    CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1,
+    CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, VkRender::Device *dev,
                                         crl::multisense::RemoteHeadChannel idx) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         app->camPtr->setResolution(arg1, idx);
+        app->updateFromCameraParameters(dev, idx);
     }
 
     void CameraConnection::startStreamTask(void *context, std::string src,
@@ -653,12 +682,12 @@ namespace VkRender::MultiSense {
         dev->parameters.updateGuiParams = false;
     }
 
-    void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
-                                         crl::multisense::system::StatusMessage *msg) {
+    void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr->getStatus(remoteHeadIndex, msg)) {
-            Log::Logger::getInstance()->info("Channel {} Uptime: {:.1f}s",remoteHeadIndex, msg->uptime);
+        crl::multisense::system::StatusMessage msg;
+        if (app->camPtr->getStatus(remoteHeadIndex, &msg)) {
+            Log::Logger::getLogMetrics()->device.upTime = msg.uptime;
             app->m_FailedGetStatusCount = 0;
         } else {
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,
@@ -668,4 +697,6 @@ namespace VkRender::MultiSense {
         // Increment a counter
 
     }
+
+
 }

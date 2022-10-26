@@ -21,7 +21,7 @@ void RecordFrames::update() {
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             if (threadPool->getTaskListSize() < STACK_SIZE_100) {
-                Log::Logger::getInstance()->info("Saving image {} from source {}", tex->m_Id, src);
+                Log::Logger::getInstance()->info("Saving m_Image {} from source {}", tex->m_Id, src);
                 threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex);
             }
         }
@@ -40,8 +40,8 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
                 sources.emplace_back(window.second.selectedSource);
         }
 
-        saveImage = dev.isRecording;
         saveImagePath = dev.outputSaveFolder;
+        saveImage = dev.isRecording;
     }
 }
 
@@ -74,7 +74,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             auto *d = (uint16_t *) ptr->data;
             std::vector<uint8_t> buf;
             buf.reserve(ptr->m_Width * ptr->m_Height);
-            for (int i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
+            for (size_t i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
                 d[i] /= 16;
                 uint8_t lsb = d[i] & 0x000000FF;
                 buf.emplace_back(lsb);
@@ -105,7 +105,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
 
             std::memcpy(src->data[0], ptr->data, ptr->m_Len);
             auto* d = (uint16_t*) ptr->data2;
-            for (int i = 0; i < ptr->m_Height / 2 * ptr->m_Width/2; ++i) {
+            for (size_t i = 0; i < ptr->m_Height / 2 * ptr->m_Width/2; ++i) {
                 src->data[1][i] = d[i] & 0xff;
                 src->data[2][i] = (d[i] >> (8)) & 0xff;
             }
@@ -147,6 +147,8 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         case AR_YUV_PLANAR_FRAME:
             break;
         case AR_CAMERA_IMAGE_NONE:
+            break;
+        case AR_COLOR_IMAGE:
             break;
     }
 }

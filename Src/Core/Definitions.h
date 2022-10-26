@@ -9,8 +9,6 @@
 #include "glm/glm.hpp"
 #include "vulkan/vulkan_core.h"
 #include "include/MultiSense/MultiSenseTypes.hh"
-
-#include "MultiSense/Src/Tools/Logger.h"
 #include "unordered_map"
 #include "memory"
 #include "GLFW/glfw3.h"
@@ -18,13 +16,16 @@
 #include "VulkanDevice.h"
 #include "Camera.h"
 #include "KeyInput.h"
+#include "imgui.h"
 #include <utility>
+#include <array>
 
 #define NUM_YUV_DATA_POINTERS 3
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define STACK_SIZE_100 100
+
 
 namespace VkRender::MultiSense {
     class CRLPhysicalCamera;
@@ -45,6 +46,7 @@ typedef enum ScriptType {
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
     AR_GRAYSCALE_IMAGE,
+    AR_COLOR_IMAGE,
     AR_COLOR_IMAGE_YUV420,
     AR_YUV_PLANAR_FRAME,
     AR_CAMERA_IMAGE_NONE,
@@ -62,12 +64,13 @@ typedef enum ArConnectionState {
     AR_STATE_CONNECTING = 1,
     AR_STATE_ACTIVE = 2,
     AR_STATE_INACTIVE = 3,
-    AR_STATE_RESET = 4,
-    AR_STATE_DISCONNECTED = 5,
-    AR_STATE_UNAVAILABLE = 6,
-    AR_STATE_DISCONNECT_AND_FORGET = 7,
-    AR_STATE_REMOVE_FROM_LIST = 8,
-    AR_STATE_JUST_ADDED = 9
+    AR_STATE_LOST_CONNECTION = 4,
+    AR_STATE_RESET = 5,
+    AR_STATE_DISCONNECTED = 6,
+    AR_STATE_UNAVAILABLE = 7,
+    AR_STATE_DISCONNECT_AND_FORGET = 8,
+    AR_STATE_REMOVE_FROM_LIST = 9,
+    AR_STATE_JUST_ADDED = 10
 } ArConnectionState;
 
 
@@ -269,14 +272,13 @@ namespace VkRender {
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
-        std::vector<ChannelInfo> channelInfo;
+        std::vector<ChannelInfo> channelInfo{};
         CRLCameraBaseUnit baseUnit{};
 
         /**@brief location for which this device should save recorded frames **/
         std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
 
-        std::vector<std::string> attachedScripts{};
         float row[9] = {0};
         float col[9] = {0};
         bool pixelInfoEnable = false;
@@ -290,139 +292,6 @@ namespace VkRender {
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         /** @brief Show a default preview with some selected streams*/
         bool systemNetworkChanged = false;
-    };
-
-    /** @brief An initialized object needed to create a \refitem Device */
-    struct EntryConnectDevice {
-        std::string profileName = "VkRender";
-        std::string IP = "10.66.171.21";
-        std::string interfaceName;
-        std::string description;
-        uint32_t interfaceIndex{};
-
-        std::string cameraName;
-
-        EntryConnectDevice() = default;
-
-        EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx, std::string desc) : IP(
-                std::move(ip)),
-                                                                                                                    interfaceName(
-                                                                                                                            std::move(
-                                                                                                                                    iName)),
-                                                                                                                    description(
-                                                                                                                            std::move(
-                                                                                                                                    desc)),
-                                                                                                                    interfaceIndex(
-                                                                                                                            idx),
-                                                                                                                    cameraName(
-                                                                                                                            std::move(
-                                                                                                                                    camera)) {
-        }
-
-        void reset() {
-            profileName = "";
-            IP = "";
-            interfaceName = "";
-            interfaceIndex = 0;
-        }
-
-        /**
-         * @brief Utility function to check if the requested profile in \ref entry is not conflicting with any of the previously connected devices in the sidebar
-         * @param devices list of current devices
-         * @param entry new connection to be added
-         * @return true of we can add this new profile to list. False if not
-         */
-        bool ready(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) const {
-            bool profileNameEmpty = entry.profileName.empty();
-            bool profileNameTaken = false;
-            bool IPEmpty = entry.IP.empty();
-            bool adapterNameEmpty = entry.interfaceName.empty();
-
-            bool AdapterAndIPInTaken = false;
-
-
-
-            // Loop through devices and check that it doesn't exist already.
-            for (auto &d: devices) {
-                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    AdapterAndIPInTaken = true;
-                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,
-                                                     entry.interfaceName);
-
-                }
-                if (d.name == entry.profileName) {
-                    profileNameTaken = true;
-                    Log::Logger::getInstance()->info("Profile name '{}' already taken", entry.profileName);
-                }
-
-            }
-
-            bool ready = true;
-            if (profileNameEmpty || profileNameTaken || IPEmpty || adapterNameEmpty || AdapterAndIPInTaken)
-                ready = false;
-
-            return ready;
-        }
-    };
-
-    /**
-     * @brief Container for bridging the gap between a VkRender Frame and the viewer render resources
-     */
-    struct TextureData {
-        /**
-         * @brief Default Constructor. Sizes between texture and camera frame must match!
-         * Can use a memory pointer to GPU memory as memory store option or handle memory manually with \refitem manualMemoryMgmt.
-         * @param texType Which texture type this is to be used with. Used to calculate the size of the texture
-         * @param width Width of texture/frame
-         * @param height Width of texture/frame
-         * @param manualMemoryMgmt true: Malloc memory with this object, false: dont malloc memory, default = false
-         */
-        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool manualMemoryMgmt = false) :
-                m_Type(texType),
-                m_Width(width),
-                m_Height(height),
-                m_Manual(manualMemoryMgmt) {
-
-            switch (m_Type) {
-                case AR_POINT_CLOUD:
-                case AR_GRAYSCALE_IMAGE:
-                    m_Len = m_Width * m_Height;
-                    break;
-                case AR_COLOR_IMAGE_YUV420:
-                case AR_YUV_PLANAR_FRAME:
-                    m_Len = m_Width * m_Height;
-                    m_Len2 = m_Width * m_Height / 2;
-                    break;
-                case AR_DISPARITY_IMAGE:
-                    m_Len = m_Width * m_Height * 2;
-                    break;
-
-                default:
-                    break;
-            }
-
-            if (m_Manual) {
-                data = (uint8_t *) malloc(m_Len);
-                data2 = (uint8_t *) malloc(m_Len2);
-            }
-        }
-
-        ~TextureData() {
-            if (m_Manual) {
-                free(data);
-                free(data2);
-            }
-        }
-        CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
-        uint32_t m_Width= 0;
-        uint32_t m_Height = 0;
-        uint8_t *data{};
-        uint8_t *data2{};
-        uint32_t m_Len = 0, m_Len2 = 0 , m_Id{}, m_Id2{};
-
-    private:
-        bool m_Manual = true;
-
     };
 
     /**
@@ -521,10 +390,10 @@ namespace VkRender {
 
     /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
     struct UniformBufferSet {
-        Buffer bufferOne;
-        Buffer bufferTwo;
-        Buffer bufferThree;
-        Buffer bufferFour;
+        Buffer bufferOne{};
+        Buffer bufferTwo{};
+        Buffer bufferThree{};
+        Buffer bufferFour{};
     };
 
     /** containing Basic Vulkan Resources for rendering **/
@@ -532,28 +401,144 @@ namespace VkRender {
         VulkanDevice *device{};
         uint32_t UBCount = 0;
         VkRenderPass *renderPass{};
-        std::vector<UniformBufferSet> uniformBuffers;
-        const VkRender::ObjectPicking *picking;
+        std::vector<UniformBufferSet> uniformBuffers{};
+        const VkRender::ObjectPicking *picking = nullptr;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
-        uint32_t index;
+        uint32_t index = 0;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
         bool drawThisScript = false;
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera;
-        ScriptType type;
-        Log::Logger *pLogger;
-        uint32_t height;
-        uint32_t width;
-        const Input *input;
+        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera{};
+        ScriptType type{};
+        uint32_t height = 0;
+        uint32_t width = 0;
+        const Input *input = nullptr;
     };
 
 
+    static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
+    static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+    static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
+    static const ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
+    static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
+    static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
+    static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
+    static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
+    static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
+    static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
+    static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
+    static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
+    static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
+    static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
+    static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
+    static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
+    static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+    static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
+    static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
+    static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
+    static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
+    static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
+    static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
+    static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
+    static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
+
+
+    struct GuiLayerUpdateInfo {
+        bool firstFrame{};
+        float width{};
+        float height{};
+        /**@brief Width of sidebar*/
+        float sidebarWidth = 200.0f;
+        /**@brief Size of elements in sidebar */
+        float elementHeight = 140.0f;
+        /**@brief Width of sidebar*/
+        float debuggerWidth = 960.0f * 0.75f;
+        /**@brief Size of elements in sidebar */
+        float debuggerHeight = 480.0f * 0.75f;
+        /**@brief Width of sidebar*/
+        float metricsWidth = 150.0f;
+        /**@brief Physical Graphics m_Device used*/
+        std::string deviceName = "DeviceName";
+        /**@brief Title of Application */
+        std::string title = "TitleName";
+        /**@brief array containing the last 50 entries of frametimes */
+        std::array<float, 50> frameTimes{};
+        /**@brief min/max values for frametimes, used for updating graph*/
+        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+        /**@brief value for current frame timer*/
+        float frameTimer{};
+        uint64_t frameID = 0;
+        /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
+        ImFont *font13{}, *font18{}, *font24{};
+
+        std::vector<ImTextureID> imageButtonTextureDescriptor;
+
+        // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+        struct {
+            unsigned char *pixels = nullptr;
+            ImTextureID image[20]{};
+            uint32_t id{};
+            uint32_t lastFrame = 0;
+            uint32_t width{};
+            uint32_t height{};
+            uint32_t imageSize{};
+            uint32_t totalFrames{};
+            uint32_t *delay{};
+        } gif{};
+
+        /** @brief ImGUI Overlay on previews window sizes */
+        float viewAreaElementSizeY = {0};
+        float viewAreaElementSizeX = {0};
+        float previewBorderPadding = 60.0f;
+        /** @brief add m_Device button params */
+        float addDeviceBottomPadding = 90.0f;
+        float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
+        /** @brief Height of popupModal*/
+        float popupHeight = 600.0f;
+        /** @brief Width of popupModal*/
+        float popupWidth = 450.0f;
+        /**@brief size of control area tabs*/
+        float tabAreaHeight = 60.0f;
+        /** @brief size of Control Area*/
+        float controlAreaWidth = 440.0f, controlAreaHeight = height;
+        int numControlTabs = 2;
+        /** @brief size of viewing Area*/
+        float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
+        bool hoverState = false;
+    };
+
+    /** @brief Handle which is the communication from GUI to Scripts */
+    struct GuiObjectHandles {
+        /** @brief Handle for current devices located in sidebar */
+        std::vector<Device> devices;
+        /** @brief Static info used in creation of gui */
+        std::unique_ptr<GuiLayerUpdateInfo> info{};
+
+        /** User action to configure network automatically even when using manual approach **/
+        bool configureNetwork = true;
+        bool nextIsRemoteHead = false;
+        /** Keypress and mouse events */
+        float accumulatedActiveScroll = 0.0f;
+        bool disableCameraRotationFromGUI = false;
+        const Input *input{};
+        std::array<float, 4> clearColor{};
+
+        /*@brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
+        GuiObjectHandles() {
+            clearColor[0] = 0.870f;
+            clearColor[1] = 0.878f;
+            clearColor[2] = 0.862f;
+            clearColor[3] = 1.0f;
+        }
+
+        bool showDebugWindow = true;
+    };
 }
 
 

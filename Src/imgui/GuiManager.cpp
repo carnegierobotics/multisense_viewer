@@ -19,6 +19,7 @@
 #include "LayerExample.h"
 
 #include "stb_image.h"
+#include "DebugWindow.h"
 
 namespace VkRender {
 
@@ -28,7 +29,7 @@ namespace VkRender {
         ImGui::CreateContext();
 
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
-        handles.info->deviceName = device->properties.deviceName;
+        handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "GuiManager";
 
         initializeFonts();
@@ -36,6 +37,7 @@ namespace VkRender {
         pushLayer<SideBar>();
         pushLayer<InteractionMenu>();
         pushLayer<LayerExample>();
+        pushLayer<DebugWindow>();
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
 
@@ -85,7 +87,7 @@ namespace VkRender {
         // Update buffers only if vertex or index count has been changed compared to current buffer size
 
         // Vertex buffer
-        if ((vertexBuffer.buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
+        if ((vertexBuffer.m_Buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
             vertexBuffer.unmap();
             vertexBuffer.destroy();
             if (VK_SUCCESS !=
@@ -98,7 +100,7 @@ namespace VkRender {
         }
 
         // Index buffer
-        if ((indexBuffer.buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
+        if ((indexBuffer.m_Buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
             indexBuffer.unmap();
             indexBuffer.destroy();
             if (VK_SUCCESS !=
@@ -150,17 +152,18 @@ namespace VkRender {
         int32_t vertexOffset = 0;
         int32_t indexOffset = 0;
 
-        if (imDrawData == nullptr) return;
+        if (imDrawData == nullptr) 
+            return;
 
         if (imDrawData->CmdListsCount > 0) {
 
             VkDeviceSize offsets[1] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.m_Buffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
-            for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
+            for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
-
+                 
 
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
@@ -186,8 +189,8 @@ namespace VkRender {
 
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
-        VkShaderModule vtxModule;
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->logicalDevice, &vtxModule);
+        VkShaderModule vtxModule{};
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -197,7 +200,7 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->logicalDevice, &frgModule);
+        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -215,8 +218,8 @@ namespace VkRender {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLCoolGray;
-        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLCoolGray;
+        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLDarkGray425;
+        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLDarkGray425;
         style.Colors[ImGuiCol_Tab] = VkRender::CRLRed;
         style.Colors[ImGuiCol_TabActive] = VkRender::CRLRedActive;
         style.Colors[ImGuiCol_TabHovered] = VkRender::CRLRedHover;
@@ -227,7 +230,7 @@ namespace VkRender {
 
         // Dimensions
         ImGuiIO *io = &ImGui::GetIO();
-        io->DisplaySize = ImVec2(width, height);
+        io->DisplaySize = ImVec2((float)width, (float)height);
         io->DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
         // Initialize all Vulkan resources used by the ui
@@ -238,7 +241,7 @@ namespace VkRender {
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        if (vkCreatePipelineCache(device->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) !=
+        if (vkCreatePipelineCache(device->m_LogicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) !=
             VK_SUCCESS)
             throw std::runtime_error("Failed to create Pipeline Cache");
 
@@ -251,7 +254,7 @@ namespace VkRender {
         pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
         if (
-                vkCreatePipelineLayout(device->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
+                vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
                 VK_SUCCESS)
             throw std::runtime_error("Failed to create pipeline layout");
 
@@ -305,8 +308,6 @@ namespace VkRender {
                              renderPass);
 
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-
         pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
         pipelineCreateInfo.pRasterizationState = &rasterizationState;
         pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -342,7 +343,7 @@ namespace VkRender {
 
         pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-        if (vkCreateGraphicsPipelines(device->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
+        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
             throw std::runtime_error("Failed to create graphics pipeline");
     }
@@ -360,9 +361,9 @@ namespace VkRender {
 
         VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),
-                setLayoutBindings.size());
+                (uint32_t) setLayoutBindings.size());
         CHECK_RESULT(
-                vkCreateDescriptorSetLayout(device->logicalDevice, &layoutCreateInfo, nullptr,
+                vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
                                             &descriptorSetLayout));
 
 
@@ -374,7 +375,7 @@ namespace VkRender {
         uint32_t fontCount = 3, iconCount = 10, gifImageCount = 20;
         uint32_t setCount = fontCount+iconCount+gifImageCount;
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
-        CHECK_RESULT(vkCreateDescriptorPool(device->logicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+        CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
         fontTexture.reserve(3);
         fontDescriptors.reserve(3);
@@ -416,9 +417,9 @@ namespace VkRender {
         stbi_uc *pixels = nullptr;
         std::vector<stbi_uc> buffer(size);
         if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
-            pixels = stbi_load_gif_from_memory(buffer.data(), size, &delays, &width, &height, &depth, &comp, channels);
+            pixels = stbi_load_gif_from_memory(buffer.data(),static_cast<int> (size), &delays, &width, &height, &depth, &comp, channels);
             if (!pixels)
-                throw std::runtime_error("failed to load texture image: " + file);
+                throw std::runtime_error("failed to load texture m_Image: " + file);
         }
         uint32_t imageSize = width * height * channels;
 
@@ -430,16 +431,16 @@ namespace VkRender {
         handles.info->gif.totalFrames = depth;
         handles.info->gif.imageSize = imageSize;
         handles.info->gif.delay = (uint32_t *) delays;
-        gifImageDescriptors.reserve(depth + 1);
+        gifImageDescriptors.reserve((size_t) depth + 1);
 
 
         for (int i = 0; i < depth; ++i) {
-            VkDescriptorSet dSet;
+            VkDescriptorSet dSet{};
             gifTexture[i] = std::make_unique<Texture2D>(device);
 
             gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                       handles.info->gif.width, handles.info->gif.height, device,
-                                      device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                      device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
@@ -450,7 +451,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &dSet));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &dSet));
 
 
             // Update the Descriptor Set:
@@ -461,8 +462,8 @@ namespace VkRender {
             write_desc[0].dstSet = dSet;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &gifTexture[i]->descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &gifTexture[i]->m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
 
             handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
             handles.info->gif.pixels += handles.info->gif.imageSize;
@@ -474,14 +475,14 @@ namespace VkRender {
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
+        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * texChannels;
         if (!pixels) {
-            throw std::runtime_error("failed to load texture image: " + file);
+            throw std::runtime_error("failed to load texture m_Image: " + file);
         }
 
         iconTextures.emplace_back(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
                                   static_cast<uint32_t>(texHeight), device,
-                                  device->transferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                  device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         {
@@ -490,7 +491,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &imageIconDescriptors[i]));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &imageIconDescriptors[i]));
         }
         // Update the Descriptor Set:
         {
@@ -500,8 +501,8 @@ namespace VkRender {
             write_desc[0].dstSet = imageIconDescriptors[i];
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTextures[i].descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &iconTextures[i].m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
 
         handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(imageIconDescriptors[i]);
@@ -524,8 +525,8 @@ namespace VkRender {
         fontTexture.emplace_back(pixels, uploadSize,
                                  VK_FORMAT_R8G8B8A8_UNORM,
                                  width, height, device,
-                                 device->transferQueue);
-        VkDescriptorSet descriptor;
+                                 device->m_TransferQueue);
+        VkDescriptorSet descriptor{};
         fontDescriptors.push_back(descriptor);
         // descriptors
         // Create Descriptor Set:
@@ -535,7 +536,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->logicalDevice, &alloc_info, &fontDescriptors.back()));
+            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &fontDescriptors.back()));
         }
         // Update the Descriptor Set:
         {
@@ -544,8 +545,8 @@ namespace VkRender {
             write_desc[0].dstSet = fontDescriptors.back();
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &fontTexture.back().descriptor;
-            vkUpdateDescriptorSets(device->logicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &fontTexture.back().m_Descriptor;
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
         return font;
     }

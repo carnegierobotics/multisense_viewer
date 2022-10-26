@@ -5,7 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
+
+if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
+    # Not enabled flags but could be nice to enable
+    # -Wundef -Wcast-qual  -Wdouble-promotion
+endif()
 
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
@@ -46,6 +51,11 @@ set(SimpleIni_DIR external/simpleini)
 set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
 add_library(SimpleIni STATIC ${SimpleIni_SRC})
 
+# FMT
+# Used for logging purposes
+set(FMT_DIR external/fmt)
+add_subdirectory(${FMT_DIR})
+
 # Internal Library
 set(AUTOCONNECT_SRC "internal/AutoConnect/")
 include_directories(${AUTOCONNECT_SRC})
@@ -54,10 +64,6 @@ add_subdirectory(${AUTOCONNECT_SRC})
 ## FFMPEG
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/include)
 
-# FMT
-# Used for logging purposes
-set(FMT_DIR external/fmt)  
-add_subdirectory(${FMT_DIR})
 
 # add ImGUI source files
 #Also Include ImGUi Custom FileDialog Extension
@@ -99,7 +105,6 @@ file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
 set(ENGINE_SRC
         Src/Core/Definitions.h
         Src/Core/KeyInput.h
-        Src/Tools/Utils.cpp
         Src/Scripts/Private/Base.h
         Src/Core/Buffer.cpp
         Src/Core/Buffer.h
@@ -141,7 +146,7 @@ set(ENGINE_SRC
         Src/VO/Features/VisualOdometry.cpp
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        )
+        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
 if (WIN32)
 

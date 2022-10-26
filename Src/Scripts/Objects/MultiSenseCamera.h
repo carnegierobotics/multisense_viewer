@@ -3,7 +3,6 @@
 
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/glTFModel.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 
 class MultiSenseCamera: public VkRender::Base, public VkRender::RegisteredInFactory<MultiSenseCamera>, glTFModel
 {
@@ -11,8 +10,11 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     MultiSenseCamera() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
     ~MultiSenseCamera() = default;
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
@@ -33,8 +35,6 @@ public:
     ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     Page previewTab{};
-
-    void *selection = (void *) "0";
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

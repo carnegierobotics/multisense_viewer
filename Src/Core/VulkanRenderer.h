@@ -44,7 +44,7 @@ namespace VkRender {
 
         ~VulkanRenderer();
 
-        /** @brief Setup the vulkan instance, flashing required extensions and connect to the physical device (GPU) */
+        /** @brief Setup the vulkan instance, flashing required extensions and connect to the physical m_Device (GPU) */
         bool initVulkan();
 
         /** @brief Example settings that can be changed by ... */
@@ -59,15 +59,15 @@ namespace VkRender {
             bool overlay = true;
         } settings;
 
-        std::string title = "-1";
-        std::string name = "VulkanRenderer";
+        std::string m_Title = "-1";
+        std::string m_Name = "VulkanRenderer";
         /** @brief This application is written against Vulkan API v.1.2+ **/
         uint32_t apiVersion = VK_API_VERSION_1_2;
         bool backendInitialized = false;
-        uint32_t width = 1920;      // Default values - Actual values set in constructor
-        uint32_t height = 1080;     // Default values - Actual values set in constructor
+        uint32_t m_Width = 1920;      // Default values - Actual values set in constructor
+        uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
 
-        /** @brief Encapsulated physical and logical vulkan device */
+        /** @brief Encapsulated physical and logical vulkan m_Device */
         std::unique_ptr<VulkanDevice> vulkanDevice{};
 
         struct {
@@ -103,11 +103,11 @@ namespace VkRender {
         /** @brief (Pure virtual) Render function to be implemented by the application */
         virtual void render() = 0;
 
-        /** @brief (Virtual) Called when the camera view has changed */
+        /** @brief (Virtual) Called when the camera m_View has changed */
         virtual void viewChanged();
 
-        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera rotation) is firstUpdate */
-        virtual void mouseMoved(double x, double y, bool &handled);
+        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
+        virtual void mouseMoved(float x, float y, bool &handled);
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
         virtual void windowResized();
@@ -124,7 +124,7 @@ namespace VkRender {
         /** @brief (Virtual) Setup a default renderpass */
         virtual void setupRenderPass();
 
-        /** @brief (Virtual) Called after the physical device features have been read, can be used to set features to flashing on the device */
+        /** @brief (Virtual) Called after the physical m_Device m_Features have been read, can be used to set m_Features to flashing on the m_Device */
         virtual void addDeviceFeatures() = 0;
 
         /** @brief Prepares all Vulkan resources and functions required to run the sample */
@@ -133,10 +133,10 @@ namespace VkRender {
         /** @brief Entry point for the main render loop */
         void renderLoop();
 
-        /** Prepare the next frame for workload submission by acquiring the next swap chain image */
+        /** Prepare the next frame for workload submission by acquiring the next swap chain m_Image */
         void prepareFrame();
 
-        /** @brief Presents the current image to the swap chain */
+        /** @brief Presents the current m_Image to the swap chain */
         void submitFrame();
 
     protected:
@@ -146,29 +146,29 @@ namespace VkRender {
         VkInstance instance{};
         // Physical Device that Vulkan will use
         VkPhysicalDevice physicalDevice{};
-        //Physical device properties (device limits etc..)
+        //Physical m_Device m_Properties (m_Device limits etc..)
         VkPhysicalDeviceProperties deviceProperties{};
-        // Features available on the physical device
+        // Features available on the physical m_Device
         VkPhysicalDeviceFeatures deviceFeatures{};
-        /** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
+        /** @brief Set of physical m_Device m_Features to be enabled for this example (must be set in the derived constructor) */
         VkPhysicalDeviceFeatures enabledFeatures{};
-        // Features all available memory types for the physical device
+        // Features all available memory types for the physical m_Device
         VkPhysicalDeviceMemoryProperties deviceMemoryProperties{};
-        /** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
+        /** @brief Set of m_Device extensions to be enabled for this example (must be set in the derived constructor) */
 
         std::vector<const char *> enabledDeviceExtensions;
         std::vector<const char *> enabledInstanceExtensions;
-        /** @brief Logical device, application's view of the physical device (GPU) */
+        /** @brief Logical m_Device, application's m_View of the physical m_Device (GPU) */
         VkDevice device{};
-        // Handle to the device graphics queue that command buffers are submitted to
+        // Handle to the m_Device graphics queue that command buffers are submitted to
         VkQueue queue{};
-        // Depth buffer format (selected during Vulkan initialization)
+        // Depth buffer m_Format (selected during Vulkan initialization)
         VkFormat depthFormat{};
         // Wraps the swap chain to present images (framebuffers) to the windowing system
         std::unique_ptr<VulkanSwapchain> swapchain;
         // Synchronization semaphores
         struct {
-            // Swap chain image presentation
+            // Swap chain m_Image presentation
             VkSemaphore presentComplete;
             // Command buffer submission and execution
             VkSemaphore renderComplete;
@@ -229,8 +229,8 @@ namespace VkRender {
 
         void setWindowSize(uint32_t width, uint32_t height);
 
-        /** @brief Default function to handle cursor position input, calls the override function mouseMoved(...) **/
-        void handleMouseMove(int32_t x, int32_t y);
+        /** @brief Default function to handle cursor m_Position input, calls the override function mouseMoved(...) **/
+        void handleMouseMove(float x, float y);
 
         [[nodiscard]] VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const;
 

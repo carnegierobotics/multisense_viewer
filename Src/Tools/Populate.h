@@ -14,6 +14,7 @@ namespace Populate {
     {
         VkMemoryAllocateInfo memAllocInfo {};
         memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memAllocInfo.pNext = nullptr;
         return memAllocInfo;
     }
 
@@ -21,6 +22,7 @@ namespace Populate {
     {
         VkMappedMemoryRange mappedMemoryRange {};
         mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedMemoryRange.pNext = nullptr;
         return mappedMemoryRange;
     }
 
@@ -31,6 +33,7 @@ namespace Populate {
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo {};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferAllocateInfo.pNext = nullptr;
         commandBufferAllocateInfo.commandPool = commandPool;
         commandBufferAllocateInfo.level = level;
         commandBufferAllocateInfo.commandBufferCount = bufferCount;
@@ -41,6 +44,7 @@ namespace Populate {
     {
         VkCommandPoolCreateInfo cmdPoolCreateInfo {};
         cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmdPoolCreateInfo.pNext = nullptr;
         return cmdPoolCreateInfo;
     }
 
@@ -48,6 +52,7 @@ namespace Populate {
     {
         VkCommandBufferBeginInfo cmdBufferBeginInfo {};
         cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBufferBeginInfo.pNext = nullptr;
         return cmdBufferBeginInfo;
     }
 
@@ -55,6 +60,7 @@ namespace Populate {
     {
         VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo {};
         cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+        cmdBufferInheritanceInfo.pNext = nullptr;
         return cmdBufferInheritanceInfo;
     }
 
@@ -62,6 +68,7 @@ namespace Populate {
     {
         VkRenderPassBeginInfo renderPassBeginInfo {};
         renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassBeginInfo.pNext = nullptr;
         return renderPassBeginInfo;
     }
 
@@ -69,24 +76,27 @@ namespace Populate {
     {
         VkRenderPassCreateInfo renderPassCreateInfo {};
         renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassCreateInfo.pNext = nullptr;
         return renderPassCreateInfo;
     }
 
-    /** @brief Initialize an image memory barrier with no image transfer ownership */
+    /** @brief Initialize an m_Image memory barrier with no m_Image transfer ownership */
     inline VkImageMemoryBarrier imageMemoryBarrier()
     {
         VkImageMemoryBarrier imageMemoryBarrier {};
+        imageMemoryBarrier.pNext = nullptr;
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         return imageMemoryBarrier;
     }
 
-    /** @brief Initialize a buffer memory barrier with no image transfer ownership */
+    /** @brief Initialize a buffer memory barrier with no m_Image transfer ownership */
     inline VkBufferMemoryBarrier bufferMemoryBarrier()
     {
         VkBufferMemoryBarrier bufferMemoryBarrier {};
         bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferMemoryBarrier.pNext = nullptr;
         bufferMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         bufferMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         return bufferMemoryBarrier;
@@ -96,6 +106,7 @@ namespace Populate {
     {
         VkMemoryBarrier memoryBarrier {};
         memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        memoryBarrier.pNext = nullptr;
         return memoryBarrier;
     }
 
@@ -103,6 +114,7 @@ namespace Populate {
     {
         VkImageCreateInfo imageCreateInfo {};
         imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.pNext = nullptr;
         return imageCreateInfo;
     }
 
@@ -110,6 +122,7 @@ namespace Populate {
     {
         VkSamplerCreateInfo samplerCreateInfo {};
         samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerCreateInfo.pNext = nullptr;
         samplerCreateInfo.maxAnisotropy = 1.0f;
         return samplerCreateInfo;
     }
@@ -118,6 +131,7 @@ namespace Populate {
     {
         VkImageViewCreateInfo imageViewCreateInfo {};
         imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.pNext = nullptr;
         return imageViewCreateInfo;
     }
 
@@ -128,7 +142,7 @@ namespace Populate {
         framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCreateInfo.pNext = NULL;
         framebufferCreateInfo.layers = 1;
-        framebufferCreateInfo.attachmentCount = attachmentCount;
+        framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachmentCount);
         framebufferCreateInfo.pAttachments = attachments;
         framebufferCreateInfo.width = width;
         framebufferCreateInfo.height = height;
@@ -141,6 +155,7 @@ namespace Populate {
     {
         VkSemaphoreCreateInfo semaphoreCreateInfo {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        semaphoreCreateInfo.pNext = nullptr;
         return semaphoreCreateInfo;
     }
 
@@ -149,6 +164,7 @@ namespace Populate {
         VkFenceCreateInfo fenceCreateInfo {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags = flags;
+        fenceCreateInfo.pNext = nullptr;
         return fenceCreateInfo;
     }
 
@@ -156,6 +172,7 @@ namespace Populate {
     {
         VkEventCreateInfo eventCreateInfo {};
         eventCreateInfo.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+        eventCreateInfo.pNext = nullptr;
         return eventCreateInfo;
     }
 
@@ -198,6 +215,7 @@ namespace Populate {
     {
         VkBufferCreateInfo bufCreateInfo {};
         bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufCreateInfo.pNext = nullptr;
         return bufCreateInfo;
     }
 
@@ -209,6 +227,7 @@ namespace Populate {
         bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufCreateInfo.usage = usage;
         bufCreateInfo.size = size;
+        bufCreateInfo.pNext = nullptr;
         return bufCreateInfo;
     }
 
@@ -222,6 +241,7 @@ namespace Populate {
         descriptorPoolInfo.poolSizeCount = poolSizeCount;
         descriptorPoolInfo.pPoolSizes = pPoolSizes;
         descriptorPoolInfo.maxSets = maxSets;
+        descriptorPoolInfo.pNext = nullptr;
         return descriptorPoolInfo;
     }
 
@@ -234,6 +254,7 @@ namespace Populate {
         descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
         descriptorPoolInfo.maxSets = maxSets;
+        descriptorPoolInfo.pNext = nullptr;
         return descriptorPoolInfo;
     }
 
@@ -267,6 +288,7 @@ namespace Populate {
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCreateInfo.pNext = nullptr;
         descriptorSetLayoutCreateInfo.pBindings = pBindings;
         descriptorSetLayoutCreateInfo.bindingCount = bindingCount;
         return descriptorSetLayoutCreateInfo;
@@ -279,6 +301,7 @@ namespace Populate {
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pBindings = bindings.data();
         descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        descriptorSetLayoutCreateInfo.pNext = nullptr;
         return descriptorSetLayoutCreateInfo;
     }
 
@@ -290,6 +313,7 @@ namespace Populate {
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCreateInfo.setLayoutCount = setLayoutCount;
         pipelineLayoutCreateInfo.pSetLayouts = pSetLayouts;
+        pipelineLayoutCreateInfo.pNext = nullptr;
         return pipelineLayoutCreateInfo;
     }
 
@@ -299,6 +323,7 @@ namespace Populate {
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCreateInfo.setLayoutCount = setLayoutCount;
+        pipelineLayoutCreateInfo.pNext = nullptr;
         return pipelineLayoutCreateInfo;
     }
 
@@ -312,6 +337,7 @@ namespace Populate {
         descriptorSetAllocateInfo.descriptorPool = descriptorPool;
         descriptorSetAllocateInfo.pSetLayouts = pSetLayouts;
         descriptorSetAllocateInfo.descriptorSetCount = descriptorSetCount;
+        descriptorSetAllocateInfo.pNext = nullptr;
         return descriptorSetAllocateInfo;
     }
 
@@ -334,6 +360,7 @@ namespace Populate {
         VkWriteDescriptorSet writeDescriptorSet {};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.dstSet = dstSet;
+        writeDescriptorSet.pNext = nullptr;
         writeDescriptorSet.descriptorType = type;
         writeDescriptorSet.dstBinding = binding;
         writeDescriptorSet.pBufferInfo = bufferInfo;
@@ -351,6 +378,7 @@ namespace Populate {
         VkWriteDescriptorSet writeDescriptorSet {};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.dstSet = dstSet;
+        writeDescriptorSet.pNext = nullptr;
         writeDescriptorSet.descriptorType = type;
         writeDescriptorSet.dstBinding = binding;
         writeDescriptorSet.pImageInfo = imageInfo;
@@ -388,6 +416,7 @@ namespace Populate {
     {
         VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {};
         pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        pipelineVertexInputStateCreateInfo.pNext = nullptr;
         return pipelineVertexInputStateCreateInfo;
     }
 
@@ -402,6 +431,7 @@ namespace Populate {
         pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
         pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
         pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
+        pipelineVertexInputStateCreateInfo.pNext = nullptr;
         return pipelineVertexInputStateCreateInfo;
     }
 
@@ -415,6 +445,7 @@ namespace Populate {
         pipelineInputAssemblyStateCreateInfo.topology = topology;
         pipelineInputAssemblyStateCreateInfo.flags = flags;
         pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = primitiveRestartEnable;
+        pipelineInputAssemblyStateCreateInfo.pNext = nullptr;
         return pipelineInputAssemblyStateCreateInfo;
     }
 
@@ -432,6 +463,7 @@ namespace Populate {
         pipelineRasterizationStateCreateInfo.flags = flags;
         pipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
         pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+        pipelineRasterizationStateCreateInfo.pNext = nullptr;
         return pipelineRasterizationStateCreateInfo;
     }
 
@@ -451,6 +483,7 @@ namespace Populate {
     {
         VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {};
         pipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        pipelineColorBlendStateCreateInfo.pNext = nullptr;
         pipelineColorBlendStateCreateInfo.attachmentCount = attachmentCount;
         pipelineColorBlendStateCreateInfo.pAttachments = pAttachments;
         return pipelineColorBlendStateCreateInfo;
@@ -467,6 +500,7 @@ namespace Populate {
         pipelineDepthStencilStateCreateInfo.depthWriteEnable = depthWriteEnable;
         pipelineDepthStencilStateCreateInfo.depthCompareOp = depthCompareOp;
         pipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
+        pipelineDepthStencilStateCreateInfo.pNext = nullptr;
         return pipelineDepthStencilStateCreateInfo;
     }
 
@@ -480,6 +514,7 @@ namespace Populate {
         pipelineViewportStateCreateInfo.viewportCount = viewportCount;
         pipelineViewportStateCreateInfo.scissorCount = scissorCount;
         pipelineViewportStateCreateInfo.flags = flags;
+        pipelineViewportStateCreateInfo.pNext = nullptr;
         return pipelineViewportStateCreateInfo;
     }
 
@@ -491,6 +526,7 @@ namespace Populate {
         pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
         pipelineMultisampleStateCreateInfo.flags = flags;
+        pipelineMultisampleStateCreateInfo.pNext = nullptr;
         return pipelineMultisampleStateCreateInfo;
     }
 
@@ -504,6 +540,7 @@ namespace Populate {
         pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates;
         pipelineDynamicStateCreateInfo.dynamicStateCount = dynamicStateCount;
         pipelineDynamicStateCreateInfo.flags = flags;
+        pipelineDynamicStateCreateInfo.pNext = nullptr;
         return pipelineDynamicStateCreateInfo;
     }
 
@@ -516,6 +553,7 @@ namespace Populate {
         pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
         pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
         pipelineDynamicStateCreateInfo.flags = flags;
+        pipelineDynamicStateCreateInfo.pNext = nullptr;
         return pipelineDynamicStateCreateInfo;
     }
 
@@ -524,6 +562,7 @@ namespace Populate {
         VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo {};
         pipelineTessellationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
         pipelineTessellationStateCreateInfo.patchControlPoints = patchControlPoints;
+        pipelineTessellationStateCreateInfo.pNext = nullptr;
         return pipelineTessellationStateCreateInfo;
     }
 
@@ -539,6 +578,7 @@ namespace Populate {
         pipelineCreateInfo.flags = flags;
         pipelineCreateInfo.basePipelineIndex = -1;
         pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineCreateInfo.pNext = nullptr;
         return pipelineCreateInfo;
     }
 
@@ -548,6 +588,7 @@ namespace Populate {
         pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineCreateInfo.basePipelineIndex = -1;
         pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineCreateInfo.pNext = nullptr;
         return pipelineCreateInfo;
     }
 
@@ -559,6 +600,7 @@ namespace Populate {
         computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
         computePipelineCreateInfo.layout = layout;
         computePipelineCreateInfo.flags = flags;
+        computePipelineCreateInfo.pNext = nullptr;
         return computePipelineCreateInfo;
     }
 
@@ -581,7 +623,7 @@ namespace Populate {
         return bindSparseInfo;
     }
 
-    /** @brief Initialize a map entry for a shader specialization constant */
+    /** @brief Initialize a map m_Entry for a shader specialization constant */
     inline VkSpecializationMapEntry specializationMapEntry(uint32_t constantID, uint32_t offset, size_t size)
     {
         VkSpecializationMapEntry specializationMapEntry{};

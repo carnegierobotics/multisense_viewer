@@ -45,7 +45,7 @@ public:
     std::vector<std::string> interfaceDescriptionList;
     std::vector<uint32_t> indexList;
 
-    VkRender::EntryConnectDevice entry;
+    VkRender::EntryConnectDevice m_Entry;
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
 
     uint32_t gifFrameIndex = 0;
@@ -101,51 +101,6 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
-
-        ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
-        float xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-        ImGui::Dummy(ImVec2(xOffset, 0.0f));
-        ImGui::SameLine();
-        ImGui::Text("%s", handles->info->title.c_str());
-
-        txtSize = ImGui::CalcTextSize(handles->info->deviceName.c_str());
-        // If it is too long then just remove some word towards the end.
-        if (txtSize.x > handles->info->sidebarWidth) {
-            std::string devName = handles->info->deviceName;
-            while (txtSize.x > handles->info->sidebarWidth) {
-                devName.erase(devName.find_last_of(' '), devName.length());
-                txtSize = ImGui::CalcTextSize(devName.c_str());
-            }
-            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-            ImGui::Dummy(ImVec2(xOffset, 0.0f));
-            ImGui::SameLine();
-            ImGui::Text("%s", devName.c_str());
-        } else {
-            xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-            ImGui::Dummy(ImVec2(xOffset, 0.0f));
-            ImGui::SameLine();
-            ImGui::Text("%s", handles->info->deviceName.c_str());
-        }
-
-
-        // Update frame time display
-        if (handles->info->firstFrame) {
-            std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
-                        handles->info->frameTimes.end());
-            float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
-            handles->info->frameTimes.back() = frameTime;
-            if (frameTime < handles->info->frameTimeMin) {
-                handles->info->frameTimeMin = frameTime;
-            }
-            if (frameTime > handles->info->frameTimeMax) {
-                handles->info->frameTimeMax = frameTime;
-            }
-        }
-
-        ImGui::Dummy(ImVec2(5.0f, 0.0f));
-        ImGui::SameLine();
-        ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, "fps", handles->info->frameTimeMin,
-                         handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
 
 
         addPopup(handles);
@@ -203,7 +158,7 @@ private:
         crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
         if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info(
-                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long name: {}, Camera returned name {}",
+                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long m_Name: {}, Camera returned m_Name {}",
                     res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
                     info.name.c_str());
 
@@ -220,7 +175,7 @@ private:
                 app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
             }
         } else {
-            Log::Logger::getInstance()->info("Failed to fetch camera name from VkRender device");
+            Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
 
         }
 
@@ -303,7 +258,7 @@ private:
     }
 
     void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {
-        VkRender::Device el;
+        VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
@@ -315,7 +270,7 @@ private:
         el.interfaceIndex = entry.interfaceIndex;
         el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
 
-        handles->devices.emplace_back(el);
+        handles->devices.push_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
         Log::Logger::getInstance()->info("Using: Ip: {}, and profile: {} for {}", entry.IP, entry.profileName,
@@ -324,8 +279,8 @@ private:
 
 
     void sidebarElements(VkRender::GuiObjectHandles *handles) {
-        auto& devices = handles->devices;
-        for (int i = 0; i < devices.size(); ++i) {
+        auto &devices = handles->devices;
+        for (size_t i = 0; i < devices.size(); ++i) {
             auto &e = devices.at(i);
             std::string buttonIdentifier;
             // Set colors based on state
@@ -346,6 +301,11 @@ private:
                     buttonIdentifier = "Inactive";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
+                    break;
+                case AR_STATE_LOST_CONNECTION:
+                    buttonIdentifier = "Lost connection...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
                     break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
@@ -461,8 +421,14 @@ private:
         ImGui::PopStyleColor();
         if (btnAdd) {
             ImGui::OpenPopup("add_device_modal");
-
         }
+
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
+                                   handles->info->height - handles->info->addDeviceBottomPadding +
+                                   handles->info->addDeviceHeight + 5.0f));
+        ImGui::Checkbox("Show Debug", &handles->showDebugWindow);
+
+
     }
 
     void addPopup(VkRender::GuiObjectHandles *handles) {
@@ -488,7 +454,7 @@ private:
             ImGui::PushFont(handles->info->font24);
             std::string title = "Connect to VkRender";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
-            float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a title in center of popup window
+            float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a m_Title in center of popup window
 
 
             ImGui::Dummy(ImVec2(0.0f, size.y));
@@ -497,7 +463,7 @@ private:
             ImGui::Text("%s", title.c_str());
             ImGui::PopFont();
             //ImGui::Separator();
-            //ImGui::InputText("Profile name##1", inputName.data(),inputFieldNameLength);
+            //ImGui::InputText("Profile m_Name##1", inputName.data(),inputFieldNameLength);
 
             ImGui::Dummy(ImVec2(0.0f, 25.0f));
 
@@ -513,7 +479,7 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-            ImGui::Funcs::MyInputText("##inputProfileName", &entry.profileName);
+            ImGui::Funcs::MyInputText("##inputProfileName", &m_Entry.profileName);
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
 
 
@@ -536,7 +502,6 @@ private:
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::BeginChild("IconChild", ImVec2(handles->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-            static bool active = false;
 
             (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
@@ -567,7 +532,7 @@ private:
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
-                entry.cameraName = "AutoConnect";
+                m_Entry.cameraName = "AutoConnect";
 
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
@@ -581,7 +546,7 @@ private:
                         dontRunAutoConnect = false;
                         entryConnectDeviceList.clear();
                         autoConnect.clearSearchedAdapters();
-                        entry.reset();
+                        m_Entry.reset();
                     }
                     ImGui::PopStyleColor();
                 }
@@ -589,10 +554,10 @@ private:
                 ImGui::SameLine();
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20.0f);
                 /** STATUS SPINNER */
-                // Create child window regardless of gif spinner state in order to keep cursor position constant
+                // Create child window regardless of gif spinner state in order to keep cursor m_Position constant
                 ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
                 if (autoConnect.running)
-                addSpinnerGif(handles);
+                    addSpinnerGif(handles);
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
@@ -657,7 +622,7 @@ private:
                 std::chrono::duration<float> time_span =
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
 
-                if (time_span.count() > 0.35 && autoConnect.running) {
+                if (time_span.count() > 0.35f && autoConnect.running) {
                     searchingTextAnimTimer = std::chrono::steady_clock::now();
                     dots.append(".");
 
@@ -694,15 +659,15 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::BeginChild("##ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true, 0);
-                for (int n = 0; n < entryConnectDeviceList.size(); n++) {
+                for (size_t n = 0; n < entryConnectDeviceList.size(); n++) {
 
                     if (ImGui::Selectable(entryConnectDeviceList[n].cameraName.c_str(), resultsComboIndex == n,
                                           ImGuiSelectableFlags_DontClosePopups,
                                           ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
 
                         resultsComboIndex = n;
-                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile name if user inputted this before auto-connect is finished
-                        entry = entryConnectDeviceList[n];
+                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished
+                        m_Entry = entryConnectDeviceList[n];
                         selected = true;
 
                     }
@@ -734,7 +699,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                ImGui::Funcs::MyInputText("##inputIP", &entry.IP);
+                ImGui::Funcs::MyInputText("##inputIP", &m_Entry.IP);
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 {
@@ -771,10 +736,9 @@ private:
                     if (a.supports && !Utils::isInVector(interfaceDescriptionList, a.description)) {
                         interfaceDescriptionList.push_back(a.description);
                         indexList.push_back(a.index);
-                        std::string str = "No adapters found";
-                        if (Utils::isInVector(interfaceDescriptionList, str)) {
-                            Utils::delFromVector(&interfaceDescriptionList, str);
-                            auto newEndIterator = std::remove(indexList.begin(), indexList.end(), 0);
+
+                        if (Utils::isInVector(interfaceDescriptionList, "No adapters found")) {
+                            Utils::delFromVector(interfaceDescriptionList, "No adapters found");
                         }
                     }
                 }
@@ -787,19 +751,19 @@ private:
                 }
 
 
-                entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
-                entry.interfaceIndex = indexList[ethernetComboIndex];
+                m_Entry.description = interfaceDescriptionList[ethernetComboIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+                m_Entry.interfaceIndex = indexList[ethernetComboIndex];
                 if (!adapters.empty())
-                    entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
+                    m_Entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                if (ImGui::BeginCombo("##SelectAdapter", entry.description.c_str(), flags)) {
-                    for (int n = 0; n < interfaceDescriptionList.size(); n++) {
+                if (ImGui::BeginCombo("##SelectAdapter", m_Entry.description.c_str(), flags)) {
+                    for (size_t n = 0; n < interfaceDescriptionList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
                         if (ImGui::Selectable(interfaceDescriptionList[n].c_str(), is_selected))
-                            ethernetComboIndex = n;
+                            ethernetComboIndex = static_cast<uint32_t>(n);
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
@@ -808,7 +772,7 @@ private:
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor(); // ImGuiCol_FrameBg
-                entry.cameraName = "Manual";
+                m_Entry.cameraName = "Manual";
 
                 ImGui::Dummy(ImVec2(40.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
@@ -835,9 +799,9 @@ private:
 
             } /** VIRTUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == VIRTUAL_CONNECT) {
-                entry.profileName = "Virtual Camera";
-                entry.interfaceName = "lol";
-                entry.cameraName = "Virtual Camera";
+                m_Entry.profileName = "Virtual Camera";
+                m_Entry.interfaceName = "lol";
+                m_Entry.cameraName = "Virtual Camera";
             }
 
 
@@ -848,12 +812,12 @@ private:
             ImGui::SameLine();
             bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
             ImGui::SameLine(0, 110.0f);
-            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
             }
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            if (!entry.ready(handles->devices, entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
@@ -864,8 +828,8 @@ private:
                 autoConnect.stop();
             }
 
-            if (btnConnect && entry.ready(handles->devices, entry) && enableConnectButton) {
-                createDefaultElement(handles, entry);
+            if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
+                createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
             }
 

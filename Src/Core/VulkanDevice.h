@@ -13,45 +13,45 @@
 #include <vector>
 
 struct VulkanDevice {
-    /** @brief Physical device representation */
-    VkPhysicalDevice physicalDevice{};
-    /** @brief Logical device representation (application's view of the device) */
-    VkDevice logicalDevice{};
+    /** @brief Physical m_Device representation */
+    VkPhysicalDevice m_PhysicalDevice{};
+    /** @brief Logical m_Device representation (application's m_View of the m_Device) */
+    VkDevice m_LogicalDevice{};
     /** @brief transfer queue for copy operations*/
-    VkQueue transferQueue{};
-    /** @brief Properties of the physical device including limits that the application can check against */
-    VkPhysicalDeviceProperties properties{};
-    /** @brief Features of the physical device that an application can use to check if a feature is supported */
-    VkPhysicalDeviceFeatures features{};
-    /** @brief Features that have been enabled for use on the physical device */
-    VkPhysicalDeviceFeatures enabledFeatures{};
-    /** @brief Memory types and heaps of the physical device */
-    VkPhysicalDeviceMemoryProperties memoryProperties{};
-    /** @brief Queue family properties of the physical device */
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties{};
-    /** @brief List of extensions supported by the device */
-    std::vector<std::string> supportedExtensions{};
+    VkQueue m_TransferQueue{};
+    /** @brief Properties of the physical m_Device including limits that the application can check against */
+    VkPhysicalDeviceProperties m_Properties{};
+    /** @brief Features of the physical m_Device that an application can use to check if a feature is supported */
+    VkPhysicalDeviceFeatures m_Features{};
+    /** @brief Features that have been enabled for use on the physical m_Device */
+    VkPhysicalDeviceFeatures m_EnabledFeatures{};
+    /** @brief Memory types and heaps of the physical m_Device */
+    VkPhysicalDeviceMemoryProperties m_MemoryProperties{};
+    /** @brief Queue family m_Properties of the physical m_Device */
+    std::vector<VkQueueFamilyProperties> m_QueueFamilyProperties{};
+    /** @brief List of extensions supported by the m_Device */
+    std::vector<std::string> m_SupportedExtensions{};
     /** @brief Default command pool for the graphics queue family index */
-    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandPool m_CommandPool = VK_NULL_HANDLE;
     /** @brief Contains queue family indices */
     struct {
         uint32_t graphics{};
         uint32_t compute{};
         uint32_t transfer{};
 
-    } queueFamilyIndices;
+    } m_QueueFamilyIndices;
 
     explicit VulkanDevice(VkPhysicalDevice physicalDevice);
 
     ~VulkanDevice();
 
     uint32_t
-    getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr) const;
+    getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags propertyFlags, VkBool32 *memTypeFound = nullptr) const;
 
     uint32_t getQueueFamilyIndex(VkQueueFlagBits queueFlags) const;
 
     VkResult
-    createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char *> enabledExtensions,
+    createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<const char *> enabledExtensions,
                         void *pNextChain, bool useSwapChain = true,
                         VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 

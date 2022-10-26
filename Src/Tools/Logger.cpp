@@ -18,13 +18,16 @@
 #endif
 
 
+
 // Code Specific Header Files(s)
 using namespace std;
 namespace Log {
 
-    Logger *Logger::m_Instance = nullptr;
 
-// Log file name. File name should be change from here only
+    Logger *Logger::m_Instance = nullptr;
+    Metrics* Logger::m_Metrics = nullptr;
+
+// Log file m_Name. File m_Name should be change from here only
     const string logFileName = "logger.log";
 
     Logger::Logger() {
@@ -37,13 +40,20 @@ namespace Log {
 
     Logger::~Logger() {
         m_File.close();
+        delete m_Instance;
+        delete m_Metrics;
     }
 
     Logger *Logger::getInstance() noexcept {
-        if (m_Instance == 0) {
+        if (m_Instance == nullptr) {
             m_Instance = new Logger();
+            m_Metrics = new Metrics();
         }
         return m_Instance;
+    }
+
+     Metrics * Logger::getLogMetrics() noexcept {
+        return m_Metrics;
     }
 
     void Logger::lock() {
@@ -168,41 +178,9 @@ namespace Log {
         } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_INFO)) {
             logOnConsole(data);
         }
+
+        m_Metrics->logQueue.push(data);
     }
-    /*
-    void Logger::info(std::string &text, const std::source_location& loc) throw() {
-        _info(text.data());
-    }
-
-    void Logger::info(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        _info(text.data());
-    }
-
-
-    void Logger::info(const char *fmt, ...)
-    {
-
-        // determine required buffer size
-        va_list args;
-        va_start(args, fmt);
-        int len = vsnprintf(NULL, 0, fmt, args);
-        va_end(args);
-        if(len < 0) return;
-
-        // format message
-        std::vector<char> msg;
-        msg.resize(len + 1);
-        //char msg[len + 1]; // or use heap allocation if implementation doesn't support VLAs
-        va_start(args, fmt);
-        vsnprintf(msg.data(), len + 1, fmt, args);
-        va_end(args);
-
-        // call myFunction
-        _info(msg.data());
-    }
-
- */
 // Interface for Trace Log
     void Logger::trace(const char *text) throw() {
         string data;
@@ -276,5 +254,7 @@ void Logger::enableFileLogging()
 {
    m_LogType = FILE_LOG ;
 }
+
+
 
 };

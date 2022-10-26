@@ -28,15 +28,21 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        if (handles->devices.empty()) return;
         bool allUnavailable = true;
         for (auto &d: handles->devices) {
             if (d.state == AR_STATE_ACTIVE)
                 allUnavailable = false;
         }
 
-        if (allUnavailable)
+        if (allUnavailable) {
+            // Use background color again
+            handles->clearColor[0] = VkRender::CRLCoolGray.x;
+            handles->clearColor[1] = VkRender::CRLCoolGray.y;
+            handles->clearColor[2] = VkRender::CRLCoolGray.z;
+            handles->clearColor[3] = VkRender::CRLCoolGray.w;
+
             return;
+        }
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: handles->devices) {
@@ -84,7 +90,7 @@ public:
             for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
                 float imageSpacingX = 200.0f;
 
-                // width of menu buttons layout. Needed to draw on center of screen.
+                // m_Width of menu buttons layout. Needed to draw on center of screen.
                 float xOffset = ((handles->info->width - handles->info->sidebarWidth) / 2) -
                                 (((float) imageSpacingX * (float) PAGE_CONFIGURE_DEVICE) +
                                  ((float) PAGE_TOTAL_PAGES * 100.0f) / 2) +
@@ -263,7 +269,10 @@ private:
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
-            handles->clearColor = {0.870f, 0.878f, 0.862f, 1.0f};
+            handles->clearColor[0] = VkRender::CRLCoolGray.x;
+            handles->clearColor[1] = VkRender::CRLCoolGray.y;
+            handles->clearColor[2] = VkRender::CRLCoolGray.z;
+            handles->clearColor[3] = VkRender::CRLCoolGray.w;
         }
         ImGui::PopStyleColor();
 
@@ -280,8 +289,10 @@ private:
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
-            handles->clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-
+            handles->clearColor[0] = VkRender::CRL3DBackground.x;
+            handles->clearColor[1] = VkRender::CRL3DBackground.y;
+            handles->clearColor[2] = VkRender::CRL3DBackground.z;
+            handles->clearColor[3] = VkRender::CRL3DBackground.w;
         }
         if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
             ImGui::PopItemFlag();
@@ -359,7 +370,7 @@ private:
 
                 dev.row[index] = float(row);
                 dev.col[index] = float(col);
-                // Calculate window position
+                // Calculate window m_Position
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
@@ -454,8 +465,8 @@ private:
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
-                        for (int n = 0; n < window.availableRemoteHeads.size(); n++) {
-                            const bool is_selected = (window.selectedRemoteHeadIndex == n);
+                        for (size_t n = 0; n < window.availableRemoteHeads.size(); n++) {
+                            const bool is_selected = (window.selectedRemoteHeadIndex == (crl::multisense::RemoteHeadChannel) n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
                                 // If we had streams active then transfer active streams to new channel
                                 window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
@@ -487,12 +498,16 @@ private:
 
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < window.availableSources.size(); n++) {
+                    for (size_t n = 0; n < window.availableSources.size(); n++) {
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
-                            if (
-                                    Utils::removeFromVector(
+                            bool inUse = false;
+                            for (const auto& win : dev.win) {
+                                if(win.second.selectedSource == window.selectedSource)
+                                    inUse = true;
+                            }
+                            if (!inUse && Utils::removeFromVector(
                                             &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                             window.selectedSource)) {
                                 Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
@@ -500,13 +515,13 @@ private:
                             }
 
 
-                            window.selectedSourceIndex = n;
+                            window.selectedSourceIndex = static_cast<uint32_t>(n);
                             window.selectedSource = window.availableSources[window.selectedSourceIndex];
                             Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
                                                              window.selectedSource, index);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
-                                                   window.selectedSource)) {
+                                                   window.selectedSource) && window.selectedSource != "Source") {
                                 dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
                                         window.selectedSource);
                                 Log::Logger::getInstance()->info(
@@ -596,7 +611,7 @@ private:
                 ImGui::PopFont();
                 ImGui::Dummy(ImVec2(00.0f, 7.0));
 
-                for (int i = 0; i < dev.channelInfo.size(); ++i) {
+                for (size_t i = 0; i < dev.channelInfo.size(); ++i) {
                     if (dev.channelInfo[i].state != AR_STATE_ACTIVE)
                         continue;
 
@@ -616,12 +631,12 @@ private:
                     auto &chInfo = dev.channelInfo[i];
                     if (chInfo.state != AR_STATE_ACTIVE)
                         continue;
-                    if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
+                    if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
-                        for (int n = 0; n < chInfo.modes.size(); n++) {
+                        for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
                             if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
-                                chInfo.selectedModeIndex = n;
+                                chInfo.selectedModeIndex = static_cast<uint32_t>(n);
                                 chInfo.selectedMode = Utils::stringToCameraResolution(
                                         chInfo.modes[chInfo.selectedModeIndex]);
                                 chInfo.updateResolutionMode = true;
@@ -736,7 +751,7 @@ private:
                 // Loop over all previews and check their source.
                 // If it matches either point cloud source then it means it is in use
                 for (const auto &preview: dev.win) {
-                    if (preview.second.selectedSource == source)
+                    if (preview.second.selectedSource == source && preview.first != AR_PREVIEW_POINT_CLOUD)
                         inUse = true;
                 }
                 if (!inUse && Utils::isInVector(chInfo.requestedStreams, source)) {
@@ -760,12 +775,12 @@ private:
             std::string resLabel = "##Resolution";
             auto &chInfo = dev.channelInfo.front();
             dev.playbackStatus = AR_PREVIEW_PLAYING;
-            if (ImGui::BeginCombo(resLabel.c_str(), chInfo.modes[chInfo.selectedModeIndex].c_str(),
+            if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
-                for (int n = 0; n < chInfo.modes.size(); n++) {
+                for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);
                     if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
-                        chInfo.selectedModeIndex = n;
+                        chInfo.selectedModeIndex = static_cast<uint32_t>(n);
                         chInfo.selectedMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
                         chInfo.updateResolutionMode = true;
@@ -879,8 +894,6 @@ private:
     }
 
     void buildConfigurationTab(VkRender::GuiObjectHandles *handles, VkRender::Device &d) {
-        bool active = false;
-        //ImGui::ShowDemoWindow();
         // Exposure Tab
         {
             float textSpacing = 90.0f;
@@ -1002,10 +1015,10 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Enable Auto:";
-                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
+                std::string txtAutoConfig = "Enable Auto:";
+                ImVec2 txtSizeAutoConfig = ImGui::CalcTextSize(txtAutoConfig.c_str());
+                ImGui::Text("%s", txtAutoConfig.c_str());
+                ImGui::SameLine(0, textSpacing - txtSizeAutoConfig.x);
                 ImGui::Checkbox("##EnableAutoWhiteBalance", &d.parameters.wb.autoWhiteBalance);
                 d.parameters.wb.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1074,16 +1087,16 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("LightingParams - Not implemented");
+                ImGui::Text("LightingParams");
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Enable Flashing:";
-                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
+                std::string txtEnableFlash = "Enable Flashing:";
+                ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
+                ImGui::Text("%s", txtEnableFlash.c_str());
+                ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
                 ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing);
                 d.parameters.light.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1187,8 +1200,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
-                                   &d.parameters.gain, 1.68,
-                                   14.2, "%.1f");
+                                   &d.parameters.gain, 1.68f,
+                                   14.2f, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1201,8 +1214,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Gamma",
-                                   &d.parameters.gamma, 1.1,
-                                   2.2, "%.2f");
+                                   &d.parameters.gamma, 1.1f,
+                                   2.2f, "%.2f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1215,8 +1228,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
-                                   &d.parameters.stereoPostFilterStrength, 0,
-                                   1, "%.1f");
+                                   &d.parameters.stereoPostFilterStrength, 0.0f,
+                                   1.0f, "%.1f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

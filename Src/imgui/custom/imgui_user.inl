@@ -31,7 +31,7 @@ namespace ImGui {
         if (size_arg.x == 0.0f || (flags & ImGuiSelectableFlags_SpanAvailWidth))
             size.x = ImMax(label_size.x, max_x - min_x);
 
-        // Text stays at the submission position, but bounding box may be extended on both sides
+        // Text stays at the submission m_Position, but bounding box may be extended on both sides
         ImVec2 text_min = pos;
         text_min.x += 10.0f;
         text_min.y += 7.0f;

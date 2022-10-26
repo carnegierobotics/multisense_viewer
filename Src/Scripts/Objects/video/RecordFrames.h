@@ -9,8 +9,8 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
-#include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
+#include "MultiSense/Src/CRLCamera/ThreadPool.h"
 
 class RecordFrames: public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels
 {
@@ -18,8 +18,11 @@ public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     RecordFrames() {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-    }
+        DISABLE_WARNING_POP    }
     void onDestroy() override{
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
@@ -37,7 +40,6 @@ public:
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
     void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override {}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/

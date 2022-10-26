@@ -223,9 +223,21 @@ namespace VkRender::MultiSense {
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
             }
-
             dev.channelInfo.at(ch) = chInfo;
         }
+
+        // Update Debug Window
+        auto& info = Log::Logger::getLogMetrics()->device.info;
+        const auto& cInfo = camPtr->getCameraInfo(0).versionInfo;
+
+        info.firmwareBuildDate = cInfo.sensorFirmwareBuildDate;
+        info.firmwareVersion = cInfo.sensorFirmwareVersion;
+        info.apiBuildDate = cInfo.apiBuildDate;
+        info.apiVersion = cInfo.apiVersion;
+        info.hardwareMagic = cInfo.sensorHardwareMagic;
+        info.hardwareVersion = cInfo.sensorHardwareVersion;
+        info.sensorFpgaDna = cInfo.sensorFpgaDna;
+
     }
 
     void CameraConnection::getProfileFromIni(VkRender::Device &dev) {

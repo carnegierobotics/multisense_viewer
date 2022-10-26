@@ -496,8 +496,12 @@ private:
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
-                            if (
-                                    Utils::removeFromVector(
+                            bool inUse = false;
+                            for (const auto& win : dev.win) {
+                                if(win.second.selectedSource == window.selectedSource)
+                                    inUse = true;
+                            }
+                            if (!inUse && Utils::removeFromVector(
                                             &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                             window.selectedSource)) {
                                 Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
@@ -741,7 +745,7 @@ private:
                 // Loop over all previews and check their source.
                 // If it matches either point cloud source then it means it is in use
                 for (const auto &preview: dev.win) {
-                    if (preview.second.selectedSource == source)
+                    if (preview.second.selectedSource == source && preview.first != AR_PREVIEW_POINT_CLOUD)
                         inUse = true;
                 }
                 if (!inUse && Utils::isInVector(chInfo.requestedStreams, source)) {
@@ -1077,7 +1081,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("LightingParams - Not implemented");
+                ImGui::Text("LightingParams");
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));

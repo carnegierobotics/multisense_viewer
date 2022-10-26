@@ -8,10 +8,12 @@
 #ifdef WIN32
 #include <WinRegEditor.h>
 #else
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sstream>
 #include <fstream>
+
 #endif
 
 #include <array>
@@ -62,8 +64,9 @@ void Renderer::buildCommandBuffers() {
     std::vector<VkClearValue> clearValues{};
     clearValues.resize(2);
 
-    clearValues[0] = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    clearValues[1] = { {1.0f, 0.0f} };
+    clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                       guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+    clearValues[1] = {{1.0f, 0.0f}};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;
@@ -155,6 +158,7 @@ void Renderer::render() {
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
     // Update GUI
+    guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork,
@@ -252,10 +256,8 @@ void Renderer::render() {
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color.float32[0] = guiManager->handles.clearColor[0];
-        clearValues[0].color.float32[1] = guiManager->handles.clearColor[1];
-        clearValues[0].color.float32[2] = guiManager->handles.clearColor[2];
-        clearValues[0].color.float32[3] = guiManager->handles.clearColor[3];
+        clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
         clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
@@ -308,7 +310,8 @@ void Renderer::render() {
         vulkanDevice->flushCommandBuffer(copyCmd, queue);
         // Copy texture data into staging buffer
         uint8_t *data = nullptr;
-        CHECK_RESULT(vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
+        CHECK_RESULT(
+                vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
             if (dev.state != AR_STATE_ACTIVE)
@@ -496,7 +499,8 @@ void Renderer::createSelectionFramebuffer() {
     std::array<VkImageView, 2> attachments{};
     attachments[0] = selection.colorView;
     attachments[1] = selection.depthView;
-    VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height, attachments.data(),
+    VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
+                                                                                    attachments.data(),
                                                                                     attachments.size(),
                                                                                     selection.renderPass);
     VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &selection.frameBuffer);
@@ -624,8 +628,8 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = mousePos.x - (float)x;
-    float dy = mousePos.y - (float)y;
+    float dx = mousePos.x - (float) x;
+    float dy = mousePos.y - (float) y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
         glm::vec3 rot(dy * camera.m_RotationSpeed, -dx * camera.m_RotationSpeed, 0.0f);

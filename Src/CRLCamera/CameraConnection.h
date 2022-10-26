@@ -115,7 +115,7 @@ namespace VkRender::MultiSense {
              * @param[in] index Which remote-head to select
              * */
             static void
-            setResolutionTask(void *context, CRLCameraResolution arg1,
+            setResolutionTask(void *context, CRLCameraResolution arg1,  VkRender::Device *dev,
                               crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
             /**@brief Set parameters to the sensor. Grouped together as in the UI

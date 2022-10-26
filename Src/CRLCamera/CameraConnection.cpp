@@ -93,7 +93,7 @@ namespace VkRender::MultiSense {
         for (auto &ch: dev->channelInfo) {
             if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, ch.index);
+                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode,dev, ch.index);
                 ch.updateResolutionMode = false;
             }
 
@@ -614,11 +614,12 @@ namespace VkRender::MultiSense {
     }
 
     void
-    CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1,
+    CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, VkRender::Device *dev,
                                         crl::multisense::RemoteHeadChannel idx) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         app->camPtr->setResolution(arg1, idx);
+        app->updateFromCameraParameters(dev, idx);
     }
 
     void CameraConnection::startStreamTask(void *context, std::string src,

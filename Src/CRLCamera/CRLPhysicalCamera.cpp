@@ -155,7 +155,6 @@ namespace VkRender::MultiSense {
                 return true;
 
             case AR_DISPARITY_IMAGE:
-
                 DISABLE_WARNING_PUSH
                 DISABLE_WARNING_IMPLICIT_FALLTHROUGH
                 if (header->data().bitsPerPixel != 16) {

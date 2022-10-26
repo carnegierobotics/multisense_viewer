@@ -18,8 +18,7 @@ void SingleLayout::setup() {
     noImageModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
-                       STBI_rgb_alpha);
+    pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,STBI_rgb_alpha);
     if (!pixels) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath() + "no_image_tex.png"));
@@ -47,7 +46,7 @@ void SingleLayout::update() {
         }
         // If we didn't receive a valid MultiSense image then draw default texture
     } else {
-            drawDefaultTexture = true;
+        drawDefaultTexture = true;
     }
 
     VkRender::UBOMatrix mat{};
@@ -140,7 +139,6 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             textureType = Utils::CRLSourceToTextureType(src);
             prepareMultiSenseTexture();
         }
-
         transformToUISpace(uiHandle, dev);
     }
 }
@@ -160,12 +158,8 @@ void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle
 
 
 void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == TAB_2D_PREVIEW){
-        if (drawDefaultTexture)
-            CRLCameraModels::draw(commandBuffer, i, noImageModel.get(), b);
-        else
-            CRLCameraModels::draw(commandBuffer, i, model.get(), b);
-
+    if (selectedPreviewTab == TAB_2D_PREVIEW) {
+        CRLCameraModels::draw(commandBuffer, i, drawDefaultTexture ? noImageModel.get() : model.get(), b);
     }
 }
 
@@ -178,6 +172,10 @@ void SingleLayout::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
 
 void SingleLayout::updateLog() const {
     auto *met = Log::Logger::getLogMetrics();
+    uint32_t width, height, depth;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
+    met->preview.height = height;
+    met->preview.width = width;
     met->preview.texHeight = texHeight;
     met->preview.texWidth = texWidth;
     met->preview.src = src;

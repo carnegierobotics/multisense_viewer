@@ -537,7 +537,7 @@ namespace VkRender {
             clearColor[3] = 1.0f;
         }
 
-        bool showDebugWindow = true;
+        bool showDebugWindow = false;
     };
 }
 

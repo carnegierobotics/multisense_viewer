@@ -595,13 +595,15 @@ private:
                                        uv1,
                                        bg_col, tint_col))
                     dev.layout = PREVIEW_LAYOUT_QUAD;
-
+                /*
                 ImGui::SameLine(0, 20.0f);
+
                 if (ImGui::ImageButton("Nine", handles->info->imageButtonTextureDescriptor[9], size, uv0,
                                        uv1,
                                        bg_col, tint_col))
                     dev.layout = PREVIEW_LAYOUT_NINE;
 
+                 */
                 ImGui::Dummy(ImVec2(00.0f, 10.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
@@ -796,7 +798,7 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-            ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
+            //ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
             ImGui::PopStyleColor();
 
             /*

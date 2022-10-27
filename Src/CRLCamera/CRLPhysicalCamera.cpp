@@ -564,6 +564,7 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID,
                                       crl::multisense::system::StatusMessage *msg) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }

@@ -126,13 +126,12 @@ namespace VkRender::MultiSense {
 
         /** Get status update for each connected channel **/
         for (auto &ch: dev->channelInfo) {
-            crl::multisense::system::StatusMessage status;
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
                 queryStatusTimer = std::chrono::steady_clock::now();
-                pool->Push(CameraConnection::getStatusTask, this, ch.index, &status);
+                pool->Push(CameraConnection::getStatusTask, this, ch.index);
             }
         }
 
@@ -199,6 +198,7 @@ namespace VkRender::MultiSense {
             }
 
             // Disable if we lost connection
+            std::scoped_lock lock(writeParametersMtx);
             if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
@@ -682,12 +682,12 @@ namespace VkRender::MultiSense {
         dev->parameters.updateGuiParams = false;
     }
 
-    void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
-                                         crl::multisense::system::StatusMessage *msg) {
+    void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr->getStatus(remoteHeadIndex, msg)) {
-            Log::Logger::getLogMetrics()->device.upTime = msg->uptime;
+        crl::multisense::system::StatusMessage msg;
+        if (app->camPtr->getStatus(remoteHeadIndex, &msg)) {
+            Log::Logger::getLogMetrics()->device.upTime = msg.uptime;
             app->m_FailedGetStatusCount = 0;
         } else {
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,

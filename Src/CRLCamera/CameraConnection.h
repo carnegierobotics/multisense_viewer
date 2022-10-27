@@ -69,7 +69,7 @@ namespace VkRender::MultiSense {
             /**@brief Get profile from .ini file if the serial number is recognized.
              * @param[in] dev Which profile to update
              */
-            void getProfileFromIni(VkRender::Device &dev);
+            void getProfileFromIni(VkRender::Device &dev) const;
 
             /**@brief Create a user readable list of the possible camera modes*/
             void

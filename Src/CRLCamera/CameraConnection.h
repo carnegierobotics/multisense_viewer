@@ -163,7 +163,7 @@ namespace VkRender::MultiSense {
              * @param[in] remoteHeadIndex id of remote head to select
              * @param[out] msg if a status was received. This object is filled with the latest information
              */
-            static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex, crl::multisense::system::StatusMessage* msg);
+            static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
             /**@brief Update the UI block using the active information block from the physical camera
              * @param[in] dev profile to update UI from

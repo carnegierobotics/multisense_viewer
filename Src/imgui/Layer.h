@@ -59,7 +59,7 @@ namespace VkRender {
 
     /** @brief An initialized object needed to create a \refitem Device */
     struct EntryConnectDevice {
-        std::string profileName = "VkRender";
+        std::string profileName = "MultiSense";
         std::string IP = "10.66.171.21";
         std::string interfaceName;
         std::string description;

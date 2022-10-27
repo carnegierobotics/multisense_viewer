@@ -261,6 +261,7 @@ private:
         el.name = entry.profileName;
         el.IP = entry.IP;
         el.state = AR_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_JUST_ADDED ", el.name);
         el.cameraName = entry.cameraName;
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
@@ -339,6 +340,8 @@ private:
             if (ImGui::SmallButton("X")) {
                 // delete and disconnect devices
                 handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
+                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECT_AND_FORGET ",
+                                                 handles->devices.at(i).name);
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(3);
                 ImGui::EndChild();
@@ -451,7 +454,7 @@ private:
                                                       ImColor(VkRender::CRLRed), 10.0f, 0);
 
             ImGui::PushFont(handles->info->font24);
-            std::string title = "Connect to VkRender";
+            std::string title = "Connect to MultiSense";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
             float anchorPoint = (handles->info->popupWidth - size.x) / 2; // Make a m_Title in center of popup window
 

@@ -162,7 +162,7 @@ namespace VkRender::MultiSense {
                 for (auto &d: devices) {
                     if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
                         d.state = AR_STATE_RESET;
-                        Log::Logger::getInstance()->info("Call to reset state requested for profile {}", d.name);
+                        Log::Logger::getInstance()->info("Set dev state to RESET {}", d.name);
                         resetOtherDevice = true;
                         otherDev = &d;
                     }
@@ -175,6 +175,8 @@ namespace VkRender::MultiSense {
                     saveProfileAndDisconnect(otherDev);
                 }
                 dev.state = AR_STATE_CONNECTING;
+                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_CONNECTING ", dev.name);
+
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
                 pool = std::make_unique<VkRender::ThreadPool>(1);
                 // Perform connection by pushing a connect task.
@@ -191,7 +193,7 @@ namespace VkRender::MultiSense {
             // Disable if we click a m_Device already connected
             if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
                 // Disable all streams and delete camPtr on next update
-                Log::Logger::getInstance()->info("Call to reset state requested for profile {}", dev.name);
+                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_RESET ", dev.name);
                 dev.state = AR_STATE_RESET;
                 for (auto ch: dev.channelConnections)
                     pool->Push(stopStreamTask, this, "All", ch);
@@ -204,6 +206,8 @@ namespace VkRender::MultiSense {
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
                                                  dev.name);
                 dev.state = AR_STATE_LOST_CONNECTION;
+                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_LOST_CONNECTION ", dev.name);
+
             }
         }
     }
@@ -522,8 +526,10 @@ namespace VkRender::MultiSense {
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();
             dev->state = AR_STATE_ACTIVE;
+            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_ACTIVE ", dev->name);
         } else {
             dev->state = AR_STATE_UNAVAILABLE;
+            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_UNAVAILABLE ", dev->name);
         }
 
 
@@ -580,10 +586,12 @@ namespace VkRender::MultiSense {
         if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
             dev->state = AR_STATE_REMOVE_FROM_LIST;
+            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_REMOVE_FROM_LIST ", dev->name);
             Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
 
         } else {
             dev->state = AR_STATE_DISCONNECTED;
+            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECTED ", dev->name);
         }
         rc = ini.SaveFile("crl.ini");
         if (rc < 0) {

@@ -16,12 +16,13 @@
 
 #include <Windows.h>
 #include <ipmib.h>
-#include <iphlpapi.h> 
+#include <iphlpapi.h>
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 #define ADAPTER_HEX_NAME_LENGTH 38
 #define UNNAMED_ADAPTER "Unnamed"
+
 #include <WinRegEditor.h>
 
 #else
@@ -150,6 +151,7 @@ namespace VkRender::MultiSense {
             if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET ||
                 dev.state == AR_STATE_LOST_CONNECTION) {
                 dev.selectedPreviewTab = TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
+                dev.isRecording = false;
                 saveProfileAndDisconnect(&dev);
                 pool->Stop();
                 return;
@@ -225,7 +227,7 @@ namespace VkRender::MultiSense {
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
-            const auto& imgConf = camPtr->getCameraInfo(ch).imgConf;
+            const auto &imgConf = camPtr->getCameraInfo(ch).imgConf;
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
 
@@ -282,7 +284,8 @@ namespace VkRender::MultiSense {
                         std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
                         if (!source.empty() && source != std::string("Source:" + remoteHeadIndex)) {
                             dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
-                            dev.win[i].selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(remoteHeadIndex);
+                            dev.win[i].selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
+                                    remoteHeadIndex);
                             Log::Logger::getInstance()->info(
                                     ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                     source.substr(0, source.find_last_of(':')),

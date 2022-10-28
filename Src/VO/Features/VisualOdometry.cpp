@@ -47,6 +47,13 @@ glm::vec3  VisualOdometry::update(VkRender::TextureData left, VkRender::TextureD
     m_ImageRight_t1 = cv::Mat(right.m_Height, right.m_Width, CV_8UC1, right.data);
     m_ImageDepth_t1 = cv::Mat(depth.m_Height, depth.m_Width, CV_16UC1, depth.data);
 
+    // Sharpen
+    cv::Mat kernel3 = (cv::Mat_<double>(3,3) << 0, -1,  0,
+            -1,  5, -1,
+            0, -1, 0);
+    filter2D(m_ImageLeft_t1, m_ImageLeft_t1, -1 , kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
+    filter2D(m_ImageRight_t1, m_ImageRight_t1, -1 , kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
+
     glm::vec3 transformationMat;
     runVO(m_ImageLeft_t1, m_ImageRight_t1, &transformationMat, m_ImageDepth_t1);
     return transformationMat;
@@ -83,7 +90,7 @@ void VisualOdometry::runVO(cv::Mat imageLeft_t1, cv::Mat imageRight_t1, glm::vec
     // --------------------------------------------------------
     // Feature tracking using KLT tracker, bucketing and circular matching
     // --------------------------------------------------------
-    int bucket_size = m_ImageLeft_t0.rows / 100;
+    int bucket_size = m_ImageLeft_t0.rows / 50;
     int features_per_bucket = 1;
     bucketingFeatures(m_ImageLeft_t0, featureSet, bucket_size, features_per_bucket);
 

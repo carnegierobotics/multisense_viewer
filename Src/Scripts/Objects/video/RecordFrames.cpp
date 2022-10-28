@@ -21,7 +21,6 @@ void RecordFrames::update() {
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
             if (threadPool->getTaskListSize() < STACK_SIZE_100) {
-                Log::Logger::getInstance()->info("Saving m_Image {} from source {}", tex->m_Id, src);
                 threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex);
             }
         }
@@ -59,15 +58,24 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     int check = mkdir(directory.c_str(), 0777);
 #endif
 // check if directory is created or not
-    if (!check)
+    if (check == 0)
         printf("Directory created\n");
 
-    std::string fullPathName = filePath + fileName;
+    std::string fullPathName = filePath + fileName + ".png";
+    // Check if file exists. Otherwise do nothing
+    std::ifstream fin( fullPathName.c_str() );
+    if(fin.good())
+    {
+        fin.close();
+        return;
+    }
+    Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
+
     switch (type) {
         case AR_POINT_CLOUD:
             break;
         case AR_GRAYSCALE_IMAGE:
-            stbi_write_png((fullPathName + ".png").c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
+            stbi_write_png((fullPathName).c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
                            ptr->m_Width);
             break;
         case AR_DISPARITY_IMAGE: {
@@ -79,7 +87,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 uint8_t lsb = d[i] & 0x000000FF;
                 buf.emplace_back(lsb);
             }
-            stbi_write_png((fullPathName + ".png").c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
+            stbi_write_png((fullPathName).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
                            ptr->m_Width);
         }
             break;
@@ -135,7 +143,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                                                     NULL);
             sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
             sws_freeContext(conversion);
-            stbi_write_png((fullPathName + ".png").c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
+            stbi_write_png((fullPathName).c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
 
             av_freep(&src->data[0]);
             av_frame_free(&src);

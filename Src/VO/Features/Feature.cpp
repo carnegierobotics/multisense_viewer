@@ -60,12 +60,12 @@ void deleteUnmatchFeaturesCircle(std::vector<cv::Point2f> &points0, std::vector<
                                  std::vector<uchar> &status2, std::vector<uchar> &status3,
                                  std::vector<int> &ages) {
     //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
-    for (int i = 0; i < ages.size(); ++i) {
+    for (size_t i = 0; i < ages.size(); ++i) {
         ages[i] += 1;
     }
 
     int indexCorrection = 0;
-    for (int i = 0; i < status3.size(); i++) {
+    for (size_t i = 0; i < status3.size(); i++) {
         cv::Point2f pt0 = points0.at(i - indexCorrection);
         cv::Point2f pt1 = points1.at(i - indexCorrection);
         cv::Point2f pt2 = points2.at(i - indexCorrection);
@@ -97,7 +97,7 @@ void
 checkValidMatch(std::vector<cv::Point2f> &points, std::vector<cv::Point2f> &points_return, std::vector<bool> &status,
                 int threshold) {
     int offset;
-    for (int i = 0; i < points.size(); i++) {
+    for (size_t i = 0; i < points.size(); i++) {
         offset = std::max(std::abs(points[i].x - points_return[i].x), std::abs(points[i].y - points_return[i].y));
         // std::cout << offset << ", ";
 
@@ -111,7 +111,7 @@ checkValidMatch(std::vector<cv::Point2f> &points, std::vector<cv::Point2f> &poin
 
 void removeInvalidPoints(std::vector<cv::Point2f> &points, const std::vector<bool> &status) {
     int index = 0;
-    for (int i = 0; i < status.size(); i++) {
+    for (size_t i = 0; i < status.size(); i++) {
         if (status[i] == false) {
             points.erase(points.begin() + index);
         } else {

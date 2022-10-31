@@ -204,7 +204,7 @@ namespace VkRender::MultiSense {
             }
 
             // Disable if we lost connection
-            std::scoped_lock lock(writeParametersMtx);
+            std::scoped_lock lock(statusCountMutex);
             if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
@@ -699,8 +699,10 @@ namespace VkRender::MultiSense {
         crl::multisense::system::StatusMessage msg;
         if (app->camPtr->getStatus(remoteHeadIndex, &msg)) {
             Log::Logger::getLogMetrics()->device.upTime = msg.uptime;
+            std::scoped_lock lock2(app->statusCountMutex);
             app->m_FailedGetStatusCount = 0;
         } else {
+            std::scoped_lock lock2(app->statusCountMutex);
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,
                                              app->m_FailedGetStatusCount);
             app->m_FailedGetStatusCount++;

@@ -352,8 +352,11 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (resolution == currentResolutionMap[channelID] || resolution == CRL_RESOLUTION_NONE)
+        if (resolution == CRL_RESOLUTION_NONE)
+        {
+            Log::Logger::getInstance()->info("Resolution is not specified {}", resolution);
             return false;
+        }
         uint32_t width = 0, height = 0, depth = 0;
         Utils::cameraResolutionToValue(resolution, &width, &height, &depth);
         if (width == 0 || height == 0 || depth == 0) {

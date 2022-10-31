@@ -140,6 +140,10 @@ namespace VkRender::MultiSense {
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 tex->m_Id2 = static_cast<uint32_t>(headerTwo->data().frameId);
 
+                // These should not be the same height. This can happen with the Color_Aux source when switching between max and quarter res.
+                if (header->data().height == headerTwo->data().height)
+                    return false;
+
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
                 std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
 
@@ -148,7 +152,7 @@ namespace VkRender::MultiSense {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);
 
-                    diff = tex->m_Height - headerTwo->data().height;
+                    diff = tex->m_Height / 2.0f - headerTwo->data().height;
                     std::memset(tex->data2 + headerTwo->data().imageLength, 0x00, diff * tex->m_Width);
                 }
 
@@ -321,7 +325,7 @@ namespace VkRender::MultiSense {
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
 
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
+            Log::Logger::getInstance()->info("Unable to query image configuration");
             return false;
         }
 
@@ -329,7 +333,7 @@ namespace VkRender::MultiSense {
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
 
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
+            Log::Logger::getInstance()->info("Unable to set image configuration");
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));

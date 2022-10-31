@@ -251,6 +251,11 @@ endforeach( file_i )
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
+    # Generate empty configuration files
+    file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
+    file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
+
+
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
@@ -281,7 +286,9 @@ else () ## Linux
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
     install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
-
+        # Generate empty configuration files
+    file(WRITE ${RUNTIME_DESTINATION}/imgui.ini "")
+    file(WRITE ${RUNTIME_DESTINATION}/crl.ini "")
 
     MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${ASSETS_DESTINATION}")
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${ASSETS_DESTINATION})

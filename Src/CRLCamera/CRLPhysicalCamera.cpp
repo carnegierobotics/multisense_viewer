@@ -23,13 +23,16 @@ namespace VkRender::MultiSense {
                                          : std::make_unique<ChannelWrapper>(ip);
             if (channelMap[i].get()->ptr() != nullptr) {
                 updateCameraInfo(i);
-                setMtu(7200, i);
                 addCallbacks(i);
                 indices.emplace_back(i);
             }
-
             if (!isRemoteHead)
                 break;
+        }
+
+        if (isRemoteHead){
+            channelMap[crl::multisense::Remote_Head_VPB] =std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB);
+            setMtu(7200, crl::multisense::Remote_Head_VPB);
         }
         return indices;
     }
@@ -39,7 +42,7 @@ namespace VkRender::MultiSense {
         if (source == false)
             return false;
         // Start stream
-        int32_t status = channelMap[channelID]->ptr()->startStreams(source);
+        crl::multisense::Status status = channelMap[channelID]->ptr()->startStreams(source);
         if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Started stream: {} on channel {}",
                                              Utils::dataSourceToString(source).c_str(), channelID);
@@ -58,7 +61,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Failed to recognize '{}' source", dataSourceStr.c_str());
             return false;
         }
-        bool status = channelMap[channelID]->ptr()->stopStreams(src);
+        crl::multisense::Status status = channelMap[channelID]->ptr()->stopStreams(src);
         if (status == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Stopped camera stream {} on channel {}", dataSourceStr.c_str(),
                                              channelID);
@@ -86,8 +89,7 @@ namespace VkRender::MultiSense {
             d >>= 1;
         }
         if (channelMap[channelID]->ptr()->addIsolatedCallback(remoteHeadCallback,
-                                                              infoMap[channelID].supportedSources |
-                                                              crl::multisense::Source_Compressed_Rectified_Left,
+                                                              infoMap[channelID].supportedSources,
                                                               channelMap[channelID].get()) ==
             crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Added callback for channel {}", channelID);
@@ -574,7 +576,7 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID,
                                       crl::multisense::system::StatusMessage *msg) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
+        crl::multisense::Status status = channelMap[crl::multisense::Remote_Head_VPB]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }
 }

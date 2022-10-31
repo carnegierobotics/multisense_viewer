@@ -502,16 +502,18 @@ private:
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
-                            bool inUse = false;
-                            for (const auto& win : dev.win) {
-                                if(win.second.selectedSource == window.selectedSource && win.first != index)
-                                    inUse = true;
-                            }
-                            if (!inUse && Utils::removeFromVector(
-                                            &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
-                                            window.selectedSource)) {
-                                Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
-                                                                 window.selectedSource);
+                            if (window.selectedSource != "Source") {
+                                bool inUse = false;
+                                for (const auto &win: dev.win) {
+                                    if (win.second.selectedSource == window.selectedSource && win.first != index && win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
+                                        inUse = true;
+                                }
+                                if (!inUse && Utils::removeFromVector(
+                                        &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                        window.selectedSource)) {
+                                    Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
+                                                                     window.selectedSource);
+                                }
                             }
 
 
@@ -909,18 +911,18 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Head 1", &d.configRemoteHead, 0))
+                if (ImGui::RadioButton("Head 0", &d.configRemoteHead, crl::multisense::Remote_Head_0))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 2", &d.configRemoteHead, 1))
+                if (ImGui::RadioButton("Head 1", &d.configRemoteHead, crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 3", &d.configRemoteHead, 2))
+                if (ImGui::RadioButton("Head 2", &d.configRemoteHead, crl::multisense::Remote_Head_2))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
-                if (ImGui::RadioButton("Head 4", &d.configRemoteHead, 3))
+                if (ImGui::RadioButton("Head 3", &d.configRemoteHead, crl::multisense::Remote_Head_3))
                     d.parameters.updateGuiParams = true;
 
             }

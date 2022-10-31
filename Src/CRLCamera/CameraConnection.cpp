@@ -94,9 +94,10 @@ namespace VkRender::MultiSense {
         for (auto &ch: dev->channelInfo) {
             if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                uint32_t width=0, height=0, depth=0;
-                Utils::cameraResolutionToValue(ch.selectedMode,& width, & height, & depth);
-                Log::Logger::getInstance()->info("Requesting resolution {}x{}x{} on channel {}", width, height, depth, ch.index);
+                uint32_t width = 0, height = 0, depth = 0;
+                Utils::cameraResolutionToValue(ch.selectedMode, &width, &height, &depth);
+                Log::Logger::getInstance()->info("Requesting resolution {}x{}x{} on channel {}", width, height, depth,
+                                                 ch.index);
                 pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, dev, ch.index);
                 ch.updateResolutionMode = false;
             }
@@ -127,15 +128,12 @@ namespace VkRender::MultiSense {
         }
 
 
-        /** Get status update for each connected channel **/
-        for (auto &ch: dev->channelInfo) {
-            auto time = std::chrono::steady_clock::now();
-            std::chrono::duration<float> time_span =
-                    std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
-            if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
-                queryStatusTimer = std::chrono::steady_clock::now();
-                pool->Push(CameraConnection::getStatusTask, this, ch.index);
-            }
+        auto time = std::chrono::steady_clock::now();
+        std::chrono::duration<float> time_span =
+                std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
+        if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
+            queryStatusTimer = std::chrono::steady_clock::now();
+            pool->Push(CameraConnection::getStatusTask, this, crl::multisense::Remote_Head_VPB);
         }
 
 
@@ -232,7 +230,6 @@ namespace VkRender::MultiSense {
             const auto &imgConf = camPtr->getCameraInfo(ch).imgConf;
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
-
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
             }
@@ -311,7 +308,7 @@ namespace VkRender::MultiSense {
     }
 
     void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec,
-                                                  uint32_t idx) {
+                                                  crl::multisense::RemoteHeadChannel idx) {
         uint32_t bits = camPtr->getCameraInfo(idx).supportedSources;
         for (auto mask: maskVec) {
             bool enabled = (bits & mask);
@@ -524,7 +521,7 @@ namespace VkRender::MultiSense {
         if (!dev->channelConnections.empty()) {
             //app->getProfileFromIni(*dev);
             app->updateUIDataBlock(*dev);
-            app->getProfileFromIni(*dev);
+            if (!isRemoteHead) app->getProfileFromIni(*dev);
             // Set the resolution read from config file
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;

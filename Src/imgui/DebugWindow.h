@@ -267,10 +267,14 @@ public:
 
 
                 ImGui::Separator();
-                for (const auto &src: met->device.sourceReceiveMapCounter) {
-                    ImGui::Text("%s ", src.first.c_str());
-                    ImGui::SameLine();
-                    ImGui::Text("%d", src.second);
+                for (const auto &id: met->device.sourceReceiveMapCounter) {
+                    for (const auto &src: id.second) {
+                        ImGui::Text("%hd :", id.first);
+                        ImGui::SameLine();
+                        ImGui::Text("%s ", src.first.c_str());
+                        ImGui::SameLine();
+                        ImGui::Text("%d", src.second);
+                    }
                 }
                 ImGui::Text("Uptime: %.2f", met->device.upTime);
             }

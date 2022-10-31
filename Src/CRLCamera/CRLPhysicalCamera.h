@@ -60,7 +60,7 @@ namespace VkRender::MultiSense {
                 // replace latest data into m_Image pointers
                 imagePointersMap[id][buf->data().source] = buf;
 
-                Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[Utils::dataSourceToString(buf->data().source)]++;
+                Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[id][Utils::dataSourceToString(buf->data().source)]++;
 
             }
 
@@ -89,7 +89,8 @@ namespace VkRender::MultiSense {
                 delete imageBuffer;
                 // Reset image counter for debugger
                 for (auto& src : Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
-                    src.second = 0;
+                    for (auto& counter : src.second)
+                        counter.second = 0;
 
                 if (channelPtr_) {
                     crl::multisense::Channel::Destroy(channelPtr_);

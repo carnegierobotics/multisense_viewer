@@ -216,7 +216,15 @@ public:
             auto met = Log::Logger::getLogMetrics();
 
             if (met->device.dev != nullptr) {
-                auto &dev = met->device.dev->channelInfo[0];
+                const VkRender::ChannelInfo *info;
+                try {
+                    info = &met->device.dev->channelInfo.at(0);
+                } catch (...) {
+                    ImGui::Separator();
+                    ImGui::EndChild();
+                    ImGui::End();
+                    return;
+                }
                 std::stringstream stream;
                 std::string res;
 
@@ -235,13 +243,11 @@ public:
                 ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
                 ImGui::Separator();
 
-                ImGui::Text("Selected Mode %s", Utils::cameraResolutionToString(dev.selectedMode).c_str());
-
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
                 ImGui::Dummy(ImVec2(2.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::Text("Application Enabled Sources:");
-                for (const auto &enabled: dev.enabledStreams) {
+                for (const auto &enabled: info->enabledStreams) {
                     ImGui::Dummy(ImVec2(10.0f, 0.0f));
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
@@ -252,7 +258,7 @@ public:
                 ImGui::SameLine();
                 ImGui::Text("UI Requested Sources:");
                 ImVec2 posMax = ImGui::GetItemRectMax();
-                for (const auto &req: dev.requestedStreams) {
+                for (const auto &req: info->requestedStreams) {
 
                     ImGui::Dummy(ImVec2(10.0f, 0.0f));
                     ImGui::SameLine();

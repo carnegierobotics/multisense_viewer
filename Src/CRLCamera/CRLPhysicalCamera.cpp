@@ -32,7 +32,12 @@ namespace VkRender::MultiSense {
 
         if (isRemoteHead){
             channelMap[crl::multisense::Remote_Head_VPB] =std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB);
-            setMtu(7200, crl::multisense::Remote_Head_VPB);
+            if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
+                setMtu(7200, crl::multisense::Remote_Head_VPB);
+        } else {
+            if (channelMap[0].get()->ptr() != nullptr)
+                setMtu(7200, 0);
+
         }
         return indices;
     }

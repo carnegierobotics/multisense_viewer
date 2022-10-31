@@ -599,6 +599,8 @@ namespace VkRender::MultiSense {
         if (rc < 0) {
             Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
         }
+
+        dev->channelInfo.clear();
     }
 
     void CameraConnection::setExposureTask(void *context, ExposureParams *arg1, VkRender::Device *dev,

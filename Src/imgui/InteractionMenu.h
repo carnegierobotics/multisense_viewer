@@ -466,14 +466,43 @@ private:
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
                         for (size_t n = 0; n < window.availableRemoteHeads.size(); n++) {
-                            const bool is_selected = (window.selectedRemoteHeadIndex == (crl::multisense::RemoteHeadChannel) n);
+                            const bool is_selected = (window.selectedRemoteHeadIndex ==
+                                                      (crl::multisense::RemoteHeadChannel) n);
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
-                                // If we had streams active then transfer active streams to new channel
+
+
+                                // Disable the previously enabled source if not in use and update the selected source tab
+                                if (window.selectedSource != "Source") {
+                                    bool inUse = false;
+                                    std::string sourceInUse;
+                                    for (const auto &win: dev.win) {
+                                        if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                            win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
+                                            inUse = true;
+                                            sourceInUse = win.second.selectedSource;
+                                        }
+                                    }
+                                    // If it's not in use we can disable it
+                                    if (!inUse && Utils::removeFromVector(
+                                            &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                            window.selectedSource)) {
+                                        Log::Logger::getInstance()->info(
+                                                "Removed source '{}' from user requested sources",
+                                                window.selectedSource);
+                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Source"
+                                        window.selectedSourceIndex = 0;
+                                    }
+                                    // If its in use, but we don't want to disable it. Just reset the source name to "Source"
+                                    if (inUse && !sourceInUse.empty()) {
+                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Source"
+                                        window.selectedSourceIndex = 0;
+                                    }
+                                }
+
                                 window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
                                         window.availableRemoteHeads[n]);
                                 Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
                                                                  window.selectedRemoteHeadIndex, index);
-
                             }
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -505,7 +534,8 @@ private:
                             if (window.selectedSource != "Source") {
                                 bool inUse = false;
                                 for (const auto &win: dev.win) {
-                                    if (win.second.selectedSource == window.selectedSource && win.first != index && win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
+                                    if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                        win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
                                         inUse = true;
                                 }
                                 if (!inUse && Utils::removeFromVector(
@@ -635,7 +665,8 @@ private:
                     auto &chInfo = dev.channelInfo[i];
                     if (chInfo.state != AR_STATE_ACTIVE)
                         continue;
-                    if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
+                    if (ImGui::BeginCombo(resLabel.c_str(),
+                                          Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
                         for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
@@ -704,7 +735,8 @@ private:
                     }
                     {
                         if (ImGui::Button("Choose Location", btnSize))
-                            ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
+                            ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
+                                                                    ".");
                     }
 
                     ImGui::SameLine();

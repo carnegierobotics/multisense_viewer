@@ -768,7 +768,7 @@ private:
             }
 
 
-        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
+        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();

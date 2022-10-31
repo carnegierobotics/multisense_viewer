@@ -504,7 +504,7 @@ private:
 
                             bool inUse = false;
                             for (const auto& win : dev.win) {
-                                if(win.second.selectedSource == window.selectedSource)
+                                if(win.second.selectedSource == window.selectedSource && win.first != index)
                                     inUse = true;
                             }
                             if (!inUse && Utils::removeFromVector(
@@ -676,8 +676,10 @@ private:
                     ImGui::Text("Recording");
                     ImGui::PopFont();
                     ImGui::SameLine();
+                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::HelpMarker(
-                            " \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n ");
+                            " \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n Depending on Hardware, you might want to limit yourself to two streams \n in full resolution mode \n ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 
@@ -685,7 +687,7 @@ private:
                     ImGui::SameLine();
                     ImVec2 btnSize(120.0f, 30.0f);
                     std::string btnText = dev.isRecording ? "Stop" : "Start";
-                    if (ImGui::Button(btnText.c_str(), btnSize)) {
+                    if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolder != "/Path/To/Folder/") {
                         dev.isRecording = dev.isRecording ? false : true;
                     }
 
@@ -698,8 +700,10 @@ private:
                         ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
 
                     }
-                    if (ImGui::Button("Choose Location", btnSize))
-                        ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
+                    {
+                        if (ImGui::Button("Choose Location", btnSize))
+                            ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr, ".");
+                    }
 
                     ImGui::SameLine();
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
@@ -764,7 +768,7 @@ private:
             }
 
 
-        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
+        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();

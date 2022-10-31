@@ -69,6 +69,9 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         fin.close();
         return;
     }
+    // Create file
+    std::ofstream output(fullPathName);
+    output.close();
     Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
 
     switch (type) {

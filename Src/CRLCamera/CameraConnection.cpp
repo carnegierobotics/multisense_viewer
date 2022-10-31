@@ -94,10 +94,12 @@ namespace VkRender::MultiSense {
         for (auto &ch: dev->channelInfo) {
             if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
+                uint32_t width=0, height=0, depth=0;
+                Utils::cameraResolutionToValue(ch.selectedMode,& width, & height, & depth);
+                Log::Logger::getInstance()->info("Requesting resolution {}x{}x{} on channel {}", width, height, depth, ch.index);
                 pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, dev, ch.index);
                 ch.updateResolutionMode = false;
             }
-
         }
 
         // Start requested streams
@@ -202,7 +204,7 @@ namespace VkRender::MultiSense {
             }
 
             // Disable if we lost connection
-            std::scoped_lock lock(writeParametersMtx);
+            std::scoped_lock lock(statusCountMutex);
             if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
@@ -276,7 +278,7 @@ namespace VkRender::MultiSense {
                     dev.channelInfo.at(ch).selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
-                    for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+                    for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
                         if (i == AR_PREVIEW_POINT_CLOUD)
                             continue;
                         std::string key = "Preview" + std::to_string(i + 1);
@@ -572,7 +574,7 @@ namespace VkRender::MultiSense {
                         dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
-                for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+                for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
                     if (i == AR_PREVIEW_POINT_CLOUD)
                         continue;
                     std::string source = dev->win[i].selectedSource;
@@ -697,8 +699,10 @@ namespace VkRender::MultiSense {
         crl::multisense::system::StatusMessage msg;
         if (app->camPtr->getStatus(remoteHeadIndex, &msg)) {
             Log::Logger::getLogMetrics()->device.upTime = msg.uptime;
+            std::scoped_lock lock2(app->statusCountMutex);
             app->m_FailedGetStatusCount = 0;
         } else {
+            std::scoped_lock lock2(app->statusCountMutex);
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,
                                              app->m_FailedGetStatusCount);
             app->m_FailedGetStatusCount++;

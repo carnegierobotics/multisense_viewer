@@ -51,6 +51,7 @@ namespace VkRender::MultiSense {
 		/**@brief mutex to prevent multiple threads to communicate with camera.
 		 * could be omitted if threadpool will always consist of one thread */
 		std::mutex writeParametersMtx{};
+		std::mutex statusCountMutex{};
 
 		/**
 		 * @brief Function called once per update by \refitem onUIUpdate if we have an active m_Device

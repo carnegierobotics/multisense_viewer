@@ -1,6 +1,7 @@
 import os
 import psutil
 import time
+import platform
 
 
 def find_procs_by_name(name):
@@ -25,8 +26,17 @@ def find_procs_by_name(name):
 
 
 if __name__ == "__main__":
-    process = find_procs_by_name("MultiSense-viewer")[0]
+    name = "MultiSense-viewer"
+    if "Windows" in platform.system():
+        name += ".exe"
+    process = find_procs_by_name("MultiSense-viewer")
+    if len(process) < 1:
+        print("Did not find a Process containing '{}'".format(name))
+        exit(1)
+    else:
+        process = process[0]
     f = open("ResLog.csv", "w")
+    print("\n\nWriting to {}/ResLog.csv\n".format(os.getcwd()))
     f.write("cpu, mem, net in, net out, \n")
 
     # get the network I/O stats from psutil
@@ -40,12 +50,16 @@ if __name__ == "__main__":
         mem = process.memory_info().rss / 1000000
         io = psutil.net_io_counters()
         bytes_sent, bytes_recv = io.bytes_sent, io.bytes_recv
+        print("{}: {},{},{},{}".format(log, cpu, mem, bytes_recv, bytes_sent))
 
         if log < 5:
             cpu = process.cpu_percent()
             log += 1
+            time.sleep(0.3)
+            print("Initializing.. ({}/5)".format(log))
             continue
-        print("{}: {},{},{},{}\n".format(log, cpu, mem, bytes_recv, bytes_sent))
+        if log == 5:
+            print("Started logging to file...\n\n")
 
         f.write("{},{},{},{},\n".format(cpu, mem, bytes_recv, bytes_sent))
         time.sleep(1)

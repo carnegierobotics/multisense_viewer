@@ -682,7 +682,8 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-                ImGui::Checkbox(" Remote Head", &handles->nextIsRemoteHead);
+                ImGui::Checkbox(" Remote Head", &handles->nextIsRemoteHead); ImGui::SameLine();
+                ImGui::HelpMarker("\n Check this if you are connecting to a remote head device\n ");
                 ImGui::PopStyleColor();
 
             }

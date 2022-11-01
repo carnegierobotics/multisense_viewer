@@ -119,12 +119,7 @@ namespace VkRender::MultiSense {
         public:
             CRLPhysicalCamera() = default;
 
-            ~CRLPhysicalCamera() {
-                for (auto &ch: channelMap) {
-                    if (ch.second->ptr() != nullptr)
-                        stop("All", ch.first);
-                }
-            }
+            ~CRLPhysicalCamera() = default;
 
             /**
              * @brief container to keep \refitem crl::multisense::Channel information. This block is closely related to the \refitem Parameters UI block

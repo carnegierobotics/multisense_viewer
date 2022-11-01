@@ -18,7 +18,7 @@ namespace VkRender {
         /**
          * @brief Default Constructor. Sizes between texture and camera frame must match!
          * Can use a memory pointer to GPU memory as memory store option or handle memory manually with \refitem manualMemoryMgmt.
-         * @param texType Which texture type this is to be used with. Used to calculate the size of the texture
+         * @param texType Which texture type this is to be used with. Used to calculate the m_TexSize of the texture
          * @param width Width of texture/frame
          * @param height Width of texture/frame
          * @param manualMemoryMgmt true: Malloc memory with this object, false: dont malloc memory, default = false

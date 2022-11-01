@@ -15,13 +15,20 @@ void RecordFrames::update() {
     if (!saveImage)
         return;
 
+    // For each enabled source in all windows
     for (const auto &src: sources) {
-        const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), true);
+        // For each remote head index
+        for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
+             remoteIdx <= crl::multisense::Remote_Head_3; ++remoteIdx) {
 
-        if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteHeadIndex)) {
-            if (threadPool->getTaskListSize() < STACK_SIZE_100) {
-                threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src, tex);
+            const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteIdx).imgConf;
+            auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
+                                                               conf.height(), true);
+            if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteIdx)) {
+                if (threadPool->getTaskListSize() < STACK_SIZE_100) {
+                    threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
+                                     remoteIdx, tex);
+                }
             }
         }
 
@@ -34,7 +41,7 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
         sources.clear();
-        for (const auto& window: dev.win) {
+        for (const auto &window: dev.win) {
             if (!Utils::isInVector(sources, window.second.selectedSource))
                 sources.emplace_back(window.second.selectedSource);
         }
@@ -45,27 +52,33 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 }
 
 
-
-void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string& stringSrc, std::shared_ptr<VkRender::TextureData>& ptr) {
+void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc,
+                                   crl::multisense::RemoteHeadChannel remoteHead,
+                                   std::shared_ptr<VkRender::TextureData> &ptr) {
 
     std::string fileName = std::to_string(ptr->m_Id);
-    std::string directory = path + "/" + stringSrc;
+    std::string remoteHeadDir = path + "/" + std::to_string(remoteHead);
+    std::string directory = remoteHeadDir + "/" + stringSrc;
     std::string filePath = directory + "/";
 
 #ifdef WIN32
     int check = _mkdir(directory.c_str());
 #else
-    int check = mkdir(directory.c_str(), 0777);
-#endif
-// check if directory is created or not
+    // Create Remote head index directory
+    int check = mkdir(remoteHeadDir.c_str(), 0777);
     if (check == 0)
         printf("Directory created\n");
 
+    // Create Source name directory
+    check = mkdir(directory.c_str(), 0777);
+    if (check == 0)
+        printf("Directory created\n");
+#endif
+
     std::string fullPathName = filePath + fileName + ".png";
     // Check if file exists. Otherwise do nothing
-    std::ifstream fin( fullPathName.c_str() );
-    if(fin.good())
-    {
+    std::ifstream fin(fullPathName.c_str());
+    if (fin.good()) {
         fin.close();
         return;
     }
@@ -106,7 +119,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 fprintf(stderr, "Could not allocate video frame\n");
             }
             src->format = AV_PIX_FMT_YUV420P;
-            src->width  = width;
+            src->width = width;
             src->height = height;
             int ret = av_image_alloc(src->data, src->linesize, src->width, src->height,
                                      static_cast<AVPixelFormat>(src->format), 32);
@@ -115,8 +128,8 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
 
             std::memcpy(src->data[0], ptr->data, ptr->m_Len);
-            auto* d = (uint16_t*) ptr->data2;
-            for (size_t i = 0; i < ptr->m_Height / 2 * ptr->m_Width/2; ++i) {
+            auto *d = (uint16_t *) ptr->data2;
+            for (size_t i = 0; i < ptr->m_Height / 2 * ptr->m_Width / 2; ++i) {
                 src->data[1][i] = d[i] & 0xff;
                 src->data[2][i] = (d[i] >> (8)) & 0xff;
             }
@@ -127,7 +140,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 fprintf(stderr, "Could not allocate video frame\n");
             }
             dst->format = AV_PIX_FMT_RGB24;
-            dst->width  = width;
+            dst->width = width;
             dst->height = height;
             ret = av_image_alloc(dst->data, dst->linesize, dst->width, dst->height,
                                  static_cast<AVPixelFormat>(dst->format), 8);
@@ -146,7 +159,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                                                     NULL);
             sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
             sws_freeContext(conversion);
-            stbi_write_png((fullPathName).c_str(),width, height, 3, dst->data[0], dst->linesize[0]);
+            stbi_write_png((fullPathName).c_str(), width, height, 3, dst->data[0], dst->linesize[0]);
 
             av_freep(&src->data[0]);
             av_frame_free(&src);

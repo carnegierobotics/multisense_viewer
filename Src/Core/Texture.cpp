@@ -221,7 +221,7 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     m_Height = texHeight;
     m_MipLevels = 1;
 
-    // Create a host-visible staging buffer that contains the raw m_Image data
+    // Create a host-visible staging buffer that contains the raw m_Image m_DataPtr
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
 
@@ -240,7 +240,7 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     memAlloc.allocationSize = memReqs.size;
 
 
-    // Copy texture data into staging buffer
+    // Copy texture m_DataPtr into staging buffer
     uint8_t *data = nullptr;
     CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, memReqs.size, 0, (void **) &data));
     memcpy(data, buffer, bufferSize);
@@ -500,24 +500,24 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     // Update m_Descriptor m_Image info member that can be used for setting up m_Descriptor sets
     updateDescriptor();
 
-    // Create empty buffers we can copy our texture data to
+    // Create empty buffers we can copy our texture m_DataPtr to
 
     // Create m_Sampler dependt on m_Image m_Format
     switch (format) {
         case VK_FORMAT_R16_UNORM:
         case VK_FORMAT_R16_UINT:
-            size = (VkDeviceSize) m_Width * m_Height * 2;
+            m_TexSize = (VkDeviceSize) m_Width * m_Height * 2;
             break;
         case VK_FORMAT_R8_UNORM:
-            size = (VkDeviceSize) m_Width * m_Height;
+            m_TexSize = (VkDeviceSize) m_Width * m_Height;
             break;
         case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-            size = (VkDeviceSize) m_Width * m_Height;
-            size2 = (VkDeviceSize) m_Width * m_Height / 2;
+            m_TexSize = (VkDeviceSize) m_Width * m_Height;
+            m_TexSizeSecondary = (VkDeviceSize) m_Width * m_Height / 2;
             break;
         case VK_FORMAT_R8G8B8A8_UNORM:
-            size = (VkDeviceSize) m_Width * m_Height * 4;
+            m_TexSize = (VkDeviceSize) m_Width * m_Height * 4;
             break;
         default:
             std::cerr << "No video texture type for that m_Format yet\n";
@@ -527,23 +527,23 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     CHECK_RESULT(device->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            size,
-            &stagingBuffer,
-            &stagingMemory));
+            m_TexSize,
+            &m_TexBuffer,
+            &m_TexMem));
 
-    CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory, 0, size, 0, (void **) &data));
+    CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, m_TexMem, 0, m_TexSize, 0, (void **) &m_DataPtr));
 
-    Log::Logger::getInstance()->info("Allocated Texture GPU memory {} bytes with format {}", size, (int) format);
+    Log::Logger::getInstance()->info("Allocated Texture GPU memory {} bytes with format {}", m_TexSize, (int) format);
 
-    if (size2 != 0){
+    if (m_TexSizeSecondary != 0){
         CHECK_RESULT(device->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                size2,
-                &stagingBuffer2,
-                &stagingMemory2));
-        CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, stagingMemory2, 0, size2, 0, (void **) &data2));
-        Log::Logger::getInstance()->info("Allocated Secondary Texture GPU memory {} bytes with format {}", size2, (int) format);
+                m_TexSizeSecondary,
+                &m_TexBufferSecondary,
+                &m_TexMemSecondary));
+        CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, m_TexMemSecondary, 0, m_TexSizeSecondary, 0, (void **) &m_DataPtrSecondary));
+        Log::Logger::getInstance()->info("Allocated Secondary Texture GPU memory {} bytes with format {}", m_TexSizeSecondary, (int) format);
 
     }
 
@@ -586,7 +586,7 @@ void TextureVideo::updateTextureFromBuffer() {
     // Copy mip levels from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer,
+            m_TexBuffer,
             m_Image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -649,10 +649,10 @@ void TextureVideo::updateTextureFromBufferYUV() {
             VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    // Copy data from staging buffer
+    // Copy m_DataPtr from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer,
+            m_TexBuffer,
             m_Image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -660,10 +660,10 @@ void TextureVideo::updateTextureFromBufferYUV() {
     );
 
 
-    // Copy data from staging buffer
+    // Copy m_DataPtr from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
-            stagingBuffer2,
+            m_TexBufferSecondary,
             m_Image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
@@ -690,7 +690,7 @@ void TextureVideo::updateTextureFromBufferYUV() {
 void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
 
 
-    // Create a host-visible staging buffer that contains the raw m_Image data
+    // Create a host-visible staging buffer that contains the raw m_Image m_DataPtr
     VkBuffer plane0, plane1, plane2;
     VkDeviceMemory planeMem0, planeMem1, planeMem2;
 
@@ -766,7 +766,7 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
             VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    // Copy data from staging buffer
+    // Copy m_DataPtr from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
             plane0,
@@ -776,7 +776,7 @@ void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
             &bufferCopyRegion
     );
 
-    // Copy data from staging buffer
+    // Copy m_DataPtr from staging buffer
     vkCmdCopyBufferToImage(
             copyCmd,
             plane1,

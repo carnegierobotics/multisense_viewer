@@ -174,7 +174,7 @@ namespace VkRender::MultiSense {
 			updateFromCameraParameters(VkRender::Device* dev, crl::multisense::RemoteHeadChannel remoteHeadIndex) const;
 
 		/**@brief Filter the unsupported sources defined by \ref maskArrayAll*/
-		void filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec, uint32_t idx);
+		void filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec, crl::multisense::RemoteHeadChannel idx);
 
 		/**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/
 		std::vector<uint32_t> maskArrayAll = {

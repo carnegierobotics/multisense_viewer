@@ -44,7 +44,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
     } vertexStaging{}, indexStaging{};
 
     // Create staging buffers
-    // Vertex data
+    // Vertex m_DataPtr
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -52,7 +52,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
             &vertexStaging.buffer,
             &vertexStaging.memory,
             (void *) vertices.data()));
-    // Index data
+    // Index m_DataPtr
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -177,16 +177,16 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
 
     switch (tex->m_Type) {
         case AR_POINT_CLOUD:
-            tex->data = textureColorMap->data;
+            tex->data = textureColorMap->m_DataPtr;
             break;
         case AR_GRAYSCALE_IMAGE:
         case AR_DISPARITY_IMAGE:
         case AR_COLOR_IMAGE:
-            tex->data = textureVideo->data;
+            tex->data = textureVideo->m_DataPtr;
             break;
         case AR_COLOR_IMAGE_YUV420:
-            tex->data = textureVideo->data;
-            tex->data2 = textureVideo->data2;
+            tex->data = textureVideo->m_DataPtr;
+            tex->data2 = textureVideo->m_DataPtrSecondary;
             break;
         case AR_YUV_PLANAR_FRAME:
         case AR_CAMERA_IMAGE_NONE:

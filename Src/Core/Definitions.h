@@ -240,7 +240,7 @@ namespace VkRender {
         ArConnectionState state = AR_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
-        CRLCameraResolution selectedMode{};
+        CRLCameraResolution selectedMode = CRL_RESOLUTION_NONE;
         std::vector<std::string> requestedStreams{};
         std::vector<std::string> enabledStreams{};
         bool updateResolutionMode = true;

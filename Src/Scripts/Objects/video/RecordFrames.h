@@ -51,11 +51,11 @@ public:
     std::string saveImagePath;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
-    int16_t remoteHeadIndex = 0;
+    crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
-    static void saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc,
-                         std::shared_ptr<VkRender::TextureData> &ptr);
+    static void saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
+    std::shared_ptr<VkRender::TextureData> &ptr);
 };
 
 

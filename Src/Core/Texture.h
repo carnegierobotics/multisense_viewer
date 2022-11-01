@@ -119,15 +119,16 @@ public:
 class TextureVideo : public Texture {
 
 public:
-    // Create a host-visible staging buffer that contains the raw m_Image data
-    VkBuffer stagingBuffer{};
-    VkDeviceMemory stagingMemory{};
-    VkDeviceSize size = 0;
-    VkDeviceSize size2 = 0;
-    uint8_t *data{};
-    VkBuffer stagingBuffer2{};
-    VkDeviceMemory stagingMemory2{};
-    uint8_t *data2{};
+    // Create a host-visible staging buffer that contains the raw m_Image m_DataPtr
+    VkBuffer m_TexBuffer{};
+    VkDeviceMemory m_TexMem{};
+    VkDeviceSize m_TexSize = 0;
+    uint8_t *m_DataPtr{};
+
+    VkBuffer m_TexBufferSecondary{};
+    VkDeviceMemory m_TexMemSecondary{};
+    VkDeviceSize m_TexSizeSecondary = 0;
+    uint8_t *m_DataPtrSecondary{};
 
     TextureVideo() = default;
 
@@ -136,18 +137,18 @@ public:
         switch (m_Format) {
             case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
             case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory2);
-                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory2, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer2, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMemSecondary);
+                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMemSecondary, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBufferSecondary, nullptr);
                 vkDestroySamplerYcbcrConversion(m_Device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
-                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory);
-                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMem);
+                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMem, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBuffer, nullptr);
                 break;
             default:
-                vkUnmapMemory(m_Device->m_LogicalDevice, stagingMemory);
-                vkFreeMemory(m_Device->m_LogicalDevice, stagingMemory, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, stagingBuffer, nullptr);
+                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMem);
+                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMem, nullptr);
+                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBuffer, nullptr);
         }
     }
 

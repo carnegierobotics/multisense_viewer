@@ -60,7 +60,7 @@ namespace VkRender::MultiSense {
                 // replace latest data into m_Image pointers
                 imagePointersMap[id][buf->data().source] = buf;
 
-                Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[Utils::dataSourceToString(buf->data().source)]++;
+                Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[id][Utils::dataSourceToString(buf->data().source)]++;
 
             }
 
@@ -89,7 +89,8 @@ namespace VkRender::MultiSense {
                 delete imageBuffer;
                 // Reset image counter for debugger
                 for (auto& src : Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
-                    src.second = 0;
+                    for (auto& counter : src.second)
+                        counter.second = 0;
 
                 if (channelPtr_) {
                     crl::multisense::Channel::Destroy(channelPtr_);
@@ -118,12 +119,7 @@ namespace VkRender::MultiSense {
         public:
             CRLPhysicalCamera() = default;
 
-            ~CRLPhysicalCamera() {
-                for (auto &ch: channelMap) {
-                    if (ch.second->ptr() != nullptr)
-                        stop("All", ch.first);
-                }
-            }
+            ~CRLPhysicalCamera() = default;
 
             /**
              * @brief container to keep \refitem crl::multisense::Channel information. This block is closely related to the \refitem Parameters UI block
@@ -175,7 +171,7 @@ namespace VkRender::MultiSense {
             * @return If true if a frame was copied into the 'tex' object
             */
             bool
-            getCameraStream(std::string stringSrc, VkRender::TextureData *tex, crl::multisense::RemoteHeadChannel idx);
+            getCameraStream(const std::string& stringSrc, VkRender::TextureData *tex, crl::multisense::RemoteHeadChannel idx);
 
 
             /**

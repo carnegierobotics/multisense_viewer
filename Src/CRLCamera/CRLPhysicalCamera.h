@@ -176,7 +176,7 @@ namespace VkRender::MultiSense {
             * @return If true if a frame was copied into the 'tex' object
             */
             bool
-            getCameraStream(std::string stringSrc, VkRender::TextureData *tex, crl::multisense::RemoteHeadChannel idx);
+            getCameraStream(const std::string& stringSrc, VkRender::TextureData *tex, crl::multisense::RemoteHeadChannel idx);
 
 
             /**

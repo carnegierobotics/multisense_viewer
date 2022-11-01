@@ -133,7 +133,8 @@ namespace VkRender::MultiSense {
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
         if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
             queryStatusTimer = std::chrono::steady_clock::now();
-            pool->Push(CameraConnection::getStatusTask, this, crl::multisense::Remote_Head_VPB);
+            pool->Push(CameraConnection::getStatusTask, this,
+                       dev->baseUnit == CRL_BASE_REMOTE_HEAD ? crl::multisense::Remote_Head_VPB : 0);
         }
 
 
@@ -402,7 +403,7 @@ namespace VkRender::MultiSense {
                 subnetMaskBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
             }
             if (ioctl(m_FD, SIOCGIFMTU, (caddr_t) &ifr) < 0) {
-                Log::Logger::getInstance()->error("Failed to get mtu size {} on adapter {}",
+                Log::Logger::getInstance()->error("Failed to get mtu m_TexSize {} on adapter {}",
                                                   dev.interfaceName.c_str());
             } else {
                 Log::Logger::getInstance()->error("got MTU {} on adapter {}", ifr.ifr_mtu,
@@ -463,12 +464,12 @@ namespace VkRender::MultiSense {
             }
 
             strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
-            ifr.ifr_mtu = 7200; //your MTU size here
+            ifr.ifr_mtu = 7200; //your MTU m_TexSize here
             if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
-                Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
+                Log::Logger::getInstance()->error("Failed to set mtu m_TexSize {} on adapter {}", 7200,
                                                   dev.interfaceName.c_str());
             } else {
-                Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
+                Log::Logger::getInstance()->error("Set Mtu m_TexSize to {} on adapter {}", 7200,
                                                   dev.interfaceName.c_str());
             }
 
@@ -567,23 +568,24 @@ namespace VkRender::MultiSense {
             // Preview Data per channel
             for (const auto &ch: dev->channelConnections) {
                 std::string mode = "Mode" + std::to_string(ch);
+                if (dev->channelInfo[ch].modes.empty())
+                    continue;
                 addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) Utils::stringToCameraResolution(
                         dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
                 for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
-                    if (i == AR_PREVIEW_POINT_CLOUD)
-                        continue;
+
                     std::string source = dev->win[i].selectedSource;
                     std::string remoteHead = std::to_string(dev->win[i].selectedRemoteHeadIndex);
                     std::string key = "Preview" + std::to_string(i + 1);
-                    std::string value = (source + ":" + remoteHead);
+                    std::string value = (source.append(":" + remoteHead));
                     addIniEntry(&ini, CRLSerialNumber, key, value);
                 }
             }
         }
         // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
-        // save the data back to the file
+        // save the m_DataPtr back to the file
 
         if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);

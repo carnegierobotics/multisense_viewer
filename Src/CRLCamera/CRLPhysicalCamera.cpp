@@ -106,7 +106,7 @@ namespace VkRender::MultiSense {
         return infoMap[idx];
     }
 
-    bool CRLPhysicalCamera::getCameraStream(std::string stringSrc, VkRender::TextureData *tex,
+    bool CRLPhysicalCamera::getCameraStream(const std::string& stringSrc, VkRender::TextureData *tex,
                                             crl::multisense::RemoteHeadChannel channelID) {
         if (channelMap[channelID] == nullptr)
             return false;
@@ -411,7 +411,7 @@ namespace VkRender::MultiSense {
 
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
+            Log::Logger::getInstance()->info("Unable to query exposure configuration");
             return false;
         }
         if (p.autoExposure) {
@@ -428,7 +428,7 @@ namespace VkRender::MultiSense {
         infoMap[channelID].imgConf.setExposureSource(p.exposureSource);
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
+            Log::Logger::getInstance()->info("Unable to set exposure configuration");
             return false;
         }
 
@@ -581,7 +581,7 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID,
                                       crl::multisense::system::StatusMessage *msg) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        crl::multisense::Status status = channelMap[crl::multisense::Remote_Head_VPB]->ptr()->getDeviceStatus(*msg);
+        crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }
 }

@@ -10,6 +10,7 @@
 
 #include <vulkan/vulkan_core.h>
 #include "MultiSense/Src/Tools/Utils.h"
+#include "CalibrationYaml.h"
 
 namespace VkRender::MultiSense {
 
@@ -30,8 +31,9 @@ namespace VkRender::MultiSense {
                 break;
         }
 
-        if (isRemoteHead){
-            channelMap[crl::multisense::Remote_Head_VPB] =std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB);
+        if (isRemoteHead) {
+            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(ip,
+                                                                                            crl::multisense::Remote_Head_VPB);
             if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
                 setMtu(7200, crl::multisense::Remote_Head_VPB);
         } else {
@@ -106,7 +108,7 @@ namespace VkRender::MultiSense {
         return infoMap[idx];
     }
 
-    bool CRLPhysicalCamera::getCameraStream(const std::string& stringSrc, VkRender::TextureData *tex,
+    bool CRLPhysicalCamera::getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
                                             crl::multisense::RemoteHeadChannel channelID) {
         if (channelMap[channelID] == nullptr)
             return false;
@@ -155,7 +157,7 @@ namespace VkRender::MultiSense {
                 std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
 
                 // Copy extra zeros to the bottom row if heights does not match
-                if (tex->m_Height != header->data().height){
+                if (tex->m_Height != header->data().height) {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);
 
@@ -181,7 +183,7 @@ namespace VkRender::MultiSense {
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
 
                 // Copy extra zeros (black pixels) to the bottom row if heights does not match
-                if (tex->m_Height != header->data().height){
+                if (tex->m_Height != header->data().height) {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);
                 }
@@ -359,8 +361,7 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (resolution == CRL_RESOLUTION_NONE)
-        {
+        if (resolution == CRL_RESOLUTION_NONE) {
             Log::Logger::getInstance()->info("Resolution is not specified {}", resolution);
             return false;
         }
@@ -584,4 +585,186 @@ namespace VkRender::MultiSense {
         crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }
+
+    bool CRLPhysicalCamera::setSensorCalibration(const std::string &intrinsicsFile, const std::string &extrinsicsFile,
+                                                 crl::multisense::RemoteHeadChannel channelID) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        crl::multisense::Status status = channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->info("Unable to query calibration");
+            return false;
+        }
+        bool hasAuxCamera = infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_C6S2_S27 ||
+                            infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_S30 ||
+                            infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM;
+
+        std::ifstream inFile, exFile;
+        std::map<std::string, std::vector<float> > data;
+
+        inFile.open (intrinsicsFile.c_str ());
+
+        if (!inFile) {
+            fprintf(stderr, "failed to open '%s' for reading\n",
+                    intrinsicsFile.c_str());
+            return false;
+        }
+
+        parseYaml(inFile, data);
+
+        inFile.close ();
+
+        if (data["M1"].size () != 3 * 3 ||
+            (data["D1"].size () != 5 && data["D1"].size () != 8) ||
+            data["M2"].size () != 3 * 3 ||
+            (data["D2"].size () != 5 && data["D2"].size () != 8) ||
+            (hasAuxCamera && data["M3"].size () != 3 * 3) ||
+            (hasAuxCamera && data["D3"].size () != 5 && data["D3"].size () != 8)) {
+            fprintf(stderr, "intrinsic matrices incomplete in %s\n",
+                    intrinsicsFile.c_str());
+            return false;
+        }
+
+        exFile.open (extrinsicsFile.c_str ());
+
+        if (!exFile) {
+            fprintf(stderr, "failed to open '%s' for reading\n",
+                    extrinsicsFile.c_str());
+            return false;
+        }
+
+        parseYaml (exFile, data);
+
+        exFile.close ();
+
+        if (data["R1"].size () != 3 * 3 ||
+            data["P1"].size () != 3 * 4 ||
+            data["R2"].size () != 3 * 3 ||
+            data["P2"].size () != 3 * 4 ||
+            (hasAuxCamera && (data["R3"].size () != 3 * 3 || data["P3"].size () != 3 * 4))) {
+            fprintf(stderr, "extrinsic matrices incomplete in %s\n",
+                    extrinsicsFile.c_str());
+            return false;
+        }
+
+        crl::multisense::image::Calibration calibration{};
+
+        memcpy (&calibration.left.M[0][0], &data["M1"].front (), data["M1"].size () * sizeof (float));
+        memset (&calibration.left.D[0], 0, sizeof (calibration.left.D));
+        memcpy (&calibration.left.D[0], &data["D1"].front (), data["D1"].size () * sizeof (float));
+        memcpy (&calibration.left.R[0][0], &data["R1"].front (), data["R1"].size () * sizeof (float));
+        memcpy (&calibration.left.P[0][0], &data["P1"].front (), data["P1"].size () * sizeof (float));
+
+        memcpy (&calibration.right.M[0][0], &data["M2"].front (), data["M2"].size () * sizeof (float));
+        memset (&calibration.right.D[0], 0, sizeof (calibration.right.D));
+        memcpy (&calibration.right.D[0], &data["D2"].front (), data["D2"].size () * sizeof (float));
+        memcpy (&calibration.right.R[0][0], &data["R2"].front (), data["R2"].size () * sizeof (float));
+        memcpy (&calibration.right.P[0][0], &data["P2"].front (), data["P2"].size () * sizeof (float));
+
+        if (hasAuxCamera) {
+            memcpy (&calibration.aux.M[0][0], &data["M3"].front (), data["M3"].size () * sizeof (float));
+            memset (&calibration.aux.D[0], 0, sizeof (calibration.aux.D));
+            memcpy (&calibration.aux.D[0], &data["D3"].front (), data["D3"].size () * sizeof (float));
+            memcpy (&calibration.aux.R[0][0], &data["R3"].front (), data["R3"].size () * sizeof (float));
+            memcpy (&calibration.aux.P[0][0], &data["P3"].front (), data["P3"].size () * sizeof (float));
+        }
+
+
+        status = channelMap[channelID]->ptr()->setImageCalibration(calibration);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->info("Unable to set calibration");
+            return false;
+        } else {
+            Log::Logger::getInstance()->info("Successfully set new calibration");
+
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
+            Log::Logger::getInstance()->info("Failed to query image calibration");
+            return false;
+        }
+        return true;
+    }
+
+
+
+    std::ostream& CRLPhysicalCamera::writeImageIntrinics (std::ostream& stream, crl::multisense::image::Calibration const& calibration, bool hasAuxCamera)
+    {
+        stream << "%YAML:1.0\n";
+        writeMatrix (stream, "M1", 3, 3, &calibration.left.M[0][0]);
+        writeMatrix (stream, "D1", 1, 8, &calibration.left.D[0]);
+        writeMatrix (stream, "M2", 3, 3, &calibration.right.M[0][0]);
+        writeMatrix (stream, "D2", 1, 8, &calibration.right.D[0]);
+
+        if (hasAuxCamera)
+        {
+            writeMatrix (stream, "M3", 3, 3, &calibration.aux.M[0][0]);
+            writeMatrix (stream, "D3", 1, 8, &calibration.aux.D[0]);
+        }
+        return stream;
+    }
+
+
+    std::ostream& CRLPhysicalCamera::writeImageExtrinics (std::ostream& stream, crl::multisense::image::Calibration const& calibration, bool hasAuxCamera)
+    {
+        stream << "%YAML:1.0\n";
+        writeMatrix (stream, "R1", 3, 3, &calibration.left.R[0][0]);
+        writeMatrix (stream, "P1", 3, 4, &calibration.left.P[0][0]);
+        writeMatrix (stream, "R2", 3, 3, &calibration.right.R[0][0]);
+        writeMatrix (stream, "P2", 3, 4, &calibration.right.P[0][0]);
+
+        if (hasAuxCamera)
+        {
+            writeMatrix (stream, "R3", 3, 3, &calibration.aux.R[0][0]);
+            writeMatrix (stream, "P3", 3, 4, &calibration.aux.P[0][0]);
+        }
+        return stream;
+    }
+
+
+    bool CRLPhysicalCamera::saveSensorCalibration(const std::string &savePath,
+                                                  crl::multisense::RemoteHeadChannel channelID) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
+            Log::Logger::getInstance()->info("Failed to query image calibration");
+            return false;
+        }
+
+        bool hasAuxCamera = infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_C6S2_S27 ||
+                       infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_S30 ||
+                       infoMap[channelID].devInfo.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM;
+        std::ofstream inFile, exFile;
+        std::string intrinsicsFile = savePath + "/intrinsics.yml";
+        std::string extrinsicsFile = savePath + "/extrinsics.yml";
+
+        inFile.open (intrinsicsFile.c_str (), std::ios_base::out | std::ios_base::trunc);
+
+        if (!inFile) {
+            fprintf(stderr, "failed to open '%s' for writing\n",
+                    intrinsicsFile.c_str());
+            return false;
+        }
+
+        exFile.open (extrinsicsFile.c_str (), std::ios_base::out | std::ios_base::trunc);
+
+        if (!exFile) {
+            fprintf(stderr, "failed to open '%s' for writing\n",
+                    extrinsicsFile.c_str());
+            return false;
+        }
+
+        writeImageIntrinics (inFile, infoMap[channelID].calibration, hasAuxCamera);
+        writeImageExtrinics (exFile, infoMap[channelID].calibration, hasAuxCamera);
+
+        inFile.flush ();
+        exFile.flush ();
+
+        return true;
+    }
+
 }

@@ -216,6 +216,12 @@ namespace VkRender {
 
         bool update = false;
         bool updateGuiParams = true;
+
+        bool updateCalibration = false;
+        bool saveCalibration = false;
+        std::string intrinsicsFilePath = "Path/To/Intrinsics.yml";
+        std::string extrinsicsFilePath = "Path/To/Extrinsics.yml";
+        std::string saveCalibrationPath = "Path/To/Dir";
     };
 
     struct CursorPixelInformation {

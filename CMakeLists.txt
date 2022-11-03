@@ -110,6 +110,7 @@ set(ENGINE_SRC
         Src/Core/Camera.h
         Src/CRLCamera/CameraConnection.cpp
         Src/CRLCamera/CameraConnection.h
+        Src/CRLCamera/CalibrationYaml.h
         Src/Scripts/Private/ScriptBuilder.h
         Src/Core/Texture.cpp
         Src/Core/Texture.h

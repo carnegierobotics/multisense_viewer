@@ -273,6 +273,24 @@ namespace VkRender::MultiSense {
              */
             CameraInfo getCameraInfo(crl::multisense::RemoteHeadChannel idx);
 
+            /**
+             * @brief Sets the sensor calibration using a multisense calibration type
+             * @param[in] channelID id of remote head
+             * @param[in] intrinsicsFile what calibration to set
+             * @param[in] intrinsicsFile what calibration to set
+             * @return true successful
+             */
+            bool setSensorCalibration(const std::string &intrinsicsFile, const std::string &extrinsicsFile,
+                                      crl::multisense::RemoteHeadChannel channelID);
+
+            /**
+             * @brief saves the sensor calibration to .yml files
+             * @param[in] channelID id of remote head
+             * @param[in] savePath where to save .yml files
+             * @return true successful
+             */
+            bool saveSensorCalibration(const std::string &savePath, short channelID);
+
         private:
             std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
             std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
@@ -290,6 +308,14 @@ namespace VkRender::MultiSense {
              *
              */
             void updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+
+            std::ostream &
+            writeImageIntrinics(std::ostream &stream, const crl::multisense::image::Calibration &calibration,
+                                bool hasAuxCamera);
+
+            std::ostream &
+            writeImageExtrinics(std::ostream &stream, const crl::multisense::image::Calibration &calibration,
+                                bool hasAuxCamera);
         };
 
 

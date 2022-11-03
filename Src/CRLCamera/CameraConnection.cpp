@@ -41,8 +41,6 @@
 #define MAX_NUM_REMOTEHEADS 4
 namespace VkRender::MultiSense {
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
-
-
         auto *p = &dev->parameters;
         if (dev->parameters.updateGuiParams) {
             const auto &conf = camPtr->getCameraInfo(dev->configRemoteHead).imgConf;
@@ -89,6 +87,13 @@ namespace VkRender::MultiSense {
 
         if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
+
+        if (dev->parameters.updateCalibration && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::setCalibrationTask, this, dev->parameters.intrinsicsFilePath,
+                       dev->parameters.extrinsicsFilePath, dev->configRemoteHead);
+
+        if (dev->parameters.saveCalibration && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.saveCalibrationPath, dev->configRemoteHead);
         // Set the correct resolution. Will only update if changed.
 
         for (auto &ch: dev->channelInfo) {
@@ -644,8 +649,15 @@ namespace VkRender::MultiSense {
     }
 
     void
-    CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, VkRender::Device *dev,
-                                        crl::multisense::RemoteHeadChannel idx) {
+    CameraConnection::setCalibrationTask(void *context, std::string intrinsicFilePath, std::string extrinsicFilePath,
+                                         crl::multisense::RemoteHeadChannel index) {
+        auto *app = reinterpret_cast<CameraConnection *>(context);
+        std::scoped_lock lock(app->writeParametersMtx);
+        app->camPtr->setSensorCalibration(intrinsicFilePath, extrinsicFilePath, index);
+    }
+
+    void CameraConnection::setResolutionTask(void *context, CRLCameraResolution arg1, VkRender::Device *dev,
+                                             crl::multisense::RemoteHeadChannel idx) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         app->camPtr->setResolution(arg1, idx);
@@ -709,6 +721,14 @@ namespace VkRender::MultiSense {
             app->m_FailedGetStatusCount++;
         }
         // Increment a counter
+
+    }
+
+    void CameraConnection::getCalibrationTask(void *context, std::string saveLocation,
+                                              crl::multisense::RemoteHeadChannel index) {
+        auto *app = reinterpret_cast<CameraConnection *>(context);
+        std::scoped_lock lock(app->writeParametersMtx);
+        app->camPtr->saveSensorCalibration(saveLocation, index);
 
     }
 

@@ -12,8 +12,7 @@ void TrackingTest::setup() {
 
     vo = std::make_unique<VisualOdometry>();
 
-    m_Model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
-                       renderUtils.device->m_TransferQueue, 1.0f);
+   // m_Model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
@@ -23,13 +22,13 @@ void TrackingTest::setup() {
 
 
     // Obligatory call to prepare render resources for glTFModel.
-    glTFModel::createRenderPipeline(renderUtils, shaders);
+    //glTFModel::createRenderPipeline(renderUtils, shaders);
 
 }
 
 void TrackingTest::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (previewTab == TAB_3D_POINT_CLOUD && b)
-        glTFModel::draw(commandBuffer, i);
+    if (previewTab == TAB_3D_POINT_CLOUD && b);
+        //glTFModel::draw(commandBuffer, i);
 }
 
 void TrackingTest::update() {

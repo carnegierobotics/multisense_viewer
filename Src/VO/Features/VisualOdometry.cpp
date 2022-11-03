@@ -229,6 +229,7 @@ void VisualOdometry::setPMat(crl::multisense::image::Calibration calib, float tx
     float cx = calib.left.P[0][2] / 2;
     float cy = calib.left.P[1][2] / 2;
     m_PLeft = (cv::Mat_<float>(3, 4) << fx, 0., cx, 0., 0., fy, cy, 0., 0, 0., 1., 0.);
+
     fx = calib.right.P[0][0] / 2;
     fy = calib.right.P[1][1] / 2;
     cx = calib.right.P[0][2] / 2;

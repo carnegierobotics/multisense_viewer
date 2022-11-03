@@ -22,7 +22,7 @@ class glTFModel {
 public:
 
     glTFModel();
-    ~glTFModel();
+    ~glTFModel() = default;
     VulkanDevice *vulkanDevice = nullptr;
 
     struct Primitive {
@@ -99,17 +99,12 @@ public:
     } ;
 
     struct Model {
+        VulkanDevice *vulkanDevice = nullptr;
 
-        ~Model(){
-            vkFreeMemory(m_Device->m_LogicalDevice, vertices.memory, nullptr);
-            vkFreeMemory(m_Device->m_LogicalDevice, indices.memory, nullptr);
-            vkDestroyBuffer(m_Device->m_LogicalDevice, vertices.buffer, nullptr);
-            vkDestroyBuffer(m_Device->m_LogicalDevice, indices.buffer, nullptr);
-
-            for(auto* node : linearNodes){
-                delete node;
-            }
+        explicit Model(VulkanDevice* dev){
+            this->vulkanDevice = dev;
         }
+        ~Model();
 
         VulkanDevice *m_Device;
         std::vector<Skin*> skins;
@@ -119,6 +114,8 @@ public:
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
+        bool useCustomTranslation = false;
+        glm::vec3 nodeTranslation{};
 
         struct Vertex {
             glm::vec3 pos;
@@ -161,33 +158,36 @@ public:
         Node* nodeFromIndex(uint32_t index);
 
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-
         void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-    } m_Model{};
+        std::vector<VkDescriptorSet> descriptors;
+        VkDescriptorSetLayout descriptorSetLayout{};
+        VkDescriptorSetLayout descriptorSetLayoutNode{};
+
+        VkDescriptorPool descriptorPool{};
+        VkPipeline pipeline{};
+        VkPipelineLayout pipelineLayout{};
 
 
-    std::vector<VkDescriptorSet> descriptors;
-    VkDescriptorSetLayout descriptorSetLayout{};
-    VkDescriptorSetLayout descriptorSetLayoutNode{};
+        void createDescriptorSetLayout();
 
-    VkDescriptorPool descriptorPool{};
-    VkPipeline pipeline{};
-    VkPipelineLayout pipelineLayout{};
+        void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
 
+        void setupNodeDescriptorSet(Node *node);
 
-    void createDescriptorSetLayout();
-
-    void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
-
-    void setupNodeDescriptorSet(Node *node);
-
-    void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
+        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
 
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i);
-    void drawNode(Node *node, VkCommandBuffer commandBuffer);
+        void draw(VkCommandBuffer commandBuffer, uint32_t i);
+        void drawNode(Node *node, VkCommandBuffer commandBuffer);
 
-    void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
+        void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
+
+
+        void translate(const glm::vec3 &translation);
+    };
+
+
+
 };
 
 

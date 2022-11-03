@@ -248,7 +248,6 @@ integrateOdometryStereo(int frame_i, cv::Mat &rigid_body_transformation, cv::Mat
 
 
     cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
-
     cv::hconcat(rotation, translation_stereo, rigid_body_transformation);
     cv::vconcat(rigid_body_transformation, addup, rigid_body_transformation);
 

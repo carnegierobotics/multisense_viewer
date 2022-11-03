@@ -81,7 +81,6 @@ set(IMGUI_SRC
         Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
-set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "Src/Scripts/Objects/*.h")
@@ -144,10 +143,18 @@ set(ENGINE_SRC
         Src/Tools/stb_include.cpp
         Src/VO/Features/Feature.cpp
         Src/VO/Features/VisualOdometry.cpp
+        Src/imgui/DebugWindow.h
+        Src/Scripts/Private/TextureDataDef.h
+
+        Src/VO/GraphSlam.h
+        Src/VO/LazyCSV.h)
+
+set(SCRIPTS_LIB_SRC
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
+        )
 
+set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 if (WIN32)
 
     if (NOT CMAKE_BUILD_TYPE)
@@ -277,8 +284,11 @@ else () ## Linux
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
 
+    add_library(ScriptLibrary ${SCRIPTS_LIB_SRC})
+    target_link_libraries(ScriptLibrary VulkanRenderer)
+
     add_executable(MultiSense-viewer main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer)
+    target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
 
 
     set(RUNTIME_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)

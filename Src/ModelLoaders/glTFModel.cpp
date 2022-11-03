@@ -113,14 +113,19 @@ void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *_device,
         vkDestroyBuffer(m_Device->m_LogicalDevice, indexStaging.buffer, nullptr);
         vkFreeMemory(m_Device->m_LogicalDevice, indexStaging.memory, nullptr);
     }
-
-
 }
 
+
+void glTFModel::Model::translate(const glm::vec3 &translation) {
+    nodeTranslation = translation;
+    useCustomTranslation = true;
+}
+
+
 // TODO: Support multiple children Nodes
-void glTFModel::drawNode(Node *node, VkCommandBuffer commandBuffer) {
+void glTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer) {
     //if (node->m_Mesh)
-        for (Primitive primitive: m_Model.primitives) {
+        for (Primitive primitive: primitives) {
             vkCmdDrawIndexed(commandBuffer, primitive.m_IndexCount, 1, primitive.m_FirstIndex, 0, 0);
         }
 
@@ -130,18 +135,18 @@ void glTFModel::drawNode(Node *node, VkCommandBuffer commandBuffer) {
 
 }
 
-void glTFModel::draw(VkCommandBuffer commandBuffer, uint32_t i) {
+void glTFModel::Model::draw(VkCommandBuffer commandBuffer, uint32_t i) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[i], 0, nullptr);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_Model.vertices.buffer, offsets);
-    if (m_Model.indices.buffer != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, m_Model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
+    if (indices.buffer != VK_NULL_HANDLE) {
+        vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     }
-    for (auto &node: m_Model.nodes) {
+    for (auto &node: nodes) {
         drawNode(node, commandBuffer);
     }
 }
@@ -168,6 +173,11 @@ void glTFModel::Model::loadNode(glTFModel::Node *parent, const tinygltf::Node &n
         translation = glm::make_vec3(node.translation.data());
         newNode->translation = translation;
     }
+
+    if (useCustomTranslation)
+        newNode->translation = nodeTranslation;
+
+
     if (node.rotation.size() == 4) {
         glm::quat q = glm::make_quat(node.rotation.data());
         newNode->rotation = glm::mat4(q);
@@ -461,7 +471,7 @@ glTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount) {
     this->m_IndexCount = indexCount;
 }
 
-void glTFModel::createDescriptorSetLayout() {
+void glTFModel::Model::createDescriptorSetLayout() {
 
     // TODO BETTER SELECTION PROCESS
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -471,12 +481,12 @@ void glTFModel::createDescriptorSetLayout() {
     };
 
 
-    if (m_Model.textureIndices.baseColor != -1) {
+    if (textureIndices.baseColor != -1) {
         setLayoutBindings.push_back(
                 {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
     }
 
-    if (m_Model.textureIndices.normalMap != -1) {
+    if (textureIndices.normalMap != -1) {
         setLayoutBindings.push_back(
                 {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
 
@@ -490,7 +500,7 @@ void glTFModel::createDescriptorSetLayout() {
     CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout))
 }
 
-void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+void glTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
     descriptors.resize(count);
 
     // Check for how many m_Image descriptors
@@ -499,7 +509,7 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
      * Create Descriptor Pool
      */
 
-    uint32_t uniformDescriptorCount = (3 * count + (uint32_t)m_Model.nodes.size());
+    uint32_t uniformDescriptorCount = (3 * count + (uint32_t)nodes.size());
     uint32_t imageDescriptorSamplerCount = (3 * count * 3);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
@@ -507,7 +517,7 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
 
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-        static_cast<uint32_t>(count + m_Model.nodes.size()));
+        static_cast<uint32_t>(count + nodes.size()));
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
@@ -565,14 +575,14 @@ void glTFModel::createDescriptors(uint32_t count, const std::vector<VkRender::Un
                                             &descriptorSetLayoutNode));
 
         // Per-Node m_Descriptor set
-        for (auto &node: m_Model.nodes) {
+        for (auto &node: nodes) {
             setupNodeDescriptorSet(node);
         }
     }
 
 }
 
-void glTFModel::setupNodeDescriptorSet(glTFModel::Node *node) {
+void glTFModel::Model::setupNodeDescriptorSet(glTFModel::Node *node) {
     if (node->mesh) {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -599,7 +609,7 @@ void glTFModel::setupNodeDescriptorSet(glTFModel::Node *node) {
 }
 
 
-void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
+void glTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -692,18 +702,29 @@ void glTFModel::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineSh
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 }
 
-void glTFModel::createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
+void glTFModel::Model::createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders) {
     this->vulkanDevice = utils.device;
     createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     createPipeline(*utils.renderPass, shaders);
 }
 
-glTFModel::~glTFModel() {
-    // destroy
-    vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayoutNode, nullptr);
-    vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
-    vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-    vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+glTFModel::Model::~Model() {
+    {
+        vkFreeMemory(m_Device->m_LogicalDevice, vertices.memory, nullptr);
+        vkFreeMemory(m_Device->m_LogicalDevice, indices.memory, nullptr);
+        vkDestroyBuffer(m_Device->m_LogicalDevice, vertices.buffer, nullptr);
+        vkDestroyBuffer(m_Device->m_LogicalDevice, indices.buffer, nullptr);
+
+        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayoutNode, nullptr);
+        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+
+        for(auto* node : linearNodes){
+            delete node;
+        }
+    }
 }
+

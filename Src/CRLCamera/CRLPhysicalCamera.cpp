@@ -149,7 +149,7 @@ namespace VkRender::MultiSense {
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 tex->m_Id2 = static_cast<uint32_t>(headerTwo->data().frameId);
 
-                // These should not be the same height. This can happen with the Color_Aux source when switching between max and quarter res.
+                // These should be the same height. This can happen with the Color_Aux source when switching between max and quarter res.
                 if (header->data().height == headerTwo->data().height)
                     return false;
 

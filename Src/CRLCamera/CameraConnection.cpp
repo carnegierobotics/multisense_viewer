@@ -721,7 +721,7 @@ namespace VkRender::MultiSense {
             std::scoped_lock lock2(app->statusCountMutex);
             Log::Logger::getInstance()->info("Failed to get channel {} status. Attempt: {}", remoteHeadIndex,
                                              app->m_FailedGetStatusCount);
-            app->m_FailedGetStatusCount++;
+            //app->m_FailedGetStatusCount++;
         }
         // Increment a counter
 

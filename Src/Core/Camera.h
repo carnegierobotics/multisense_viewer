@@ -43,6 +43,8 @@ private:
         if (type == CameraType::firstperson)
         {
             matrices.view = rotM * transM;
+            matrices.view = glm::lookAt(m_Position, m_Position + cameraFront, cameraUp);
+
         }
         else
         {
@@ -64,6 +66,10 @@ public:
     float m_RotationSpeed = 1.0f;
     float m_MovementSpeed = 1.0f;
     float m_SpeedModifier = 50.0f;
+
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp    = glm::vec3(0.0f, -1.0f,  0.0f);
+
 
     bool updated = false;
     bool flipY = false;
@@ -161,23 +167,15 @@ public:
         {
             if (moving())
             {
-
-                glm::vec3 camFront{};
-                camFront.x = -cos(glm::radians(m_Rotation.x)) * sin(glm::radians(m_Rotation.y));
-                camFront.y = sin(glm::radians(m_Rotation.x));
-                camFront.z = cos(glm::radians(m_Rotation.x)) * cos(glm::radians(m_Rotation.y));
-                camFront = glm::normalize(camFront);
-
                 float moveSpeed = deltaTime * m_MovementSpeed;
-
                 if (keys.up)
-                    m_Position += camFront * moveSpeed;
+                    m_Position += cameraFront * moveSpeed;
                 if (keys.down)
-                    m_Position -= camFront * moveSpeed;
+                    m_Position -= cameraFront * moveSpeed;
                 if (keys.left)
-                    m_Position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                    m_Position -= glm::normalize(glm::cross(cameraFront, cameraUp)) * moveSpeed;
                 if (keys.right)
-                    m_Position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                    m_Position += glm::normalize(glm::cross(cameraFront, cameraUp)) * moveSpeed;
 
                 updateViewMatrix();
             }

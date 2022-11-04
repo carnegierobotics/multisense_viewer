@@ -36,7 +36,6 @@ void Map::setup() {
             float zPos = std::stof(std::string(z.trimed()));
             gtPositions.push_back({xPos, yPos, zPos});
         } catch (...) {
-            printf("csv read error\n");
         }
     }
 
@@ -59,11 +58,6 @@ void Map::recv(void* data){
 }
 
 void Map::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (frame % 200 == 0){
-        drawBoxes++;
-    }
-    if (drawBoxes >= 293)
-        drawBoxes = 0;
 
     for(size_t j = 0; j < drawBoxes; ++j){
         m_TruthTraces[j]->draw(commandBuffer, i);
@@ -71,15 +65,17 @@ void Map::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void Map::update() {
-
     frame = *(size_t *) sharedData->data;
+    if( static_cast<int> (renderData.scriptRuntime * 1000.0f) % 500 <= 20 && drawBoxes < 293){
+        drawBoxes++;
+    }
     printf("Frame %zu\n", frame);
 
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 3.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 3.0f));
+    //mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto &d = bufferOneData;
     d->model = mat.model;

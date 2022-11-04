@@ -237,6 +237,16 @@ void Renderer::render() {
     }
 
 
+    for (auto &script: scripts) {
+        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+            if (!script.second->sharedData->destination.empty()) {
+                // Send to destination script
+                auto &shared = script.second->sharedData;
+                memcpy(scripts[shared->destination]->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
+            }
+        }
+    }
+
     // UiUpdate on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)

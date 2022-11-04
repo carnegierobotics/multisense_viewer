@@ -56,8 +56,7 @@ public:
         }
     };
     std::vector<gtPos> gtPositions{};
-
-    void recv(void* data) override;
+    size_t objects = 0;
 };
 
 

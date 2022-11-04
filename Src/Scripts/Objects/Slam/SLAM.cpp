@@ -11,6 +11,7 @@ void SLAM::setup() {
     // Don't draw it before we create the texture in update()
     m_Model = std::make_unique<glTFModel::Model>(renderUtils.device);
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
+    m_Model->scale(glm::vec3(0.001f, 0.001f, 0.001f));
     m_Model->loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
@@ -71,8 +72,6 @@ void SLAM::update() {
     if (id > 10) {
         id = id % 10;
     }
-
-    printf("Reading frame %lu\n", frame);
     cv::Mat leftImg = cv::imread(leftFileNames[frame]);
     m_LMap[id] = leftImg;
     cv::Mat depthImg = cv::imread(depthFileNames[frame], cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
@@ -95,13 +94,11 @@ void SLAM::update() {
                     rightImg, map[1].keypoint,
                     matchesLR.match1, img_matches1);
 
-
     std::vector<cv::Point2f> pointsLeft, pointsRight;
     for (const auto &match: matchesLR.match1) {
         pointsLeft.emplace_back(map[0].keypoint[match.queryIdx].pt);
         pointsRight.emplace_back(map[1].keypoint[match.trainIdx].pt);
     }
-
 
     cv::Mat points3D_t0, points4D_t0;
     cv::triangulatePoints(m_PLeft, m_PRight, pointsLeft, pointsRight, points4D_t0);
@@ -112,6 +109,7 @@ void SLAM::update() {
     // ------------------------------------------------
     cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);
     cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
+
     cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) <<
                                                       m_PLeft.at<float>(0, 0), m_PLeft.at<float>(0,
                                                                                                  1), m_PLeft.at<float>(
@@ -131,8 +129,10 @@ void SLAM::update() {
                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                        inliers, flags);
 
+    cv::Rodrigues(rvec, m_Rotation);
 
     m_Translation *= 100;
+
     cv::Mat rigidBodyTransformation;
     cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
     cv::hconcat(m_Rotation, m_Translation, rigidBodyTransformation);
@@ -142,7 +142,7 @@ void SLAM::update() {
                         + (m_Translation.at<double>(1)) * (m_Translation.at<double>(1))
                         + (m_Translation.at<double>(2)) * (m_Translation.at<double>(2)));
 
-    rigidBodyTransformation = rigidBodyTransformation.inv();
+    //rigidBodyTransformation = rigidBodyTransformation.inv();
     if (scale < 1) {
         m_Pose = m_Pose * rigidBodyTransformation;
     } else {
@@ -151,11 +151,12 @@ void SLAM::update() {
 
 
     cv::Mat xyz = m_Pose.col(3).clone();
-    glm::vec3 translation(float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)));
+    glm::vec3 translation(float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
 
 
-
-    printf("xyz: (%f, %f, %f)\n", xyz.at<double>(0), xyz.at<double>(1), xyz.at<double>(2));
+    //printf("xyz: (%f, %f, %f)\n", float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
+    //std::cout << m_Rotation << std::endl;
+    std::cout << m_Pose << std::endl;
 
     //int x = int(xyz.at<double>(0)) * 100 + 600;
     //int z = int(xyz.at<double>(2)) * 100 + 300;
@@ -168,11 +169,14 @@ void SLAM::update() {
     //cv::waitKey(1);
 
     VkRender::UBOMatrix mat{};
-    mat.model = glm::mat4(1.0f);
-   // mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
-    mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
-
+    glm::mat4 mod(1.0f);
+    cv::Mat pose;
+    m_Pose.convertTo(pose, CV_32FC1);
+    fromCV2GLM(pose, &mod);
+    mat.model = mod;
+    //
+    //mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
     auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
@@ -195,4 +199,12 @@ void SLAM::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
     }
+}
+
+void SLAM::fromCV2GLM(const cv::Mat& cvmat, glm::mat4* glmmat) {
+    if (cvmat.cols != 4 || cvmat.rows != 4 || cvmat.type() != CV_32FC1) {
+        std::cout << "Matrix conversion error!" << std::endl;
+        return;
+    }
+    memcpy(glm::value_ptr(*glmmat), cvmat.data, 16 * sizeof(float));
 }

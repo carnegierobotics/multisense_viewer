@@ -97,24 +97,6 @@ namespace VkRender {
 			onWindowResize(uiHandle);
 		}
 
-        virtual void recv(void* pData){
-
-        }
-
-        void recvData(void* pData){
-            recv(pData);
-        }
-
-
-        virtual void send(void* pData){
-
-        }
-
-        void sendData(void* pData){
-            send(pData);
-        }
-
-
 		void uiUpdate(const VkRender::GuiObjectHandles* uiHandle) {
 			if (!this->renderData.drawThisScript)
 				return;

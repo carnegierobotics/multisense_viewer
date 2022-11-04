@@ -282,8 +282,6 @@ namespace VkRender::MultiSense {
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
                     for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
-                        if (i == AR_PREVIEW_POINT_CLOUD)
-                            continue;
                         std::string key = "Preview" + std::to_string(i + 1);
                         std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
                         std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
@@ -575,8 +573,13 @@ namespace VkRender::MultiSense {
                 std::string mode = "Mode" + std::to_string(ch);
                 if (dev->channelInfo[ch].modes.empty())
                     continue;
+
+                auto resMode =  dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];
+                if (Utils::stringToCameraResolution(resMode) == CRL_RESOLUTION_NONE)
+                    resMode = "0";
+
                 addIniEntry(&ini, CRLSerialNumber, mode, std::to_string((int) Utils::stringToCameraResolution(
-                        dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex])
+                        resMode)
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
                 for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {

@@ -12,7 +12,7 @@ void SLAM::setup() {
     m_Model = std::make_unique<glTFModel::Model>(renderUtils.device);
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
     m_Model->loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
-                         renderUtils.device->m_TransferQueue, 1.0f);
+                          renderUtils.device->m_TransferQueue, 1.0f);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
                                                             {loadShader("myScene/spv/box.frag",
@@ -51,9 +51,13 @@ void SLAM::setup() {
     m_Rotation = cv::Mat::eye(3, 3, CV_64F);
     m_Translation = cv::Mat::zeros(3, 1, CV_64F);
     m_Pose = cv::Mat::eye(4, 4, CV_64F);
-    m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
-    lazycsv::parser parser{ "../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv" };
+    m_Pose.at<double>(0, 3) = 0.8639;
+    m_Pose.at<double>(1, 3) = -2.6455;
+    m_Pose.at<double>(2, 3) = -0.4172;
+    std::cout << "frame_pose " << m_Pose << std::endl;
 
+    m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
+    lazycsv::parser parser{"../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv"};
 
     sharedData->destination = "Map";
 }
@@ -67,7 +71,7 @@ void SLAM::update() {
     if (id > 10) {
         id = id % 10;
     }
-    /*
+
     printf("Reading frame %lu\n", frame);
     cv::Mat leftImg = cv::imread(leftFileNames[frame]);
     m_LMap[id] = leftImg;
@@ -91,7 +95,6 @@ void SLAM::update() {
                     rightImg, map[1].keypoint,
                     matchesLR.match1, img_matches1);
 
-    cv::imshow("matches", img_matches1);
 
     std::vector<cv::Point2f> pointsLeft, pointsRight;
     for (const auto &match: matchesLR.match1) {
@@ -139,35 +142,35 @@ void SLAM::update() {
                         + (m_Translation.at<double>(2)) * (m_Translation.at<double>(2)));
 
     rigidBodyTransformation = rigidBodyTransformation.inv();
-    if (scale < 1){
+    if (scale < 1) {
         m_Pose = m_Pose * rigidBodyTransformation;
     } else {
         printf("Warning scale too high to be reasonable %f\n", scale);
     }
-    printf("Scale: %f\n", scale);
 
 
-    cv::Mat xyz = m_Pose.col(3).clone() * 50;
+    cv::Mat xyz = m_Pose.col(3).clone();
     glm::vec3 translation(float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)));
 
-    int x = int(xyz.at<double>(0)) * 100 + 600;
-    int z = int(xyz.at<double>(2)) * 100 + 300;
 
-    std::cout << "xyz: " << xyz << std::endl;
-    circle(m_Trajectory, cv::Point(x, z), 1, CV_RGB(255, 0, 0), 2);
+
+    printf("xyz: (%f, %f, %f)\n", xyz.at<double>(0), xyz.at<double>(1), xyz.at<double>(2));
+
+    //int x = int(xyz.at<double>(0)) * 100 + 600;
+    //int z = int(xyz.at<double>(2)) * 100 + 300;
+    //circle(m_Trajectory, cv::Point(x, z), 1, CV_RGB(255, 0, 0), 2);
     // rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
     // sprintf(text, "FPS: %02f", fps);
     // putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
-    cv::imshow("Trajectory", m_Trajectory);
-    cv::waitKey(1);
-    */
+    //cv::imshow("Trajectory", m_Trajectory);
+    //cv::imshow("matches", img_matches1);
+    //cv::waitKey(1);
+
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, -3.0f));
-    //mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
+   // mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
     mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
-
 
     auto &d = bufferOneData;
     d->model = mat.model;

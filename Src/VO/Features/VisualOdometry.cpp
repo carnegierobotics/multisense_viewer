@@ -25,7 +25,6 @@ VisualOdometry::VisualOdometry() {
     m_FramePose = cv::Mat::eye(4, 4, CV_64F);
     m_FramePose32 = cv::Mat::eye(4, 4, CV_32F);
 
-    std::cout << "frame_pose " << m_FramePose << std::endl;
     m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
 }
 

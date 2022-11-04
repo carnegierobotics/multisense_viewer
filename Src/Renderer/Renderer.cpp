@@ -643,7 +643,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     float dy = mousePos.y - (float) y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
-        glm::vec3 rot(dy * camera.m_RotationSpeed, -dx * camera.m_RotationSpeed, 0.0f);
+        glm::vec3 rot(dy * camera.m_RotationSpeed, 0.0f, dx * camera.m_RotationSpeed);
         camera.rotate(rot);
     }
     if (mouseButtons.right) {

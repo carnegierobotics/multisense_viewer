@@ -410,6 +410,9 @@ namespace VkRender {
         Camera *camera = nullptr;
         float deltaT = 0.0f;
         bool drawThisScript = false;
+        /**
+         * @brief Runtime measured in seconds
+         */
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;

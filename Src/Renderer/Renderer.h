@@ -84,7 +84,7 @@ private:
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
 
-    glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -1.0f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, 3.0f);
     glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f , 0.0f);
 
     void windowResized() override;

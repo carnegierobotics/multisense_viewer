@@ -52,7 +52,7 @@ public:
         std::string name;
         Mesh *mesh;
         int32_t skinIndex = -1;
-        glm::vec3 translation{};
+        glm::vec3 translation{ 0.0f};
         glm::vec3 scale{ 1.0f };
         glm::quat rotation{};
         glm::mat4 localMatrix();

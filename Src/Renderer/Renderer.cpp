@@ -23,9 +23,9 @@ void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.m_RotationSpeed = 0.2f;
-    camera.m_MovementSpeed = 1.0f;
+    camera.m_MovementSpeed = 10.0f;
     camera.setPosition(defaultCameraPosition);
-    camera.setRotation(defaultCameraRotation);
+    camera.setRotation(90.0f, 0.0f);
     createSelectionImages();
     createSelectionFramebuffer();
     createSelectionBuffer();
@@ -145,7 +145,15 @@ void Renderer::render() {
     pLogger->frameNumber = frameID;
     if (keyPress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);
-        camera.setRotation(defaultCameraRotation);
+        camera.setRotation(90.0f, 0.0f);
+    }
+
+    if (guiManager->handles.showDebugWindow){
+        auto& cam = Log::Logger::getLogMetrics()->camera;
+        cam.pitch = camera.pitch;
+        cam.pos = camera.m_Position;
+        cam.yaw = camera.yaw;
+        cam.cameraFront = camera.cameraFront;
     }
 
     submitInfo.commandBufferCount = 1;
@@ -639,12 +647,14 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = mousePos.x - (float) x;
-    float dy = mousePos.y - (float) y;
+    float dx = (float) x - mousePos.x;
+    float dy = (float) y - mousePos.y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
-        glm::vec3 rot(dy * camera.m_RotationSpeed, 0.0f, dx * camera.m_RotationSpeed);
-        camera.rotate(rot);
+
+        //glm::vec3 rot(dy * camera.m_RotationSpeed, 0.0f, dx * camera.m_RotationSpeed);
+
+        camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
     }

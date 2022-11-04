@@ -72,7 +72,7 @@ private:
 
     std::unique_ptr<VkRender::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
-    std::vector<std::string> builtScriptNames; 
+    std::vector<std::string> builtScriptNames;
 
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
@@ -84,8 +84,8 @@ private:
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
 
-    glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, -0.5f);
-    glm::vec3 defaultCameraRotation = glm::vec3(-4.4f, -3.2f , 0.0f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.025f, 0.15f, 3.0f);
+    glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f , 0.0f);
 
     void windowResized() override;
     void addDeviceFeatures() override;

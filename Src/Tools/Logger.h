@@ -145,6 +145,13 @@ namespace Log {
             int empty = 0;
         } preview;
 
+        struct {
+            float yaw = 0;
+            float pitch = 0;
+            glm::vec3 pos;
+            glm::vec3 cameraFront;
+        } camera;
+
     };
 
     class Logger {

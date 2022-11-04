@@ -1,9 +1,10 @@
 //
-// Created by magnus on 10/12/22.
+// Created by magnus on 11/3/22.
 //
 
-#ifndef MULTISENSE_VIEWER_SLAM_H
-#define MULTISENSE_VIEWER_SLAM_H
+#ifndef MULTISENSE_VIEWER_MAP_H
+#define MULTISENSE_VIEWER_MAP_H
+
 
 
 
@@ -13,19 +14,19 @@
 #include "MultiSense/Src/ModelLoaders/glTFModel.h"
 #include "MultiSense/Src/VO/GraphSlam.h"
 
-class SLAM: public VkRender::Base, public VkRender::RegisteredInFactory<SLAM>, glTFModel
+class Map: public VkRender::Base, public VkRender::RegisteredInFactory<Map>, glTFModel
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    SLAM() {
+    Map() {
         s_bRegistered;
     }
-    ~SLAM() = default;
+    ~Map() = default;
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
-    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<SLAM>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Map>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
-    static std::string GetFactoryName() { return "SLAM"; }
+    static std::string GetFactoryName() { return "Map"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
@@ -40,28 +41,13 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_RENDER;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
-    std::unique_ptr<glTFModel::Model> m_Model;
 
     std::vector<std::unique_ptr<glTFModel::Model>> m_TruthTraces;
 
-    std::vector<std::string> leftFileNames;
-    std::vector<std::string> rightFileNames;
-    std::vector<std::string> depthFileNames;
-
-    std::map<size_t, GSlam::FeatureSet> m_FeatureLeftMap{}, m_FeatureRightMap{};
-    std::map<size_t, cv::Mat> m_LMap{};
-    std::map<size_t, cv::Mat> m_RMap{};
-    std::map<size_t, cv::Mat> m_DMap{};
 
     cv::Mat m_PLeft, m_PRight;
-
-    size_t id = 0;
-    size_t frame = 100;
-    cv::Mat m_Rotation;
-    cv::Mat m_Translation;
-    cv::Mat m_Pose;
-    cv::Mat m_Trajectory;
-
+    size_t frame = 0;
+    size_t drawBoxes = 0;
     struct gtPos{
         float x{}, y{}, z{};
 
@@ -70,7 +56,11 @@ public:
         }
     };
     std::vector<gtPos> gtPositions{};
+
+    void recv(void* data) override;
 };
 
 
-#endif //MULTISENSE_VIEWER_SLAM_H
+
+
+#endif //MULTISENSE_VIEWER_MAP_H

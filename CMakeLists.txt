@@ -147,7 +147,7 @@ set(ENGINE_SRC
         Src/Scripts/Private/TextureDataDef.h
 
         Src/VO/GraphSlam.h
-        Src/VO/LazyCSV.h)
+        Src/VO/LazyCSV.h Src/Renderer/SharedData.h)
 
 set(SCRIPTS_LIB_SRC
         ${SCRIPT_HEADERS}

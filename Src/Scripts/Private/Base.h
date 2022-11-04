@@ -16,7 +16,7 @@
 #include "MultiSense/Src/Tools/Macros.h"
 
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
-
+#define SHARED_MEMORY_SIZE_1MB 1000000
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
 namespace VkRender {
 
@@ -35,6 +35,7 @@ namespace VkRender {
 
 		VkRender::RenderUtils renderUtils{};
 		VkRender::RenderData renderData{};
+        std::unique_ptr<SharedData> sharedData;
 
 		virtual ~Base() = default;
 
@@ -95,6 +96,23 @@ namespace VkRender {
 			updateRenderData(data);
 			onWindowResize(uiHandle);
 		}
+
+        virtual void recv(void* pData){
+
+        }
+
+        void recvData(void* pData){
+            recv(pData);
+        }
+
+
+        virtual void send(void* pData){
+
+        }
+
+        void sendData(void* pData){
+            send(pData);
+        }
 
 
 		void uiUpdate(const VkRender::GuiObjectHandles* uiHandle) {
@@ -180,6 +198,7 @@ namespace VkRender {
 			}
 			renderData.scriptRuntime = (float)(std::chrono::steady_clock::now() - startTime).count();
 
+            sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
 			setup();
 

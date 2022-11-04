@@ -71,10 +71,7 @@ public:
     };
     std::vector<gtPos> gtPositions{};
 
-    void send(void* data) override {
-        auto* i = (size_t *) data;
-        *i = frame;
-    }
+    void fromCV2GLM(const cv::Mat &cvmat, glm::mat4 *glmmat);
 };
 
 

@@ -40,25 +40,20 @@ void Map::setup() {
     }
 
     /** GT Traces models **/
-    size_t objects = 293;
+    size_t nth = 200;
+    objects = (int) (58690 / nth);
     m_TruthTraces.resize(objects);
-    float scale = 5.0f;
+    float scale = 20.0f;
     for (int i = 0; i < objects; ++i){
         m_TruthTraces[i] = std::make_unique<glTFModel::Model>(renderUtils.device);
-        m_TruthTraces[i]->translate(gtPositions[150 + (i * 200)].getVec() * glm::vec3(scale, scale, scale));
+        m_TruthTraces[i]->translate(gtPositions[(i * nth)].getVec() * (glm::vec3(scale, scale, scale)));
         m_TruthTraces[i]->scale(glm::vec3(1.0f/scale, 1.0f/scale, 1.0f/scale));
-        m_TruthTraces[i]->loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF/Box.gltf", renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
+        m_TruthTraces[i]->loadFromFile(Utils::getAssetsPath() + "Models/sphere.gltf", renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
         m_TruthTraces[i]->createRenderPipeline(renderUtils, shaders);
     }
 }
 
-void Map::recv(void* data){
-
-
-}
-
 void Map::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-
     for(size_t j = 0; j < drawBoxes; ++j){
         m_TruthTraces[j]->draw(commandBuffer, i);
     }
@@ -66,15 +61,15 @@ void Map::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 void Map::update() {
     frame = *(size_t *) sharedData->data;
-    if( static_cast<int> (renderData.scriptRuntime * 1000.0f) % 500 <= 20 && drawBoxes < 293){
+    if( static_cast<int> (renderData.scriptRuntime * 1000.0f) % 100 <= 20 && drawBoxes < objects){
         drawBoxes++;
     }
-    printf("Frame %zu\n", frame);
 
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     //mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 3.0f));
     mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //mat.model = glm::scale(mat.model, glm::vec3(0.1f, 0.1f, 0.1f));
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto &d = bufferOneData;

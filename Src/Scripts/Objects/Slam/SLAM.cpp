@@ -132,6 +132,7 @@ void SLAM::update() {
                        inliers, flags);
 
 
+    m_Translation *= 100;
     cv::Mat rigidBodyTransformation;
     cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
     cv::hconcat(m_Rotation, m_Translation, rigidBodyTransformation);
@@ -168,8 +169,8 @@ void SLAM::update() {
 
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
-   // mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
-    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+   // mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
     mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 
     auto &d = bufferOneData;

@@ -74,7 +74,7 @@ void Map::update() {
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     //mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 3.0f));
-    //mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     auto &d = bufferOneData;

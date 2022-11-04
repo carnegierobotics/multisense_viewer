@@ -116,6 +116,7 @@ public:
         TextureIndices textureIndices;
         bool useCustomTranslation = false;
         glm::vec3 nodeTranslation{};
+        glm::vec3 nodeScale = glm::vec3(1.0f, 1.0f, 1.0f);
 
         struct Vertex {
             glm::vec3 pos;
@@ -184,6 +185,8 @@ public:
 
 
         void translate(const glm::vec3 &translation);
+        void scale(const glm::vec3 &scale);
+
     };
 
 

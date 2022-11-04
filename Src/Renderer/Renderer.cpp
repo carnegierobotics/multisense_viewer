@@ -23,7 +23,7 @@ void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.m_RotationSpeed = 0.2f;
-    camera.m_MovementSpeed = 10.0f;
+    camera.m_MovementSpeed = 5.0f;
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(90.0f, 0.0f);
     createSelectionImages();

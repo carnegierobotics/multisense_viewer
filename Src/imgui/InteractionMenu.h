@@ -1299,8 +1299,8 @@ private:
                 ImVec2 btnSize(100.0f, 20.0f);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##SaveLocation", d.parameters.saveCalibrationPath.data(),
-                                 d.parameters.saveCalibrationPath.size() + 255);
+                ImGui::InputText("##SaveLocation", d.parameters.calib.saveCalibrationPath.data(),
+                                 d.parameters.calib.saveCalibrationPath.size() + 255);
                 ImGui::SameLine();
 
 
@@ -1315,7 +1315,7 @@ private:
                     // action if OK
                     if (saveCalibrationDialog.IsOk()) {
                         std::string filePathName = saveCalibrationDialog.GetFilePathName();
-                        d.parameters.saveCalibrationPath = filePathName;
+                        d.parameters.calib.saveCalibrationPath = filePathName;
                         // action
                     }
                     // close
@@ -1328,20 +1328,20 @@ private:
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
 
-                if (d.parameters.saveCalibrationPath == "Path/To/Dir") {
+                if (d.parameters.calib.saveCalibrationPath == "Path/To/Dir") {
                     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
                     ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
                 }
-                d.parameters.saveCalibration = ImGui::Button("Get Current Calibration");
+                d.parameters.calib.save = ImGui::Button("Get Current Calibration");
 
-                if (d.parameters.saveCalibrationPath == "Path/To/Dir") {
+                if (d.parameters.calib.saveCalibrationPath == "Path/To/Dir") {
                     ImGui::PopItemFlag();
                     ImGui::PopStyleColor(2);
                 }
                 ImGui::PopStyleColor();
 
-                if (d.parameters.saveCalibration) {
+                if (d.parameters.calib.save) {
                     showSavedTimer = std::chrono::steady_clock::now();
                 }
                 auto time = std::chrono::steady_clock::now();
@@ -1350,7 +1350,12 @@ private:
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - showSavedTimer);
                 if (time_span.count() < threeSeconds) {
                     ImGui::SameLine();
-                    ImGui::Text("Saved!");
+                    if (d.parameters.calib.saveFailed){
+                        ImGui::Text("Saved!");
+                    } else {
+                        ImGui::Text("Failed to save calibration");
+                    }
+
                 }
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1363,8 +1368,8 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##IntrinsicsLocation", d.parameters.intrinsicsFilePath.data(),
-                                 d.parameters.intrinsicsFilePath.size() + 255);
+                ImGui::InputText("##IntrinsicsLocation", d.parameters.calib.intrinsicsFilePath.data(),
+                                 d.parameters.calib.intrinsicsFilePath.size() + 255);
                 ImGui::SameLine();
 
 
@@ -1379,7 +1384,7 @@ private:
                     // action if OK
                     if (chooseIntrinsicsDialog.IsOk()) {
                         std::string filePathName = chooseIntrinsicsDialog.GetFilePathName();
-                        d.parameters.intrinsicsFilePath = filePathName;
+                        d.parameters.calib.intrinsicsFilePath = filePathName;
                         // action
                     }
                     // close
@@ -1398,8 +1403,8 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##ExtrinsicsLocation", d.parameters.extrinsicsFilePath.data(),
-                                 d.parameters.extrinsicsFilePath.size() + 255);
+                ImGui::InputText("##ExtrinsicsLocation", d.parameters.calib.extrinsicsFilePath.data(),
+                                 d.parameters.calib.extrinsicsFilePath.size() + 255);
                 ImGui::SameLine();
                 if (ImGui::Button("Choose File##2", btnSize))
                     chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",
@@ -1412,7 +1417,7 @@ private:
                     // action if OK
                     if (chooseExtrinsicsDialog.IsOk()) {
                         std::string filePathName = chooseExtrinsicsDialog.GetFilePathName();
-                        d.parameters.extrinsicsFilePath = filePathName;
+                        d.parameters.calib.extrinsicsFilePath = filePathName;
                         // action
                     }
                     // close
@@ -1426,22 +1431,22 @@ private:
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
 
-                if (d.parameters.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
-                    d.parameters.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
+                if (d.parameters.calib.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
+                    d.parameters.calib.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
                     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
                     ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
                 }
-                d.parameters.updateCalibration = ImGui::Button("Set New Calibration");
+                d.parameters.calib.update = ImGui::Button("Set New Calibration");
 
-                if (d.parameters.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
-                    d.parameters.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
+                if (d.parameters.calib.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
+                    d.parameters.calib.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
                     ImGui::PopItemFlag();
                     ImGui::PopStyleColor(2);
                 }
                 ImGui::PopStyleColor();
 
-                if (d.parameters.updateCalibration) {
+                if (d.parameters.calib.update) {
                     showSetTimer = std::chrono::steady_clock::now();
                 }
                 time = std::chrono::steady_clock::now();
@@ -1449,8 +1454,14 @@ private:
                 time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - showSetTimer);
                 if (time_span.count() < threeSeconds) {
                     ImGui::SameLine();
-                    ImGui::Text("Set calibration!");
+                    if (d.parameters.calib.updateFailed){
+                        ImGui::Text("Set calibration!");
+                    } else {
+                        ImGui::Text("Failed to set calibration...");
+                    }
+
                 }
+
 
 
             }

@@ -186,6 +186,16 @@ struct ExposureParams {
     bool update = false;
 };
 
+struct CalibrationParams {
+    bool update = false;
+    bool save = false;
+    std::string intrinsicsFilePath = "Path/To/Intrinsics.yml";
+    std::string extrinsicsFilePath = "Path/To/Extrinsics.yml";
+    std::string saveCalibrationPath = "Path/To/Dir";
+    bool updateFailed = false;
+    bool saveFailed = false;
+};
+
 
 /**
  * @brief MAIN RENDER NAMESPACE. This namespace contains all Render resources presented by the backend of this renderer engine.
@@ -207,6 +217,7 @@ namespace VkRender {
         ExposureParams ep{};
         WhiteBalanceParams wb{};
         LightingParams light{};
+        CalibrationParams calib{};
 
         float gain = 1.0f;
         float fps = 30.0f;
@@ -217,11 +228,7 @@ namespace VkRender {
         bool update = false;
         bool updateGuiParams = true;
 
-        bool updateCalibration = false;
-        bool saveCalibration = false;
-        std::string intrinsicsFilePath = "Path/To/Intrinsics.yml";
-        std::string extrinsicsFilePath = "Path/To/Extrinsics.yml";
-        std::string saveCalibrationPath = "Path/To/Dir";
+
     };
 
     struct CursorPixelInformation {

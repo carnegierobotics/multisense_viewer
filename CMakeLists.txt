@@ -7,7 +7,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
     # Not enabled flags but could be nice to enable
     # -Wundef -Wcast-qual  -Wdouble-promotion
 endif()
@@ -21,8 +21,7 @@ set(ARCHITECTURE "amd64")
 find_package(Vulkan REQUIRED)
 
 # GLFW
-set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo
-option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
+set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo  option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
 option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
 option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
 option(GLFW_INSTALL "Generate installation target" OFF)
@@ -53,7 +52,7 @@ add_library(SimpleIni STATIC ${SimpleIni_SRC})
 
 # FMT
 # Used for logging purposes
-set(FMT_DIR external/fmt)
+set(FMT_DIR external/fmt)  
 add_subdirectory(${FMT_DIR})
 
 # Internal Library
@@ -81,6 +80,7 @@ set(IMGUI_SRC
         Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
         )
 INCLUDE_DIRECTORIES(Src/imgui/custom)
+set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 
 file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         "Src/Scripts/Objects/*.h")
@@ -110,6 +110,7 @@ set(ENGINE_SRC
         Src/Core/Camera.h
         Src/CRLCamera/CameraConnection.cpp
         Src/CRLCamera/CameraConnection.h
+        Src/CRLCamera/CalibrationYaml.h
         Src/Scripts/Private/ScriptBuilder.h
         Src/Core/Texture.cpp
         Src/Core/Texture.h
@@ -141,20 +142,11 @@ set(ENGINE_SRC
         Src/Tools/Logger.h
         Src/Tools/Logger.cpp
         Src/Tools/stb_include.cpp
-        Src/VO/Features/Feature.cpp
-        Src/VO/Features/VisualOdometry.cpp
-        Src/imgui/DebugWindow.h
-        Src/Scripts/Private/TextureDataDef.h
 
-        Src/VO/GraphSlam.h
-        Src/VO/LazyCSV.h Src/Renderer/SharedData.h)
-
-set(SCRIPTS_LIB_SRC
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        )
+        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 if (WIN32)
 
     if (NOT CMAKE_BUILD_TYPE)
@@ -279,16 +271,12 @@ endforeach( file_i )
 
 else () ## Linux
 
-    find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
 
-    add_library(ScriptLibrary ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer)
+    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb)
 
     add_executable(MultiSense-viewer main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
+    target_link_libraries(MultiSense-viewer VulkanRenderer)
 
 
     set(RUNTIME_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)

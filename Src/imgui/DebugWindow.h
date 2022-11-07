@@ -291,6 +291,8 @@ public:
             ImGui::Text("Yaw: %f, Pitch: %f", met->camera.yaw,  met->camera.pitch);
             ImGui::Text("Front: (%f, %f, %f)", met->camera.cameraFront.x, met->camera.cameraFront.y, met->camera.cameraFront.z);
 
+            ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
+            //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
         }
         ImGui::EndChild();

@@ -46,6 +46,11 @@ namespace VkRender {
             uint32_t depth = 0;
             Utils::cameraResolutionToValue(m_Res, &m_Width, &m_Height, &depth);
             calcImageSize();
+
+            if (m_Manual) {
+                data = (uint8_t *) malloc(m_Len);
+                data2 = (uint8_t *) malloc(m_Len2);
+            }
         }
 
         ~TextureData() {

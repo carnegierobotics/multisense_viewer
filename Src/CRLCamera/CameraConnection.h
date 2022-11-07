@@ -34,7 +34,7 @@ namespace VkRender::MultiSense {
 		 * @param[in] shouldConfigNetwork if user have ticked the "configure network" checkbox
 		 * @param[in] isRemoteHead if the connected m_Device is a remote head, also selected by user
 		 */
-		void onUIUpdate(std::vector<VkRender::Device>& devices, bool shouldConfigNetwork, bool isRemoteHead);
+        void onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork);
 
 		/**@brief Writes the current state of *dev to crl.ini configuration file
 		 * @param[in] dev which profile to save to crl.ini
@@ -176,7 +176,27 @@ namespace VkRender::MultiSense {
 		/**@brief Filter the unsupported sources defined by \ref maskArrayAll*/
 		void filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec, crl::multisense::RemoteHeadChannel idx);
 
-		/**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/
+        /**
+         * @brief task to set the extrinsic/intrinsic calibration using yml files
+		 * @param[in] context pointer to the callers context
+         * @param[in] intrinsicFilePath path of intrisics.yml
+         * @param[in] extrinsicFilePath path of extrinsics.yml
+		 * @param[in] remoteHeadIndex id of remote head to select
+		 * @param[out] success returns if the calibration was successfully set. Used to update the UI element.
+         */
+        static void setCalibrationTask(void *context, const std::string & intrinsicFilePath, const std::string & extrinsicFilePath, crl::multisense::RemoteHeadChannel index, bool* success);
+
+        /**
+         * @brief task to set the extrinsic/intrinsic calibration using yml files
+		 * @param[in] context pointer to the callers context
+         * @param saveLocation directory to save the calibration files
+		 * @param[in] remoteHeadIndex id of remote head to select
+		 * @param[out] success returns if the calibration was successfully set. Used to update the UI element.
+         */
+        static void getCalibrationTask(void *context, const std::string& saveLocation, crl::multisense::RemoteHeadChannel index, bool* success);
+
+
+        /**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/
 		std::vector<uint32_t> maskArrayAll = {
 				crl::multisense::Source_Luma_Left,
 				crl::multisense::Source_Luma_Rectified_Left,
@@ -200,7 +220,8 @@ namespace VkRender::MultiSense {
 		};
 
 		void updateUIDataBlock(VkRender::Device& dev);
-	};
+
+    };
 
 }
 #endif //MULTISENSE_CAMERACONNECTION_H

@@ -566,8 +566,6 @@ namespace Utils {
     }
 
 
-
-
 };
 
 #endif //MULTISENSE_UTILS_H

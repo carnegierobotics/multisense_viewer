@@ -11,10 +11,17 @@
 #include "ImGuiFileDialog.h"
 
 class InteractionMenu : public VkRender::Layer {
-public:
+private:
+    bool page[PAGE_TOTAL_PAGES] = {false, false, false};
+    bool drawActionPage = true;
+    ImGuiFileDialog chooseIntrinsicsDialog;
+    ImGuiFileDialog chooseExtrinsicsDialog;
+    ImGuiFileDialog saveCalibrationDialog;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSavedTimer;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
 
 // Create global object for convenience in other functions
-
+public:
     void onFinishedRender() override {
 
     }
@@ -157,8 +164,6 @@ public:
     }
 
 private:
-    bool page[PAGE_TOTAL_PAGES] = {false, false, false};
-    bool drawActionPage = true;
 
     void buildDeviceInformation(VkRender::GuiObjectHandles *handles) {
         bool pOpen = true;
@@ -227,7 +232,7 @@ private:
         bool pOpen = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse;;
+                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         ImGui::SetNextWindowPos(
                 ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
@@ -282,7 +287,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
 
         ImGui::SameLine();
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+        if (dev.isRemoteHead) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
         }
@@ -294,7 +299,7 @@ private:
             handles->clearColor[2] = VkRender::CRL3DBackground.z;
             handles->clearColor[3] = VkRender::CRL3DBackground.w;
         }
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+        if (dev.isRemoteHead) {
             ImGui::PopItemFlag();
             ImGui::PopStyleColor();
         }
@@ -377,7 +382,8 @@ private:
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-
+                dev.win.at(index).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at(index).yPixelStartPos = viewAreaElementPosY;
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
 
@@ -442,22 +448,35 @@ private:
                     if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
                                                      ImGuiHoveredFlags_AnyWindow)) {
                         // Offsset cursor positions.
-                        uint32_t x, y, val = dev.pixelInfo.intensity;
-                        x = static_cast<uint32_t>( dev.pixelInfo.x - viewAreaElementPosX);
-                        y = static_cast<uint32_t>(dev.pixelInfo.y - viewAreaElementPosY);
+                        switch (Utils::CRLSourceToTextureType(dev.win.at(index).selectedSource)) {
+                            case AR_POINT_CLOUD:
+                                break;
+                            case AR_GRAYSCALE_IMAGE:
+                                ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
+                                break;
+                            case AR_COLOR_IMAGE:
+                                break;
+                            case AR_COLOR_IMAGE_YUV420:
+                                break;
+                            case AR_YUV_PLANAR_FRAME:
+                                break;
+                            case AR_CAMERA_IMAGE_NONE:
+                                break;
+                            case AR_DISPARITY_IMAGE:
+                                ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
+                                break;
+                        }
 
-
-                        ImGui::Text("(%d, %d) %d", x, y, val);
                     }
                 }
 
 
                 // Max X and Min Y is top right corner
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 10.0f, topBarRectMin.y));
-                ImGui::SetNextItemWidth(150.0f);
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));
+                ImGui::SetNextItemWidth(80.0f);
                 auto &window = dev.win[index];
 
-                if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                if (dev.isRemoteHead) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
                     std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
                                                                                       std::to_string(
@@ -476,7 +495,8 @@ private:
                                     bool inUse = false;
                                     std::string sourceInUse;
                                     for (const auto &win: dev.win) {
-                                        if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                        if (win.second.selectedSource == window.selectedSource &&
+                                            (int) win.first != index &&
                                             win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                             inUse = true;
                                             sourceInUse = win.second.selectedSource;
@@ -534,7 +554,8 @@ private:
                             if (window.selectedSource != "Source") {
                                 bool inUse = false;
                                 for (const auto &win: dev.win) {
-                                    if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                    if (win.second.selectedSource == window.selectedSource &&
+                                        (int) win.first != index &&
                                         win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
                                         inUse = true;
                                 }
@@ -651,7 +672,7 @@ private:
 
                     ImGui::Dummy(ImVec2(40.0f, 0.0));
                     ImGui::SameLine();
-                    if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                    if (dev.isRemoteHead) {
                         std::string descriptionText = "Remote head " + std::to_string(i) + ":";
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                         ImGui::Text("%s", descriptionText.c_str());
@@ -685,13 +706,6 @@ private:
                         ImGui::EndCombo();
                     }
                 }
-                ImGui::Dummy(ImVec2(40.0f, 10.0));
-                ImGui::Dummy(ImVec2(40.0f, 0.0));
-                ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-                ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
-                ImGui::PopStyleColor();
-
                 // Draw Recording options
                 {
                     ImGui::Dummy(ImVec2(0.0f, 50.0f));
@@ -871,7 +885,8 @@ private:
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -939,7 +954,7 @@ private:
             float textSpacing = 90.0f;
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
 
-            if (d.baseUnit == CRL_BASE_REMOTE_HEAD) {
+            if (d.isRemoteHead) {
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
@@ -1041,6 +1056,52 @@ private:
                                    0, 1);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                static char buf1[5] = "0";
+                static char buf2[5] = "0";
+                static char buf3[5] = "0";
+                static char buf4[5] = "0";
+
+                if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
+                    d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
+                    d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
+                    d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
+                    d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY ;
+                    d.parameters.ep.update |= true;
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::SameLine();
+                float posX = ImGui::GetCursorPosX();
+                float inputWidth = 15.0f * 2.8;
+                ImGui::Text("Upper left corner (x, y)");
+
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalminX", buf1, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalminY", buf2, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::SetCursorPosX(posX);
+                ImGui::Text("Lower left corner (x, y)");
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalmaxX", buf3, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalmaxY", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::PopStyleColor();
+
+                ImGui::ShowDemoWindow();
             }
 
             // White Balance
@@ -1274,6 +1335,191 @@ private:
                 ImGui::PopStyleColor();
             }
 
+            // Calibration
+            {
+                ImGui::PushFont(handles->info->font18);
+                ImGui::Dummy(ImVec2(0.0f, 15.0f));
+                ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::Text("Calibration");
+                ImGui::PopFont();
+
+                ImGui::Dummy(ImVec2(0.0f, 15.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Save Calibration:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImVec2 btnSize(100.0f, 20.0f);
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
+                ImGui::InputText("##SaveLocation", d.parameters.calib.saveCalibrationPath.data(),
+                                 d.parameters.calib.saveCalibrationPath.size() + 255);
+                ImGui::SameLine();
+
+
+                if (ImGui::Button("Choose Dir", btnSize))
+                    saveCalibrationDialog.OpenDialog("ChooseDirDlgKey", "Choose save location", nullptr,
+                                                     ".");
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (saveCalibrationDialog.Display("ChooseDirDlgKey", 0, ImVec2(400.0f, 300.0f),
+                                                  ImVec2(1200.0f, 720.0f))) {
+                    // action if OK
+                    if (saveCalibrationDialog.IsOk()) {
+                        std::string filePathName = saveCalibrationDialog.GetFilePathName();
+                        d.parameters.calib.saveCalibrationPath = filePathName;
+                        // action
+                    }
+                    // close
+                    saveCalibrationDialog.Close();
+                }
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+
+                if (d.parameters.calib.saveCalibrationPath == "Path/To/Dir") {
+                    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
+                }
+                d.parameters.calib.save = ImGui::Button("Get Current Calibration");
+
+                if (d.parameters.calib.saveCalibrationPath == "Path/To/Dir") {
+                    ImGui::PopItemFlag();
+                    ImGui::PopStyleColor(2);
+                }
+                ImGui::PopStyleColor();
+
+                if (d.parameters.calib.save) {
+                    showSavedTimer = std::chrono::steady_clock::now();
+                }
+                auto time = std::chrono::steady_clock::now();
+                float threeSeconds = 3.0f;
+                std::chrono::duration<float> time_span =
+                        std::chrono::duration_cast<std::chrono::duration<float>>(time - showSavedTimer);
+                if (time_span.count() < threeSeconds) {
+                    ImGui::SameLine();
+                    if (d.parameters.calib.saveFailed) {
+                        ImGui::Text("Saved!");
+                    } else {
+                        ImGui::Text("Failed to save calibration");
+                    }
+
+                }
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Intrinsics:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
+                ImGui::InputText("##IntrinsicsLocation", d.parameters.calib.intrinsicsFilePath.data(),
+                                 d.parameters.calib.intrinsicsFilePath.size() + 255);
+                ImGui::SameLine();
+
+
+                if (ImGui::Button("Choose File##1", btnSize))
+                    chooseIntrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose intrinsics .yml file", ".yml",
+                                                      ".");
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (chooseIntrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(400.0f, 300.0f),
+                                                   ImVec2(1200.0f, 720.0f))) {
+                    // action if OK
+                    if (chooseIntrinsicsDialog.IsOk()) {
+                        std::string filePathName = chooseIntrinsicsDialog.GetFilePathName();
+                        d.parameters.calib.intrinsicsFilePath = filePathName;
+                        // action
+                    }
+                    // close
+                    chooseIntrinsicsDialog.Close();
+                }
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Extrinsics:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
+                ImGui::InputText("##ExtrinsicsLocation", d.parameters.calib.extrinsicsFilePath.data(),
+                                 d.parameters.calib.extrinsicsFilePath.size() + 255);
+                ImGui::SameLine();
+                if (ImGui::Button("Choose File##2", btnSize))
+                    chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",
+                                                      ".");
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (chooseExtrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(400.0f, 300.0f),
+                                                   ImVec2(1200.0f, 720.0f))) {
+                    // action if OK
+                    if (chooseExtrinsicsDialog.IsOk()) {
+                        std::string filePathName = chooseExtrinsicsDialog.GetFilePathName();
+                        d.parameters.calib.extrinsicsFilePath = filePathName;
+                        // action
+                    }
+                    // close
+                    chooseExtrinsicsDialog.Close();
+                }
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(2);
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+
+                if (d.parameters.calib.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
+                    d.parameters.calib.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
+                    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
+                }
+                d.parameters.calib.update = ImGui::Button("Set New Calibration");
+
+                if (d.parameters.calib.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
+                    d.parameters.calib.extrinsicsFilePath == "Path/To/Extrinsics.yml") {
+                    ImGui::PopItemFlag();
+                    ImGui::PopStyleColor(2);
+                }
+                ImGui::PopStyleColor();
+
+                if (d.parameters.calib.update) {
+                    showSetTimer = std::chrono::steady_clock::now();
+                }
+                time = std::chrono::steady_clock::now();
+                threeSeconds = 3.0f;
+                time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - showSetTimer);
+                if (time_span.count() < threeSeconds) {
+                    ImGui::SameLine();
+                    if (d.parameters.calib.updateFailed) {
+                        ImGui::Text("Set calibration!");
+                    } else {
+                        ImGui::Text("Failed to set calibration...");
+                    }
+
+                }
+
+
+            }
             ImGui::PopStyleColor();
         }
     }

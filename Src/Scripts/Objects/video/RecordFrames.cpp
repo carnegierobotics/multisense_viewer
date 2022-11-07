@@ -22,9 +22,16 @@ void RecordFrames::update() {
              remoteIdx <= crl::multisense::Remote_Head_3; ++remoteIdx) {
 
             const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteIdx).imgConf;
+
             auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
                                                                conf.height(), true);
+
+
             if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), remoteIdx)) {
+                if (src == "Color Aux" || src == "Color Rectified Aux"){
+                    if (tex->m_Id != tex->m_Id2)
+                        continue;
+                }
                 if (threadPool->getTaskListSize() < STACK_SIZE_100) {
                     threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
                                      remoteIdx, tex);

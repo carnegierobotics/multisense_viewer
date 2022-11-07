@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "KeyInput.h"
 #include "imgui.h"
-#include "MultiSense/Src/Renderer/SharedData.h"
 #include <utility>
 #include <array>
 
@@ -184,6 +183,16 @@ struct ExposureParams {
     bool update = false;
 };
 
+struct CalibrationParams {
+    bool update = false;
+    bool save = false;
+    std::string intrinsicsFilePath = "Path/To/Intrinsics.yml";
+    std::string extrinsicsFilePath = "Path/To/Extrinsics.yml";
+    std::string saveCalibrationPath = "Path/To/Dir";
+    bool updateFailed = false;
+    bool saveFailed = false;
+};
+
 
 /**
  * @brief MAIN RENDER NAMESPACE. This namespace contains all Render resources presented by the backend of this renderer engine.
@@ -205,6 +214,7 @@ namespace VkRender {
         ExposureParams ep{};
         WhiteBalanceParams wb{};
         LightingParams light{};
+        CalibrationParams calib{};
 
         float gain = 1.0f;
         float fps = 30.0f;
@@ -214,13 +224,15 @@ namespace VkRender {
 
         bool update = false;
         bool updateGuiParams = true;
+
+
     };
 
     struct CursorPixelInformation {
         uint32_t x{}, y{};
         uint32_t r{}, g{}, b{};
         uint32_t intensity{};
-        uint32_t depth{};
+        float depth{};
     };
 
     struct PreviewWindow {
@@ -230,6 +242,8 @@ namespace VkRender {
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
         crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
+        float xPixelStartPos = 0;
+        float yPixelStartPos = 0;
     };
 
     struct ChannelInfo {
@@ -268,18 +282,17 @@ namespace VkRender {
         ArConnectionState state = AR_STATE_UNAVAILABLE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
+        bool isRemoteHead = false;
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
         std::vector<ChannelInfo> channelInfo{};
-        CRLCameraBaseUnit baseUnit{};
-
-        /**@brief location for which this device should save recorded frames **/
+        /**@brief location for which this m_Device should save recorded frames **/
         std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
 
         float row[9] = {0};
         float col[9] = {0};
-        bool pixelInfoEnable = false;
+        bool pixelInfoEnable = true;
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
@@ -405,7 +418,6 @@ namespace VkRender {
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
-
         uint32_t index = 0;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
@@ -524,7 +536,6 @@ namespace VkRender {
 
         /** User action to configure network automatically even when using manual approach **/
         bool configureNetwork = true;
-        bool nextIsRemoteHead = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
         bool disableCameraRotationFromGUI = false;

@@ -368,7 +368,7 @@ namespace VkRender::MultiSense {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
         if (resolution == CRL_RESOLUTION_NONE) {
-            Log::Logger::getInstance()->info("Resolution is not specified {}", resolution);
+            Log::Logger::getInstance()->info("Resolution is not specified {}", (int) resolution);
             return false;
         }
         uint32_t width = 0, height = 0, depth = 0;

@@ -333,6 +333,8 @@ void Renderer::render() {
                     if (win.second.selectedSource == "Source")
                         continue;
 
+
+
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
                                                      dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
                                                      true);

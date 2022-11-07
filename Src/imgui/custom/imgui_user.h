@@ -203,7 +203,8 @@ namespace ImGui {
     // Tip: use ImGui::PushID()/PopID() to push indices or pointers in the ID stack.
 // Then you can keep 'str_id' empty or the same for all your buttons (instead of creating a string based on a non-string id)
     inline bool
-    HoveredInvisibleButton(const char *str_id, bool *hovered, bool* held, const ImVec2 &size_arg, ImGuiButtonFlags flags) {
+    HoveredInvisibleButton(const char *str_id, bool *hovered, bool *held, const ImVec2 &size_arg,
+                           ImGuiButtonFlags flags) {
         ImGuiContext &g = *GImGui;
         ImGuiWindow *window = GetCurrentWindow();
         if (window->SkipItems)
@@ -279,6 +280,54 @@ namespace ImGui {
         ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, color, tint_col);
         ImGui::PopID();
     };
+
+    inline bool ButtonWithGif(const char *str_id, const ImVec2 btnSize, ImTextureID user_texture_id, const ImVec2 &size,
+                              const ImVec2 &uv0, const ImVec2 &uv1, const ImVec4 &tint_col, ImVec4 btnColor) {
+        ImGuiContext &g = *GImGui;
+        ImGuiWindow *window = g.CurrentWindow;
+        if (window->SkipItems)
+            return false;
+
+        ImVec2 posMinScreen = ImGui::GetCursorScreenPos();
+        ImVec2 posMin = ImGui::GetCursorPos();
+
+        ImGui::SetCursorScreenPos(posMinScreen);
+        ImGui::PushID(1);
+        bool hovered = false;
+        bool held;
+        bool clicked = false;
+        if (HoveredInvisibleButton(str_id, &hovered, &held, btnSize, 0)) {
+            clicked = true;
+        }
+        ImGui::PopID();
+        ImGui::SameLine();
+        // Screen pos for adding to windowDrawList rects
+        ImVec2 posMax = posMinScreen;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+
+        ImVec4 color = btnColor;
+        ImGui::GetWindowDrawList()->AddRectFilled(posMinScreen, posMax,
+                                                  ImColor(color), 10.0f, 0);
+
+        // Window relative pos for text and img element
+        posMax = posMin;
+        posMax.x += btnSize.x;
+        posMax.y += btnSize.y;
+        ImVec2 txtSize = ImGui::CalcTextSize(str_id);
+        ImGui::SetCursorPos(ImVec2(posMin.x + 40.0f, posMin.y + ((posMax.y - posMin.y) / 2) - (txtSize.y / 2)));
+        ImGui::Text("%s", str_id);
+        ImGui::SameLine();
+        ImGui::PushID(0);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ((btnSize.y - size.y) / 2));
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 50.0f)));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        clicked |= ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, color, tint_col);
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+        return clicked;
+    };
+
 
     static inline bool isHoverable(ImGuiWindow *window, ImGuiHoveredFlags flags) {
         // An active popup disable hovering on other windows (apart from its own children)

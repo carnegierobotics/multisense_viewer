@@ -92,6 +92,7 @@ namespace VkRender::MultiSense {
                     for (auto& counter : src.second)
                         counter.second = 0;
 
+
                 if (channelPtr_) {
                     crl::multisense::Channel::Destroy(channelPtr_);
                 }

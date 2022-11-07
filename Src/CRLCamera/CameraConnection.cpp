@@ -139,7 +139,7 @@ namespace VkRender::MultiSense {
         if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
             queryStatusTimer = std::chrono::steady_clock::now();
             pool->Push(CameraConnection::getStatusTask, this,
-                       dev->baseUnit == CRL_BASE_REMOTE_HEAD ? crl::multisense::Remote_Head_VPB : 0);
+                       dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : 0); // If remote head use -1 otherwise "main" channel is located at 0
         }
 
 
@@ -147,7 +147,7 @@ namespace VkRender::MultiSense {
     }
 
     void
-    CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork, bool isRemoteHead) {
+    CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork) {
         if (devices.empty())
             return;
 
@@ -188,7 +188,7 @@ namespace VkRender::MultiSense {
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
                 pool = std::make_unique<VkRender::ThreadPool>(1);
                 // Perform connection by pushing a connect task.
-                pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, isRemoteHead, shouldConfigNetwork);
+                pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, dev.isRemoteHead, shouldConfigNetwork);
                 break;
             }
 
@@ -467,7 +467,7 @@ namespace VkRender::MultiSense {
             }
 
             strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
-            ifr.ifr_mtu = 7200; //your MTU m_TexSize here
+            ifr.ifr_mtu = 7200; //your MTU  here
             if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
                 Log::Logger::getInstance()->error("Failed to set mtu m_TexSize {} on adapter {}", 7200,
                                                   dev.interfaceName.c_str());
@@ -571,7 +571,7 @@ namespace VkRender::MultiSense {
             // Preview Data per channel
             for (const auto &ch: dev->channelConnections) {
                 std::string mode = "Mode" + std::to_string(ch);
-                if (dev->channelInfo[ch].modes.empty())
+                if (dev->channelInfo.empty() || dev->channelInfo[ch].modes.empty())
                     continue;
 
                 auto resMode =  dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];

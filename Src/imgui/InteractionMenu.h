@@ -287,7 +287,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
 
         ImGui::SameLine();
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+        if (dev.isRemoteHead) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
         }
@@ -299,7 +299,7 @@ private:
             handles->clearColor[2] = VkRender::CRL3DBackground.z;
             handles->clearColor[3] = VkRender::CRL3DBackground.w;
         }
-        if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+        if (dev.isRemoteHead) {
             ImGui::PopItemFlag();
             ImGui::PopStyleColor();
         }
@@ -462,7 +462,7 @@ private:
                 ImGui::SetNextItemWidth(150.0f);
                 auto &window = dev.win[index];
 
-                if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                if (dev.isRemoteHead) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
                     std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
                                                                                       std::to_string(
@@ -656,7 +656,7 @@ private:
 
                     ImGui::Dummy(ImVec2(40.0f, 0.0));
                     ImGui::SameLine();
-                    if (dev.baseUnit == CRL_BASE_REMOTE_HEAD) {
+                    if (dev.isRemoteHead) {
                         std::string descriptionText = "Remote head " + std::to_string(i) + ":";
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                         ImGui::Text("%s", descriptionText.c_str());
@@ -944,7 +944,7 @@ private:
             float textSpacing = 90.0f;
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
 
-            if (d.baseUnit == CRL_BASE_REMOTE_HEAD) {
+            if (d.isRemoteHead) {
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();

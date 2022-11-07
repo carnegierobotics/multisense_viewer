@@ -49,7 +49,9 @@ public:
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
 
     uint32_t gifFrameIndex = 0;
+    uint32_t gifFrameIndex2 = 0;
     std::chrono::steady_clock::time_point gifFrameTimer;
+    std::chrono::steady_clock::time_point gifFrameTimer2;
     std::chrono::steady_clock::time_point searchingTextAnimTimer;
     std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
 
@@ -77,6 +79,8 @@ public:
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
         autoConnect.setEventCallback(SideBar::onEvent);
         gifFrameTimer = std::chrono::steady_clock::now();
+        gifFrameTimer2 = std::chrono::steady_clock::now();
+
     }
 
     void onFinishedRender() override {
@@ -267,8 +271,7 @@ private:
         el.interfaceDescription = entry.description;
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
-        el.baseUnit = handles->nextIsRemoteHead ? CRL_BASE_REMOTE_HEAD : CRL_BASE_MULTISENSE;
-
+        el.isRemoteHead = entry.isRemoteHead;
         handles->devices.push_back(el);
 
         Log::Logger::getInstance()->info("Connect clicked for Default Device");
@@ -282,6 +285,7 @@ private:
         for (size_t i = 0; i < devices.size(); ++i) {
             auto &e = devices.at(i);
             std::string buttonIdentifier;
+            ImVec4 btnColor{};
             // Set colors based on state
             switch (e.state) {
                 case AR_STATE_CONNECTED:
@@ -290,40 +294,48 @@ private:
                     buttonIdentifier = "Connecting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
+                    btnColor = VkRender::CRLBlueIsh;
                     break;
                 case AR_STATE_ACTIVE:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                    btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
                     break;
                 case AR_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
+                    btnColor = VkRender::CRLRed;
                     break;
                 case AR_STATE_LOST_CONNECTION:
                     buttonIdentifier = "Lost connection...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
+                    btnColor = VkRender::CRLBlueIsh;
                     break;
                 case AR_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
+                    btnColor = VkRender::CRLRed;
                     break;
                 case AR_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLDarkGray425);
+                    btnColor = VkRender::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
                 case AR_STATE_JUST_ADDED:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
                 case AR_STATE_DISCONNECT_AND_FORGET:
                 case AR_STATE_REMOVE_FROM_LIST:
                 case AR_STATE_RESET:
+                    buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
@@ -337,15 +349,25 @@ private:
 
             // Stop execution here
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLBlueIsh);
-            if (ImGui::SmallButton("X")) {
-                // delete and disconnect devices
-                handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
-                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECT_AND_FORGET ",
-                                                 handles->devices.at(i).name);
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor(3);
-                ImGui::EndChild();
-                continue;
+
+            // Delete a profile
+            {
+                // Check if we are currently trying to connect.
+                bool busy = false;
+                for (const auto &dev: handles->devices) {
+                    if (dev.state == AR_STATE_CONNECTING)
+                        busy = true;
+                }
+                if (ImGui::SmallButton("X") && !busy) {
+                    // delete and disconnect devices
+                    handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
+                    Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECT_AND_FORGET ",
+                                                     handles->devices.at(i).name);
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(3);
+                    ImGui::EndChild();
+                    continue;
+                }
             }
             ImGui::PopStyleColor();
 
@@ -399,9 +421,41 @@ private:
                 ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
             }
 
-            buttonIdentifier += "##" + e.IP;
-            e.clicked = ImGui::Button(buttonIdentifier.c_str(),
-                                      ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+            //buttonIdentifier += "##" + e.IP;
+            //e.clicked = ImGui::Button(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+
+            ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+            ImVec2 uv1 = ImVec2(1.0f, 1.0f);
+            ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.3f);       // No tint
+
+            // Check if other device is already attempting to connect
+            bool busy = false;
+            for (const auto &dev: handles->devices) {
+                if (dev.state == AR_STATE_CONNECTING)
+                    busy = true;
+            }
+
+            // Connect button
+            if (buttonIdentifier == "Connecting") {
+                e.clicked = ImGui::ButtonWithGif(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, 35.0f),
+                                                 handles->info->gif.image[gifFrameIndex2], ImVec2(35.0f, 35.0f), uv0,
+                                                 uv1,
+                                                 tint_col, btnColor) && !busy;
+            } else {
+                e.clicked = ImGui::Button(buttonIdentifier.c_str(),
+                                          ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2)) && !busy;
+            }
+            auto time = std::chrono::steady_clock::now();
+            std::chrono::duration<float> time_span =
+                    std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
+
+            if (time_span.count() > ((float) *handles->info->gif.delay) / 1000.0f) {
+                gifFrameTimer2 = std::chrono::steady_clock::now();
+                gifFrameIndex2++;
+            }
+
+            if (gifFrameIndex2 >= handles->info->gif.totalFrames)
+                gifFrameIndex2 = 0;
 
             ImGui::PopFont();
             ImGui::PopStyleVar(2);
@@ -682,7 +736,8 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-                ImGui::Checkbox(" Remote Head", &handles->nextIsRemoteHead); ImGui::SameLine();
+                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
+                ImGui::SameLine();
                 ImGui::HelpMarker("\n Check this if you are connecting to a remote head device\n ");
                 ImGui::PopStyleColor();
 
@@ -783,7 +838,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
                 ImGui::SameLine(0, 20.0f);
-                ImGui::Checkbox("  Remote Head", &handles->nextIsRemoteHead);
+                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
 
                 if (handles->configureNetwork) {
                     if (elevated()) {

@@ -390,6 +390,8 @@ start over at 1.
 TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
                            VkFormat format) : Texture() {
 
+    assert(texWidth != 0 && texHeight != 0);
+
     this->m_Device = device;
     m_Width = texWidth;
     m_Height = texHeight;

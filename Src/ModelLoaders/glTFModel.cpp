@@ -344,8 +344,8 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             sampler = textureSamplers[tex.sampler];
         }
-        //Texture2D texture2D(device);
-        //texture2D.fromglTfImage(image, sampler, device, transferQueue);
+        Texture2D texture2D(device);
+        texture2D.fromglTfImage(image, sampler, device, transferQueue);
         //textures.push_back(texture2D);
     }
 

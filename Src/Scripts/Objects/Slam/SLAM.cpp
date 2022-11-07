@@ -131,7 +131,7 @@ void SLAM::update() {
 
     cv::Rodrigues(rvec, m_Rotation);
 
-    m_Translation *= 100;
+    m_Translation *= 1;
 
     cv::Mat rigidBodyTransformation;
     cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
@@ -157,7 +157,7 @@ void SLAM::update() {
     //printf("xyz: (%f, %f, %f)\n", float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
     //std::cout << m_Rotation << std::endl;
     std::cout << m_Pose << std::endl;
-
+    glm::vec3 rot = glm::vec3(float(rvec.at<double>(0)), float(rvec.at<double>(1)), float(rvec.at<double>(2)));
     //int x = int(xyz.at<double>(0)) * 100 + 600;
     //int z = int(xyz.at<double>(2)) * 100 + 300;
     //circle(m_Trajectory, cv::Point(x, z), 1, CV_RGB(255, 0, 0), 2);
@@ -169,14 +169,11 @@ void SLAM::update() {
     //cv::waitKey(1);
 
     VkRender::UBOMatrix mat{};
-    glm::mat4 mod(1.0f);
-    cv::Mat pose;
-    m_Pose.convertTo(pose, CV_32FC1);
-    fromCV2GLM(pose, &mod);
-    mat.model = mod;
-    //
-    //mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
+
+    mat.model = glm::mat4(1.0f);
+    mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
+    mat.model = glm::rotate(mat.model, glm::length(rot), rot);
+
     auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;

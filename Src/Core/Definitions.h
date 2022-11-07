@@ -293,7 +293,7 @@ namespace VkRender {
 
         float row[9] = {0};
         float col[9] = {0};
-        bool pixelInfoEnable = false;
+        bool pixelInfoEnable = true;
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};

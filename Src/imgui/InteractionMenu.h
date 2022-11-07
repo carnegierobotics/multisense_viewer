@@ -475,8 +475,9 @@ private:
 
 
                 // Max X and Min Y is top right corner
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 10.0f, topBarRectMin.y));
-                ImGui::SetNextItemWidth(150.0f);
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x -300.0f, topBarRectMin.y));
+
+                ImGui::SetNextItemWidth(100.0f);
                 auto &window = dev.win[index];
 
                 if (dev.isRemoteHead) {
@@ -707,13 +708,6 @@ private:
                         ImGui::EndCombo();
                     }
                 }
-                ImGui::Dummy(ImVec2(40.0f, 10.0));
-                ImGui::Dummy(ImVec2(40.0f, 0.0));
-                ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-                ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
-                ImGui::PopStyleColor();
-
                 // Draw Recording options
                 {
                     ImGui::Dummy(ImVec2(0.0f, 50.0f));

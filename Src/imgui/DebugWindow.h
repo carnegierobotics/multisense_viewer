@@ -287,6 +287,8 @@ public:
             ImGui::Separator();
 
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
+            //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
+
         }
         ImGui::EndChild();
         //ImGui::ShowDemoWindow();

@@ -388,25 +388,20 @@ void Renderer::render() {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
-
                                     // get focal length
                                     float tx = cameraConnection->camPtr->getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).imgConf.tx();
                                     float fx = cameraConnection->camPtr->getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).imgConf.fx();
-
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
                                         dev.pixelInfo.depth = dist;
                                     }
                                 }
                                     break;
-
                             }
                         }
                     }
-
-                    //dev.pixelInfo.intensity = val;
                 }
             }
         }

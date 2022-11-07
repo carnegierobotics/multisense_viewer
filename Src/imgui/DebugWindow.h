@@ -286,7 +286,7 @@ public:
             }
             ImGui::Separator();
 
-
+            ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
         }
         ImGui::EndChild();
         //ImGui::ShowDemoWindow();

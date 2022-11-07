@@ -209,7 +209,8 @@ namespace VkRender::MultiSense {
 
             // Disable if we lost connection
             std::scoped_lock lock(statusCountMutex);
-            if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS) {
+            if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS &&
+           (!Log::Logger::getLogMetrics()->device.ignoreMissingStatusUpdate)) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
                                                  dev.name);

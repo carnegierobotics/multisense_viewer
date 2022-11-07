@@ -20,8 +20,6 @@
 #include <utility>
 #include <array>
 
-#define NUM_YUV_DATA_POINTERS 3
-#define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define STACK_SIZE_100 100
@@ -235,7 +233,7 @@ namespace VkRender {
         uint32_t x{}, y{};
         uint32_t r{}, g{}, b{};
         uint32_t intensity{};
-        uint32_t depth{};
+        float depth{};
     };
 
     struct PreviewWindow {
@@ -245,6 +243,8 @@ namespace VkRender {
         uint32_t selectedSourceIndex = 0;
         int hoveredPixelInfo{};
         crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
+        float xPixelStartPos = 0;
+        float yPixelStartPos = 0;
     };
 
     struct ChannelInfo {

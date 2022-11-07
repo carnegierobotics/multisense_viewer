@@ -13,8 +13,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-
-    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    vec3 tex = texture(samplerColorMap, vec2(1-inUV.x, inUV.y)).rgb;
     outColor = vec4(tex.r, tex.r, tex.r, 1.0);
 
 }

@@ -17,6 +17,7 @@
 #include "Camera.h"
 #include "KeyInput.h"
 #include "imgui.h"
+#include "MultiSense/Src/Renderer/SharedData.h"
 #include <utility>
 #include <array>
 
@@ -418,6 +419,7 @@ namespace VkRender {
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
+
         uint32_t index = 0;
         Camera *camera = nullptr;
         float deltaT = 0.0f;

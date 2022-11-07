@@ -2,6 +2,7 @@
 
 void MultiSenseCamera::setup() {
     m_Model = std::make_unique<glTFModel::Model>(renderUtils.device);
+
     m_Model->loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
                          renderUtils.device->m_TransferQueue, 1.0f);
 
@@ -18,7 +19,7 @@ void MultiSenseCamera::setup() {
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (previewTab == TAB_3D_POINT_CLOUD && b)
-       m_Model->draw(commandBuffer, i);
+        m_Model->draw(commandBuffer, i);
 }
 
 void MultiSenseCamera::update() {

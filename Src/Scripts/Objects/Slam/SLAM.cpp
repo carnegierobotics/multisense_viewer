@@ -64,6 +64,7 @@ void SLAM::setup() {
 }
 
 void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+    if (b)
     m_Model->draw(commandBuffer, i);
 }
 

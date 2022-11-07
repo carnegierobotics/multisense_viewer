@@ -172,11 +172,9 @@ void Renderer::render() {
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
 
     // Enable scripts depending on gui layout chosen
-    bool previewActive = false;
     for (auto &dev: guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             renderSelectionPass = dev.pixelInfoEnable;
-            previewActive = true;
             switch (dev.layout) {
                 case PREVIEW_LAYOUT_SINGLE:
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
@@ -226,18 +224,18 @@ void Renderer::render() {
                     scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
             }
+        } else {
+            scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+            scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         }
     }
-    if (!previewActive) {
-        scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-    }
+
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
         if (guiManager->handles.devices.at(i).state == AR_STATE_REMOVE_FROM_LIST)
@@ -336,95 +334,15 @@ void Renderer::render() {
         for (auto &dev: guiManager->handles.devices) {
             if (dev.state != AR_STATE_ACTIVE)
                 continue;
-            auto idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
+            uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
 
-            // Required
-            // - What resolution is currently set
-            // - Handle to each preview window
-            // - What type is currently set on each window
-
-            // If we get an image attempt to update the GPU buffer
+            uint32_t val = data[idx];
             if (dev.state == AR_STATE_ACTIVE) {
-                for (auto &win: dev.win) {
-                    if (win.second.selectedSource == "Source")
-                        continue;
-
-
-
-                    auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
-                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
-                                                     true);
-
-                    if (renderData.crlCamera->get()->getCameraStream(win.second.selectedSource, &tex,
-                                                                     win.second.selectedRemoteHeadIndex)) {
-                        uint32_t width = 0, height = 0, depth = 0;
-                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
-                                                       &width, &height, &depth);
-
-                        float viewAreaElementPosX = win.second.xPixelStartPos;
-                        float viewAreaElementPosY = win.second.yPixelStartPos;
-                        float imGuiPosX = (float) mousePos.x - viewAreaElementPosX -
-                                          (guiManager->handles.info->previewBorderPadding / 2.0f);
-                        float imGuiPosY = (float) mousePos.y - viewAreaElementPosY -
-                                          (guiManager->handles.info->previewBorderPadding / 2.0f);
-                        float maxInRangeX = guiManager->handles.info->viewAreaElementSizeX -
-                                            guiManager->handles.info->previewBorderPadding;
-                        float maxInRangeY = guiManager->handles.info->viewAreaElementSizeY -
-                                            guiManager->handles.info->previewBorderPadding;
-                        if (imGuiPosX > 0 && imGuiPosX < maxInRangeX
-                            && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
-                            uint32_t w = 0, h = 0, d = 0;
-                            Utils::cameraResolutionToValue(
-                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode, &w, &h,
-                                    &d);
-
-                            auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
-                            auto y = (uint32_t) ((float) h * (imGuiPosY) / maxInRangeY);
-                            // Add one since we are not counting from zero anymore :)
-                            dev.pixelInfo.x = x + 1;
-                            dev.pixelInfo.y = y + 1;
-
-                            switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
-                                case AR_POINT_CLOUD:
-                                    break;
-                                case AR_GRAYSCALE_IMAGE:
-                                {
-                                    uint8_t intensity = tex.data[(w * y) + x];
-                                    dev.pixelInfo.intensity = intensity;
-                                }
-                                    break;
-                                case AR_COLOR_IMAGE:
-                                    break;
-                                case AR_COLOR_IMAGE_YUV420:
-                                    break;
-                                case AR_YUV_PLANAR_FRAME:
-                                    break;
-                                case AR_CAMERA_IMAGE_NONE:
-                                    break;
-                                case AR_DISPARITY_IMAGE:
-                                {
-                                    float disparity = 0;
-                                    auto *p = (uint16_t *) tex.data;
-                                    disparity = (float) p[(w * y) + x] / 16.0f;
-                                    // get focal length
-                                    float fx = cameraConnection->camPtr->getCameraInfo(
-                                            win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
-                                    float tx = cameraConnection->camPtr->getCameraInfo(
-                                            win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] / fx;
-                                    if (disparity > 0) {
-                                        float dist = (fx * abs(tx)) / disparity;
-                                        dev.pixelInfo.depth = dist;
-                                    } else {
-                                        dev.pixelInfo.depth = 0;
-                                    }
-                                }
-                                    break;
-                            }
-                        }
-                    }
-                }
+                dev.pixelInfo.x = static_cast<uint32_t>(mousePos.x);
+                dev.pixelInfo.y = static_cast<uint32_t>(mousePos.y);
+                dev.pixelInfo.intensity = val;
             }
         }
     }
@@ -474,7 +392,110 @@ void Renderer::cleanUp() {
         regEditor.resetJumbo();
         regEditor.restartNetAdapters(); // Make changes into effect
     }
+
+#else
+    // Write to ini file.
+    /*
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile("NetConfigBackup.ini");
+    if (rc < 0) {
+        // File doesn't exist error, then create one
+        if (rc == SI_FILE && errno == ENOENT) {
+            std::ofstream output = std::ofstream("NetConfigBackup.ini");
+            output.close();
+            rc = ini.LoadFile("NetConfigBackup.ini");
+        }
+    }
+    int ret;
+    std::string ip, netmask;
+    int mtu;
+    for (const auto &dev: *guiManager->handles.devices) {
+        if (!ini.SectionExists(dev.interfaceName.c_str())) {
+            continue;
+        } else {
+            ip = ini.GetValue(dev.interfaceName.c_str(), "IPAddress", "");
+            netmask = ini.GetValue(dev.interfaceName.c_str(), "SubnetMask", "");
+            mtu = std::stoi(ini.GetValue(dev.interfaceName.c_str(), "MTU", "1500"));
+            ini.Delete(dev.interfaceName.c_str(), nullptr); // delete backup once we got its information.
+            ini.SaveFile("NetConfigBackup.ini");
+        }
+
+
+        */
+    /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
+    /*
+    int m_FD = -1;
+    if ((m_FD = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
+        Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
+                                          strerror(errno));
+    }
+    // Specify interface m_Name
+    const char *interface = dev.interfaceName.c_str();
+    if (setsockopt(m_FD, SOL_SOCKET, SO_BINDTODEVICE, interface, 15) < 0) {
+        Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
+                                          strerror(errno));
+    };
+
+    struct ifreq ifr{};
+    /// note: no pointer here
+    struct sockaddr_in inet_addr{}, subnet_mask{};
+    // get interface m_Name
+    // Prepare the struct ifreq
+    bzero(ifr.ifr_name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, interface, IFNAMSIZ);
+
+    /// note: prepare the two struct sockaddr_in
+
+
+
+
+     */
+    /*** Call ioctl to get configure network interface ***/
+    /*
+    /// put addr in ifr structure
+    inet_addr.sin_family = AF_INET;
+    int inet_addr_config_result = inet_pton(AF_INET, ip.c_str(), &(inet_addr.sin_addr));
+    memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
+    int ioctl_result = ioctl(m_FD, SIOCSIFADDR, &ifr);  // Set IP address
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
+                                          strerror(errno));
+    }
+
+
+    /// put mask in ifr structure
+    memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
+    subnet_mask.sin_family = AF_INET;
+    int subnet_mask_config_result = inet_pton(AF_INET, netmask.c_str(), &(subnet_mask.sin_addr));
+    ioctl_result= ioctl(m_FD, SIOCSIFNETMASK, &ifr);   // Set subnet mask
+    if (ioctl_result < 0) {
+        fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
+        Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}",
+                                          dev.interfaceName,
+                                          strerror(errno));
+    }
+
+
+    strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
+    ifr.ifr_mtu = mtu; //your MTU size here
+    if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
+        Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
+                                          dev.interfaceName.c_str());
+    } else {
+        Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", mtu,
+                                          dev.interfaceName.c_str());
+    }
+}
+     */
+
 #endif
+
+
+
+
     // Clear script and scriptnames
     for (const auto &scriptName: builtScriptNames) {
         pLogger->info("Deleting Script: {}", scriptName.c_str());
@@ -483,8 +504,11 @@ void Renderer::cleanUp() {
         scripts.erase(scriptName);
     }
     builtScriptNames.clear();
+
     destroySelectionBuffer();
+
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
+
 }
 
 

@@ -20,7 +20,8 @@ void Gizmos::setup() {
     m_Model->createRenderPipeline(renderUtils, shaders);
 }
 
-void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
+    if (primaryDraw)
         m_Model->draw(commandBuffer, i);
 }
 
@@ -47,6 +48,5 @@ void Gizmos::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &d: uiHandle->devices) {
         if (d.state != AR_STATE_ACTIVE)
             continue;
-
     }
 }

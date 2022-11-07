@@ -232,7 +232,7 @@ private:
         bool pOpen = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse;;
+                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         ImGui::SetNextWindowPos(
                 ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
@@ -369,6 +369,7 @@ private:
                 float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
 
 
+
                 ImGui::SetNextWindowSize(
                         ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
                         ImGuiCond_Always);
@@ -382,7 +383,8 @@ private:
                 if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-
+                dev.win.at(index).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at(index).yPixelStartPos = viewAreaElementPosY;
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
 
@@ -448,11 +450,26 @@ private:
                                                      ImGuiHoveredFlags_AnyWindow)) {
                         // Offsset cursor positions.
                         uint32_t x, y, val = dev.pixelInfo.intensity;
-                        x = static_cast<uint32_t>( dev.pixelInfo.x - viewAreaElementPosX);
-                        y = static_cast<uint32_t>(dev.pixelInfo.y - viewAreaElementPosY);
+                        switch (Utils::CRLSourceToTextureType(dev.win.at(index).selectedSource)) {
 
+                            case AR_POINT_CLOUD:
+                                break;
+                            case AR_GRAYSCALE_IMAGE:
+                                ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
+                                break;
+                            case AR_COLOR_IMAGE:
+                                break;
+                            case AR_COLOR_IMAGE_YUV420:
+                                break;
+                            case AR_YUV_PLANAR_FRAME:
+                                break;
+                            case AR_CAMERA_IMAGE_NONE:
+                                break;
+                            case AR_DISPARITY_IMAGE:
+                                ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
+                                break;
+                        }
 
-                        ImGui::Text("(%d, %d) %d", x, y, val);
                     }
                 }
 
@@ -876,7 +893,7 @@ private:
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);

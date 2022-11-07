@@ -564,6 +564,7 @@ namespace Utils {
             return 0;
     }
 
+
 };
 
 #endif //MULTISENSE_UTILS_H

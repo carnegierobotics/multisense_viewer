@@ -34,7 +34,7 @@ namespace VkRender::MultiSense {
 		 * @param[in] shouldConfigNetwork if user have ticked the "configure network" checkbox
 		 * @param[in] isRemoteHead if the connected m_Device is a remote head, also selected by user
 		 */
-		void onUIUpdate(std::vector<VkRender::Device>& devices, bool shouldConfigNetwork, bool isRemoteHead);
+        void onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork);
 
 		/**@brief Writes the current state of *dev to crl.ini configuration file
 		 * @param[in] dev which profile to save to crl.ini

@@ -66,7 +66,7 @@ namespace VkRender {
         uint32_t interfaceIndex{};
 
         std::string cameraName;
-
+        bool isRemoteHead = false;
         EntryConnectDevice() = default;
 
         EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx, std::string desc) : IP(
@@ -111,13 +111,12 @@ namespace VkRender {
             for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
-                    Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP,
-                                                     entry.interfaceName);
+                    //Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
 
                 }
                 if (d.name == entry.profileName) {
                     profileNameTaken = true;
-                    Log::Logger::getInstance()->info("Profile m_Name '{}' already taken", entry.profileName);
+                    //Log::Logger::getInstance()->info("Profile m_Name '{}' already taken", entry.profileName);
                 }
 
             }

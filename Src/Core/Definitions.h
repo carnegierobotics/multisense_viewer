@@ -283,11 +283,10 @@ namespace VkRender {
         ArConnectionState state = AR_STATE_UNAVAILABLE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
         PreviewLayout layout = PREVIEW_LAYOUT_NONE;
+        bool isRemoteHead = false;
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
         std::vector<ChannelInfo> channelInfo{};
-        CRLCameraBaseUnit baseUnit{};
-
         /**@brief location for which this m_Device should save recorded frames **/
         std::string outputSaveFolder = "/Path/To/Folder/";
         bool isRecording = false;
@@ -535,7 +534,6 @@ namespace VkRender {
 
         /** User action to configure network automatically even when using manual approach **/
         bool configureNetwork = true;
-        bool nextIsRemoteHead = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
         bool disableCameraRotationFromGUI = false;

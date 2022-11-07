@@ -161,13 +161,14 @@ void Renderer::render() {
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
-    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork,
-                                 guiManager->handles.nextIsRemoteHead);
+    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
 
     // Enable scripts depending on gui layout chosen
+    bool previewActive = false;
     for (auto &dev: guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             renderSelectionPass = dev.pixelInfoEnable;
+            previewActive = true;
             switch (dev.layout) {
                 case PREVIEW_LAYOUT_SINGLE:
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
@@ -217,18 +218,18 @@ void Renderer::render() {
                     scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
             }
-        } else {
-            scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-            scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         }
     }
-
+    if (!previewActive) {
+        scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+    }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
         if (guiManager->handles.devices.at(i).state == AR_STATE_REMOVE_FROM_LIST)

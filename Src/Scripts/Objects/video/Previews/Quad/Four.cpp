@@ -129,6 +129,10 @@ void Four::prepareMultiSenseTexture() {
 
     uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(res, &width, &height, &depth);
+    if (width == 0 || height == 0){
+        Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
+        return;
+    }
     model->modelType = textureType;
     model->createEmptyTexture(width, height, textureType);
     // Create graphics render pipeline

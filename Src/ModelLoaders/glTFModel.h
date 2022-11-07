@@ -100,7 +100,7 @@ public:
 
     struct Model {
         VulkanDevice *vulkanDevice = nullptr;
-
+        std::string m_FileName;
         explicit Model(VulkanDevice* dev){
             this->vulkanDevice = dev;
         }
@@ -154,7 +154,7 @@ public:
         VkFilter getVkFilterMode(int32_t filterMode);
         void loadTextureSamplers(tinygltf::Model& gltfModel);
         void loadMaterials(tinygltf::Model& gltfModel);
-        void loadFromFile(std::string filename, VulkanDevice *device, VkQueue transferQueue, float scale);
+        void loadFromFile(std::string fileName, VulkanDevice *device, VkQueue transferQueue, float scale);
         Node* findNode(Node* parent, uint32_t index);
         Node* nodeFromIndex(uint32_t index);
 

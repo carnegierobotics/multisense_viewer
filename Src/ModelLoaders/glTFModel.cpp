@@ -8,26 +8,26 @@
 #define STBI_MSC_SECURE_CRT
 
 #include "glTFModel.h"
+#include "MultiSense/Src/Tools/Logger.h"
 
 
-
-
-void glTFModel::Model::loadFromFile(std::string filename, VulkanDevice *_device, VkQueue transferQueue, float scale) {
+void glTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device, VkQueue transferQueue, float scale) {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF gltfContext;
     std::string error;
     std::string warning;
 
-    this->m_Device = _device;
-
+    m_Device = _device;
+    m_FileName = fileName;
+    Log::Logger::getInstance()->info("Loading glTF file {}", fileName);
     bool binary = false;
-    size_t extpos = filename.rfind('.', filename.length());
+    size_t extpos = fileName.rfind('.', fileName.length());
     if (extpos != std::string::npos) {
-        binary = (filename.substr(extpos + 1, filename.length() - extpos) == "glb");
+        binary = (fileName.substr(extpos + 1, fileName.length() - extpos) == "glb");
     }
 
-    bool fileLoaded = binary ? gltfContext.LoadBinaryFromFile(&gltfModel, &error, &warning, filename.c_str())
-                             : gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filename.c_str());
+    bool fileLoaded = binary ? gltfContext.LoadBinaryFromFile(&gltfModel, &error, &warning, fileName.c_str())
+                             : gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, fileName.c_str());
 
     if (!fileLoaded){
         std::cerr << warning << std::endl;
@@ -346,7 +346,7 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         }
         Texture2D texture2D(device);
         texture2D.fromglTfImage(image, sampler, device, transferQueue);
-        textures.push_back(texture2D);
+        //textures.push_back(texture2D);
     }
 
 
@@ -730,6 +730,9 @@ glTFModel::Model::~Model() {
         for(auto* node : linearNodes){
             delete node;
         }
+
+        Log::Logger::getInstance()->info("Destroying model {}", m_FileName);
+
     }
 }
 

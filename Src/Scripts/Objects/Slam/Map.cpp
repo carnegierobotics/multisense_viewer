@@ -22,12 +22,12 @@ void Map::setup() {
     cx = 516.0;
     cy = 386.0;
     m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, -78.045330571, 0., fy, cy, 0., 0, 0., 1., 0.);
-    lazycsv::parser parser{ "../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv" };
+    lazycsv::parser parser{"../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv"};
 
     std::vector<std::string_view> coords;
 
     gtPositions.reserve(10000);
-    for (const auto row : parser) {
+    for (const auto row: parser) {
         try {
             const auto [time, x, y, z] = row.cells(0, 1, 2, 3); // indexes must be in ascending order
 
@@ -44,24 +44,26 @@ void Map::setup() {
     objects = (int) (58690 / nth);
     m_TruthTraces.resize(objects);
     float scale = 20.0f;
-    for (int i = 0; i < objects; ++i){
+    for (int i = 0; i < objects; ++i) {
         m_TruthTraces[i] = std::make_unique<glTFModel::Model>(renderUtils.device);
         m_TruthTraces[i]->translate(gtPositions[(i * nth)].getVec() * (glm::vec3(scale, scale, scale)));
-        m_TruthTraces[i]->scale(glm::vec3(1.0f/scale, 1.0f/scale, 1.0f/scale));
-        m_TruthTraces[i]->loadFromFile(Utils::getAssetsPath() + "Models/sphere.gltf", renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
+        m_TruthTraces[i]->scale(glm::vec3(1.0f / scale, 1.0f / scale, 1.0f / scale));
+        m_TruthTraces[i]->loadFromFile(Utils::getAssetsPath() + "Models/sphere.gltf", renderUtils.device,
+                                       renderUtils.device->m_TransferQueue, 1.0f);
         m_TruthTraces[i]->createRenderPipeline(renderUtils, shaders);
     }
 }
 
 void Map::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    for(size_t j = 0; j < drawBoxes; ++j){
-        m_TruthTraces[j]->draw(commandBuffer, i);
+    for (size_t j = 0; j < drawBoxes; ++j) {
+        if (b)
+            m_TruthTraces[j]->draw(commandBuffer, i);
     }
 }
 
 void Map::update() {
     frame = *(size_t *) sharedData->data;
-    if( static_cast<int> (renderData.scriptRuntime * 1000.0f) % 100 <= 20 && drawBoxes < objects){
+    if (static_cast<int> (renderData.scriptRuntime * 1000.0f) % 100 <= 20 && drawBoxes < objects) {
         drawBoxes++;
     }
 

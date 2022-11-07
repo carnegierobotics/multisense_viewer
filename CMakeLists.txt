@@ -52,7 +52,7 @@ add_library(SimpleIni STATIC ${SimpleIni_SRC})
 
 # FMT
 # Used for logging purposes
-set(FMT_DIR external/fmt)  
+set(FMT_DIR external/fmt)
 add_subdirectory(${FMT_DIR})
 
 # Internal Library
@@ -141,19 +141,18 @@ set(ENGINE_SRC
         Src/Tools/Logger.h
         Src/Tools/Logger.cpp
         Src/Tools/stb_include.cpp
-        Src/VO/Features/Feature.cpp
-        Src/VO/Features/VisualOdometry.cpp
         Src/imgui/DebugWindow.h
         Src/Scripts/Private/TextureDataDef.h
+        Src/Renderer/SharedData.h
 
-        Src/VO/GraphSlam.h
-        Src/VO/LazyCSV.h
-        Src/Renderer/SharedData.h)
+        Src/VO/Features/VisualOdometry.cpp
+        Src/VO/Features/Feature.cpp
+        )
 
 set(SCRIPTS_LIB_SRC
         ${SCRIPT_HEADERS}
         ${SCRIPT_SRC}
-        )
+        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
 
@@ -280,7 +279,6 @@ endforeach( file_i )
 
 
 else () ## Linux
-
 
     find_package(OpenCV REQUIRED)
     include_directories(${OpenCV_INCLUDE_DIRS})

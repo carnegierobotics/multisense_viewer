@@ -255,11 +255,6 @@ namespace VkRender::MultiSense {
             return;
         }
         if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].camCal)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "camCal");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "supportedSources");
             return;

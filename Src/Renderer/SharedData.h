@@ -5,7 +5,6 @@
 #ifndef MULTISENSE_VIEWER_SHAREDDATA_H
 #define MULTISENSE_VIEWER_SHAREDDATA_H
 
-#include <cstring>
 #include "string"
 
 class SharedData {

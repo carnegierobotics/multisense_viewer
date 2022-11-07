@@ -449,9 +449,7 @@ private:
                     if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
                                                      ImGuiHoveredFlags_AnyWindow)) {
                         // Offsset cursor positions.
-                        uint32_t x, y, val = dev.pixelInfo.intensity;
                         switch (Utils::CRLSourceToTextureType(dev.win.at(index).selectedSource)) {
-
                             case AR_POINT_CLOUD:
                                 break;
                             case AR_GRAYSCALE_IMAGE:
@@ -499,7 +497,7 @@ private:
                                     bool inUse = false;
                                     std::string sourceInUse;
                                     for (const auto &win: dev.win) {
-                                        if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                        if (win.second.selectedSource == window.selectedSource && (int) win.first != index &&
                                             win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                             inUse = true;
                                             sourceInUse = win.second.selectedSource;
@@ -557,7 +555,7 @@ private:
                             if (window.selectedSource != "Source") {
                                 bool inUse = false;
                                 for (const auto &win: dev.win) {
-                                    if (win.second.selectedSource == window.selectedSource && win.first != index &&
+                                    if (win.second.selectedSource == window.selectedSource && (int) win.first != index &&
                                         win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
                                         inUse = true;
                                 }

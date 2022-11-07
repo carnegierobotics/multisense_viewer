@@ -656,7 +656,7 @@ namespace VkRender {
 
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+        if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
             myApp->pLogger->info("Escape or Quit (Q) key registered. Closing program..");
             glfwSetWindowShouldClose(window, true);
         }

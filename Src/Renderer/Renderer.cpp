@@ -389,13 +389,15 @@ void Renderer::render() {
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
                                     // get focal length
-                                    float tx = cameraConnection->camPtr->getCameraInfo(
-                                            win.second.selectedRemoteHeadIndex).imgConf.tx();
                                     float fx = cameraConnection->camPtr->getCameraInfo(
-                                            win.second.selectedRemoteHeadIndex).imgConf.fx();
+                                            win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
+                                    float tx = cameraConnection->camPtr->getCameraInfo(
+                                            win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] / fx;
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
                                         dev.pixelInfo.depth = dist;
+                                    } else {
+                                        dev.pixelInfo.depth = 0;
                                     }
                                 }
                                     break;

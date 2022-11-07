@@ -14,6 +14,7 @@
 #include "MultiSense/Src/Core/KeyInput.h"
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 #include "MultiSense/Src/Tools/Macros.h"
+#include "MultiSense/Src/Renderer/SharedData.h"
 
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000

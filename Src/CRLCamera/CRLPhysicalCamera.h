@@ -131,7 +131,6 @@ namespace VkRender::MultiSense {
                 crl::multisense::lighting::Config lightConf{};
                 crl::multisense::system::NetworkConfig netConfig{};
                 crl::multisense::system::VersionInfo versionInfo{};
-                crl::multisense::image::Calibration camCal{};
                 std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes{};
                 crl::multisense::DataSource supportedSources{0};
                 std::vector<uint8_t *> rawImages{};

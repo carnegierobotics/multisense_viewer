@@ -14,7 +14,7 @@ layout (binding = 0) uniform UBO
 } ubo;
 
 layout (binding = 1) uniform PointCloudParam {
-    mat4 kInverse;
+    mat4 Q;
     float width;
     float height;
 } matrix;
@@ -32,9 +32,8 @@ void main()
     outUV = inUV;
     float width = matrix.width;
     float height = matrix.height;
-    float depth = texture(depthMap, inUV).r  * 64;// Values scaled to inbetween [0, 1] --
+    float depth = texture(depthMap, vec2(1-inUV.x, inUV.y)).r  * 64;// Values scaled to inbetween [0, 1] --
     //this is because the camera is using 12 bit of resolution but the data is stored in a 16 bit texture image
-
     depth *= 255; // Scale values furter up to 255
 
     vec4 coords = vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -45,16 +44,10 @@ void main()
     }
 
     vec4 imgCoords = vec4(uvCoords, depth, 1.0f);
-    coords = matrix.kInverse * imgCoords;
+    coords = matrix.Q * imgCoords;
 
     float invB = 1.0f / (-600.0f * depth);
     vec3 outCoordinates = vec3(coords.x * invB, coords.y * invB, coords.z * invB);
-    outCoordinates.z *= -1;
-    outCoordinates.y *= -1;
 
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
-    //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos.xyz, 1.0f);
-    //gl_Position = vec4(inPos.xyz, 1.0f);
-    //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(inPos.xyz, 1.0f);
-    //gl_Position = vec4(inPos.xyz, 1.0f);
 }

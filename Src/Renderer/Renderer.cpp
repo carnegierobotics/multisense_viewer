@@ -169,8 +169,7 @@ void Renderer::render() {
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update Camera connection based on Actions from GUI
-    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork,
-                                 guiManager->handles.nextIsRemoteHead);
+    cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
 
     // Enable scripts depending on gui layout chosen
     for (auto &dev: guiManager->handles.devices) {

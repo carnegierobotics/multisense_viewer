@@ -36,7 +36,6 @@ void PointCloud::update() {
 
     // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
     //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     //mat.m_Model = glm::translate(mat.m_Model, glm::vec3(2.8, 0.4, -5));
     auto &d = bufferOneData;
@@ -90,12 +89,11 @@ void PointCloud::prepareTexture() {
     for (uint32_t i = 20; i < width - 20; ++i) {
         for (uint32_t j = 20; j < height - 20; ++j) {
             meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
-            meshData[v].uv0 = glm::vec2(1.0f - ((float) i / (float) width), 1.0f - ((float) j / (float) height));
+            meshData[v].uv0 = glm::vec2(1.0f - ((float) i / (float) width), 1.0f-((float) j / (float) height));
             v++;
         }
     }
     model->createMeshDeviceLocal(meshData);
-
     renderData.crlCamera->get()->preparePointCloud(width);
     model->createEmptyTexture(width, height, AR_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("myScene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);

@@ -182,16 +182,18 @@ namespace VkRender::MultiSense {
          * @param[in] intrinsicFilePath path of intrisics.yml
          * @param[in] extrinsicFilePath path of extrinsics.yml
 		 * @param[in] remoteHeadIndex id of remote head to select
+		 * @param[out] success returns if the calibration was successfully set. Used to update the UI element.
          */
-        static void setCalibrationTask(void *context, std::string intrinsicFilePath, std::string extrinsicFilePath, crl::multisense::RemoteHeadChannel index);
+        static void setCalibrationTask(void *context, const std::string & intrinsicFilePath, const std::string & extrinsicFilePath, crl::multisense::RemoteHeadChannel index, bool* success);
 
         /**
          * @brief task to set the extrinsic/intrinsic calibration using yml files
 		 * @param[in] context pointer to the callers context
          * @param saveLocation directory to save the calibration files
 		 * @param[in] remoteHeadIndex id of remote head to select
+		 * @param[out] success returns if the calibration was successfully set. Used to update the UI element.
          */
-        static void getCalibrationTask(void *context, std::string saveLocation, crl::multisense::RemoteHeadChannel index);
+        static void getCalibrationTask(void *context, const std::string& saveLocation, crl::multisense::RemoteHeadChannel index, bool* success);
 
 
         /**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/

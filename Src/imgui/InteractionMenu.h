@@ -369,7 +369,6 @@ private:
                 float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
 
 
-
                 ImGui::SetNextWindowSize(
                         ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY),
                         ImGuiCond_Always);
@@ -473,9 +472,8 @@ private:
 
 
                 // Max X and Min Y is top right corner
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x -300.0f, topBarRectMin.y));
-
-                ImGui::SetNextItemWidth(100.0f);
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));
+                ImGui::SetNextItemWidth(80.0f);
                 auto &window = dev.win[index];
 
                 if (dev.isRemoteHead) {
@@ -497,7 +495,8 @@ private:
                                     bool inUse = false;
                                     std::string sourceInUse;
                                     for (const auto &win: dev.win) {
-                                        if (win.second.selectedSource == window.selectedSource && (int) win.first != index &&
+                                        if (win.second.selectedSource == window.selectedSource &&
+                                            (int) win.first != index &&
                                             win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                             inUse = true;
                                             sourceInUse = win.second.selectedSource;
@@ -555,7 +554,8 @@ private:
                             if (window.selectedSource != "Source") {
                                 bool inUse = false;
                                 for (const auto &win: dev.win) {
-                                    if (win.second.selectedSource == window.selectedSource && (int) win.first != index &&
+                                    if (win.second.selectedSource == window.selectedSource &&
+                                        (int) win.first != index &&
                                         win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
                                         inUse = true;
                                 }
@@ -885,7 +885,8 @@ private:
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
+        window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -1055,6 +1056,52 @@ private:
                                    0, 1);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                static char buf1[5] = "0";
+                static char buf2[5] = "0";
+                static char buf3[5] = "0";
+                static char buf4[5] = "0";
+
+                if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
+                    d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
+                    d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
+                    d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
+                    d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY ;
+                    d.parameters.ep.update |= true;
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::SameLine();
+                float posX = ImGui::GetCursorPosX();
+                float inputWidth = 15.0f * 2.8;
+                ImGui::Text("Upper left corner (x, y)");
+
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalminX", buf1, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalminY", buf2, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::SetCursorPosX(posX);
+                ImGui::Text("Lower left corner (x, y)");
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalmaxX", buf3, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(inputWidth);
+                ImGui::InputText("##decimalmaxY", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::PopStyleColor();
+
+                ImGui::ShowDemoWindow();
             }
 
             // White Balance
@@ -1359,7 +1406,7 @@ private:
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - showSavedTimer);
                 if (time_span.count() < threeSeconds) {
                     ImGui::SameLine();
-                    if (d.parameters.calib.saveFailed){
+                    if (d.parameters.calib.saveFailed) {
                         ImGui::Text("Saved!");
                     } else {
                         ImGui::Text("Failed to save calibration");
@@ -1463,14 +1510,13 @@ private:
                 time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - showSetTimer);
                 if (time_span.count() < threeSeconds) {
                     ImGui::SameLine();
-                    if (d.parameters.calib.updateFailed){
+                    if (d.parameters.calib.updateFailed) {
                         ImGui::Text("Set calibration!");
                     } else {
                         ImGui::Text("Failed to set calibration...");
                     }
 
                 }
-
 
 
             }

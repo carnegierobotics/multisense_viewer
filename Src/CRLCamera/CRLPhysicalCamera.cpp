@@ -391,6 +391,7 @@ namespace VkRender::MultiSense {
 
         infoMap[channelID].imgConf.setResolution(width, height);
         infoMap[channelID].imgConf.setDisparities(depth);
+
         ret = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (ret == crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Set resolution to {}x{}x{} on channel {}", width, height, depth,
@@ -427,6 +428,8 @@ namespace VkRender::MultiSense {
             infoMap[channelID].imgConf.setAutoExposureDecay(p.autoExposureDecay);
             infoMap[channelID].imgConf.setAutoExposureTargetIntensity(p.autoExposureTargetIntensity);
             infoMap[channelID].imgConf.setAutoExposureThresh(p.autoExposureThresh);
+            infoMap[channelID].imgConf.setAutoExposureRoi(p.autoExposureRoiX, p.autoExposureRoiY, p.autoExposureRoiWidth, p.autoExposureRoiHeight);
+
         } else {
             infoMap[channelID].imgConf.setAutoExposure(p.autoExposure);
             infoMap[channelID].imgConf.setExposure(p.exposure);

@@ -1,7 +1,9 @@
 #include "MultiSenseCamera.h"
 
 void MultiSenseCamera::setup() {
-    m_Model.loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
+    m_Model = std::make_unique<glTFModel::Model>(renderUtils.device);
+
+    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/camera.gltf", renderUtils.device,
                          renderUtils.device->m_TransferQueue, 1.0f);
 
 
@@ -12,12 +14,12 @@ void MultiSenseCamera::setup() {
 
 
     // Obligatory call to prepare render resources for glTFModel.
-    glTFModel::createRenderPipeline(renderUtils, shaders);
+    m_Model->createRenderPipeline(renderUtils, shaders);
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (previewTab == TAB_3D_POINT_CLOUD && b)
-        glTFModel::draw(commandBuffer, i);
+        m_Model->draw(commandBuffer, i);
 }
 
 void MultiSenseCamera::update() {

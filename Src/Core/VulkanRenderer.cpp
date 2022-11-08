@@ -661,7 +661,6 @@ namespace VkRender {
             glfwSetWindowShouldClose(window, true);
         }
         ImGuiIO &io = ImGui::GetIO();
-        io.AddKeyEvent(ImGuiKey_ModCtrl, (mods & GLFW_MOD_CONTROL) != 0);
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
         io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
@@ -919,7 +918,7 @@ namespace VkRender {
             case GLFW_KEY_LEFT_SHIFT:
                 return ImGuiKey_LeftShift;
             case GLFW_KEY_LEFT_CONTROL:
-                return ImGuiKey_LeftCtrl;
+                return ImGuiKey_ModCtrl;
             case GLFW_KEY_LEFT_ALT:
                 return ImGuiKey_LeftAlt;
             case GLFW_KEY_LEFT_SUPER:

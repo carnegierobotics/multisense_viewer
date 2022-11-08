@@ -294,6 +294,12 @@ public:
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
+            static bool showDemo = false;
+            ImGui::Checkbox("ShowDemo", &showDemo);
+            if (showDemo)
+                ImGui::ShowDemoWindow();
+
+
         }
         ImGui::EndChild();
         //ImGui::ShowDemoWindow();

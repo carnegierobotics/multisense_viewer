@@ -133,13 +133,19 @@ namespace VkRender::MultiSense {
         }
 
 
-        auto time = std::chrono::steady_clock::now();
-        std::chrono::duration<float> time_span =
-                std::chrono::duration_cast<std::chrono::duration<float>>(time - queryStatusTimer);
-        if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
-            queryStatusTimer = std::chrono::steady_clock::now();
-            pool->Push(CameraConnection::getStatusTask, this,
-                       dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : 0); // If remote head use -1 otherwise "main" channel is located at 0
+        for (auto &ch: dev->channelInfo) {
+            if (ch.state != AR_STATE_ACTIVE)
+                continue;
+
+            auto time = std::chrono::steady_clock::now();
+            std::chrono::duration<float> time_span =
+                    std::chrono::duration_cast < std::chrono::duration < float >> (time - queryStatusTimer);
+            if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
+                queryStatusTimer = std::chrono::steady_clock::now();
+                pool->Push(CameraConnection::getStatusTask, this,
+                           dev->isRemoteHead ? crl::multisense::Remote_Head_VPB
+                                             : 0); // If remote head use -1 otherwise "main" channel is located at 0
+            }
         }
 
 
@@ -176,9 +182,8 @@ namespace VkRender::MultiSense {
                     }
                 }
                 if (resetOtherDevice) {
-                    for (auto ch: dev.channelConnections)
-                        camPtr->stop("All",
-                                     ch); // Blocking operation because we don't want to make a new connection before we have stopped previous connection                    saveProfileAndDisconnect(otherDev);
+                    for (auto ch: otherDev->channelConnections)
+                        camPtr->stop("All",ch); // Blocking operation
 
                     saveProfileAndDisconnect(otherDev);
                 }
@@ -404,7 +409,7 @@ namespace VkRender::MultiSense {
                 subnetMaskBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
             }
             if (ioctl(m_FD, SIOCGIFMTU, (caddr_t) &ifr) < 0) {
-                Log::Logger::getInstance()->error("Failed to get mtu m_TexSize {} on adapter {}",
+                Log::Logger::getInstance()->error("Failed to get mtu size {} on adapter {}",
                                                   dev.interfaceName.c_str());
             } else {
                 Log::Logger::getInstance()->error("got MTU {} on adapter {}", ifr.ifr_mtu,
@@ -467,10 +472,10 @@ namespace VkRender::MultiSense {
             strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
             ifr.ifr_mtu = 7200; //your MTU  here
             if (ioctl(m_FD, SIOCSIFMTU, (caddr_t) &ifr) < 0) {
-                Log::Logger::getInstance()->error("Failed to set mtu m_TexSize {} on adapter {}", 7200,
+                Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
                                                   dev.interfaceName.c_str());
             } else {
-                Log::Logger::getInstance()->error("Set Mtu m_TexSize to {} on adapter {}", 7200,
+                Log::Logger::getInstance()->error("Set Mtu size to {} on adapter {}", 7200,
                                                   dev.interfaceName.c_str());
             }
 
@@ -515,11 +520,11 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);
         // Connect to camera
-        Log::Logger::getInstance()->info("Creating connection to camera.");
+        Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP, dev->interfaceDescription);
         // Stop all tasks from previous connection.
         app->camPtr = std::make_unique<CRLPhysicalCamera>();
         // If we successfully connect
-        dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead);
+        dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead, dev->interfaceDescription);
         if (!dev->channelConnections.empty()) {
             //app->getProfileFromIni(*dev);
             app->updateUIDataBlock(*dev);

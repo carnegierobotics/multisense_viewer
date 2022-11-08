@@ -15,13 +15,14 @@
 namespace VkRender::MultiSense {
 
     std::vector<crl::multisense::RemoteHeadChannel>
-    CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead) {
+    CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead, const std::string& ifName) {
         std::vector<crl::multisense::RemoteHeadChannel> indices;
         // If RemoteHead then attempt to connect 4 LibMultiSense channels
         // else create only one and place it at 0th index.
         for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
-            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i)
-                                         : std::make_unique<ChannelWrapper>(ip);
+            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i, ifName)
+                                         : std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB, ifName);
+
             if (channelMap[i].get()->ptr() != nullptr) {
                 updateCameraInfo(i);
                 addCallbacks(i);
@@ -32,8 +33,7 @@ namespace VkRender::MultiSense {
         }
 
         if (isRemoteHead) {
-            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(ip,
-                                                                                            crl::multisense::Remote_Head_VPB);
+            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB, ifName);
             if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
                 setMtu(7200, crl::multisense::Remote_Head_VPB);
         } else {
@@ -590,6 +590,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::getStatus(crl::multisense::RemoteHeadChannel channelID,
                                       crl::multisense::system::StatusMessage *msg) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        if (channelMap[channelID]->ptr() == nullptr)
+            return false;
+
         crl::multisense::Status status = channelMap[channelID]->ptr()->getDeviceStatus(*msg);
         return status == crl::multisense::Status_Ok;
     }

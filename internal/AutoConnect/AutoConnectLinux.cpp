@@ -319,7 +319,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
     m_EventCallback(str, m_Context, 0);
 
     std::cout << "Camera interface: " << adapter.index << " name: " << adapter.networkAdapter << std::endl;
-    cameraInterface = crl::multisense::Channel::Create(address);
+    cameraInterface = crl::multisense::Channel::Create(address, adapter.networkAdapter);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;

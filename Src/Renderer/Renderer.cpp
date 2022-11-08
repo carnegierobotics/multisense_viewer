@@ -172,8 +172,10 @@ void Renderer::render() {
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
 
     // Enable scripts depending on gui layout chosen
+    bool noActivePreview = true;
     for (auto &dev: guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
+            noActivePreview = false;
             renderSelectionPass = dev.pixelInfoEnable;
             switch (dev.layout) {
                 case PREVIEW_LAYOUT_SINGLE:
@@ -224,7 +226,7 @@ void Renderer::render() {
                     scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
             }
-        } else {
+        } if(noActivePreview) {
             scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);

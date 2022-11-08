@@ -298,7 +298,7 @@ namespace VkRender {
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
-        int configRemoteHead = 0;
+        crl::multisense::RemoteHeadChannel configRemoteHead = 0;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 

@@ -32,7 +32,7 @@ public:
         bool supports{}; // 0: for bad, 1: for good
         bool searched = false;
         std::string cameraIpv4Address;
-        std::string description = "No description available";
+        std::string description;
         std::string networkAdapter;
         std::string networkAdapterLongName;
         uint32_t index{};

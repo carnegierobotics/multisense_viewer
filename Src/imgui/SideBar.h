@@ -262,7 +262,7 @@ private:
         Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_JUST_ADDED ", el.name);
         el.cameraName = entry.cameraName;
         el.interfaceName = entry.interfaceName;
-        el.interfaceDescription = entry.description;
+        el.interfaceDescription = entry.interfaceName;
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
         el.isRemoteHead = entry.isRemoteHead;
@@ -610,11 +610,13 @@ private:
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLBlueIsh);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
                                   " 1. Reconnect ethernet cables \n "
                                   " 2. Power cycle the camera \n "
                                   " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
+                ImGui::PopStyleColor();
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLDarkGray425);
                 const char *id = "Log Window";
@@ -728,6 +730,14 @@ private:
                 ImGui::PopStyleColor(2);
                 ImGui::PopStyleVar();
 
+                ImGui::Dummy(ImVec2(20.0f, 10.0));
+                ImGui::Dummy(ImVec2(20.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
+                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
+                ImGui::SameLine();
+                ImGui::HelpMarker("\n Check this if you are connecting to a remote head device\n ");
+                ImGui::PopStyleColor();
 
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/

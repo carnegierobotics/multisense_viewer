@@ -346,6 +346,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
 
 void AutoConnectLinux::onFoundCamera() {
     m_Callback(result, m_Context);
+    crl::multisense::Channel::Destroy(cameraInterface);
 }
 
 void AutoConnectLinux::stop() {

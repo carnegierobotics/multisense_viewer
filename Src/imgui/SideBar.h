@@ -184,8 +184,6 @@ private:
         } else {
             Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
         }
-
-        crl::multisense::Channel::Destroy(app->autoConnect.getCameraChannel());
     }
 
     /**@brief Function to manage Auto connect with GUI updates
@@ -198,7 +196,6 @@ private:
         // Just stop auto connect if we haven't selected it
         if ((connectMethodSelector != AUTO_CONNECT)) {
             autoConnect.stop();
-            Log::Logger::getInstance()->info("Stopping Auto connect");
             autoConnect.clearSearchedAdapters();
             return;
         }
@@ -223,12 +220,9 @@ private:
 
         AddLog(LOG_COLOR_GRAY, "Auto detection service log\n");
         // Check for root privileges before launching
-        bool notAdmin = !elevated();
+        bool notAdmin = elevated();
         if (notAdmin) {
-            Log::Logger::getInstance()->info(
-                    "Program is not run as root. This is required to use the auto connect feature");
             AddLog(LOG_COLOR_RED, "Admin privileges is required to run the Auto-Connect feature");
-
             return;
         }
 
@@ -446,7 +440,7 @@ private:
                                           ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2)) && !busy;
             }
             auto time = std::chrono::steady_clock::now();
-            std::chrono::duration<float> time_span =
+            auto time_span =
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
 
             if (time_span.count() > ((float) *handles->info->gif.delay) / 1000.0f) {
@@ -589,7 +583,6 @@ private:
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
                 m_Entry.cameraName = "AutoConnect";
-
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
@@ -735,14 +728,6 @@ private:
                 ImGui::PopStyleColor(2);
                 ImGui::PopStyleVar();
 
-                ImGui::Dummy(ImVec2(20.0f, 10.0));
-                ImGui::Dummy(ImVec2(20.0f, 0.0));
-                ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
-                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
-                ImGui::SameLine();
-                ImGui::HelpMarker("\n Check this if you are connecting to a remote head device\n ");
-                ImGui::PopStyleColor();
 
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/

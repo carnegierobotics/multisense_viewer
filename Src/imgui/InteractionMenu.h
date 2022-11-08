@@ -12,8 +12,8 @@
 
 class InteractionMenu : public VkRender::Layer {
 private:
-    bool page[PAGE_TOTAL_PAGES] = {false, false, false};
-    bool drawActionPage = true;
+    bool page[PAGE_TOTAL_PAGES] = {false, false, true};
+    bool drawActionPage = false;
     ImGuiFileDialog chooseIntrinsicsDialog;
     ImGuiFileDialog chooseExtrinsicsDialog;
     ImGuiFileDialog saveCalibrationDialog;
@@ -55,7 +55,7 @@ public:
         for (auto &d: handles->devices) {
             if (d.state == AR_STATE_RESET) {
                 std::fill_n(page, PAGE_TOTAL_PAGES, false);
-                drawActionPage = true;
+                drawActionPage = false;
             }
         }
 

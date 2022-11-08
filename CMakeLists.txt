@@ -201,8 +201,11 @@ if (WIN32)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
 
+    add_library(ScriptLibrary ${SCRIPTS_LIB_SRC})
+    target_link_libraries(ScriptLibrary VulkanRenderer)
+
     add_executable(MultiSense-viewer WIN32 main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer)
+    target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
 
 
     # create a list of files to copy

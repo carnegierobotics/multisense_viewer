@@ -241,9 +241,9 @@ endforeach( file_i )
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE})
     # VkRender Viewer DLL and libraries
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
 
     # LibMultiSense and WinPCap dll
     install(FILES  
@@ -279,10 +279,10 @@ endforeach( file_i )
 
 else () ## Linux
 
-    find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIRS})
+    #find_package(OpenCV REQUIRED)
+    #include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )#${OpenCV_LIBS})
 
     add_library(ScriptLibrary ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
@@ -297,8 +297,8 @@ else () ## Linux
     set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
 
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
-    install(TARGETS VulkanRenderer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
         # Generate empty configuration files
     file(WRITE ${RUNTIME_DESTINATION}/imgui.ini "")
     file(WRITE ${RUNTIME_DESTINATION}/crl.ini "")

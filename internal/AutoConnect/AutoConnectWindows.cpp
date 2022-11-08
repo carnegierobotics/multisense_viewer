@@ -446,11 +446,11 @@ void AutoConnectWindows::setDetectedCallback(void (*param)(Result result1, void*
 
 }
 
-bool AutoConnectWindows::shouldProgramClose() {
+bool AutoConnectWindows::isRunning() {
 	return !shouldProgramRun;  // Note: This is just confusing usage... future technical debt right here
 }
 
-void AutoConnectWindows::setShouldProgramClose(bool close) {
+void AutoConnectWindows::setShouldProgramRun(bool close) {
 	this->shouldProgramRun = !close;  // Note: This is just confusing usage... future technical debt right here
 }
 

@@ -28,23 +28,19 @@ public:
     AutoConnect::FoundCameraOnIp onFoundIp(std::string address, Result adapter, int camera_fd) override;
     /** @Brief Function called when a camera has been found by a successfully connection by LibMultiSense **/
     void onFoundCamera() override;
-    /** @Brief boolean set to true in onFoundCamera() **/
-    bool isConnected() { return success; }
 
-    AutoConnect::Result getResult();
     crl::multisense::Channel* getCameraChannel();
 
     void setDetectedCallback(void (*param)(Result result1, void* ctx), void* context);
     void setEventCallback(void (*param)(const std::string& result1, void* ctx, int));
 
-    void (*callback)(AutoConnect::Result, void*) = nullptr;
-    void (*eventCallback)(const std::string&, void*, int) = nullptr;
+    void (*m_Callback)(AutoConnect::Result, void*) = nullptr;
+    void (*m_EventCallback)(const std::string&, void*, int) = nullptr;
 
 
-    void* context = nullptr;
-    bool running = false;
-    bool shouldProgramClose() override;
-    void setShouldProgramClose(bool close) override;
+    void* m_Context = nullptr;
+    bool isRunning() override;
+    void setShouldProgramRun(bool close) override;
 
 
     void clearSearchedAdapters();

@@ -344,7 +344,6 @@ namespace VkRender::MultiSense {
             WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
             if (regEditor.ready && !dev.systemNetworkChanged) {
                 regEditor.readAndBackupRegisty();
-                //regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
                 regEditor.setJumboPacket("9014");
                 regEditor.restartNetAdapters();
                 std::this_thread::sleep_for(std::chrono::milliseconds(3000));
@@ -356,8 +355,6 @@ namespace VkRender::MultiSense {
                 // 8 Seconds to wait for adapter to restart. This will vary from machine to machine and should be re-done
                 // If possible then wait for a windows event that triggers when the adapter is ready
             }
-
-
 #else
             int ioctl_result = -1;
             /** SET NETWORK PARAMETERS FOR THE ADAPTER **/

@@ -143,11 +143,11 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 
 			// If a camera has al ready been found on the adapter then set the searched flag.
 			bool ignore = false;
-			for (const auto& found : ignoreAdapters) {
+			for (const auto& found : m_IgnoreAdapters) {
 				if (found.index == adapter.index) {
 					ignore = true;
 					std::string str = "Found already searched adapter: " + adapter.networkAdapter + ". Ignoring...";
-					eventCallback(str, context, 0);
+					m_EventCallback(str, m_Context, 0);
 				}
 			}
 
@@ -176,11 +176,9 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 }
 
 void AutoConnectWindows::start(std::vector<Result> adapters) {
-	// TODO Clean up public booleans. 4 member booleans might be exaggerated use?
-	running = true;
-	loopAdapters = true;
-	listenOnAdapter = true;
-	shouldProgramRun = true;
+	m_LoopAdapters = true;
+	m_ListenOnAdapter = true;
+	m_ShouldProgramRun = true;
 
 	t = new std::thread(&AutoConnectWindows::run, this, adapters);
 	printf("Started thread\n");
@@ -194,7 +192,7 @@ void AutoConnectWindows::onFoundAdapters(std::vector<Result> adapters, bool logE
 			std::string str;
 			str = "Found supported adapter: " + adapter.networkAdapter;
 			if (logEvent)
-				eventCallback(str, context, 1);
+				m_EventCallback(str, m_Context, 1);
 		}
 	}
 
@@ -210,13 +208,13 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 	hostAddress.replace(it, hostAddress.length(), ".2");
 
 	std::string str = "Setting host address to: " + hostAddress;
-	eventCallback(str, context, 0);
+	m_EventCallback(str, m_Context, 0);
 
 	/* STATIC CONFIGURATION */
 	WinRegEditor regEditorStatic(adapter.networkAdapter, adapter.description, adapter.index);
 	if (regEditorStatic.ready) {
 		//str = "Configuring NetAdapter...";
-		//eventCallback(str, context, 0);
+		//m_EventCallback(str, m_Context, 0);
 		//regEditor.readAndBackupRegisty();	
 		//regEditor.setTCPIPValues(hostAddress, "255.255.255.0");
 		//regEditor.setJumboPacket("9014");
@@ -226,19 +224,23 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 		// std::this_thread::sleep_for(std::chrono::milliseconds(8000));
 		// TODO: thread_sleep - Explanation above
 		str = "Configuration...";
-		eventCallback(str, context, 0);
+		m_EventCallback(str, m_Context, 0);
 		// Wait for adapter to come back online
 	}
 	// - Non persistent configuration
 	str = "Checking for camera at: " + address;
-	eventCallback(str, context, 0);
+	m_EventCallback(str, m_Context, 0);
 	WinRegEditor regEditor(adapter.index, hostAddress, "255.255.255.0");
 	std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
 
 	// Attempt to connect to camera and post some info
-
 	cameraInterface = crl::multisense::Channel::Create(address);
+
+    // try again but this time with remote head
+    if (cameraInterface == nullptr){
+        cameraInterface = crl::multisense::Channel::Create(address, crl::multisense::Remote_Head_VPB);
+    }
 
 	if (cameraInterface == nullptr && connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
 		connectAttemptCounter = 0;
@@ -253,27 +255,25 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
 		result.cameraIpv4Address = address;
 		connectAttemptCounter = 0;
 		str = "Found camera at: " + address + "";
-		eventCallback(str, context, 1);
+		m_EventCallback(str, m_Context, 1);
 		return FOUND_CAMERA;
 	}
 
 }
 
 void AutoConnectWindows::onFoundCamera() {
-	callback(result, context);
+	m_Callback(result, m_Context);
 
 	crl::multisense::Channel::Destroy(cameraInterface);
 }
 
 void AutoConnectWindows::stop() {
-	loopAdapters = false;
-	listenOnAdapter = false;
-	shouldProgramRun = false;
-	running = false;
+	m_LoopAdapters = false;
+	m_ListenOnAdapter = false;
+	m_ShouldProgramRun = false;
 
 	if (t != nullptr)
 		t->join();
-
 
 	delete(t); //instantiated in start func
 	t = nullptr;
@@ -281,18 +281,18 @@ void AutoConnectWindows::stop() {
 
 void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 	auto* app = (AutoConnectWindows*)instance;
-	app->eventCallback("Started detection service", app->context, 0);
+	app->m_EventCallback("Started detection service", app->m_Context, 0);
 
 	// Get list of network adapters that are  supports our application
 	std::string hostAddress;
 	size_t i = 0;
 
 	// Loop keeps retrying to connect on supported network adapters.
-	while (app->loopAdapters) {
+	while (app->m_LoopAdapters) {
 
 		if (i >= adapters.size()) {
 			i = 0;
-			app->eventCallback("Tested all adapters. rerunning adapter search", app->context, 0);
+			app->m_EventCallback("Tested all adapters. rerunning adapter search", app->m_Context, 0);
 			adapters = app->findEthernetAdapters(true, false);
 			bool testedAllAdapters = true;
 			for (const auto& a : adapters) {
@@ -300,8 +300,8 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 					testedAllAdapters = false;
 			}
 			if (testedAllAdapters) {
-				app->eventCallback("No other adapters found", app->context, 0);
-				app->eventCallback("Finished", app->context, 0);
+				app->m_EventCallback("No other adapters found", app->m_Context, 0);
+				app->m_EventCallback("Finished", app->m_Context, 0);
 				break;
 			}
 		}
@@ -313,7 +313,7 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 
 		// If a camera has al ready been found on the adapter then dont re-run a search on it. Remove it from adapters list
 		bool isAlreadySearched = false;
-		for (const auto& found : app->ignoreAdapters) {
+		for (const auto& found : app->m_IgnoreAdapters) {
 			if (found.index == adapter.index)
 				isAlreadySearched = true;
 		}
@@ -325,7 +325,7 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 		i++;
 
 		std::string str = "Testing Adapter. Name: " + adapter.description;
-		app->eventCallback(str, app->context, 0);
+		app->m_EventCallback(str, app->m_Context, 0);
 
 		app->startTime = time(nullptr);
 
@@ -353,11 +353,11 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 		}
 
 		str = "Set adapter to listen for all activity";
-		app->eventCallback(str, app->context, 0);
+		app->m_EventCallback(str, app->m_Context, 0);
 
 		str = "Waiting for packet at: " + adapter.networkAdapterLongName;
-		app->eventCallback(str, app->context, 0);
-		while (app->listenOnAdapter) {
+		app->m_EventCallback(str, app->m_Context, 0);
+		while (app->m_ListenOnAdapter) {
 
 			// Timeout handler
 			// Will timeout the number of MAX_CONNECTION_ATTEMPTS. After so many timeouts we retry on a new adapter
@@ -366,19 +366,19 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 				app->startTime = time(nullptr);
 				printf("\n");
 				str = "Timeout reached. Retrying... (" + std::to_string(app->connectAttemptCounter + 1) + "/" + std::to_string(MAX_CONNECTION_ATTEMPTS) + ")";
-				app->eventCallback(str, app->context, 0);
+				app->m_EventCallback(str, app->m_Context, 0);
 				app->connectAttemptCounter++;
 				str = "Waiting for packet at: " + adapter.networkAdapter;
-				app->eventCallback(str, app->context, 0);
+				app->m_EventCallback(str, app->m_Context, 0);
 			}
 			else if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
 				app->connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
 				app->startTime = time(nullptr);
 				printf("\n");
 				str = "Timeout reached. Switching to next supported adapter";
-				app->eventCallback(str, app->context, 2);
+				app->m_EventCallback(str, app->m_Context, 2);
 				app->connectAttemptCounter = 0;
-				app->ignoreAdapters.push_back(adapter);
+				app->m_IgnoreAdapters.push_back(adapter);
 				break;
 
 			}
@@ -406,22 +406,22 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 			if (ih->protocol == 2) {
 
 				str = "Packet found. Source address: " + std::string(ips);
-				app->eventCallback(str, app->context, 0);
+				app->m_EventCallback(str, app->m_Context, 0);
 
 				FoundCameraOnIp ret = app->onFoundIp(ips, adapter, 0);
 
 				if (ret == FOUND_CAMERA) {
-					app->ignoreAdapters.push_back(adapter);
+					app->m_IgnoreAdapters.push_back(adapter);
 					app->onFoundCamera();
 					pcap_close(adhandle);
 					break;
 				}
 				else if (ret == NO_CAMERA_RETRY) {
-					app->eventCallback("Did not find a camera. Retrying...", app->context, 2);
+					app->m_EventCallback("Did not find a camera. Retrying...", app->m_Context, 2);
 					continue;
 				}
 				else if (ret == NO_CAMERA) {
-					app->eventCallback("Did not find a camera on the adapter", app->context, 2);
+					app->m_EventCallback("Did not find a camera on the adapter", app->m_Context, 2);
 					pcap_close(adhandle);
 					break;
 				}
@@ -440,25 +440,25 @@ crl::multisense::Channel* AutoConnectWindows::getCameraChannel() {
 }
 
 
-void AutoConnectWindows::setDetectedCallback(void (*param)(Result result1, void* ctx), void* context) {
-	callback = param;
-	this->context = context;
+void AutoConnectWindows::setDetectedCallback(void (*param)(Result result1, void* ctx), void* m_Context) {
+	m_Callback = param;
+	this->m_Context = m_Context;
 
 }
 
 bool AutoConnectWindows::isRunning() {
-	return !shouldProgramRun;  // Note: This is just confusing usage... future technical debt right here
+	return m_ShouldProgramRun;  // Note: This is just confusing usage... future technical debt right here
 }
 
 void AutoConnectWindows::setShouldProgramRun(bool close) {
-	this->shouldProgramRun = !close;  // Note: This is just confusing usage... future technical debt right here
+	this->m_ShouldProgramRun = close;  // Note: This is just confusing usage... future technical debt right here
 }
 
 void AutoConnectWindows::setEventCallback(void (*param)(const std::string& str, void*, int)) {
-	eventCallback = param;
+	m_EventCallback = param;
 
 }
 
 void AutoConnectWindows::clearSearchedAdapters() {
-	ignoreAdapters.clear();
+	m_IgnoreAdapters.clear();
 }

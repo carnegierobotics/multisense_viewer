@@ -146,7 +146,7 @@ public:
 
         auto &log = Log::Logger::getLogMetrics()->logQueue;
 
-        if (!log.empty()) {
+        while(!log.empty()){
             window.AddLog("%s\n", log.front().c_str());
             log.pop();
         }

@@ -148,8 +148,8 @@ void Renderer::render() {
         camera.setRotation(90.0f, 0.0f);
     }
 
-    if (guiManager->handles.showDebugWindow){
-        auto& cam = Log::Logger::getLogMetrics()->camera;
+    if (guiManager->handles.showDebugWindow) {
+        auto &cam = Log::Logger::getLogMetrics()->camera;
         cam.pitch = camera.pitch;
         cam.pos = camera.m_Position;
         cam.yaw = camera.yaw;
@@ -226,7 +226,8 @@ void Renderer::render() {
                     scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
             }
-        } if(noActivePreview) {
+        }
+        if (noActivePreview) {
             scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
             scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
@@ -271,7 +272,6 @@ void Renderer::render() {
     /** Generate Draw Commands **/
     guiManager->updateBuffers();
     buildCommandBuffers();
-
     /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -340,11 +340,81 @@ void Renderer::render() {
             if (idx > m_Width * m_Height * 4)
                 continue;
 
-            uint32_t val = data[idx];
             if (dev.state == AR_STATE_ACTIVE) {
-                dev.pixelInfo.x = static_cast<uint32_t>(mousePos.x);
-                dev.pixelInfo.y = static_cast<uint32_t>(mousePos.y);
-                dev.pixelInfo.intensity = val;
+                for (auto &win: dev.win) {
+                    if (win.second.selectedSource == "Source")
+                        continue;
+
+                    auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
+                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
+                                                     true);
+
+                    if (renderData.crlCamera->get()->getCameraStream(win.second.selectedSource, &tex,
+                                                                     win.second.selectedRemoteHeadIndex)) {
+                        uint32_t width = 0, height = 0, depth = 0;
+                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
+                                                       &width, &height, &depth);
+
+                        float viewAreaElementPosX = win.second.xPixelStartPos;
+                        float viewAreaElementPosY = win.second.yPixelStartPos;
+                        float imGuiPosX = (float) mousePos.x - viewAreaElementPosX -
+                                          (guiManager->handles.info->previewBorderPadding / 2.0f);
+                        float imGuiPosY = (float) mousePos.y - viewAreaElementPosY -
+                                          (guiManager->handles.info->previewBorderPadding / 2.0f);
+                        float maxInRangeX = guiManager->handles.info->viewAreaElementSizeX -
+                                            guiManager->handles.info->previewBorderPadding;
+                        float maxInRangeY = guiManager->handles.info->viewAreaElementSizeY -
+                                            guiManager->handles.info->previewBorderPadding;
+                        if (imGuiPosX > 0 && imGuiPosX < maxInRangeX
+                            && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
+                            uint32_t w = 0, h = 0, d = 0;
+                            Utils::cameraResolutionToValue(
+                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode, &w, &h,
+                                    &d);
+
+                            auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
+                            auto y = (uint32_t) ((float) h * (imGuiPosY) / maxInRangeY);
+                            // Add one since we are not counting from zero anymore :)
+                            dev.pixelInfo.x = x + 1;
+                            dev.pixelInfo.y = y + 1;
+
+                            switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
+                                case AR_POINT_CLOUD:
+                                    break;
+                                case AR_GRAYSCALE_IMAGE: {
+                                    uint8_t intensity = tex.data[(w * y) + x];
+                                    dev.pixelInfo.intensity = intensity;
+                                }
+                                    break;
+                                case AR_COLOR_IMAGE:
+                                    break;
+                                case AR_COLOR_IMAGE_YUV420:
+                                    break;
+                                case AR_YUV_PLANAR_FRAME:
+                                    break;
+                                case AR_CAMERA_IMAGE_NONE:
+                                    break;
+                                case AR_DISPARITY_IMAGE: {
+                                    float disparity = 0;
+                                    auto *p = (uint16_t *) tex.data;
+                                    disparity = (float) p[(w * y) + x] / 16.0f;
+                                    // get focal length
+                                    float fx = cameraConnection->camPtr->getCameraInfo(
+                                            win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
+                                    float tx = cameraConnection->camPtr->getCameraInfo(
+                                            win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] / (fx * (1920.0f / (float) w));
+                                    if (disparity > 0) {
+                                        float dist = (fx * abs(tx)) / disparity;
+                                        dev.pixelInfo.depth = dist;
+                                    } else {
+                                        dev.pixelInfo.depth = 0;
+                                    }
+                                }
+                                    break;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

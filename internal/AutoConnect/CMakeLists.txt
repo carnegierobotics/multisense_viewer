@@ -2,12 +2,11 @@ cmake_minimum_required(VERSION 3.15)
 project(AutoConnect LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 20)
 
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+endif ()
+
 if (WIN32)
-
-    if (NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
-    endif ()
-
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 
@@ -17,19 +16,18 @@ if (WIN32)
         SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
     endif ()
 
+    # Include WinPcap headers
     include_directories("./include")
 
+    # Link WinPcap library
     add_library(winpcap STATIC IMPORTED GLOBAL)
     set_property(TARGET winpcap APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
     set_target_properties(winpcap PROPERTIES
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
     IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/wpcap.lib")
 
-    message(CURRENT PATH: ${CMAKE_BINARY_DIR} | ${BUILD_AUTOCONNECT_LIB})
-
     add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h "WinRegEditor.h")
     target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi )
-
 
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -38,9 +36,8 @@ if (WIN32)
             set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT AutoConnect)
         endif ()
     endif ()
-
-
-else () ## Linux
+else ()
+    ## Linux
     add_library(LibAutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h)
-    target_link_libraries(LibAutoConnect MultiSense -ltbb SimpleIni)
+    target_link_libraries(LibAutoConnect MultiSense -ltbb)
 endif ()

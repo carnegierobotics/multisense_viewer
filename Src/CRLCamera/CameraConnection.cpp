@@ -69,7 +69,6 @@ namespace VkRender::MultiSense {
             p->light.dutyCycle = lightConf.getDutyCycle(0);
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = lightConf.getStartupTime();
-
             p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
 
             dev->parameters.updateGuiParams = false;
@@ -90,10 +89,12 @@ namespace VkRender::MultiSense {
 
         if (dev->parameters.calib.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setCalibrationTask, this, dev->parameters.calib.intrinsicsFilePath,
-                       dev->parameters.calib.extrinsicsFilePath, dev->configRemoteHead, &dev->parameters.calib.updateFailed);
+                       dev->parameters.calib.extrinsicsFilePath, dev->configRemoteHead,
+                       &dev->parameters.calib.updateFailed);
 
         if (dev->parameters.calib.save && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath, dev->configRemoteHead,  &dev->parameters.calib.saveFailed);
+            pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath,
+                       dev->configRemoteHead, &dev->parameters.calib.saveFailed);
         // Set the correct resolution. Will only update if changed.
 
         for (auto &ch: dev->channelInfo) {
@@ -139,7 +140,7 @@ namespace VkRender::MultiSense {
 
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
-                    std::chrono::duration_cast < std::chrono::duration < float >> (time - queryStatusTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float >>(time - queryStatusTimer);
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && time_span.count() > INTERVAL_1_SECOND) {
                 queryStatusTimer = std::chrono::steady_clock::now();
                 pool->Push(CameraConnection::getStatusTask, this,
@@ -183,7 +184,7 @@ namespace VkRender::MultiSense {
                 }
                 if (resetOtherDevice) {
                     for (auto ch: otherDev->channelConnections)
-                        camPtr->stop("All",ch); // Blocking operation
+                        camPtr->stop("All", ch); // Blocking operation
 
                     saveProfileAndDisconnect(otherDev);
                 }
@@ -215,7 +216,7 @@ namespace VkRender::MultiSense {
             // Disable if we lost connection
             std::scoped_lock lock(statusCountMutex);
             if (m_FailedGetStatusCount >= MAX_FAILED_STATUS_ATTEMPTS &&
-           (!Log::Logger::getLogMetrics()->device.ignoreMissingStatusUpdate)) {
+                (!Log::Logger::getLogMetrics()->device.ignoreMissingStatusUpdate)) {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
                                                  dev.name);
@@ -520,7 +521,8 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);
         // Connect to camera
-        Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP, dev->interfaceDescription);
+        Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP,
+                                         dev->interfaceDescription);
         // Stop all tasks from previous connection.
         app->camPtr = std::make_unique<CRLPhysicalCamera>();
         // If we successfully connect
@@ -577,7 +579,7 @@ namespace VkRender::MultiSense {
                 if (dev->channelInfo.empty() || dev->channelInfo[ch].modes.empty())
                     continue;
 
-                auto resMode =  dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];
+                auto resMode = dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];
                 if (Utils::stringToCameraResolution(resMode) == CRL_RESOLUTION_NONE)
                     resMode = "0";
 
@@ -651,6 +653,8 @@ namespace VkRender::MultiSense {
         if (!app->camPtr->setFps(fps, index)) return;
         if (!app->camPtr->setPostFilterStrength(spfs, index)) return;
         if (!app->camPtr->setHDR(hdr, index)) return;
+
+
         app->updateFromCameraParameters(dev, index);
     }
 
@@ -722,8 +726,8 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::getCalibrationTask(void *context, const std::string& saveLocation,
-                                              crl::multisense::RemoteHeadChannel index, bool* success) {
+    void CameraConnection::getCalibrationTask(void *context, const std::string &saveLocation,
+                                              crl::multisense::RemoteHeadChannel index, bool *success) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         *success = app->camPtr->saveSensorCalibration(saveLocation, index);
@@ -731,8 +735,9 @@ namespace VkRender::MultiSense {
     }
 
     void
-    CameraConnection::setCalibrationTask(void *context, const std::string& intrinsicFilePath, const std::string& extrinsicFilePath,
-                                         crl::multisense::RemoteHeadChannel index, bool* success) {
+    CameraConnection::setCalibrationTask(void *context, const std::string &intrinsicFilePath,
+                                         const std::string &extrinsicFilePath,
+                                         crl::multisense::RemoteHeadChannel index, bool *success) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         *success = app->camPtr->setSensorCalibration(intrinsicFilePath, extrinsicFilePath, index);

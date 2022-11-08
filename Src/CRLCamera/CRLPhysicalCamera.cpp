@@ -320,10 +320,23 @@ namespace VkRender::MultiSense {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
+        /*
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
             Log::Logger::getInstance()->info("Failed to verify fps");
             return false;
+        }
+         */
+
+        // Since we can only have one framerate among several remote head update all the infoMaps.
+        for (const auto& channel: channelMap) {
+            // don't bother for the VPB
+            if (channel.first == crl::multisense::Remote_Head_VPB)
+                continue;
+            if (crl::multisense::Status_Ok != channel.second->ptr()->getImageConfig(infoMap[channel.first].imgConf)){
+                Log::Logger::getInstance()->info("Failed to verify fps");
+                return false;
+            }
         }
         return true;
     }
@@ -468,10 +481,15 @@ namespace VkRender::MultiSense {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->error("Failed to verified post filter strength");
-            return false;
+        // Since we can only have one stereo setting among several remote head update all the infoMaps.
+        for (const auto& channel: channelMap) {
+            // don't bother for the VPB
+            if (channel.first == crl::multisense::Remote_Head_VPB)
+                continue;
+            if (crl::multisense::Status_Ok != channel.second->ptr()->getImageConfig(infoMap[channel.first].imgConf)){
+                Log::Logger::getInstance()->info("Failed to verify fps");
+                return false;
+            }
         }
         return true;
     }

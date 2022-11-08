@@ -23,21 +23,17 @@ std::vector<AutoConnect::Result> AutoConnectLinux::findEthernetAdapters(bool log
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-
     for (auto i = ifn; i->if_name; ++i) {
         struct {
             struct ethtool_link_settings req{};
             __u32 link_mode_data[3 * 127];
         } ecmd{};
         Result adapter(i->if_name, false);
-
 #pragma GCC diagnostic pop
 
         // Filter out docker adapters.
         if (strstr(i->if_name, "docker") != NULL)
             continue;
-
-
         auto ifr = ifreq{};
         std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
 
@@ -46,7 +42,6 @@ std::vector<AutoConnect::Result> AutoConnectLinux::findEthernetAdapters(bool log
 
         if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
             continue;
-
         }
         if (ecmd.req.link_mode_masks_nwords >= 0 || ecmd.req.cmd != ETHTOOL_GLINKSETTINGS) {
             continue;
@@ -86,7 +81,6 @@ std::vector<AutoConnect::Result> AutoConnectLinux::findEthernetAdapters(bool log
 void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
     AutoConnectLinux *app = (AutoConnectLinux *) instance;
     app->eventCallback("Started detection service", app->context, 0);
-    // Get list of network adapters that are  supports our application
     std::string hostAddress;
     size_t i = 0;
     // Loop keeps retrying to connect on supported network adapters.
@@ -239,16 +233,12 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
                     close(sd);
                     break;
                 }
-
             }
         }
     }
-
-    printf("Exited thread\n");
 }
 
 void AutoConnectLinux::onFoundAdapters(std::vector<Result> adapters, bool logEvent) {
-
     for (auto &adapter: adapters) {
         if (adapter.supports && !adapter.searched) {
             std::string str;
@@ -257,7 +247,6 @@ void AutoConnectLinux::onFoundAdapters(std::vector<Result> adapters, bool logEve
                 eventCallback(str, context, 1);
         }
     }
-
 }
 
 AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Result adapter, int camera_fd) {
@@ -360,13 +349,11 @@ void AutoConnectLinux::stop() {
 }
 
 void AutoConnectLinux::start(std::vector<Result> adapters) {
-
     // TODO Clean up public booleans. 4 member booleans might be exaggerated use?
     running = true;
     loopAdapters = true;
     listenOnAdapter = true;
     shouldProgramRun = true;
-
     t = new std::thread(&AutoConnectLinux::run, this, adapters);
 }
 
@@ -392,7 +379,7 @@ void AutoConnectLinux::setShouldProgramClose(bool close) {
     this->shouldProgramRun = !close; // Note: This is just confusing usage... future technical debt right here
 }
 
-void AutoConnectLinux::setEventCallback(void (*param)(std::string str, void *, int)) {
+void AutoConnectLinux::setEventCallback(void (*param)(const std::string& str, void *, int)) {
     eventCallback = param;
 
 }

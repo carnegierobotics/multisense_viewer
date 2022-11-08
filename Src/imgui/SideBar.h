@@ -38,9 +38,8 @@
 class SideBar : public VkRender::Layer {
 public:
 
-    // Create global object for convenience in other functions
+   // Create global object for convenience in other functions
     AutoConnectHandle autoConnect{};
-    bool refreshAdapterList = true; // Set to true to find adapters on next call
     std::vector<AutoConnect::Result> adapters;
     std::vector<std::string> interfaceDescriptionList;
     std::vector<uint32_t> indexList;
@@ -138,7 +137,7 @@ public:
 private:
 
 
-    static void onEvent(std::string event, void *ctx, int color = 0) {
+    static void onEvent(const std::string& event, void *ctx, int color = 0) {
         auto *app = static_cast<SideBar *>(ctx);
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
@@ -154,8 +153,6 @@ private:
 
     static void onCameraDetected(AutoConnect::Result res, void *ctx) {
         auto *app = static_cast<SideBar *>(ctx);
-
-
         crl::multisense::system::DeviceInfo info;
         crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
         if (status == crl::multisense::Status_Ok) {
@@ -169,7 +166,6 @@ private:
                 if (e.IP == res.cameraIpv4Address)
                     ipExists = true;
             }
-
             if (!ipExists) {
                 VkRender::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
                                                    res.description};
@@ -178,10 +174,7 @@ private:
             }
         } else {
             Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
-
         }
-
-
     }
 
     /**@brief Function to manage Auto connect with GUI updates
@@ -254,7 +247,6 @@ private:
         // Clear list if we suddenly dont find supported adapters or searched adapters.
         if (!foundSearchedAdapter && !foundSupportedAdapter) {
             entryConnectDeviceList.clear();
-            refreshAdapterList = true;
         }
 
     }

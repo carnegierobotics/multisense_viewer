@@ -454,7 +454,7 @@ void AutoConnectWindows::setShouldProgramClose(bool close) {
 	this->shouldProgramRun = !close;  // Note: This is just confusing usage... future technical debt right here
 }
 
-void AutoConnectWindows::setEventCallback(void (*param)(std::string str, void*, int)) {
+void AutoConnectWindows::setEventCallback(void (*param)(const std::string& str, void*, int)) {
 	eventCallback = param;
 
 }

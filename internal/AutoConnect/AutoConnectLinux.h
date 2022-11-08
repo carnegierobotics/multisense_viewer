@@ -13,7 +13,10 @@ class AutoConnectLinux : AutoConnect{
 
 public:
 
-    /** @Brief Starts the search for camera given a list containing network adapters Search is done in another thread**/
+    /**
+     * @Brief Starts the search for camera given a list containing network adapters Search is done in another thread
+    * @param vector
+     */
     void start(std::vector<Result> vector) override;
     /** @Brief Function to search for network adapters **/
     std::vector<AutoConnect::Result> findEthernetAdapters(bool logEvent, bool skipIgnored) override;
@@ -32,10 +35,10 @@ public:
     crl::multisense::Channel* getCameraChannel();
 
     void setDetectedCallback(void (*param)(Result result1, void* ctx), void* context);
-    void setEventCallback(void (*param)(std::string result1, void* ctx, int));
+    void setEventCallback(void (*param)(const std::string& result1, void* ctx, int));
 
     void (*callback)(AutoConnect::Result, void*) = nullptr;
-    void (*eventCallback)(std::string, void*, int) = nullptr;
+    void (*eventCallback)(const std::string&, void*, int) = nullptr;
 
 
     void* context = nullptr;

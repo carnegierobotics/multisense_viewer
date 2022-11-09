@@ -26,8 +26,6 @@ if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif ()
 endif()
 
-set(BUILD_SHARED_LIBS TRUE)
-
 
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
@@ -54,10 +52,15 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
+if (WIN32)
+set(BUILD_SHARED_LIBS TRUE)
+endif()
 set(MULTISENSE_SRC "external/LibMultiSense/source/LibMultiSense")
 include_directories(${MULTISENSE_SRC})
 add_subdirectory(${MULTISENSE_SRC})
-
+if (WIN32)
+    set(BUILD_SHARED_LIBS False)
+endif()
 # Ini file parser SimpleIni
 set(SimpleIni_DIR external/simpleini)
 set(SimpleIni_SRC ${SimpleIni_DIR}/SimpleIni.h ${SimpleIni_DIR}/ConvertUTF.c ${SimpleIni_DIR}/ConvertUTF.h)
@@ -211,7 +214,7 @@ if (WIN32)
     target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
-    add_library(ScriptLibrary SHARED ${SCRIPTS_LIB_SRC})
+    add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
@@ -268,6 +271,7 @@ endforeach( file_i )
     # Generate empty configuration files
     file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
     file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
+    file(WRITE ${INSTALL_DIRECTORY}/logger.txt "")
 
 
     if (MSVC)
@@ -286,32 +290,30 @@ else () ## Linux
 
     #find_package(OpenCV REQUIRED)
     #include_directories(${OpenCV_INCLUDE_DIRS})
-    add_library(VulkanRenderer ${ENGINE_SRC} ${IMGUI_SRC})
+    add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )#${OpenCV_LIBS})
 
-    add_library(ScriptLibrary ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer)
+    add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
+    target_link_libraries(ScriptLibrary VulkanRenderer )
 
     add_executable(MultiSense-viewer main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
 
 
-    set(RUNTIME_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
-    set(LIBRARY_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
-    set(ASSETS_DESTINATION ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
     set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
 
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${RUNTIME_DESTINATION})
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${LIBRARY_DESTINATION})
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${LIBRARY_DESTINATION})
-        # Generate empty configuration files
-    file(WRITE ${RUNTIME_DESTINATION}/imgui.ini "")
-    file(WRITE ${RUNTIME_DESTINATION}/crl.ini "")
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
-    MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${ASSETS_DESTINATION}")
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${ASSETS_DESTINATION})
+    # Generate empty configuration files
+    file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
+    file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
+    file(WRITE ${INSTALL_DIRECTORY}/logger.txt "")
 
-
+    MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${INSTALL_DIRECTORY}")
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 endif ()
 # Copy dependency folders to output directory
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)

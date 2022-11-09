@@ -346,7 +346,11 @@ void AutoConnectWindows::run(void* instance, std::vector<Result> adapters) {
 			1000,            // read timeout
 			errbuf            // error buffer
 		)) == NULL) {
-			fprintf(stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", adapter.networkAdapterLongName.c_str());
+			fprintf(stderr, "\nUnable to open the adapter. \n %s is not supported by WinPcap\n", adapter.networkAdapterLongName.c_str());
+
+			str = "Unable to open the adapter: \n" + adapter.description + "\nWinPCap is either not installed or adapter is not supported";
+			app->m_EventCallback(str, app->m_Context, 2);
+			app->m_IgnoreAdapters.push_back(adapter);
 			/* Free the device list */
 			return;
 		}

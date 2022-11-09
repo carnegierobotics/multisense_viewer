@@ -81,7 +81,11 @@ namespace VkRender::MultiSense {
         public:
             explicit ChannelWrapper(const std::string &ipAddress,
                                     crl::multisense::RemoteHeadChannel remoteHeadChannel = -1, std::string ifName = "") {
+#ifdef __linux__
                 channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel, ifName);
+                #else
+                channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
+#endif
                 imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel);
             }
 

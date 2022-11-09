@@ -344,7 +344,7 @@ namespace VkRender::MultiSense {
             return false;
         }
         if (shouldConfigNetwork) {
-
+            Log::Logger::getInstance()->info("User wants to configure network automatically");
 #ifdef WIN32
 
             WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
@@ -526,7 +526,7 @@ namespace VkRender::MultiSense {
         // Stop all tasks from previous connection.
         app->camPtr = std::make_unique<CRLPhysicalCamera>();
         // If we successfully connect
-        dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead, dev->interfaceDescription);
+        dev->channelConnections = app->camPtr->connect(dev->IP, isRemoteHead, dev->interfaceName);
         if (!dev->channelConnections.empty()) {
             //app->getProfileFromIni(*dev);
             app->updateUIDataBlock(*dev);

@@ -5,12 +5,6 @@
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
 
-#ifdef WIN32
-    #ifdef WIN_DEBUG
-        #pragma comment(linker, "/SUBSYSTEM:CONSOLE")
-    #endif
-#endif
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"

@@ -13,7 +13,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #pragma comment(lib, "wpcap.lib")
-#pragma comment(linker, "/SUBSYSTEM:CONSOLE")
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 

@@ -127,6 +127,7 @@ namespace VkRender {
             pLogger->info("Enabling YCBCR Sampler Extension");
         } else {
             pLogger->error("YCBCR Sampler support not found!");
+            // TODO Create workaround
         }
 
         // Vulkan m_Device creation
@@ -135,7 +136,7 @@ namespace VkRender {
         vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
-            throw std::runtime_error("Failed to create logical m_Device");
+            throw std::runtime_error("Failed to create logical device");
 
         device = vulkanDevice->m_LogicalDevice;
         // Get a graphics queue from the m_Device

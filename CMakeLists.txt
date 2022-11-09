@@ -194,7 +194,7 @@ if (WIN32)
     target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect MultiSenseWindows)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
-    add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
+    add_library(ScriptLibrary SHARED ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
 
     add_executable(MultiSense-viewer WIN32 main.cpp)

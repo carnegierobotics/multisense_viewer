@@ -16,6 +16,9 @@ if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     # -Wundef -Wcast-qual  -Wdouble-promotion
 endif()
 
+set(BUILD_SHARED_LIBS TRUE)
+
+
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
@@ -41,7 +44,7 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
-set(MULTISENSE_SRC external/LibMultiSense/source/LibMultiSense)
+set(MULTISENSE_SRC "external/LibMultiSense/source/LibMultiSense")
 include_directories(${MULTISENSE_SRC})
 add_subdirectory(${MULTISENSE_SRC})
 
@@ -157,7 +160,6 @@ if (WIN32)
 
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-        set(BUILD_SHARED_LIBS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
     endif ()
 
@@ -187,11 +189,16 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_DEBUG  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
+    add_library(MultiSenseLib STATIC IMPORTED GLOBAL)
+    set_property(TARGET MultiSenseLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(MultiSenseLib PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+    IMPORTED_LOCATION_DEBUG  "${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.lib")
+
     add_subdirectory(internal/winpcap)
-    add_subdirectory(internal/LibMultiSenseWindows)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect MultiSenseWindows)
+    target_link_libraries(VulkanRenderer  winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect)
     # LibMultiSense on Windows. Use precompiled library from a manual step
 
     add_library(ScriptLibrary SHARED ${SCRIPTS_LIB_SRC})
@@ -210,9 +217,6 @@ if (WIN32)
     ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swresample-4.dll
     ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
     ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
-    #LibMultiSense
-    ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.dll
-    ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.lib
     #WinPCap
     ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
     ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll

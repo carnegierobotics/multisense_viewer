@@ -145,7 +145,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string& pa
         AVFrame* src;
         src = av_frame_alloc();
         if (!src) {
-            fprintf(stderr, "Could not allocate video frame\n");
+            Log::Logger::getInstance()->error("Could not allocate video frame");
         }
         src->format = AV_PIX_FMT_YUV420P;
         src->width = width;
@@ -153,7 +153,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string& pa
         int ret = av_image_alloc(src->data, src->linesize, src->width, src->height,
             static_cast<AVPixelFormat>(src->format), 32);
         if (ret < 0) {
-            fprintf(stderr, "Could not allocate raw picture buffer\n");
+            Log::Logger::getInstance()->error("Could not allocate raw picture buffer");
         }
 
         std::memcpy(src->data[0], ptr->data, ptr->m_Len);
@@ -166,7 +166,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string& pa
         AVFrame* dst;
         dst = av_frame_alloc();
         if (!dst) {
-            fprintf(stderr, "Could not allocate video frame\n");
+            Log::Logger::getInstance()->error("Could not allocate video frame");
         }
         dst->format = AV_PIX_FMT_RGB24;
         dst->width = width;
@@ -174,7 +174,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string& pa
         ret = av_image_alloc(dst->data, dst->linesize, dst->width, dst->height,
             static_cast<AVPixelFormat>(dst->format), 8);
         if (ret < 0) {
-            fprintf(stderr, "Could not allocate raw picture buffer\n");
+            Log::Logger::getInstance()->error("Could not allocate raw picture buffer");
         }
         SwsContext* conversion = sws_getContext(width,
             height,

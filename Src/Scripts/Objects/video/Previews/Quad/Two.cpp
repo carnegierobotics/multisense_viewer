@@ -120,7 +120,6 @@ void Two::prepareMultiSenseTexture() {
             fragmentShaderFileName = "myScene/spv/depth.frag";
             break;
         default:
-            std::cerr << "Invalid Texture type" << std::endl;
             return;
     }
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);

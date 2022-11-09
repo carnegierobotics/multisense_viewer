@@ -90,7 +90,7 @@ void Renderer::buildCommandBuffers() {
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
-q                script.second->drawScript(drawCmdBuffers[i], i, true);
+                script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
         /** Generate UI draw commands **/

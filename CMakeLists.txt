@@ -54,6 +54,7 @@ include_directories(external/tinygltf/)
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
 if (WIN32)
 set(BUILD_SHARED_LIBS TRUE)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/) # Set install prefix to LibMultiSense installs to our build directory
 endif()
 set(MULTISENSE_SRC "external/LibMultiSense/source/LibMultiSense")
 include_directories(${MULTISENSE_SRC})
@@ -182,7 +183,6 @@ if (WIN32)
     set_target_properties(avcodec PROPERTIES
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avcodec.lib")
-     
 
     add_library(avutil STATIC IMPORTED GLOBAL)
     set_property(TARGET avutil APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
@@ -251,12 +251,10 @@ endforeach( file_i )
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS ScriptLibrary CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
 
     # LibMultiSense and WinPCap dll
     install(FILES  
-     ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.dll
-     ${CMAKE_CURRENT_SOURCE_DIR}/internal/LibMultiSenseWindows/${CMAKE_BUILD_TYPE}/MultiSense.lib
+     ${CMAKE_BINARY_DIR}/Release/MultiSense.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
      CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
@@ -267,11 +265,6 @@ endforeach( file_i )
 
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-
-    # Generate empty configuration files
-    file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
-    file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
-    file(WRITE ${INSTALL_DIRECTORY}/logger.txt "")
 
 
     if (MSVC)
@@ -307,14 +300,15 @@ else () ## Linux
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
-    # Generate empty configuration files
-    file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
-    file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
-    file(WRITE ${INSTALL_DIRECTORY}/logger.txt "")
-
     MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${INSTALL_DIRECTORY}")
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 endif ()
+
+# Generate empty configuration files
+file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
+file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
+file(WRITE ${INSTALL_DIRECTORY}/logger.log "")
+
 # Copy dependency folders to output directory
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 add_dependencies(MultiSense-viewer copy_assets)

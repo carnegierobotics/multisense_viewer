@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.6)
 project(MultiSense-Viewer C CXX)
 
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
@@ -14,6 +16,14 @@ if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
     # Not enabled flags but could be nice to enable
     # -Wundef -Wcast-qual  -Wdouble-promotion
+    if (${FORCE_COLORED_OUTPUT})
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+            message("[INFO] Enabling Colored Output")
+            add_compile_options (-fdiagnostics-color=always)
+        elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+            add_compile_options (-fcolor-diagnostics)
+        endif ()
+    endif ()
 endif()
 
 set(BUILD_SHARED_LIBS TRUE)

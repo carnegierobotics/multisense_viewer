@@ -71,7 +71,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string& pa
         directory = remoteHeadDir + "/" + stringSrc;
     }
     else
-        directory = stringSrc;
+        directory = path + "/" + stringSrc;
 
     std::string filePath = directory + "/";
 

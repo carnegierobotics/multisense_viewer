@@ -262,7 +262,7 @@ private:
         Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_JUST_ADDED ", el.name);
         el.cameraName = entry.cameraName;
         el.interfaceName = entry.interfaceName;
-        el.interfaceDescription = entry.interfaceName;
+        el.interfaceDescription = entry.description;
         el.clicked = true;
         el.interfaceIndex = entry.interfaceIndex;
         el.isRemoteHead = entry.isRemoteHead;

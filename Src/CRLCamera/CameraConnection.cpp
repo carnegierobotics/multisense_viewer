@@ -348,10 +348,15 @@ namespace VkRender::MultiSense {
 #ifdef WIN32
 
             WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-            if (regEditor.ready && !dev.systemNetworkChanged) {
-                regEditor.readAndBackupRegisty();
-                regEditor.setJumboPacket("9014");
-                regEditor.restartNetAdapters();
+            if (!dev.systemNetworkChanged) {
+                if (regEditor.ready) {
+                    regEditor.readAndBackupRegisty();
+                    regEditor.setJumboPacket("9014");
+                    regEditor.restartNetAdapters();
+                }
+                else {
+                    Log::Logger::getInstance()->error("Failed to set jumbo packet to 9014, please consult manual support");
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(3000));
                 if (regEditor.setStaticIp(dev.interfaceIndex, hostAddress, "255.255.255.0")) {
                     dev.systemNetworkChanged = true;

@@ -370,10 +370,8 @@ namespace VkRender::MultiSense {
             int ioctl_result = -1;
             /** SET NETWORK PARAMETERS FOR THE ADAPTER **/
             if ((m_FD = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-                fprintf(stderr, "Error creating socket: %s\n", strerror(errno));
                 Log::Logger::getInstance()->error("Error in creating socket to configure network adapter: '{}'",
                                                   strerror(errno));
-
                 return false;
             }
             // Specify interface m_Name
@@ -382,7 +380,6 @@ namespace VkRender::MultiSense {
                 Log::Logger::getInstance()->error("Could not bind socket to adapter {}, '{}'", dev.interfaceName,
                                                   strerror(errno));
             };
-
             struct ifreq ifr{};
             /// note: no pointer here
             struct sockaddr_in inet_addr{}, subnet_mask{};
@@ -391,61 +388,6 @@ namespace VkRender::MultiSense {
             bzero(ifr.ifr_name, IFNAMSIZ);
             strncpy(ifr.ifr_name, interface, IFNAMSIZ);
 
-            /*** Call ioctl to get and backup current network m_Device configuration ***/
-            /*
-            std::string ipAddressBackup = "";
-            std::string subnetMaskBackup = "";
-            uint32_t mtuSizeBackup = 1500;
-            ioctl_result = ioctl(m_FD, SIOCGIFADDR, &ifr);  // Set IP address
-            if (ioctl_result < 0) {
-                fprintf(stderr, "ioctl SIOCGIFADDR: %s", strerror(errno));
-                if (errno == EADDRNOTAVAIL) {
-                    Log::Logger::getInstance()->error("No address is set on interface {}", dev.interfaceName);
-                }
-            } else {
-                ipAddressBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-            }
-            ioctl_result = ioctl(m_FD, SIOCGIFNETMASK, &ifr);   // Set subnet mask
-            if (ioctl_result < 0) {
-                fprintf(stderr, "ioctl SIOCGIFNETMASK: %s", strerror(errno));
-                if (errno == EADDRNOTAVAIL) {
-                    Log::Logger::getInstance()->error("No NetMask is set on interface {}", dev.interfaceName);
-                }
-            } else {
-                subnetMaskBackup = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-            }
-            if (ioctl(m_FD, SIOCGIFMTU, (caddr_t) &ifr) < 0) {
-                Log::Logger::getInstance()->error("Failed to get mtu size {} on adapter {}",
-                                                  dev.interfaceName.c_str());
-            } else {
-                Log::Logger::getInstance()->error("got MTU {} on adapter {}", ifr.ifr_mtu,
-                                                  dev.interfaceName.c_str());
-                mtuSizeBackup = ifr.ifr_mtu;
-            }
-
-            // Save backup to file
-
-            // Write to ini file.
-            CSimpleIniA ini;
-            ini.SetUnicode();
-            SI_Error rc = ini.LoadFile("NetConfigBackup.ini");
-            if (rc < 0) {
-                // File doesn't exist error, then create one
-                if (rc == SI_FILE && errno == ENOENT) {
-                    std::ofstream output = std::ofstream("NetConfigBackup.ini");
-                    output.close();
-                    rc = ini.LoadFile("NetConfigBackup.ini");
-                }
-            }
-            int ret;
-            if (!ini.SectionExists(dev.interfaceName.c_str())) {
-                ret = ini.SetValue(dev.interfaceName.c_str(), "IPAddress", ipAddressBackup.c_str());
-                ret = ini.SetValue(dev.interfaceName.c_str(), "SubnetMask", subnetMaskBackup.c_str());
-                ret = ini.SetValue(dev.interfaceName.c_str(), "MTU", std::to_string(mtuSizeBackup).c_str());
-                rc = ini.SaveFile("NetConfigBackup.ini");
-            }
-
-            */
             /*** Call ioctl to get configure network interface ***/
 
             /// note: prepare the two struct sockaddr_in
@@ -459,7 +401,6 @@ namespace VkRender::MultiSense {
             memcpy(&(ifr.ifr_addr), &inet_addr, sizeof(struct sockaddr));
             ioctl_result = ioctl(m_FD, SIOCSIFADDR, &ifr);  // Set IP address
             if (ioctl_result < 0) {
-                fprintf(stderr, "ioctl SIOCSIFADDR: %s", strerror(errno));
                 Log::Logger::getInstance()->error("Could not set ip address on {}, reason: {}", dev.interfaceName,
                                                   strerror(errno));
 
@@ -469,7 +410,6 @@ namespace VkRender::MultiSense {
             memcpy(&(ifr.ifr_addr), &subnet_mask, sizeof(struct sockaddr));
             ioctl_result = ioctl(m_FD, SIOCSIFNETMASK, &ifr);   // Set subnet mask
             if (ioctl_result < 0) {
-                fprintf(stderr, "ioctl SIOCSIFNETMASK: %s", strerror(errno));
                 Log::Logger::getInstance()->error("Could not set subnet mask address on {}, reason: {}",
                                                   dev.interfaceName,
                                                   strerror(errno));

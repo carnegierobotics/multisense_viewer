@@ -367,13 +367,12 @@ namespace VkRender {
                                             &descriptorSetLayout));
 
 
-        uint32_t imageDescriptorSamplerCount = 1;
+        uint32_t fontCount = 3, iconCount = 10, gifImageCount = 20;
+        uint32_t setCount = fontCount + iconCount + gifImageCount;
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
 
         };
-        uint32_t fontCount = 3, iconCount = 10, gifImageCount = 20;
-        uint32_t setCount = fontCount+iconCount+gifImageCount;
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
         CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
@@ -527,7 +526,6 @@ namespace VkRender {
                                  width, height, device,
                                  device->m_TransferQueue);
         VkDescriptorSet descriptor{};
-        fontDescriptors.push_back(descriptor);
         // descriptors
         // Create Descriptor Set:
         {
@@ -536,18 +534,23 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &fontDescriptors.back()));
+            VkResult res = vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &descriptor);
+            if (res != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate descriptorset");
+            }
         }
         // Update the Descriptor Set:
         {
             VkWriteDescriptorSet write_desc[1] = {};
             write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = fontDescriptors.back();
+            write_desc[0].dstSet = descriptor;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_desc[0].pImageInfo = &fontTexture.back().m_Descriptor;
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
+
+        fontDescriptors.push_back(descriptor);
         return font;
     }
 

@@ -17,11 +17,12 @@ public:
      * @Brief Starts the search for camera given a list containing network adapters Search is done in another thread
     * @param vector
      */
-    void start(std::vector<Result> vector) override;
+    void start() override;
     /** @Brief Function to search for network adapters **/
-    std::vector<AutoConnect::Result> findEthernetAdapters(bool logEvent, bool skipIgnored) override;
+    static void findEthernetAdapters(void *ctx, bool logEvent, bool skipIgnored,
+                                     std::vector<AutoConnect::Result> *res);
     /** @Brief cleans up thread**/
-    void stop() override;
+    void stopAutoConnect() override;
     /** @Brief Function called after a search of adapters and at least one adapter was found **/
     void onFoundAdapters(std::vector<Result> vector, bool logEvent) override;
     /** @Brief Function called when a new IP is found. Return false if you want to keep searching or true to stop further IP searching **/
@@ -36,17 +37,24 @@ public:
 
     void (*m_Callback)(AutoConnect::Result, void*) = nullptr;
     void (*m_EventCallback)(const std::string&, void*, int) = nullptr;
+    bool m_RunAdapterSearch = true;
 
+    std::vector<AutoConnect::Result> supportedAdapters;
 
     void* m_Context = nullptr;
     bool isRunning() override;
     void setShouldProgramRun(bool close) override;
+    std::mutex readSupportedAdaptersMutex;
 
+    bool shutdownT1Ready = false;
+    bool shutdownT2Ready = false;
 
     void clearSearchedAdapters();
 
+    void startAdapterSearch();
+
 private:
-    static void run(void* instance, std::vector<Result> adapters);
+    static void run(void* instance);
 };
 
 

@@ -25,10 +25,13 @@ public:
 
     struct Result {
         Result() = default;
-        Result(const char *name, uint8_t supp) { // By default, we want to initialize an adapter result with a name and support status
+
+        Result(const char *name,
+               uint8_t supp) { // By default, we want to initialize an adapter result with a name and support status
             this->networkAdapter = name;
             this->supports = supp;
         }
+
         bool supports{}; // 0: for bad, 1: for good
         bool searched = false;
         std::string cameraIpv4Address;
@@ -36,28 +39,35 @@ public:
         std::string networkAdapter;
         std::string networkAdapterLongName;
         uint32_t index{};
-    }result;
+    } result;
 
     bool m_LoopAdapters = true;
     bool m_ListenOnAdapter = true;
-    bool m_ShouldProgramRun = false;
+    bool m_ShouldProgramRun = true;
     time_t startTime{};
-    crl::multisense::Channel* cameraInterface{};
+    crl::multisense::Channel *cameraInterface{};
     std::vector<Result> m_IgnoreAdapters{};
-    virtual std::vector<AutoConnect::Result> findEthernetAdapters(bool b, bool skipIgnored) = 0;
-    virtual void start(std::vector<Result> vector) = 0;
+
+    //virtual std::vector<AutoConnect::Result> findEthernetAdapters(bool b, bool skipIgnored) = 0;
+
+    virtual void start() = 0;
+
     virtual void onFoundAdapters(std::vector<Result> vector, bool logEvent) = 0;
+
     virtual AutoConnect::FoundCameraOnIp onFoundIp(std::string string, Result adapter, int camera_fd) = 0;
+
     virtual void onFoundCamera() = 0;
-    virtual void stop() = 0;
+
+    virtual void stopAutoConnect() = 0;
+
     virtual bool isRunning() = 0;
+
     virtual void setShouldProgramRun(bool exit) = 0;
 
-private:
 protected:
-    std::thread *t = nullptr;
     int connectAttemptCounter = 0;
-
+    std::thread *m_TAutoConnect = nullptr;
+    std::thread *m_TAdapterSearch = nullptr;
 };
 
 

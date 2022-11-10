@@ -15,77 +15,87 @@
 #include "AutoConnectLinux.h"
 #include <netpacket/packet.h>
 #include <sys/fcntl.h>
+#include <mutex>
 
-std::vector<AutoConnect::Result> AutoConnectLinux::findEthernetAdapters(bool logEvent, bool skipIgnored) {
-    std::vector<Result> adapterSupportResult;
-    // Get list of interfaces
-    auto ifn = if_nameindex();
-    auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+void AutoConnectLinux::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgnored,
+                                            std::vector<AutoConnect::Result> *res) {
+    auto *app = static_cast<AutoConnectLinux *>(ctx);
+    std::vector<AutoConnect::Result> tempList;
+    while (app->m_RunAdapterSearch) {
+        tempList.clear();
+        // Get list of interfaces
+        auto ifn = if_nameindex();
+        // If no interfaces. This turns to null if there is no interfaces for a few seconds
+        if (!ifn) {
+            fprintf(stderr, "if_nameindex error: %s\n", strerror(errno));
+            continue;
+        }
+        auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
-    // Loop all the interfaces
+        // Loop all the interfaces
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-    for (auto i = ifn; i->if_name; ++i) {
-        struct {
-            struct ethtool_link_settings req{};
-            __u32 link_mode_data[3 * 127]{};
-        } ecmd{};
-        Result adapter(i->if_name, false);
+        for (auto i = ifn; i->if_name; ++i) {
+            struct {
+                struct ethtool_link_settings req{};
+                __u32 link_mode_data[3 * 127]{};
+            } ecmd{};
+            Result adapter(i->if_name, false);
 #pragma GCC diagnostic pop
 
-        // Filter out docker adapters.
-        if (strstr(i->if_name, "docker") != nullptr)
-            continue;
-        auto ifr = ifreq{};
-        std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
-
-        ecmd.req.cmd = ETHTOOL_GLINKSETTINGS;
-        ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
-
-        // Check if interface is of type ethernet
-        if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
-            continue;
-        }
-        // More ethernet checking
-        if (ecmd.req.link_mode_masks_nwords >= 0 || ecmd.req.cmd != ETHTOOL_GLINKSETTINGS) {
-            continue;
-        }
-        ecmd.req.link_mode_masks_nwords = -ecmd.req.link_mode_masks_nwords;
-        // Even more ethernet checking
-        if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
-            continue;
-        }
-
-        // if we got this far we have an ethernet at our if_index.
-        adapter.supports = true;
-        adapter.description = adapter.networkAdapter; // Copy name to description
-        adapter.index = i->if_index;
-
-        // If a camera has al ready been found on the adapter then ignore it. Remove it from adapters list
-        bool ignore = false;
-        for (const auto &found: m_IgnoreAdapters) {
-            if (found.index == adapter.index) {
-                ignore = true;
-                std::string str = "Found already searched adapter: " + adapter.networkAdapter + ". Ignoring...";
-                m_EventCallback(str, m_Context, 0);
+            // Filter out docker adapters.
+            if (strstr(i->if_name, "docker") != nullptr) {
+                continue;
             }
+            auto ifr = ifreq{};
+            std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
+
+            ecmd.req.cmd = ETHTOOL_GLINKSETTINGS;
+            ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
+
+            // Check if interface is of type ethernet
+            if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
+                continue;
+            }
+            // More ethernet checking
+            if (ecmd.req.link_mode_masks_nwords >= 0 || ecmd.req.cmd != ETHTOOL_GLINKSETTINGS) {
+                continue;
+            }
+            ecmd.req.link_mode_masks_nwords = -ecmd.req.link_mode_masks_nwords;
+            // Even more ethernet checking
+            if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
+                continue;
+            }
+
+            // if we got this far we have an ethernet at our if_index.
+            adapter.supports = true;
+            adapter.description = adapter.networkAdapter; // Copy name to description
+            adapter.index = i->if_index;
+
+
+            tempList.emplace_back(adapter);
         }
 
-        if (ignore && !skipIgnored) {
-            adapter.searched = true;
-        }
+        if_freenameindex(ifn);
+        close(fd);
 
-        adapterSupportResult.emplace_back(adapter);
+        if (!tempList.empty())
+            app->onFoundAdapters(*res, logEvent);
+        {
+            std::scoped_lock<std::mutex> lock(app->readSupportedAdaptersMutex);
+            *res = tempList;
+        }
+        if (logEvent)
+            break;
     }
 
-
-    if (!adapterSupportResult.empty())
-        onFoundAdapters(adapterSupportResult, logEvent);
-    return adapterSupportResult;
+    if (!logEvent)
+        app->shutdownT2Ready = true;
 }
 
-void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
-    auto *app = (AutoConnectLinux *) instance;
+void AutoConnectLinux::run(void *ctx) {
+    std::vector<Result> adapters{};
+    auto *app = (AutoConnectLinux *) ctx;
     app->m_EventCallback("Started detection service", app->m_Context, 0);
     std::string hostAddress;
     size_t i = 0;
@@ -93,20 +103,31 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
     while (app->m_LoopAdapters) {
         if (i >= adapters.size()) {
             i = 0;
-            app->m_EventCallback("Tested all adapters. rerunning adapter search", app->m_Context, 0);
-            adapters = app->findEthernetAdapters(true, false);
+            app->m_EventCallback("Running adapter search", app->m_Context, 0);
+            adapters.clear();
+            app->findEthernetAdapters(ctx, true, false, &adapters);
             bool testedAllAdapters = true;
             for (const auto &a: adapters) {
-                if (a.supports && !a.searched)
+                if (app->m_IgnoreAdapters.empty())
                     testedAllAdapters = false;
+                for (const auto &ignore: app->m_IgnoreAdapters) {
+                    if (a.supports && !a.searched && a.networkAdapter != ignore.networkAdapter)
+                        testedAllAdapters = false;
+                }
             }
             if (testedAllAdapters) {
-                app->m_EventCallback("No other adapters found", app->m_Context, 0);
+                app->m_EventCallback(adapters.empty() ? "No adapters found" : "No other adapters found", app->m_Context,
+                                     0);
                 app->m_EventCallback("Finished", app->m_Context, 0);
                 break;
             }
         }
-        auto adapter = adapters[i];
+
+        Result adapter{};
+        {
+            std::scoped_lock<std::mutex> lock(app->readSupportedAdaptersMutex);
+            adapter = adapters[i];
+        }
         // If it doesn't support a camera then dont loop it
         if (!adapter.supports) {
             continue;
@@ -228,7 +249,7 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
                     if (ioctl(sd, SIOCSIFFLAGS, &ethreq) == -1) {
                         perror("SIOCSIFFLAGS: ioctl");
                         app->m_EventCallback(std::string(std::string("Error: ") + adapter.networkAdapter),
-                        app->m_Context, 2);
+                                             app->m_Context, 2);
                         continue;
                     }
                     close(sd);
@@ -255,15 +276,14 @@ void AutoConnectLinux::run(void *instance, std::vector<Result> adapters) {
             }
         }
     }
+
+    app->shutdownT1Ready = true;
+
 }
 
 void AutoConnectLinux::onFoundAdapters(std::vector<Result> adapters, bool logEvent) {
     for (auto &adapter: adapters) {
         if (adapter.supports && !adapter.searched) {
-            std::string str;
-            str = "Found supported adapter: " + adapter.networkAdapter;
-            if (logEvent)
-                m_EventCallback(str, m_Context, 1);
         }
     }
 }
@@ -319,6 +339,7 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
     m_EventCallback(str, m_Context, 0);
 
     std::cout << "Camera interface: " << adapter.index << " name: " << adapter.networkAdapter << std::endl;
+
     cameraInterface = crl::multisense::Channel::Create(address, adapter.networkAdapter);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
@@ -347,24 +368,45 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
 void AutoConnectLinux::onFoundCamera() {
     m_Callback(result, m_Context);
     crl::multisense::Channel::Destroy(cameraInterface);
+    cameraInterface = nullptr;
 }
 
-void AutoConnectLinux::stop() {
+void AutoConnectLinux::stopAutoConnect() {
     m_LoopAdapters = false;
     m_ListenOnAdapter = false;
     m_ShouldProgramRun = false;
-    if (t != nullptr)
-        t->join();
-    delete t; //instantiated in start func
-    t = nullptr;
+
+    if (m_TAutoConnect != nullptr && shutdownT1Ready) {
+        m_TAutoConnect->join();
+        delete m_TAutoConnect;
+        shutdownT1Ready = false;
+        m_TAutoConnect = nullptr;
+    }
+    if (m_TAdapterSearch != nullptr && shutdownT2Ready) {
+        m_TAdapterSearch->join();
+        delete m_TAdapterSearch;
+        shutdownT2Ready = false;
+        m_TAdapterSearch = nullptr;
+    }
 }
 
-void AutoConnectLinux::start(std::vector<Result> adapters) {
-    // TODO Clean up public booleans. 4 member booleans might be exaggerated use?
+void AutoConnectLinux::start() {
     m_LoopAdapters = true;
     m_ListenOnAdapter = true;
     m_ShouldProgramRun = true;
-    t = new std::thread(&AutoConnectLinux::run, this, adapters);
+
+    if (m_TAutoConnect == nullptr)
+        m_TAutoConnect = new std::thread(&AutoConnectLinux::run, this);
+
+}
+
+
+void AutoConnectLinux::startAdapterSearch() {
+    if (m_TAdapterSearch == nullptr && m_ShouldProgramRun) {
+        m_RunAdapterSearch = true;
+        m_TAdapterSearch = new std::thread(&AutoConnectLinux::findEthernetAdapters, this, false, false,
+                                           &supportedAdapters);
+    }
 }
 
 crl::multisense::Channel *AutoConnectLinux::getCameraChannel() {
@@ -392,3 +434,4 @@ void AutoConnectLinux::setEventCallback(void (*param)(const std::string &str, vo
 void AutoConnectLinux::clearSearchedAdapters() {
     m_IgnoreAdapters.clear();
 }
+

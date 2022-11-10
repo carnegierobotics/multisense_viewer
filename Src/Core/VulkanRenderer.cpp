@@ -127,6 +127,7 @@ namespace VkRender {
             pLogger->info("Enabling YCBCR Sampler Extension");
         } else {
             pLogger->error("YCBCR Sampler support not found!");
+            // TODO Create workaround
         }
 
         // Vulkan m_Device creation
@@ -135,7 +136,7 @@ namespace VkRender {
         vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
-            throw std::runtime_error("Failed to create logical m_Device");
+            throw std::runtime_error("Failed to create logical device");
 
         device = vulkanDevice->m_LogicalDevice;
         // Get a graphics queue from the m_Device
@@ -306,11 +307,11 @@ namespace VkRender {
             attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference colorReference {};
+            VkAttachmentReference colorReference{};
             colorReference.attachment = 0;
             colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference depthReference {};
+            VkAttachmentReference depthReference{};
             depthReference.attachment = 1;
             depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -491,7 +492,11 @@ namespace VkRender {
         pLogger->info("Initialized Renderer backend");
 
         startTime = std::chrono::system_clock::now();
+
+
     }
+
+
 
 
     void VulkanRenderer::destroyCommandBuffers() {
@@ -661,7 +666,6 @@ namespace VkRender {
             glfwSetWindowShouldClose(window, true);
         }
         ImGuiIO &io = ImGui::GetIO();
-        io.AddKeyEvent(ImGuiKey_ModCtrl, (mods & GLFW_MOD_CONTROL) != 0);
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
         io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
@@ -671,6 +675,8 @@ namespace VkRender {
 
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
+
+        printf("IMgui: %s\n", glfwGetClipboardString(window));
 
         if (action == GLFW_PRESS) {
 
@@ -730,6 +736,7 @@ namespace VkRender {
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
     void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
 
@@ -764,7 +771,7 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseButtons.wheel -= ((float)yoffset * myApp->mouseScrollSpeed);
+        myApp->mouseButtons.wheel -= ((float) yoffset * myApp->mouseScrollSpeed);
         io.MouseWheel += 0.5f * (float) yoffset;
     }
 
@@ -919,7 +926,7 @@ namespace VkRender {
             case GLFW_KEY_LEFT_SHIFT:
                 return ImGuiKey_LeftShift;
             case GLFW_KEY_LEFT_CONTROL:
-                return ImGuiKey_LeftCtrl;
+                return ImGuiKey_ModCtrl;
             case GLFW_KEY_LEFT_ALT:
                 return ImGuiKey_LeftAlt;
             case GLFW_KEY_LEFT_SUPER:

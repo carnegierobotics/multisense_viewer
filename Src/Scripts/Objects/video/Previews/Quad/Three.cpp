@@ -39,7 +39,7 @@ void Three::update() {
     // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
-        std::chrono::duration<float> time_span =
+        auto time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
         float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
@@ -120,7 +120,6 @@ void Three::prepareMultiSenseTexture() {
             fragmentShaderFileName = "myScene/spv/depth.frag";
             break;
         default:
-            std::cerr << "Invalid Texture type" << std::endl;
             return;
     }
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);

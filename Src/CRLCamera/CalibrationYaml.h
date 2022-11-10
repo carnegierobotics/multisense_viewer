@@ -203,7 +203,7 @@ std::istream& parseYaml (std::istream& stream, std::map<std::string, std::vector
 		}
 		else
 		{
-			fprintf (stderr, "Error parsing data near array \"%s\"", name.c_str());
+			Log::Logger::getInstance()->error("Error parsing data near array {}", name.c_str());
 		}
     }
 

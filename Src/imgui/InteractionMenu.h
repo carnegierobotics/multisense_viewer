@@ -12,8 +12,8 @@
 
 class InteractionMenu : public VkRender::Layer {
 private:
-    bool page[PAGE_TOTAL_PAGES] = {false, false, false};
-    bool drawActionPage = true;
+    bool page[PAGE_TOTAL_PAGES] = {false, false, true};
+    bool drawActionPage = false;
     ImGuiFileDialog chooseIntrinsicsDialog;
     ImGuiFileDialog chooseExtrinsicsDialog;
     ImGuiFileDialog saveCalibrationDialog;
@@ -55,7 +55,7 @@ public:
         for (auto &d: handles->devices) {
             if (d.state == AR_STATE_RESET) {
                 std::fill_n(page, PAGE_TOTAL_PAGES, false);
-                drawActionPage = true;
+                drawActionPage = false;
             }
         }
 
@@ -958,22 +958,20 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Head 0", &d.configRemoteHead, crl::multisense::Remote_Head_0))
+                if (ImGui::RadioButton("Head 0", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_0))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 1", &d.configRemoteHead, crl::multisense::Remote_Head_1))
+                if (ImGui::RadioButton("Head 1", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 2", &d.configRemoteHead, crl::multisense::Remote_Head_2))
+                if (ImGui::RadioButton("Head 2", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_2))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
-                if (ImGui::RadioButton("Head 3", &d.configRemoteHead, crl::multisense::Remote_Head_3))
+                if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_3))
                     d.parameters.updateGuiParams = true;
-
             }
-
 
             ImGui::PushFont(handles->info->font18);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -981,6 +979,12 @@ private:
             ImGui::SameLine();
             ImGui::Text("Exposure");
             ImGui::PopFont();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLBlueIsh);
+            ImGui::SameLine(0, 135.0f);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
+            ImGui::Text("Hold left ctrl to type in values");
+            ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
             ImGui::Dummy(ImVec2(25.0f, 0.0f));
@@ -1101,7 +1105,6 @@ private:
                 ImGui::InputText("##decimalmaxY", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
                 ImGui::PopStyleColor();
 
-                ImGui::ShowDemoWindow();
             }
 
             // White Balance
@@ -1194,7 +1197,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txtEnableFlash = "Enable Flashing:";
+                std::string txtEnableFlash = "Enable Flash:";
                 ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
                 ImGui::Text("%s", txtEnableFlash.c_str());
                 ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
@@ -1347,7 +1350,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Save Calibration:";
+                txt = "Save:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);

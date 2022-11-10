@@ -344,8 +344,8 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             sampler = textureSamplers[tex.sampler];
         }
-        Texture2D texture2D(device);
-        texture2D.fromglTfImage(image, sampler, device, transferQueue);
+        //Texture2D texture2D(device);
+        //texture2D.fromglTfImage(image, sampler, device, transferQueue);
         //textures.push_back(texture2D);
     }
 
@@ -353,7 +353,7 @@ void glTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
 }
 
 void glTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
-    for (tinygltf::Material &mat: gltfModel.materials) {
+   /* for (tinygltf::Material &mat: gltfModel.materials) {
         glTFModel::Material material{};
         if (mat.values.find("baseColorTexture") != mat.values.end()) {
             material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
@@ -373,6 +373,7 @@ void glTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
 
         materials.push_back(material);
     }
+    */
 }
 
 VkSamplerAddressMode glTFModel::Model::getVkWrapMode(int32_t wrapMode) {

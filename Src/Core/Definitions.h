@@ -297,12 +297,11 @@ namespace VkRender {
         bool useImuData = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
-        int configRemoteHead = 0;
+        crl::multisense::RemoteHeadChannel configRemoteHead = 0;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
-        /** @brief Show a default preview with some selected streams*/
         bool systemNetworkChanged = false;
     };
 
@@ -441,7 +440,7 @@ namespace VkRender {
     static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
     static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
     static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
-    static const ImVec4 TextRedColor(0.95f, 0.045f, 0.041f, 1.0f);
+    static const ImVec4 TextRedColor(0.95f, 0.345f, 0.341f, 1.0f);
     static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
     static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);

@@ -3,6 +3,7 @@
 //
 
 #include "VulkanDevice.h"
+#include "MultiSense/Src/Tools/Logger.h"
 #include <MultiSense/Src/Tools/Macros.h>
 
 #include <utility>
@@ -220,19 +221,17 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
         deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.pNext = &physicalDeviceFeatures2;
     }
-
-
-
     // Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
     }
 
-
-    if (deviceExtensions.size() > 0) {
+    if (!deviceExtensions.empty()) {
         for (const char *enabledExtension: deviceExtensions) {
             if (!extensionSupported(enabledExtension)) {
                 std::cerr << "Enabled m_Device extension \"" << enabledExtension << "\" is not present at m_Device level\n";
+            } else {
+                Log::Logger::getInstance()->info("Enabled device extension: '{}'", enabledExtension);
             }
         }
 

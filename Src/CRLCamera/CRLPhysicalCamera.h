@@ -80,8 +80,12 @@ namespace VkRender::MultiSense {
         class ChannelWrapper {
         public:
             explicit ChannelWrapper(const std::string &ipAddress,
-                                    crl::multisense::RemoteHeadChannel remoteHeadChannel = -1) {
+                                    crl::multisense::RemoteHeadChannel remoteHeadChannel = -1, std::string ifName = "") {
+#ifdef __linux__
+                channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel, ifName);
+                #else
                 channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
+#endif
                 imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel);
             }
 
@@ -145,7 +149,7 @@ namespace VkRender::MultiSense {
              * @param[in] isRemoteHead If the m_Device is a remote head or not
              * @return vector containing the list of successful connections. Numbered by crl::multisense::RemoteHeadChannel ids
              */
-            std::vector<crl::multisense::RemoteHeadChannel> connect(const std::string &ip, bool isRemoteHead);
+            std::vector<crl::multisense::RemoteHeadChannel> connect(const std::string &ip, bool isRemoteHead, const std::string& ifName);
 
             /**@brief Starts the desired stream if supported
              *

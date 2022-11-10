@@ -146,7 +146,7 @@ public:
 
         auto &log = Log::Logger::getLogMetrics()->logQueue;
 
-        if (!log.empty()) {
+        while(!log.empty()){
             window.AddLog("%s\n", log.front().c_str());
             log.pop();
         }
@@ -293,6 +293,12 @@ public:
 
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
+
+            static bool showDemo = false;
+            ImGui::Checkbox("ShowDemo", &showDemo);
+            if (showDemo)
+                ImGui::ShowDemoWindow();
+
 
         }
         ImGui::EndChild();

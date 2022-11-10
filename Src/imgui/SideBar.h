@@ -38,12 +38,12 @@
 class SideBar : public VkRender::Layer {
 public:
 
-    // Create global object for convenience in other functions
-    AutoConnectHandle autoConnect{};
-    bool refreshAdapterList = true; // Set to true to find adapters on next call
-    std::vector<AutoConnect::Result> adapters;
-    std::vector<std::string> interfaceDescriptionList;
-    std::vector<uint32_t> indexList;
+    typedef enum LOG_COLOR {
+        LOG_COLOR_GRAY = 0,
+        LOG_COLOR_GREEN = 1,
+        LOG_COLOR_RED = 2
+    } LOG_COLOR;
+
 
     VkRender::EntryConnectDevice m_Entry;
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
@@ -58,22 +58,29 @@ public:
     std::string dots;
     bool btnConnect = false;
     bool btnAdd = false;
-    bool skipUserFriendlySleepDelay = false;
-    bool dontRunAutoConnect = false;
+
     bool enableConnectButton = true;
     enum {
         VIRTUAL_CONNECT = 0,
         MANUAL_CONNECT = 1,
         AUTO_CONNECT = 2
     };
+
+    // Create global object for convenience in other functions
+    AutoConnectHandle autoConnect{};
+    std::vector<AutoConnect::Result> adapters;
+    std::vector<std::string> interfaceDescriptionList;
+    std::vector<uint32_t> indexList;
+
     int connectMethodSelector = 3;
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
-    ImVector<int> colors;
+    ImVector<LOG_COLOR> colors;
     ImVec4 lastLogTextColor = VkRender::TextColorGray;
-
     uint32_t ethernetComboIndex = 0;
     size_t resultsComboIndex = -1;
+    bool btnRestartAutoConnect = false;
+    bool showRestartButton = false;
 
     void onAttach() override {
         autoConnect.setDetectedCallback(SideBar::onCameraDetected, this);
@@ -98,7 +105,8 @@ public:
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
+        window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLGray424Main);
@@ -122,7 +130,7 @@ public:
         ImGui::PopStyleVar(2);
     }
 
-    void AddLog(int color, const char *fmt, ...) IM_FMTARGS(3) {
+    void AddLog(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
         va_start(args, fmt);
@@ -138,26 +146,23 @@ public:
 
 
 private:
+    std::mutex logEventMutex{};
 
-
-    static void onEvent(std::string event, void *ctx, int color = 0) {
+    static void onEvent(const std::string &event, void *ctx, int color = 0) {
         auto *app = static_cast<SideBar *>(ctx);
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        std::scoped_lock<std::mutex> lock(app->logEventMutex);
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
-        if (!app->skipUserFriendlySleepDelay) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(400));
-        }
         if (event == "Finished") {
-            app->autoConnect.setShouldProgramClose(true);
-            app->dontRunAutoConnect = true;
+            app->autoConnect.setShouldProgramRun(false);
+            app->showRestartButton = true;
         }
-        app->AddLog(color, "[INFO] %s\n", event.c_str());
+        app->AddLog((LOG_COLOR) color, "[INFO] %s\n", event.c_str());
     }
 
     static void onCameraDetected(AutoConnect::Result res, void *ctx) {
         auto *app = static_cast<SideBar *>(ctx);
-
-
         crl::multisense::system::DeviceInfo info;
         crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
         if (status == crl::multisense::Status_Ok) {
@@ -166,13 +171,13 @@ private:
                     res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
                     info.name.c_str());
 
-            bool ipExists = false;
+            // Same IP on same adapter is treated as the same camera
+            bool cameraExists = false;
             for (const auto &e: app->entryConnectDeviceList) {
-                if (e.IP == res.cameraIpv4Address)
-                    ipExists = true;
+                if (e.IP == res.cameraIpv4Address && e.interfaceIndex == res.index)
+                    cameraExists = true;
             }
-
-            if (!ipExists) {
+            if (!cameraExists) {
                 VkRender::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
                                                    res.description};
                 app->entryConnectDeviceList.push_back(entry);
@@ -180,10 +185,7 @@ private:
             }
         } else {
             Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
-
         }
-
-
     }
 
     /**@brief Function to manage Auto connect with GUI updates
@@ -193,71 +195,46 @@ private:
      * - The GUI
      * */
     void autoDetectCamera() {
-        // If this method is not selected, and it is running then, run it otherwise stop it.
-        // If already running just check if we should close it before opening it again.
-        if ((autoConnect.shouldProgramClose() && autoConnect.running) ||
-            (connectMethodSelector != AUTO_CONNECT && autoConnect.running)) {
-            autoConnect.stop();
-            Log::Logger::getInstance()->info("Stopping Auto connect");
-        }
-
-        // Reset this variable by re-selecting auto connect button
-        // Also clear the searched adapter which will start a new search once the auto connect tab is selected again
-        if (connectMethodSelector != AUTO_CONNECT) {
-            dontRunAutoConnect = false;
+        autoConnect.startAdapterSearch();
+        // Just stop auto connect if we haven't selected it
+        if ((connectMethodSelector != AUTO_CONNECT)) {
+            autoConnect.stopAutoConnect();
             autoConnect.clearSearchedAdapters();
+            return;
         }
 
-
-        // Dont run this feature if we have not selected it in gui
-        if (connectMethodSelector != AUTO_CONNECT || autoConnect.running || dontRunAutoConnect)
+        // If we are already running it dont restart it
+        if (autoConnect.isRunning())
             return;
 
+        // If we are already run auto connect, it finished Wait for user input before proceeding and restarting
+        if (!autoConnect.isRunning() && (!btnRestartAutoConnect && showRestartButton))
+            return;
+        else
+            btnRestartAutoConnect = false;
+
+
+        /* Reset Logging variables */
         Buf.clear();
         LineOffsets.clear();
         LineOffsets.push_back(0);
         colors.clear();
-        colors.push_back(0);
+        colors.push_back(LOG_COLOR_GRAY); // default color
 
-        AddLog(0, "Auto detection service log\n");
-
-
+        AddLog(LOG_COLOR_GRAY, "Auto detection service log\n");
         // Check for root privileges before launching
         bool notAdmin = elevated();
         if (notAdmin) {
-            Log::Logger::getInstance()->info(
-                    "Program is not run as root. This is required to use the auto connect feature");
-            AddLog(2, "Admin privileges is required to run the Auto-Connect feature");
-
+            AddLog(LOG_COLOR_RED, "Admin privileges is required to run the Auto-Connect feature");
             return;
         }
 
         Log::Logger::getInstance()->info("Start looking for ethernet adapters");
 
-        skipUserFriendlySleepDelay = true;
-        std::vector<AutoConnect::Result> res = autoConnect.findEthernetAdapters(false, false);
-        skipUserFriendlySleepDelay = false;
+        autoConnect.start();
 
-        bool foundSupportedAdapter = false;
-        bool foundSearchedAdapter = false;
-        for (const auto &r: res) {
-            if (r.supports)
-                foundSupportedAdapter = true;
+        //AddLog(LOG_COLOR_RED, "Did not find supported network adapters");
 
-            if (r.searched)
-                foundSearchedAdapter = true;
-        }
-
-        if (foundSupportedAdapter)
-            autoConnect.start(res);
-        else
-            AddLog(2, "Did not find supported network adapters");
-
-        // Clear list if we suddenly dont find supported adapters or searched adapters.
-        if (!foundSearchedAdapter && !foundSupportedAdapter) {
-            entryConnectDeviceList.clear();
-            refreshAdapterList = true;
-        }
 
     }
 
@@ -448,7 +425,7 @@ private:
                                           ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2)) && !busy;
             }
             auto time = std::chrono::steady_clock::now();
-            std::chrono::duration<float> time_span =
+            auto time_span =
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
 
             if (time_span.count() > ((float) *handles->info->gif.delay) / 1000.0f) {
@@ -591,20 +568,20 @@ private:
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
                 m_Entry.cameraName = "AutoConnect";
-
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Text("Status:");
-                if (dontRunAutoConnect) {
+                if (showRestartButton) {
                     ImGui::SameLine(0, 15.0f);
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
-
-                    if (ImGui::SmallButton("Restart?")) {
-                        dontRunAutoConnect = false;
+                    btnRestartAutoConnect = ImGui::SmallButton("Restart?");
+                    if (btnRestartAutoConnect) {
                         entryConnectDeviceList.clear();
                         autoConnect.clearSearchedAdapters();
                         m_Entry.reset();
+                        autoConnect.stopAutoConnect();
+                        showRestartButton = false;
                     }
                     ImGui::PopStyleColor();
                 }
@@ -614,16 +591,18 @@ private:
                 /** STATUS SPINNER */
                 // Create child window regardless of gif spinner state in order to keep cursor m_Position constant
                 ImGui::BeginChild("Gif viewer", ImVec2(40.0f, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-                if (autoConnect.running)
+                if (autoConnect.isRunning())
                     addSpinnerGif(handles);
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLBlueIsh);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
                                   " 1. Reconnect ethernet cables \n "
                                   " 2. Power cycle the camera \n "
                                   " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
+                ImGui::PopStyleColor();
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLDarkGray425);
                 const char *id = "Log Window";
@@ -643,16 +622,19 @@ private:
                                                                                 : buf_end;
                         // Weird index magic. colors is an ImGui vector.
                         if (line_no > 0 && line_no < colors.size() - 1) {
-                            int col = colors[line_no + 1];
+                            LOG_COLOR col = colors[line_no + 1];
                             switch (col) {
-                                case 0:
+                                case LOG_COLOR_GRAY:
                                     lastLogTextColor = VkRender::TextColorGray;
                                     break;
-                                case 1:
+                                case LOG_COLOR_GREEN:
                                     lastLogTextColor = VkRender::TextGreenColor;
                                     break;
-                                case 2:
+                                case LOG_COLOR_RED:
                                     lastLogTextColor = VkRender::TextRedColor;
+                                    break;
+                                default:
+                                    lastLogTextColor = VkRender::TextColorGray;
                                     break;
                             }
                         }
@@ -680,19 +662,19 @@ private:
                 std::chrono::duration<float> time_span =
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
 
-                if (time_span.count() > 0.35f && autoConnect.running) {
+                if (time_span.count() > 0.35f && autoConnect.isRunning()) {
                     searchingTextAnimTimer = std::chrono::steady_clock::now();
                     dots.append(".");
 
                     if (dots.size() > 4)
                         dots.clear();
 
-                } else if (!autoConnect.running)
+                } else if (!autoConnect.isRunning())
                     dots = ".";
 
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
 
-                if (entryConnectDeviceList.empty() && autoConnect.running) {
+                if (entryConnectDeviceList.empty() && autoConnect.isRunning()) {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
                 } else if (entryConnectDeviceList.empty())
                     ImGui::Text("Searching...");
@@ -781,8 +763,10 @@ private:
                                 time - searchNewAdaptersManualConnectTimer);
                 if (time_span.count() > ONE_SECOND) {
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-                    adapters = autoConnect.findEthernetAdapters(false,
-                                                                true); // Don't log it but dont ignore searched adapters
+                    {
+                        std::scoped_lock<std::mutex> lock(autoConnect.readSupportedAdaptersMutex);
+                        adapters = autoConnect.supportedAdapters;
+                    }
                     interfaceDescriptionList.clear();
                     indexList.clear();
                 }
@@ -885,12 +869,14 @@ private:
 
             if (btnCancel) {
                 ImGui::CloseCurrentPopup();
-                autoConnect.stop();
+                autoConnect.m_RunAdapterSearch = false;
+                autoConnect.stopAutoConnect();
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
+                autoConnect.m_RunAdapterSearch = false;
             }
 
             ImGui::EndPopup();

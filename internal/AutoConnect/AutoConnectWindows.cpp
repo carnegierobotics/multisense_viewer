@@ -283,6 +283,13 @@ void AutoConnectWindows::run(void *ctx) {
             app->m_EventCallback("Running adapter search", app->m_Context, 0);
             adapters.clear();
             app->findEthernetAdapters(ctx, true, false, &adapters);
+            if (adapters.empty())
+            {
+                app->m_EventCallback("No adapters found", app->m_Context, 2);
+                app->m_EventCallback("Finished", app->m_Context, 0); // This nessage actually sends a stop call to the gui
+                break;
+            }
+
             bool testedAllAdapters = !app->m_IgnoreAdapters.empty();
             for (auto &a: adapters) {
                 for (const auto &ignore: app->m_IgnoreAdapters) {
@@ -295,15 +302,15 @@ void AutoConnectWindows::run(void *ctx) {
             if (testedAllAdapters) {
                 app->m_EventCallback(adapters.empty() ? "No adapters found" : "No other adapters found", app->m_Context,
                                      0);
-                app->m_EventCallback("Finished", app->m_Context, 0);
+                app->m_EventCallback("Finished", app->m_Context, 0); // This nessage actually sends a stop call to the gui
                 break;
             }
         }
 
         Result adapter{};
-        {
-            adapter = adapters[i];
-        }
+        
+        adapter = adapters[i];
+        
 
         if (!adapter.supports) {
             continue;
@@ -399,7 +406,8 @@ void AutoConnectWindows::run(void *ctx) {
 
             /* retireve the position of the ip header */
             auto *ih = (iphdr *) (pkt_data + 14); //length of ethernet header
-
+            if (!ih)
+                continue;
             char ips[255];
             //std::string ips;
             sprintf(ips, "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,

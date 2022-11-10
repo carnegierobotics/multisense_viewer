@@ -13,6 +13,26 @@ class AutoConnectLinux : AutoConnect{
 
 public:
 
+    ~AutoConnectLinux() {
+        m_LoopAdapters = false;
+        m_ListenOnAdapter = false;
+        m_ShouldProgramRun = false;
+        m_RunAdapterSearch = false;
+
+        if (m_TAutoConnect != nullptr) {
+            m_TAutoConnect->join();
+            delete m_TAutoConnect;
+            shutdownT1Ready = false;
+            m_TAutoConnect = nullptr;
+        }
+        if (m_TAdapterSearch != nullptr) {
+            m_TAdapterSearch->join();
+            delete m_TAdapterSearch;
+            shutdownT2Ready = false;
+            m_TAdapterSearch = nullptr;
+        }
+    }
+
     /**
      * @Brief Starts the search for camera given a list containing network adapters Search is done in another thread
     * @param vector

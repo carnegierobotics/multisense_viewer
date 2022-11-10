@@ -23,6 +23,7 @@ public:
         NO_CAMERA = 2
     };
 
+
     struct Result {
         Result() = default;
 

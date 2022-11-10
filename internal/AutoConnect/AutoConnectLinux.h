@@ -8,6 +8,7 @@
 
 #include <thread>
 #include "AutoConnect.h"
+#include <mutex>
 
 class AutoConnectLinux : AutoConnect{
 

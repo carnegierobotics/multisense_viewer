@@ -23,6 +23,17 @@
 
 namespace VkRender {
 
+    const char* ImGuiGlfwGetClipboardText(void* user_data)
+    {
+        const char* str = glfwGetClipboardString((GLFWwindow*)user_data);
+        return str;
+    }
+
+    void ImGuiGlfwSetClipboardText(void* user_data, const char* text)
+    {
+        glfwSetClipboardString((GLFWwindow*)user_data, text);
+    }
+
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
                            const uint32_t &height) {
         device = vulkanDevice;
@@ -31,6 +42,8 @@ namespace VkRender {
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "GuiManager";
+        ImGui::GetIO().GetClipboardTextFn = ImGuiGlfwGetClipboardText;
+        ImGui::GetIO().SetClipboardTextFn = ImGuiGlfwSetClipboardText;
 
         initializeFonts();
 

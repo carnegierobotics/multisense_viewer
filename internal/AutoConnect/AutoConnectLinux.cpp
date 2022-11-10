@@ -125,7 +125,6 @@ void AutoConnectLinux::run(void *ctx) {
 
         Result adapter{};
         {
-            std::scoped_lock<std::mutex> lock(app->readSupportedAdaptersMutex);
             adapter = adapters[i];
         }
         // If it doesn't support a camera then dont loop it
@@ -282,10 +281,7 @@ void AutoConnectLinux::run(void *ctx) {
 }
 
 void AutoConnectLinux::onFoundAdapters(std::vector<Result> adapters, bool logEvent) {
-    for (auto &adapter: adapters) {
-        if (adapter.supports && !adapter.searched) {
-        }
-    }
+
 }
 
 AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Result adapter, int camera_fd) {

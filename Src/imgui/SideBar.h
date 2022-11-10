@@ -144,14 +144,14 @@ public:
 
 
 private:
-
+    std::mutex logEventMutex{};
 
     static void onEvent(const std::string &event, void *ctx, int color = 0) {
         auto *app = static_cast<SideBar *>(ctx);
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        std::scoped_lock<std::mutex> lock(app->logEventMutex);
         // added a delay for user-friendliness. Also works great cause switching colors should be done on main thread
         // but Push/Pop style works here because of the delay.
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
-
         if (event == "Finished") {
             app->autoConnect.setShouldProgramRun(false);
             app->showRestartButton = true;
@@ -193,9 +193,10 @@ private:
      * - The GUI
      * */
     void autoDetectCamera() {
+        autoConnect.startAdapterSearch();
         // Just stop auto connect if we haven't selected it
         if ((connectMethodSelector != AUTO_CONNECT)) {
-            autoConnect.stop();
+            autoConnect.stopAutoConnect();
             autoConnect.clearSearchedAdapters();
             return;
         }
@@ -228,28 +229,10 @@ private:
 
         Log::Logger::getInstance()->info("Start looking for ethernet adapters");
 
-        bool logThisEvent = false, skipSearchedAdapters = false;
-        std::vector<AutoConnect::Result> res = autoConnect.findEthernetAdapters(logThisEvent, skipSearchedAdapters);
+        autoConnect.start();
 
-        bool foundSupportedAdapter = false;
-        bool foundSearchedAdapter = false;
-        for (const auto &r: res) {
-            if (r.supports)
-                foundSupportedAdapter = true;
+        //AddLog(LOG_COLOR_RED, "Did not find supported network adapters");
 
-            if (r.searched)
-                foundSearchedAdapter = true;
-        }
-
-        if (foundSupportedAdapter)
-            autoConnect.start(res);
-        else
-            AddLog(LOG_COLOR_RED, "Did not find supported network adapters");
-
-        // Clear list if we don't find any supported adapters or searched adapters.
-        if (!foundSearchedAdapter && !foundSupportedAdapter) {
-            entryConnectDeviceList.clear();
-        }
 
     }
 
@@ -777,8 +760,10 @@ private:
                                 time - searchNewAdaptersManualConnectTimer);
                 if (time_span.count() > ONE_SECOND) {
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-                    adapters = autoConnect.findEthernetAdapters(false,
-                                                                true); // Don't log it but dont ignore searched adapters
+                    {
+                        std::scoped_lock<std::mutex> lock(autoConnect.readSupportedAdaptersMutex);
+                        adapters = autoConnect.supportedAdapters;
+                    }
                     interfaceDescriptionList.clear();
                     indexList.clear();
                 }
@@ -881,12 +866,14 @@ private:
 
             if (btnCancel) {
                 ImGui::CloseCurrentPopup();
-                autoConnect.stop();
+                autoConnect.m_RunAdapterSearch = false;
+                autoConnect.stopAutoConnect();
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
+                autoConnect.m_RunAdapterSearch = false;
             }
 
             ImGui::EndPopup();

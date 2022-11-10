@@ -174,7 +174,7 @@ AutoConnectWindows::findEthernetAdapters(bool logEvent, bool skipIgnored) {
 	return adapters;
 }
 
-void AutoConnectWindows::start(std::vector<Result> adapters) {
+void AutoConnectWindows::start() {
 	m_LoopAdapters = true;
 	m_ListenOnAdapter = true;
 	m_ShouldProgramRun = true;
@@ -266,7 +266,7 @@ void AutoConnectWindows::onFoundCamera() {
 	crl::multisense::Channel::Destroy(cameraInterface);
 }
 
-void AutoConnectWindows::stop() {
+void AutoConnectWindows::stopAutoConnect() {
 	m_LoopAdapters = false;
 	m_ListenOnAdapter = false;
 	m_ShouldProgramRun = false;

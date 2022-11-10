@@ -283,14 +283,14 @@ void AutoConnectWindows::run(void *ctx) {
             app->m_EventCallback("Running adapter search", app->m_Context, 0);
             adapters.clear();
             app->findEthernetAdapters(ctx, true, false, &adapters);
-            bool testedAllAdapters = true;
-            for (const auto &a: adapters) {
-                if (app->m_IgnoreAdapters.empty())
-                    testedAllAdapters = false;
+            bool testedAllAdapters = !app->m_IgnoreAdapters.empty();
+            for (auto &a: adapters) {
                 for (const auto &ignore: app->m_IgnoreAdapters) {
-                    if (a.supports && !a.searched && a.networkAdapter != ignore.networkAdapter)
-                        testedAllAdapters = false;
+                    if (ignore.networkAdapter == a.networkAdapter)
+                        a.searched = true;
                 }
+                if (!a.searched)
+                    testedAllAdapters = false;
             }
             if (testedAllAdapters) {
                 app->m_EventCallback(adapters.empty() ? "No adapters found" : "No other adapters found", app->m_Context,

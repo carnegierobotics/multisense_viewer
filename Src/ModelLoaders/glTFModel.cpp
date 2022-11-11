@@ -478,7 +478,6 @@ glTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount) {
 }
 
 void glTFModel::Model::createDescriptorSetLayout() {
-
     // TODO BETTER SELECTION PROCESS
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
@@ -508,13 +507,10 @@ void glTFModel::Model::createDescriptorSetLayout() {
 
 void glTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
     descriptors.resize(count);
-
     // Check for how many m_Image descriptors
-
     /**
      * Create Descriptor Pool
      */
-
     uint32_t uniformDescriptorCount = (3 * count + (uint32_t)nodes.size());
     uint32_t imageDescriptorSamplerCount = (3 * count * 3);
     std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -525,8 +521,6 @@ void glTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRen
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
         static_cast<uint32_t>(count + nodes.size()));
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-
-
     /**
      * Create Descriptor Sets
      */
@@ -561,6 +555,86 @@ void glTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRen
         writeDescriptorSets[2].dstSet = descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
+
+        vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                               writeDescriptorSets.data(), 0, NULL);
+    }
+
+
+    // Model node (matrices)
+    {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        };
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+        descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+        descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+        CHECK_RESULT(
+                vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                            &descriptorSetLayoutNode));
+
+        // Per-Node m_Descriptor set
+        for (auto &node: nodes) {
+            setupNodeDescriptorSet(node);
+        }
+    }
+
+}
+
+void glTFModel::Model::createDescriptorSetLayoutAdditionalBuffers() {
+    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+    };
+
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+    descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+    descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout))
+}
+
+void glTFModel::Model::createDescriptorsAdditionalBuffers(const std::vector<VkRender::RenderDescriptorBuffersData> &ubo) {
+    descriptors.resize(ubo.size());
+    // Check for how many m_Image descriptors
+    /**
+     * Create Descriptor Pool
+     */
+    uint32_t uniformDescriptorCount = (2 * ubo.size() + (uint32_t)nodes.size());
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount}
+    };
+    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
+                                                                                   static_cast<uint32_t>(ubo.size() + nodes.size()));
+    CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+    /**
+     * Create Descriptor Sets
+     */
+    for (size_t i = 0; i < descriptors.size(); i++) {
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorSetCount = 1;
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(2);
+
+        writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[0].descriptorCount = 1;
+        writeDescriptorSets[0].dstSet = descriptors[i];
+        writeDescriptorSets[0].dstBinding = 0;
+        writeDescriptorSets[0].pBufferInfo = &ubo[i].mvp.m_DescriptorBufferInfo;
+
+        writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[1].descriptorCount = 1;
+        writeDescriptorSets[1].dstSet = descriptors[i];
+        writeDescriptorSets[1].dstBinding = 1;
+        writeDescriptorSets[1].pBufferInfo = &ubo[i].light.m_DescriptorBufferInfo;
 
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -713,6 +787,16 @@ void glTFModel::Model::createRenderPipeline(const VkRender::RenderUtils& utils, 
     createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     createPipeline(*utils.renderPass, shaders);
+}
+
+void glTFModel::Model::createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders, const std::vector<VkRender::RenderDescriptorBuffersData>& buffers, ScriptType flags) {
+    this->vulkanDevice = utils.device;
+    if (flags == AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS){
+        createDescriptorSetLayoutAdditionalBuffers();
+        createDescriptorsAdditionalBuffers(buffers);
+        createPipeline(*utils.renderPass, shaders);
+    }
+
 }
 
 glTFModel::Model::~Model() {

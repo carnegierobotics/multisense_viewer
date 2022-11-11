@@ -8,6 +8,7 @@
 
 
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
+#include <opencv2/stereo.hpp>
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/VO/Features/VisualOdometry.h"
 #include "MultiSense/Src/ModelLoaders/glTFModel.h"
@@ -57,11 +58,12 @@ public:
     cv::Mat m_PLeft, m_PRight;
 
     size_t id = 0;
-    size_t frame = 150;
+    size_t frame = 2200;
     cv::Mat m_Rotation;
     glm::mat4 m_RotationMat;
     glm::mat4 m_TranslationMat;
     cv::Mat m_Translation;
+    cv::Mat m_RotVec;
     cv::Mat m_Pose;
     cv::Mat m_Trajectory;
 
@@ -77,6 +79,9 @@ public:
     std::vector<gtPos> gtPositions{};
     FeatureSet featureSet{};
     void fromCV2GLM(const cv::Mat &cvmat, glm::mat4 *glmmat);
+    cv::Ptr<cv::StereoSGBM> sgbm;
+
+    cv::Ptr<cv::ORB> orb;
 };
 
 

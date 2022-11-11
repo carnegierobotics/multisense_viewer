@@ -203,7 +203,7 @@ namespace VkRender {
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
         VkShaderModule vtxModule{};
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
+        Utils::loadShader((Utils::getShadersPath() + "Scene/imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -213,7 +213,7 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath() + "imgui/ui.frag.spv").c_str(), device->m_LogicalDevice, &frgModule);
+        Utils::loadShader((Utils::getShadersPath() + "Scene/imgui/ui.frag.spv").c_str(), device->m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;

@@ -58,6 +58,9 @@ public:
 
     std::vector<gtPos> gtPositions{};
 
+    std::vector<std::unique_ptr<glTFModel::Model>> m_Traces;
+
+
     double findClosest(const std::vector<gtPos>& arr, size_t n, double target);
 
     double getClosest(double val1, double val2, double target);

@@ -6,6 +6,8 @@
 #include "opencv2/opencv.hpp"
 #include "MultiSense/Src/VO/LazyCSV.h"
 #include <glm/gtx/string_cast.hpp>
+#include <opencv2/stereo.hpp>
+
 
 void SLAM::setup() {
     // Prepare a model for drawing a texture onto
@@ -24,9 +26,9 @@ void SLAM::setup() {
 
     // Load t0 Images
     GSlam::parseAndSortFileNames(&leftFileNames, &rightFileNames, &depthFileNames);
-    cv::Mat leftImg = cv::imread(leftFileNames[0], cv::IMREAD_GRAYSCALE);
-    cv::Mat depthImg = cv::imread(depthFileNames[0], cv::IMREAD_ANYDEPTH);
-    cv::Mat rightImg = cv::imread(rightFileNames[0], cv::IMREAD_GRAYSCALE);
+    cv::Mat leftImg = cv::imread(leftFileNames[frame], cv::IMREAD_GRAYSCALE);
+    cv::Mat depthImg = cv::imread(depthFileNames[frame], cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
+    cv::Mat rightImg = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
     m_FeatureLeftMap.push(GSlam::getFeatures(leftImg));
     m_FeatureRightMap.push(GSlam::getFeatures(rightImg));
     m_LImageQ.push(leftImg);
@@ -52,20 +54,23 @@ void SLAM::setup() {
 
     m_Rotation = cv::Mat::eye(3, 3, CV_64F);
     m_Translation = cv::Mat::zeros(3, 1, CV_64F);
-    m_Pose = cv::Mat::eye(4, 4, CV_64F);
-    m_Pose.at<double>(0, 3) = 0.8639;
-    m_Pose.at<double>(1, 3) = -2.6455;
-    m_Pose.at<double>(2, 3) = -0.4172;
+    m_RotVec = cv::Mat::zeros(3, 1, CV_64F);
+
     m_RotationMat = glm::mat4(1.0f);
-    m_TranslationMat = glm::translate(glm::mat4(1.0f), glm::vec3( 0.8639f, -0.4172f, 2.6455f));
+    //m_TranslationMat = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    m_TranslationMat = glm::translate(glm::mat4(1.0f), glm::vec3(-2.67f, 0.396f, 4.400f));
+
     m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
 
     sharedData->destination = "GroundTruthModel";
+
+    orb = cv::ORB::create();
+
 }
 
 void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (b)
-    m_Model->draw(commandBuffer, i);
+        m_Model->draw(commandBuffer, i);
 }
 
 void SLAM::update() {
@@ -78,9 +83,7 @@ void SLAM::update() {
 
     cv::Mat leftImg = cv::imread(leftFileNames[frame], cv::IMREAD_GRAYSCALE);
     cv::Mat rightImg = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
-
-
-
+    //cv::Mat depth = cv::imread(depthFileNames[frame], cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
 
 
     if (featureSet.points.size() < 4000) {
@@ -90,8 +93,6 @@ void SLAM::update() {
         std::vector<int> ages_new(points_new.size(), 0);
         featureSet.ages.insert(featureSet.ages.end(), ages_new.begin(), ages_new.end());
     }
-
-
 
     std::vector<cv::Point2f> pointsLeft_t0, pointsRight_t0;
     std::vector<cv::Point2f> pointsLeft_t1, pointsRight_t1;
@@ -104,16 +105,10 @@ void SLAM::update() {
     bucketingFeatures(m_LImageQ.front(), featureSet, bucket_size, features_per_bucket);
 
     /** Discard points that are far away from the sensor **/
-    FeatureSet goodFeatureSet{};
-    goodFeatureSet.points.reserve(500);
-    int saved = 0;
     pointsLeft_t0 = featureSet.points;
-
 
     cv::Mat imageLeftColor_t1;
     cv::cvtColor(m_LImageQ.front(), imageLeftColor_t1, cv::COLOR_GRAY2BGR, 3);
-
-    cv::Mat mask = cv::Mat::zeros(imageLeftColor_t1.size(), imageLeftColor_t1.type());
 
     std::vector<cv::Point2f> pointsLeftReturn_t0;   // feature points to check cicular mathcing validation
     // --------------------------------------------------------
@@ -139,7 +134,7 @@ void SLAM::update() {
 
     featureSet.points = pointsLeft_t1;
 
-    if (featureSet.points.size() < 50){
+    if (featureSet.points.size() < 50) {
         m_LImageQ.push(leftImg);
         m_RImageQ.push(rightImg);
 
@@ -157,7 +152,7 @@ void SLAM::update() {
     // ------------------------------------------------
     // Translation (t) estimation by use solvePnPRansac
     // ------------------------------------------------
-    cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);
+    cv::Mat distCoeffs = (cv::Mat_<float>(5, 1) << -0.197412f, 0.236726f, 0.0, 0.0, 0.0);
     cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
 
     cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) <<
@@ -167,50 +162,46 @@ void SLAM::update() {
             m_PLeft.at<float>(1, 0), m_PLeft.at<float>(1, 1), m_PLeft.at<float>(1, 2),
             m_PLeft.at<float>(2, 0), m_PLeft.at<float>(2, 1), m_PLeft.at<float>(2, 2));
 
-    int iterationsCount = 10000;        // number of Ransac iterations.
-    float reprojectionError = .2;    // maximum allowed distance to consider it an inlier.
+    int iterationsCount = 2000;        // number of Ransac iterations.
+    float reprojectionError = .1;    // maximum allowed distance to consider it an inlier.
     float confidence = 0.999;          // RANSAC successful confidence.
-    bool useExtrinsicGuess = false;
+    bool useExtrinsicGuess = true;
     int flags = cv::SOLVEPNP_P3P;
 
 
     cv::Mat inliers;
-    cv::solvePnPRansac(points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, rvec, m_Translation,
+    cv::solvePnPRansac(points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, m_RotVec, m_Translation,
                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                        inliers, flags);
 
     displayTracking(leftImg, pointsLeft_t0, pointsLeft_t1);
 
-    float length = (float) cv::norm(rvec);
-    glm::vec3 rotVector(rvec.at<double>(0), rvec.at<double>(1), rvec.at<double>(2));
+    float length = (float) cv::norm(m_RotVec);
+    glm::vec3 rotVector(m_RotVec.at<double>(0), -m_RotVec.at<double>(1), -m_RotVec.at<double>(2));
 
     cv::Mat data = m_Rotation.t();
 
     m_RotationMat = glm::rotate(m_RotationMat, length, rotVector);
-    m_TranslationMat = glm::translate(m_TranslationMat,  glm::vec3(m_Translation.at<double>(1), m_Translation.at<double>(2), -m_Translation.at<double>(0)));
+    m_TranslationMat = glm::translate(m_TranslationMat,
+                                      glm::vec3(m_Translation.at<double>(0), -m_Translation.at<double>(1),
+                                                -m_Translation.at<double>(2)));
+    cv::waitKey(1);
 
+    id++;
+    frame++;
+    m_LImageQ.push(leftImg);
+    m_RImageQ.push(rightImg);
+    m_LImageQ.pop();
+    m_RImageQ.pop();
 
 
     std::cout << "Inliners: " << inliers.rows << std::endl;
     std::cout << glm::to_string(m_TranslationMat) << std::endl;
     std::cout << glm::to_string(m_RotationMat) << std::endl << std::endl;
 
-    //printf("xyz: (%f, %f, %f)\n", float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
-    //std::cout << m_Rotation << std::endl;
-    //std::cout << m_Pose << std::endl;
-    //int x = int(xyz.at<double>(0)) * 100 + 600;
-    //int z = int(xyz.at<double>(2)) * 100 + 300;
-    //circle(m_Trajectory, cv::Point(x, z), 1, CV_RGB(255, 0, 0), 2);
-    // rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
-    // sprintf(text, "FPS: %02f", fps);
-    // putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
-    //cv::imshow("Trajectory", m_Trajectory);
-    //cv::imshow("matches", img_matches1);
-    cv::waitKey(1);
 
     VkRender::UBOMatrix mat{};
     mat.model = m_TranslationMat * m_RotationMat;
-
     auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
@@ -221,15 +212,6 @@ void SLAM::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
-
-    id++;
-    frame++;
-
-    m_LImageQ.push(leftImg);
-    m_RImageQ.push(rightImg);
-
-    m_LImageQ.pop();
-    m_RImageQ.pop();
 
 }
 
@@ -242,7 +224,7 @@ void SLAM::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     }
 }
 
-void SLAM::fromCV2GLM(const cv::Mat& cvmat, glm::mat4* glmmat) {
+void SLAM::fromCV2GLM(const cv::Mat &cvmat, glm::mat4 *glmmat) {
     if (cvmat.cols != 4 || cvmat.rows != 4 || cvmat.type() != CV_32FC1) {
         std::cout << "Matrix conversion error!" << std::endl;
         return;

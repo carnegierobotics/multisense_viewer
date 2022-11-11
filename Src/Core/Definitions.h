@@ -46,7 +46,8 @@ typedef enum ScriptType {
     /**
      * Draw script since first frame
      */
-    AR_SCRIPT_TYPE_RENDER
+    AR_SCRIPT_TYPE_RENDER,
+    AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS
 } ScriptType;
 
 

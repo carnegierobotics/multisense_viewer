@@ -9,9 +9,9 @@
 
 void GroundTruthModel::setup() {
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("myScene/spv/box.frag",
+                                                            {loadShader("Scene/spv/box.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     m_TruthModel = std::make_unique<glTFModel::Model>(renderUtils.device);
@@ -45,6 +45,7 @@ void GroundTruthModel::setup() {
         }
     }
 
+    requestAdditionalBuffers(10);
 
 }
 

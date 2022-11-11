@@ -88,8 +88,8 @@ void One::update() {
 void One::prepareDefaultTexture() {
     noImageModel->modelType = AR_COLOR_IMAGE;
     noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
-    std::string vertexShaderFileName = "myScene/spv/quad.vert";
-    std::string fragmentShaderFileName = "myScene/spv/quad.frag";
+    std::string vertexShaderFileName = "Scene/spv/quad.vert";
+    std::string fragmentShaderFileName = "Scene/spv/quad.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};
@@ -107,17 +107,17 @@ void One::prepareMultiSenseTexture() {
     std::string fragmentShaderFileName;
     switch (textureType) {
         case AR_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "myScene/spv/preview.vert";
-            fragmentShaderFileName = "myScene/spv/preview.frag";
+            vertexShaderFileName = "Scene/spv/preview.vert";
+            fragmentShaderFileName = "Scene/spv/preview.frag";
             break;
         case AR_COLOR_IMAGE_YUV420:
         case AR_YUV_PLANAR_FRAME:
-            vertexShaderFileName = "myScene/spv/quad.vert";
-            fragmentShaderFileName = "myScene/spv/quad.frag";
+            vertexShaderFileName = "Scene/spv/quad.vert";
+            fragmentShaderFileName = "Scene/spv/quad.frag";
             break;
         case AR_DISPARITY_IMAGE:
-            vertexShaderFileName = "myScene/spv/depth.vert";
-            fragmentShaderFileName = "myScene/spv/depth.frag";
+            vertexShaderFileName = "Scene/spv/depth.vert";
+            fragmentShaderFileName = "Scene/spv/depth.frag";
             break;
         default:
             return;

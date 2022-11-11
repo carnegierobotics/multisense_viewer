@@ -48,10 +48,11 @@ public:
     std::vector<std::string> rightFileNames;
     std::vector<std::string> depthFileNames;
 
-    std::map<size_t, GSlam::FeatureSet> m_FeatureLeftMap{}, m_FeatureRightMap{};
-    std::map<size_t, cv::Mat> m_LMap{};
-    std::map<size_t, cv::Mat> m_RMap{};
-    std::map<size_t, cv::Mat> m_DMap{};
+    std::queue<GSlam::FeatureSet> m_FeatureLeftMap;
+    std::queue<GSlam::FeatureSet> m_FeatureRightMap;
+
+    std::queue<cv::Mat> m_LImageQ;
+    std::queue<cv::Mat> m_RImageQ;
 
     cv::Mat m_PLeft, m_PRight;
 
@@ -74,7 +75,7 @@ public:
 
     VkRender::Shared shared;
     std::vector<gtPos> gtPositions{};
-
+    FeatureSet featureSet{};
     void fromCV2GLM(const cv::Mat &cvmat, glm::mat4 *glmmat);
 };
 

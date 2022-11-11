@@ -5,6 +5,7 @@
 #include "SLAM.h"
 #include "opencv2/opencv.hpp"
 #include "MultiSense/Src/VO/LazyCSV.h"
+#include <glm/gtx/string_cast.hpp>
 
 void SLAM::setup() {
     // Prepare a model for drawing a texture onto
@@ -49,14 +50,14 @@ void SLAM::setup() {
     cy = 386.0;
     m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, -78.045330571, 0., fy, cy, 0., 0, 0., 1., 0.);
 
-    m_Rotation = cv::Mat::eye(3, 3, CV_64F);
-    m_Translation = cv::Mat::zeros(3, 1, CV_64F);
-    m_Pose = cv::Mat::eye(4, 4, CV_64F);
+    m_Rotation = cv::Mat::eye(3, 3, CV_32F);
+    m_Translation = cv::Mat::zeros(3, 1, CV_32F);
+    m_Pose = cv::Mat::eye(4, 4, CV_32F);
     m_Pose.at<double>(0, 3) = 0.8639;
     m_Pose.at<double>(1, 3) = -2.6455;
     m_Pose.at<double>(2, 3) = -0.4172;
-    std::cout << "frame_pose " << m_Pose << std::endl;
-
+    m_RotationMat = glm::mat4(1.0f);
+    m_TranslationMat = glm::mat4(1.0f);
     m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
     lazycsv::parser parser{"../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv"};
 
@@ -136,35 +137,23 @@ void SLAM::update() {
                        useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                        inliers, flags);
 
-    cv::Rodrigues(rvec, m_Rotation);
 
-    m_Translation *= 1;
+    float length = (float) cv::norm(rvec);
+    glm::vec3 rotVector(rvec.at<double>(0), -rvec.at<double>(2), -rvec.at<double>(1));
 
-    cv::Mat rigidBodyTransformation;
-    cv::Mat addup = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
-    cv::hconcat(m_Rotation, m_Translation, rigidBodyTransformation);
-    cv::vconcat(rigidBodyTransformation, addup, rigidBodyTransformation);
+    cv::Mat data = m_Rotation.t();
 
-    double scale = sqrt((m_Translation.at<double>(0)) * (m_Translation.at<double>(0))
-                        + (m_Translation.at<double>(1)) * (m_Translation.at<double>(1))
-                        + (m_Translation.at<double>(2)) * (m_Translation.at<double>(2)));
-
-    //rigidBodyTransformation = rigidBodyTransformation.inv();
-    if (scale < 1) {
-        m_Pose = m_Pose * rigidBodyTransformation;
-    } else {
-        printf("Warning scale too high to be reasonable %f\n", scale);
-    }
+    m_RotationMat = glm::rotate(m_RotationMat, length, rotVector);
+    m_TranslationMat = glm::translate(m_TranslationMat,  glm::vec3(m_Translation.at<double>(0), -m_Translation.at<double>(2), -m_Translation.at<double>(1)));
 
 
-    cv::Mat xyz = m_Pose.col(3).clone();
-    glm::vec3 translation(float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
-
+    std::cout << "Inliners: " << inliers.rows << std::endl;
+    std::cout << glm::to_string(m_TranslationMat) << std::endl;
+    std::cout << glm::to_string(m_RotationMat) << std::endl << std::endl;
 
     //printf("xyz: (%f, %f, %f)\n", float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
     //std::cout << m_Rotation << std::endl;
     //std::cout << m_Pose << std::endl;
-    glm::vec3 rot = glm::vec3(float(rvec.at<double>(0)), float(rvec.at<double>(1)), float(rvec.at<double>(2)));
     //int x = int(xyz.at<double>(0)) * 100 + 600;
     //int z = int(xyz.at<double>(2)) * 100 + 300;
     //circle(m_Trajectory, cv::Point(x, z), 1, CV_RGB(255, 0, 0), 2);
@@ -172,15 +161,11 @@ void SLAM::update() {
     // sprintf(text, "FPS: %02f", fps);
     // putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
     //cv::imshow("Trajectory", m_Trajectory);
-    //cv::imshow("matches", img_matches1);
-    //cv::waitKey(1);
+    cv::imshow("matches", img_matches1);
+    cv::waitKey(1);
 
     VkRender::UBOMatrix mat{};
-
-    mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, (translation * glm::vec3(1.0f, 1.0f, 1.0f)));
-    mat.model = glm::rotate(mat.model, glm::length(rot), rot);
-
+    mat.model = m_TranslationMat * m_RotationMat;
     auto &d = bufferOneData;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;

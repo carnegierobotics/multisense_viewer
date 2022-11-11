@@ -11,15 +11,15 @@ class SharedData {
 public:
 
     explicit SharedData(size_t sharedMemorySize){
-        data = malloc(sharedMemorySize);
+        data = calloc(sharedMemorySize, 1);
     }
     ~SharedData(){
         free(data);
     }
 
     template<typename T>
-    void put(T* t, size_t size = 1){
-        std::memcpy(data, t, sizeof(t) * size);
+    void put(T* t, size_t extraSize, size_t copies = 1){
+        std::memcpy(data, t, extraSize + sizeof(t) * copies);
     }
 
     std::string destination;

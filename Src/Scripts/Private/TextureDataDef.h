@@ -90,5 +90,10 @@ namespace VkRender {
         }
 
     };
+
+    struct Shared{
+        size_t frame{};
+        std::string time;
+    };
 }
 #endif //MULTISENSE_VIEWER_TEXTUREDATADEF_H

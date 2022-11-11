@@ -285,10 +285,10 @@ endforeach( file_i )
 
 else () ## Linux
 
-    #find_package(OpenCV REQUIRED)
-    #include_directories(${OpenCV_INCLUDE_DIRS})
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb )#${OpenCV_LIBS})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb ${OpenCV_LIBS})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer )

@@ -19,9 +19,9 @@ namespace GSlam {
         std::string leftPath = Utils::getAssetsPath() + "../../Slam/G0/G-0_img_rect_left/";
         std::string depthPath = Utils::getAssetsPath() + "../../Slam/G0/G-0_img_rect_depth/";
 
-        leftFilesNames->reserve(1000);
-        rightFilesNames->reserve(1000);
-        depthFileNames->reserve(1000);
+        leftFilesNames->reserve(7000);
+        rightFilesNames->reserve(7000);
+        depthFileNames->reserve(7000);
 
         for (const auto &entry: std::filesystem::directory_iterator(leftPath))
             leftFilesNames->push_back(entry.path());

@@ -60,7 +60,7 @@ void SLAM::setup() {
     m_Trajectory = cv::Mat::zeros(1000, 1200, CV_8UC3);
     lazycsv::parser parser{"../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv"};
 
-    sharedData->destination = "Map";
+    sharedData->destination = "GroundTruthModel";
 }
 
 void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -69,7 +69,13 @@ void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void SLAM::update() {
-    sharedData->put(&frame);
+    shared.frame = frame;
+    std::string fileName = (leftFileNames[frame].substr(leftFileNames[frame].rfind('/') + 1));
+    std::string timeAndExtension = (fileName.substr(fileName.rfind('_') + 1));
+
+    shared.time = (timeAndExtension.substr(0, timeAndExtension.rfind('.')));
+
+    sharedData->put(&shared, shared.time.size());
     if (id > 10) {
         id = id % 10;
     }
@@ -157,7 +163,7 @@ void SLAM::update() {
 
     //printf("xyz: (%f, %f, %f)\n", float(xyz.at<double>(0)), float(xyz.at<double>(1)), float(xyz.at<double>(2)) );
     //std::cout << m_Rotation << std::endl;
-    std::cout << m_Pose << std::endl;
+    //std::cout << m_Pose << std::endl;
     glm::vec3 rot = glm::vec3(float(rvec.at<double>(0)), float(rvec.at<double>(1)), float(rvec.at<double>(2)));
     //int x = int(xyz.at<double>(0)) * 100 + 600;
     //int z = int(xyz.at<double>(2)) * 100 + 300;

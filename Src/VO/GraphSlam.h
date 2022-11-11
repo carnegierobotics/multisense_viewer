@@ -57,12 +57,14 @@ namespace GSlam {
         return {keyPoints, descriptors};
     }
 
-    static FeatureMatches featureMatcher(std::map<size_t, FeatureSet> fMap, size_t id) {
+    static FeatureMatches featureMatcher(std::queue<FeatureSet> featureQueue, size_t id) {
         // Matching descriptor vectors with a FLANN based matcher
         // Since SURF is a floating-point descriptor NORM_L2 is used
         cv::BFMatcher matcher(cv::NORM_L2);
         std::vector<std::vector<cv::DMatch> > knn_matches;
-        matcher.knnMatch(fMap[id - 1].descriptor, fMap[id].descriptor, knn_matches, 2);
+        GSlam::FeatureSet featureSet_t0 = featureQueue.front();
+        featureQueue.pop();
+        matcher.knnMatch(featureQueue.front().descriptor, featureSet_t0.descriptor, knn_matches, 2);
 
         //-- Filter matches using the Lowe's ratio test
         const float ratio_thresh = 0.7f;

@@ -10,9 +10,9 @@ void Gizmos::setup() {
                           renderUtils.device->m_TransferQueue, 1.0f);
 
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("myScene/spv/box.frag",
+                                                            {loadShader("Scene/spv/box.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
 

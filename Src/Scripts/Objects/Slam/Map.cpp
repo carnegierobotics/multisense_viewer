@@ -8,9 +8,9 @@
 
 void Map::setup() {
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("myScene/spv/box.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("myScene/spv/box.frag",
+                                                            {loadShader("Scene/spv/box.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
     float fx = 868.246;
     float fy = 868.246;

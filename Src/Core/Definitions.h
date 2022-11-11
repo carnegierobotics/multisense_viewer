@@ -371,17 +371,16 @@ namespace VkRender {
         float height{};
     };
 
-    /**
-     * @brief TODO: Unfinished. Put zoom information into shader. Meant for zooming
-     */
-    struct ZoomParam {
-        float zoom{};
-
-        ZoomParam() {
-            zoom = 1.0f;
-        }
+    struct RenderDescriptorBuffers{
+        UBOMatrix mvp{};
+        FragShaderParams light{};
     };
 
+    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
+    struct RenderDescriptorBuffersData {
+        Buffer mvp{};
+        Buffer light{};
+    };
     /**
      * @brief TODO: Unfinished. Put mouse cursor position information into shader. Meant for zooming
      */
@@ -443,6 +442,7 @@ namespace VkRender {
         uint32_t height = 0;
         uint32_t width = 0;
         const Input *input = nullptr;
+        bool additionalBuffers = false;
     };
 
 

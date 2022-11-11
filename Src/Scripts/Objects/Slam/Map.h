@@ -44,7 +44,6 @@ public:
 
     std::vector<std::unique_ptr<glTFModel::Model>> m_TruthTraces;
 
-
     cv::Mat m_PLeft, m_PRight;
     size_t frame = 0;
     size_t drawBoxes = 0;

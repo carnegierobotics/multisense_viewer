@@ -676,8 +676,6 @@ namespace VkRender {
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
 
-        printf("IMgui: %s\n", glfwGetClipboardString(window));
-
         if (action == GLFW_PRESS) {
 
             switch (key) {

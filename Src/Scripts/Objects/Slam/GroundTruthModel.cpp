@@ -67,15 +67,15 @@ void GroundTruthModel::update() {
             if (val == gtPositions[i].time)
                 index = i;
         }
-        std::cout << time - gtPositions[index].time << std::endl;
+        //std::cout << time - gtPositions[index].time << std::endl;
         glm::quat rot(gtPositions[index].orientation.w,gtPositions[index].orientation.x,gtPositions[index].orientation.y,gtPositions[index].orientation.z);
         rotationMat = glm::toMat4(rot);
         translationMat = glm::translate(translationMat, glm::vec3(gtPositions[index].x, gtPositions[index].z, -gtPositions[index].y));
 
-        std::cout << index << std::endl;
-        std::cout << frame << std::endl;
-        std::cout << glm::to_string(rotationMat) << std::endl;
-        std::cout << glm::to_string(translationMat) << std::endl;
+        //std::cout << index << std::endl;
+        //std::cout << frame << std::endl;
+        //std::cout << glm::to_string(rotationMat) << std::endl;
+        //std::cout << glm::to_string(translationMat) << std::endl;
 
     }
 

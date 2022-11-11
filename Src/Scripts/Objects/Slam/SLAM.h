@@ -58,6 +58,8 @@ public:
     size_t id = 0;
     size_t frame = 150;
     cv::Mat m_Rotation;
+    glm::mat4 m_RotationMat;
+    glm::mat4 m_TranslationMat;
     cv::Mat m_Translation;
     cv::Mat m_Pose;
     cv::Mat m_Trajectory;

@@ -239,7 +239,7 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
         scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        //scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {

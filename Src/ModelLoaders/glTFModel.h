@@ -187,6 +187,14 @@ public:
         void translate(const glm::vec3 &translation);
         void scale(const glm::vec3 &scale);
 
+        void createDescriptorsAdditionalBuffers(const std::vector<VkRender::RenderDescriptorBuffersData> &ubo);
+
+        void
+        createRenderPipeline(const VkRender::RenderUtils &utils,
+                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
+                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptType flags);
+
+        void createDescriptorSetLayoutAdditionalBuffers();
     };
 
 

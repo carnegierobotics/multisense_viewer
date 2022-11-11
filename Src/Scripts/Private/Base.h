@@ -32,7 +32,7 @@ namespace VkRender {
         std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
         std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
         std::vector<std::unique_ptr<VkRender::RenderDescriptorBuffers>> additionalBuffers{};
-        std::vector<std::unique_ptr<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
+        std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
 
         std::vector<VkShaderModule> shaderModules{};
 
@@ -145,17 +145,16 @@ namespace VkRender {
                 memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
                 memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
 
-                // TODO Future optimization could be to copy blocks of data instead of double for loops.
+                // TODO Future optimization could be to copy blocks of data instead of for for loops.
                 if (renderData.additionalBuffers) {
-                    for (const auto &buffer: additionalBuffers) {
-                        memcpy(additionalBuffersData[renderData.index]->mvp.mapped, buffer.get(),
+                    for (size_t i = 0; i < additionalBuffers.size();++i) {
+                        memcpy(additionalBuffersData[i][renderData.index].mvp.mapped, &additionalBuffers[i]->mvp,
                                sizeof(VkRender::UBOMatrix));
-                        memcpy(additionalBuffersData[renderData.index]->light.mapped, buffer.get(),
+
+                        memcpy(additionalBuffersData[i][renderData.index].light.mapped,
+                               &additionalBuffers[i]->light,
                                sizeof(VkRender::FragShaderParams));
-
                     }
-
-
                 }
             }
 
@@ -242,24 +241,27 @@ namespace VkRender {
 
 
         void requestAdditionalBuffers(size_t numBuffers) {
-            additionalBuffers.reserve(numBuffers);
-            additionalBuffersData.resize(renderUtils.uniformBuffers.size());
+            // Num buffers for each object
+            additionalBuffers.resize(numBuffers);
+            additionalBuffersData.resize(numBuffers);
+
 
             for (int i = 0; i < numBuffers; ++i) {
                 additionalBuffers[i] = std::make_unique<VkRender::RenderDescriptorBuffers>();
-
-                for (auto &uniformBuffer: additionalBuffersData) {
+                // Buffers for each swapchain image
+                additionalBuffersData[i].resize(renderUtils.uniformBuffers.size());
+                for (auto &uniformBuffer: additionalBuffersData[i]) {
                     renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer->mvp, sizeof(VkRender::UBOMatrix));
-                    uniformBuffer->mvp.map();
+                                                     &uniformBuffer.mvp, sizeof(VkRender::UBOMatrix));
+                    uniformBuffer.mvp.map();
 
                     renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer->light, sizeof(VkRender::FragShaderParams));
-                    uniformBuffer->light.map();
+                                                     &uniformBuffer.light, sizeof(VkRender::FragShaderParams));
+                    uniformBuffer.light.map();
                 }
             }
 

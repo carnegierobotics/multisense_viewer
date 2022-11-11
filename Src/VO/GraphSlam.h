@@ -15,9 +15,9 @@ namespace GSlam {
     static void parseAndSortFileNames(std::vector<std::string> *leftFilesNames,
                                       std::vector<std::string> *rightFilesNames,
                                       std::vector<std::string> *depthFileNames) {
-        std::string rightPath = Utils::getAssetsPath() + "../../Slam/G0/G-0_img_rect_right/";
-        std::string leftPath = Utils::getAssetsPath() + "../../Slam/G0/G-0_img_rect_left/";
-        std::string depthPath = Utils::getAssetsPath() + "../../Slam/G0/G-0_img_rect_depth/";
+        std::string rightPath = Utils::getAssetsPath() + "../../Slam/B7/B-7_img_rect_right/";
+        std::string leftPath = Utils::getAssetsPath() + "../../Slam/B7/B-7_img_rect_left/";
+        std::string depthPath = Utils::getAssetsPath() + "../../Slam/B7/B-7_img_rect_depth/";
 
         leftFilesNames->reserve(7000);
         rightFilesNames->reserve(7000);

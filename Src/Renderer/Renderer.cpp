@@ -25,7 +25,7 @@ void Renderer::prepareRenderer() {
     camera.m_RotationSpeed = 0.2f;
     camera.m_MovementSpeed = 5.0f;
     camera.setPosition(defaultCameraPosition);
-    camera.setRotation(90.0f, 0.0f);
+    camera.setRotation(yaw, pitch);
     createSelectionImages();
     createSelectionFramebuffer();
     createSelectionBuffer();
@@ -145,7 +145,7 @@ void Renderer::render() {
     pLogger->frameNumber = frameID;
     if (keyPress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);
-        camera.setRotation(90.0f, 0.0f);
+        camera.setRotation(yaw, pitch);
     }
 
     if (guiManager->handles.showDebugWindow) {

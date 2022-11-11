@@ -22,14 +22,14 @@ void Map::setup() {
     cx = 516.0;
     cy = 386.0;
     m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, -78.045330571, 0., fy, cy, 0., 0, 0., 1., 0.);
-    lazycsv::parser parser{"../Slam/G0/G-0_ground_truth/gt_6DoF_gnss_and_imu.csv"};
+    lazycsv::parser parser{"../Slam/B7/B-7_ground_truth/gt_5DoF_gnss.csv"};
 
     std::vector<std::string_view> coords;
 
     gtPositions.reserve(10000);
     for (const auto row: parser) {
         try {
-            const auto [time, x, y, z] = row.cells(0, 1, 2, 3); // indexes must be in ascending order
+            const auto [time, x, y, z] = row.cells(0, 3, 4, 5); // indexes must be in ascending order
 
             float xPos = std::stof(std::string(x.trimed()));
             float yPos = std::stof(std::string(y.trimed()));
@@ -40,13 +40,13 @@ void Map::setup() {
     }
 
     /** GT Traces models **/
-    size_t nth = 200;
-    objects = (int) (58690 / nth);
+    size_t nth = 5;
+    objects = (int) (800 / nth);
     m_TruthTraces.resize(objects);
     float scale = 20.0f;
     for (int i = 0; i < objects; ++i) {
         m_TruthTraces[i] = std::make_unique<glTFModel::Model>(renderUtils.device);
-        m_TruthTraces[i]->translate(gtPositions[(i * nth)].getVec() * (glm::vec3(scale, scale, scale)));
+        m_TruthTraces[i]->translate(gtPositions[(i * nth) + 750].getVec() * (glm::vec3(scale, scale, scale)));
         m_TruthTraces[i]->scale(glm::vec3(1.0f / scale, 1.0f / scale, 1.0f / scale));
         m_TruthTraces[i]->loadFromFile(Utils::getAssetsPath() + "Models/sphere.gltf", renderUtils.device,
                                        renderUtils.device->m_TransferQueue, 1.0f);
@@ -70,7 +70,7 @@ void Map::update() {
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     //mat.model = glm::translate(mat.model, glm::vec3(0.0f, 0.0f, 3.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //mat.model = glm::scale(mat.model, glm::vec3(0.1f, 0.1f, 0.1f));
     //mat.model = glm::rotate(mat.model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 

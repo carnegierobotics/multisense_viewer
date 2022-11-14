@@ -413,7 +413,6 @@ namespace VkRender {
         Buffer bufferOne{};
         Buffer bufferTwo{};
         Buffer bufferThree{};
-        Buffer bufferFour{};
     };
 
     /** containing Basic Vulkan Resources for rendering **/

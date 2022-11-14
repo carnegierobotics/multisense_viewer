@@ -22,16 +22,10 @@ layout(set = 0, binding = 2) uniform SELECT {
 
 layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 
-layout(set = 0, binding = 4) uniform ZOOM {
-    float zoom;
-
-} zoom;
-
 
 void main()
 {
-    vec2 uv = inUV * zoom.zoom;
-    vec3 tex = texture(samplerColorMap, uv).rgb * 16;
+    vec3 tex = texture(samplerColorMap, inUV).rgb * 16;
     vec3 color = tex;
 
     outColor = vec4(color.r, color.r, color.r, 1.0);

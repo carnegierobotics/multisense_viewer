@@ -209,7 +209,6 @@ namespace VkRender {
                 uniformBuffer.bufferOne.unmap();
                 uniformBuffer.bufferTwo.unmap();
                 uniformBuffer.bufferThree.unmap();
-                uniformBuffer.bufferFour.unmap();
             }
 
             onDestroy();

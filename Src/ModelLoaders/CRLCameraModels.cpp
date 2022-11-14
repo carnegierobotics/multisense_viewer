@@ -252,7 +252,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model* model,
 			&model->descriptors[i]));
 
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets(model->modelType == AR_DISPARITY_IMAGE ? 5 : 4);
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
 		writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		writeDescriptorSets[0].descriptorCount = 1;
@@ -289,15 +289,6 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model* model,
 			writeDescriptorSets[3].dstSet = model->descriptors[i];
 			writeDescriptorSets[3].dstBinding = 3;
 			writeDescriptorSets[3].pImageInfo = &model->textureVideo->m_Descriptor;
-		}
-
-		if (model->modelType == AR_DISPARITY_IMAGE) {
-			writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			writeDescriptorSets[4].descriptorCount = 1;
-			writeDescriptorSets[4].dstSet = model->descriptors[i];
-			writeDescriptorSets[4].dstBinding = 4;
-			writeDescriptorSets[4].pBufferInfo = &ubo[i].bufferFour.m_DescriptorBufferInfo;
 		}
 
 		vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -364,8 +355,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model* model) {
 				{1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 				{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
 				{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-				{4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-
 		};
 		break;
 	case AR_POINT_CLOUD:

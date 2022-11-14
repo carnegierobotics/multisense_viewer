@@ -87,6 +87,7 @@ public:
     cv::Ptr<cv::ORB> m_ORBDetector;
     std::vector<cv::Scalar> colors;
     cv::Mat mask;
+    int numCornersToTrack = 500;
     cv::Ptr<cv::DescriptorExtractor> m_ORBDescriptor;
     int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};

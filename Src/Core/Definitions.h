@@ -303,7 +303,6 @@ namespace VkRender {
         Parameters parameters{};
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
-        /** @brief Show a default preview with some selected streams*/
         bool systemNetworkChanged = false;
     };
 

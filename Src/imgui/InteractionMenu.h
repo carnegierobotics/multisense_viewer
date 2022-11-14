@@ -1130,7 +1130,7 @@ private:
             ImGui::SliderFloat("##Gain",
                                &d.parameters.gain, 1.68f,
                                14.2f, "%.1f");
-            d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+            d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
             ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(0.0f, 5.0f));

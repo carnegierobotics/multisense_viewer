@@ -34,9 +34,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-            va_start(args, fmt);
+                    va_start(args, fmt);
             Buf.appendfv(fmt, args);
-            va_end(args);
+                    va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -60,7 +60,6 @@ public:
             Filter.Draw("Filter", -100.0f);
 
             ImGui::Separator();
-
             if (ImGui::BeginChild("scrolling", ImVec2(pHandles->info->debuggerWidth - pHandles->info->metricsWidth, 0),
                                   false,
                                   ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -135,24 +134,30 @@ public:
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         if (!handles->showDebugWindow)
             return;
-        static
-
-        bool pOpen = true;
+        static bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         ImGui::SetNextWindowSize(ImVec2(handles->info->debuggerWidth, handles->info->debuggerHeight),
                                  ImGuiCond_FirstUseEver);
         ImGui::Begin("Debugger Window", &pOpen, window_flags);
+
+        // Make window close on X click. But also close/open on button press
+        handles->showDebugWindow = pOpen;
+        if (!pOpen)
+            pOpen = true;
+
         window.Draw(handles);
+        handles->info->debuggerWidth = ImGui::GetWindowWidth();
+        handles->info->debuggerHeight = ImGui::GetWindowHeight();
 
         auto &log = Log::Logger::getLogMetrics()->logQueue;
 
-        while(!log.empty()){
+        while (!log.empty()) {
             window.AddLog("%s\n", log.front().c_str());
             log.pop();
         }
 
         ImGui::SameLine();
-        if (ImGui::BeginChild("Metrics", ImVec2(0.0f, 0.0f), false)) {
+        if (ImGui::BeginChild("Metrics", ImVec2(handles->info->metricsWidth, 0.0f), false)) {
 
             {
                 // Renderer Info
@@ -208,7 +213,7 @@ public:
                 ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
                 ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
-                ImGui::Text("Frame: %lu", handles->info->frameID);
+                ImGui::Text("Frame: %llu", handles->info->frameID);
 
             }
             ImGui::Separator();
@@ -288,8 +293,9 @@ public:
             ImGui::Text("Camera: ");
 
             ImGui::Text("Position: (%f, %f, %f)", met->camera.pos.x, met->camera.pos.y, met->camera.pos.z);
-            ImGui::Text("Yaw: %f, Pitch: %f", met->camera.yaw,  met->camera.pitch);
-            ImGui::Text("Front: (%f, %f, %f)", met->camera.cameraFront.x, met->camera.cameraFront.y, met->camera.cameraFront.z);
+            ImGui::Text("Yaw: %f, Pitch: %f", met->camera.yaw, met->camera.pitch);
+            ImGui::Text("Front: (%f, %f, %f)", met->camera.cameraFront.x, met->camera.cameraFront.y,
+                        met->camera.cameraFront.z);
 
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);

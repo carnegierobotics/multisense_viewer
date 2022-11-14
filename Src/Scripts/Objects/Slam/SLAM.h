@@ -13,6 +13,7 @@
 #include "MultiSense/Src/VO/Features/VisualOdometry.h"
 #include "MultiSense/Src/ModelLoaders/glTFModel.h"
 #include "MultiSense/Src/VO/GraphSlam.h"
+#include "MultiSense/Src/ModelLoaders/CRLCameraModels.h"
 
 class SLAM: public VkRender::Base, public VkRender::RegisteredInFactory<SLAM>, glTFModel
 {
@@ -87,7 +88,11 @@ public:
     std::vector<cv::Scalar> colors;
     cv::Mat mask;
     cv::Ptr<cv::DescriptorExtractor> m_ORBDescriptor;
-
+    int16_t remoteHeadIndex = 0;
+    std::vector<std::string> startedSources{};
+    CameraPlaybackFlags playbackSate{};
+    Page selectedPreviewTab = TAB_NONE;
+    CRLCameraResolution res = CRL_RESOLUTION_NONE;
 };
 
 

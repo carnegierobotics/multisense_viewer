@@ -21,6 +21,8 @@ void AutoConnectLinux::findEthernetAdapters(void *ctx, bool logEvent, bool skipI
                                             std::vector<AutoConnect::Result> *res) {
     auto *app = static_cast<AutoConnectLinux *>(ctx);
     std::vector<AutoConnect::Result> tempList;
+    if (!logEvent)
+        app->shutdownT2Ready = false;
     while (app->m_RunAdapterSearch) {
         tempList.clear();
         // Get list of interfaces
@@ -97,6 +99,7 @@ void AutoConnectLinux::run(void *ctx) {
     std::vector<Result> adapters{};
     auto *app = (AutoConnectLinux *) ctx;
     app->m_EventCallback("Started detection service", app->m_Context, 0);
+    app->shutdownT1Ready = false;
     std::string hostAddress;
     size_t i = 0;
     // Loop keeps retrying to connect on supported network adapters.
@@ -221,7 +224,7 @@ void AutoConnectLinux::run(void *ctx) {
             saddr_size = sizeof saddr;
             //Receive a packet
             data_size = (int) recvfrom(sd, buffer, IP_MAXPACKET, MSG_DONTWAIT, &saddr,
-                                       (socklen_t *) &saddr_size);
+                                       (socklen_t * ) & saddr_size);
 
             if (data_size < 0) {
                 continue;
@@ -375,13 +378,11 @@ void AutoConnectLinux::stopAutoConnect() {
     if (m_TAutoConnect != nullptr && shutdownT1Ready) {
         m_TAutoConnect->join();
         delete m_TAutoConnect;
-        shutdownT1Ready = false;
         m_TAutoConnect = nullptr;
     }
     if (m_TAdapterSearch != nullptr && shutdownT2Ready) {
         m_TAdapterSearch->join();
         delete m_TAdapterSearch;
-        shutdownT2Ready = false;
         m_TAdapterSearch = nullptr;
     }
 }
@@ -390,9 +391,22 @@ void AutoConnectLinux::start() {
     m_LoopAdapters = true;
     m_ListenOnAdapter = true;
     m_ShouldProgramRun = true;
-
     if (m_TAutoConnect == nullptr)
         m_TAutoConnect = new std::thread(&AutoConnectLinux::run, this);
+    else {
+        stopAutoConnect();
+        m_LoopAdapters = true;
+        m_ListenOnAdapter = true;
+        m_ShouldProgramRun = true;
+        while (true) {
+            {
+                std::scoped_lock<std::mutex> lock(readSupportedAdaptersMutex);
+                if (shutdownT1Ready)
+                    break;
+            }
+        }
+        m_TAutoConnect = new std::thread(&AutoConnectLinux::run, this);
+    }
 
 }
 

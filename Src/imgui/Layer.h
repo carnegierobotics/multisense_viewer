@@ -82,6 +82,8 @@ namespace VkRender {
                                                                                                                     cameraName(
                                                                                                                             std::move(
                                                                                                                                     camera)) {
+            profileName.reserve(64);
+            IP.reserve(16);
         }
 
         void reset() {

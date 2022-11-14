@@ -415,11 +415,12 @@ void AutoConnectWindows::run(void *ctx) {
             local_tv_sec = header->ts.tv_sec;
             ltime = localtime(&local_tv_sec);
             strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
-
+            if (pkt_data == nullptr) {
+                continue;
+            }
             /* retireve the position of the ip header */
             auto *ih = (iphdr *) (pkt_data + 14); //length of ethernet header
-            if (!ih)
-                continue;
+
             char ips[255];
             //std::string ips;
             sprintf(ips, "%d.%d.%d.%d", (ih->saddr >> (8 * 0)) & 0xff,

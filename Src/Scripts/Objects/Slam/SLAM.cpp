@@ -69,26 +69,65 @@ void SLAM::setup() {
 }
 
 void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+    if (selectedPreviewTab != TAB_3D_POINT_CLOUD)
+        return;
+
     if (b)
         m_Model->draw(commandBuffer, i);
 }
 
 void SLAM::update() {
+    if (selectedPreviewTab != TAB_3D_POINT_CLOUD)
+        return;
+    cv::Mat kernel3 = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
+
+    cv::Mat leftImg;// = cv::imread(leftFileNames[frame], cv::IMREAD_GRAYSCALE);
+    cv::Mat rightImg;// = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
+    cv::Mat depthImg;
+    const auto& conf = renderData.crlCamera->get()->getCameraInfo(0).imgConf;
+    auto tex = VkRender::TextureData(AR_POINT_CLOUD, conf.width(), conf.height(), true);
+    if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, 0)) {
+         leftImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_8UC1, tex.data);
+        filter2D(leftImg, leftImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
+
+    }
+
+    auto depthTex = VkRender::TextureData(AR_DISPARITY_IMAGE, conf.width(), conf.height());
+    if (renderData.crlCamera->get()->getCameraStream("Disparity Left", &depthTex, 0)) {
+        depthImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_16FC1, tex.data, true);
+
+    }
+    auto rightTex = VkRender::TextureData(AR_DISPARITY_IMAGE, conf.width(), conf.height(), true);
+    if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Right", &depthTex, 0)) {
+        rightImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_8UC1, tex.data);
+        filter2D(rightImg, rightImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT );
+    }
+
+    if (leftImg.empty() || rightImg.empty() || depthImg.empty())
+        return;
+
+    bool anyEmpty = false;
+    if (m_RImageQ.empty()){
+        m_RImageQ.push(rightImg);
+        anyEmpty = true;
+    }
+    if (m_LImageQ.empty()){
+        m_LImageQ.push(leftImg);
+        anyEmpty = true;
+    }
+    if (anyEmpty)
+        return;
+
+
+
     shared.frame = frame;
     std::string fileName = (leftFileNames[frame].substr(leftFileNames[frame].rfind('/') + 1));
     std::string timeAndExtension = (fileName.substr(fileName.rfind('_') + 1));
     shared.time = (timeAndExtension.substr(0, timeAndExtension.rfind('.')));
-
     sharedData->put(&shared, shared.time.size());
 
-    cv::Mat kernel3 = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
-    cv::Mat leftImg = cv::imread(leftFileNames[frame], cv::IMREAD_GRAYSCALE);
-    cv::Mat rightImg = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
-    filter2D(leftImg, leftImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
-    filter2D(rightImg, rightImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
-
     cv::Mat prevRightImg = m_RImageQ.front();
-    prevLeftImg = m_LImageQ.front();
+    cv::Mat prevLeftImg =  m_LImageQ.front();
     std::vector<cv::KeyPoint> prevKeyPoints, keyPoints;
     cv::Mat prevDescriptors, descriptors;
 
@@ -182,6 +221,7 @@ void SLAM::update() {
             pointsRight.emplace_back(cv::Point2f(item.x - disparity, item.y));
         }
     }
+
     cv::normalize(disp, disp, 0, 65535, cv::NORM_MINMAX);
     cv::imshow("Disp", disp8U);
 
@@ -244,250 +284,30 @@ void SLAM::update() {
         float reprojectionError = .1;    // maximum allowed distance to consider it an inlier.
         float confidence = 0.999;          // RANSAC successful confidence.
         bool useExtrinsicGuess = true;
-        int flags = cv::SOLVEPNP_P3P;
+        int flags = cv::SOLVEPNP_ITERATIVE;
 
         cv::Mat inliers;
+
         cv::solvePnPRansac(points3D_t0, pointsLeft, intrinsic_matrix, distCoeffs, m_RotVec, m_Translation,
                            useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
                            inliers, flags);
+
+        criteria = cv::TermCriteria((cv::TermCriteria::EPS) + (cv::TermCriteria::MAX_ITER), 20, 0.001);
+        cv::solvePnPRefineVVS(points3D_t0, pointsLeft, intrinsic_matrix, distCoeffs, m_RotVec, m_Translation, criteria);
+
         //displayTracking(leftImg, p0, p1);
         float length = (float) cv::norm(m_RotVec);
-        glm::vec3 rotVector(m_RotVec.at<double>(0), -m_RotVec.at<double>(1), -m_RotVec.at<double>(2));
+        glm::vec3 rotVector(m_RotVec.at<double>(0), m_RotVec.at<double>(2), -m_RotVec.at<double>(1));
         cv::Mat data = m_Rotation.t();
         m_RotationMat = glm::rotate(m_RotationMat, length, rotVector);
-        m_TranslationMat = glm::translate(m_TranslationMat,
-                                          glm::vec3(m_Translation.at<double>(0), -m_Translation.at<double>(1),
+        m_TranslationMat = glm::translate(m_TranslationMat, glm::vec3(m_Translation.at<double>(0), m_Translation.at<double>(1),
                                                     -m_Translation.at<double>(2)));
+        std::cout << "Inliners: " << inliers.rows << std::endl;
 
     }
 
     cv::waitKey(1);
 
-    /*
-    std::vector<cv::Point2f> pointsRight;
-    cv::goodFeaturesToTrack(rightImg, pointsRight, 1000, 0.3, 7, cv::Mat(), 7, false, 0.04);
-    for (const auto &item: keyPointsRight) {
-        pointsRight.emplace_back(item.pt);
-    }
-    float scanLineTolerance = 0.5f;
-    int foundOnScaneLine = 0;
-    std::vector<cv::Point2f> rightFiltered;
-    std::vector<cv::Point2f> leftFiltered;
-    for (const auto &kp1: p0) {
-        bool scanLineMatch = false;
-        cv::Point2f p2{};
-        for (const auto &kp2: pointsRight) {
-            if (kp1.y <= kp2.y + scanLineTolerance && kp1.y >= kp2.y - scanLineTolerance) {
-                scanLineMatch = true;
-                p2 = kp2;
-            }
-        }
-        if (scanLineMatch) {
-            cv::circle(leftColor, kp1, 2, cv::Scalar(255, 128, 40), 2);
-            cv::circle(rightColor, p2, 2, cv::Scalar(255, 128, 40), 2);
-            foundOnScaneLine++;
-            rightFiltered.emplace_back(p2);
-            leftFiltered.emplace_back(kp1);
-        }
-    }
-    cv::Mat rightImageDescriptorMask = cv::Mat::zeros(rightImg.size(), rightImg.type());
-    cv::Mat leftImageDescriptorMask = cv::Mat::zeros(leftImg.size(), leftImg.type());
-    int window = 5;
-    for (const auto &item: rightFiltered){
-        for (int i = -window; i <= window; ++i) {
-            for (int j = -window; j <= window; ++j) {
-                cv::Point2f pt = item + cv::Point2f((float)i, (float)j);
-                if (pt.x > 0 && pt.y > 0 && pt.x < (float)rightImg.cols && pt.y < (float)rightImg.rows)
-                    rightImageDescriptorMask.at<unsigned char>(pt.y, pt.x) = 255;
-
-            }
-        }
-    }
-    for (const auto &item: leftFiltered){
-        for (int i = -window; i <= window; ++i) {
-            for (int j = -window; j <= window; ++j) {
-                cv::Point2f pt = item + cv::Point2f((float)i, (float)j);
-                if (pt.x > 0 && pt.y > 0 && pt.x < (float)leftImg.cols && pt.y < (float)leftImg.rows)
-                    leftImageDescriptorMask.at<unsigned char>(pt.y, pt.x) = 255;
-            }
-        }
-    }
-
-    cv::imshow("Mask", rightImageDescriptorMask);
-    */
-    // m_ORBDescriptor->compute(rightImg, rightFiltered, descriptors_2);
-    //cv::Mat descriptorRight, descriptorLeft;
-    //m_ORBDetector->detectAndCompute(leftImg, cv::Mat(), keyPointsLeft, descriptorLeft);
-    //m_ORBDetector->detectAndCompute(rightImg, cv::Mat(), keyPointsRight, descriptorRight);
-
-    /*
-    cv::BFMatcher matcher(cv::NORM_L2);
-    std::vector<std::vector<cv::DMatch> > matches;
-    //matcher.knnMatch(descriptorLeft,descriptorRight,matches, 2);
-    //-- Filter matches using the Lowe's ratio test
-    const float ratio_thresh = 0.7f;
-    std::vector<cv::DMatch> good_matches;
-    for (auto &knn_match: matches) {
-        if (knn_match[0].distance < ratio_thresh * knn_match[1].distance) {
-            good_matches.push_back(knn_match[0]);
-        }
-    }
-
-    cv::Mat img_matches1;
-    cv::drawMatches(leftImg, keyPointsLeft, rightImg, keyPointsRight, good_matches, img_matches1);
-         cv::imshow("img_matches1", img_matches1);
-
-*/
-
-    /*
-    // Triangulating
-    // ---------------------
-    std::vector<cv::Point2f> pointsLeft, pointsRight;
-
-    cv::Mat points3D_t0, points4D_t0;
-    cv::triangulatePoints(m_PLeft, m_PRight, pointsLeft, pointsRight, points4D_t0);
-    cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
-
-    // ------------------------------------------------
-    // Translation (t) estimation by use solvePnPRansac
-    // ------------------------------------------------
-    cv::Mat distCoeffs = (cv::Mat_<float>(5, 1) << -0.197412f, 0.236726f, 0.0, 0.0, 0.0);
-    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-
-    cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) <<
-                                                      m_PLeft.at<float>(0, 0), m_PLeft.at<float>(0,
-                                                                                                 1), m_PLeft.at<float>(
-            0, 2),
-            m_PLeft.at<float>(1, 0), m_PLeft.at<float>(1, 1), m_PLeft.at<float>(1, 2),
-            m_PLeft.at<float>(2, 0), m_PLeft.at<float>(2, 1), m_PLeft.at<float>(2, 2));
-
-    int iterationsCount = 2000;        // number of Ransac iterations.
-    float reprojectionError = .1;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.999;          // RANSAC successful confidence.
-    bool useExtrinsicGuess = true;
-    int flags = cv::SOLVEPNP_P3P;
-
-
-    cv::Mat inliers;
-    cv::solvePnPRansac(points3D_t0, p1, intrinsic_matrix, distCoeffs, m_RotVec, m_Translation,
-                       useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
-                       inliers, flags);
-
-    displayTracking(leftImg, p0, p1);
-
-    float length = (float) cv::norm(m_RotVec);
-    glm::vec3 rotVector(m_RotVec.at<double>(0), -m_RotVec.at<double>(1), -m_RotVec.at<double>(2));
-
-    cv::Mat data = m_Rotation.t();
-
-    m_RotationMat = glm::rotate(m_RotationMat, length, rotVector);
-    m_TranslationMat = glm::translate(m_TranslationMat,
-                                      glm::vec3(m_Translation.at<double>(0), -m_Translation.at<double>(1),
-                                                -m_Translation.at<double>(2)));
-
-    /*
-    if (featureSet.points.size() < 4000) {
-        std::vector<cv::Point2f> points_new;
-        featureDetectionFast(m_LImageQ.front(), points_new);
-        featureSet.points.insert(featureSet.points.end(), points_new.begin(), points_new.end());
-        std::vector<int> ages_new(points_new.size(), 0);
-        featureSet.ages.insert(featureSet.ages.end(), ages_new.begin(), ages_new.end());
-    }
-
-    std::vector<cv::Point2f> pointsLeft_t0, pointsRight_t0;
-    std::vector<cv::Point2f> pointsLeft_t1, pointsRight_t1;
-
-    // --------------------------------------------------------
-    // Feature tracking using KLT tracker, bucketing and circular matching
-    // --------------------------------------------------------
-    int bucket_size = m_LImageQ.front().rows / 50;
-    int features_per_bucket = 1;
-    bucketingFeatures(m_LImageQ.front(), featureSet, bucket_size, features_per_bucket);
-
-     Discard points that are far away from the sensor
-    pointsLeft_t0 = featureSet.points;
-
-    cv::Mat imageLeftColor_t1;
-    cv::cvtColor(m_LImageQ.front(), imageLeftColor_t1, cv::COLOR_GRAY2BGR, 3);
-
-    std::vector<cv::Point2f> pointsLeftReturn_t0;   // feature points to check cicular mathcing validation
-    // --------------------------------------------------------
-    // Feature tracking using Optical flow PyrLK
-    // --------------------------------------------------------
-    std::vector<uchar> status0, status1, status2, status3;
-
-    opticalFlow(m_LImageQ.front(), m_RImageQ.front(), &pointsLeft_t0, &pointsRight_t0, &status0);
-    opticalFlow(m_RImageQ.front(), rightImg, &pointsRight_t0, &pointsRight_t1, &status1);
-    opticalFlow(rightImg, leftColor, &pointsRight_t1, &pointsLeft_t1, &status2);
-    opticalFlow(leftImg, m_LImageQ.front(), &pointsLeft_t1, &pointsLeftReturn_t0, &status3);
-
-    deleteUnmatchFeaturesCircle(pointsLeft_t0, pointsRight_t0, pointsRight_t1, pointsLeft_t1, pointsLeftReturn_t0,
-                                status0, status1, status2, status3, featureSet.ages);
-
-
-    std::vector<bool> status;
-    checkValidMatch(pointsLeft_t0, pointsLeftReturn_t0, status, 0);
-    removeInvalidPoints(pointsLeft_t0, status);
-    removeInvalidPoints(pointsLeft_t1, status);
-    removeInvalidPoints(pointsRight_t0, status);
-    removeInvalidPoints(pointsRight_t1, status);
-
-    featureSet.points = pointsLeft_t1;
-
-    if (featureSet.points.size() < 50) {
-        m_LImageQ.push(leftImg);
-        m_RImageQ.push(rightImg);
-
-        m_LImageQ.pop();
-        m_RImageQ.pop();
-        return;
-    }
-    // Triangulating
-    // ---------------------
-
-    cv::Mat points3D_t0, points4D_t0;
-    cv::triangulatePoints(m_PLeft, m_PRight, pointsLeft_t0, pointsRight_t0, points4D_t0);
-    cv::convertPointsFromHomogeneous(points4D_t0.t(), points3D_t0);
-
-    // ------------------------------------------------
-    // Translation (t) estimation by use solvePnPRansac
-    // ------------------------------------------------
-    cv::Mat distCoeffs = (cv::Mat_<float>(5, 1) << -0.197412f, 0.236726f, 0.0, 0.0, 0.0);
-    cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);
-
-    cv::Mat intrinsic_matrix = (cv::Mat_<float>(3, 3) <<
-                                                      m_PLeft.at<float>(0, 0), m_PLeft.at<float>(0,
-                                                                                                 1), m_PLeft.at<float>(
-            0, 2),
-            m_PLeft.at<float>(1, 0), m_PLeft.at<float>(1, 1), m_PLeft.at<float>(1, 2),
-            m_PLeft.at<float>(2, 0), m_PLeft.at<float>(2, 1), m_PLeft.at<float>(2, 2));
-
-    int iterationsCount = 2000;        // number of Ransac iterations.
-    float reprojectionError = .1;    // maximum allowed distance to consider it an inlier.
-    float confidence = 0.999;          // RANSAC successful confidence.
-    bool useExtrinsicGuess = true;
-    int flags = cv::SOLVEPNP_P3P;
-
-
-    cv::Mat inliers;
-    cv::solvePnPRansac(points3D_t0, pointsLeft_t1, intrinsic_matrix, distCoeffs, m_RotVec, m_Translation,
-                       useExtrinsicGuess, iterationsCount, reprojectionError, confidence,
-                       inliers, flags);
-
-    displayTracking(leftImg, pointsLeft_t0, pointsLeft_t1);
-
-    float length = (float) cv::norm(m_RotVec);
-    glm::vec3 rotVector(m_RotVec.at<double>(0), -m_RotVec.at<double>(1), -m_RotVec.at<double>(2));
-
-    cv::Mat data = m_Rotation.t();
-
-    m_RotationMat = glm::rotate(m_RotationMat, length, rotVector);
-    m_TranslationMat = glm::translate(m_TranslationMat,
-                                      glm::vec3(m_Translation.at<double>(0), -m_Translation.at<double>(1),
-                                                -m_Translation.at<double>(2)));
-    cv::waitKey(1);
-
-    */
     id++;
     frame++;
     m_LImageQ.push(leftImg);
@@ -514,9 +334,18 @@ void SLAM::update() {
 
 
 void SLAM::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const auto &d: uiHandle->devices) {
-        if (d.state != AR_STATE_ACTIVE)
+    for (const auto &dev: uiHandle->devices) {
+        if (dev.state != AR_STATE_ACTIVE)
             continue;
+        selectedPreviewTab = dev.selectedPreviewTab;
 
+        auto &preview = dev.win.at(AR_PREVIEW_POINT_CLOUD);
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+
+        if ((currentRes != res ||
+             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+            res = currentRes;
+            remoteHeadIndex = preview.selectedRemoteHeadIndex;
+        }
     }
 }

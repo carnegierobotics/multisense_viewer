@@ -109,15 +109,23 @@ void AutoConnectLinux::run(void *ctx) {
             app->m_EventCallback("Running adapter search", app->m_Context, 0);
             adapters.clear();
             app->findEthernetAdapters(ctx, true, false, &adapters);
-            bool testedAllAdapters = true;
-            for (const auto &a: adapters) {
-                if (app->m_IgnoreAdapters.empty())
-                    testedAllAdapters = false;
-                for (const auto &ignore: app->m_IgnoreAdapters) {
-                    if (a.supports && !a.searched && a.networkAdapter != ignore.networkAdapter)
-                        testedAllAdapters = false;
-                }
+            if (adapters.empty()) {
+                app->m_EventCallback("No adapters found", app->m_Context, 2);
+                app->m_EventCallback("Finished", app->m_Context,
+                                     0); // This nessage actually sends a stop call to the gui
+                break;
             }
+            bool testedAllAdapters = !app->m_IgnoreAdapters.empty();
+            for (auto &a: adapters) {
+                for (const auto &ignore: app->m_IgnoreAdapters) {
+                    if (ignore.networkAdapter == a.networkAdapter)
+                        a.searched = true;
+                }
+
+                if (!a.searched)
+                    testedAllAdapters = false;
+            }
+
             if (testedAllAdapters) {
                 app->m_EventCallback(adapters.empty() ? "No adapters found" : "No other adapters found", app->m_Context,
                                      0);
@@ -127,9 +135,7 @@ void AutoConnectLinux::run(void *ctx) {
         }
 
         Result adapter{};
-        {
-            adapter = adapters[i];
-        }
+        adapter = adapters[i];
         // If it doesn't support a camera then dont loop it
         if (!adapter.supports) {
             continue;

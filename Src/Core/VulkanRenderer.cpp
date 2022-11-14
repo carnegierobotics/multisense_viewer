@@ -307,11 +307,11 @@ namespace VkRender {
             attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference colorReference {};
+            VkAttachmentReference colorReference{};
             colorReference.attachment = 0;
             colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentReference depthReference {};
+            VkAttachmentReference depthReference{};
             depthReference.attachment = 1;
             depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -492,7 +492,11 @@ namespace VkRender {
         pLogger->info("Initialized Renderer backend");
 
         startTime = std::chrono::system_clock::now();
+
+
     }
+
+
 
 
     void VulkanRenderer::destroyCommandBuffers() {
@@ -679,6 +683,8 @@ namespace VkRender {
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
 
+        printf("IMgui: %s\n", glfwGetClipboardString(window));
+
         if (action == GLFW_PRESS) {
 
             switch (key) {
@@ -737,6 +743,7 @@ namespace VkRender {
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
     void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
 
@@ -771,7 +778,7 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseButtons.wheel -= ((float)yoffset * myApp->mouseScrollSpeed);
+        myApp->mouseButtons.wheel -= ((float) yoffset * myApp->mouseScrollSpeed);
         io.MouseWheel += 0.5f * (float) yoffset;
     }
 

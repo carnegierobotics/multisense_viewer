@@ -579,6 +579,7 @@ private:
                         entryConnectDeviceList.clear();
                         autoConnect.clearSearchedAdapters();
                         m_Entry.reset();
+                        autoConnect.stopAutoConnect();
                         showRestartButton = false;
                     }
                     ImGui::PopStyleColor();

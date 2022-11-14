@@ -66,6 +66,7 @@ public:
     cv::Mat m_RotVec;
     cv::Mat m_Pose;
     cv::Mat m_Trajectory;
+    cv::Mat prevLeftImg;
 
     struct gtPos{
         float x{}, y{}, z{};
@@ -78,10 +79,15 @@ public:
     VkRender::Shared shared;
     std::vector<gtPos> gtPositions{};
     FeatureSet featureSet{};
-    void fromCV2GLM(const cv::Mat &cvmat, glm::mat4 *glmmat);
     cv::Ptr<cv::StereoSGBM> sgbm;
+    bool m_newKeyFrame = true;
 
-    cv::Ptr<cv::ORB> orb;
+    std::vector<cv::Point2f> p0, p1;
+    cv::Ptr<cv::ORB> m_ORBDetector;
+    std::vector<cv::Scalar> colors;
+    cv::Mat mask;
+    cv::Ptr<cv::DescriptorExtractor> m_ORBDescriptor;
+
 };
 
 

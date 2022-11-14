@@ -106,8 +106,6 @@ void VisualOdometry::runVO(cv::Mat imageLeft_t1, cv::Mat imageRight_t1, glm::vec
         }
     }
 
-
-
     cv::Mat imageLeftColor_t1;
     cv::cvtColor(m_ImageLeft_t1, imageLeftColor_t1, cv::COLOR_GRAY2BGR, 3);
 

@@ -24,6 +24,16 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
+
+        GLFWimage images[1];
+        std::string fileName = (Utils::getAssetsPath() + "Tools/windows/CRL96x96.png");
+        images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
+        if (!images[0].pixels){
+            throw std::runtime_error("Failed to load window icon: " + fileName);
+        }
+        glfwSetWindowIcon(window, 1, images);
+        stbi_image_free(images[0].pixels);
+
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -513,6 +523,11 @@ namespace VkRender {
         vkQueueWaitIdle(queue);
         vkDeviceWaitIdle(device);
 
+        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+        while (m_Width == 0 || m_Height == 0) {
+            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+            glfwWaitEvents();
+        }
         // Recreate swap chain
         swapchain->create(&m_Width, &m_Height);
 
@@ -645,7 +660,9 @@ namespace VkRender {
 
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        if (width > 0 || height > 0){
+            myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        }
     }
 
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {

@@ -292,7 +292,7 @@ namespace VkRender {
         /** @brief Current connection state for this device */
         ArConnectionState state = AR_STATE_UNAVAILABLE;
         CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
-        PreviewLayout layout = PREVIEW_LAYOUT_NONE;
+        PreviewLayout layout = PREVIEW_LAYOUT_SINGLE;
         bool isRemoteHead = false;
 
         std::unordered_map<uint32_t, PreviewWindow> win{};
@@ -487,7 +487,7 @@ namespace VkRender {
         /**@brief Size of elements in sidebar */
         float debuggerHeight = 480.0f * 0.75f;
         /**@brief Width of sidebar*/
-        float metricsWidth = 150.0f;
+        float metricsWidth = 350.0f;
         /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
         /**@brief Title of Application */
@@ -549,6 +549,7 @@ namespace VkRender {
         bool configureNetwork = true;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
+        float maxScroll = 500.0f, minScroll = -850.0f;
         bool disableCameraRotationFromGUI = false;
         const Input *input{};
         std::array<float, 4> clearColor{};

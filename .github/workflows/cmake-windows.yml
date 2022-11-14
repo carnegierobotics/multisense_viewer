@@ -28,12 +28,14 @@ jobs:
           body: |
             MultiSense Viewer Release
             - Windows users:
-            1. Run MultiSenseSetup.exe
+            1. Run the setup: MultiSenseSetup.exe
             2. Optional: Install WinPcap_driver.exe before running the auto connect feature in the viewer
             
             - Ubuntu users:
-            1. Install multisense_1.0-0_amd64.deb using the software install
+            1. Install multisense_1.0-0_amd64.deb using your default package manager or type in terminal:
             sudo dpkg --install ./multisense_1.0-0_amd64.deb
+            
+
           draft: false
           prerelease: false
 

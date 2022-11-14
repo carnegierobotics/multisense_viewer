@@ -24,6 +24,16 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
+
+        GLFWimage images[1];
+        std::string fileName = (Utils::getAssetsPath() + "Tools/windows/CRL96x96.png");
+        images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
+        if (!images[0].pixels){
+            throw std::runtime_error("Failed to load window icon: " + fileName);
+        }
+        glfwSetWindowIcon(window, 1, images);
+        stbi_image_free(images[0].pixels);
+
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -682,8 +692,6 @@ namespace VkRender {
 
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
-
-        printf("IMgui: %s\n", glfwGetClipboardString(window));
 
         if (action == GLFW_PRESS) {
 

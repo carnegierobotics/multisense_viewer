@@ -202,11 +202,6 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
     // Attempt to connect to camera and post some info
     cameraInterface = crl::multisense::Channel::Create(address);
 
-    // try again but this time with remote head
-    if (cameraInterface == nullptr) {
-        cameraInterface = crl::multisense::Channel::Create(address, crl::multisense::Remote_Head_VPB);
-    }
-
     if (cameraInterface == nullptr && connectAttemptCounter >= MAX_CONNECTION_ATTEMPTS) {
         connectAttemptCounter = 0;
         return NO_CAMERA;

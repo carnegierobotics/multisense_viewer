@@ -457,7 +457,7 @@ private:
 
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding +
-                                   handles->info->addDeviceHeight + 5.0f));
+                                   handles->info->addDeviceHeight + 25.0f));
 
         if(ImGui::Button("Show Debug")){
             handles->showDebugWindow = !handles->showDebugWindow;

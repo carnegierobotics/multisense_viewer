@@ -509,6 +509,11 @@ namespace VkRender {
         vkQueueWaitIdle(queue);
         vkDeviceWaitIdle(device);
 
+        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+        while (m_Width == 0 || m_Height == 0) {
+            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+            glfwWaitEvents();
+        }
         // Recreate swap chain
         swapchain->create(&m_Width, &m_Height);
 
@@ -641,7 +646,9 @@ namespace VkRender {
 
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        if (width > 0 || height > 0){
+            myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+        }
     }
 
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {

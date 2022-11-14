@@ -458,9 +458,10 @@ private:
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding +
                                    handles->info->addDeviceHeight + 5.0f));
-        ImGui::Checkbox("Show Debug", &handles->showDebugWindow);
 
-
+        if(ImGui::Button("Show Debug")){
+            handles->showDebugWindow = !handles->showDebugWindow;
+        }
     }
 
     void addPopup(VkRender::GuiObjectHandles *handles) {
@@ -512,7 +513,7 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-            ImGui::Funcs::MyInputText("##inputProfileName", &m_Entry.profileName);
+            ImGui::CustomInputTextWithHint("##InputProfileName", "MultiSense Profile", &m_Entry.profileName, ImGuiInputTextFlags_AutoSelectAll);
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
 
 
@@ -593,13 +594,14 @@ private:
                 ImGui::EndChild();
 
                 ImGui::SameLine(0, 250.0f);
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLBlueIsh);
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
                                   " 1. Reconnect ethernet cables \n "
                                   " 2. Power cycle the camera \n "
                                   " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
-                ImGui::PopStyleColor();
+                ImGui::PopStyleColor(2);
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::CRLDarkGray425);
                 const char *id = "Log Window";
@@ -719,8 +721,10 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
                 ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
                 ImGui::SameLine();
-                ImGui::HelpMarker("\n Check this if you are connecting to a remote head device\n ");
-                ImGui::PopStyleColor();
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
+                ImGui::PopStyleColor(3);
 
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/
@@ -738,7 +742,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                ImGui::Funcs::MyInputText("##inputIP", &m_Entry.IP);
+                ImGui::CustomInputTextWithHint("##inputIP", "Default: 10.66.171.21", &m_Entry.IP, ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 {
@@ -874,6 +878,7 @@ private:
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
                 autoConnect.m_RunAdapterSearch = false;
+                autoConnect.stopAutoConnect();
             }
 
             ImGui::EndPopup();

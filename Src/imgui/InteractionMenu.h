@@ -10,6 +10,10 @@
 #include "GLFW/glfw3.h"
 #include "ImGuiFileDialog.h"
 
+#ifdef WIN32
+#else
+#include <unistd.h>
+#endif
 class InteractionMenu : public VkRender::Layer {
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, true};
@@ -232,7 +236,7 @@ private:
         bool pOpen = true;
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
+                ImGuiWindowFlags_NoScrollWithMouse;
 
         ImGui::SetNextWindowPos(
                 ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
@@ -320,6 +324,13 @@ private:
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
         if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
+
+            if (handles->accumulatedActiveScroll > handles->maxScroll){
+                handles->accumulatedActiveScroll = handles->maxScroll - 1.0f;
+            }
+            if (handles->accumulatedActiveScroll < handles->minScroll){
+                handles->accumulatedActiveScroll = handles->minScroll + 1.0f;
+            }
         }
         int cols = 0, rows = 0;
         switch (dev.layout) {
@@ -996,10 +1007,11 @@ private:
             ImGui::Checkbox("##Enable Auto Exposure", &d.parameters.ep.autoExposure);
             d.parameters.ep.update = ImGui::IsItemDeactivatedAfterEdit();
             // Draw Manual eposure controls or auto exposure control
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
             if (!d.parameters.ep.autoExposure) {
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Value:";
+                txt = "Exposure:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -1011,7 +1023,7 @@ private:
             } else {
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Max Value:";
+                txt = "Max Exp.:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -1095,7 +1107,7 @@ private:
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::SetCursorPosX(posX);
-                ImGui::Text("Lower left corner (x, y)");
+                ImGui::Text("Lower right corner (x, y)");
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(inputWidth);
@@ -1104,8 +1116,36 @@ private:
                 ImGui::SetNextItemWidth(inputWidth);
                 ImGui::InputText("##decimalmaxY", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
                 ImGui::PopStyleColor();
-
+                ImGui::Separator();
             }
+
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
+            ImGui::Dummy(ImVec2(25.0f, 0.0f));
+            ImGui::SameLine();
+            txt = "Gain:";
+            txtSize = ImGui::CalcTextSize(txt.c_str());
+            ImGui::Text("%s", txt.c_str());
+            ImGui::SameLine(0, textSpacing - txtSize.x);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+            ImGui::SliderFloat("##Gain",
+                               &d.parameters.gain, 1.68f,
+                               14.2f, "%.1f");
+            d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor();
+
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
+            ImGui::Dummy(ImVec2(25.0f, 0.0f));
+            ImGui::SameLine();
+            txt = "Gamma:";
+            txtSize = ImGui::CalcTextSize(txt.c_str());
+            ImGui::Text("%s", txt.c_str());
+            ImGui::SameLine(0, textSpacing - txtSize.x);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+            ImGui::SliderFloat("##Gamma",
+                               &d.parameters.gamma, 1.1f,
+                               2.2f, "%.2f");
+            d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopStyleColor();
 
             // White Balance
             {
@@ -1271,17 +1311,22 @@ private:
                 ImGui::Text("Additional Params");
                 ImGui::PopFont();
 
-                ImGui::Dummy(ImVec2(0.0f, 15.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
-                ImGui::SameLine();
-                txt = "HDR";
-                txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::Checkbox("##HDREnable", &d.parameters.hdrEnabled);
-                d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+                // HDR
+                /*
+                {
+                    ImGui::Dummy(ImVec2(0.0f, 15.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "HDR";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Checkbox("##HDREnable", &d.parameters.hdrEnabled);
+                    d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+                }
+                */
 
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
                 txt = "Framerate:";
@@ -1292,34 +1337,6 @@ private:
                 ImGui::SliderFloat("##Framerate",
                                    &d.parameters.fps, 1,
                                    30, "%.1f");
-                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
-                ImGui::PopStyleColor();
-
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
-                ImGui::SameLine();
-                txt = "Gain:";
-                txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-                ImGui::SliderFloat("##Gain",
-                                   &d.parameters.gain, 1.68f,
-                                   14.2f, "%.1f");
-                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
-                ImGui::PopStyleColor();
-
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
-                ImGui::SameLine();
-                txt = "Gamma:";
-                txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-                ImGui::SliderFloat("##Gamma",
-                                   &d.parameters.gamma, 1.1f,
-                                   2.2f, "%.2f");
                 d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1350,7 +1367,13 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Save:";
+                txt = "Save the current camera calibration to directory";
+                ImGui::Text("%s", txt.c_str());
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Location:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -1416,6 +1439,12 @@ private:
                     }
 
                 }
+
+                ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Set new camera calibration";
+                ImGui::Text("%s", txt.c_str());
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));

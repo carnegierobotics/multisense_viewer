@@ -23,7 +23,6 @@ public:
         if (m_TAutoConnect != nullptr) {
             m_TAutoConnect->join();
             delete m_TAutoConnect;
-            shutdownT1Ready = false;
             m_TAutoConnect = nullptr;
         }
         if (m_TAdapterSearch != nullptr) {

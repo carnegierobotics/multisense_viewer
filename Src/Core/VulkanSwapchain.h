@@ -25,8 +25,8 @@ private:
     VkInstance instance{};
     VkDevice device{};
     VkPhysicalDevice physicalDevice{};
-    VkSurfaceKHR surface{};
 public:
+    VkSurfaceKHR surface{};
     VkFormat colorFormat{};
     VkColorSpaceKHR colorSpace{};
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;

@@ -61,6 +61,8 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
                                          std::vector<AutoConnect::Result> *res) {
     auto *app = static_cast<AutoConnectWindows *>(ctx);
     std::vector<AutoConnect::Result> tempList;
+    if (!logEvent)
+        app->shutdownT2Ready = false;
 
     while (app->m_RunAdapterSearch) {
         tempList.clear();
@@ -236,13 +238,11 @@ void AutoConnectWindows::stopAutoConnect() {
     if (m_TAutoConnect != nullptr && shutdownT1Ready) {
         m_TAutoConnect->join();
         delete m_TAutoConnect;
-        shutdownT1Ready = false;
         m_TAutoConnect = nullptr;
     }
     if (m_TAdapterSearch != nullptr && shutdownT2Ready) {
         m_TAdapterSearch->join();
         delete m_TAdapterSearch;
-        shutdownT2Ready = false;
         m_TAdapterSearch = nullptr;
     }
 }
@@ -251,10 +251,22 @@ void AutoConnectWindows::start() {
     m_LoopAdapters = true;
     m_ListenOnAdapter = true;
     m_ShouldProgramRun = true;
-
     if (m_TAutoConnect == nullptr)
         m_TAutoConnect = new std::thread(&AutoConnectWindows::run, this);
-
+    else {
+        stopAutoConnect();
+        m_LoopAdapters = true;
+        m_ListenOnAdapter = true;
+        m_ShouldProgramRun = true;
+        while(true){
+            {
+                std::scoped_lock<std::mutex> lock(readSupportedAdaptersMutex);
+                if (shutdownT1Ready)
+                    break;
+            }
+        }
+        m_TAutoConnect = new std::thread(&AutoConnectWindows::run, this);
+    }
 }
 
 
@@ -274,7 +286,7 @@ void AutoConnectWindows::run(void *ctx) {
     // Get list of network adapters that are  supports our application
     std::string hostAddress;
     size_t i = 0;
-
+    app->shutdownT1Ready = false;
     // Loop keeps retrying to connect on supported network adapters.
     while (app->m_LoopAdapters) {
 
@@ -348,8 +360,8 @@ void AutoConnectWindows::run(void *ctx) {
             fprintf(stderr, "\nUnable to open the adapter. \n %s is not supported by WinPcap\n",
                     adapter.networkAdapterLongName.c_str());
 
-            str = "Unable to open the adapter: \n" + adapter.description +
-                  "\nWinPCap is either not installed or adapter is not supported";
+            str = "WinPcap was unable to open the adapter: \n'" + adapter.description +
+                  "'\nMake sure WinPcap is installed \nCheck the adapter connection and try again \n";
             app->m_EventCallback(str, app->m_Context, 2);
             app->m_IgnoreAdapters.push_back(adapter);
             /* Free the device list */

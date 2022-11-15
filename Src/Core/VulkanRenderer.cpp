@@ -1084,8 +1084,7 @@ namespace VkRender {
             return;
 
         // Save text in a string class instance
-        input.clipboardText = std::string( pszText );
-        glfwSetClipboardString(window, input.clipboardText.c_str());
+        glfwSetClipboardString(window, pszText);
         // Release the lock
         GlobalUnlock( hData );
 

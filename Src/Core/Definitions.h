@@ -304,7 +304,7 @@ namespace VkRender {
         std::unordered_map<uint32_t, PreviewWindow> win{};
         std::vector<ChannelInfo> channelInfo{};
         /**@brief location for which this m_Device should save recorded frames **/
-        std::string outputSaveFolder = "/Path/To/Folder/";
+        std::string outputSaveFolder = "";
         bool isRecording = false;
 
         float row[9] = {0};
@@ -480,6 +480,7 @@ namespace VkRender {
     static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
     static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
     static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
+    static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
     static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
 
 

@@ -232,6 +232,7 @@ namespace VkRender {
 
         static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int key);
 
+        void clipboard();
     };
 };
 #endif //MULTISENSE_VULKANRENDERER_H

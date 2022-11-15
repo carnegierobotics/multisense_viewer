@@ -187,7 +187,12 @@ jobs:
         run: |
           mkdir files
           tar -xf .\MultiSense_viewer.zip -C .\files\
-          cp .\files\Assets\Tools\windows\inno_setup_script.iss .\
+          mv .\files\Assets\Tools\windows\inno_setup_script.iss .\
+          mv .\files\Assets\Tools\compile.sh .\
+          mv .\files\Assets\Tools\install_spirv_compiler.sh .\
+          mv .\files\Assets\Tools\monitor_memory_usage.py .\
+          Remove-Item .\files\Assets\Tools\ubuntu -Recurse -Force -Confirm:$false
+
         shell: cmd
       - name: Building the installer
         run: |

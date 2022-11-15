@@ -14,6 +14,7 @@
 #else
 #include <unistd.h>
 #endif
+
 class InteractionMenu : public VkRender::Layer {
 private:
     bool page[PAGE_TOTAL_PAGES] = {false, false, true};
@@ -325,10 +326,10 @@ private:
         if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
 
-            if (handles->accumulatedActiveScroll > handles->maxScroll){
+            if (handles->accumulatedActiveScroll > handles->maxScroll) {
                 handles->accumulatedActiveScroll = handles->maxScroll - 1.0f;
             }
-            if (handles->accumulatedActiveScroll < handles->minScroll){
+            if (handles->accumulatedActiveScroll < handles->minScroll) {
                 handles->accumulatedActiveScroll = handles->minScroll + 1.0f;
             }
         }
@@ -769,8 +770,15 @@ private:
                     ImGui::SetNextItemWidth(
                             handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
 
-                    ImGui::InputText("##SaveFolderLocation", dev.outputSaveFolder.data(),
-                                     dev.outputSaveFolder.size());
+                    ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::CRLTextWhiteDisabled);
+#ifdef WIN32
+                    std::string hint = "C:\\Path\\To\\Dir";
+#else
+                    std::string hint = "/Path/To/Dir"
+#endif
+                    ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.outputSaveFolder,
+                                                   ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
 
                     if (dev.isRecording) {
@@ -970,18 +978,22 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Head 0", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_0))
+                if (ImGui::RadioButton("Head 0", reinterpret_cast<int *>(&d.configRemoteHead),
+                                       crl::multisense::Remote_Head_0))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 1", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_1))
+                if (ImGui::RadioButton("Head 1", reinterpret_cast<int *>(&d.configRemoteHead),
+                                       crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 2", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_2))
+                if (ImGui::RadioButton("Head 2", reinterpret_cast<int *>(&d.configRemoteHead),
+                                       crl::multisense::Remote_Head_2))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
-                if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead), crl::multisense::Remote_Head_3))
+                if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead),
+                                       crl::multisense::Remote_Head_3))
                     d.parameters.updateGuiParams = true;
             }
 
@@ -1087,7 +1099,7 @@ private:
                     d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
                     d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
                     d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
-                    d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY ;
+                    d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY;
                     d.parameters.ep.update |= true;
                 }
                 ImGui::PopStyleColor();
@@ -1382,8 +1394,17 @@ private:
                 ImVec2 btnSize(100.0f, 20.0f);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##SaveLocation", d.parameters.calib.saveCalibrationPath.data(),
-                                 d.parameters.calib.saveCalibrationPath.size());
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::CRLTextWhiteDisabled);
+
+#ifdef WIN32
+                std::string hint = "C:\\Path\\To\\dir";
+#else
+                std::string hint = "/Path/To/dir"
+#endif
+                ImGui::CustomInputTextWithHint("##SaveLocation", hint.c_str(), &d.parameters.calib.saveCalibrationPath,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
+
                 ImGui::SameLine();
 
 
@@ -1457,8 +1478,17 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##IntrinsicsLocation", d.parameters.calib.intrinsicsFilePath.data(),
-                                 d.parameters.calib.intrinsicsFilePath.size());
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::CRLTextWhiteDisabled);
+
+#ifdef WIN32
+                hint = "C:\\Path\\To\\dir";
+#else
+                hint = "/Path/To/dir"
+#endif
+                ImGui::CustomInputTextWithHint("##IntrinsicsLocation", hint.c_str(),
+                                               &d.parameters.calib.intrinsicsFilePath,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
                 ImGui::SameLine();
 
 
@@ -1492,8 +1522,17 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
-                ImGui::InputText("##ExtrinsicsLocation", d.parameters.calib.extrinsicsFilePath.data(),
-                                 d.parameters.calib.extrinsicsFilePath.size());
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::CRLTextWhiteDisabled);
+
+#ifdef WIN32
+                hint = "C:\\Path\\To\\file";
+#else
+                hint = "/Path/To/file"
+#endif
+                ImGui::CustomInputTextWithHint("##ExtrinsicsLocation", hint.c_str(),
+                                               &d.parameters.calib.extrinsicsFilePath,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
                 ImGui::SameLine();
                 if (ImGui::Button("Choose File##2", btnSize))
                     chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",

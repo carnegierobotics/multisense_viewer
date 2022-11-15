@@ -63,38 +63,35 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc,
                                    crl::multisense::RemoteHeadChannel remoteHead,
                                    std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead) {
+#ifdef WIN32
+    std::string separator = "\\";
+#else
+    std::string separator = "/";
+#endif
 
     std::string directory, remoteHeadDir;
-
+    directory = std::string(path);
     std::string fileName = std::to_string(ptr->m_Id);
     if (isRemoteHead) {
-        remoteHeadDir = path + "/" + std::to_string(remoteHead);
-        directory = remoteHeadDir + "/" + stringSrc;
+        remoteHeadDir = path + separator + std::to_string(remoteHead);
+        directory = remoteHeadDir + separator + std::string(stringSrc);
     } else
-        directory = path + stringSrc;
+        directory = std::string(path) + separator + stringSrc;
 
-    std::cout << directory << std::endl;
-#ifdef WIN32
-    std::string filePath = directory + "\\";
-#else
-    std::string filePath = directory + "/";
-#endif
+    std::string filePath = directory + std::string(separator);
+
 #ifdef WIN32
     // Create Remote head index directory
     if (isRemoteHead) {
         int check = _mkdir(remoteHeadDir.c_str());
         if (check == 0)
             Log::Logger::getInstance()->info("Created directory {}", remoteHeadDir);
-        else
-            Log::Logger::getInstance()->info("Failed to create directory  {} : {}", check, remoteHeadDir);
 
     }
     // Create Source name directory
     int check = _mkdir(directory.c_str());
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
-    else
-        Log::Logger::getInstance()->info("Failed to create directory {} : {}", check, directory);
 #else
     // Create Remote head index directory
 

@@ -232,7 +232,9 @@ namespace VkRender {
 
         static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int key);
 
+#ifdef WIN32
         void clipboard();
+#endif
     };
 };
 #endif //MULTISENSE_VULKANRENDERER_H

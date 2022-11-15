@@ -1067,6 +1067,7 @@ namespace VkRender {
     }
 
 
+#ifdef WIN32
     void VulkanRenderer::clipboard() {
         // Try opening the clipboard
         if (! OpenClipboard(nullptr))
@@ -1084,10 +1085,11 @@ namespace VkRender {
 
         // Save text in a string class instance
         input.clipboardText = std::string( pszText );
-
+        glfwSetClipboardString(window, input.clipboardText.c_str());
         // Release the lock
         GlobalUnlock( hData );
 
         CloseClipboard();
     }
+#endif
 };

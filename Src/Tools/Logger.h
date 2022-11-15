@@ -238,11 +238,14 @@ namespace Log {
             fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
 
             std::string preText = fmt::format(" {}:{}: ", loc.file_name(), loc.line());
-            preText.append(s);
-
-
-            std::size_t found = preText.find_last_of('/');
+#ifdef WIN32
+            const char * separator = "\\";
+#else
+            const char* separator = "/";
+#endif
+            std::size_t found = preText.find_last_of(separator);
             std::string msg = preText.substr(found + 1);
+            msg.append(s);
 
             msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
             _info(msg.c_str());

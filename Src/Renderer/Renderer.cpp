@@ -456,8 +456,10 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    for (auto &dev: guiManager->handles.devices)
+    for (auto &dev: guiManager->handles.devices){
+        dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);
+    }
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file

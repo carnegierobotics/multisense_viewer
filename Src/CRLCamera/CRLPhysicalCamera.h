@@ -149,7 +149,7 @@ namespace VkRender::MultiSense {
              * @param[in] isRemoteHead If the m_Device is a remote head or not
              * @return vector containing the list of successful connections. Numbered by crl::multisense::RemoteHeadChannel ids
              */
-            std::vector<crl::multisense::RemoteHeadChannel> connect(const std::string &ip, bool isRemoteHead, const std::string& ifName);
+            std::vector<crl::multisense::RemoteHeadChannel> connect(const VkRender::Device *ip, bool isRemoteHead, const std::string& ifName);
 
             /**@brief Starts the desired stream if supported
              *

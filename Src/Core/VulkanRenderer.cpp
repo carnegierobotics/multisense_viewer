@@ -698,9 +698,11 @@ namespace VkRender {
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
 
+#ifdef WIN32
         if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V){
             myApp->clipboard();
         }
+#endif
 
         if (action == GLFW_PRESS) {
 

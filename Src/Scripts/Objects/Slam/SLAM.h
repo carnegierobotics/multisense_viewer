@@ -9,6 +9,7 @@
 
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <opencv2/stereo.hpp>
+#include <utility>
 #include "MultiSense/Src/Renderer/Renderer.h"
 #include "MultiSense/Src/VO/Features/VisualOdometry.h"
 #include "MultiSense/Src/ModelLoaders/glTFModel.h"
@@ -53,8 +54,11 @@ public:
     std::queue<GSlam::FeatureSet> m_FeatureLeftMap;
     std::queue<GSlam::FeatureSet> m_FeatureRightMap;
 
-    std::queue<cv::Mat> m_LImageQ;
-    std::queue<cv::Mat> m_RImageQ;
+    //std::queue<cv::Mat> m_LImageQ;
+    //std::queue<cv::Mat> m_RImageQ;
+
+    cv::Mat prevLeftImage;
+    cv::Mat prevRightImage;
 
     cv::Mat m_PLeft, m_PRight;
 
@@ -67,7 +71,8 @@ public:
     cv::Mat m_RotVec;
     cv::Mat m_Pose;
     cv::Mat m_Trajectory;
-    cv::Mat prevLeftImg;
+    int64_t m_RightID, m_LeftID;
+    std::chrono::steady_clock::time_point lastLeftTime;
 
     struct gtPos{
         float x{}, y{}, z{};
@@ -77,24 +82,28 @@ public:
         }
     };
 
+
+
+    FeatureSet features;
+
     VkRender::Shared shared;
     std::vector<gtPos> gtPositions{};
-    FeatureSet featureSet{};
     cv::Ptr<cv::StereoSGBM> sgbm;
     bool m_newKeyFrame = true;
 
-    std::vector<cv::Point2f> p0, p1;
     cv::Ptr<cv::ORB> m_ORBDetector;
     std::vector<cv::Scalar> colors;
     cv::Mat mask;
-    int numCornersToTrack = 500;
+    int numCornersToTrack = 50;
     cv::Ptr<cv::DescriptorExtractor> m_ORBDescriptor;
     int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
     CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
+
 };
+
 
 
 #endif //MULTISENSE_VIEWER_SLAM_H

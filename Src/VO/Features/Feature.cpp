@@ -313,7 +313,7 @@ void bucketingFeatures(cv::Mat &image, FeatureSet &current_features, int bucket_
         buckets_nums_height_idx = current_features.points[i].y / bucket_size;
         buckets_nums_width_idx = current_features.points[i].x / bucket_size;
         buckets_idx = buckets_nums_height_idx * buckets_nums_width + buckets_nums_width_idx;
-        Buckets[buckets_idx].add_feature(current_features.points[i], current_features.ages[i]);
+        Buckets[buckets_idx].add_feature(current_features.points[i]);
 
     }
 

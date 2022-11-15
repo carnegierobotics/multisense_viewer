@@ -55,7 +55,7 @@ public:
     }
 
 
-    void add_feature(cv::Point2f point, int age){
+    void add_feature(cv::Point2f point, int age = 1){
         // won't add feature with age > 10;
         int age_threshold = 10;
         if (age < age_threshold)

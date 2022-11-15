@@ -31,8 +31,6 @@ void SLAM::setup() {
     cv::Mat rightImg = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
     filter2D(leftImg, leftImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
     filter2D(rightImg, rightImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
-    m_FeatureLeftMap.push(GSlam::getFeatures(leftImg));
-    m_FeatureRightMap.push(GSlam::getFeatures(rightImg));
     //m_LImageQ.push(leftImg);
     //m_RImageQ.push(rightImg);
     //cv::goodFeaturesToTrack(leftImg, p0, 100, 0.5, 8, cv::Mat(), 7, false, 0.04);
@@ -50,13 +48,16 @@ void SLAM::setup() {
     cx = 516.0;
     cy = 386.0;
      */
-    float fx = 1288.600 / 2.0;
-    float fy = 1288.64 / 2.0;
-    float cx = 976.0 / 2;
-    float cy = 575.0 / 2;
+    float fx = 1288.600 ;
+    float fy = 1288.64 ;
+    float cx = 976.0 ;
+    float cy = 575.0 ;
     m_PLeft = (cv::Mat_<float>(3, 4) << fx, 0., cx, 0., 0., fy, cy, 0., 0, 0., 1., 0.);
 
-
+    fx = 1290.23 ;
+    fy = 1290.3674 ;
+    cx = 950.639 ;
+    cy = 591.479;
     m_PRight = (cv::Mat_<float>(3, 4) << fx, 0., cx, fx * (-0.29991), 0., fy, cy, 0., 0, 0., 1., 0.);
 
     m_Rotation = cv::Mat::eye(3, 3, CV_64F);
@@ -70,7 +71,7 @@ void SLAM::setup() {
     m_ORBDetector = cv::ORB::create();
     // Create some random colors
     cv::RNG rng;
-    for (int i = 0; i < numCornersToTrack; i++) {
+    for (int i = 0; i < numCornersToTrack * 50; i++) {
         int r = rng.uniform(0, 256);
         int g = rng.uniform(0, 256);
         int b = rng.uniform(0, 256);
@@ -89,104 +90,113 @@ void SLAM::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 void SLAM::update() {
     if (selectedPreviewTab != TAB_3D_POINT_CLOUD)
         return;
-    cv::Mat kernel3 = (cv::Mat_<double>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
 
     cv::Mat leftImg;// = cv::imread(leftFileNames[frame], cv::IMREAD_GRAYSCALE);
     cv::Mat rightImg;// = cv::imread(rightFileNames[frame], cv::IMREAD_GRAYSCALE);
     cv::Mat depthImg;
     const auto& conf = renderData.crlCamera->get()->getCameraInfo(0).imgConf;
-    auto tex = VkRender::TextureData(AR_GRAYSCALE_IMAGE, conf.width(), conf.height(), true);
-    if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, 0)) {
-             leftImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_8UC1, tex.data);
-        filter2D(leftImg, leftImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
-        mask = cv::Mat::zeros(leftImg.size(), CV_8UC3);
+    auto leftTex = VkRender::TextureData(AR_GRAYSCALE_IMAGE, conf.width(), conf.height(), true);
+    if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &leftTex, 0)) {
+        std::chrono::duration<float> time_span =
+                std::chrono::duration_cast<std::chrono::duration<float>>(
+                        std::chrono::steady_clock::now() - lastLeftTime);
+        float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
+        if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
+                m_LeftID == leftTex.m_Id){
+            return;
+        } else {
+            // update timer
+            if (m_LeftID != leftTex.m_Id) {
+                lastLeftTime = std::chrono::steady_clock::now();
+            }
+            // If we get MultiSense images then
+            // Update the texture or update the GPU Texture
+            m_LeftID = leftTex.m_Id;
+            leftImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_8UC1, leftTex.data);
 
+            mask = cv::Mat::zeros(leftImg.size(), CV_8UC3);
+        }
     }
 
     auto depthTex = VkRender::TextureData(AR_DISPARITY_IMAGE, conf.width(), conf.height(), true);
     if (renderData.crlCamera->get()->getCameraStream("Disparity Left", &depthTex, 0)) {
         depthImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_16UC1, (uint16_t *) depthTex.data);
-
     }
     auto rightTex = VkRender::TextureData(AR_GRAYSCALE_IMAGE, conf.width(), conf.height(), true);
     if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Right", &rightTex, 0)) {
         rightImg = cv::Mat(cv::Size(conf.width(), conf.height()), CV_8UC1, rightTex.data);
-        filter2D(rightImg, rightImg, -1, kernel3, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT );
+        m_RightID = rightTex.m_Id;
+
     }
 
     if (leftImg.empty() || rightImg.empty() || depthImg.empty())
         return;
 
-    bool anyEmpty = false;
-    if (m_RImageQ.empty()){
-        m_RImageQ.push(rightImg);
-        anyEmpty = true;
-    }
-    if (m_LImageQ.empty()){
-        m_LImageQ.push(leftImg);
-        cv::goodFeaturesToTrack(leftImg, p0, numCornersToTrack, 0.5, 8, cv::Mat(), 7, false, 0.04);
-        anyEmpty = true;
-    }
-    if (anyEmpty)
+    if (prevLeftImage.empty()){
+
+        prevLeftImage = leftImg.clone();
+        prevRightImage = rightImg.clone();
+        //cv::goodFeaturesToTrack(prevLeftImage, p0, numCornersToTrack, 0.1, 5, cv::Mat(), 5, false, 0.04);
+
         return;
+    }
 
 
-
-    shared.frame = frame;
-    std::string fileName = (leftFileNames[frame].substr(leftFileNames[frame].rfind('/') + 1));
-    std::string timeAndExtension = (fileName.substr(fileName.rfind('_') + 1));
-    shared.time = (timeAndExtension.substr(0, timeAndExtension.rfind('.')));
-    sharedData->put(&shared, shared.time.size());
-
-    cv::Mat prevRightImg = m_RImageQ.front();
-    cv::Mat prevLeftImg =  m_LImageQ.front();
     std::vector<cv::KeyPoint> prevKeyPoints, keyPoints;
     cv::Mat prevDescriptors, descriptors;
 
-    if (p0.size() < numCornersToTrack) {
-        std::vector<cv::Point2f> tmp{};
-        cv::goodFeaturesToTrack(leftImg, tmp, numCornersToTrack, 0.5, 8, cv::Mat(), 7, false, 0.04);
-        // Track new features, but discard identical.
-        std::vector<cv::Point2f> tmp2{};
-        for (const auto &item: tmp) {
-            bool newPoint = true;
-            for (const auto &point: p0) {
-                if (point == item) {
-                    newPoint = false;
-                }
-            }
-            if (newPoint)
-                tmp2.emplace_back(item);
-        }
-        p0.insert(p0.end(), tmp2.begin(), tmp2.end());
+    if (features.points.size() < 2000) {
+        std::vector<cv::Point2f> points_new;
+        featureDetectionFast(prevLeftImage, points_new);
+        features.points.insert(features.points.end(), points_new.begin(), points_new.end());
+        std::vector<int> ages_new(points_new.size(), 0);
+        features.ages.insert(features.ages.end(), ages_new.begin(), ages_new.end());
     }
+
+
+    int bucket_size = prevLeftImage.rows / 25;
+    int features_per_bucket = 1;
+
+    bucketingFeatures(prevLeftImage, features, bucket_size, features_per_bucket);
+
+
     cv::Mat leftColor = leftImg.clone(), rightColor = rightImg.clone();
     cv::Mat leftColorOpticalFlow = leftImg.clone();
     cv::cvtColor(leftColor, leftColor, cv::COLOR_GRAY2BGR);
     cv::cvtColor(rightColor, rightColor, cv::COLOR_GRAY2BGR);
     cv::cvtColor(leftColorOpticalFlow, leftColorOpticalFlow, cv::COLOR_GRAY2BGR);
-
+    //cv::imshow("LeftNow", leftImg);
+    //cv::imshow("prevLeft", prevLeftImage);
     // calculate optical flow
     std::vector<uchar> status;
     std::vector<float> err;
-    cv::TermCriteria criteria = cv::TermCriteria((cv::TermCriteria::COUNT) + (cv::TermCriteria::EPS), 20, 0.001);
-    cv::calcOpticalFlowPyrLK(prevLeftImg, leftImg, p0, p1, status, err, cv::Size(15, 15), 3, criteria);
-    std::vector<cv::Point2f> good_new;
-    for (uint i = 0; i < p0.size(); i++) {
+    cv::TermCriteria criteria = cv::TermCriteria((cv::TermCriteria::COUNT) + (cv::TermCriteria::EPS), 30, 0.001);
+
+    std::vector<cv::Point2f> tmp;
+
+    cv::calcOpticalFlowPyrLK(prevLeftImage, leftImg, features.points, tmp, status, err, cv::Size(31, 31), 5, criteria);
+    std::vector<cv::Point2f> trackedPoints;
+
+    for (uint i = 0; i < tmp.size(); i++) {
         if (status[i] == 1) {
-            good_new.push_back(p1[i]);
-            cv::line(mask, p1[i], p0[i], colors[i], 2);
-            cv::circle(leftColorOpticalFlow, p1[i], 5, colors[i], -1);
+            trackedPoints.push_back(tmp[i]);
+            cv::line(mask, features.points[i], tmp[i], colors[i], 2);
+            cv::circle(leftColorOpticalFlow, tmp[i], 5, colors[i], -1);
         }
     }
-    p0 = good_new;
+    features.points = trackedPoints;
+    cv::Mat img;
+    cv::add(leftColorOpticalFlow, mask, img);
+    cv::imshow("leftColorOpticalFlow", img);
+    printf("Good features: %zu\n", features.points .size());
+
     std::vector<cv::KeyPoint> keyPointsLeft, keyPointsRight;
     // Find points in right along the epipolar line. Discard points that were not matches
     // 1. Find descriptors in left image using a mask
     cv::Mat rightImageDescriptorMask = cv::Mat::zeros(rightImg.size(), rightImg.type());
     cv::Mat leftImageDescriptorMask = cv::Mat::zeros(leftImg.size(), leftImg.type());
     int window = 2;
-    for (const auto &item: p0) {
+    for (const auto &item: features.points ) {
         for (int i = -window; i <= window; ++i) {
             for (int j = -window; j <= window; ++j) {
                 cv::Point2f pt = item + cv::Point2f((float) i, (float) j);
@@ -196,7 +206,7 @@ void SLAM::update() {
         }
     }
     cv::imshow("leftImageDescriptorMask:", leftImageDescriptorMask);
-
+    cv::waitKey(1);
     /*
     cv::Mat descriptorLeft, descriptorRight;
     m_ORBDetector->detectAndCompute(leftImg, leftImageDescriptorMask, keyPointsLeft, descriptorLeft);
@@ -229,23 +239,26 @@ void SLAM::update() {
     std::vector<cv::Point2f> pointsLeft, pointsRight;
 
     minMaxLoc( disp, &minVal, &maxVal);
-    for (const auto &item: p0){
+    for (const auto &item: features.points ){
+        if (item.y > disp.rows || item.x > disp.cols)
+            continue;
         auto disparity = disp.at<double>(item.y, item.x);
         // If disparity is valid
-        if (item.x > (disparity )&& disparity > 25.0){
+        if (item.x > (disparity)&& disparity > 75.0){
             pointsLeft.emplace_back(item);
             pointsRight.emplace_back(cv::Point2f(item.x - disparity, item.y));
         }
     }
     disp.convertTo(disp, CV_8UC1);
     cv::imshow("Disp", disp);
-
     for (int i = 0; i < pointsLeft.size(); ++i) {
         cv::line(leftColor, pointsRight[i], pointsLeft[i], cv::Scalar(30.0f, 30.0f, 255.0f), 2);
     }
-
+    for (int i = 0; i < pointsRight.size(); ++i) {
+        cv::circle(rightColor, pointsRight[i],2, cv::Scalar(30.0f, 30.0f, 255.0f), 2);
+    }
     cv::imshow("Lines", leftColor);
-    cv::waitKey(1);
+    cv::imshow("Points right", rightColor);
 
     /*
     cv::Mat imageKeyPointsLeft;
@@ -273,12 +286,9 @@ void SLAM::update() {
         pointsRight.emplace_back(keyPointsRight[goodMatch.trainIdx].pt);
     }
           */
+    std::cout << "points to solve pnp: " << pointsLeft.size() << std::endl;
 
-    if (pointsLeft.size() >= 10) {
-        cv::Mat img;
-        cv::add(leftColorOpticalFlow, mask, img);
-        cv::imshow("leftColorOpticalFlow", img);
-        printf("Good features: %zu\n", good_new.size());
+    if (pointsLeft.size() >= 15) {
         //cv::imshow("left", leftColor);
         //cv::imshow("right", rightColor);
         cv::Mat points3D_t0, points4D_t0;
@@ -296,11 +306,11 @@ void SLAM::update() {
                 m_PLeft.at<float>(1, 0), m_PLeft.at<float>(1, 1), m_PLeft.at<float>(1, 2),
                 m_PLeft.at<float>(2, 0), m_PLeft.at<float>(2, 1), m_PLeft.at<float>(2, 2));
 
-        int iterationsCount = 2000;        // number of Ransac iterations.
-        float reprojectionError = .1;    // maximum allowed distance to consider it an inlier.
-        float confidence = 0.999;          // RANSAC successful confidence.
-        static bool useExtrinsicGuess = false;
-        int flags = cv::SOLVEPNP_AP3P;
+        int iterationsCount = 5000;        // number of Ransac iterations.
+        float reprojectionError = .5;    // maximum allowed distance to consider it an inlier.
+        float confidence = 0.99;          // RANSAC successful confidence.
+        static bool useExtrinsicGuess = true;
+        int flags = cv::SOLVEPNP_ITERATIVE;
 
         cv::Mat inliers;
 
@@ -327,10 +337,9 @@ void SLAM::update() {
 
     id++;
     frame++;
-    m_LImageQ.push(leftImg);
-    m_RImageQ.push(rightImg);
-    m_LImageQ.pop();
-    m_RImageQ.pop();
+
+    prevLeftImage = leftImg.clone();
+    prevRightImage = rightImg.clone();
 
     std::cout << glm::to_string(m_TranslationMat) << std::endl;
     std::cout << glm::to_string(m_RotationMat) << std::endl << std::endl;
@@ -347,6 +356,12 @@ void SLAM::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
+
+    shared.frame = frame;
+    std::string fileName = (leftFileNames[frame].substr(leftFileNames[frame].rfind('/') + 1));
+    std::string timeAndExtension = (fileName.substr(fileName.rfind('_') + 1));
+    shared.time = (timeAndExtension.substr(0, timeAndExtension.rfind('.')));
+    sharedData->put(&shared, shared.time.size());
 }
 
 

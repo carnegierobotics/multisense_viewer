@@ -213,7 +213,7 @@ public:
                 ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
                 ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
-                ImGui::Text("Frame: %llu", handles->info->frameID);
+                ImGui::Text("Frame: %lu", handles->info->frameID);
 
             }
             ImGui::Separator();

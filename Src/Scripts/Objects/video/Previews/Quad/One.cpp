@@ -89,7 +89,7 @@ void One::prepareDefaultTexture() {
     noImageModel->modelType = AR_COLOR_IMAGE;
     noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
     std::string vertexShaderFileName = "Scene/spv/quad.vert";
-    std::string fragmentShaderFileName = "Scene/spv/quad.frag";
+    std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};
@@ -113,7 +113,9 @@ void One::prepareMultiSenseTexture() {
         case AR_COLOR_IMAGE_YUV420:
         case AR_YUV_PLANAR_FRAME:
             vertexShaderFileName = "Scene/spv/quad.vert";
-            fragmentShaderFileName = "Scene/spv/quad.frag";
+            fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
+                                     "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
+
             break;
         case AR_DISPARITY_IMAGE:
             vertexShaderFileName = "Scene/spv/depth.vert";

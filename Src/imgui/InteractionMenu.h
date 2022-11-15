@@ -549,8 +549,6 @@ private:
 
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
                 window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
-
-
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
@@ -614,11 +612,7 @@ private:
                 dev.playbackStatus = AR_PREVIEW_PLAYING;
                 ImGui::PopStyleColor();
                 ImGui::PopStyleColor(); // PopupBg
-
-
                 /** Color rest of area in the background color exluding previews**/
-
-
                 ImGui::End();
                 index++;
             }
@@ -783,7 +777,7 @@ private:
 #ifdef WIN32
                     std::string hint = "C:\\Path\\To\\Dir";
 #else
-                    std::string hint = "/Path/To/Dir"
+                    std::string hint = "/Path/To/Dir";
 #endif
                     ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.outputSaveFolder,
                                                    ImGuiInputTextFlags_AutoSelectAll);
@@ -1408,7 +1402,7 @@ private:
 #ifdef WIN32
                 std::string hint = "C:\\Path\\To\\dir";
 #else
-                std::string hint = "/Path/To/dir"
+                std::string hint = "/Path/To/dir";
 #endif
                 ImGui::CustomInputTextWithHint("##SaveLocation", hint.c_str(), &d.parameters.calib.saveCalibrationPath,
                                                ImGuiInputTextFlags_AutoSelectAll);
@@ -1492,7 +1486,7 @@ private:
 #ifdef WIN32
                 hint = "C:\\Path\\To\\dir";
 #else
-                hint = "/Path/To/dir"
+                hint = "/Path/To/dir";
 #endif
                 ImGui::CustomInputTextWithHint("##IntrinsicsLocation", hint.c_str(),
                                                &d.parameters.calib.intrinsicsFilePath,
@@ -1536,7 +1530,7 @@ private:
 #ifdef WIN32
                 hint = "C:\\Path\\To\\file";
 #else
-                hint = "/Path/To/file"
+                hint = "/Path/To/file";
 #endif
                 ImGui::CustomInputTextWithHint("##ExtrinsicsLocation", hint.c_str(),
                                                &d.parameters.calib.extrinsicsFilePath,

@@ -15,13 +15,17 @@
 namespace VkRender::MultiSense {
 
     std::vector<crl::multisense::RemoteHeadChannel>
-    CRLPhysicalCamera::connect(const std::string &ip, bool isRemoteHead, const std::string& ifName) {
+    CRLPhysicalCamera::connect(const VkRender::Device * dev, bool isRemoteHead, const std::string& ifName) {
         std::vector<crl::multisense::RemoteHeadChannel> indices;
         // If RemoteHead then attempt to connect 4 LibMultiSense channels
         // else create only one and place it at 0th index.
         for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
-            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(ip, i, ifName)
-                                         : std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB, ifName);
+            if (dev->interruptConnection){
+                indices.clear();
+                return indices;
+            }
+            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(dev->IP, i, ifName)
+                                         : std::make_unique<ChannelWrapper>(dev->IP, crl::multisense::Remote_Head_VPB, ifName);
 
             if (channelMap[i].get()->ptr() != nullptr) {
                 updateCameraInfo(i);
@@ -32,8 +36,13 @@ namespace VkRender::MultiSense {
                 break;
         }
 
+        if (dev->interruptConnection){
+            indices.clear();
+            return indices;
+        }
+
         if (isRemoteHead) {
-            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(ip, crl::multisense::Remote_Head_VPB, ifName);
+            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(dev->IP, crl::multisense::Remote_Head_VPB, ifName);
             if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
                 setMtu(7200, crl::multisense::Remote_Head_VPB);
         } else {
@@ -142,6 +151,7 @@ namespace VkRender::MultiSense {
 
         switch (tex->m_Type) {
             case AR_COLOR_IMAGE_YUV420:
+            {
                 if ((header->data().source | headerTwo->data().source) != src ||
                     tex->m_Width != header->data().width ||
                     tex->m_Height < header->data().height)
@@ -164,6 +174,7 @@ namespace VkRender::MultiSense {
                     diff = tex->m_Height / 2.0f - headerTwo->data().height;
                     std::memset(tex->data2 + headerTwo->data().imageLength, 0x00, diff * tex->m_Width);
                 }
+            }
 
                 return true;
 

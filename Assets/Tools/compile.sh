@@ -34,6 +34,7 @@ $glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
 
 $glslc ${sceneDir}/quad/quad.vert -o ${sceneOutDir}quad.vert.spv
 $glslc ${sceneDir}/quad/quad.frag -o ${sceneOutDir}quad.frag.spv
+$glslc ${sceneDir}/quad/quad_sampler.frag -o ${sceneOutDir}quad_sampler.frag.spv
 
 $glslc ${sceneDir}/depth/depth.vert -o ${sceneOutDir}depth.vert.spv
 $glslc ${sceneDir}/depth/depth.frag -o ${sceneOutDir}depth.frag.spv

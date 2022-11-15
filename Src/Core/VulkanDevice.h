@@ -58,7 +58,7 @@ struct VulkanDevice {
     VkCommandPool createCommandPool(uint32_t queueFamilyIndex,
                                     VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-    bool extensionSupported(std::string extension);
+    bool extensionSupported(std::string extension) const;
 
     VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size,
                           VkBuffer *buffer, VkDeviceMemory *memory, void *data = nullptr);

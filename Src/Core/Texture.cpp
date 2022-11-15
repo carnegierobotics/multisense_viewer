@@ -441,14 +441,13 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
             break;
         case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
         case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-            if (device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+            if (!device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
                 samplerYcbcrConversionInfo = createYUV420Sampler(format);
                 viewCreateInfo.pNext = &samplerYcbcrConversionInfo;
             }
             else {
                 createDefaultSampler();
             }
-
             // Create YUV m_Sampler
             break;
 
@@ -560,7 +559,6 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 
 
 void TextureVideo::updateTextureFromBuffer() {
-
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;

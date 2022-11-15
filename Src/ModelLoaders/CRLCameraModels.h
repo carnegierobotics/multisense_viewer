@@ -74,9 +74,10 @@ public:
         VulkanDevice *vulkanDevice{};
         std::vector<std::string> extensions;
 
-        std::unique_ptr<Texture2D> texture;
         std::unique_ptr<TextureVideo> textureVideo;
         std::unique_ptr<TextureVideo> textureColorMap;
+        std::unique_ptr<TextureVideo> textureChromaU;
+        std::unique_ptr<TextureVideo> textureChromaV;
 
         std::vector<Texture::TextureSampler> textureSamplers;
 

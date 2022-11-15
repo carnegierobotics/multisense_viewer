@@ -15,12 +15,8 @@ layout(set = 0, binding = 1) uniform INFO {
 
 } info;
 
-layout(set = 0, binding = 2) uniform SELECT {
-    float map;
-} select;
-
-layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
-layout (set = 0, binding = 4) uniform sampler2D samplerTextureMap;
+layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
+layout (set = 0, binding = 3) uniform sampler2D samplerTextureMap;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -47,15 +43,6 @@ vec3 getNormal()
 
 void main()
 {
-
-    if (select.map == 0){
-    }
-
-    if (select.map == 1){
-    }
-    if (select.map == 2){
-
-    }
 
 
     float ambientStrength = 0.1;

@@ -319,6 +319,8 @@ namespace VkRender {
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         bool systemNetworkChanged = false;
+        /** Interrupt connection if users exits program. */
+        bool interruptConnection = false;
 
         Device(){
             outputSaveFolder.resize(255);

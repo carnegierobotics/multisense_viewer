@@ -15,11 +15,7 @@ layout(binding = 1, set = 0) uniform Colors {
     vec4 viewPos;
 } colors;
 
-layout(set = 0, binding = 2) uniform SELECT {
-    float map;
-} select ;
-
-layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
+layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
 
 void main()

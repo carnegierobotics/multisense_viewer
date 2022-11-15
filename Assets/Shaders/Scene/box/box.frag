@@ -13,10 +13,6 @@ layout(set = 0, binding = 1) uniform INFO {
     vec4 viewPos;
 } info;
 
-layout(set = 0, binding = 2) uniform SELECT {
-    float map;
-} select ;
-
 
 layout (location = 0) out vec4 outFragColor;
 

@@ -5,6 +5,9 @@
 
 #include "VulkanRenderer.h"
 
+#ifdef WIN32
+    #include <strsafe.h>
+#endif
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) {
         settings.validation = enableValidation;
@@ -686,12 +689,18 @@ namespace VkRender {
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
         io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
+        io.AddKeyEvent(ImGuiKey_LeftCtrl, (mods & GLFW_MOD_CONTROL) != 0);
+
         key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
         ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
         io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
 
         myApp->keyPress = key; // TODO Disabled key release events
         myApp->keyAction = action;
+
+        if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V){
+            myApp->clipboard();
+        }
 
         if (action == GLFW_PRESS) {
 
@@ -1055,5 +1064,30 @@ namespace VkRender {
             default:
                 return ImGuiKey_None;
         }
+    }
+
+
+    void VulkanRenderer::clipboard() {
+        // Try opening the clipboard
+        if (! OpenClipboard(nullptr))
+            return;
+
+        // Get handle of clipboard object for ANSI text
+        HANDLE hData = GetClipboardData(CF_TEXT);
+        if (hData == nullptr)
+            return;
+
+        // Lock the handle to get the actual text pointer
+        char * pszText = static_cast<char*>( GlobalLock(hData) );
+        if (pszText == nullptr)
+            return;
+
+        // Save text in a string class instance
+        input.clipboardText = std::string( pszText );
+
+        // Release the lock
+        GlobalUnlock( hData );
+
+        CloseClipboard();
     }
 };

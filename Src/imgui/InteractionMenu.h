@@ -1265,8 +1265,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
                 ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing);
                 d.parameters.light.update = ImGui::IsItemDeactivatedAfterEdit();
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
                 txt = "Power :";
@@ -1281,6 +1281,7 @@ private:
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
+                /*
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
@@ -1293,9 +1294,8 @@ private:
                                  reinterpret_cast<int *>(&d.parameters.light.selection), -1,
                                  3);
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
-
                 ImGui::PopStyleColor();
-
+*/
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();

@@ -556,7 +556,8 @@ private:
                 std::string srcLabel = "##Source" + std::to_string(index);
                 std::string previewValue;
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
-
+                std::vector<std::string> colorSources = {"Color Aux", "Color Rectified Aux"};
+                std::vector<std::string> auxLumaSources = {"Luma Aux", "Luma Rectified Aux"};
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
@@ -568,8 +569,16 @@ private:
                                 for (const auto &win: dev.win) {
                                     if (win.second.selectedSource == window.selectedSource &&
                                         (int) win.first != index &&
-                                        win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex)
+                                        win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                         inUse = true;
+                                    }
+
+                                    // If a color source is active in another window and our selected source is a aux *luma source then do nothing
+                                    if (win.first != index && Utils::isInVector(colorSources, win.second.selectedSource) && Utils::isInVector(auxLumaSources, window.selectedSource)){
+                                        inUse = true;
+                                    }
+                                    // It's in use if we have color aux running but we are disabling luma aux
+
                                 }
                                 if (!inUse && Utils::removeFromVector(
                                         &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,

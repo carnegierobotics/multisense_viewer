@@ -48,12 +48,10 @@ void SingleLayout::update() {
         lastPresentedFrameID == tex.m_Id){
             drawDefaultTexture = true;
             return;
-       }
-
-        // update timer
-        if (lastPresentedFrameID != tex.m_Id){
+       } else {
             lastPresentTime = std::chrono::steady_clock::now();
         }
+
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
         if (model->updateTexture(textureType)) {

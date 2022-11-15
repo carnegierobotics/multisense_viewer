@@ -39,18 +39,18 @@ void Two::update() {
     // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
-        std::chrono::duration<float> time_span =
+        auto time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
         float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
-            lastPresentedFrameID == tex.m_Id){
+            lastPresentedFrameID == tex.m_Id) {
             drawDefaultTexture = true;
             return;
         }
 
         // update timer
-        if (lastPresentedFrameID != tex.m_Id){
+        if (lastPresentedFrameID != tex.m_Id) {
             lastPresentTime = std::chrono::steady_clock::now();
         }
         // If we get MultiSense images then
@@ -92,7 +92,8 @@ void Two::prepareDefaultTexture() {
     std::string fragmentShaderFileName = "Scene/spv/quad.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, noImageModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
@@ -129,7 +130,7 @@ void Two::prepareMultiSenseTexture() {
 
     uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(res, &width, &height, &depth);
-    if (width == 0 || height == 0){
+    if (width == 0 || height == 0) {
         Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
@@ -161,15 +162,21 @@ void Two::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     }
 }
 
-void Two::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
+void Two::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {
     float row = dev.row[0];
     float col = dev.col[1];
-    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
-    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
+             (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY - uiHandle->info->previewBorderPadding) / 720.0f) *
+             (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
-    float viewAreaElementPosX = offsetX + (uiHandle->info->viewAreaElementSizeX/2) + (col * uiHandle->info->viewAreaElementSizeX) + (col * 10.0f);
+    float viewAreaElementPosX =
+            offsetX + (uiHandle->info->viewAreaElementSizeX / 2) + (col * uiHandle->info->viewAreaElementSizeX) +
+            (col * 10.0f);
     centerX = 2 * (viewAreaElementPosX) / uiHandle->info->width - 1; // map between -1 to 1q
-    centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY/2.0f)  + ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height - 1; // map between -1 to 1
+    centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY / 2.0f) +
+                   ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height -
+              1; // map between -1 to 1
 }
 
 void Two::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {

@@ -768,8 +768,9 @@ private:
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
                     ImGui::SetNextItemWidth(
                             handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+
                     ImGui::InputText("##SaveFolderLocation", dev.outputSaveFolder.data(),
-                                     dev.outputSaveFolder.size() + 1);
+                                     dev.outputSaveFolder.size());
                     ImGui::PopStyleVar();
 
                     if (dev.isRecording) {
@@ -1382,7 +1383,7 @@ private:
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
                 ImGui::InputText("##SaveLocation", d.parameters.calib.saveCalibrationPath.data(),
-                                 d.parameters.calib.saveCalibrationPath.size() + 255);
+                                 d.parameters.calib.saveCalibrationPath.size());
                 ImGui::SameLine();
 
 
@@ -1457,7 +1458,7 @@ private:
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
                 ImGui::InputText("##IntrinsicsLocation", d.parameters.calib.intrinsicsFilePath.data(),
-                                 d.parameters.calib.intrinsicsFilePath.size() + 255);
+                                 d.parameters.calib.intrinsicsFilePath.size());
                 ImGui::SameLine();
 
 
@@ -1492,7 +1493,7 @@ private:
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - (btnSize.x) - 35.0f);
                 ImGui::InputText("##ExtrinsicsLocation", d.parameters.calib.extrinsicsFilePath.data(),
-                                 d.parameters.calib.extrinsicsFilePath.size() + 255);
+                                 d.parameters.calib.extrinsicsFilePath.size());
                 ImGui::SameLine();
                 if (ImGui::Button("Choose File##2", btnSize))
                     chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",

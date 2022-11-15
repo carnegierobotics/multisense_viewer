@@ -202,6 +202,12 @@ struct CalibrationParams {
     std::string saveCalibrationPath = "Path/To/Dir";
     bool updateFailed = false;
     bool saveFailed = false;
+
+    CalibrationParams(){
+        intrinsicsFilePath.resize(255);
+        extrinsicsFilePath.resize(255);
+        saveCalibrationPath.resize(255);
+    }
 };
 
 
@@ -313,6 +319,10 @@ namespace VkRender {
 
         Page selectedPreviewTab = TAB_2D_PREVIEW;
         bool systemNetworkChanged = false;
+
+        Device(){
+            outputSaveFolder.resize(255);
+        }
     };
 
     /**

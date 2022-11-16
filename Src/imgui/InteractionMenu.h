@@ -1247,7 +1247,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("LightingParams");
+                ImGui::Text("LED Control");
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
@@ -1263,7 +1263,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Power :";
+                txt = "Duty Cycle :";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -1291,30 +1291,35 @@ private:
                 ImGui::PopStyleColor();
 */
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n Light pulses per exposure \n ");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0.0f, 5);
                 txt = "Light Pulses:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-                ImGui::SliderInt("##Pulses",
-                                 reinterpret_cast<int *>(&d.parameters.light.numLightPulses), 10,
-                                 35000);
+                ImGui::SliderFloat("##Pulses",
+                                 reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
+                                 60, "%.1f");
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Startup Time:";
+                txt = "Startup Time (ms):";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::SetNextItemWidth(handles->info->controlAreaWidth - 72.0f - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-                ImGui::SliderInt("##Startup Time",
-                                 reinterpret_cast<int *>(&d.parameters.light.startupTime), 1,
-                                 100);
+                ImGui::SliderFloat("##Startup Time",
+                                 reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
+                                 60, "%.1f");
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }
@@ -1324,7 +1329,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("Additional Params");
+                ImGui::Text("General");
                 ImGui::PopFont();
 
                 // HDR

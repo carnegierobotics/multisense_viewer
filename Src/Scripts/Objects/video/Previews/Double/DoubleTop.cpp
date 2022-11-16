@@ -9,20 +9,30 @@
 void DoubleTop::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    noImageModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_Model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_NoDataModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
 
     // Create quad and store it locally on the GPU
     ImageData imgData{};
-    model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
-    noImageModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+    m_Model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+    m_NoDataModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+    m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    pixels = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
-                       STBI_rgb_alpha);
-    if (!pixels) {
+    m_NoDataTex = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
+                            STBI_rgb_alpha);
+    if (!m_NoDataTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath() + "no_image_tex.png"));
+    }
+    // Create texture m_Image if not created
+    m_NoSourceTex = stbi_load((Utils::getTexturePath() + "no_source_selected.png").c_str(), &texWidth, &texHeight,
+                              &texChannels,
+                              STBI_rgb_alpha);
+    if (!m_NoSourceTex) {
+        Log::Logger::getInstance()->info("Failed to load texture image {}",
+                                         (Utils::getTexturePath() + "no_source_selected.png"));
     }
 
     lastPresentTime = std::chrono::steady_clock::now();
@@ -35,7 +45,7 @@ void DoubleTop::update() {
 
     auto tex = VkRender::TextureData(textureType, res);
 
-    model->getTextureDataPointers(&tex);
+    m_Model->getTextureDataPointers(&tex);
     // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
@@ -44,19 +54,17 @@ void DoubleTop::update() {
                         std::chrono::steady_clock::now() - lastPresentTime);
         float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
-            lastPresentedFrameID == tex.m_Id){
-            drawDefaultTexture = true;
+            lastPresentedFrameID == tex.m_Id) {
+            state = DRAW_NO_DATA;
             return;
-        }
-
-        // update timer
-        if (lastPresentedFrameID != tex.m_Id){
+        } else {
             lastPresentTime = std::chrono::steady_clock::now();
         }
+
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
-        if (model->updateTexture(textureType)) {
-            drawDefaultTexture = false;
+        if (m_Model->updateTexture(textureType)) {
+            state = DRAW_MULTISENSE;
             lastPresentedFrameID = tex.m_Id;
         } else {
             prepareMultiSenseTexture();
@@ -64,7 +72,10 @@ void DoubleTop::update() {
         }
         // If we didn't receive a valid MultiSense image then draw default texture
     } else {
-        drawDefaultTexture = true;
+        // if a valid source was selected but not drawn
+        if (Utils::stringToDataSource(src)) {
+            state = DRAW_NO_DATA;
+        }
     }
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
@@ -86,19 +97,30 @@ void DoubleTop::update() {
 
 
 void DoubleTop::prepareDefaultTexture() {
-    noImageModel->modelType = AR_COLOR_IMAGE;
-    noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
+    m_NoDataModel->modelType = AR_COLOR_IMAGE;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
     std::string vertexShaderFileName = "Scene/spv/quad.vert";
     std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, noImageModel.get(), &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
-    if (noImageModel->getTextureDataPointers(defTex.get())) {
-        std::memcpy(defTex->data, pixels, texWidth * texHeight * texChannels);
-        noImageModel->updateTexture(defTex->m_Type);
+    if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
+        std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
+        m_NoDataModel->updateTexture(defTex->m_Type);
+    }
+
+    m_NoSourceModel->modelType = AR_COLOR_IMAGE;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
+    // Create graphics render pipeline
+    CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
+    auto tex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
+    if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
+        std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+        m_NoSourceModel->updateTexture(tex->m_Type);
     }
 }
 
@@ -113,7 +135,8 @@ void DoubleTop::prepareMultiSenseTexture() {
         case AR_COLOR_IMAGE_YUV420:
         case AR_YUV_PLANAR_FRAME:
             vertexShaderFileName = "Scene/spv/quad.vert";
-            fragmentShaderFileName = "Scene/spv/quad.frag";
+            fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
+                                     "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
             break;
         case AR_DISPARITY_IMAGE:
             vertexShaderFileName = "Scene/spv/depth.vert";
@@ -133,10 +156,10 @@ void DoubleTop::prepareMultiSenseTexture() {
         Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
-    model->modelType = textureType;
-    model->createEmptyTexture(width, height, textureType);
+    m_Model->modelType = textureType;
+    m_Model->createEmptyTexture(width, height, textureType);
     // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
+    CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
 void DoubleTop::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
@@ -148,6 +171,12 @@ void DoubleTop::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 
         auto &preview = dev.win.at(AR_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+
+        if (src == "Source") {
+            state = DRAW_NO_SOURCE;
+        } else {
+            state = DRAW_NO_DATA;
+        }
 
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
@@ -177,7 +206,17 @@ void DoubleTop::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
 
 void DoubleTop::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == TAB_2D_PREVIEW) {
-        CRLCameraModels::draw(commandBuffer, i, drawDefaultTexture ? noImageModel.get() : model.get(), b);
+        switch (state) {
+            case DRAW_NO_SOURCE:
+                CRLCameraModels::draw(commandBuffer, i, m_NoSourceModel.get(), b);
+                break;
+            case DRAW_NO_DATA:
+                CRLCameraModels::draw(commandBuffer, i, m_NoDataModel.get(), b);
+                break;
+            case DRAW_MULTISENSE:
+                CRLCameraModels::draw(commandBuffer, i, m_Model.get(), b);
+                break;
+        }
     }
 }
 
@@ -185,7 +224,5 @@ void DoubleTop::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
-
-        //transformToUISpace(uiHandle, dev);
     }
 }

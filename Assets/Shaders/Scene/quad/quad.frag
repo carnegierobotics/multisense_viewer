@@ -25,23 +25,14 @@ layout (set = 0, binding = 4) uniform sampler2D chromaV;
 
 void main()
 {
-
     float r, g, b, y, u, v;
     mat3 colorMatrix = mat3(
-                1,   0,       1.402,
-                1,  -0.344,  -0.714,
-                1,   1.772,   0);
-
-
+                1,   1,       1,
+                0,  -0.344,  1.72,
+                1.402,   -0.71,   0);
     y = texture(luma, inUV).r;
     u = texture(chromaU, vec2(inUV.x, inUV.y)).r - 0.5f;
     v = texture(chromaV, vec2(inUV.x, inUV.y)).r - 0.5f;
     vec3 yuv = vec3(y, u, v);
-
     outColor = vec4(colorMatrix * yuv, 1.0f);
-    r = y + (1.402*v);
-    g = y - (0.344136*u) - (0.714136*v);
-    b = y + (1.772*u);
-    outColor =  vec4(r, g, b, 1.0);
-    
 }

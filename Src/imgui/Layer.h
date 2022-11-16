@@ -106,15 +106,11 @@ namespace VkRender {
             bool adapterNameEmpty = entry.interfaceName.empty();
 
             bool AdapterAndIPInTaken = false;
-
-
-
             // Loop through devices and check that it doesn't exist already.
             for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
                     AdapterAndIPInTaken = true;
                     //Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
-
                 }
                 if (d.name == entry.profileName) {
                     profileNameTaken = true;
@@ -122,12 +118,41 @@ namespace VkRender {
                 }
 
             }
-
             bool ready = true;
             if (profileNameEmpty || profileNameTaken || IPEmpty || adapterNameEmpty || AdapterAndIPInTaken)
                 ready = false;
-
             return ready;
+        }
+
+        std::vector<std::string> getNotReadyReasons(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry){
+            std::vector<std::string> errors;
+            bool profileNameEmpty = entry.profileName.empty();
+            bool profileNameTaken = false;
+            bool IPEmpty = entry.IP.empty();
+            bool adapterNameEmpty = entry.interfaceName.empty();
+            bool AdapterAndIPInTaken = false;
+            // Loop through devices and check that it doesn't exist already.
+            for (auto &d: devices) {
+                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
+                    AdapterAndIPInTaken = true;
+                    errors.emplace_back("The IP address on the selected adapter is in use");
+                }
+                if (d.name == entry.profileName) {
+                    profileNameTaken = true;
+                    errors.emplace_back("Profile name already in use");
+                }
+
+            }
+            if (profileNameEmpty)
+                errors.emplace_back("Profile name cannot be left blank");
+
+            if (IPEmpty)
+                errors.emplace_back("IP Address cannot be left blank");
+            if (adapterNameEmpty)
+                errors.emplace_back("No selected network adapter");
+
+            return errors;
+
         }
     };
 

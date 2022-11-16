@@ -461,7 +461,7 @@ private:
                                    handles->info->height - handles->info->addDeviceBottomPadding +
                                    handles->info->addDeviceHeight + 25.0f));
 
-        if(ImGui::Button("Show Debug")){
+        if (ImGui::Button("Show Debug")) {
             handles->showDebugWindow = !handles->showDebugWindow;
         }
     }
@@ -515,7 +515,8 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-            ImGui::CustomInputTextWithHint("##InputProfileName", "MultiSense Profile", &m_Entry.profileName, ImGuiInputTextFlags_AutoSelectAll);
+            ImGui::CustomInputTextWithHint("##InputProfileName", "MultiSense Profile", &m_Entry.profileName,
+                                           ImGuiInputTextFlags_AutoSelectAll);
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
 
 
@@ -745,7 +746,9 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-                ImGui::CustomInputTextWithHint("##inputIP", "Default: 10.66.171.21", &m_Entry.IP, ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank);
+                ImGui::CustomInputTextWithHint("##inputIP", "Default: 10.66.171.21", &m_Entry.IP,
+                                               ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_AutoSelectAll |
+                                               ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
                 {
@@ -864,7 +867,23 @@ private:
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
             }
+            ImVec2 pos = ImGui::GetCursorPos();
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
+            //ImGui::SetCursorPos(pos);
+            //ImGui::InvisibleButton("##Invisible", ImVec2(150.0f, 30.0f));
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && !m_Entry.ready(handles->devices, m_Entry)) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                ImGui::BeginTooltip();
+                std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
+                ImGui::Text("Please solve the following: ");
+                for (size_t i = 0; i < errors.size(); ++i) {
+                    ImGui::Text("%s", (std::to_string(i + 1) + ". " + errors[i]).c_str());
+                }
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
+            }
             if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();

@@ -69,6 +69,7 @@ protected:
     int connectAttemptCounter = 0;
     std::thread *m_TAutoConnect = nullptr;
     std::thread *m_TAdapterSearch = nullptr;
+    bool interrupt = false;
 };
 
 

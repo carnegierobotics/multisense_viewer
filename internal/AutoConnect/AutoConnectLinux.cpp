@@ -134,6 +134,11 @@ void AutoConnectLinux::run(void *ctx) {
             }
         }
 
+        if (app->interrupt) {
+            app->shutdownT1Ready = true;
+            return;
+        }
+
         Result adapter{};
         adapter = adapters[i];
         // If it doesn't support a camera then dont loop it
@@ -196,6 +201,10 @@ void AutoConnectLinux::run(void *ctx) {
         str = "Set adapter to listen for activity";
         app->m_EventCallback(str, app->m_Context, 0);
 
+        if (app->interrupt) {
+            app->shutdownT1Ready = true;
+            return;
+        }
         int saddr_size, data_size;
         struct sockaddr saddr{};
         auto *buffer = (unsigned char *) malloc(IP_MAXPACKET + 1);
@@ -226,6 +235,10 @@ void AutoConnectLinux::run(void *ctx) {
                 break;
 
             }
+            if (app->interrupt) {
+                app->shutdownT1Ready = true;
+                return;
+            }
 
             saddr_size = sizeof saddr;
             //Receive a packet
@@ -247,8 +260,13 @@ void AutoConnectLinux::run(void *ctx) {
                 str = "Packet found. Source address: " + address;
                 app->m_EventCallback(str, app->m_Context, 0);
 
+
                 FoundCameraOnIp ret = app->onFoundIp(address, adapter, sd);
 
+                if (app->interrupt) {
+                    app->shutdownT1Ready = true;
+                    return;
+                }
                 if (ret == FOUND_CAMERA) {
                     app->m_IgnoreAdapters.push_back(adapter);
                     app->onFoundCamera();
@@ -344,7 +362,10 @@ AutoConnect::FoundCameraOnIp AutoConnectLinux::onFoundIp(std::string address, Re
     m_EventCallback(str, m_Context, 0);
 
     std::cout << "Camera interface: " << adapter.index << " name: " << adapter.networkAdapter << std::endl;
-
+    if (interrupt) {
+        shutdownT1Ready = true;
+        return NO_CAMERA;
+    }
     cameraInterface = crl::multisense::Channel::Create(address, adapter.networkAdapter);
 
     if (cameraInterface == nullptr && connectAttemptCounter > MAX_CONNECTION_ATTEMPTS) {
@@ -400,6 +421,7 @@ void AutoConnectLinux::start() {
     if (m_TAutoConnect == nullptr)
         m_TAutoConnect = new std::thread(&AutoConnectLinux::run, this);
     else {
+        interrupt = true;
         stopAutoConnect();
         m_LoopAdapters = true;
         m_ListenOnAdapter = true;
@@ -411,6 +433,7 @@ void AutoConnectLinux::start() {
                     break;
             }
         }
+        interrupt = false;
         m_TAutoConnect = new std::thread(&AutoConnectLinux::run, this);
     }
 

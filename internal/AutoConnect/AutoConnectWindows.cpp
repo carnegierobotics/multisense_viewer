@@ -199,6 +199,10 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
 
+    if (interrupt) {
+        shutdownT1Ready = true;
+        return NO_CAMERA;
+    }
     // Attempt to connect to camera and post some info
     cameraInterface = crl::multisense::Channel::Create(address);
 
@@ -249,6 +253,7 @@ void AutoConnectWindows::start() {
     if (m_TAutoConnect == nullptr)
         m_TAutoConnect = new std::thread(&AutoConnectWindows::run, this);
     else {
+        interrupt = true;
         stopAutoConnect();
         m_LoopAdapters = true;
         m_ListenOnAdapter = true;
@@ -260,6 +265,7 @@ void AutoConnectWindows::start() {
                     break;
             }
         }
+        interrupt = false;
         m_TAutoConnect = new std::thread(&AutoConnectWindows::run, this);
     }
 }
@@ -351,6 +357,10 @@ void AutoConnectWindows::run(void *ctx) {
         const u_char *pkt_data{};
         time_t local_tv_sec{};
 
+        if (app->interrupt) {
+            app->shutdownT1Ready = true;
+            return;
+        }
         /* Open the adapter */
         if ((adhandle = pcap_open_live(adapter.networkAdapterLongName.c_str(),    // name of the device
                                        65536,            // portion of the packet to capture.
@@ -376,7 +386,10 @@ void AutoConnectWindows::run(void *ctx) {
         str = "Waiting for packet at: " + adapter.networkAdapterLongName;
         app->m_EventCallback(str, app->m_Context, 0);
         while (app->m_ListenOnAdapter) {
-
+            if (app->interrupt) {
+                app->shutdownT1Ready = true;
+                return;
+            }
             // Timeout handler
             // Will timeout the number of MAX_CONNECTION_ATTEMPTS. After so many timeouts we retry on a new adapter
             if ((time(nullptr) - app->startTime) > TIMEOUT_INTERVAL_SECONDS &&
@@ -413,6 +426,11 @@ void AutoConnectWindows::run(void *ctx) {
             if (pkt_data == nullptr) {
                 continue;
             }
+            if (app->interrupt) {
+                app->shutdownT1Ready = true;
+                return;
+            }
+
             /* retireve the position of the ip header */
             auto *ih = (iphdr *) (pkt_data + 14); //length of ethernet header
 
@@ -428,7 +446,13 @@ void AutoConnectWindows::run(void *ctx) {
                 str = "Packet found. Source address: " + std::string(ips);
                 app->m_EventCallback(str, app->m_Context, 0);
 
+
                 FoundCameraOnIp ret = app->onFoundIp(ips, adapter, 0);
+
+                if (app->interrupt) {
+                    app->shutdownT1Ready = true;
+                    return;
+                }
 
                 if (ret == FOUND_CAMERA) {
                     app->m_IgnoreAdapters.push_back(adapter);

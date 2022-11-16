@@ -153,10 +153,10 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
                 format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
             else {
                 format = VK_FORMAT_R8_UNORM;
-                textureChromaU = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
+                textureChromaU = std::make_unique<TextureVideo>(width/2, height/2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
-                textureChromaV = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
+                textureChromaV = std::make_unique<TextureVideo>(width/2, height/2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
             }

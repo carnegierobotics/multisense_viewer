@@ -36,18 +36,12 @@ void main()
     y = texture(luma, inUV).r;
     u = texture(chromaU, vec2(inUV.x, inUV.y)).r - 0.5f;
     v = texture(chromaV, vec2(inUV.x, inUV.y)).r - 0.5f;
-
     vec3 yuv = vec3(y, u, v);
-    outColor = vec4(yuv*colorMatrix, 1.0f);
 
-    // Possibly expand range here if using TV YUV range and not PC YUV range.
-    //yuv = rescale_yuv(yuv);
+    outColor = vec4(colorMatrix * yuv, 1.0f);
+    r = y + (1.402*v);
+    g = y - (0.344136*u) - (0.714136*v);
+    b = y + (1.772*u);
+    outColor =  vec4(r, g, b, 1.0);
     
-    //r = y + (1.402*v);
-    //g = y - (0.344136*u) - (0.714136*v);
-    //b = y + (1.772*u);
-
-
-    //outColor =  vec4(r, g, b, 1.0);
-
 }

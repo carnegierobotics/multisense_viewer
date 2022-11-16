@@ -65,10 +65,10 @@ namespace VkRender::MultiSense {
             p->wb.whiteBalanceRed = conf.whiteBalanceRed();
 
             const auto &lightConf = camPtr->getCameraInfo(dev->configRemoteHead).lightConf;
-            p->light.numLightPulses = lightConf.getNumberOfPulses();
+            p->light.numLightPulses = (float)lightConf.getNumberOfPulses()/ 1000.0f;
             p->light.dutyCycle = lightConf.getDutyCycle(0);
             p->light.flashing = lightConf.getFlash();
-            p->light.startupTime = lightConf.getStartupTime();
+            p->light.startupTime = (float) lightConf.getStartupTime() / 1000.0f;
             p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
 
             dev->parameters.updateGuiParams = false;

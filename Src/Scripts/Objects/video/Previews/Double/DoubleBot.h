@@ -21,7 +21,8 @@ public:
         s_bRegistered;
         DISABLE_WARNING_POP    }
     void onDestroy() override{
-        stbi_image_free(pixels);
+        stbi_image_free(m_NoDataTex);
+        stbi_image_free(m_NoSourceTex);
     }
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DoubleBot>(); }
@@ -45,9 +46,18 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
-    std::unique_ptr<CRLCameraModels::Model> model;
+    std::unique_ptr<CRLCameraModels::Model> m_Model;
+    std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;
+    std::unique_ptr<CRLCameraModels::Model> m_NoSourceModel;
+    enum {
+        DRAW_NO_SOURCE = 0,
+        DRAW_NO_DATA = 1,
+        DRAW_MULTISENSE = 2
+    } state;
 
     float up = -1.3f;
+    unsigned char* m_NoDataTex{};
+    unsigned char* m_NoSourceTex{};
     Page selectedPreviewTab = TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -62,9 +72,6 @@ public:
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
     int texWidth = 0, texHeight = 0, texChannels = 0;
-    unsigned char* pixels{};
-    std::unique_ptr<CRLCameraModels::Model> noImageModel;
-    bool drawDefaultTexture = true;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

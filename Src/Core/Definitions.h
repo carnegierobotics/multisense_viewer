@@ -173,8 +173,8 @@ struct LightingParams {
     float dutyCycle = 1.0f;
     int selection = -1;
     bool flashing = true;
-    uint32_t numLightPulses = 3;
-    uint32_t startupTime = 0;
+    float numLightPulses = 3;
+    float startupTime = 0;
     bool update = false;
 };
 

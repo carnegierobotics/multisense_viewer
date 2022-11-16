@@ -129,13 +129,11 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
             break;
         case AR_COLOR_IMAGE_YUV420:
             if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                textureVideo->updateTextureFromBufferYUV();
+            } else {
                 textureVideo->updateTextureFromBuffer();
                 textureChromaU->updateTextureFromBuffer();
                 textureChromaV->updateTextureFromBuffer();
-
-            } else {
-                textureVideo->updateTextureFromBufferYUV();
-
             }
             break;
         case AR_YUV_PLANAR_FRAME:
@@ -151,14 +149,14 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
     VkFormat format{};
     switch (texType) {
         case AR_COLOR_IMAGE_YUV420:
-            if (!vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME))
+            if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME))
                 format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
             else {
                 format = VK_FORMAT_R8_UNORM;
-                textureChromaU = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                textureChromaU = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
-                textureChromaV = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                textureChromaV = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
             }
@@ -207,11 +205,15 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
 
             break;
         case AR_COLOR_IMAGE_YUV420:
-            tex->data = textureVideo->m_DataPtr;
-            tex->data2 = textureVideo->m_DataPtrSecondary;
+
             if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                tex->data = textureVideo->m_DataPtr;
+                tex->data2 = textureVideo->m_DataPtrSecondary;
+            }
+            else {
+                tex->data = textureVideo->m_DataPtr;
                 tex->data2 = textureChromaU->m_DataPtr;
-                tex->data2 = textureChromaV->m_DataPtr;
+                tex->data3 = textureChromaV->m_DataPtr;
             }
             break;
         case AR_YUV_PLANAR_FRAME:
@@ -219,7 +221,7 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
             break;
     }
 
-    if (tex->data2 == nullptr && tex->m_Type == AR_COLOR_IMAGE_YUV420)
+    if ((tex->data2 == nullptr) && tex->m_Type == AR_COLOR_IMAGE_YUV420)
         return false;
 
     return true;
@@ -295,17 +297,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
         writeDescriptorSets[1].dstBinding = 1;
         writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
 
-        if (hasYcbcrSampler) {
-            VkWriteDescriptorSet writeDescriptorSet{};
-            writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeDescriptorSet.descriptorCount = 1;
-            writeDescriptorSet.dstSet = model->descriptors[i];
-            writeDescriptorSet.dstBinding = 2;
-            writeDescriptorSet.pImageInfo = &model->textureVideo->m_Descriptor;
-            writeDescriptorSets.emplace_back(writeDescriptorSet);
-
-        } else {
+        if (!hasYcbcrSampler && model->modelType == AR_COLOR_IMAGE_YUV420) {
             VkWriteDescriptorSet writeDescriptorSetLuma{};
             VkWriteDescriptorSet writeDescriptorSetChromaU{};
             VkWriteDescriptorSet writeDescriptorSetChromaV{};
@@ -334,6 +326,17 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
             writeDescriptorSets.emplace_back(writeDescriptorSetLuma);
             writeDescriptorSets.emplace_back(writeDescriptorSetChromaU);
             writeDescriptorSets.emplace_back(writeDescriptorSetChromaV);
+
+        } else {
+            VkWriteDescriptorSet writeDescriptorSet{};
+            writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSet.descriptorCount = 1;
+            writeDescriptorSet.dstSet = model->descriptors[i];
+            writeDescriptorSet.dstBinding = 2;
+            writeDescriptorSet.pImageInfo = &model->textureVideo->m_Descriptor;
+            writeDescriptorSets.emplace_back(writeDescriptorSet);
+         
         }
 
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -393,7 +396,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
 
 void CRLCameraModels::createDescriptorSetLayout(Model *model) {
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-    bool hasYcbcrSampler = !vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+    bool hasYcbcrSampler = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 
     switch (model->modelType) {
         case AR_DISPARITY_IMAGE:
@@ -441,7 +444,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
 
 
 // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-    if (nullptr != model->textureVideo->m_Sampler) {
+    if (nullptr != model->textureVideo->m_Sampler && hasYcbcrSampler) {
         setLayoutBindings[2].pImmutableSamplers = &model->textureVideo->m_Sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),

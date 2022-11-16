@@ -89,7 +89,7 @@ void SingleLayout::prepareDefaultTexture() {
     noImageModel->modelType = AR_COLOR_IMAGE;
     noImageModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
     std::string vertexShaderFileName = "Scene/spv/quad.vert";
-    std::string fragmentShaderFileName = "Scene/spv/quad.frag";
+    std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},{fs}};

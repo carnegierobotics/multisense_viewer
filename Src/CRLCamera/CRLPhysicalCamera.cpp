@@ -164,9 +164,16 @@ namespace VkRender::MultiSense {
                     return false;
 
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
-                std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
+                if (tex->data3 != nullptr) {
+                    size_t channelSize = headerTwo->data().imageLength / 2;
+                    std::memcpy(tex->data2, headerTwo->data().imageDataP, channelSize);
+                    std::memcpy(tex->data3,(((uint8_t*)headerTwo->data().imageDataP) + channelSize), channelSize);
+
+                } else 
+                    std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
 
                 // Copy extra zeros to the bottom row if heights does not match
+                // TODO Error if there is no ycbcr sampler
                 if (tex->m_Height != header->data().height) {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);

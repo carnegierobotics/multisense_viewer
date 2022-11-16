@@ -64,8 +64,9 @@ namespace VkRender {
         CRLCameraResolution m_Res = CRL_RESOLUTION_NONE;
         uint32_t m_Width = 0;
         uint32_t m_Height = 0;
-        uint8_t *data{};
-        uint8_t *data2{};
+        uint8_t* data{};
+        uint8_t* data2{};
+        uint8_t* data3 = nullptr;
         uint32_t m_Len = 0, m_Len2 = 0, m_Id{}, m_Id2{};
 
     private:

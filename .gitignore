@@ -14,3 +14,5 @@ experimental_features
 /Assets/Tools/windows/cert.pfx
 /Src/Scripts/Private/ScriptHeader.h
 /venv/
+/shaderc
+/$

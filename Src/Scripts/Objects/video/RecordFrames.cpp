@@ -3,6 +3,7 @@
 //
 
 #include "RecordFrames.h"
+#include "tinytiffwriter.h"
 
 
 void RecordFrames::setup() {
@@ -92,6 +93,18 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     int check = _mkdir(directory.c_str());
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
+
+    if (type == AR_DISPARITY_IMAGE){
+        // Create Source name directory
+        check = _mkdir((directory + "/png").c_str());
+        if (check == 0)
+            Log::Logger::getInstance()->info("Created directory {}", directory + "png");
+
+        check = _mkdir((directory + "/tiff").c_str());
+        if (check == 0)
+            Log::Logger::getInstance()->info("Created directory {}", directory + "tiff");
+    }
+
 #else
     // Create Remote head index directory
 
@@ -105,6 +118,18 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     int check = mkdir(directory.c_str(), 0777);
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
+
+    if (type == AR_DISPARITY_IMAGE){
+        // Create Source name directory
+        check = mkdir((directory + "/png").c_str(), 0777);
+        if (check == 0)
+            Log::Logger::getInstance()->info("Created directory {}", directory + "png");
+
+        check = mkdir((directory + "/tiff").c_str(), 0777);
+        if (check == 0)
+            Log::Logger::getInstance()->info("Created directory {}", directory + "tiff");
+    }
+
 #endif
 
     std::string fullPathName = filePath + fileName + ".png";
@@ -115,19 +140,32 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         return;
     }
     // Create file
-    std::ofstream output(fullPathName);
-    output.close();
-    Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
+
 
     switch (type) {
         case AR_POINT_CLOUD:
             break;
         case AR_GRAYSCALE_IMAGE:
+        {
+            std::ofstream output(fullPathName);
+            output.close();
+            Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
+
             stbi_write_png((fullPathName).c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
                            ptr->m_Width);
+        }
             break;
-        case AR_DISPARITY_IMAGE: {
+        case AR_DISPARITY_IMAGE:
+        {
             auto *d = (uint16_t *) ptr->data;
+            std::string fullTIFFPath = filePath + "tiff/" + fileName + ".tif";
+            std::string fullPngPath = filePath + "png/" + fileName + ".png";
+            Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
+
+            TinyTIFFWriterFile* tif=TinyTIFFWriter_open(fullTIFFPath.c_str(), 16, TinyTIFFWriter_UInt, 1,  ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
+            TinyTIFFWriter_writeImage(tif, d);
+            TinyTIFFWriter_close(tif);
+
             std::vector<uint8_t> buf;
             buf.reserve(ptr->m_Width * ptr->m_Height);
             for (size_t i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
@@ -135,13 +173,18 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 uint8_t lsb = d[i] & 0x000000FF;
                 buf.emplace_back(lsb);
             }
-            stbi_write_png((fullPathName).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
+            stbi_write_png((fullPngPath).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
                            ptr->m_Width);
         }
             break;
         case AR_COLOR_IMAGE_YUV420:
             // Normalize ycbcr
         {
+            std::ofstream output(fullPathName);
+            output.close();
+            Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
+
+
             int width = ptr->m_Width;
             int height = ptr->m_Height;
 

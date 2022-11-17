@@ -1,16 +1,15 @@
 # MultiSense Viewer
 
-[![GitHub version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://github.com/yilber/readme-boilerplate)
+[![GitHub version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/yilber/readme-boilerplate)
 [![License](https://img.shields.io/github/license/yilber/readme-boilerplate.svg)](https://github.com/Yilber/readme-boilerplate/blob/master/LICENSE)
 <!---
  [![Backers on Patreon](https://img.shields.io/badge/backer-Patreon-orange.svg)](https://www.patreon.com/yilber) [![Backers on Paypal](https://img.shields.io/badge/backer-Paypal-blue.svg)](https://www.paypal.me/Yilber) -->
 
-Badges just for visuals, not correctly implemented
 
 | Platform | CI Status                                                                                                                                                                    |
 |----------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Linux    | [![Linux Build Status](https://ci.appveyor.com/api/projects/status/abynv8xd75m26qo9/branch/master?svg=true)](https://ci.appveyor.com/project/ianfixes/arduino-ci)            |
-| Windows  | [![Windows Build status](http://badges.herokuapp.com/travis/Arduino-CI/arduino_ci?env=BADGE=linux&label=build&branch=master)](https://travis-ci.org/Arduino-CI/arduino_ci)   |
+| Windows  | [![Windows Build status](https://ci.appveyor.com/api/projects/status/abynv8xd75m26qo9/branch/master?svg=true)](https://travis-ci.org/Arduino-CI/arduino_ci)   |
 
 ## Background
 Quickly test your MultiSense device by using this application. The application will automatically find the camera and configure your network adapter. Additionally, the app provides a rich 2D/3D viewer and options to control sensor parameters.
@@ -21,15 +20,16 @@ Quickly test your MultiSense device by using this application. The application w
 ## Installation
 ### Ubuntu:
 Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Compiled with gcc-9, tested on a clean Ubuntu 20.04 LTS.
-A runnable executable located at 
-> /opt/multisense/MultiSense-viewer
+The start script is located at
+> /opt/multisense/start.sh
 
 Run with root privileges to let the application configure the network for you.
 
 ### Windows
-No passing build yet.
+Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the the MultiSenseSetup.exe installer.
+Run with root privileges to let the application configure the network for you.
+To use the autoconnect feature also have WinPcap drivers installed, installer also located at releases page.
 
-<br>
 
 ## How to use
 

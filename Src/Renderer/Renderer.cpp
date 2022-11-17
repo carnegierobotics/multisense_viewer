@@ -20,7 +20,7 @@
 
 
 void Renderer::prepareRenderer() {
-    camera.type = Camera::CameraType::firstperson;
+    camera.type = Camera::CameraType::lookat;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);

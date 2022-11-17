@@ -12,7 +12,9 @@
 
 #ifdef WIN32
 #else
+
 #include <unistd.h>
+
 #endif
 
 class InteractionMenu : public VkRender::Layer {
@@ -572,7 +574,9 @@ private:
                                     }
 
                                     // If a color source is active in another window and our selected source is a aux *luma source then do nothing
-                                    if (win.first != index && Utils::isInVector(colorSources, win.second.selectedSource) && Utils::isInVector(auxLumaSources, window.selectedSource)){
+                                    if (win.first != index &&
+                                        Utils::isInVector(colorSources, win.second.selectedSource) &&
+                                        Utils::isInVector(auxLumaSources, window.selectedSource)) {
                                         inUse = true;
                                     }
                                     // It's in use if we have color aux running but we are disabling luma aux
@@ -905,7 +909,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
             ImGui::RadioButton("ArcBall camera", &dev.cameraType, 0);
             ImGui::SameLine();
-            ImGui::RadioButton("First person camera", &dev.cameraType, 1);
+            ImGui::RadioButton("Arrow keys", &dev.cameraType, 1);
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -1054,6 +1058,21 @@ private:
                                  10, 30000);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Gain:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::SliderFloat("##Gain",
+                                   &d.parameters.gain, 1.68f,
+                                   14.2f, "%.1f");
+                d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::PopStyleColor();
+
             } else {
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
@@ -1125,8 +1144,9 @@ private:
                         d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
                         d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY;
                         d.parameters.ep.update |= true;
-                    } catch (...){
-                        Log::Logger::getInstance()->error("Failed to parse ROI input. User most likely tried to set empty parameters");
+                    } catch (...) {
+                        Log::Logger::getInstance()->error(
+                                "Failed to parse ROI input. User most likely tried to set empty parameters");
                         d.parameters.ep.update = false;
                     }
                 }
@@ -1157,23 +1177,8 @@ private:
                 ImGui::SetNextItemWidth(inputWidth);
                 ImGui::InputText("##decimalmaxY", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
                 ImGui::PopStyleColor();
-                ImGui::Separator();
+
             }
-
-            ImGui::Dummy(ImVec2(0.0f, 5.0f));
-            ImGui::Dummy(ImVec2(25.0f, 0.0f));
-            ImGui::SameLine();
-            txt = "Gain:";
-            txtSize = ImGui::CalcTextSize(txt.c_str());
-            ImGui::Text("%s", txt.c_str());
-            ImGui::SameLine(0, textSpacing - txtSize.x);
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-            ImGui::SliderFloat("##Gain",
-                               &d.parameters.gain, 1.68f,
-                               14.2f, "%.1f");
-            d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
-            ImGui::PopStyleColor();
-
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
             ImGui::Dummy(ImVec2(25.0f, 0.0f));
             ImGui::SameLine();
@@ -1185,7 +1190,12 @@ private:
             ImGui::SliderFloat("##Gamma",
                                &d.parameters.gamma, 1.1f,
                                2.2f, "%.2f");
-            d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+            // Correct update sequence. This is because gamma and gain was part of general parameters. This will probably be redone in the future once established categories are in place
+            if (d.parameters.ep.autoExposure)
+                d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+            else
+                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+
             ImGui::PopStyleColor();
 
             // White Balance
@@ -1278,7 +1288,7 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txtEnableFlash = "Enable Flash:";
+                std::string txtEnableFlash = "Flash LED:";
                 ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
                 ImGui::Text("%s", txtEnableFlash.c_str());
                 ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
@@ -1328,8 +1338,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Pulses",
-                                 reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
-                                 60, "%.1f");
+                                   reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
+                                   60, "%.1f");
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1343,8 +1353,8 @@ private:
                 ImGui::SetNextItemWidth(handles->info->controlAreaWidth - 72.0f - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderFloat("##Startup Time",
-                                 reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
-                                 60, "%.1f");
+                                   reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
+                                   60, "%.1f");
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }

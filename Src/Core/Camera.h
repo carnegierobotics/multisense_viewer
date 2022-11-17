@@ -47,7 +47,7 @@ private:
             pos = yRot * pos;
 
             m_Position = glm::vec3(pos.x, pos.y, pos.z);
-            matrices.view = glm::lookAt(m_Position, glm::vec3(0.0f, 0.0f, 0.5f), cameraUp);
+            matrices.view = glm::lookAt(m_Position, glm::vec3(0.0f, 0.0f, 0.0f), cameraUp);
 
         }
 
@@ -59,7 +59,7 @@ public:
     CameraType type = CameraType::firstperson;
 
     glm::vec3 m_Rotation = glm::vec3();
-    glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec4 m_ViewPos = glm::vec4();
 
     float m_RotationSpeed = 1.0f;

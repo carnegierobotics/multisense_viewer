@@ -230,13 +230,6 @@ if (WIN32)
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
 
-    # copy tinytiff dll
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        add_custom_command(TARGET MultiSense-viewer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/output/Release/TinyTIFFShared.dll ${CMAKE_BINARY_DIR}/ )
-    else()
-        add_custom_command(TARGET MultiSense-viewer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/output/TinyTIFFShared.dll ${CMAKE_BINARY_DIR}/ )
-
-    endif()
     # create a list of files to copy
     set( THIRD_PARTY_DLLS
     #FFMPEG
@@ -273,7 +266,6 @@ endforeach( file_i )
     # LibMultiSense and WinPCap dll
     install(FILES  
      ${CMAKE_BINARY_DIR}/Release/MultiSense.dll
-     ${CMAKE_BINARY_DIR}/output/Release/TinyTIFFShared.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
      CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})

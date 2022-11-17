@@ -292,8 +292,6 @@ endforeach( file_i )
     file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
 
 else () ## Linux
-
-
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} MultiSense -lavformat -lavcodec -lavutil  -lswscale -ltbb)
 

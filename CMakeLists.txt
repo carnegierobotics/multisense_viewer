@@ -51,6 +51,9 @@ set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
+set(TinyTIFF_SRC external/TinyTIFF)
+add_subdirectory(${TinyTIFF_SRC})
+
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
 if (WIN32)
 set(BUILD_SHARED_LIBS TRUE)
@@ -166,7 +169,7 @@ set(SCRIPTS_LIB_SRC
         ${SCRIPT_SRC}
         Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense")
+set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense;TinyTIFFShared")
 
 if (WIN32)
 

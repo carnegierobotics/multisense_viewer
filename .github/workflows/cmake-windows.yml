@@ -35,6 +35,9 @@ jobs:
             1. Install multisense_1.0-0_amd64.deb using your default package manager or type in terminal:
             sudo dpkg --install ./multisense_1.0-0_amd64.deb
             
+            - Uninstall application:
+            1. Windows: Run 000-uninstall.exe in installation folder
+            2. Ubuntu: Uninstall with dpkg (sudo dpkg --remove com.carnegierobotics.multisense)
 
           draft: false
           prerelease: false
@@ -191,7 +194,6 @@ jobs:
           mv .\files\Assets\Tools\compile.sh .\
           mv .\files\Assets\Tools\install_spirv_compiler.sh .\
           mv .\files\Assets\Tools\monitor_memory_usage.py .\
-          Remove-Item .\files\Assets\Tools\ubuntu -Recurse -Force -Confirm:$false
 
         shell: cmd
       - name: Building the installer

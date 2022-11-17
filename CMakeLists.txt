@@ -51,11 +51,7 @@ set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
-if (WIN32)
-    set(TinyTIFF_BUILD_SHARED_LIBS ON) # Enabled such that header files gets included with it
-else()
-    set(TinyTIFF_BUILD_SHARED_LIBS OFF)
-endif()
+
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
 set(TinyTIFF_BUILD_DECORATE_LIBNAMES_WITH_BUILDTYPE OFF)
 set(TinyTIFF_SRC external/TinyTIFF)

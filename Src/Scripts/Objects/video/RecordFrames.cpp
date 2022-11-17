@@ -3,7 +3,7 @@
 //
 
 #include "RecordFrames.h"
-#include "Multisense/external/TinyTIFF/src/tinytiffwriter.h"
+#include "MultiSense/external/TinyTIFF/src/tinytiffwriter.h"
 
 void RecordFrames::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());

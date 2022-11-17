@@ -311,7 +311,7 @@ namespace VkRender {
         float col[9] = {0};
         bool pixelInfoEnable = true;
         bool useImuData = false;
-        int cameraType = 1; // TODO dont use device container for gui settings
+        int cameraType = 0; // TODO dont use device container for gui settings
         bool resetCamera = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};

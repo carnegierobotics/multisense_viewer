@@ -225,7 +225,12 @@ private:
         // Check for root privileges before launching
         bool notAdmin = elevated();
         if (notAdmin) {
+#ifdef WIN32
             AddLog(LOG_COLOR_RED, "Admin privileges is required to run the Auto-Connect feature");
+#else
+            AddLog(LOG_COLOR_RED,
+                   "Run the application as root so the application can configure \nthe network adapter for you. run: sudo /opt/multisense/start.sh");
+#endif
             return;
         }
 
@@ -839,7 +844,11 @@ private:
                         ImGui::Dummy(ImVec2(40.0f, 10.0));
                         ImGui::Dummy(ImVec2(20.0f, 0.0));
                         ImGui::SameLine();
-                        ImGui::Text("Launch app as admin to \nconfigure system network");
+#ifdef WIN32
+                        ImGui::Text("Launch app as admin to \nauto configure network adapter");
+#else
+                        ImGui::Text("Launch app as root to \nauto configure network adapter");
+#endif
                         enableConnectButton = false;
                         ImGui::PopStyleColor();
                     }
@@ -867,16 +876,23 @@ private:
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
             }
-            ImVec2 pos = ImGui::GetCursorPos();
             btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
-            //ImGui::SetCursorPos(pos);
-            //ImGui::InvisibleButton("##Invisible", ImVec2(150.0f, 30.0f));
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && !m_Entry.ready(handles->devices, m_Entry)) {
+            // If hovered, and no admin rights while auto config is checked, and a connect method must be selected
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) &&
+                (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) &&
+                (connectMethodSelector == AUTO_CONNECT || connectMethodSelector == MANUAL_CONNECT)) {
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                 ImGui::BeginTooltip();
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
+                if (elevated()) {
+#ifdef WIN32
+                    errors.emplace_back("Admin rights is needed to auto configure network");
+#else
+                    errors.emplace_back("Root access is needed to auto configure network");
+#endif
+                }
                 for (size_t i = 0; i < errors.size(); ++i) {
                     ImGui::Text("%s", (std::to_string(i + 1) + ". " + errors[i]).c_str());
                 }

@@ -92,7 +92,6 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         }
 
         DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
-        //std::vector<PIP_ADAPTER_INFO> AdapterInfo(dwBufLen);
         PIP_ADAPTER_INFO AdapterInfo;
         AdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
         // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable

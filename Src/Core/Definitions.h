@@ -384,6 +384,9 @@ namespace VkRender {
         float width{};
         /** @brief Height of depth image*/
         float height{};
+        /** @brief Max disparity of image*/
+        float disparity{};
+
     };
 
     struct RenderDescriptorBuffers{

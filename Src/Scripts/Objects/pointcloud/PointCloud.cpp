@@ -105,5 +105,7 @@ void PointCloud::prepareTexture() {
     buf->Q = renderData.crlCamera->get()->getCameraInfo(0).QMat;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
+    buf->disparity = static_cast<float>(depth);
+
     model->draw = true;
 }

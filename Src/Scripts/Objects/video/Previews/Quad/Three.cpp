@@ -56,7 +56,8 @@ void Three::update() {
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;
             return;
-        } else {
+        }
+        if (lastPresentedFrameID != tex.m_Id){
             lastPresentTime = std::chrono::steady_clock::now();
         }
 

@@ -207,7 +207,7 @@ void AutoConnectLinux::run(void *ctx) {
         }
         int saddr_size, data_size;
         struct sockaddr saddr{};
-        auto *buffer = (unsigned char *) malloc(IP_MAXPACKET + 1);
+        std::vector<unsigned char*> buffer(IP_MAXPACKET + 1);
 
         str = "Waiting for packet at: " + adapter.networkAdapter;
         app->m_EventCallback(str, app->m_Context, 0);
@@ -242,7 +242,7 @@ void AutoConnectLinux::run(void *ctx) {
 
             saddr_size = sizeof saddr;
             //Receive a packet
-            data_size = (int) recvfrom(sd, buffer, IP_MAXPACKET, MSG_DONTWAIT, &saddr,
+            data_size = (int) recvfrom(sd, buffer.data(), IP_MAXPACKET, MSG_DONTWAIT, &saddr,
                                        (socklen_t * ) & saddr_size);
 
             if (data_size < 0) {
@@ -250,7 +250,7 @@ void AutoConnectLinux::run(void *ctx) {
             }
 
             //Now process the packet
-            auto *iph = (struct iphdr *) (buffer + sizeof(struct ethhdr));
+            auto *iph = (struct iphdr *) (buffer.data() + sizeof(struct ethhdr));
             struct in_addr ip_addr{};
             std::string address;
             if (iph->protocol == IPPROTO_IGMP) //Check the Protocol and do accordingly...

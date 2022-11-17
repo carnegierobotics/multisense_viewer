@@ -6,7 +6,7 @@
 #include "VulkanRenderer.h"
 
 #ifdef WIN32
-    #include <strsafe.h>
+#include <strsafe.h>
 #endif
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) {
@@ -31,7 +31,7 @@ namespace VkRender {
         GLFWimage images[1];
         std::string fileName = (Utils::getAssetsPath() + "Tools/windows/CRL96x96.png");
         images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
-        if (!images[0].pixels){
+        if (!images[0].pixels) {
             throw std::runtime_error("Failed to load window icon: " + fileName);
         }
         glfwSetWindowIcon(window, 1, images);
@@ -510,8 +510,6 @@ namespace VkRender {
     }
 
 
-
-
     void VulkanRenderer::destroyCommandBuffers() {
         vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
     }
@@ -663,7 +661,7 @@ namespace VkRender {
 
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        if (width > 0 || height > 0){
+        if (width > 0 || height > 0) {
             myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
@@ -693,9 +691,8 @@ namespace VkRender {
 
         key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
         ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
-        io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
-
-        myApp->keyPress = key; // TODO Disabled key release events
+        io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
+        myApp->keyPress = key;
         myApp->keyAction = action;
 
 #ifdef WIN32
@@ -705,36 +702,42 @@ namespace VkRender {
 #endif
 
         if (action == GLFW_PRESS) {
-
             switch (key) {
                 case GLFW_KEY_W:
+                case GLFW_KEY_UP:
                     myApp->camera.keys.up = true;
                     break;
                 case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
                     myApp->camera.keys.down = true;
                     break;
                 case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
                     myApp->camera.keys.left = true;
                     break;
                 case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
                     myApp->camera.keys.right = true;
                 default:
                     break;
             }
         }
         if (action == GLFW_RELEASE) {
-
             switch (key) {
                 case GLFW_KEY_W:
+                case GLFW_KEY_UP:
                     myApp->camera.keys.up = false;
                     break;
                 case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
                     myApp->camera.keys.down = false;
                     break;
                 case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
                     myApp->camera.keys.left = false;
                     break;
                 case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
                     myApp->camera.keys.right = false;
                 default:
                     break;
@@ -751,7 +754,6 @@ namespace VkRender {
 
         mouseMoved(x, y, handled);
         viewChanged();
-
     }
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
@@ -797,7 +799,7 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseButtons.wheel -= ((float) yoffset * myApp->mouseScrollSpeed);
+        myApp->mouseScroll((float) yoffset);
         io.MouseWheel += 0.5f * (float) yoffset;
     }
 
@@ -1065,6 +1067,16 @@ namespace VkRender {
                 return ImGuiKey_F12;
             default:
                 return ImGuiKey_None;
+        }
+    }
+
+    void VulkanRenderer::mouseScroll(float yOffset) {
+        mouseButtons.wheel += ((float) yOffset * mouseScrollSpeed);
+        if (mouseButtons.wheel < -10.0f) {
+            mouseButtons.wheel = -10.0f;
+        }
+        if (mouseButtons.wheel > 10.0f) {
+            mouseButtons.wheel = 10.0f;
         }
     }
 

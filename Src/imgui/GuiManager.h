@@ -38,6 +38,7 @@ namespace VkRender {
             for (auto * shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
+
         };
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/

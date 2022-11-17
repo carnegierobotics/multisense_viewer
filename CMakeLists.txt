@@ -51,9 +51,16 @@ set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 include_directories(external/tinygltf/)
 
+if (WIN32)
+    set(TinyTIFF_BUILD_SHARED_LIBS ON) # Enabled such that header files gets included with it
+else()
+    set(TinyTIFF_BUILD_SHARED_LIBS OFF)
+endif()
+set(TinyTIFF_BUILD_STATIC_LIBS ON)
+set(TinyTIFF_BUILD_DECORATE_LIBNAMES_WITH_BUILDTYPE OFF)
 set(TinyTIFF_SRC external/TinyTIFF)
 add_subdirectory(${TinyTIFF_SRC})
-
+  
 #include headers for LibMultiSense. Implementation differs for Win/Linux so further linking is done separately
 if (WIN32)
 set(BUILD_SHARED_LIBS TRUE)
@@ -212,6 +219,7 @@ if (WIN32)
     IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
     IMPORTED_LOCATION_DEBUG  "${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.lib")
 
+
     add_subdirectory(internal/winpcap)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
@@ -223,6 +231,14 @@ if (WIN32)
 
     add_executable(MultiSense-viewer WIN32 main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
+
+    # copy tinytiff dll
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET MultiSense-viewer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/output/Release/TinyTIFFShared.dll ${CMAKE_BINARY_DIR}/ )
+    else()
+        add_custom_command(TARGET MultiSense-viewer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/output/TinyTIFFShared.dll ${CMAKE_BINARY_DIR}/ )
+
+    endif()
     # create a list of files to copy
     set( THIRD_PARTY_DLLS
     #FFMPEG
@@ -259,6 +275,7 @@ endforeach( file_i )
     # LibMultiSense and WinPCap dll
     install(FILES  
      ${CMAKE_BINARY_DIR}/Release/MultiSense.dll
+     ${CMAKE_BINARY_DIR}/output/Release/TinyTIFFShared.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
      CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
@@ -282,6 +299,7 @@ endforeach( file_i )
 
     # install(TARGETS VkRender-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
 
+    file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
 
 else () ## Linux
 
@@ -310,7 +328,6 @@ endif ()
 file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
 file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
 file(WRITE ${INSTALL_DIRECTORY}/logger.log "")
-file(WRITE ${INSTALL_DIRECTORY}/Winreg.ini "")
 
 # Copy dependency folders to output directory
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)

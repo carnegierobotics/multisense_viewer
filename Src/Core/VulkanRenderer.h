@@ -79,7 +79,7 @@ namespace VkRender {
         glm::vec2 mousePos{};
 
         VkRender::MouseButtons mouseButtons{};
-        float mouseScrollSpeed = 50.0f;
+        float mouseScrollSpeed = 0.1f;
 
         int keyPress = -1;
         int keyAction = -1;
@@ -102,6 +102,9 @@ namespace VkRender {
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseMoved(float x, float y, bool &handled);
+
+        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
+        virtual void mouseScroll(float change);
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
         virtual void windowResized();

@@ -92,7 +92,7 @@ private:
     void addDeviceFeatures() override;
     void buildCommandBuffers() override;
     void mouseMoved(float x, float y, bool&handled) override;
-
+    void mouseScroll(float change) override;
     /**
      * @brief creates instances from classes located in src/Scripts/Objects directory.
      * Usually each class here represents object(s) in the scene

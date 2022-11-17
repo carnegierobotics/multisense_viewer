@@ -15,7 +15,7 @@ Badges just for visuals, not correctly implemented
 ## Background
 Quickly test your MultiSense device by using this application. The application will automatically find the camera and configure your network adapter. Additionally, the app provides a rich 2D/3D viewer and options to control sensor parameters.
 
-![Alt Text](https://www.dropbox.com/s/wls1uyybdgs3t6c/usage.gif?dl=0)
+![Alt Text](https://github.com/M-Gjerde/MultiSense/blob/master/docs/usage_3.gif)
 
 
 ## Installation

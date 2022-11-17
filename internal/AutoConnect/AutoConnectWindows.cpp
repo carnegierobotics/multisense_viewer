@@ -73,6 +73,10 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         /* Retrieve the device list */
         if (pcap_findalldevs(&alldevs, errbuf) == -1) {
             std::cout << "Error in pcap_findalldevs: " << errbuf << std::endl;
+            if (!logEvent)
+                app->shutdownT2Ready = true;
+
+            return;
         }
 
 
@@ -94,14 +98,14 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         std::vector<PIP_ADAPTER_INFO> AdapterInfo(dwBufLen);
 
         // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
-        if (GetAdaptersInfo(AdapterInfo.data(), &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
+        if (GetAdaptersInfo(AdapterInfo.front(), &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
             AdapterInfo.clear();
             AdapterInfo.resize(dwBufLen);
         }
 
-        if (GetAdaptersInfo(AdapterInfo.data(), &dwBufLen) == NO_ERROR) {
+        if (GetAdaptersInfo(AdapterInfo.front(), &dwBufLen) == NO_ERROR) {
             // Contains pointer to current adapter info
-            PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+            PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo.front();
             do {
                 // Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
                 // I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
@@ -124,21 +128,19 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
                 /*CONCATENATE two strings safely*/
                 int lenA = strlen(prefix.c_str());
                 int lenB = strlen(pAdapterInfo->AdapterName);
-                char *con = (char *) malloc(lenA + lenB + 1);
-                memcpy(con, prefix.c_str(), lenA);
-                memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
-                adapter.networkAdapterLongName = con;
+               // char *con = (char *) malloc(lenA + lenB + 1);
+                std::vector<char*> con(lenA + lenB + 1);
+                memcpy(con.data(), prefix.c_str(), lenA);
+                memcpy(con.data() + lenA, pAdapterInfo->AdapterName, lenB + 1);
+                adapter.networkAdapterLongName = std::string(*con.data());
                 adapter.networkAdapter = pAdapterInfo->AdapterName;
                 adapter.index = pAdapterInfo->Index;
 
                 tempList.push_back(adapter);
-                free(con);
 
                 pAdapterInfo = pAdapterInfo->Next;
             } while (pAdapterInfo);
         }
-        free(AdapterInfo);
-
         {
             std::scoped_lock<std::mutex> lock(app->readSupportedAdaptersMutex);
             *res = tempList;

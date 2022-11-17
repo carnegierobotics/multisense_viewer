@@ -16,6 +16,9 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#define PI 3.14159265359 
+
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -143,8 +146,8 @@ public:
             yaw -= (dx / 5.0f);
             pitch -= (dy / 5.0f);
         } else {
-            float deltaAngleX = (2 * M_PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
-            float deltaAngleY = (M_PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg
+            float deltaAngleX = (2 * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
+            float deltaAngleY = (PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg
             xAngle = dx * deltaAngleX;
             yAngle = dy * deltaAngleY;
 

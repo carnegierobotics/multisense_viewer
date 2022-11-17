@@ -311,6 +311,8 @@ namespace VkRender {
         float col[9] = {0};
         bool pixelInfoEnable = true;
         bool useImuData = false;
+        int cameraType = 1; // TODO dont use device container for gui settings
+        bool resetCamera = false;
         CursorPixelInformation pixelInfo{};
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         crl::multisense::RemoteHeadChannel configRemoteHead = 0;
@@ -350,7 +352,7 @@ namespace VkRender {
         bool left = false;
         bool right = false;
         bool middle = false;
-        float wheel = 0.0f;
+        float wheel = 0.0f; // to initialize arcball zoom
     };
 
     /**

@@ -60,10 +60,11 @@ void SingleLayout::update() {
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;
             return;
-        } else {
-            lastPresentTime = std::chrono::steady_clock::now();
         }
 
+        if (lastPresentedFrameID != tex.m_Id){
+            lastPresentTime = std::chrono::steady_clock::now();
+        }
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
         if (m_Model->updateTexture(textureType)) {

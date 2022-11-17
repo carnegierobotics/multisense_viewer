@@ -230,34 +230,34 @@ namespace VkRender::MultiSense {
     }
 
 
-    void CRLPhysicalCamera::preparePointCloud(uint32_t width) {
-        const float xScale = 1.0f / ((static_cast<float>(infoMap[0].devInfo.imagerWidth) /
+    void CRLPhysicalCamera::preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) {
+        const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
                                       static_cast<float>(width)));
         // From LibMultisenseUtility
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        channelMap[0]->ptr()->getImageConfig(infoMap[0].imgConf);
-        crl::multisense::image::Config c = infoMap[0].imgConf;
+        channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
+        crl::multisense::image::Config c = infoMap[channelID].imgConf;
         const float &fx = c.fx();
         const float &fy = c.fy();
         const float &cx = c.cx();
         const float &cy = c.cy();
         const float &tx = c.tx();
-        const float cxRight = (float) infoMap[0].calibration.right.P[0][2] * xScale;
+        const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
 
         // glm::mat4 indexing
         // [column][row]
-        // Inserted values row by row
+        // Inserted values col by col
         glm::mat4 Q(0.0f);
         Q[0][0] = fy * tx;
-        Q[3][0] = -fy * cx * tx;
         Q[1][1] = fx * tx;
+        Q[2][3] = -fy;
+        Q[3][0] = -fy * cx * tx;
         Q[3][1] = -fx * cy * tx;
         Q[3][2] = fx * fy * tx;
-        Q[2][3] = -fy;
         Q[3][3] = fy * (cx - cxRight);
         // keep as is
-        infoMap[0].QMat = Q; //TODO Rename
+        infoMap[channelID].QMat = Q;
     }
 
 

@@ -435,9 +435,6 @@ namespace VkRender {
         }
         uint32_t imageSize = width * height * channels;
 
-        handles.info->gif.pixels = (unsigned char *) malloc((size_t) imageSize * depth);
-        memcpy(handles.info->gif.pixels, pixels, (size_t) imageSize * depth);
-
         handles.info->gif.width = width;
         handles.info->gif.height = height;
         handles.info->gif.totalFrames = depth;
@@ -445,12 +442,13 @@ namespace VkRender {
         handles.info->gif.delay = (uint32_t *) delays;
         gifImageDescriptors.reserve((size_t) depth + 1);
 
+        auto* pixelPointer = pixels; // Store original position in pixels
 
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};
             gifTexture[i] = std::make_unique<Texture2D>(device);
 
-            gifTexture[i]->fromBuffer(handles.info->gif.pixels, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
+            gifTexture[i]->fromBuffer(pixelPointer, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                       handles.info->gif.width, handles.info->gif.height, device,
                                       device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -467,8 +465,6 @@ namespace VkRender {
 
 
             // Update the Descriptor Set:
-
-
             VkWriteDescriptorSet write_desc[1] = {};
             write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write_desc[0].dstSet = dSet;
@@ -478,10 +474,11 @@ namespace VkRender {
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
 
             handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
-            handles.info->gif.pixels += handles.info->gif.imageSize;
+            pixelPointer += handles.info->gif.imageSize;
 
             gifImageDescriptors.emplace_back(dSet);
         }
+        stbi_image_free(pixels);
     }
 
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {

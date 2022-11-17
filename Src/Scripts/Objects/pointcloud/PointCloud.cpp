@@ -94,7 +94,7 @@ void PointCloud::prepareTexture() {
         }
     }
     model->createMeshDeviceLocal(meshData);
-    renderData.crlCamera->get()->preparePointCloud(width);
+    renderData.crlCamera->get()->preparePointCloud(width, 0);
     model->createEmptyTexture(width, height, AR_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);

@@ -869,6 +869,7 @@ private:
                 }
                 ImGui::EndCombo();
             }
+            /*
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -876,6 +877,7 @@ private:
             //ImGui::Checkbox("Use IMU data (Not finished)", &dev.useImuData);
             ImGui::PopStyleColor();
 
+             */
             /*
             if (dev.useImuData) {
                 if (!Utils::isInVector(dev.userRequestedSources, "IMU")) {
@@ -896,6 +898,22 @@ private:
                 Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
             // Check if mouse hover a window
+
+            ImGui::Dummy(ImVec2(40.0f, 10.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
+            ImGui::RadioButton("ArcBall camera", &dev.cameraType, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("First person camera", &dev.cameraType, 1);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            dev.resetCamera = ImGui::Button("Reset camera position");
+            ImGui::PopStyleColor(2);
+
+
         }
 
         handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
@@ -1090,13 +1108,15 @@ private:
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 static char buf1[5] = "0";
                 static char buf2[5] = "0";
                 static char buf3[5] = "0";
                 static char buf4[5] = "0";
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n Set the Region Of Interest for the auto exposure in the left image \n ");
+                ImGui::SameLine(0.0f, 5.0f);
 
                 if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
                     d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
@@ -1112,7 +1132,7 @@ private:
                 float inputWidth = 15.0f * 2.8;
                 ImGui::Text("Upper left corner (x, y)");
 
-                ImGui::SameLine();
+                ImGui::SameLine(0, 15.0f);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SetNextItemWidth(inputWidth);
                 ImGui::InputText("##decimalminX", buf1, 5, ImGuiInputTextFlags_CharsDecimal);

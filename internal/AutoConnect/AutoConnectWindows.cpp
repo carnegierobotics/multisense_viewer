@@ -90,23 +90,16 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
                 prefix = std::string(d->name).substr(0, found);
         }
 
-        PIP_ADAPTER_INFO AdapterInfo;
         DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
-
-        AdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
+        std::vector<PIP_ADAPTER_INFO> AdapterInfo(dwBufLen);
 
         // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
-        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
-            free(AdapterInfo);
-            AdapterInfo = (IP_ADAPTER_INFO *) malloc(dwBufLen);
-            if (AdapterInfo == NULL) {
-                printf("Error allocating memory needed to call GetAdaptersinfo\n");
-                free(AdapterInfo);
-                continue;
-            }
+        if (GetAdaptersInfo(AdapterInfo.data(), &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
+            AdapterInfo.clear();
+            AdapterInfo.resize(dwBufLen);
         }
 
-        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
+        if (GetAdaptersInfo(AdapterInfo.data(), &dwBufLen) == NO_ERROR) {
             // Contains pointer to current adapter info
             PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
             do {

@@ -185,11 +185,12 @@ namespace VkRender::MultiSense {
              * @return
              */
             bool getStatus(crl::multisense::RemoteHeadChannel channelID, crl::multisense::system::StatusMessage *msg);
-            /**@brief Constructs the Q matrix from the calibration data
+            /**@brief Constructs the Q matrix from the calibration data and stores it in \ref infoMap
             *
-            * @param width Width of desired m_Image to construct Q matrix for. Used to obtain correct scaling
+            * @param[in] width Width of desired m_Image to construct Q matrix for. Used to obtain correct scaling
+            * @param[in] channelID which remote head to select
             */
-            void preparePointCloud(uint32_t width);
+            void preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID);
 
             /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
              *

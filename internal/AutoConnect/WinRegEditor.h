@@ -161,39 +161,38 @@ public:
 	}
 
 	void readAndBackupRegisty() {
-		VOID* data = malloc(255);
-		DWORD size = 255;
+		std::vector<void*> data(255);
+        DWORD size = 255;
 		DWORD ret;
 		u_long dwType;
 
-		ret = RegGetValueA(tcpIpKey, NULL, "IPAddress", RRF_RT_REG_MULTI_SZ, &dwType, data, &size);
+		ret = RegGetValueA(tcpIpKey, NULL, "IPAddress", RRF_RT_REG_MULTI_SZ, &dwType, data.data(), &size);
 		if (ret != ERROR_SUCCESS) {
 			std::cout << "Error, Reading IPAddress" << std::endl;
 		}
 		backup.IPAddress.reserve(size);
-		memcpy(backup.IPAddress.data(), data, size);
+		memcpy(backup.IPAddress.data(), data.data(), size);
 		size = 255;
 
-		ret = RegGetValueA(tcpIpKey, NULL, "SubnetMask", RRF_RT_REG_MULTI_SZ, &dwType, data, &size);
+		ret = RegGetValueA(tcpIpKey, NULL, "SubnetMask", RRF_RT_REG_MULTI_SZ, &dwType, data.data(), &size);
 		if (ret != ERROR_SUCCESS) {
 			std::cout << "Error, Reading SubnetMask" << std::endl;
 		}
 		backup.SubnetMask.reserve(size);
-		memcpy(backup.SubnetMask.data(), data, size);
+		memcpy(backup.SubnetMask.data(), data.data(), size);
 		size = 255;
-		ret = RegGetValueA(tcpIpKey, NULL, "EnableDHCP", RRF_RT_REG_DWORD, &dwType, data, &size);
+		ret = RegGetValueA(tcpIpKey, NULL, "EnableDHCP", RRF_RT_REG_DWORD, &dwType, data.data(), &size);
 		if (ret != ERROR_SUCCESS) {
 			std::cout << "Error, Reading EnableDHCP" << std::endl;
 		}
-		memcpy(&backup.EnableDHCP, data, size);
+		memcpy(&backup.EnableDHCP, data.data(), size);
 		size = 255;
-		ret = RegGetValueA(adapterKey, NULL, "*JumboPacket", RRF_RT_REG_SZ, &dwType, data, &size);
+		ret = RegGetValueA(adapterKey, NULL, "*JumboPacket", RRF_RT_REG_SZ, &dwType, data.data(), &size);
 		if (ret != ERROR_SUCCESS) {
 			std::cout << "Error, Reading JumboPacket" << std::endl;
 		}
 		backup.JumboPacket.reserve(size);
-		memcpy(backup.JumboPacket.data(), data, size);
-		free(data);
+		memcpy(backup.JumboPacket.data(), data.data(), size);
 
 		// Write to ini file.
 		CSimpleIniA ini;

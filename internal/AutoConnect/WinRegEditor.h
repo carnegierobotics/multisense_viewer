@@ -351,15 +351,14 @@ private:
 
 					DWORD dwType = 0;
 					DWORD size = 256;
-					VOID* data = malloc(256);
+					std::vector<void*> data(256);
 
-
-					DWORD ret = RegGetValueA(queryKey, achKey, "DriverDesc", RRF_RT_ANY, &dwType, data, &size);
+					DWORD ret = RegGetValueA(queryKey, achKey, "DriverDesc", RRF_RT_ANY, &dwType, data.data(), &size);
 					if (ret != 0) {
 						std::cout << "Failed to get DriverDesc\n";
 					}
 					else {
-						std::string description((const char*)data);
+						std::string description((const char*)data.data());
 						if (description == driverDesc) {
 							HKEY hKey;
 

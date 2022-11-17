@@ -1119,11 +1119,16 @@ private:
                 ImGui::SameLine(0.0f, 5.0f);
 
                 if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
-                    d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
-                    d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
-                    d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
-                    d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY;
-                    d.parameters.ep.update |= true;
+                    try {
+                        d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
+                        d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
+                        d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
+                        d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY;
+                        d.parameters.ep.update |= true;
+                    } catch (...){
+                        Log::Logger::getInstance()->error("Failed to parse ROI input. User most likely tried to set empty parameters");
+                        d.parameters.ep.update = false;
+                    }
                 }
                 ImGui::PopStyleColor();
 

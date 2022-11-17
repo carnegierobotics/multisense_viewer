@@ -22,8 +22,6 @@
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
-    camera.m_RotationSpeed = 0.2f;
-    camera.m_MovementSpeed = 5.0f;
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
     createSelectionImages();
@@ -150,11 +148,14 @@ void Renderer::render() {
 
     if (guiManager->handles.showDebugWindow) {
         auto &cam = Log::Logger::getLogMetrics()->camera;
-        cam.pitch = camera.pitch;
+        cam.pitch = camera.yAngle;
         cam.pos = camera.m_Position;
-        cam.yaw = camera.yaw;
+        cam.yaw = camera.xAngle;
         cam.cameraFront = camera.cameraFront;
     }
+
+    camera.viewportHeight = m_Height;
+    camera.viewportWidth = m_Width;
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
@@ -227,6 +228,15 @@ void Renderer::render() {
                     scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
                     break;
+            }
+
+            if (dev.cameraType == 0)
+                camera.type = Camera::lookat;
+            if (dev.cameraType == 1)
+                camera.type = Camera::firstperson;
+            if (dev.resetCamera){
+                camera.setPosition(defaultCameraPosition);
+                camera.setRotation(yaw, pitch);
             }
         }
     }
@@ -404,7 +414,8 @@ void Renderer::render() {
                                     float fx = cameraConnection->camPtr->getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
                                     float tx = cameraConnection->camPtr->getCameraInfo(
-                                            win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] / (fx * (1920.0f / (float) w));
+                                            win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] /
+                                               (fx * (1920.0f / (float) w));
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
                                         dev.pixelInfo.depth = dist;
@@ -456,7 +467,7 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    for (auto &dev: guiManager->handles.devices){
+    for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);
     }
@@ -635,10 +646,20 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     }
     if (mouseButtons.right) {
     }
-    if (mouseButtons.middle) {
+    if (mouseButtons.middle && camera.type == Camera::firstperson) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
     }
     mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
+}
+
+void Renderer::mouseScroll(float change) {
+    for (const auto &item: guiManager->handles.devices) {
+        if (item.state == AR_STATE_ACTIVE && item.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+        }
+    }
+
+
 }

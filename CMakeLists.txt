@@ -53,6 +53,8 @@ include_directories(external/tinygltf/)
 
 
 set(TinyTIFF_BUILD_STATIC_LIBS ON)
+set(TinyTIFF_BUILD_SHARED_LIBS OFF)
+include_directories(${CMAKE_BINARY_DIR}/external/TinyTIFF/src)
 set(TinyTIFF_BUILD_DECORATE_LIBNAMES_WITH_BUILDTYPE OFF)
 set(TinyTIFF_SRC external/TinyTIFF)
 add_subdirectory(${TinyTIFF_SRC})
@@ -172,7 +174,7 @@ set(SCRIPTS_LIB_SRC
         ${SCRIPT_SRC}
         Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense;TinyTIFFShared")
+set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense;TinyTIFF")
 
 if (WIN32)
 

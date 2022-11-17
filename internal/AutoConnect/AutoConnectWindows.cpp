@@ -73,9 +73,6 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         /* Retrieve the device list */
         if (pcap_findalldevs(&alldevs, errbuf) == -1) {
             std::cout << "Error in pcap_findalldevs: " << errbuf << std::endl;
-            if (!logEvent)
-                app->shutdownT2Ready = true;
-
             return;
         }
 
@@ -95,17 +92,22 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         }
 
         DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
-        std::vector<PIP_ADAPTER_INFO> AdapterInfo(dwBufLen);
-
+        //std::vector<PIP_ADAPTER_INFO> AdapterInfo(dwBufLen);
+        PIP_ADAPTER_INFO AdapterInfo;
+        AdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
         // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
-        if (GetAdaptersInfo(AdapterInfo.front(), &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
-            AdapterInfo.clear();
-            AdapterInfo.resize(dwBufLen);
+        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
+            free(AdapterInfo);
+            AdapterInfo = (IP_ADAPTER_INFO *) malloc(dwBufLen);
+            if (AdapterInfo == NULL) {
+                printf("Error allocating memory needed to call GetAdaptersinfo\n");
+                free(AdapterInfo);
+                continue;
+            }
         }
-
-        if (GetAdaptersInfo(AdapterInfo.front(), &dwBufLen) == NO_ERROR) {
+        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
             // Contains pointer to current adapter info
-            PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo.front();
+            PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
             do {
                 // Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
                 // I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
@@ -125,22 +127,23 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
                 adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
                 adapter.description = pAdapterInfo->Description;
 
-                /*CONCATENATE two strings safely*/
+                /*CONCATENATE two strings safely windows workaround*/
                 int lenA = strlen(prefix.c_str());
                 int lenB = strlen(pAdapterInfo->AdapterName);
-               // char *con = (char *) malloc(lenA + lenB + 1);
-                std::vector<char*> con(lenA + lenB + 1);
-                memcpy(con.data(), prefix.c_str(), lenA);
-                memcpy(con.data() + lenA, pAdapterInfo->AdapterName, lenB + 1);
-                adapter.networkAdapterLongName = std::string(*con.data());
+                char *con = (char *) malloc(lenA + lenB + 1);
+                memcpy(con, prefix.c_str(), lenA);
+                memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
+                adapter.networkAdapterLongName = con;
                 adapter.networkAdapter = pAdapterInfo->AdapterName;
                 adapter.index = pAdapterInfo->Index;
-
                 tempList.push_back(adapter);
+                free(con);
 
                 pAdapterInfo = pAdapterInfo->Next;
             } while (pAdapterInfo);
         }
+        free(AdapterInfo);
+
         {
             std::scoped_lock<std::mutex> lock(app->readSupportedAdaptersMutex);
             *res = tempList;

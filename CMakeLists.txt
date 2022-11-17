@@ -299,7 +299,6 @@ else () ## Linux
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-
     MESSAGE("[INFO] COPYING ASSETS TO RUNTIME DESTINATION: ${INSTALL_DIRECTORY}")
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 endif ()
@@ -308,6 +307,7 @@ endif ()
 file(WRITE ${INSTALL_DIRECTORY}/imgui.ini "")
 file(WRITE ${INSTALL_DIRECTORY}/crl.ini "")
 file(WRITE ${INSTALL_DIRECTORY}/logger.log "")
+file(WRITE ${INSTALL_DIRECTORY}/Winreg.ini "")
 
 # Copy dependency folders to output directory
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets)

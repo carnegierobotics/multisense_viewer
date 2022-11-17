@@ -305,6 +305,8 @@ public:
             if (showDemo)
                 ImGui::ShowDemoWindow();
 
+            ImGui::Text("About: ");
+            ImGui::Text("Icons from https://icons8.com");
 
         }
         ImGui::EndChild();

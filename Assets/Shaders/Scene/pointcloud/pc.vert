@@ -17,6 +17,7 @@ layout (binding = 1) uniform PointCloudParam {
     mat4 Q;
     float width;
     float height;
+    float disparity;
 } matrix;
 
 layout (set = 0, binding = 2) uniform sampler2D depthMap;
@@ -32,8 +33,9 @@ void main()
     outUV = inUV;
     float width = matrix.width;
     float height = matrix.height;
-    float depth = texture(depthMap, vec2(1-inUV.x, inUV.y)).r  * 64;// Values scaled to inbetween [0, 1] --
-    //this is because the camera is using 12 bit of resolution but the data is stored in a 16 bit texture image
+    // When uploaded to GPU, vulkan will scale the texture values to between 0-1. Since we only have 12 bit values of a 16 bit image, we multiply by 64 to scale between [0 - 1]
+    float depth = texture(depthMap, vec2(1-inUV.x, inUV.y)).r * 64;//  scaled to inbetween [0, 1] --
+
     depth *= 255; // Scale values furter up to 255
 
     vec4 coords = vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -46,7 +48,7 @@ void main()
     vec4 imgCoords = vec4(uvCoords, depth, 1.0f);
     coords = matrix.Q * imgCoords;
 
-    float invB = 1.0f / (-600.0f * depth);
+    float invB = 1.0f / (-width * depth);
     vec3 outCoordinates = vec3(coords.x * invB, coords.y * invB, coords.z * invB);
 
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);

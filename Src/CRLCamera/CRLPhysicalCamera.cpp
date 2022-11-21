@@ -487,7 +487,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set exposure on channel {}", channelID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {

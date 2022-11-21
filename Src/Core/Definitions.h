@@ -34,19 +34,22 @@ namespace VkRender::MultiSense {
 
 typedef enum ScriptType {
     /**
-     * Do not draw script
+     * AR_SCRIPT_TYPE_DISABLED Do not draw script at all
      */
     AR_SCRIPT_TYPE_DISABLED,
     /**
-     * Draw script after crl camera connect
+     * AR_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect
      */
     AR_SCRIPT_TYPE_DEFAULT,
     AR_SCRIPT_TYPE_CRL_CAMERA,
     AR_SCRIPT_TYPE_POINT_CLOUD,
     /**
-     * Draw script since first frame
+     *  AR_SCRIPT_TYPE_RENDER Draw script since first frame
      */
     AR_SCRIPT_TYPE_RENDER,
+    /**
+     *  AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers
+     */
     AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS
 } ScriptType;
 

@@ -9,6 +9,7 @@
 #include <MultiSense/Src/Scripts/Private/ScriptBuilder.h>
 #include <MultiSense/Src/ModelLoaders/CRLCameraModels.h>
 #include <MultiSense/Src/imgui/Layer.h>
+#include <random>
 #include "MultiSense/Src/CRLCamera/CRLPhysicalCamera.h"
 #include "MultiSense/Src/CRLCamera/ThreadPool.h"
 
@@ -44,7 +45,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
+    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -55,8 +56,11 @@ public:
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
-    uint32_t exposure = 1;
-    uint32_t exposureFactor = 20;
+    uint32_t exposure = 20000;
+    uint32_t exposureFactor = 25;
+
+    std::mt19937* rng;
+    std::uniform_int_distribution<int> * gen;
 
     static void
     saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc, short remoteHead,

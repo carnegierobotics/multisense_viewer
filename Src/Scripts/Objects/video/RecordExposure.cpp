@@ -2,6 +2,7 @@
 // Created by magnus on 10/12/22.
 //
 
+#include <random>
 #include "RecordExposure.h"
 #include "MultiSense/external/TinyTIFF/src/tinytiffwriter.h"
 
@@ -23,7 +24,6 @@ void RecordExposure::update() {
     auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), true);
 
 
-
     // Set exposure
     ExposureParams params{};
     params.autoExposure = false;
@@ -31,14 +31,16 @@ void RecordExposure::update() {
 
     if (renderData.crlCamera->get()->setExposureParams(params, 0)) {
         std::cout << "Set exposure: " << params.exposure << std::endl;
-
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), 0)) {
             saveImageToFile(Utils::CRLSourceToTextureType(src), saveImagePath, src + " exposures",
-                            0, tex, false, exposure);
+                            0, tex, false, params.exposure);
 
             // New exposure for next frame
-            exposure += exposureFactor;
+
+            exposure = params.exposure * (gen(rng)/ 100); // uniform, unbiased
+            ;
         } else {
             std::cerr << "Failed to get image.." << std::endl;
         }

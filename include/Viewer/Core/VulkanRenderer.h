@@ -5,9 +5,7 @@
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
+
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -19,6 +17,7 @@
 #include <iostream>
 #include <glm/vec2.hpp>
 #include <chrono>
+#include <imgui/imgui.h>
 
 #include "Viewer/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"

@@ -6,6 +6,8 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 endif ()
 
+include_directories("include")
+
 if (WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
@@ -15,7 +17,6 @@ if (WIN32)
     endif ()
 
     # Include WinPcap headers
-    include_directories("./include")
 
     # Link WinPcap library
     add_library(winpcap STATIC IMPORTED GLOBAL)
@@ -36,6 +37,6 @@ if (WIN32)
     endif ()
 else ()
     ## Linux
-    add_library(LibAutoConnect AutoConnect.h AutoConnectLinux.cpp AutoConnectLinux.h)
+    add_library(LibAutoConnect src/AutoConnectLinux.cpp)
     target_link_libraries(LibAutoConnect MultiSense -ltbb)
 endif ()

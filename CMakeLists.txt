@@ -1,29 +1,21 @@
 cmake_minimum_required(VERSION 3.6)
 project(MultiSense-Viewer C CXX)
 
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
 
+set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR} CACHE STRING "")
-set(CMAKE_CXX_STANDARD_REQUIRED true)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
-endif ()
+include(cmake/Common.cmake)
 
-if (UNIX AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+find_package(Vulkan REQUIRED)
+
+option(ENABLE_ALL_WARNINGS "Build unit tests." ON)
+
+if (UNIX AND ${ENABLE_ALL_WARNINGS})
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
     # Not enabled flags but could be nice to enable
     # -Wundef -Wcast-qual  -Wdouble-promotion
-    if (${FORCE_COLORED_OUTPUT})
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-            message("[INFO] Enabling Colored Output")
-            add_compile_options (-fdiagnostics-color=always)
-        elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-            add_compile_options (-fcolor-diagnostics)
-        endif ()
-    endif ()
 endif()
 
 
@@ -32,8 +24,7 @@ set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
-# Libraries
-find_package(Vulkan REQUIRED)
+
 
 # GLFW
 set(GLFW_DIR external/glfw) # Set this to point to an up-to-date GLFW repo  option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
@@ -98,81 +89,48 @@ include_directories(${IMGUI_FILEDIALOG_DIR})
 
 set(IMGUI_SRC
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
-        ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
-        Src/imgui/custom/imgui_user.h
-        Src/imgui/custom/imgui_user.inl ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
+        ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
+        include/Viewer/ImGui/Custom/imgui_user.h
         )
-INCLUDE_DIRECTORIES(Src/imgui/custom)
 
-file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        "Src/Scripts/Objects/*.h")
-string(TIMESTAMP Today)
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "// Generated from Cmake ${Today} \n")
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/Scripts.txt "# Generated from Cmake ${Today} \n")
+include_directories(include)
+include_directories(Assets)
+include_directories(external)
+include_directories(internal/AutoConnect/include)
 
-foreach (Src ${SCRIPT_HEADERS})
-    file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "\#include \"MultiSense/" ${Src} "\"\n")
-endforeach(Src ${SCRIPT_HEADERS})
-
-foreach (Src ${SCRIPT_HEADERS})
-            string(REGEX MATCH "[^\\/]+$" var ${Src})
-            string(REGEX MATCH "^[^.]+" res ${var})
-            file(APPEND ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Generated/Scripts.txt ${res} \n)
-endforeach(Src ${SCRIPT_HEADERS})
-
-file(GLOB_RECURSE SCRIPT_SRC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        "Src/Scripts/Objects/*.cpp")
+cmake_language(CALL ExportScriptIncludes)
 
 set(ENGINE_SRC
-        Src/Core/Definitions.h
-        Src/Core/KeyInput.h
-        Src/Scripts/Private/Base.h
-        Src/Core/Buffer.cpp
-        Src/Core/Buffer.h
-        Src/Core/Camera.h
-        Src/CRLCamera/CameraConnection.cpp
-        Src/CRLCamera/CameraConnection.h
-        Src/CRLCamera/CalibrationYaml.h
-        Src/Scripts/Private/ScriptBuilder.h
-        Src/Core/Texture.cpp
-        Src/Core/Texture.h
-        Src/Core/Validation.h
-        Src/Core/VulkanDevice.cpp
-        Src/Core/VulkanDevice.h
-        Src/Core/VulkanRenderer.cpp
-        Src/Core/VulkanRenderer.h
-        Src/Core/VulkanSwapchain.cpp
-        Src/Core/VulkanSwapchain.h
-        Src/CRLCamera/ThreadPool.h
-        Src/CRLCamera/CRLPhysicalCamera.cpp
-        Src/CRLCamera/CRLPhysicalCamera.h
-        Src/imgui/GuiManager.cpp
-        Src/imgui/GuiManager.h
-        Src/imgui/InteractionMenu.h
-        Src/imgui/Layer.h
-        Src/imgui/SideBar.h
-        Src/imgui/LayerExample.h
-        Src/ModelLoaders/CRLCameraModels.cpp
-        Src/ModelLoaders/CRLCameraModels.h
-        Src/ModelLoaders/glTFModel.cpp
-        Src/ModelLoaders/glTFModel.h
-        Src/Renderer/Renderer.cpp
-        Src/Renderer/Renderer.h
-        Src/Tools/Macros.h
-        Src/Tools/Populate.h
-        Src/Tools/Utils.h
-        Src/Tools/Logger.h
-        Src/Tools/Logger.cpp
-        Src/Tools/stb_include.cpp
-        Src/imgui/DebugWindow.h
-        Src/Scripts/Private/TextureDataDef.h
-        Src/Renderer/SharedData.h
+        src/Core/Buffer.cpp
+        src/CRLCamera/CameraConnection.cpp
+        src/Core/Texture.cpp
+        src/Core/VulkanDevice.cpp
+        src/Core/VulkanRenderer.cpp
+        src/Core/VulkanSwapchain.cpp
+        src/CRLCamera/CRLPhysicalCamera.cpp
+        src/ImGui/GuiManager.cpp
+        src/ModelLoaders/CRLCameraModels.cpp
+        src/ModelLoaders/GLTFModel.cpp
+        src/Renderer/Renderer.cpp
+        src/Tools/Logger.cpp
+        src/Tools/StbInclude.cpp
         )
 
 set(SCRIPTS_LIB_SRC
-        ${SCRIPT_HEADERS}
-        ${SCRIPT_SRC}
-        Src/imgui/DebugWindow.h Src/Scripts/Private/TextureDataDef.h)
+        src/Scripts/Objects/MultiSenseCamera.cpp
+        src/Scripts/Objects/Example.cpp
+        src/Scripts/Objects/Pointcloud/PointCloud.cpp
+        src/Scripts/Objects/SceneGizmos/Gizmos.cpp
+        src/Scripts/Objects/Video/RecordExposure.cpp
+        src/Scripts/Objects/Video/RecordFrames.cpp
+        src/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
+        src/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp
+        src/Scripts/Objects/Video/Previews/Double/DoubleBot.cpp
+        src/Scripts/Objects/Video/Previews/Quad/One.cpp
+        src/Scripts/Objects/Video/Previews/Quad/Two.cpp
+        src/Scripts/Objects/Video/Previews/Quad/Three.cpp
+        src/Scripts/Objects/Video/Previews/Quad/Four.cpp
+        )
 
 set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense;TinyTIFF")
 
@@ -298,7 +256,7 @@ else () ## Linux
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer )
 
-    add_executable(MultiSense-viewer main.cpp)
+    add_executable(MultiSense-viewer src/main.cpp)
     target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
 
 

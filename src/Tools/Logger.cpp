@@ -65,7 +65,7 @@ namespace Log {
     void Logger::logIntoFile(std::string &data) {
         m_Mutex.lock();
         m_File << getCurrentTime() << "  " << data << endl;
-        m_Metrics->logQueue.push(data);
+        m_Metrics->m_LogQueue.push(data);
         m_Mutex.unlock();
     }
 

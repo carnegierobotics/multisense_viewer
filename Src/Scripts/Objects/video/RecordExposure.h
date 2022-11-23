@@ -45,7 +45,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
+    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -59,8 +59,7 @@ public:
     uint32_t exposure = 20000;
     uint32_t exposureFactor = 25;
 
-    std::mt19937* rng;
-    std::uniform_int_distribution<int> * gen;
+
 
     static void
     saveImageToFile(CRLCameraDataType type, const std::string &path, const std::string &stringSrc, short remoteHead,

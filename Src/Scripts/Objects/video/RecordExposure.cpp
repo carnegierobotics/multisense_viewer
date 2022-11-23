@@ -10,6 +10,8 @@ void RecordExposure::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
     threadPool = std::make_unique<VkRender::ThreadPool>();
 
+
+
 }
 
 void RecordExposure::update() {
@@ -23,15 +25,17 @@ void RecordExposure::update() {
     const auto &conf = renderData.crlCamera->get()->getCameraInfo(0).imgConf;
     auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(), conf.height(), true);
 
+    std::mt19937 rng = std::mt19937(renderData.scriptDrawCount);
+    std::uniform_int_distribution<int> gen = std::uniform_int_distribution<int>(95, 105);
 
     // Set exposure
     ExposureParams params{};
     params.autoExposure = false;
-    params.exposure =  static_cast<uint32_t>(exposure);
+    //params.exposure =  static_cast<uint32_t>(exposure);
 
-    if (renderData.crlCamera->get()->setExposureParams(params, 0)) {
-        std::cout << "Set exposure: " << params.exposure << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //if (renderData.crlCamera->get()->setExposureParams(params, 0)) {
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //std::cout << "Set exposure: " << params.exposure << std::endl;
 
         if (renderData.crlCamera->get()->getCameraStream(src, tex.get(), 0)) {
             saveImageToFile(Utils::CRLSourceToTextureType(src), saveImagePath, src + " exposures",
@@ -39,14 +43,14 @@ void RecordExposure::update() {
 
             // New exposure for next frame
 
-            exposure = params.exposure * (gen(rng)/ 100); // uniform, unbiased
-            ;
+            int val = gen(rng);
+            //exposure = params.exposure * ((float)val / 100.0f); // uniform, unbiased
         } else {
             std::cerr << "Failed to get image.." << std::endl;
         }
-    } else {
-        std::cerr << "Failed to set exposure: " << exposure << std::endl;
-    }
+//    } else {
+//        std::cerr << "Failed to set exposure: " << exposure << std::endl;
+//    }
 }
 
 void RecordExposure::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {

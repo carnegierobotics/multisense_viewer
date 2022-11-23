@@ -8,9 +8,6 @@
 #define MAX_CONNECTION_ATTEMPTS 2
 #define TIMEOUT_INTERVAL_SECONDS 5
 
-#include <include/MultiSense/MultiSenseTypes.hh>
-#include "include/MultiSense/MultiSenseChannel.hh"
-
 #include <string>
 #include <vector>
 #include <thread>
@@ -46,11 +43,8 @@ public:
     bool m_ListenOnAdapter = true;
     bool m_ShouldProgramRun = true;
     time_t startTime{};
-    crl::multisense::Channel *cameraInterface{};
     std::vector<Result> m_IgnoreAdapters{};
-
     //virtual std::vector<AutoConnect::Result> findEthernetAdapters(bool b, bool skipIgnored) = 0;
-
     virtual void start() = 0;
 
     virtual void onFoundAdapters(std::vector<Result> vector, bool logEvent) = 0;

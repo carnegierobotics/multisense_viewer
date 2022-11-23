@@ -7,75 +7,75 @@
 
 
 #include <thread>
-#include "AutoConnect.h"
 #include <mutex>
+#include "AutoConnect/ThreadPool.h"
 
-class AutoConnectLinux : AutoConnect{
+#define NUM_WORKER_THREADS 3
+
+class AutoConnectLinux {
 
 public:
 
-    ~AutoConnectLinux() {
-        m_LoopAdapters = false;
-        m_ListenOnAdapter = false;
-        m_ShouldProgramRun = false;
-        m_RunAdapterSearch = false;
+    struct Adapter {
+        Adapter() = default;
 
-        if (m_TAutoConnect != nullptr) {
-            m_TAutoConnect->join();
-            delete m_TAutoConnect;
-            shutdownT1Ready = false;
-            m_TAutoConnect = nullptr;
+        explicit Adapter(const char *name, uint32_t index) : ifName(name), ifIndex(index)
+        { // By default, we want to initialize an adapter result with a name and support status
         }
-        if (m_TAdapterSearch != nullptr) {
-            m_TAdapterSearch->join();
-            delete m_TAdapterSearch;
-            shutdownT2Ready = false;
-            m_TAdapterSearch = nullptr;
+
+        bool supports = true;
+        bool available = true;
+        std::vector<std::string> IPAddresses;
+        std::vector<std::string> searchedIPs;
+        std::string description;
+        std::string ifName;
+        uint32_t ifIndex = 0;
+
+        bool isSearched(const std::string& ip){
+            for (const auto &searched: searchedIPs){
+                if (searched == ip)
+                    return true;
+            }
+            return false;
         }
+
+    };
+
+    ~AutoConnectLinux() {
+
     }
+
+    AutoConnectLinux(){
+        m_Pool = std::make_unique<AutoConnect::ThreadPool>(NUM_WORKER_THREADS);
+        m_Pool->Push(adapterScan, this);
+
+    }
+
+    std::unique_ptr<AutoConnect::ThreadPool> m_Pool;
+    bool m_ScanAdapters = true;
+    std::vector<Adapter> m_Adapters;
+    std::mutex m_AdaptersMutex;
 
     /**
      * @Brief Starts the search for camera given a list containing network adapters Search is done in another thread
     * @param vector
      */
-    void start() override;
+    void run();
     /** @Brief Function to search for network adapters **/
-    static void findEthernetAdapters(void *ctx, bool logEvent, bool skipIgnored,
-                                     std::vector<AutoConnect::Result> *res);
     /** @Brief cleans up thread**/
-    void stopAutoConnect() override;
+    void stopAutoConnect();
     /** @Brief Function called after a search of adapters and at least one adapter was found **/
-    void onFoundAdapters(std::vector<Result> vector, bool logEvent) override;
     /** @Brief Function called when a new IP is found. Return false if you want to keep searching or true to stop further IP searching **/
-    AutoConnect::FoundCameraOnIp onFoundIp(std::string address, Result adapter, int camera_fd) override;
     /** @Brief Function called when a camera has been found by a successfully connection by LibMultiSense **/
-    void onFoundCamera() override;
+    void onFoundCamera();
 
-    crl::multisense::Channel* getCameraChannel();
-
-    void setDetectedCallback(void (*param)(Result result1, void* ctx), void* context);
-    void setEventCallback(void (*param)(const std::string& result1, void* ctx, int));
-
-    void (*m_Callback)(AutoConnect::Result, void*) = nullptr;
-    void (*m_EventCallback)(const std::string&, void*, int) = nullptr;
-    bool m_RunAdapterSearch = true;
-
-    std::vector<AutoConnect::Result> supportedAdapters;
-
-    void* m_Context = nullptr;
-    bool isRunning() override;
-    void setShouldProgramRun(bool close) override;
-    std::mutex readSupportedAdaptersMutex;
-
-    bool shutdownT1Ready = false;
-    bool shutdownT2Ready = false;
-
-    void clearSearchedAdapters();
-
-    void startAdapterSearch();
+    static void adapterScan(void *ctx);
+    static void listenOnAdapter(void* ctx, Adapter *adapter);
+    static void checkForCamera(void *ctx, Adapter *adapter);
 
 private:
     static void run(void* instance);
+
 };
 
 

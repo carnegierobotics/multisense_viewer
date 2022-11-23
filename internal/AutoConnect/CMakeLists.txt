@@ -2,11 +2,17 @@ cmake_minimum_required(VERSION 3.15)
 project(AutoConnect LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 20)
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
-endif ()
-
 include_directories("include")
+
+option(BUILD_STANDALONE "build this executable without viewer" ON)
+
+if (BUILD_STANDALONE)
+    set(LIBMULTISENSE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibMultiSense/source/LibMultiSense)
+    include_directories(${LIBMULTISENSE_DIR})
+    add_subdirectory(${LIBMULTISENSE_DIR})
+else()
+    message("Building integrated version")
+endif()
 
 if (WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
@@ -35,8 +41,13 @@ if (WIN32)
             set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT AutoConnect)
         endif ()
     endif ()
-else ()
+endif ()
+
+if(UNIX)
     ## Linux
-    add_library(LibAutoConnect src/AutoConnectLinux.cpp)
-    target_link_libraries(LibAutoConnect MultiSense -ltbb)
+    add_library(LibAutoConnect STATIC src/AutoConnectLinux.cpp)
+    target_link_libraries(LibAutoConnect -lpthread -ltbb MultiSense)
+
+    add_executable(AutoConnect src/main.cpp)
+    target_link_libraries(AutoConnect LibAutoConnect)
 endif ()

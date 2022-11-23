@@ -15,7 +15,7 @@
 #include <MultiSense/MultiSenseTypes.hh>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
-#include <imgui.h>
+#include <imgui/imgui.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"

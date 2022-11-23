@@ -228,7 +228,7 @@ private:
             AddLog(LOG_COLOR_RED, "Admin privileges is required to run the Auto-Connect feature");
 #else
             AddLog(LOG_COLOR_RED,
-                   "Run the application as root so the application can configure \nthe network adapter for you. run: sudo /opt/multisense/start.sh");
+                   "Run the application as root so the application can configure \nthe network adapter for you. run:  /opt/multisense/pk_exec.sh");
 #endif
             return;
         }

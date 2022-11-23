@@ -11,7 +11,7 @@
 #include <vector>
 #include <functional>
 #include <glm/vec2.hpp>
-#include <imgui_internal.h>
+#include <imgui/imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"

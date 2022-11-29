@@ -5,22 +5,7 @@
 
 
 #ifdef WIN32
-//#define _WINSOCKAPI_    // stops windows.h including winsock.h
 
-#ifndef _WINSOCKAPI_
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-
-#endif
-
-#include <Windows.h>
-#include <ipmib.h>
-#include <iphlpapi.h>
-
-#define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
-#define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
-#define ADAPTER_HEX_NAME_LENGTH 38
-#define UNNAMED_ADAPTER "Unnamed"
 #else
 #include <net/if.h>
 #include <arpa/inet.h>

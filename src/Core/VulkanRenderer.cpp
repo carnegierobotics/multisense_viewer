@@ -2,6 +2,7 @@
 // Created by magnus on 8/28/21.
 //
 
+#include <stb_image.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Utils.h"
@@ -10,6 +11,12 @@
 
 #ifdef WIN32
 #include <strsafe.h>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+
 #endif
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) {

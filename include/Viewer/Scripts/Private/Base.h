@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <utility>
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"

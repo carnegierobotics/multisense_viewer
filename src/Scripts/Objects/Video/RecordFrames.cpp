@@ -5,10 +5,15 @@
 
 #include "Viewer/Scripts/Objects/Video/RecordFrames.h"
 
-extern "C" {
-    #include <libavutil/avutil.h>
-    #include <libswscale/swscale.h>
+#ifdef WIN32
 
+#include <direct.h>
+
+#endif
+extern "C" {
+#include<libavutil/avutil.h>
+#include<libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 }
 
 void RecordFrames::setup() {
@@ -99,7 +104,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
 
-    if (type == AR_DISPARITY_IMAGE){
+    if (type == AR_DISPARITY_IMAGE) {
         // Create Source name directory
         check = _mkdir((directory + "/png").c_str());
         if (check == 0)
@@ -150,8 +155,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     switch (type) {
         case AR_POINT_CLOUD:
             break;
-        case AR_GRAYSCALE_IMAGE:
-        {
+        case AR_GRAYSCALE_IMAGE: {
             std::ofstream output(fullPathName);
             output.close();
             Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
@@ -160,14 +164,14 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                            ptr->m_Width);
         }
             break;
-        case AR_DISPARITY_IMAGE:
-        {
+        case AR_DISPARITY_IMAGE: {
             auto *d = (uint16_t *) ptr->data;
             std::string fullTIFFPath = filePath + "tiff/" + fileName + ".tif";
             std::string fullPngPath = filePath + "png/" + fileName + ".png";
             Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
 
-            TinyTIFFWriterFile* tif=TinyTIFFWriter_open(fullTIFFPath.c_str(), 16, TinyTIFFWriter_UInt, 1,  ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
+            TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fullTIFFPath.c_str(), 16, TinyTIFFWriter_UInt, 1,
+                                                          ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
             TinyTIFFWriter_writeImage(tif, d);
             TinyTIFFWriter_close(tif);
 
@@ -184,7 +188,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             break;
         case AR_COLOR_IMAGE_YUV420:
             // Normalize ycbcr
-            /*
+
         {
             std::ofstream output(fullPathName);
             output.close();
@@ -248,7 +252,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             av_frame_free(&dst);
 
         }
-*/
+
             break;
         case AR_YUV_PLANAR_FRAME:
             break;

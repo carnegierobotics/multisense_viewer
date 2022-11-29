@@ -16,7 +16,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
-#define PI 3.14159265359 
+#define PI 3.14159265359f
 
 
 #include <glm/glm.hpp>
@@ -146,7 +146,7 @@ public:
             yaw -= (dx / 5.0f);
             pitch -= (dy / 5.0f);
         } else {
-            float deltaAngleX = (2 * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
+            float deltaAngleX = (2.0f * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
             float deltaAngleY = (PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg
             xAngle = dx * deltaAngleX;
             yAngle = dy * deltaAngleY;

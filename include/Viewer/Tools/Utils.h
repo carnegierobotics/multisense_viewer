@@ -46,11 +46,11 @@ namespace Utils {
     }
 
     static std::string getAssetsPath() {
-        return "Assets/";
+        return "./Assets/";
     }
 
     static std::string getTexturePath() {
-        return "Assets/Textures/";
+        return "./Assets/Textures/";
     }
 
     static std::string getScriptsPath() {

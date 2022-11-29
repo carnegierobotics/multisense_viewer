@@ -27,7 +27,6 @@ option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 include_directories(include)
 include_directories(Assets)
 include_directories(external)
-include_directories(internal/AutoConnect/include)
 
 cmake_language(CALL ExportScriptIncludes)
 
@@ -79,16 +78,17 @@ if (UNIX) ## Linux
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
 
-    add_executable(MultiSense-viewer src/main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
+    add_executable(MultiSense-Viewer src/main.cpp)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
+    add_dependencies(MultiSense-Viewer AutoConnect)
 
-    install(TARGETS MultiSense-viewer RUNTIME DESTINATION app/)
+    install(TARGETS MultiSense-Viewer RUNTIME DESTINATION app/)
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}/app)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crl.ini CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/logger.log CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
-
 endif ()
+
 if (WIN32)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
@@ -140,8 +140,8 @@ if (WIN32)
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
 
-    add_executable(MultiSense-viewer WIN32 main.cpp)
-    target_link_libraries(MultiSense-viewer VulkanRenderer ScriptLibrary)
+    add_executable(MultiSense-Viewer WIN32 main.cpp)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
 
     # create a list of files to copy
     set(THIRD_PARTY_DLLS
@@ -171,9 +171,9 @@ if (WIN32)
 
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
     # LibMultiSense and WinPCap dll
     install(FILES
@@ -194,8 +194,8 @@ if (WIN32)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
         else ()
-            set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-viewer)
-            set_property(TARGET MultiSense-viewer PROPERTY CXX_STANDARD 20)
+            set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-Viewer)
+            set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
 
@@ -204,3 +204,9 @@ if (WIN32)
     file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
 endif ()
 
+
+add_custom_command(TARGET MultiSense-Viewer
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/AutoConnect ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Ubuntu/StartAutoConnect.sh ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
+        )

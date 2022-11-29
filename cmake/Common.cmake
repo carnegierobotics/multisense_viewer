@@ -45,6 +45,7 @@ set(TINYTIFF_DIR external/TinyTIFF)
 set(LIBMULTISENSE_DIR external/LibMultiSense)
 set(SIMPLEINI_DIR external/simpleini)
 set(IMGUI_DIR external/imgui)
+set(AUTOCONNECT_DIR internal/AutoConnect)
 
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
@@ -113,14 +114,12 @@ else ()
             ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
             include/Viewer/ImGui/Custom/imgui_user.h)
     add_library(imgui STATIC ${IMGUI_SRC})
-
 endif ()
 
-## Internal Library (AUTOCONNECT)
-set(AUTOCONNECT_DIR "internal/AutoConnect/")
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${AUTOCONNECT_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR "The submodules ${AUTOCONNECT_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${AUTOCONNECT_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 else ()
+    set(BUILD_STANDALONE OFF)
     add_subdirectory(${AUTOCONNECT_DIR})
 endif ()
 

@@ -30,6 +30,14 @@ namespace Utils {
 
     };
 #ifdef WIN32
+
+    std::vector<Adapter> listAdapters() {
+
+        std::vector<Adapter> adapters;
+
+        return adapters;
+    }
+
 #else
 
 
@@ -79,7 +87,7 @@ namespace Utils {
         return adapters;
     }
 
-};
-#endif // Linux/Win32
 
+#endif // Linux/Win32
+};
 #endif //MULTISENSE_VIEWER_ADAPTERUTILS_H

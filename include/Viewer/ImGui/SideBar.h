@@ -95,7 +95,9 @@ public:
         if (autoConnectProcess != nullptr) {
             if (reader)
                 reader->sendStopSignal();
+#ifdef __linux__
             pclose(autoConnectProcess);
+#endif
         }
     }
 
@@ -197,6 +199,8 @@ private:
 
                     if (reader->stopRequested) {
                         reader->sendStopSignal();
+#ifdef __linux__
+
                         if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
                             startedAutoConnect = false;
                             reader.reset();
@@ -205,6 +209,7 @@ private:
                             btnLabel = "Start";
                             return;
                         }
+#endif
                     }
 
                     // Same IP on same adapter is treated as the same camera
@@ -227,7 +232,9 @@ private:
             }
         } else {
             std::string fileName = Utils::getAssetsPath() + "Generated/StartAutoConnect.sh";
+#ifdef __linux__
             autoConnectProcess = popen((fileName).c_str(), "r");
+#endif
             if (autoConnectProcess == nullptr) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %s", strerror(errno));
             } else {
@@ -577,6 +584,7 @@ private:
                         btnLabel = "Stop";
                     } else {
                         reader->sendStopSignal();
+#ifdef __linux__
                         if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
                             startedAutoConnect = false;
                             reader.reset();
@@ -584,6 +592,7 @@ private:
                             autoConnectProcess = nullptr;
                             btnLabel = "Start";
                         }
+#endif
                     }
                 }
 

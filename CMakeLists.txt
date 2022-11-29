@@ -27,6 +27,8 @@ option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 include_directories(include)
 include_directories(Assets)
 include_directories(external)
+include_directories(external/ffmpeg/include)
+include_directories(${Vulkan_INCLUDE_DIRS})
 
 cmake_language(CALL ExportScriptIncludes)
 
@@ -99,24 +101,11 @@ if (WIN32)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
     endif ()
 
-
-    add_library(avcodec STATIC IMPORTED GLOBAL)
-    set_property(TARGET avcodec APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-    set_target_properties(avcodec PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-            IMPORTED_LOCATION_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avcodec.lib")
-
     add_library(avutil STATIC IMPORTED GLOBAL)
     set_property(TARGET avutil APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
     set_target_properties(avutil PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
             IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avutil.lib")
-
-    add_library(avformat STATIC IMPORTED GLOBAL)
-    set_property(TARGET avformat APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    set_target_properties(avformat PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-            IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avformat.lib")
 
     add_library(swscale STATIC IMPORTED GLOBAL)
     set_property(TARGET swscale APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
@@ -124,24 +113,16 @@ if (WIN32)
             IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
             IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
-    add_library(MultiSenseLib STATIC IMPORTED GLOBAL)
-    set_property(TARGET MultiSenseLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-    set_target_properties(MultiSenseLib PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-            IMPORTED_LOCATION_DEBUG "${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.lib")
-
-
-    add_subdirectory(internal/winpcap)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer winpcap_lib packet_lib avformat avutil avcodec swscale ${LIBRARIES} LibAutoConnect)
-    # LibMultiSense on Windows. Use precompiled library from a manual step
+    target_link_libraries(VulkanRenderer ${LIBRARIES} avutil swscale)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer)
 
-    add_executable(MultiSense-Viewer WIN32 main.cpp)
+    add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
+    add_dependencies(MultiSense-Viewer AutoConnect)
 
     # create a list of files to copy
     set(THIRD_PARTY_DLLS
@@ -160,14 +141,14 @@ if (WIN32)
             )
 
     # do the copying
-    foreach (file_i ${THIRD_PARTY_DLLS})
-        add_custom_command(
-                TARGET VulkanRenderer
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
-        )
-    endforeach (file_i)
+    #foreach (file_i ${THIRD_PARTY_DLLS})
+    #    add_custom_command(
+    #            TARGET VulkanRenderer
+    #            POST_BUILD
+    #            COMMAND ${CMAKE_COMMAND}
+    #            ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
+    #    )
+    #endforeach (file_i)
 
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries

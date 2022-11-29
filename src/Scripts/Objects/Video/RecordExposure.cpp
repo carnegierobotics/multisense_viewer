@@ -82,11 +82,12 @@ void RecordExposure::saveImageToFile(CRLCameraDataType type, const std::string &
 
     std::string filePath = directory + std::string(separator);
 
+    #ifdef __linux__
     // Create Source name directory
     int check = mkdir(directory.c_str(), 0777);
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
-
+    #endif
 
     std::string fullPathName = filePath + fileName + ".png";
     // Check if file exists. Otherwise do nothing

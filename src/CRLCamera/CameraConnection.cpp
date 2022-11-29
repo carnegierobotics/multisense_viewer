@@ -341,6 +341,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("User wants to configure network automatically");
 #ifdef WIN32
 
+            /*
             WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
             if (regEditor.ready) {
                 regEditor.readAndBackupRegisty();
@@ -368,6 +369,7 @@ namespace VkRender::MultiSense {
             // 5 Seconds to wait for adapter to change. This will vary from machine to machine and should be re-done
             // If possible then wait for a windows event that triggers when the adapter is ready
 
+             */
 #else
             int ioctl_result = -1;
             /** SET NETWORK PARAMETERS FOR THE ADAPTER **/

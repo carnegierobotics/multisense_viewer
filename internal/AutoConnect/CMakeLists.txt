@@ -7,6 +7,7 @@ include_directories("include")
 option(BUILD_STANDALONE "build this executable without viewer" ON)
 
 if (BUILD_STANDALONE)
+    message("Building standalone version")
     set(LIBMULTISENSE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibMultiSense/source/LibMultiSense)
     include_directories(${LIBMULTISENSE_DIR})
     add_subdirectory(${LIBMULTISENSE_DIR})
@@ -23,17 +24,14 @@ if (WIN32)
     endif ()
 
     # Include WinPcap headers
+    add_subdirectory(WinPcap)
 
-    # Link WinPcap library
-    add_library(winpcap STATIC IMPORTED GLOBAL)
-    set_property(TARGET winpcap APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-    set_target_properties(winpcap PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-    IMPORTED_LOCATION_RELEASE  "${CMAKE_CURRENT_SOURCE_DIR}/wpcap.lib")
+    add_library(LibAutoConnect STATIC src/AutoConnectWindows.cpp)
+    target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi winpcap_lib packet_lib)
 
-    add_library(LibAutoConnect STATIC AutoConnect.h AutoConnectWindows.cpp AutoConnectWindows.h "WinRegEditor.h")
-    target_link_libraries(LibAutoConnect MultiSense winpcap iphlpapi )
-
+    add_executable(AutoConnect src/main.cpp)
+    target_link_libraries(AutoConnect LibAutoConnect)
+    
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")

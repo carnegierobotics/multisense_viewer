@@ -28,3 +28,4 @@
 [submodule "internal/AutoConnect"]
 	path = internal/AutoConnect
 	url = https://github.com/M-Gjerde/AutoConnect
+    branch = main

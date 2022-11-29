@@ -7,7 +7,7 @@
 
 void RecordFrames::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
-    threadPool = std::make_unique<VkRender::ThreadPool>();
+    threadPool = std::make_unique<VkRender::ThreadPool>(1);
 
 }
 

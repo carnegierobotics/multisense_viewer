@@ -2,16 +2,9 @@
 // Created by magnus on 11/28/22.
 //
 
-/** Compilation: gcc -o memreader memreader.c -lrt -lpthread **/
-#include <cstdio>
-#include <cstdlib>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <semaphore.h>
-#include <cstring>
 #include <iostream>
+#include <cstdio>
+#include <cstring>
 #include <Viewer/Tools/json.hpp>
 
 #include "Viewer/Tools/Logger.h"
@@ -21,6 +14,13 @@
 #define AccessPerms 0777
 #define SemaphoreName "sem"
 
+#ifdef __linux__
+#include <cstdlib>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <semaphore.h>
 
 class ReaderLinux {
     caddr_t memPtr{};
@@ -177,3 +177,77 @@ public:
 
     }
 };
+
+#else
+
+class ReaderWindows {
+
+    VkRender::EntryConnectDevice entry;
+    size_t logLine = 0;
+    nlohmann::json jsonObj;
+
+public:
+    bool stopRequested = false;
+    bool isOpen = false;
+    std::chrono::steady_clock::time_point time;
+
+    ReaderWindows() {
+        time = std::chrono::steady_clock::now();
+    }
+
+    void open() {
+        // Only try once a second
+        if ((std::chrono::duration_cast<std::chrono::duration<float>>(
+                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) {
+            return;
+        }
+        time = std::chrono::steady_clock::now();
+        //isOpen = true;
+        Log::Logger::getInstance()->info("Opened shared memory handle");
+    }
+
+    ~ReaderWindows() {
+
+    }
+
+    VkRender::EntryConnectDevice getResult() {
+        return entry;
+    }
+
+    std::string getLogLine() {
+
+        try {
+            std::string str = jsonObj["Log"].at(logLine);
+            logLine++;
+            return str;
+        } catch (...) {
+            // Empty catch dont care
+        }
+
+        return "";
+    }
+
+    bool read() {
+        // Only try once a second
+        if ((std::chrono::duration_cast<std::chrono::duration<float>>(
+                std::chrono::steady_clock::now() - time).count() > 0.1f) && isOpen) {
+                return false;
+        }
+
+            time = std::chrono::steady_clock::now();
+
+        return false;
+    }
+
+    void sendStopSignal() {
+        if (!isOpen)
+            return;
+    }
+
+    void logError(const char *msg) {
+        Log::Logger::getInstance()->error("%s: strerror: %s", msg, strerror(errno));
+
+    }
+};
+
+#endif

@@ -5,38 +5,25 @@
 #ifndef MULTISENSE_UTILS_H
 #define MULTISENSE_UTILS_H
 
-
 #include <fstream>
 #include <vector>
 #include <map>
 #include <cassert>
 #include <iostream>
 #include <vulkan/vulkan_core.h>
+#include <stb_image_write.h>
+#include <stb_image.h>
 
-#include "Viewer/Core/Definitions.h"
-#include "Viewer/Tools/Logger.h"
 
 #ifdef WIN32
 #include <direct.h>
-
 #else
-
 #include <sys/stat.h>
-
 #endif
 
-#include "stb_image_write.h"
-#include "stb_image.h"
-#include "Macros.h"
-
-extern "C" {
-#include<libavutil/avutil.h>
-#include<libavutil/imgutils.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
-
-}
+#include "Viewer/Tools/Macros.h"
+#include "Viewer/Core/Definitions.h"
+#include "Viewer/Tools/Logger.h"
 
 namespace Utils {
     DISABLE_WARNING_PUSH

@@ -1,4 +1,4 @@
-#include "AutoConnectWindows.h"
+#include "AutoConnect/AutoConnectWindows.h"
 //
 // Created by mgjer on 14/07/2022.
 //
@@ -6,12 +6,14 @@
 /*
  * we do not want the warnings about the old deprecated and unsecure CRT functions
  * since these examples can be compiled under *nix as well
- */
-
-#define IP_MAXPACKET 65535
-
+ *
+*/
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+/*
+#define IP_MAXPACKET 65535
+
+
 #pragma comment(lib, "wpcap.lib")
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
@@ -26,9 +28,6 @@
 #include <WinSock2.h>
 #include <iphlpapi.h>
 
-
-#include "AutoConnectWindows.h"
-
 #pragma comment(lib, "wbemuuid.lib")
 
 #include <cstdio>
@@ -37,9 +36,8 @@
 #include <Iprtrmib.h>
 #include <ctime>
 #include <filesystem>
+ */
 
-#include "pcap.h"
-#include "WinRegEditor.h"
 
 
 struct iphdr {
@@ -56,6 +54,7 @@ struct iphdr {
 
 };
 
+/*
 void
 AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgnored,
                                          std::vector<AutoConnect::Result> *res) {
@@ -70,7 +69,7 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
         pcap_if_t *d;
         char errbuf[PCAP_ERRBUF_SIZE];
 
-        /* Retrieve the device list */
+        /* Retrieve the device list
         if (pcap_findalldevs(&alldevs, errbuf) == -1) {
             std::cout << "Error in pcap_findalldevs: " << errbuf << std::endl;
             return;
@@ -126,7 +125,7 @@ AutoConnectWindows::findEthernetAdapters(void *ctx, bool logEvent, bool skipIgno
                 adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
                 adapter.description = pAdapterInfo->Description;
 
-                /*CONCATENATE two strings safely windows workaround*/
+                /*CONCATENATE two strings safely windows workaround
                 int lenA = strlen(prefix.c_str());
                 int lenB = strlen(pAdapterInfo->AdapterName);
                 char *con = (char *) malloc(lenA + lenB + 1);
@@ -172,7 +171,7 @@ AutoConnect::FoundCameraOnIp AutoConnectWindows::onFoundIp(std::string address, 
     std::string str = "Setting host address to: " + hostAddress;
     m_EventCallback(str, m_Context, 0);
 
-    /* STATIC CONFIGURATION */
+    /* STATIC CONFIGURATION
     WinRegEditor regEditorStatic(adapter.networkAdapter, adapter.description, adapter.index);
     if (regEditorStatic.ready) {
         //str = "Configuring NetAdapter...";
@@ -358,7 +357,7 @@ void AutoConnectWindows::run(void *ctx) {
             app->shutdownT1Ready = true;
             return;
         }
-        /* Open the adapter */
+        /* Open the adapter
         if ((adhandle = pcap_open_live(adapter.networkAdapterLongName.c_str(),    // name of the device
                                        65536,            // portion of the packet to capture.
                 // 65536 grants that the whole packet will be captured on all the MACs.
@@ -373,7 +372,7 @@ void AutoConnectWindows::run(void *ctx) {
                   "'\nMake sure WinPcap is installed \nCheck the adapter connection and try again \n";
             app->m_EventCallback(str, app->m_Context, 2);
             app->m_IgnoreAdapters.push_back(adapter);
-            /* Free the device list */
+            /* Free the device list
             continue;
         }
 
@@ -416,7 +415,7 @@ void AutoConnectWindows::run(void *ctx) {
             // Retry if no packet was received
             if (res == 0)
                 continue;
-            /* convert the timestamp to readable format */
+            /* convert the timestamp to readable format
             local_tv_sec = header->ts.tv_sec;
             ltime = localtime(&local_tv_sec);
             strftime(timestr, sizeof timestr, "%H:%M:%S", ltime);
@@ -428,7 +427,7 @@ void AutoConnectWindows::run(void *ctx) {
                 return;
             }
 
-            /* retireve the position of the ip header */
+            /* retireve the position of the ip header
             auto *ih = (iphdr *) (pkt_data + 14); //length of ethernet header
 
             char ips[255];
@@ -501,3 +500,4 @@ void AutoConnectWindows::setEventCallback(void (*param)(const std::string &str, 
 void AutoConnectWindows::clearSearchedAdapters() {
     m_IgnoreAdapters.clear();
 }
+ */

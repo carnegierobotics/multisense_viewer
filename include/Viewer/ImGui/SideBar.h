@@ -6,8 +6,8 @@
 #define MULTISENSE_SIDEBAR_H
 
 #ifdef WIN32
-#include "AutoConnect/AutoConnectWindows.h"
-#define AutoConnectHandle AutoConnectWindows
+#include "Viewer/Tools/ReadSharedMemory.h"
+#define AutoConnectReader ReaderWindows
 #define elevated() Utils::hasAdminRights()
 #else
 

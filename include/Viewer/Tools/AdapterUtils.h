@@ -5,11 +5,18 @@
 #ifndef MULTISENSE_VIEWER_ADAPTERUTILS_H
 #define MULTISENSE_VIEWER_ADAPTERUTILS_H
 
+#ifdef __linux__
 #include <net/if.h>
 #include <netinet/in.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
+#endif
+#ifdef WIN32
+
+#endif
+
+
 
 #include <utility>
 namespace Utils {

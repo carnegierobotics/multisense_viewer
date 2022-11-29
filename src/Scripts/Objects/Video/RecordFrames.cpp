@@ -5,6 +5,12 @@
 
 #include "Viewer/Scripts/Objects/Video/RecordFrames.h"
 
+extern "C" {
+    #include <libavutil/avutil.h>
+    #include <libswscale/swscale.h>
+
+}
+
 void RecordFrames::setup() {
     Log::Logger::getInstance()->info("Setup run for {}", renderData.scriptName.c_str());
     threadPool = std::make_unique<VkRender::ThreadPool>(1);
@@ -178,6 +184,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             break;
         case AR_COLOR_IMAGE_YUV420:
             // Normalize ycbcr
+            /*
         {
             std::ofstream output(fullPathName);
             output.close();
@@ -241,6 +248,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             av_frame_free(&dst);
 
         }
+*/
             break;
         case AR_YUV_PLANAR_FRAME:
             break;

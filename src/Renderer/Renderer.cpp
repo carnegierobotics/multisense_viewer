@@ -6,7 +6,7 @@
 
 
 #ifdef WIN32
-#include <WinRegEditor.h>
+//#include <WinRegEditor.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -475,9 +475,9 @@ void Renderer::cleanUp() {
 #ifdef WIN32
     // Reset Windows registry from backup file
     for (const auto& dev : guiManager->handles.devices) {
-        WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-        regEditor.resetJumbo();
-        regEditor.restartNetAdapters(); // Make changes into effect
+        //WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
+        //regEditor.resetJumbo();
+        //regEditor.restartNetAdapters(); // Make changes into effect
     }
 
 #endif

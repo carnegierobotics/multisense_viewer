@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(MultiSense-Viewer C CXX)
 
 
-set(BUILD_SHARED_LIBS OFF)
+#set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -34,7 +34,6 @@ cmake_language(CALL ExportScriptIncludes)
 
 set(ENGINE_SRC
         src/Core/Buffer.cpp
-        src/CRLCamera/CameraConnection.cpp
         src/Core/Texture.cpp
         src/Core/VulkanDevice.cpp
         src/Core/VulkanRenderer.cpp
@@ -45,7 +44,9 @@ set(ENGINE_SRC
         src/ModelLoaders/GLTFModel.cpp
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp
-        src/Tools/StbInclude.cpp)
+        src/Tools/StbInclude.cpp
+        src/CRLCamera/CameraConnection.cpp
+        )
 
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
@@ -62,7 +63,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Video/Previews/Quad/Three.cpp
         src/Scripts/Objects/Video/Previews/Quad/Four.cpp)
 
-set(LIBRARIES "glfw;Vulkan::Vulkan;fmt::fmt;LibAutoConnect;SimpleIni;MultiSense;TinyTIFF;imgui")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;TinyTIFF;MultiSense;LibAutoConnect")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -74,11 +75,13 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/crl.ini "")
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/logger.log "")
 
 if (UNIX) ## Linux
+    set(AUTOCONNECT_EXECUTABLE AutoConnect)
+
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} -lavutil -lswscale)
+    target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer)
+    target_link_libraries(ScriptLibrary VulkanRenderer  -lavutil -lswscale)
 
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
@@ -92,9 +95,7 @@ if (UNIX) ## Linux
 endif ()
 
 if (WIN32)
-
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
+    set(AUTOCONNECT_EXECUTABLE AutoConnect.exe)
 
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
@@ -113,12 +114,11 @@ if (WIN32)
             IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
             IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
-
-    add_library(VulkanRenderer STATIC ${ENGINE_SRC} ${IMGUI_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} avutil swscale)
+    add_library(VulkanRenderer STATIC ${ENGINE_SRC})
+    target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer)
+    target_link_libraries(ScriptLibrary VulkanRenderer  avutil swscale)
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
@@ -127,34 +127,34 @@ if (WIN32)
     # create a list of files to copy
     set(THIRD_PARTY_DLLS
             #FFMPEG
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avcodec-59.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avdevice-59.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avfilter-8.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avformat-59.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swresample-4.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avcodec-59.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avdevice-59.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avfilter-8.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avformat-59.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swresample-4.dll
+            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
-            #WinPCap
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
+            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
             )
 
     # do the copying
-    #foreach (file_i ${THIRD_PARTY_DLLS})
-    #    add_custom_command(
-    #            TARGET VulkanRenderer
-    #            POST_BUILD
-    #            COMMAND ${CMAKE_COMMAND}
-    #            ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
-    #    )
-    #endforeach (file_i)
-
+    foreach (file_i ${THIRD_PARTY_DLLS})
+        add_custom_command(
+                TARGET VulkanRenderer
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND}
+                ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
+        )
+    endforeach (file_i)
+    add_custom_command(TARGET MultiSense-Viewer
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.dll ${CMAKE_BINARY_DIR}
+            )
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
     # LibMultiSense and WinPCap dll
     install(FILES
@@ -176,7 +176,7 @@ if (WIN32)
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
         else ()
             set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-Viewer)
-            set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
+            #set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
 
@@ -188,6 +188,6 @@ endif ()
 
 add_custom_command(TARGET MultiSense-Viewer
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/AutoConnect ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/${AUTOCONNECT_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Ubuntu/StartAutoConnect.sh ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
         )

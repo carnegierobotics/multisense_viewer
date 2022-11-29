@@ -2,8 +2,8 @@
 // Created by magnus on 9/4/21.
 //
 
-#ifndef MULTISENSE_UTILS_H
-#define MULTISENSE_UTILS_H
+#ifndef MULTISENSE_VIEWER_UTILS_H
+#define MULTISENSE_VIEWER_UTILS_H
 
 #include <fstream>
 #include <vector>
@@ -11,12 +11,17 @@
 #include <cassert>
 #include <iostream>
 #include <vulkan/vulkan_core.h>
-#include <stb_image_write.h>
-#include <stb_image.h>
-
 
 #ifdef WIN32
+
 #include <direct.h>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <windows.h>
+
 #else
 #include <sys/stat.h>
 #endif
@@ -28,6 +33,7 @@
 namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
+
     static std::string getShadersPath() {
         return "./Assets/Shaders/";
     }
@@ -151,6 +157,7 @@ namespace Utils {
 
         return AR_CAMERA_IMAGE_NONE;
     }
+
     DISABLE_WARNING_POP
 
 
@@ -174,7 +181,7 @@ namespace Utils {
 
 
     /**@brief small utility function. Usage of this makes other code more readable */
-    template <typename T>
+    template<typename T>
     inline bool delFromVector(std::vector<T> *v, const T &str) {
         auto itr = std::find(v->begin(), v->end(), str);
         if (itr != v->end()) {
@@ -185,7 +192,8 @@ namespace Utils {
     }
 
 #ifdef WIN32
-    inline BOOL hasAdminRights() {
+
+    inline bool hasAdminRights() {
         BOOL fRet = FALSE;
         HANDLE hToken = NULL;
         if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
@@ -200,6 +208,7 @@ namespace Utils {
         }
         return !fRet;
     }
+
 #endif
 
 
@@ -555,4 +564,4 @@ namespace Utils {
 
 };
 
-#endif //MULTISENSE_UTILS_H
+#endif //MULTISENSE_VIEWER_UTILS_H

@@ -14,9 +14,8 @@
 #include <cstdint>
 #include <utility>
 #include <memory>
-#include <MultiSense/MultiSenseTypes.hh>
-#include <MultiSense/details/channel.hh>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <MultiSense/MultiSenseChannel.hh>
 
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Tools/Utils.h"

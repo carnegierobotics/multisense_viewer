@@ -11,6 +11,8 @@ set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
+
+# Set install directory if not specified
 set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
@@ -19,17 +21,14 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 include(cmake/Common.cmake)
-
 find_package(Vulkan REQUIRED)
 
 option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
-
 include_directories(include)
 include_directories(Assets)
 include_directories(external)
 include_directories(external/ffmpeg/include)
 include_directories(${Vulkan_INCLUDE_DIRS})
-
 cmake_language(CALL ExportScriptIncludes)
 
 set(ENGINE_SRC
@@ -178,7 +177,6 @@ if (WIN32)
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
-
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
@@ -187,8 +185,6 @@ if (WIN32)
             #set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
-
-    # install(TARGETS VkRender-viewer CONFIGURATIONS Release RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
 
     file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
 endif ()

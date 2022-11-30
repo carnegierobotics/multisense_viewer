@@ -279,7 +279,7 @@ private:
                 shellInfo.cbSize = sizeof(SHELLEXECUTEINFO);
                 shellInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
                 shellInfo.hwnd = NULL;
-                shellInfo.lpFile = "notepad.exe";
+                shellInfo.lpFile = (Utils::getAssetsPath() + "Generated/StartAutoConnect.sh").c_str();
                 shellInfo.lpParameters = "-i on -c on";
                 shellInfo.lpDirectory = NULL;
                 shellInfo.nShow = SW_SHOW;

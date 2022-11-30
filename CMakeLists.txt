@@ -102,6 +102,9 @@ if (WIN32)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
     endif ()
 
+    # Include directory for WinPcap
+    include_directories(internal/AutoConnect/include/WinPcap)
+
     add_library(avutil STATIC IMPORTED GLOBAL)
     set_property(TARGET avutil APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
     set_target_properties(avutil PROPERTIES
@@ -149,6 +152,11 @@ if (WIN32)
     add_custom_command(TARGET MultiSense-Viewer
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.dll ${CMAKE_BINARY_DIR}
+
+            # Windows AutoConnect WinPcap dlls
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/packet.dll ${CMAKE_BINARY_DIR}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/wpcap.dll ${CMAKE_BINARY_DIR}/
+
             )
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
@@ -188,6 +196,6 @@ endif ()
 
 add_custom_command(TARGET MultiSense-Viewer
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/${AUTOCONNECT_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Assets/Tools/Ubuntu/StartAutoConnect.sh ${CMAKE_CURRENT_BINARY_DIR}/Assets/Generated/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/${AUTOCONNECT_EXECUTABLE} ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/Assets/Tools/Ubuntu/AutoConnectLauncher.sh ${CMAKE_BINARY_DIR}/
         )

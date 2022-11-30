@@ -34,10 +34,10 @@ namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
+#ifdef __linux__
     static std::string getShadersPath() {
         return "./Assets/Shaders/";
     }
-
     static std::string getAssetsPath() {
         return "./Assets/";
     }
@@ -49,6 +49,25 @@ namespace Utils {
     static std::string getScriptsPath() {
         return "Scripts/";
     }
+
+#endif
+
+#ifdef WIN32
+    static std::string getShadersPath() {
+        return ".\\Assets\\Shaders\\";
+    }
+    static std::string getAssetsPath() {
+        return ".\\Assets\\";
+    }
+
+    static std::string getTexturePath() {
+        return ".\\Assets\\Textures\\";
+    }
+
+    static std::string getScriptsPath() {
+        return "Scripts\\";
+    }
+#endif
 
     static std::string dataSourceToString(crl::multisense::DataSource d) {
         switch (d) {

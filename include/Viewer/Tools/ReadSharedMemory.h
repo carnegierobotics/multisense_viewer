@@ -276,6 +276,13 @@ public:
                 std::ofstream o("pretty.json");
                 o << std::setw(4) << jsonObj << std::endl;
 
+                if (jsonObj.contains("Command")){
+                    if (jsonObj["Command"] == "Stop"){
+                        stopRequested = true;
+                        return true;
+                    }
+                }
+
                 if (jsonObj.contains("Command")) {
                     if (jsonObj["Command"] == "Stop") {
                         stopRequested = true;

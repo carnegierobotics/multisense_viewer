@@ -82,10 +82,12 @@ public:
 
     ~ReaderLinux() {
         /* cleanup */
-        munmap(memPtr, ByteSize);
-        close(fd);
-        sem_close(semPtr);
-        unlink(BackingFile);
+        if (isOpen){
+            munmap(memPtr, ByteSize);
+            close(fd);
+            sem_close(semPtr);
+            unlink(BackingFile);
+        }
     }
 
     VkRender::EntryConnectDevice getResult() {
@@ -179,12 +181,16 @@ public:
 };
 
 #else
+#define SharedBufferSize 65536
 
 class ReaderWindows {
 
-    VkRender::EntryConnectDevice entry;
+    VkRender::EntryConnectDevice entry{};
     size_t logLine = 0;
-    nlohmann::json jsonObj;
+    nlohmann::json jsonObj{};
+
+    HANDLE hMapFile{};
+    char* pBuf = nullptr;
 
 public:
     bool stopRequested = false;
@@ -202,12 +208,40 @@ public:
             return;
         }
         time = std::chrono::steady_clock::now();
-        //isOpen = true;
+
+        TCHAR szName[] = TEXT("Global\\MyFileMappingObject");
+
+        hMapFile = OpenFileMapping(
+                FILE_MAP_WRITE,   // read/write access
+                FALSE,                 // do not inherit the name
+                szName);               // name of mapping object
+
+        if (hMapFile == NULL)
+        {
+            logError("Could not create file mapping object...");
+            return;
+        }
+
+        pBuf = (char *) MapViewOfFile(hMapFile,   // handle to map object
+                                      FILE_MAP_WRITE, // read/write permission
+                                      0,
+                                      0,
+                                      SharedBufferSize);
+        if (pBuf == NULL) {
+            logError("Could not map view of file...");
+
+            CloseHandle(hMapFile);
+            return;
+        }
         Log::Logger::getInstance()->info("Opened shared memory handle");
+        isOpen = true;
     }
 
     ~ReaderWindows() {
-
+        if (isOpen) {
+            UnmapViewOfFile(pBuf);
+            CloseHandle(hMapFile);
+        }
     }
 
     VkRender::EntryConnectDevice getResult() {
@@ -215,7 +249,6 @@ public:
     }
 
     std::string getLogLine() {
-
         try {
             std::string str = jsonObj["Log"].at(logLine);
             logLine++;
@@ -230,22 +263,68 @@ public:
     bool read() {
         // Only try once a second
         if ((std::chrono::duration_cast<std::chrono::duration<float>>(
-                std::chrono::steady_clock::now() - time).count() > 0.1f) && isOpen) {
-                return false;
-        }
+                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) {
 
             time = std::chrono::steady_clock::now();
+            /* use semaphore as a mutex (lock) by waiting for writer to increment it */
 
+            std::string str(pBuf);
+            if (!str.empty()) {
+                jsonObj = nlohmann::json::parse(str);
+
+                // write prettified JSON to another file
+                std::ofstream o("pretty.json");
+                o << std::setw(4) << jsonObj << std::endl;
+
+                if (jsonObj.contains("Command")) {
+                    if (jsonObj["Command"] == "Stop") {
+                        stopRequested = true;
+                        return true;
+                    }
+                }
+
+                if (jsonObj.contains("Result")) {
+                    // can be null on linux
+                    auto res = jsonObj["Result"];
+
+                    entry.interfaceName = res[0]["Name"];
+
+                    // can be null on linux
+                    entry.interfaceIndex = res[0]["Index"];
+
+                    // can be null on linux
+                    entry.IP = res[0]["AddressList"][0];
+
+                    // can be null on linux
+                    entry.cameraName = res[0]["CameraNameList"][0];
+
+                    // can be null on linux
+                    if (res.contains("Description")) {
+                        entry.description = res[0]["Description"];
+                    }
+                }
+
+                memset(pBuf, 0x00, SharedBufferSize / 2);
+                if (!str.empty())
+                    return true;
+            }
+        }
         return false;
     }
 
     void sendStopSignal() {
         if (!isOpen)
             return;
+        nlohmann::json send = {
+                {"Command", "Stop"}
+        };
+
+        strcpy(pBuf + (SharedBufferSize / 2), to_string(send).c_str());
+
     }
 
-    void logError(const char *msg) {
-        Log::Logger::getInstance()->error("%s: strerror: %s", msg, strerror(errno));
+    void logError(std::string msg) {
+        Log::Logger::getInstance()->error("{}: GetLastError: {}", msg.c_str(), GetLastError());
 
     }
 };

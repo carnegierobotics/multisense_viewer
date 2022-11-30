@@ -31,7 +31,6 @@
 #include <queue>
 #include <imgui/imgui_internal.h>
 #include <sys/types.h>
-#include <shellapi.h>
 
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/ImGui/Custom/imgui_user.h"
@@ -90,7 +89,7 @@ public:
 
     bool startedAutoConnect = false;
     std::unique_ptr<AutoConnectReader> reader;
-#ifdef __linudex__
+#ifdef __linux__
     FILE *autoConnectProcess = nullptr;
 #else
 
@@ -137,26 +136,17 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
-
-
         addPopup(handles);
-
         ImGui::Spacing();
         ImGui::Spacing();
-
         if (!handles->devices.empty())
             sidebarElements(handles);
-
-
         addDeviceButton(handles);
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
         ImGui::PopStyleVar(2);
     }
-
 private:
-
-
     void addLogLine(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
@@ -167,41 +157,9 @@ private:
             if (Buf[old_size] == '\n') {
                 LineOffsets.push_back(old_size + 1);
             }
-
         colors.push_back(color);
     }
 
-
-
-    /*
-    static void onCameraDetected(AutoConnect::Result res, void *ctx) {
-        auto *app = static_cast<SideBar *>(ctx);
-        crl::multisense::system::DeviceInfo info;
-        crl::multisense::Status status = app->autoConnect.getCameraChannel()->getDeviceInfo(info);
-        if (status == crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info(
-                    "AUTOCONNECT: Found Camera on IP: {}, using Adapter: {}, adapter long m_Name: {}, Camera returned m_Name {}",
-                    res.cameraIpv4Address.c_str(), res.networkAdapter.c_str(), res.networkAdapterLongName.c_str(),
-                    info.name.c_str());
-
-            // Same IP on same adapter is treated as the same camera
-            bool cameraExists = false;
-            for (const auto &e: app->entryConnectDeviceList) {
-                if (e.IP == res.cameraIpv4Address && e.interfaceIndex == res.index)
-                    cameraExists = true;
-            }
-            if (!cameraExists) {
-                VkRender::EntryConnectDevice entry{res.cameraIpv4Address, res.networkAdapter, info.name, res.index,
-                                                   res.description};
-                app->entryConnectDeviceList.push_back(entry);
-                app->resultsComboIndex = app->entryConnectDeviceList.size() - 1;
-            }
-        } else {
-            Log::Logger::getInstance()->info("Failed to fetch camera m_Name from VkRender m_Device");
-        }
-    }
-
-     */
     /**@brief Function to manage Auto connect with GUI updates
      * Requirements:
      * Should run once popup modal is opened
@@ -221,11 +179,9 @@ private:
                     std::string str = reader->getLogLine();
                     if (!str.empty())
                         addLogLine(LOG_COLOR_GRAY, "%s", str.c_str());
-
                     if (reader->stopRequested) {
                         reader->sendStopSignal();
 #ifdef __linux__
-
                         if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
                             startedAutoConnect = false;
                             reader.reset();
@@ -247,7 +203,6 @@ private:
                         }
 #endif
                     }
-
                     // Same IP on same adapter is treated as the same camera
                     VkRender::EntryConnectDevice entry = reader->getResult();
                     if (!entry.cameraName.empty()) {
@@ -268,14 +223,13 @@ private:
             }
         } else {
 #ifdef __linux__
-            std::string fileName = Utils::getAssetsPath() + "Generated/AutoConnectLauncher.sh";
+            std::string fileName = "./AutoConnectLauncher.sh";
             autoConnectProcess = popen((fileName).c_str(), "r");
                         if (autoConnectProcess == nullptr) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %s", strerror(errno));
             } else {
                 startedAutoConnect = true;
             }
-
 #else
             std::string fileName = (Utils::getAssetsPath() + "Generated/AutoConnect.exe");
             shellInfo.lpVerb = "runas";
@@ -298,11 +252,8 @@ private:
             } else {
                 startedAutoConnect = true;
             }
-
 #endif
-
         }
-
     }
 
     void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {

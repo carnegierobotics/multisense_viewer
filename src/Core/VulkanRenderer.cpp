@@ -39,7 +39,7 @@ namespace VkRender {
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
 
         GLFWimage images[1];
-        std::string fileName = (Utils::getAssetsPath() + "Tools/windows/CRL96x96.png");
+        std::string fileName = (Utils::getAssetsPath() + "Textures/CRL96x96.png");
         images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
         if (!images[0].pixels) {
             throw std::runtime_error("Failed to load window icon: " + fileName);
@@ -78,7 +78,6 @@ namespace VkRender {
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
         if (settings.validation) {
-
             // Check if this layer is available at instance level
             if (Validation::checkValidationLayerSupport(validationLayers)) {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();

@@ -1,3 +1,3 @@
 #!/bin/bash
 dir=$(pwd)
-pkexec $dir/Assets/Generated/AutoConnect -i on -c on
+pkexec $dir/AutoConnect -i on -c on

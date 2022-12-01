@@ -150,10 +150,12 @@ jobs:
     - name: Prepare package step
       working-directory: ${{github.workspace}}/build
       run: |
-        mkdir ${{env.INSTALL_PATH}}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/ubuntu/control ${{env.INSTALL_PATH}}/DEBIAN/
-        mkdir -p ${{env.INSTALL_PATH}}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/ubuntu/multisense.desktop ${{env.INSTALL_PATH}}/usr/share/applications/
-        cp ${{github.workspace}}/Assets/Tools/ubuntu/start.sh ${{env.INSTALL_PATH}}/opt/multisense/
-        cp ${{github.workspace}}/Assets/Tools/ubuntu/pk_exec.sh ${{env.INSTALL_PATH}}/opt/multisense/
+        mkdir ${{env.INSTALL_PATH}}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/Ubuntu/control ${{env.INSTALL_PATH}}/DEBIAN/
+        mkdir -p ${{env.INSTALL_PATH}}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/Ubuntu/multisense.desktop ${{env.INSTALL_PATH}}/usr/share/applications/
+        cp ${{github.workspace}}/Assets/Tools/Ubuntu/start.sh ${{env.INSTALL_PATH}}/opt/multisense/
+        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/include
+        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/lib
+        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/share
 
     - name: Package
       working-directory: ${{github.workspace}}/build

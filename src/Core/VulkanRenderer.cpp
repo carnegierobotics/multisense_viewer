@@ -85,6 +85,8 @@ namespace VkRender {
                 pLogger->info("Enabling Validation Layers");
             } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
+                pLogger->info("Disabled Validation Layers since it was not found");
+
             }
         }
         return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);

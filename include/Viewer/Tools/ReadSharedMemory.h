@@ -120,8 +120,8 @@ public:
                     jsonObj = nlohmann::json::parse(str);
 
                     // write prettified JSON to another file
-                    std::ofstream o("pretty.json");
-                    o << std::setw(4) << jsonObj << std::endl;
+                    //std::ofstream o("pretty.json");
+                    //o << std::setw(4) << jsonObj << std::endl;
 
                     if (jsonObj.contains("Command")){
                         if (jsonObj["Command"] == "Stop"){
@@ -273,8 +273,8 @@ public:
                 jsonObj = nlohmann::json::parse(str);
 
                 // write prettified JSON to another file
-                std::ofstream o("pretty.json");
-                o << std::setw(4) << jsonObj << std::endl;
+                //std::ofstream o("pretty.json");
+                //o << std::setw(4) << jsonObj << std::endl;
 
                 if (jsonObj.contains("Command")){
                     if (jsonObj["Command"] == "Stop"){

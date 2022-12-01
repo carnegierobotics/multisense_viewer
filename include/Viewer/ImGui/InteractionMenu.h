@@ -918,15 +918,6 @@ private:
                 Utils::removeFromVector(&dev.userRequestedSources, "IMU");
             }
    */
-            dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
-            if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
-                chInfo.requestedStreams.emplace_back("Disparity Left");
-                Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
-            }
-            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
-                chInfo.requestedStreams.emplace_back("Luma Rectified Left");
-                Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
-            }
             // Check if mouse hover a window
 
             ImGui::Dummy(ImVec2(40.0f, 10.0));
@@ -943,7 +934,19 @@ private:
             dev.resetCamera = ImGui::Button("Reset camera position");
             ImGui::PopStyleColor(2);
 
+        }
 
+        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD){
+            auto &chInfo = dev.channelInfo.front();
+            dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
+            if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
+                chInfo.requestedStreams.emplace_back("Disparity Left");
+                Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
+            }
+            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
+                chInfo.requestedStreams.emplace_back("Luma Rectified Left");
+                Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
+            }
         }
 
         handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||

@@ -113,13 +113,13 @@ public:
                 reader->sendStopSignal();
             pclose(autoConnectProcess);
 #else
-        if (shellInfo.hProcess != nullptr) {
-            if (reader)
-                reader->sendStopSignal();
-            if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
-                Log::Logger::getInstance()->info("Terminated AutoConnect program");
-            } else
-                Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
+            if (shellInfo.hProcess != nullptr) {
+                if (reader)
+                    reader->sendStopSignal();
+                if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
+                    Log::Logger::getInstance()->info("Terminated AutoConnect program");
+                } else
+                    Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
 
 #endif
         }
@@ -146,13 +146,14 @@ public:
         ImGui::PopStyleColor(); // bg color
         ImGui::PopStyleVar(2);
     }
+
 private:
     void addLogLine(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
-                va_start(args, fmt);
+        va_start(args, fmt);
         Buf.appendfv(fmt, args);
-                va_end(args);
+        va_end(args);
         for (int new_size = Buf.size(); old_size < new_size; old_size++)
             if (Buf[old_size] == '\n') {
                 LineOffsets.push_back(old_size + 1);
@@ -225,7 +226,7 @@ private:
 #ifdef __linux__
             std::string fileName = "./AutoConnectLauncher.sh";
             autoConnectProcess = popen((fileName).c_str(), "r");
-                        if (autoConnectProcess == nullptr) {
+            if (autoConnectProcess == nullptr) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %s", strerror(errno));
             } else {
                 startedAutoConnect = true;
@@ -909,28 +910,29 @@ private:
                 ImGui::SameLine(0, 20.0f);
                 ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
 
-                if (handles->configureNetwork) {
-                    if (elevated()) {
-                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLRed);
-                        ImGui::Dummy(ImVec2(40.0f, 10.0));
-                        ImGui::Dummy(ImVec2(20.0f, 0.0));
-                        ImGui::SameLine();
-#ifdef WIN32
-                        ImGui::Text("Launch app as admin to \nauto configure network adapter");
-#else
-                        ImGui::Text("Launch app as root to \nauto configure network adapter");
-#endif
-                        enableConnectButton = false;
-                        ImGui::PopStyleColor();
-                    }
-
-                } else
-                    enableConnectButton = true;
                 ImGui::PopStyleColor();
             } else {
 
             }
 
+            if (handles->configureNetwork) {
+                if (elevated() && connectMethodSelector == MANUAL_CONNECT) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLRed);
+                    ImGui::Dummy(ImVec2(40.0f, 10.0));
+                    ImGui::Dummy(ImVec2(20.0f, 0.0));
+                    ImGui::SameLine();
+#ifdef WIN32
+                    ImGui::Text("Launch app as admin to \nauto configure network adapter");
+#else
+                    ImGui::Text("Launch app as root to \nauto configure network adapter");
+#endif
+                    enableConnectButton = false;
+                    ImGui::PopStyleColor();
+                } else
+                    enableConnectButton = true;
+
+            } else
+                enableConnectButton = true;
 
             /** CANCEL/CONNECT FIELD BEGINS HERE*/
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
@@ -953,7 +955,7 @@ private:
                 ImGui::BeginTooltip();
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
-                if (elevated()) {
+                if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork) {
 #ifdef WIN32
                     errors.emplace_back("Admin rights is needed to auto configure network");
 #else

@@ -28,17 +28,17 @@ jobs:
           body: |
             MultiSense Viewer Release
             - Windows users:
-            1. Run the setup: MultiSenseSetup.exe
-            2. Optional: Install WinPcap_driver.exe before running the auto connect feature in the viewer
+            1a. (Optional) Install WinPcap_driver.exe to skip network configuration step
+            1b. Run the setup: MultiSenseSetup.exe
             
             - Ubuntu users:
-            1. Install multisense_1.0-0_amd64.deb using your default package manager or type in terminal:
-            sudo dpkg --install ./multisense_1.0-0_amd64.deb
+            1. Make sure you have ffmpeg installed. Can be done via command line: $ apt install ffmpeg
+            2. Install multisense_1.0-0_amd64.deb using your default package manager or type in terminal:
+            dpkg --install ./multisense_1.0-0_amd64.deb
             
             - Uninstall application:
-            1. Windows: Run 000-uninstall.exe in installation folder
-            2. Ubuntu: Uninstall with dpkg (sudo dpkg --remove com.carnegierobotics.multisense)
-
+            1. Windows: Run 000-uninstall.exe in the installation folder
+            2. Ubuntu: Uninstall with dpkg (dpkg --remove com.carnegierobotics.multisense)
           draft: false
           prerelease: false
 

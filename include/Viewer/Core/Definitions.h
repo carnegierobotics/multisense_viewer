@@ -26,7 +26,7 @@
 #define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
-#define STACK_SIZE_100 100
+#define MAX_IMAGES_IN_QUEUE 30
 
 
 namespace VkRender::MultiSense {
@@ -184,7 +184,7 @@ struct LightingParams {
 
 struct ExposureParams {
     bool autoExposure{};
-    uint32_t exposure = 10000;
+    int exposure = 20000;
     uint32_t autoExposureMax = 5000000;
     uint32_t autoExposureDecay = 7;
     float autoExposureTargetIntensity = 0.5f;
@@ -224,7 +224,7 @@ namespace VkRender {
      */
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
-        bool vsync = false;
+        bool vsync = true;
         VkInstance instance{};
         VkPhysicalDevice physicalDevice{};
         VkDevice device{};
@@ -327,6 +327,8 @@ namespace VkRender {
         bool systemNetworkChanged = false;
         /** Interrupt connection if users exits program. */
         bool interruptConnection = false;
+
+        std::string saveImageCompressionMethod = "tiff";
 
         Device(){
             outputSaveFolder.resize(255);
@@ -567,7 +569,7 @@ namespace VkRender {
         std::unique_ptr<GuiLayerUpdateInfo> info{};
 
         /** User action to configure network automatically even when using manual approach **/
-        bool configureNetwork = true;
+        bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
         float maxScroll = 500.0f, minScroll = -850.0f;

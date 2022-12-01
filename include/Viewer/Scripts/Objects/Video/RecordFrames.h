@@ -51,13 +51,14 @@ public:
     bool saveImage = false;
     bool isRemoteHead = false;
     std::string saveImagePath;
+    std::string compression;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
 
     static void saveImageToFile(CRLCameraDataType type, const std::string& path, const std::string& stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
-        std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead);
+        std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead, const std::string& compression);
 };
 
 

@@ -55,6 +55,7 @@ void DoubleTop::update() {
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;
+            updateTransform();
             return;
         }
 
@@ -69,6 +70,7 @@ void DoubleTop::update() {
             lastPresentedFrameID = tex.m_Id;
         } else {
             prepareMultiSenseTexture();
+            updateTransform();
             return;
         }
         // If we didn't receive a valid MultiSense image then draw default texture
@@ -78,6 +80,12 @@ void DoubleTop::update() {
             state = DRAW_NO_DATA;
         }
     }
+
+    updateTransform();
+
+}
+
+void DoubleTop::updateTransform(){
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));

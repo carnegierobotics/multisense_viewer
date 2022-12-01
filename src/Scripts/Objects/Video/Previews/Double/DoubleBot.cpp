@@ -54,6 +54,7 @@ void DoubleBot::update() {
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;
+            updateTransform();
             return;
         }
 
@@ -68,6 +69,7 @@ void DoubleBot::update() {
             lastPresentedFrameID = tex.m_Id;
         } else {
             prepareMultiSenseTexture();
+            updateTransform();
             return;
         }
         // If we didn't receive a valid MultiSense image then draw default texture
@@ -77,6 +79,11 @@ void DoubleBot::update() {
             state = DRAW_NO_DATA;
         }
     }
+
+    updateTransform();
+}
+
+void DoubleBot::updateTransform(){
     VkRender::UBOMatrix mat{};
     mat.model = glm::mat4(1.0f);
     mat.model = glm::translate(mat.model, glm::vec3(0.0f, posY, 0.0f));
@@ -94,6 +101,7 @@ void DoubleBot::update() {
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
 }
+
 
 
 void DoubleBot::prepareDefaultTexture() {

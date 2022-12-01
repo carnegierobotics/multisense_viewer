@@ -81,6 +81,8 @@ public:
 
     void prepareMultiSenseTexture();
     void prepareDefaultTexture();
+
+    void updateTransform();
 };
 
 

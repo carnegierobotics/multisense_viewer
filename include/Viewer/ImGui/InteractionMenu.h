@@ -264,6 +264,7 @@ private:
         ImGui::Text("Viewing");
         ImGui::PopFont();
 
+        /*
         backButtonPos.x += handles->info->viewingAreaWidth - 100.0f;
         ImGui::SetCursorScreenPos(backButtonPos);
         ImGui::PushStyleColor(ImGuiCol_Button, VkRender::CRLRed);
@@ -272,6 +273,7 @@ private:
             drawActionPage = true;
         }
         ImGui::PopStyleColor();
+         */
 
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
         ImGui::SameLine();
@@ -799,12 +801,11 @@ private:
                     }
                     ImGui::SameLine();
 
-                    static std::vector<std::string> saveFormat = {"tiff", "png"};
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
                     static size_t selector = 0;
 
                     ImGui::SetNextItemWidth(
                             handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
-                    std::string previewLabel = "Uncompressed (Tiff)";
                     if (ImGui::BeginCombo("##Compression", saveFormat[selector].c_str(), ImGuiComboFlags_HeightSmall)) {
                         for (size_t n = 0; n < saveFormat.size(); n++) {
                             const bool is_selected = (selector == n);

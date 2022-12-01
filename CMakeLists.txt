@@ -86,11 +86,18 @@ if (UNIX) ## Linux
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
-    install(TARGETS MultiSense-Viewer RUNTIME DESTINATION app/)
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}/app)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crl.ini CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/logger.log CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}/app)
+    install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
+            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
+            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
+            CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}
+            )
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY})
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION  ${INSTALL_DIRECTORY})
+
+
 endif ()
 
 if (WIN32)

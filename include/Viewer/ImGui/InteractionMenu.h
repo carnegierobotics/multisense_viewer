@@ -585,7 +585,7 @@ private:
                                             (auxLumaSources == window.selectedSource)) {
                                         inUse = true;
                                     }
-                                    // If a color source is active in another window and our selected source is a aux *luma source then do nothing
+                                    // If a rectified color source is active in another window and our selected source is a aux *luma source then do nothing
                                     if (otherWindow.first != index &&
                                         (colorRectifiedSources == otherWindow.second.selectedSource) &&
                                         (auxLumaRectifiedSources == window.selectedSource)) {
@@ -595,6 +595,12 @@ private:
                                     if (otherWindow.first != index &&
                                             (auxLumaSources == otherWindow.second.selectedSource) &&
                                             (colorSources == window.selectedSource)) {
+                                        stopColor = true;
+                                    }
+
+                                    if (otherWindow.first != index &&
+                                        (auxLumaRectifiedSources == otherWindow.second.selectedSource) &&
+                                        (colorRectifiedSources == window.selectedSource)) {
                                         stopColor = true;
                                     }
 

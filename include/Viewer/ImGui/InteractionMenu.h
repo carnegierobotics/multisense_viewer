@@ -15,7 +15,9 @@
 #ifdef WIN32
 
 #else
+
 #include <unistd.h>
+
 #endif
 
 class InteractionMenu : public VkRender::Layer {
@@ -746,7 +748,7 @@ private:
                     ImGui::PopStyleColor();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                     ImGui::HelpMarker(
-                            " \n Saves the frames shown in the viewing are to the right \n to files. Each type of stream is saved in separate folders \n Depending on Hardware, you might want to limit yourself to two streams \n in full resolution mode \n ");
+                            " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 
@@ -755,7 +757,29 @@ private:
                     ImVec2 btnSize(120.0f, 30.0f);
                     std::string btnText = dev.isRecording ? "Stop" : "Start";
                     if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolder != "/Path/To/Folder/") {
-                        dev.isRecording = dev.isRecording ? false : true;
+                        dev.isRecording = !dev.isRecording;
+                    }
+                    ImGui::SameLine();
+
+                    static std::vector<std::string> saveFormat = {"tiff", "png"};
+                    static size_t selector = 0;
+
+                    ImGui::SetNextItemWidth(
+                            handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+                    std::string previewLabel = "Uncompressed (Tiff)";
+                    if (ImGui::BeginCombo("##Compression", saveFormat[selector].c_str(), ImGuiComboFlags_HeightSmall)) {
+                        for (size_t n = 0; n < saveFormat.size(); n++) {
+                            const bool is_selected = (selector == n);
+                            if (ImGui::Selectable(saveFormat[n].c_str(), is_selected)) {
+                                selector = n;
+                                dev.saveImageCompressionMethod = saveFormat[selector];
+                            }
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
                     }
 
                     ImGui::Dummy(ImVec2(40.0f, 0.0f));
@@ -768,9 +792,10 @@ private:
 
                     }
                     {
-                        if (ImGui::Button("Choose Location", btnSize))
+                        if (ImGui::Button("Choose Location", btnSize)) {
                             ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
                                                                     ".");
+                        }
                     }
 
                     ImGui::SameLine();
@@ -799,8 +824,8 @@ private:
                     //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
                     ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(500.0f, 200.0f),
-                                                             ImVec2(600.0f, 600.0f))) {
+                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                             ImVec2(1200.0f, 1000.0f))) {
                         // action if OK
                         if (ImGuiFileDialog::Instance()->IsOk()) {
                             std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
@@ -844,7 +869,7 @@ private:
             }
 
 
-        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -951,7 +976,7 @@ private:
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
-                    if (ImGui::BeginTabItem("Control")) {
+                    if (ImGui::BeginTabItem("Preview Control")) {
 
                         drawVideoPreviewGuiOverlay(handles, dev, true);
                         ImGui::EndTabItem();
@@ -1048,15 +1073,20 @@ private:
             // Draw Manual eposure controls or auto exposure control
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
             if (!d.parameters.ep.autoExposure) {
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n Exposure in microseconds \n ");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0.0f, 5);
                 txt = "Exposure:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
                 ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.ep.exposure),
-                                 10, 30000);
+                                 20, 30000);
                 d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1075,8 +1105,13 @@ private:
                 ImGui::PopStyleColor();
 
             } else {
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n Max exposure in microseconds \n ");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0.0f, 5);
                 txt = "Max Exp.:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
@@ -1345,9 +1380,13 @@ private:
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
-                txt = "Startup Time (ms):";
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n LED startup time in milliseconds \n ");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0.0f, 5);
+                txt = "Startup Time:";
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
@@ -1458,8 +1497,8 @@ private:
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (saveCalibrationDialog.Display("ChooseDirDlgKey", 0, ImVec2(400.0f, 300.0f),
-                                                  ImVec2(1200.0f, 720.0f))) {
+                if (saveCalibrationDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                  ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
                     if (saveCalibrationDialog.IsOk()) {
                         std::string filePathName = saveCalibrationDialog.GetFilePathName();
@@ -1542,8 +1581,8 @@ private:
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (chooseIntrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(400.0f, 300.0f),
-                                                   ImVec2(1200.0f, 720.0f))) {
+                if (chooseIntrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                   ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
                     if (chooseIntrinsicsDialog.IsOk()) {
                         std::string filePathName = chooseIntrinsicsDialog.GetFilePathName();
@@ -1584,8 +1623,8 @@ private:
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (chooseExtrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(400.0f, 300.0f),
-                                                   ImVec2(1200.0f, 720.0f))) {
+                if (chooseExtrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                   ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
                     if (chooseExtrinsicsDialog.IsOk()) {
                         std::string filePathName = chooseExtrinsicsDialog.GetFilePathName();
@@ -1609,7 +1648,31 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::TextColorGray);
                     ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::TextColorGray);
                 }
-                d.parameters.calib.update = ImGui::Button("Set New Calibration");
+                if (ImGui::Button("Set New Calibration")) {
+                    ImGui::OpenPopup("Overwrite calibration?");
+
+                }
+
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
+                if (ImGui::BeginPopupModal("Overwrite calibration?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+                    ImGui::Text(
+                            "Setting a new calibration will overwrite the current setting.\nThis operation cannot be undone!\n\n");
+                    ImGui::Separator();
+
+                    if (ImGui::Button("OK", ImVec2(120, 0))) {
+                        d.parameters.calib.update = true;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::SetItemDefaultFocus();
+                    ImGui::SameLine();
+
+
+                    ImGui::SetCursorPosX( ImGui::GetWindowWidth() - ImGui::GetCursorPosX() + 8.0f);
+                    if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    ImGui::EndPopup();
+                }
+                ImGui::PopStyleVar(2);
 
                 if (d.parameters.calib.intrinsicsFilePath == "Path/To/Intrinsics.yml" ||
                     d.parameters.calib.extrinsicsFilePath == "Path/To/Extrinsics.yml") {

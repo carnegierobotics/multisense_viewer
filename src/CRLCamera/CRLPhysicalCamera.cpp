@@ -325,7 +325,7 @@ namespace VkRender::MultiSense {
         } else {
             Log::Logger::getInstance()->info("Set Gamma on channel {}", channelID);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -351,7 +351,7 @@ namespace VkRender::MultiSense {
         } else {
             Log::Logger::getInstance()->info("Set framerate on channel {}", channelID);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         /*
         if (crl::multisense::Status_Ok !=
@@ -392,7 +392,7 @@ namespace VkRender::MultiSense {
         } else {
             Log::Logger::getInstance()->info("Set gain on channel {}", channelID);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
 
         if (crl::multisense::Status_Ok !=
@@ -443,7 +443,7 @@ namespace VkRender::MultiSense {
                                              depth, ret);
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
 
         if (crl::multisense::Status_Ok !=
@@ -487,7 +487,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set exposure on channel {}", channelID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -515,7 +515,7 @@ namespace VkRender::MultiSense {
                                              channelID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         // Since we can only have one stereo setting among several remote head update all the infoMaps.
         for (const auto &channel: channelMap) {
@@ -546,7 +546,7 @@ namespace VkRender::MultiSense {
             return false;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -582,7 +582,7 @@ namespace VkRender::MultiSense {
             return false;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -617,7 +617,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Unable to set m_Image configuration");
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
@@ -732,7 +732,7 @@ namespace VkRender::MultiSense {
 
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {

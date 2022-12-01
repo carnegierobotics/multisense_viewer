@@ -66,10 +66,13 @@ namespace VkRender::MultiSense {
         if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
 
-        if (dev->parameters.calib.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+        if (dev->parameters.calib.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE){
             pool->Push(CameraConnection::setCalibrationTask, this, dev->parameters.calib.intrinsicsFilePath,
                        dev->parameters.calib.extrinsicsFilePath, dev->configRemoteHead,
                        &dev->parameters.calib.updateFailed);
+            dev->parameters.calib.update = false;
+        }
+
 
         if (dev->parameters.calib.save && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath,

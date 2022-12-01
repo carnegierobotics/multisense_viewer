@@ -559,8 +559,10 @@ private:
                 std::string srcLabel = "##Source" + std::to_string(index);
                 std::string previewValue;
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
-                std::vector<std::string> colorSources = {"Color Aux", "Color Rectified Aux"};
-                std::vector<std::string> auxLumaSources = {"Luma Aux", "Luma Rectified Aux"};
+                std::string colorSources =   "Color Aux";
+                std::string auxLumaSources = "Luma Aux";
+                std::string colorRectifiedSources =    "Color Rectified Aux";
+                std::string auxLumaRectifiedSources =  "Luma Rectified Aux";
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
@@ -569,28 +571,50 @@ private:
 
                             if (window.selectedSource != "Source") {
                                 bool inUse = false;
-                                for (const auto &win: dev.win) {
-                                    if (win.second.selectedSource == window.selectedSource &&
-                                        (int) win.first != index &&
-                                        win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
+                                bool stopColor = false;
+                                for (const auto &otherWindow: dev.win) {
+                                    if (otherWindow.second.selectedSource == window.selectedSource &&
+                                        (int) otherWindow.first != index &&
+                                        otherWindow.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                         inUse = true;
                                     }
 
                                     // If a color source is active in another window and our selected source is a aux *luma source then do nothing
-                                    if (win.first != index &&
-                                        Utils::isInVector(colorSources, win.second.selectedSource) &&
-                                        Utils::isInVector(auxLumaSources, window.selectedSource)) {
+                                    if (otherWindow.first != index &&
+                                            (colorSources == otherWindow.second.selectedSource) &&
+                                            (auxLumaSources == window.selectedSource)) {
                                         inUse = true;
                                     }
-                                    // It's in use if we have color aux running but we are disabling luma aux
+                                    // If a color source is active in another window and our selected source is a aux *luma source then do nothing
+                                    if (otherWindow.first != index &&
+                                        (colorRectifiedSources == otherWindow.second.selectedSource) &&
+                                        (auxLumaRectifiedSources == window.selectedSource)) {
+                                        inUse = true;
+                                    }
+                                    // If a color source is closed but we have a luma source active then only stop the color source
+                                    if (otherWindow.first != index &&
+                                            (auxLumaSources == otherWindow.second.selectedSource) &&
+                                            (colorSources == window.selectedSource)) {
+                                        stopColor = true;
+                                    }
 
+                                    // It's in use if we have color aux running but we are disabling luma aux
                                 }
+
                                 if (!inUse && Utils::removeFromVector(
                                         &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                         window.selectedSource)) {
                                     Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
                                                                      window.selectedSource);
+                                    if (window.selectedSource == "Color Aux" && !stopColor){
+                                        Utils::removeFromVector(&dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Aux");
+                                    }
+                                    if (window.selectedSource == "Color Rectified Aux" && !stopColor){
+                                        Utils::removeFromVector(&dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Rectified Aux");
+                                    }
                                 }
+
+
                             }
 
 
@@ -606,6 +630,14 @@ private:
                                 Log::Logger::getInstance()->info(
                                         "Added source '{}' from head {} to user requested sources",
                                         window.selectedSource, window.selectedRemoteHeadIndex);
+
+                                if (window.selectedSource == "Color Aux" && !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Aux")){
+                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back("Luma Aux");
+                                }
+
+                                if (window.selectedSource == "Color Rectified Aux" && !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Rectified Aux")){
+                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back("Luma Rectified Aux");
+                                }
                             }
 
                         }
@@ -936,7 +968,7 @@ private:
 
         }
 
-        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD){
+        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
             auto &chInfo = dev.channelInfo.front();
             dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
             if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
@@ -1671,7 +1703,7 @@ private:
                     ImGui::SameLine();
 
 
-                    ImGui::SetCursorPosX( ImGui::GetWindowWidth() - ImGui::GetCursorPosX() + 8.0f);
+                    ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetCursorPosX() + 8.0f);
                     if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
                     ImGui::EndPopup();
                 }

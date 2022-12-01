@@ -91,18 +91,6 @@ namespace VkRender::MultiSense {
             }
         }
 
-        // Start requested streams
-        for (auto &ch: dev->channelInfo) {
-            if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-                continue;
-            for (const auto &requested: ch.requestedStreams) {
-                if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Source") {
-                    pool->Push(CameraConnection::startStreamTask, this, requested, ch.index);
-                    ch.enabledStreams.emplace_back(requested);
-                }
-            }
-        }
-
         // Stop if the stream is no longer requested
         for (auto &ch: dev->channelInfo) {
             if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
@@ -111,6 +99,19 @@ namespace VkRender::MultiSense {
                 if (!Utils::isInVector(ch.requestedStreams, enabled) && !enabled.empty()) {
                     pool->Push(CameraConnection::stopStreamTask, this, enabled, ch.index);
                     Utils::removeFromVector(&ch.enabledStreams, enabled);
+                }
+            }
+        }
+
+
+        // Start requested streams
+        for (auto &ch: dev->channelInfo) {
+            if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+                continue;
+            for (const auto &requested: ch.requestedStreams) {
+                if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Source") {
+                    pool->Push(CameraConnection::startStreamTask, this, requested, ch.index);
+                    ch.enabledStreams.emplace_back(requested);
                 }
             }
         }

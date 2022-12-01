@@ -147,9 +147,10 @@ namespace Utils {
         if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
         if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
         if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
-        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux | crl::multisense::Source_Luma_Aux;
-        if (d == "Color Rectified Aux")
-            return crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux;;
+        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
+        if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
+        if (d == "Chroma Aux") return crl::multisense::Source_Chroma_Aux;
+        if (d == "Chroma Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
         if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
         if (d == "IMU") return crl::multisense::Source_Imu;
         if (d == "All") return crl::multisense::Source_All;

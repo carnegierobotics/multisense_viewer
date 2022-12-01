@@ -154,7 +154,7 @@ namespace VkRender::MultiSense {
 
         switch (tex->m_Type) {
             case AR_COLOR_IMAGE_YUV420: {
-                if ((header->data().source | headerTwo->data().source) != src ||
+                if (headerTwo->data().source != src ||
                     tex->m_Width != header->data().width ||
                     tex->m_Height < header->data().height)
                     return false;

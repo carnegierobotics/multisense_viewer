@@ -232,7 +232,7 @@ private:
                 startedAutoConnect = true;
             }
 #else
-            std::string fileName = (Utils::getAssetsPath() + "Generated/AutoConnect.exe");
+            std::string fileName = ".\\AutoConnect.exe";
             shellInfo.lpVerb = "runas";
             shellInfo.cbSize = sizeof(SHELLEXECUTEINFO);
             shellInfo.fMask = SEE_MASK_NOCLOSEPROCESS;

@@ -12,14 +12,6 @@ set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
-# Set install directory if not specified
-set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
-    set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
-            CACHE PATH "default install path" FORCE)
-endif()
-
 include(cmake/Common.cmake)
 find_package(Vulkan REQUIRED)
 
@@ -74,13 +66,19 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/crl.ini "")
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/logger.log "")
 
 if (UNIX) ## Linux
-    set(AUTOCONNECT_EXECUTABLE AutoConnect)
+    # Set install directory if not specified
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+    if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
+        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
+                CACHE PATH "default install path" FORCE)
+    endif ()
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer  -lavutil -lswscale)
+    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)
 
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
@@ -92,16 +90,26 @@ if (UNIX) ## Linux
             ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
             ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
             ${CMAKE_CURRENT_BINARY_DIR}/logger.log
-            CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY}
+            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
             )
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION   ${INSTALL_DIRECTORY})
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION  ${INSTALL_DIRECTORY})
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
-
+    add_custom_command(TARGET MultiSense-Viewer
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/AutoConnect ${CMAKE_BINARY_DIR}/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/Assets/Tools/Ubuntu/AutoConnectLauncher.sh ${CMAKE_BINARY_DIR}/
+            )
 endif ()
 
 if (WIN32)
-    set(AUTOCONNECT_EXECUTABLE AutoConnect.exe)
+    # Set install directory if not specified
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
+    if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
+        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
+                CACHE PATH "default install path" FORCE)
+    endif ()
 
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
@@ -127,11 +135,21 @@ if (WIN32)
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer  avutil swscale)
+    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale)
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
+
+    #AutoConnect
+    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
 
     # create a list of files to copy
     set(THIRD_PARTY_DLLS
@@ -144,6 +162,9 @@ if (WIN32)
             #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
+            # WinPcap DLLs
+            ${CMAKE_BINARY_DIR}/internal/AutoConnect/packet.dll
+            ${CMAKE_BINARY_DIR}/internal/AutoConnect/wpcap.dll
             )
 
     # do the copying
@@ -152,34 +173,27 @@ if (WIN32)
                 TARGET VulkanRenderer
                 POST_BUILD
                 COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/
-        )
+                ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/)
     endforeach (file_i)
-    add_custom_command(TARGET MultiSense-Viewer
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/external/LibMultiSense/source/LibMultiSense/MultiSense.dll ${CMAKE_BINARY_DIR}
 
-            # Windows AutoConnect WinPcap dlls
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/packet.dll ${CMAKE_BINARY_DIR}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/wpcap.dll ${CMAKE_BINARY_DIR}/
-
-            )
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
-    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
     # LibMultiSense and WinPCap dll
     install(FILES
-            ${CMAKE_BINARY_DIR}/Release/MultiSense.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/Packet.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/winpcap/wpcap.dll
+            ${CMAKE_BINARY_DIR}/MultiSense.dll
+            ${CMAKE_BINARY_DIR}/Packet.dll
+            ${CMAKE_BINARY_DIR}/wpcap.dll
+            ${CMAKE_BINARY_DIR}/swscale-6.dll
+            ${CMAKE_BINARY_DIR}/avutil-57.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
-    ## dll's from fmmpeg
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/ DESTINATION ${INSTALL_DIRECTORY}
-            FILES_MATCHING PATTERN "*.dll")
+
+    #Auto Connect
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -189,16 +203,9 @@ if (WIN32)
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
         else ()
             set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-Viewer)
-            #set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
+            set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
 
     file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
 endif ()
-
-
-add_custom_command(TARGET MultiSense-Viewer
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/${AUTOCONNECT_EXECUTABLE} ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/Assets/Tools/Ubuntu/AutoConnectLauncher.sh ${CMAKE_BINARY_DIR}/
-        )

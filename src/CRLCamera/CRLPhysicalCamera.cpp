@@ -373,7 +373,7 @@ namespace VkRender::MultiSense {
         // Since we can only have one framerate among several remote head update all the infoMaps.
         for (const auto &channel: channelMap) {
             // don't bother for the VPB
-            if (channel.first == crl::multisense::Remote_Head_VPB)
+            if (channel.first == crl::multisense::Remote_Head_VPB || channel.second->ptr() == nullptr)
                 continue;
             if (crl::multisense::Status_Ok != channel.second->ptr()->getImageConfig(infoMap[channel.first].imgConf)) {
                 Log::Logger::getInstance()->info("Failed to verify fps");
@@ -549,7 +549,7 @@ namespace VkRender::MultiSense {
         // Since we can only have one stereo setting among several remote head update all the infoMaps.
         for (const auto &channel: channelMap) {
             // don't bother for the VPB
-            if (channel.first == crl::multisense::Remote_Head_VPB)
+            if (channel.first == crl::multisense::Remote_Head_VPB || channel.second->ptr() == nullptr)
                 continue;
             if (crl::multisense::Status_Ok != channel.second->ptr()->getImageConfig(infoMap[channel.first].imgConf)) {
                 Log::Logger::getInstance()->info("Failed to verify fps");

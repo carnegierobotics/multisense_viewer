@@ -160,6 +160,9 @@ protected:
 
     const VulkanDevice *vulkanDevice = nullptr;
 
+    uint32_t m_SwapChainImageCount = 0;
+    std::vector<VkPipelineShaderStageCreateInfo> m_Shaders;
+
     /***
      * @brief Helper function
      * @param pModel

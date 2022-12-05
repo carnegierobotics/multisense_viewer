@@ -531,6 +531,7 @@ namespace VkRender {
         }
         backendInitialized = false;
 
+        uint32_t oldSwapChainImageCount = swapchain->imageCount;
         // Ensure all operations on the m_Device have been finished before destroying resources
         vkQueueWaitIdle(queue);
         vkDeviceWaitIdle(device);
@@ -551,6 +552,10 @@ namespace VkRender {
         for (uint32_t i = 0; i < frameBuffers.size(); i++) {
             vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
         }
+
+        for (const auto& fence : waitFences) {
+            vkDestroyFence(device, fence, nullptr);
+        }
         setupMainFramebuffer();
 
         // Maybe resize overlay too
@@ -560,6 +565,7 @@ namespace VkRender {
         // references to the recreated frame buffer
         destroyCommandBuffers();
         createCommandBuffers();
+        createSynchronizationPrimitives();
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
 
@@ -631,7 +637,12 @@ namespace VkRender {
         VkResult result = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
         // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
         if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+            Log::Logger::getInstance()->info("SwapChain no longer compatible on acquire next image. Recreating..");
             windowResize();
+            VkResult res = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
+            if (res != VK_SUCCESS)
+                throw std::runtime_error("Failed to acquire next m_Image");
+
         } else if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to acquire next m_Image");
 
@@ -651,11 +662,14 @@ namespace VkRender {
         if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
             if (result == VK_ERROR_OUT_OF_DATE_KHR) {
                 // Swap chain is no longer compatible with the surface and needs to be recreated
+                Log::Logger::getInstance()->info("SwapChain no longer compatible on queue present. Recreating..");
                 windowResize();
                 return;
             }
-        } else if (result != VK_SUCCESS)
+        } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to acquire next m_Image");
+            return;
+        }
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for Queue Idle");
     }
@@ -665,7 +679,8 @@ namespace VkRender {
         if (frameID > 1) {
             destWidth = _width;
             destHeight = _height;
-            windowResize();
+            //Log::Logger::getInstance()->info("New window size was set. Recreating..");
+            //windowResize();
         }
 
     }
@@ -673,7 +688,8 @@ namespace VkRender {
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
-            myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+            if (myApp->destWidth != width && myApp->destHeight != height)
+                myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
 

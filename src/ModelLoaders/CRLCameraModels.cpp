@@ -574,7 +574,9 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderStageCreateInfo> &vector, Model *model,
                                            const VkRender::RenderUtils *renderUtils) {
 
-    this->vulkanDevice = renderUtils->device;
+    vulkanDevice = renderUtils->device;
+    m_SwapChainImageCount = renderUtils->UBCount;
+    m_Shaders = vector;
 
     if (model->initializedPipeline) {
         vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, model->descriptorSetLayout, nullptr);
@@ -597,6 +599,9 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
 }
 
 void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b) {
+    if (i >= m_SwapChainImageCount)
+        return;
+
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, model->pipelineLayout, 0, 1,
                             &model->descriptors[i], 0, nullptr);
 

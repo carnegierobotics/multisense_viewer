@@ -231,6 +231,10 @@ namespace VkRender::MultiSense {
                 if (!chInfo.availableSources.empty())
                     dev.win[i].selectedRemoteHeadIndex = ch;
             }
+
+            // stop streams if there were any enabled, just so we can start with a clean slate
+            stopStreamTask(this, "All", ch);
+
             dev.channelInfo.at(ch) = chInfo;
         }
 
@@ -472,6 +476,7 @@ namespace VkRender::MultiSense {
             app->updateUIDataBlock(*dev);
             if (!isRemoteHead) app->getProfileFromIni(*dev);
             // Set the resolution read from config file
+
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
             app->m_FailedGetStatusCount = 0;

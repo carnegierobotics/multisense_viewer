@@ -544,8 +544,6 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
     // Pipelines
-
-
     VkGraphicsPipelineCreateInfo pipelineCI{};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.layout = model->pipelineLayout;

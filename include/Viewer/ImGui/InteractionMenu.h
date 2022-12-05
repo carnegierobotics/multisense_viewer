@@ -328,7 +328,6 @@ private:
         handles->info->viewingAreaWidth =
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
-        // Equation is a (to-do)
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
         if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
@@ -891,7 +890,34 @@ private:
                     ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
                 }
-
+                bool anyStreamActive = false;
+                for (const auto& ch : dev.channelInfo) {
+                    if (!ch.requestedStreams.empty())
+                        anyStreamActive = true;
+                }
+                if (anyStreamActive){
+                ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextGray);
+                ImGui::Text("Currently Active Streams:");
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextLightGray);
+                for (const auto& ch : dev.channelInfo) {
+                    if (dev.isRemoteHead){
+                        for(const auto& src : ch.requestedStreams){
+                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
+                            ImGui::SameLine();
+                            ImGui::Text("Head: %d, Source: %s", ch.index + 1, src.c_str());
+                        }
+                    } else {
+                        for(const auto& src : ch.requestedStreams){
+                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
+                            ImGui::SameLine();
+                            ImGui::Text("%s", src.c_str());
+                        }
+                    }
+                }
+                ImGui::PopStyleColor(2);
+                }
             }
 
             if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
@@ -1084,21 +1110,21 @@ private:
                 ImGui::Dummy(ImVec2(0.0f, 10.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Head 0", reinterpret_cast<int *>(&d.configRemoteHead),
+                if (ImGui::RadioButton("Head 1", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_0))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 1", reinterpret_cast<int *>(&d.configRemoteHead),
+                if (ImGui::RadioButton("Head 2", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
 
-                if (ImGui::RadioButton("Head 2", reinterpret_cast<int *>(&d.configRemoteHead),
+                if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_2))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
-                if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead),
+                if (ImGui::RadioButton("Head 4", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_3))
                     d.parameters.updateGuiParams = true;
             }

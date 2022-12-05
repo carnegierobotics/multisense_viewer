@@ -555,17 +555,19 @@ private:
                 }
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
                 window.availableSources = dev.channelInfo[(crl::multisense::RemoteHeadChannel) std::stoi(
-                        window.availableRemoteHeads[window.selectedRemoteHeadIndex])].availableSources;
+                        window.availableRemoteHeads[
+                                Utils::getIndexOf(window.availableRemoteHeads,
+                                                  std::to_string(window.selectedRemoteHeadIndex))])].availableSources;
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
                 std::string previewValue;
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::CRLBlueIsh);
-                std::string colorSources =   "Color Aux";
+                std::string colorSources = "Color Aux";
                 std::string auxLumaSources = "Luma Aux";
-                std::string colorRectifiedSources =    "Color Rectified Aux";
-                std::string auxLumaRectifiedSources =  "Luma Rectified Aux";
+                std::string colorRectifiedSources = "Color Rectified Aux";
+                std::string auxLumaRectifiedSources = "Luma Rectified Aux";
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
@@ -584,8 +586,8 @@ private:
 
                                     // If a color source is active in another window and our selected source is a aux *luma source then do nothing
                                     if (otherWindow.first != index &&
-                                            (colorSources == otherWindow.second.selectedSource) &&
-                                            (auxLumaSources == window.selectedSource)) {
+                                        (colorSources == otherWindow.second.selectedSource) &&
+                                        (auxLumaSources == window.selectedSource)) {
                                         inUse = true;
                                     }
                                     // If a rectified color source is active in another window and our selected source is a aux *luma source then do nothing
@@ -596,8 +598,8 @@ private:
                                     }
                                     // If a color source is closed but we have a luma source active then only stop the color source
                                     if (otherWindow.first != index &&
-                                            (auxLumaSources == otherWindow.second.selectedSource) &&
-                                            (colorSources == window.selectedSource)) {
+                                        (auxLumaSources == otherWindow.second.selectedSource) &&
+                                        (colorSources == window.selectedSource)) {
                                         stopColor = true;
                                     }
 
@@ -615,11 +617,15 @@ private:
                                         window.selectedSource)) {
                                     Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
                                                                      window.selectedSource);
-                                    if (window.selectedSource == "Color Aux" && !stopColor){
-                                        Utils::removeFromVector(&dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Aux");
+                                    if (window.selectedSource == "Color Aux" && !stopColor) {
+                                        Utils::removeFromVector(
+                                                &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                                "Luma Aux");
                                     }
-                                    if (window.selectedSource == "Color Rectified Aux" && !stopColor){
-                                        Utils::removeFromVector(&dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Rectified Aux");
+                                    if (window.selectedSource == "Color Rectified Aux" && !stopColor) {
+                                        Utils::removeFromVector(
+                                                &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                                "Luma Rectified Aux");
                                     }
                                 }
 
@@ -640,12 +646,18 @@ private:
                                         "Added source '{}' from head {} to user requested sources",
                                         window.selectedSource, window.selectedRemoteHeadIndex);
 
-                                if (window.selectedSource == "Color Aux" && !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Aux")){
-                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back("Luma Aux");
+                                if (window.selectedSource == "Color Aux" &&
+                                    !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                                       "Luma Aux")) {
+                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
+                                            "Luma Aux");
                                 }
 
-                                if (window.selectedSource == "Color Rectified Aux" && !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams, "Luma Rectified Aux")){
-                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back("Luma Rectified Aux");
+                                if (window.selectedSource == "Color Rectified Aux" &&
+                                    !Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
+                                                       "Luma Rectified Aux")) {
+                                    dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
+                                            "Luma Rectified Aux");
                                 }
                             }
 
@@ -1213,7 +1225,7 @@ private:
                 static char buf3[5] = "0";
                 static char buf4[5] = "0";
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
-                ImGui::HelpMarker("\n Set the Region Of Interest for the auto exposure in the left image \n ");
+                ImGui::HelpMarker("\n Set the Region Of Interest for the auto exposure. Note: by default only the left image is used for auto exposure \n ");
                 ImGui::SameLine(0.0f, 5.0f);
 
                 if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
@@ -1365,8 +1377,12 @@ private:
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLTextWhite);
+                ImGui::HelpMarker("\n If enabled then LEDs are only on when the image sensor is exposing. This significantly reduces the sensor's power consumption \n ");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0.0f, 5);
                 std::string txtEnableFlash = "Flash LED:";
                 ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
                 ImGui::Text("%s", txtEnableFlash.c_str());

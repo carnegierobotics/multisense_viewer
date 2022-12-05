@@ -312,6 +312,10 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::setGamma(float gamma, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set gamma on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->info("Unable to query gamma configuration");
@@ -337,6 +341,11 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::setFps(float fps, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set fps on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->info("Unable to query m_Image configuration");
@@ -378,6 +387,11 @@ namespace VkRender::MultiSense {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
 
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set gain on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->info("Unable to query image configuration");
             return false;
@@ -407,6 +421,11 @@ namespace VkRender::MultiSense {
     bool
     CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set resolution on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
 
         if (resolution == CRL_RESOLUTION_NONE) {
             Log::Logger::getInstance()->info("Resolution is not specified {}", (int) resolution);
@@ -458,6 +477,11 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set exposure on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->error("Unable to query exposure configuration");
@@ -500,6 +524,11 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setPostFilterStrength(float filter, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set post filter strength on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->error("Unable to query m_Image configuration");
@@ -533,6 +562,10 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setHDR(bool hdr, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set hdr on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->info("Unable to query hdr m_Image configuration");
@@ -559,7 +592,10 @@ namespace VkRender::MultiSense {
     bool
     CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set white balance on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         //
         // Check to see if the configuration query succeeded
@@ -595,7 +631,10 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set light configuration on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getLightingConfig(
                 infoMap[channelID].lightConf);
 
@@ -628,10 +667,14 @@ namespace VkRender::MultiSense {
         return true;
     }
 
-    bool CRLPhysicalCamera::setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel id) {
+    bool CRLPhysicalCamera::setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        int status = channelMap[id]->ptr()->setMtu((int32_t) mtu);
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set mtu on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+        int status = channelMap[channelID]->ptr()->setMtu((int32_t) mtu);
         if (status != crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
             return false;
@@ -654,6 +697,10 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setSensorCalibration(const std::string &intrinsicsFile, const std::string &extrinsicsFile,
                                                  crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to set sensor calibration on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageCalibration(
                 infoMap[channelID].calibration);
         if (crl::multisense::Status_Ok != status) {
@@ -780,6 +827,11 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::saveSensorCalibration(const std::string &savePath,
                                                   crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        if (channelMap[channelID]->ptr() == nullptr){
+            Log::Logger::getInstance()->error("Attempted to save calibration from a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {

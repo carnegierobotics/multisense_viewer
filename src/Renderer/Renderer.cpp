@@ -442,10 +442,8 @@ void Renderer::windowResized() {
     vkDestroyImageView(device, selection.depthView, nullptr);
     vkFreeMemory(device, selection.colorMem, nullptr);
     vkFreeMemory(device, selection.depthMem, nullptr);
-
     createSelectionImages();
     createSelectionFramebuffer();
-
     destroySelectionBuffer();
     createSelectionBuffer();
 
@@ -462,6 +460,26 @@ void Renderer::windowResized() {
     for (auto &script: scripts) {
         if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
             script.second->windowResize(&renderData, &guiManager->handles);
+    }
+
+    // Clear script and scriptnames before rebuilding
+    for (const auto &scriptName: builtScriptNames) {
+        pLogger->info("Deleting Script: {}", scriptName.c_str());
+        scripts[scriptName].get()->onDestroyScript();
+        scripts[scriptName].reset();
+        scripts.erase(scriptName);
+    }
+    builtScriptNames.clear();
+
+    // Load Object Scripts from file
+    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
+    std::string line;
+    while (std::getline(infile, line)) {
+        // Skip comment # line
+        if (line.find('#') != std::string::npos)
+            continue;
+
+        buildScript(line);
     }
 }
 
@@ -482,9 +500,6 @@ void Renderer::cleanUp() {
 
 #endif
 
-
-
-
     // Clear script and scriptnames
     for (const auto &scriptName: builtScriptNames) {
         pLogger->info("Deleting Script: {}", scriptName.c_str());
@@ -493,7 +508,6 @@ void Renderer::cleanUp() {
         scripts.erase(scriptName);
     }
     builtScriptNames.clear();
-
     destroySelectionBuffer();
 
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");

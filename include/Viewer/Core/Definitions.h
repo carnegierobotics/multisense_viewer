@@ -185,7 +185,7 @@ struct LightingParams {
 struct ExposureParams {
     bool autoExposure{};
     int exposure = 20000;
-    uint32_t autoExposureMax = 5000000;
+    uint32_t autoExposureMax = 20000;
     uint32_t autoExposureDecay = 7;
     float autoExposureTargetIntensity = 0.5f;
     float autoExposureThresh = 0.9f;

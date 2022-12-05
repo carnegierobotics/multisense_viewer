@@ -33,7 +33,7 @@ void RecordFrames::update() {
 
         // For each remote head index
         for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
-             remoteIdx <= isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0; ++remoteIdx) {
+             remoteIdx <= (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
 
             const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteIdx).imgConf;
 

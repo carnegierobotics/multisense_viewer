@@ -227,7 +227,7 @@ namespace VkRender::MultiSense {
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-                dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
+                dev.win[i].availableRemoteHeads.push_back(std::to_string(ch + 1));
                 if (!chInfo.availableSources.empty())
                     dev.win[i].selectedRemoteHeadIndex = ch;
             }

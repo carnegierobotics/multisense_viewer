@@ -553,9 +553,10 @@ private:
                     }
                     ImGui::PopStyleColor();
                 }
-
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
-                window.availableSources = dev.channelInfo[window.selectedRemoteHeadIndex].availableSources;
+                window.availableSources = dev.channelInfo[(crl::multisense::RemoteHeadChannel) std::stoi(
+                        window.availableRemoteHeads[window.selectedRemoteHeadIndex])].availableSources;
+
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);

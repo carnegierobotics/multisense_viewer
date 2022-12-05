@@ -228,6 +228,8 @@ namespace VkRender::MultiSense {
                                                                  imgConf.disparities());
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
+                if (!chInfo.availableSources.empty())
+                    dev.win[i].selectedRemoteHeadIndex = ch;
             }
             dev.channelInfo.at(ch) = chInfo;
         }
@@ -561,23 +563,23 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
 
         std::scoped_lock lock(app->writeParametersMtx);
-        app->camPtr->setExposureParams(*arg1, remoteHeadIndex);
-        app->updateFromCameraParameters(dev, remoteHeadIndex);
+        if(app->camPtr->setExposureParams(*arg1, remoteHeadIndex))
+            app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 
     void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, VkRender::Device *dev,
                                                crl::multisense::RemoteHeadChannel remoteHeadIndex) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        app->camPtr->setWhiteBalance(*arg1, remoteHeadIndex);
-        app->updateFromCameraParameters(dev, remoteHeadIndex);
+        if(app->camPtr->setWhiteBalance(*arg1, remoteHeadIndex))
+            app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 
     void CameraConnection::setLightingTask(void *context, LightingParams *arg1, VkRender::Device *dev,
                                            crl::multisense::RemoteHeadChannel remoteHeadIndex) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        app->camPtr->setLighting(*arg1, remoteHeadIndex);
+        if(app->camPtr->setLighting(*arg1, remoteHeadIndex))
         app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 
@@ -600,7 +602,7 @@ namespace VkRender::MultiSense {
                                              crl::multisense::RemoteHeadChannel idx) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        app->camPtr->setResolution(arg1, idx);
+        if(app->camPtr->setResolution(arg1, idx))
         app->updateFromCameraParameters(dev, idx);
     }
 

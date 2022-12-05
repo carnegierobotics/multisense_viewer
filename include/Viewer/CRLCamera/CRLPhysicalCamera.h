@@ -272,7 +272,7 @@ namespace VkRender::MultiSense {
              * @param[in] mtu Which value to set
              * @return if the value was successfully set
             */
-            bool setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel id);
+            bool setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel channelID);
 
             /**@brief Get a struct of the current camera settings \ref CameraInfo
              *

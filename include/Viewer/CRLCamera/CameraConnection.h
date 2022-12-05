@@ -13,7 +13,7 @@
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 
 #define NUM_THREADS 3
-#define MAX_FAILED_STATUS_ATTEMPTS 4
+#define MAX_FAILED_STATUS_ATTEMPTS 8
 
 namespace VkRender::MultiSense {
 	/**

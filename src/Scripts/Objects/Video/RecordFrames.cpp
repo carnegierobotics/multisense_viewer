@@ -92,7 +92,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     directory = std::string(path);
     std::string fileName = std::to_string(ptr->m_Id);
     if (isRemoteHead) {
-        remoteHeadDir = path + separator + std::to_string(remoteHead);
+        remoteHeadDir = path + separator + std::to_string(remoteHead + 1);
         directory = remoteHeadDir + separator + std::string(stringSrc);
     } else
         directory = std::string(path) + separator + stringSrc;
@@ -105,20 +105,21 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         int check = _mkdir(remoteHeadDir.c_str());
         if (check == 0)
             Log::Logger::getInstance()->info("Created directory {}", remoteHeadDir);
-
     }
+
     // Create Source name directory
     int check = _mkdir(directory.c_str());
     if (check == 0)
         Log::Logger::getInstance()->info("Created directory {}", directory);
 
-    if (type == AR_DISPARITY_IMAGE) {
-        // Create Source name directory
-        check = _mkdir((directory + "/png").c_str());
-        if (check == 0)
-            Log::Logger::getInstance()->info("Created directory {}", directory + "png");
+    // Create Source name directory
+    check = _mkdir((directory + "/" + compression).c_str());
+    if (check == 0)
+        Log::Logger::getInstance()->info("Created directory {}", directory + "png");
 
-        check = _mkdir((directory + "/tiff").c_str());
+
+    if (type == AR_COLOR_IMAGE_YUV420) {
+        check = _mkdir((directory + "/ppm").c_str());
         if (check == 0)
             Log::Logger::getInstance()->info("Created directory {}", directory + "tiff");
     }

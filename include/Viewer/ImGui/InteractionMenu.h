@@ -490,7 +490,7 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                     std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
                                                                                       std::to_string(
-                                                                                              window.selectedRemoteHeadIndex))];
+                                                                                              window.selectedRemoteHeadIndex + 1))];
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
@@ -530,7 +530,7 @@ private:
                                 }
 
                                 window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
-                                        window.availableRemoteHeads[n]);
+                                        window.availableRemoteHeads[n]) - (crl::multisense::RemoteHeadChannel) 1;
                                 Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
                                                                  window.selectedRemoteHeadIndex, index);
                             }
@@ -548,7 +548,7 @@ private:
                 window.availableSources = dev.channelInfo[(crl::multisense::RemoteHeadChannel) std::stoi(
                         window.availableRemoteHeads[
                                 Utils::getIndexOf(window.availableRemoteHeads,
-                                                  std::to_string(window.selectedRemoteHeadIndex))])].availableSources;
+                                                  std::to_string(window.selectedRemoteHeadIndex + 1))]) - 1].availableSources;
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);

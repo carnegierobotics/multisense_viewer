@@ -163,7 +163,7 @@ if (WIN32)
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
             # WinPcap DLLs
-            ${CMAKE_BINARY_DIR}/internal/AutoConnect/packet.dll
+            ${CMAKE_BINARY_DIR}/internal/AutoConnect/Packet.dll
             ${CMAKE_BINARY_DIR}/internal/AutoConnect/wpcap.dll
             )
 

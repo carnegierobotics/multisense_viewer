@@ -118,7 +118,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         Log::Logger::getInstance()->info("Created directory {}", directory + "png");
 
 
-    if (type == AR_COLOR_IMAGE_YUV420) {
+    if (type == CRL_COLOR_IMAGE_YUV420) {
         check = _mkdir((directory + "/ppm").c_str());
         if (check == 0)
             Log::Logger::getInstance()->info("Created directory {}", directory + "tiff");

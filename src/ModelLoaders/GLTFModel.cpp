@@ -1,7 +1,6 @@
 //
 // Created by magnus on 12/10/21.
 //
-
 #define TINYGLTF_IMPLEMENTATION
 
 #include <glm/ext.hpp>

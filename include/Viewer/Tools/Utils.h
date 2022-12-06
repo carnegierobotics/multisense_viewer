@@ -13,13 +13,10 @@
 #include <vulkan/vulkan_core.h>
 
 #ifdef WIN32
-
 #include <direct.h>
-
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-
 #include <windows.h>
 
 #else

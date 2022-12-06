@@ -35,7 +35,7 @@
 #ifndef CALIBRATION_YAML_H
 #define CALIBRATION_YAML_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <vector>

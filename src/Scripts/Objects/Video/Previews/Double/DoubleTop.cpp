@@ -4,7 +4,6 @@
 
 #include "Viewer/Scripts/Objects/Video/Previews/Double/DoubleTop.h"
 
-
 void DoubleTop::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()

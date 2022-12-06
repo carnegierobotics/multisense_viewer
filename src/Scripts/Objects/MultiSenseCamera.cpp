@@ -1,3 +1,4 @@
+
 #include "Viewer/Scripts/Objects/MultiSenseCamera.h"
 
 void MultiSenseCamera::setup() {

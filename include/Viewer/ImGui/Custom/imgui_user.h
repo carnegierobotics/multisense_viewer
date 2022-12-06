@@ -9,7 +9,7 @@
 #include <string>
 
 /**
- * @brief Custom IMGUI modules made for this projectble
+ * @brief Custom IMGUI modules made for this project
  */
 namespace ImGui {
     // Helper to display a little (?) mark which shows a tooltip when hovered.

@@ -20,9 +20,6 @@
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
 
-#define NUM_TEXTURES 3
-#define NUM_IMAGE_ICONS 9
-
 namespace VkRender {
     class GuiManager {
     public:

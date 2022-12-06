@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_ADAPTERUTILS_H
 #define MULTISENSE_VIEWER_ADAPTERUTILS_H
 
+#include <utility>
+
 #ifdef __linux__
 #include <net/if.h>
 #include <netinet/in.h>
@@ -17,9 +19,6 @@
 #include <iphlpapi.h>
 #include <pcap.h>
 #endif
-
-#include <utility>
-
 
 namespace Utils {
     struct Adapter {

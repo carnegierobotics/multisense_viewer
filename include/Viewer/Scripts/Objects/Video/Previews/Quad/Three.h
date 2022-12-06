@@ -10,6 +10,7 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
+
 class Three: public VkRender::Base, public VkRender::RegisteredInFactory<Three>, CRLCameraModels
 {
 public:

@@ -9,11 +9,7 @@
 #define semWait(x, y) WaitForSingleObject(x, y)
 #else
 #include<bits/stdc++.h>
-#include<pthread.h>
-#include<semaphore.h>
-#define semWait(x, y) sem_wait(x)
 #define semPost(x) sem_post(x)
-#define INFINITE nullptr
 #endif
 
 #include "Viewer/Tools/Logger.h"

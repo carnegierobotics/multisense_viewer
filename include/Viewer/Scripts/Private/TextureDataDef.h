@@ -61,7 +61,7 @@ namespace VkRender {
             }
         }
 
-        CRLCameraDataType m_Type = AR_CAMERA_IMAGE_NONE;
+        CRLCameraDataType m_Type = CRL_CAMERA_IMAGE_NONE;
         CRLCameraResolution m_Res = CRL_RESOLUTION_NONE;
         uint32_t m_Width = 0;
         uint32_t m_Height = 0;
@@ -74,16 +74,16 @@ namespace VkRender {
         bool m_Manual = true;
         void calcImageSize(){
             switch (m_Type) {
-                case AR_POINT_CLOUD:
-                case AR_GRAYSCALE_IMAGE:
+                case CRL_POINT_CLOUD:
+                case CRL_GRAYSCALE_IMAGE:
                     m_Len = m_Width * m_Height;
                     break;
-                case AR_COLOR_IMAGE_YUV420:
-                case AR_YUV_PLANAR_FRAME:
+                case CRL_COLOR_IMAGE_YUV420:
+                case CRL_YUV_PLANAR_FRAME:
                     m_Len = m_Width * m_Height;
                     m_Len2 = m_Width * m_Height / 2;
                     break;
-                case AR_DISPARITY_IMAGE:
+                case CRL_DISPARITY_IMAGE:
                     m_Len = m_Width * m_Height * 2;
                     break;
                 default:

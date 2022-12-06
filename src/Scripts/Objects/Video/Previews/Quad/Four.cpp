@@ -38,7 +38,7 @@ void Four::setup() {
 }
 
 void Four::update() {
-    if (selectedPreviewTab != TAB_2D_PREVIEW)
+    if (selectedPreviewTab != CRL_TAB_2D_PREVIEW)
         return;
 
     auto tex = VkRender::TextureData(textureType, res);
@@ -95,8 +95,8 @@ void Four::update() {
 
 
 void Four::prepareDefaultTexture() {
-    m_NoDataModel->modelType = AR_COLOR_IMAGE;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
+    m_NoDataModel->modelType = CRL_COLOR_IMAGE;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
     std::string vertexShaderFileName = "Scene/spv/quad.vert";
     std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -105,17 +105,17 @@ void Four::prepareDefaultTexture() {
                                                             {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
-    auto defTex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
+    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
     if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
         std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
         m_NoDataModel->updateTexture(defTex->m_Type);
     }
 
-    m_NoSourceModel->modelType = AR_COLOR_IMAGE;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, AR_COLOR_IMAGE);
+    m_NoSourceModel->modelType = CRL_COLOR_IMAGE;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
-    auto tex = std::make_unique<VkRender::TextureData>(AR_COLOR_IMAGE, texWidth, texHeight);
+    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
     if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
         std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
         m_NoSourceModel->updateTexture(tex->m_Type);
@@ -126,17 +126,17 @@ void Four::prepareMultiSenseTexture() {
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
     switch (textureType) {
-        case AR_GRAYSCALE_IMAGE:
+        case CRL_GRAYSCALE_IMAGE:
             vertexShaderFileName = "Scene/spv/preview.vert";
             fragmentShaderFileName = "Scene/spv/preview.frag";
             break;
-        case AR_COLOR_IMAGE_YUV420:
-        case AR_YUV_PLANAR_FRAME:
+        case CRL_COLOR_IMAGE_YUV420:
+        case CRL_YUV_PLANAR_FRAME:
             vertexShaderFileName = "Scene/spv/quad.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
                                      "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
             break;
-        case AR_DISPARITY_IMAGE:
+        case CRL_DISPARITY_IMAGE:
             vertexShaderFileName = "Scene/spv/depth.vert";
             fragmentShaderFileName = "Scene/spv/depth.frag";
             break;
@@ -162,11 +162,11 @@ void Four::prepareMultiSenseTexture() {
 
 void Four::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const VkRender::Device &dev: uiHandle->devices) {
-        if (dev.state != AR_STATE_ACTIVE)
+        if (dev.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
 
-        auto &preview = dev.win.at(AR_PREVIEW_FOUR);
+        auto &preview = dev.win.at(CRL_PREVIEW_FOUR);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
 
         if (src == "Source") {
@@ -188,8 +188,8 @@ void Four::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 }
 
 void Four::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
-    float row = dev.win.at(AR_PREVIEW_FOUR).row;
-    float col = dev.win.at(AR_PREVIEW_FOUR).col;
+    float row = dev.win.at(CRL_PREVIEW_FOUR).row;
+    float col = dev.win.at(CRL_PREVIEW_FOUR).col;
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
     scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
@@ -201,7 +201,7 @@ void Four::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const
 
 
 void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == TAB_2D_PREVIEW) {
+    if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:
                 CRLCameraModels::draw(commandBuffer, i, m_NoSourceModel.get(), b);
@@ -219,7 +219,7 @@ void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 void Four::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
-        if (dev.state != AR_STATE_ACTIVE)
+        if (dev.state != CRL_STATE_ACTIVE)
             continue;
 
         //transformToUISpace(uiHandle, dev);

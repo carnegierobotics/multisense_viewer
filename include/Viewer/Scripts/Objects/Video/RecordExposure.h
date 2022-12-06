@@ -44,7 +44,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
+    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -54,7 +54,7 @@ public:
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
-    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+    CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
     uint32_t exposure = 20000;
     uint32_t exposureFactor = 25;
 

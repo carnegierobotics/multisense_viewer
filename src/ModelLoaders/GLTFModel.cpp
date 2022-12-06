@@ -787,7 +787,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils& utils, 
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders, const std::vector<VkRender::RenderDescriptorBuffersData>& buffers, ScriptType flags) {
     this->vulkanDevice = utils.device;
-    if (flags == AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS){
+    if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS){
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
         createPipeline(*utils.renderPass, shaders);

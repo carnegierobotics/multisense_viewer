@@ -44,7 +44,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DEFAULT;
+    ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -55,7 +55,7 @@ public:
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
-    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+    CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
     static void saveImageToFile(CRLCameraDataType type, const std::string& path, const std::string& stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
         std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead, const std::string& compression);

@@ -55,7 +55,7 @@ void RecordExposure::update() {
 
 void RecordExposure::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const VkRender::Device &dev: uiHandle->devices) {
-        if (dev.state != AR_STATE_ACTIVE)
+        if (dev.state != CRL_STATE_ACTIVE)
             continue;
 
         saveImagePath = dev.outputSaveFolder;
@@ -100,9 +100,9 @@ void RecordExposure::saveImageToFile(CRLCameraDataType type, const std::string &
 
 
     switch (type) {
-        case AR_POINT_CLOUD:
+        case CRL_POINT_CLOUD:
             break;
-        case AR_GRAYSCALE_IMAGE: {
+        case CRL_GRAYSCALE_IMAGE: {
             std::ofstream output(fullPathName);
             output.close();
             Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
@@ -115,14 +115,14 @@ void RecordExposure::saveImageToFile(CRLCameraDataType type, const std::string &
             exposureTimes.close();
         }
             break;
-        case AR_DISPARITY_IMAGE: {
+        case CRL_DISPARITY_IMAGE: {
         }
             break;
-        case AR_YUV_PLANAR_FRAME:
+        case CRL_YUV_PLANAR_FRAME:
             break;
-        case AR_CAMERA_IMAGE_NONE:
+        case CRL_CAMERA_IMAGE_NONE:
             break;
-        case AR_COLOR_IMAGE:
+        case CRL_COLOR_IMAGE:
             break;
     }
 }

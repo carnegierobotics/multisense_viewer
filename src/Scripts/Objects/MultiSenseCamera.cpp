@@ -19,7 +19,7 @@ void MultiSenseCamera::setup() {
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (previewTab == TAB_3D_POINT_CLOUD && b)
+    if (previewTab == CRL_TAB_3D_POINT_CLOUD && b)
         m_Model->draw(commandBuffer, i);
 }
 
@@ -59,7 +59,7 @@ void MultiSenseCamera::update() {
 
 void MultiSenseCamera::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &d: uiHandle->devices) {
-        if (d.state != AR_STATE_ACTIVE)
+        if (d.state != CRL_STATE_ACTIVE)
             continue;
 
         previewTab = d.selectedPreviewTab;

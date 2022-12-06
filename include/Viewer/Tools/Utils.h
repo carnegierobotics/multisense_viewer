@@ -155,24 +155,24 @@ namespace Utils {
     }
 
     static CRLCameraDataType CRLSourceToTextureType(const std::string &d) {
-        if (d == "Luma Left") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Right") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Left") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Right") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Left") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Right") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Left") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Right") return AR_GRAYSCALE_IMAGE;
-        if (d == "Disparity Left") return AR_DISPARITY_IMAGE;
+        if (d == "Luma Left") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Right") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Left") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Right") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Left") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Right") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Left") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Right") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Disparity Left") return CRL_DISPARITY_IMAGE;
 
-        if (d == "Color Aux") return AR_COLOR_IMAGE_YUV420;
-        if (d == "Color Rectified Aux") return AR_COLOR_IMAGE_YUV420;
-        if (d == "Luma Aux") return AR_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Aux") return AR_GRAYSCALE_IMAGE;
-        if (d == "Compressed Aux") return AR_COLOR_IMAGE_YUV420;
-        if (d == "Compressed Rectified Aux") return AR_COLOR_IMAGE_YUV420;
+        if (d == "Color Aux") return CRL_COLOR_IMAGE_YUV420;
+        if (d == "Color Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
+        if (d == "Luma Aux") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Aux") return CRL_GRAYSCALE_IMAGE;
+        if (d == "Compressed Aux") return CRL_COLOR_IMAGE_YUV420;
+        if (d == "Compressed Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
 
-        return AR_CAMERA_IMAGE_NONE;
+        return CRL_CAMERA_IMAGE_NONE;
     }
 
     DISABLE_WARNING_POP

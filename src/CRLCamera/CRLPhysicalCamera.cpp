@@ -153,7 +153,7 @@ namespace VkRender::MultiSense {
             return false;
 
         switch (tex->m_Type) {
-            case AR_COLOR_IMAGE_YUV420: {
+            case CRL_COLOR_IMAGE_YUV420: {
                 if (headerTwo->data().source != src ||
                     tex->m_Width != header->data().width ||
                     tex->m_Height < header->data().height)
@@ -199,7 +199,7 @@ namespace VkRender::MultiSense {
 
                 return true;
 
-            case AR_DISPARITY_IMAGE:
+            case CRL_DISPARITY_IMAGE:
                 DISABLE_WARNING_PUSH
                 DISABLE_WARNING_IMPLICIT_FALLTHROUGH
                 if (header->data().bitsPerPixel != 16) {
@@ -207,8 +207,8 @@ namespace VkRender::MultiSense {
                               std::endl;
                     return false;
                 }DISABLE_WARNING_POP
-            case AR_GRAYSCALE_IMAGE:
-            case AR_POINT_CLOUD:
+            case CRL_GRAYSCALE_IMAGE:
+            case CRL_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data()
                         .width || tex->m_Height < header->data().height)
                     return false;

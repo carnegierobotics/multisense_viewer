@@ -109,4 +109,4 @@ private:
 };
 
 
-#endif //AR_ENGINE_RENDERER_H
+#endif // MultiSense_Viewer_RENDERER_H

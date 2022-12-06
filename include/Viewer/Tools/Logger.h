@@ -106,7 +106,7 @@ namespace Log {
         } device;
         /// SingleLayout Preview
         struct {
-            CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+            CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
             uint32_t width = 0, height = 0;
             uint32_t texWidth = 0, texHeight = 0;
             CRLCameraResolution res = CRL_RESOLUTION_NONE;

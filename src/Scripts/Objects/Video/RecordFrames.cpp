@@ -60,7 +60,7 @@ void RecordFrames::update() {
 
 void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const VkRender::Device &dev: uiHandle->devices) {
-        if (dev.state != AR_STATE_ACTIVE)
+        if (dev.state != CRL_STATE_ACTIVE)
             continue;
 
         sources.clear();
@@ -144,7 +144,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         Log::Logger::getInstance()->info("Created directory {}", directory + "png");
 
 
-    if (type == AR_COLOR_IMAGE_YUV420) {
+    if (type == CRL_COLOR_IMAGE_YUV420) {
         check = mkdir((directory + "/ppm").c_str(), 0777);
         if (check == 0)
             Log::Logger::getInstance()->info("Created directory {}", directory + "tiff");
@@ -158,7 +158,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         if (std::filesystem::exists(filePath + "png/" + fileName + ".png"))
             return;
     } else {
-        if (type == AR_COLOR_IMAGE_YUV420){
+        if (type == CRL_COLOR_IMAGE_YUV420){
             if (std::filesystem::exists(filePath + "ppm/" + fileName + ".ppm"))
                 return;
         }
@@ -172,9 +172,9 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     if (compression == "tiff") {
 
         switch (type) {
-            case AR_POINT_CLOUD:
+            case CRL_POINT_CLOUD:
                 break;
-            case AR_GRAYSCALE_IMAGE: {
+            case CRL_GRAYSCALE_IMAGE: {
                 auto *d = (uint8_t *) ptr->data;
                 std::string fullTIFFPath = filePath + "tiff/" + fileName + ".tif";
                 Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
@@ -185,7 +185,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 TinyTIFFWriter_close(tif);
             }
                 break;
-            case AR_DISPARITY_IMAGE: {
+            case CRL_DISPARITY_IMAGE: {
                 auto *d = (uint16_t *) ptr->data;
                 std::string fullTIFFPath = filePath + "tiff/" + fileName + ".tif";
                 Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
@@ -196,7 +196,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 TinyTIFFWriter_close(tif);
             }
                 break;
-            case AR_COLOR_IMAGE_YUV420:
+            case CRL_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
             {
                 Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
@@ -214,18 +214,18 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 outputStream.close();
                 break;
             }
-            case AR_YUV_PLANAR_FRAME:
+            case CRL_YUV_PLANAR_FRAME:
                 break;
-            case AR_CAMERA_IMAGE_NONE:
+            case CRL_CAMERA_IMAGE_NONE:
                 break;
-            case AR_COLOR_IMAGE:
+            case CRL_COLOR_IMAGE:
                 break;
         }
     } else if (compression == "png") {
         switch (type) {
-            case AR_POINT_CLOUD:
+            case CRL_POINT_CLOUD:
                 break;
-            case AR_GRAYSCALE_IMAGE: {
+            case CRL_GRAYSCALE_IMAGE: {
                 std::string fullPngPath = filePath + "png/" + fileName + ".png";
 
                 std::ofstream output(fullPngPath);
@@ -236,7 +236,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                                ptr->m_Width);
             }
                 break;
-            case AR_DISPARITY_IMAGE: {
+            case CRL_DISPARITY_IMAGE: {
                 std::string fullPngPath = filePath + "png/" + fileName + ".png";
                 auto *d = (uint16_t *) ptr->data;
 
@@ -251,7 +251,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                                ptr->m_Width);
             }
                 break;
-            case AR_COLOR_IMAGE_YUV420:
+            case CRL_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
 
             {
@@ -321,11 +321,11 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
 
                 break;
-            case AR_YUV_PLANAR_FRAME:
+            case CRL_YUV_PLANAR_FRAME:
                 break;
-            case AR_CAMERA_IMAGE_NONE:
+            case CRL_CAMERA_IMAGE_NONE:
                 break;
-            case AR_COLOR_IMAGE:
+            case CRL_COLOR_IMAGE:
                 break;
         }
     }

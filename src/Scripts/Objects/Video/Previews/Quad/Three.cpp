@@ -166,7 +166,6 @@ void Three::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
-        playbackSate = dev.playbackStatus;
 
         auto &preview = dev.win.at(AR_PREVIEW_THREE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
@@ -190,8 +189,8 @@ void Three::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 }
 
 void Three::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
-    float row = dev.row[2];
-    float col = dev.col[0];
+    float row = dev.win.at(AR_PREVIEW_THREE).row;
+    float col = dev.win.at(AR_PREVIEW_THREE).col;
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
     scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);

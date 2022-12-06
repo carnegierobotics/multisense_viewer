@@ -75,7 +75,7 @@ private:
 
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
-    bool renderSelectionPass = false;
+    bool renderSelectionPass = true;
 
     // Create a host-visible staging buffer that contains the raw m_Image data
     VkBuffer selectionBuffer{};

@@ -175,7 +175,6 @@ void DoubleBot::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
-        playbackSate = dev.playbackStatus;
 
         auto &preview = dev.win.at(AR_PREVIEW_TWO);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
@@ -200,8 +199,8 @@ void DoubleBot::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight + uiHandle->accumulatedActiveScroll +
-                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[1]) * uiHandle->info->viewAreaElementSizeY) +
-                    ((dev.row[1]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.win.at(AR_PREVIEW_TWO).row) * uiHandle->info->viewAreaElementSizeY) +
+                    ((dev.win.at(AR_PREVIEW_TWO).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
              (1280.0f / uiHandle->info->width);

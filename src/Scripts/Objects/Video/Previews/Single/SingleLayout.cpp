@@ -171,7 +171,6 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
-        playbackSate = dev.playbackStatus;
         auto &preview = dev.win.at(AR_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
 
@@ -196,8 +195,8 @@ void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
-                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.row[0]) * uiHandle->info->viewAreaElementSizeY) +
-                    ((dev.row[0]) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.win.at(AR_PREVIEW_ONE).row) * uiHandle->info->viewAreaElementSizeY) +
+                    ((dev.win.at(AR_PREVIEW_ONE).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
              (1280.0f / uiHandle->info->width);

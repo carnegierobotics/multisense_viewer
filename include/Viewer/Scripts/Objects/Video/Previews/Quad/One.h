@@ -66,7 +66,6 @@ public:
     std::string src;
     int16_t remoteHeadIndex = 0;
     CRLCameraResolution res{};
-    CameraPlaybackFlags playbackSate{};
     CRLCameraDataType textureType{};
 
     int64_t lastPresentedFrameID = -1;

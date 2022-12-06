@@ -70,7 +70,6 @@ public:
     std::string src;
     int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
-    CameraPlaybackFlags playbackSate{};
     int texWidth = 0, texHeight = 0, texChannels = 0;
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
     int64_t lastPresentedFrameID = -1;

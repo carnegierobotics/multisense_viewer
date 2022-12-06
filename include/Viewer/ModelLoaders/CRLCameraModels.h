@@ -37,7 +37,7 @@ public:
         VkDescriptorSetLayout descriptorSetLayout{};
         VkDescriptorPool descriptorPool{};
         VkPipeline pipeline{};
-        VkPipeline selectionPipeline{}; // TODO destroy object
+        VkPipeline selectionPipeline{};
         bool initializedPipeline = false;
 
         VkPipelineLayout pipelineLayout{};

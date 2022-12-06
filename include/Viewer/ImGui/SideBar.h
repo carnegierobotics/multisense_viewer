@@ -39,7 +39,6 @@
 
 #define ONE_SECOND 1
 
-// TODO Really long and confusing class. But it handles the sidebar and the pop up modal connect device
 class SideBar : public VkRender::Layer {
 public:
 
@@ -992,9 +991,8 @@ private:
 
     void addSpinnerGif(VkRender::GuiObjectHandles *handles) {
 
-        ImVec2 size = ImVec2(40.0f,
-                             40.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
-        ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+        ImVec2 size = ImVec2(40.0f,40.0f);
+        ImVec2 uv0 = ImVec2(0.0f, 0.0f);
         ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
         ImVec4 bg_col = ImVec4(0.054f, 0.137f, 0.231f, 1.0f);

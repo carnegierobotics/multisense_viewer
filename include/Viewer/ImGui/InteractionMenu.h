@@ -118,8 +118,7 @@ public:
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
                 float posY = ImGui::GetCursorScreenPos().y;
 
-                ImVec2 size = ImVec2(100.0f,
-                                     100.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                ImVec2 size = ImVec2(100.0f,100.0f);
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -682,8 +681,7 @@ private:
         if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
 
             if (withStreamControls) {
-                ImVec2 size = ImVec2(65.0f,
-                                     50.0f);                     // TODO dont make use of these hardcoded values. Use whatever values that were gathered during texture initialization
+                ImVec2 size = ImVec2(65.0f,50.0f);
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 

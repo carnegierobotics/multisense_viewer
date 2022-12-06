@@ -126,7 +126,6 @@ void GLTFModel::Model::scale(const glm::vec3 &scale) {
 
 
 
-// TODO: Support multiple children Nodes
 void GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer) {
     //if (node->m_Mesh)
         for (Primitive primitive: primitives) {
@@ -437,7 +436,7 @@ void GLTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
 
 }
 
-// TODO USE ENUMS TO SET COLOR OR NORMAL INSTEAD OF SEPARATE ALMOST INDENTICAL FUNCTIONS
+
 /**
  * Function to set normal texture other than the specified in embedded glTF file.
  * @param fileName Name of texture. Requires full path
@@ -477,7 +476,6 @@ GLTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount) {
 }
 
 void GLTFModel::Model::createDescriptorSetLayout() {
-    // TODO BETTER SELECTION PROCESS
     std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
             {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},

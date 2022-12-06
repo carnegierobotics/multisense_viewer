@@ -229,12 +229,12 @@ namespace VkRender {
         style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_PopupBg] = VkRender::CRLDarkGray425;
-        style.Colors[ImGuiCol_WindowBg] = VkRender::CRLDarkGray425;
-        style.Colors[ImGuiCol_Tab] = VkRender::CRLRed;
-        style.Colors[ImGuiCol_TabActive] = VkRender::CRLRedActive;
-        style.Colors[ImGuiCol_TabHovered] = VkRender::CRLRedHover;
-        style.Colors[ImGuiCol_Button] = VkRender::CRLBlueIsh;
+        style.Colors[ImGuiCol_PopupBg] = VkRender::Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_WindowBg] = VkRender::Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_Tab] = VkRender::Colors::CRLRed;
+        style.Colors[ImGuiCol_TabActive] = VkRender::Colors::CRLRedActive;
+        style.Colors[ImGuiCol_TabHovered] = VkRender::Colors::CRLRedHover;
+        style.Colors[ImGuiCol_Button] = VkRender::Colors::CRLBlueIsh;
 
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
 

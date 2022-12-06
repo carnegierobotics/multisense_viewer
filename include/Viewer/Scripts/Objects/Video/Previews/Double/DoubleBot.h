@@ -68,7 +68,6 @@ public:
     std::string src;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
-    CameraPlaybackFlags playbackSate{};
     CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;

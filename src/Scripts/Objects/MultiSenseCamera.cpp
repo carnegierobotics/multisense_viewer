@@ -27,6 +27,7 @@ void MultiSenseCamera::update() {
     mat.model = glm::mat4(1.0f);
     mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 
+    /*
     if (imuEnabled) {
         VkRender::Rotation rot{};
         //renderData.crlCamera->get()->getImuRotation(&rot);
@@ -38,6 +39,8 @@ void MultiSenseCamera::update() {
     } else {
         mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }
+     */
+    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     auto& d = bufferOneData;
     d->model = mat.model;
@@ -59,7 +62,5 @@ void MultiSenseCamera::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
         previewTab = d.selectedPreviewTab;
-        imuEnabled = d.useImuData;
-
     }
 }

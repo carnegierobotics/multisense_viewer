@@ -6,7 +6,6 @@
 #define MULTISENSE_DEFINITIONS_H
 
 
-
 #include <unordered_map>
 #include <memory>
 #include <utility>
@@ -22,8 +21,6 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
 
-#define NUM_YUV_DATA_POINTERS 3
-#define NUM_POINTS 2048 // Changing this also needs to be changed in the vs shader.
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define MAX_IMAGES_IN_QUEUE 30
@@ -33,28 +30,24 @@ namespace VkRender::MultiSense {
     class CRLPhysicalCamera;
 }
 
+/**
+ * @brief Defines draw behaviour of a script
+ */
 typedef enum ScriptType {
-    /**
-     * AR_SCRIPT_TYPE_DISABLED Do not draw script at all
-     */
+    /** AR_SCRIPT_TYPE_DISABLED Do not draw script at all */
     AR_SCRIPT_TYPE_DISABLED,
-    /**
-     * AR_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect
-     */
+    /** AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
+    AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
+    /** AR_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
     AR_SCRIPT_TYPE_DEFAULT,
-    AR_SCRIPT_TYPE_CRL_CAMERA,
-    AR_SCRIPT_TYPE_POINT_CLOUD,
-    /**
-     *  AR_SCRIPT_TYPE_RENDER Draw script since first frame
-     */
+    /** AR_SCRIPT_TYPE_RENDER Draw script since application startup */
     AR_SCRIPT_TYPE_RENDER,
-    /**
-     *  AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers
-     */
-    AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS
+
 } ScriptType;
 
-
+/**
+ * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
+ */
 typedef enum CRLCameraDataType {
     AR_POINT_CLOUD,
     AR_GRAYSCALE_IMAGE,
@@ -65,12 +58,9 @@ typedef enum CRLCameraDataType {
     AR_DISPARITY_IMAGE
 } CRLCameraDataType;
 
-typedef enum CRLCameraType {
-    DEFAULT_CAMERA_IP,
-    CUSTOM_CAMERA_IP,
-    VIRTUAL_CAMERA
-} CRLCameraType;
-
+/**
+ * @brief What connection state a device seen in the side bar can be in.
+ */
 typedef enum ArConnectionState {
     AR_STATE_CONNECTED = 0,
     AR_STATE_CONNECTING = 1,
@@ -85,8 +75,11 @@ typedef enum ArConnectionState {
     AR_STATE_JUST_ADDED = 10
 } ArConnectionState;
 
-
-typedef enum StreamIndex {
+/**
+ * @brief Identifier for each preview window and point cloud type. Loosely tied to the preview scripts
+ * Note: Numbering matters
+ */
+typedef enum StreamWindowIndex {
     // First 0 - 8 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
     AR_PREVIEW_ONE = 0,
     AR_PREVIEW_TWO = 1,
@@ -98,28 +91,15 @@ typedef enum StreamIndex {
     AR_PREVIEW_EIGHT = 7,
     AR_PREVIEW_NINE = 8,
     AR_PREVIEW_POINT_CLOUD = 9,
-
-
     AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD + 1,
     // Other flags
 
-} CameraStreamInfoFlag;
-
-typedef enum CameraResolutionGroup {
-    AR_GROUP_ONE,
-    AR_GROUP_TWO,
+} StreamWindowIndex;
 
 
-} CameraResolutionGroup;
-
-typedef enum CameraPlaybackFlags {
-    AR_PREVIEW_PLAYING = 10,
-    AR_PREVIEW_PAUSED = 11,
-    AR_PREVIEW_STOPPED = 12,
-    AR_PREVIEW_NONE = 13,
-    AR_PREVIEW_RESET = 14,
-} CameraPlaybackFlags;
-
+/**
+ * @brief Identifier for different pages in the GUI.
+ */
 typedef enum page {
     PAGE_PREVIEW_DEVICES = 0,
     PAGE_DEVICE_INFORMATION = 1,
@@ -130,14 +110,9 @@ typedef enum page {
     TAB_3D_POINT_CLOUD = 12,
 } Page;
 
-typedef enum ImageElementIndex {
-    IMAGE_PREVIEW_ONE = 0,
-    IMAGE_INTERACTION_PREVIEW_DEVICE = 1,
-    IMAGE_INTERACTION_DEVICE_INFORMATION = 2,
-    IMAGE_INTERACTION_CONFIGURE_DEVICE = 3,
-    IMAGE_CONFIGURE_DEVICE_PLACEHOLDER = 4,
-} ImageElementIndex;
-
+/**
+ * @brief Hardcoded Camera resolutions using descriptive enums
+ */
 typedef enum CRLCameraResolution {
     CRL_RESOLUTION_960_600_64 = 0,
     CRL_RESOLUTION_960_600_128 = 1,
@@ -150,11 +125,9 @@ typedef enum CRLCameraResolution {
     CRL_RESOLUTION_NONE = 8
 } CRLCameraResolution;
 
-typedef enum CRLCameraBaseUnit {
-    CRL_BASE_MULTISENSE = 0,
-    CRL_BASE_REMOTE_HEAD = 1
-} CRLCameraBaseUnit;
-
+/**
+ * @brief Page within pages. Which layout is chosen for previews
+ */
 typedef enum PreviewLayout {
     PREVIEW_LAYOUT_NONE = 0,
     PREVIEW_LAYOUT_SINGLE = 1,
@@ -164,6 +137,9 @@ typedef enum PreviewLayout {
     PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
 
+/**
+ * @brief Adjustable sensor parameters
+ */
 struct WhiteBalanceParams {
     float whiteBalanceRed = 1.0f;
     float whiteBalanceBlue = 1.0f;
@@ -173,6 +149,9 @@ struct WhiteBalanceParams {
     bool update = false;
 };
 
+/**
+ * @brief Adjustable sensor parameters
+ */
 struct LightingParams {
     float dutyCycle = 1.0f;
     int selection = -1;
@@ -182,6 +161,9 @@ struct LightingParams {
     bool update = false;
 };
 
+/**
+ * @brief Adjustable sensor parameters
+ */
 struct ExposureParams {
     bool autoExposure{};
     int exposure = 20000;
@@ -198,6 +180,9 @@ struct ExposureParams {
     bool update = false;
 };
 
+/**
+ * @brief Adjustable sensor parameters
+ */
 struct CalibrationParams {
     bool update = false;
     bool save = false;
@@ -207,13 +192,31 @@ struct CalibrationParams {
     bool updateFailed = false;
     bool saveFailed = false;
 
-    CalibrationParams(){
+    CalibrationParams() {
         intrinsicsFilePath.resize(255);
         extrinsicsFilePath.resize(255);
         saveCalibrationPath.resize(255);
     }
 };
 
+/** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
+struct Parameters {
+    ExposureParams ep{};
+    WhiteBalanceParams wb{};
+    LightingParams light{};
+    CalibrationParams calib{};
+
+    float gain = 1.0f;
+    float fps = 30.0f;
+    float stereoPostFilterStrength = 0.5f;
+    bool hdrEnabled = false;
+    float gamma = 2.0f;
+
+    bool update = false;
+    bool updateGuiParams = true;
+
+
+};
 
 /**
  * @brief MAIN RENDER NAMESPACE. This namespace contains all Render resources presented by the backend of this renderer engine.
@@ -230,25 +233,9 @@ namespace VkRender {
         VkDevice device{};
     } SwapChainCreateInfo;
 
-    /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
-    struct Parameters {
-        ExposureParams ep{};
-        WhiteBalanceParams wb{};
-        LightingParams light{};
-        CalibrationParams calib{};
-
-        float gain = 1.0f;
-        float fps = 30.0f;
-        float stereoPostFilterStrength = 0.5f;
-        bool hdrEnabled = false;
-        float gamma = 2.0f;
-
-        bool update = false;
-        bool updateGuiParams = true;
-
-
-    };
-
+    /**
+     * @brief Data block for displaying pixel intensity and depth in textures on mouse hover
+     */
     struct CursorPixelInformation {
         uint32_t x{}, y{};
         uint32_t r{}, g{}, b{};
@@ -256,20 +243,29 @@ namespace VkRender {
         float depth{};
     };
 
+    /**
+     * @brief Information block for each Preview window, should support 1-9 possible previews. Contains stream names and info to presented to the user.
+     * Contains a mix of GUI related and MultiSense Device related info.
+     */
     struct PreviewWindow {
         std::vector<std::string> availableSources{}; // Human-readable names of camera sources
         std::vector<std::string> availableRemoteHeads{};
         std::string selectedSource = "Source";
         uint32_t selectedSourceIndex = 0;
-        int hoveredPixelInfo{};
         crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
         float xPixelStartPos = 0;
         float yPixelStartPos = 0;
+        float row = 0;
+        float col = 0;
     };
 
+    /**
+     * @brief Ties together the preview windows for each MultiSense channel
+     * Contain possible streams and resolutions for each channel
+     */
     struct ChannelInfo {
         uint32_t index = 0;
-        std::vector<std::string> availableSources{}; // Human-readable names of camera sources
+        std::vector<std::string> availableSources{};
         ArConnectionState state = AR_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
@@ -295,42 +291,52 @@ namespace VkRender {
         std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
         /** @brief Name of the network adapter this camera is connected to  */
         std::string interfaceName;
+        /** @brief InterFace index of network adapter */
         uint32_t interfaceIndex = 0;
+        /** @brief Descriptive text of interface if provided by the OS (Required on windows) */
         std::string interfaceDescription;
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked = false;
         /** @brief Current connection state for this device */
         ArConnectionState state = AR_STATE_UNAVAILABLE;
-        CameraPlaybackFlags playbackStatus = AR_PREVIEW_NONE;
+        /** @brief What type of layout is selected for this device*/
         PreviewLayout layout = PREVIEW_LAYOUT_SINGLE;
+        /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
-
-        std::unordered_map<uint32_t, PreviewWindow> win{};
+        /** @brief Order each preview window with a index flag*/
+        std::unordered_map<StreamWindowIndex, PreviewWindow> win{};
+        /** @brief Put each camera interface channel (crl::multisense::Channel) 0-3 in a vector. Contains GUI info for each channel */
         std::vector<ChannelInfo> channelInfo{};
-        /**@brief location for which this m_Device should save recorded frames **/
-        std::string outputSaveFolder = "";
-        bool isRecording = false;
-
-        float row[9] = {0};
-        float col[9] = {0};
-        bool pixelInfoEnable = true;
-        bool useImuData = false;
-        int cameraType = 0; // TODO dont use device container for gui settings
-        bool resetCamera = false;
-        CursorPixelInformation pixelInfo{};
-        std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
-        crl::multisense::RemoteHeadChannel configRemoteHead = 0;
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
-
+        /**@brief location for which this m_Device should save recorded frames **/
+        std::string outputSaveFolder;
+        /**@brief Flag to decide if user is currently recording frames */
+        bool isRecording = false;
+        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
+        int cameraType = 0;
+        /** @brief Reset 3D view camera position and rotation */
+        bool resetCamera = false;
+        /** @brief Pixel information, on mouse hover for textures */
+        CursorPixelInformation pixelInfo{};
+        /** @brief Indices for each remote head if connected.*/
+        std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
+        /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
+        crl::multisense::RemoteHeadChannel configRemoteHead = 0;
+        /** @brief Which TAB this preview has selected. 2D or 3D view. */
         Page selectedPreviewTab = TAB_2D_PREVIEW;
+        /** @brief Flag to signal application to revert network settings on application exit */
         bool systemNetworkChanged = false;
         /** Interrupt connection if users exits program. */
         bool interruptConnection = false;
-
+        /** @brief Which compression method to use. Default is tiff which offer no compression */
         std::string saveImageCompressionMethod = "tiff";
 
-        Device(){
+        /**
+         * @brief Constructor for Device
+         * Allocate save folder buffer for user input. Max path is 255 characters long. Required for implementation with ImGui.
+         */
+        Device() {
             outputSaveFolder.resize(255);
         }
     };
@@ -347,13 +353,9 @@ namespace VkRender {
         glm::vec4 weight0{};
     };
 
-    struct Rotation {
-        glm::mat4 rotationMatrix{};
-        float roll = 0;
-        float pitch = 0;
-        float yaw = 0;
-    };
-
+    /**
+     * @brief MouseButtons user input
+     */
     struct MouseButtons {
         bool left = false;
         bool right = false;
@@ -362,7 +364,7 @@ namespace VkRender {
     };
 
     /**
-     * @brief Default MVP matrix
+     * @brief Default MVP matrices
      */
     struct UBOMatrix {
         glm::mat4 projection{};
@@ -395,18 +397,19 @@ namespace VkRender {
 
     };
 
-    struct RenderDescriptorBuffers{
+    /** @brief Additional default buffers for rendering mulitple models with distrinct MVP */
+    struct RenderDescriptorBuffers {
         UBOMatrix mvp{};
         FragShaderParams light{};
     };
 
-    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
+    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these two */
     struct RenderDescriptorBuffersData {
         Buffer mvp{};
         Buffer light{};
     };
     /**
-     * @brief TODO: Unfinished. Put mouse cursor position information into shader. Meant for zooming
+     * @brief TODO: Unfinished. Put mouse cursor position information into shader. Meant for zoom feature
      */
     struct MousePositionPushConstant {
         glm::vec2 position{};
@@ -420,25 +423,23 @@ namespace VkRender {
         VkRenderPass renderPass{};
         // List of available frame buffers (same as number of swap chain images)
         VkFramebuffer frameBuffer{};
-
         VkImage colorImage{};
         VkImage depthImage{};
         VkImageView colorView{};
         VkImageView depthView{};
         VkDeviceMemory colorMem{};
         VkDeviceMemory depthMem{};
-
     };
 
 
-    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these four */
+    /**@brief A standard set of uniform buffers. Each script is initialized with these */
     struct UniformBufferSet {
         Buffer bufferOne{};
         Buffer bufferTwo{};
         Buffer bufferThree{};
     };
 
-    /** containing Basic Vulkan Resources for rendering **/
+    /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
         uint32_t UBCount = 0;
@@ -468,39 +469,42 @@ namespace VkRender {
         bool additionalBuffers = false;
     };
 
-
-    static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
-    static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
-    static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
-    static const ImVec4 TextRedColor(0.95f, 0.345f, 0.341f, 1.0f);
-    static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
-    static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
-    static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
-    static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
-    static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
-    static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
-    static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
-    static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
-    static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
-    static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
-    static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
-    static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
-    static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
-    static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
-    static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
-    static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
-    static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
-    static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
-    static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
-    static const ImVec4 CRLTextLightGray(0.4f, 0.4f, 0.4f, 1.0f);
-    static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
-    static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
-    static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
-
+    /** @brief Set of Default colors */
+    namespace Colors {
+        static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
+        static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+        static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
+        static const ImVec4 TextRedColor(0.95f, 0.345f, 0.341f, 1.0f);
+        static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
+        static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
+        static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
+        static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
+        static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
+        static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
+        static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
+        static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
+        static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
+        static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
+        static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
+        static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+        static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
+        static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
+        static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
+        static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
+        static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
+        static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 CRLTextLightGray(0.4f, 0.4f, 0.4f, 1.0f);
+        static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
+        static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
+        static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 
     struct GuiLayerUpdateInfo {
         bool firstFrame{};
+        /** @brief Width of window surface */
         float width{};
+        /** @brief Height of window surface */
         float height{};
         /**@brief Width of sidebar*/
         float sidebarWidth = 200.0f;
@@ -522,15 +526,19 @@ namespace VkRender {
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
         /**@brief value for current frame timer*/
         float frameTimer{};
+        /** @brief Current frame*/
         uint64_t frameID = 0;
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
         ImFont *font13{}, *font18{}, *font24{};
 
+        /** @brief Containing descriptor handles for each image button texture */
         std::vector<ImTextureID> imageButtonTextureDescriptor;
 
+        /** @brief
         // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
+        * Container to hold animated gif images
+        */
         struct {
-            unsigned char *pixels = nullptr;
             ImTextureID image[20]{};
             uint32_t id{};
             uint32_t lastFrame = 0;
@@ -562,23 +570,27 @@ namespace VkRender {
         bool hoverState = false;
     };
 
-    /** @brief Handle which is the communication from GUI to Scripts */
+    /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
         std::vector<Device> devices;
-        /** @brief Static info used in creation of gui */
+        /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
-
         /** User action to configure network automatically even when using manual approach **/
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
+        /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 500.0f, minScroll = -850.0f;
+        /** @brief when a GUI window is hovered dont move the camera in the 3D view */
         bool disableCameraRotationFromGUI = false;
+        /** @brief Input from backend to IMGUI */
         const Input *input{};
         std::array<float, 4> clearColor{};
+        /** @brief Display the debug window */
+        bool showDebugWindow = false;
 
-        /*@brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
+        /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
             clearColor[0] = 0.870f;
             clearColor[1] = 0.878f;
@@ -586,7 +598,6 @@ namespace VkRender {
             clearColor[3] = 1.0f;
         }
 
-        bool showDebugWindow = false;
     };
 }
 

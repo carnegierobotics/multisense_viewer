@@ -167,7 +167,6 @@ void Two::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         if (dev.state != AR_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
-        playbackSate = dev.playbackStatus;
 
         auto &preview = dev.win.at(AR_PREVIEW_TWO);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
@@ -191,8 +190,8 @@ void Two::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 }
 
 void Two::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
-    float row = dev.row[0];
-    float col = dev.col[1];
+    float row = dev.win.at(AR_PREVIEW_TWO).row;
+    float col = dev.win.at(AR_PREVIEW_TWO).col;
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
     scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);

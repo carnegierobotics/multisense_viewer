@@ -255,7 +255,7 @@ public:
                 for (const auto &enabled: info->enabledStreams) {
                     ImGui::Dummy(ImVec2(10.0f, 0.0f));
                     ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
                     ImGui::Text("%s", enabled.c_str());
                     ImGui::PopStyleColor();
                 }
@@ -267,7 +267,7 @@ public:
 
                     ImGui::Dummy(ImVec2(10.0f, 0.0f));
                     ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::CRLCoolGray);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
                     ImGui::Text("%s", req.c_str());
                     ImGui::PopStyleColor();
 

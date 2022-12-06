@@ -177,7 +177,6 @@ void Renderer::render() {
     for (auto &dev: guiManager->handles.devices) {
         if (dev.state == AR_STATE_ACTIVE) {
             noActivePreview = false;
-            renderSelectionPass = dev.pixelInfoEnable;
             switch (dev.layout) {
                 case PREVIEW_LAYOUT_SINGLE:
                     scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);

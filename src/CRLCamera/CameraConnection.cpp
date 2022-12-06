@@ -227,9 +227,9 @@ namespace VkRender::MultiSense {
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
             for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
-                dev.win[i].availableRemoteHeads.push_back(std::to_string(ch));
+                dev.win[(StreamWindowIndex)i].availableRemoteHeads.push_back(std::to_string(ch));
                 if (!chInfo.availableSources.empty())
-                    dev.win[i].selectedRemoteHeadIndex = ch;
+                    dev.win[(StreamWindowIndex)i].selectedRemoteHeadIndex = ch;
             }
 
             // stop streams if there were any enabled, just so we can start with a clean slate
@@ -282,14 +282,14 @@ namespace VkRender::MultiSense {
                         std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
                         std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
                         if (!source.empty() && source != std::string("Source:" + remoteHeadIndex)) {
-                            dev.win[i].selectedSource = source.substr(0, source.find_last_of(':'));
-                            dev.win[i].selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
+                            dev.win[(StreamWindowIndex)i].selectedSource = source.substr(0, source.find_last_of(':'));
+                            dev.win[(StreamWindowIndex)i].selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
                                     remoteHeadIndex);
                             Log::Logger::getInstance()->info(
                                     ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
                                     source.substr(0, source.find_last_of(':')),
                                     i + 1, ch);
-                            dev.channelInfo.at(ch).requestedStreams.emplace_back(dev.win[i].selectedSource);
+                            dev.channelInfo.at(ch).requestedStreams.emplace_back(dev.win[(StreamWindowIndex)i].selectedSource);
                         }
                     }
                 }
@@ -534,8 +534,8 @@ namespace VkRender::MultiSense {
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
                 for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
 
-                    std::string source = dev->win[i].selectedSource;
-                    std::string remoteHead = std::to_string(dev->win[i].selectedRemoteHeadIndex);
+                    std::string source = dev->win[(StreamWindowIndex)i].selectedSource;
+                    std::string remoteHead = std::to_string(dev->win[(StreamWindowIndex)i].selectedRemoteHeadIndex);
                     std::string key = "Preview" + std::to_string(i + 1);
                     std::string value = (source.append(":" + remoteHead));
                     addIniEntry(&ini, CRLSerialNumber, key, value);

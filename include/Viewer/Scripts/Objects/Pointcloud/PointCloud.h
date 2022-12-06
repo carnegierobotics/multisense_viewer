@@ -48,7 +48,6 @@ public:
 
     int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
-    CameraPlaybackFlags playbackSate{};
     Page selectedPreviewTab = TAB_NONE;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
 

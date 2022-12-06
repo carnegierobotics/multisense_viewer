@@ -108,15 +108,6 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
 
 bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
 
-    /*
-    if (textureVideo->m_Format == VK_FORMAT_R8G8B8A8_UNORM && type != AR_COLOR_IMAGE) {
-        Log::Logger::getInstance()->error(
-                "updateTexture: Format between Vulkan Texture and Expected MultiSense Texture mismatch: {} and {}",
-                (int) textureVideo->m_Format, (int) type);
-        return false;
-    }
-     */
-
     switch (type) {
         case CRL_POINT_CLOUD:
             textureColorMap->updateTextureFromBuffer();

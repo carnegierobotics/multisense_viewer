@@ -93,7 +93,6 @@ typedef enum StreamWindowIndex {
     CRL_PREVIEW_POINT_CLOUD = 9,
     CRL_PREVIEW_TOTAL_MODES = CRL_PREVIEW_POINT_CLOUD + 1,
     // Other flags
-
 } StreamWindowIndex;
 
 

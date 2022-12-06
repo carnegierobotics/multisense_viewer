@@ -5,14 +5,6 @@
 #ifndef MULTISENSE_TEXTURE_H
 #define MULTISENSE_TEXTURE_H
 
-/*
-* Vulkan texture loader
-*
-* Copyright(C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
-*/
-
 #pragma once
 
 #include <fstream>

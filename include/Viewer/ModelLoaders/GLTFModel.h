@@ -14,8 +14,6 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
 
-// Changing this value here also requires changing it in the vertex shader
-#define MAX_NUM_JOINTS 128u
 
 class GLTFModel {
 public:

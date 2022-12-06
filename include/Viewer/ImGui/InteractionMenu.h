@@ -7,17 +7,11 @@
 
 #include <GLFW/glfw3.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
-
-
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
-
 #ifdef WIN32
-
 #else
-
 #include <unistd.h>
-
 #endif
 
 class InteractionMenu : public VkRender::Layer {

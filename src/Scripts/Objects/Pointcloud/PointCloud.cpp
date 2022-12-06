@@ -5,7 +5,6 @@
 #include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
 #include <glm/gtx/string_cast.hpp>
 
-
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;

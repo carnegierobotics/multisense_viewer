@@ -7,8 +7,6 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/Tools/Logger.h"
 
-
-
 CRLCameraModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }

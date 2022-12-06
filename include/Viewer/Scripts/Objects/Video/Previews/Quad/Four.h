@@ -5,11 +5,11 @@
 #ifndef MULTISENSE_VIEWER_FOUR_H
 #define MULTISENSE_VIEWER_FOUR_H
 
-
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
+
 class Four: public VkRender::Base, public VkRender::RegisteredInFactory<Four>, CRLCameraModels
 {
 public:

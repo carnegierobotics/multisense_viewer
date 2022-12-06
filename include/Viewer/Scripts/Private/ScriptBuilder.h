@@ -6,6 +6,7 @@
 
 #ifndef MULTISENSE_SCRIPTBUILDER_H
 #define MULTISENSE_SCRIPTBUILDER_H
+
 #include <memory>
 #include <map>
 #include <iostream>
@@ -17,6 +18,7 @@
 
 // Based of self registering factory
 // cppstories https://www.cppstories.com/2018/02/factory-selfregister/
+
 namespace VkRender {
 
 

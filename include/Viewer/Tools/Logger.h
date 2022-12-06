@@ -1,30 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-// @File Name:     Logger.h                                                  //
-// @Author:        Pankaj Choudhary                                          //
-// @Version:       0.0.1                                                     //
-// @L.M.D:         13th April 2015                                           //
-// @Description:   For Logging into file                                     //
-//                                                                           // 
-// Detail Description:                                                       //
-// Implemented complete logging mechanism, Supporting multiple logging type  //
-// like as file based logging, console base logging etc. It also supported   //
-// for different log type.                                                   //
-//                                                                           //
-// Thread Safe logging mechanism. Compatible with VC++ (Windows platform)   //
-// as well as G++ (Linux platform)                                           //
-//                                                                           //
-// Supported Log Type: ERROR, ALARM, ALWAYS, INFO, BUFFER, TRACE, DEBUG      //
-//                                                                           //
-// No control for ERROR, ALRAM and ALWAYS messages. These type of messages   //
-// should be always captured.                                                //
-//                                                                           //
-// BUFFER log type should be use while logging raw buffer or raw messages    //
-//                                                                           //
-// Having direct interface as well as C++ Singleton inface. can use          //
-// whatever interface want.                                                   //
-//                                                                           //
-///////////////////////////////////////////////////////////////////////////////
-
 #ifndef LOGGER_H_
 #define LOGGER_H_
 
@@ -159,7 +132,7 @@ namespace Log {
         static Metrics *getLogMetrics() noexcept;
 
         // Interface for Error Log
-        void _error(const char *text) throw();
+        void _error(const char *text) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
      * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
@@ -191,29 +164,29 @@ namespace Log {
         }
 
         // Interface for Alarm Log
-        void alarm(const char *text) throw();
+        void alarm(const char *text) noexcept;
 
-        void alarm(std::string &text) throw();
+        void alarm(std::string &text) noexcept;
 
-        void alarm(std::ostringstream &stream) throw();
+        void alarm(std::ostringstream &stream) noexcept;
 
         // Interface for Always Log
-        void always(const char *text) throw();
+        void always(const char *text) noexcept;
 
-        void always(std::string &text) throw();
+        void always(std::string &text) noexcept;
 
-        void always(std::ostringstream &stream) throw();
+        void always(std::ostringstream &stream) noexcept;
 
         // Interface for Buffer Log
-        void buffer(const char *text) throw();
+        void buffer(const char *text) noexcept;
 
-        void buffer(std::string &text) throw();
+        void buffer(std::string &text) noexcept;
 
-        void buffer(std::ostringstream &stream) throw();
+        void buffer(std::ostringstream &stream) noexcept;
 
         // Interface for Info Log
 
-        //void info(std::ostringstream& stream) throw();
+        //void info(std::ostringstream& stream) noexcept;
 
 
         //void info(std::string &text, const source::source_location &m_Loc = source::source_location::current()) noexcept;
@@ -257,18 +230,18 @@ namespace Log {
 
 
         // Interface for Trace log
-        void trace(const char *text) throw();
+        void trace(const char *text) noexcept;
 
-        void trace(std::string &text) throw();
+        void trace(std::string &text) noexcept;
 
-        void trace(std::ostringstream &stream) throw();
+        void trace(std::ostringstream &stream) noexcept;
 
         // Interface for Debug log
-        void debug(const char *text) throw();
+        void debug(const char *text) noexcept;
 
-        void debug(std::string &text) throw();
+        void debug(std::string &text) noexcept;
 
-        void debug(std::ostringstream &stream) throw();
+        void debug(std::ostringstream &stream) noexcept;
 
         // Error and Alarm log must be always flashing
         // Hence, there is no interfce to control error and alarm logs

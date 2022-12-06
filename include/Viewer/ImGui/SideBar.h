@@ -5,10 +5,18 @@
 #ifndef MULTISENSE_SIDEBAR_H
 #define MULTISENSE_SIDEBAR_H
 
-#ifdef WIN32
+#include <algorithm>
+#include <queue>
+#include <imgui/imgui_internal.h>
+#include <sys/types.h>
 
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/ImGui/Custom/imgui_user.h"
+#include "Viewer/ImGui/Layer.h"
+#include "Viewer/Tools/AdapterUtils.h"
 #include "Viewer/Tools/ReadSharedMemory.h"
 
+#ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -21,21 +29,11 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#include "Viewer/Tools/ReadSharedMemory.h"
 
 #define AutoConnectReader ReaderLinux
 #define elevated() getuid()
 #endif
 
-#include <algorithm>
-#include <queue>
-#include <imgui/imgui_internal.h>
-#include <sys/types.h>
-
-#include "Viewer/Tools/Utils.h"
-#include "Viewer/ImGui/Custom/imgui_user.h"
-#include "Viewer/ImGui/Layer.h"
-#include "Viewer/Tools/AdapterUtils.h"
 
 #define ONE_SECOND 1
 
@@ -164,7 +162,6 @@ private:
      * Requirements:
      * Should run once popup modal is opened
      * Periodically check the status of connected ethernet devices
-     * - The GUI
      * */
     void autoDetectCamera() {
         if (!reader)

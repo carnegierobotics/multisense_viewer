@@ -8,7 +8,7 @@
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
-    model->modelType = AR_POINT_CLOUD;
+    model->modelType = CRL_POINT_CLOUD;
 
 }
 
@@ -17,13 +17,13 @@ void PointCloud::update() {
 
     if (model->draw) {
         const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = VkRender::TextureData(AR_POINT_CLOUD, conf.width(), conf.height());
+        auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());
         model->getTextureDataPointers(&tex);
         if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
             model->updateTexture(tex.m_Type);
         }
 
-        auto depthTex = VkRender::TextureData(AR_DISPARITY_IMAGE, conf.width(), conf.height());
+        auto depthTex = VkRender::TextureData(CRL_DISPARITY_IMAGE, conf.width(), conf.height());
         model->getTextureDataPointers(&depthTex);
         if (renderData.crlCamera->get()->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
             model->updateTexture(depthTex.m_Type);
@@ -53,12 +53,12 @@ void PointCloud::update() {
 void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: uiHandle->devices) {
-        if (dev.state != AR_STATE_ACTIVE)
+        if (dev.state != CRL_STATE_ACTIVE)
             continue;
 
         selectedPreviewTab = dev.selectedPreviewTab;
 
-        auto &preview = dev.win.at(AR_PREVIEW_POINT_CLOUD);
+        auto &preview = dev.win.at(CRL_PREVIEW_POINT_CLOUD);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
 
         if ((currentRes != res ||
@@ -72,7 +72,7 @@ void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (model->draw && selectedPreviewTab == TAB_3D_POINT_CLOUD)
+    if (model->draw && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 }
 
@@ -94,7 +94,7 @@ void PointCloud::prepareTexture() {
     }
     model->createMeshDeviceLocal(meshData);
     renderData.crlCamera->get()->preparePointCloud(width, 0);
-    model->createEmptyTexture(width, height, AR_POINT_CLOUD);
+    model->createEmptyTexture(width, height, CRL_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},

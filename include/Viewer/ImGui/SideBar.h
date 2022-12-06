@@ -45,26 +45,20 @@ public:
         LOG_COLOR_GREEN = 1,
         LOG_COLOR_RED = 2
     } LOG_COLOR;
-
     VkRender::EntryConnectDevice m_Entry;
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
-
     uint32_t gifFrameIndex = 0;
     uint32_t gifFrameIndex2 = 0;
     std::chrono::steady_clock::time_point gifFrameTimer;
     std::chrono::steady_clock::time_point gifFrameTimer2;
     std::chrono::steady_clock::time_point searchingTextAnimTimer;
     std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
-
     std::vector<Utils::Adapter> manualConnectAdapters;
-
     std::string dots;
     bool btnConnect = false;
     bool btnAdd = false;
-
     bool enableConnectButton = true;
     enum {
-        VIRTUAL_CONNECT = 0,
         MANUAL_CONNECT = 1,
         AUTO_CONNECT = 2
     };
@@ -81,29 +75,22 @@ public:
     ImVec4 lastLogTextColor = VkRender::Colors::TextColorGray;
     uint32_t ethernetComboIndex = 0;
     size_t resultsComboIndex = -1;
-    bool btnRestartAutoConnect = false;
-    bool showRestartButton = false;
 
     bool startedAutoConnect = false;
     std::unique_ptr<AutoConnectReader> reader;
 #ifdef __linux__
     FILE *autoConnectProcess = nullptr;
 #else
-
     SHELLEXECUTEINFOA shellInfo;
 #endif
     std::string btnLabel = "Start";
-
     void onAttach() override {
         gifFrameTimer = std::chrono::steady_clock::now();
         gifFrameTimer2 = std::chrono::steady_clock::now();
     }
-
     void onFinishedRender() override {
     }
-
     void onDetach() override {
-
 #ifdef __linux__
         if (autoConnectProcess != nullptr) {
             if (reader)
@@ -117,7 +104,6 @@ public:
                     Log::Logger::getInstance()->info("Terminated AutoConnect program");
                 } else
                     Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
-
 #endif
         }
     }
@@ -258,8 +244,8 @@ private:
 
         el.name = entry.profileName;
         el.IP = entry.IP;
-        el.state = AR_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_JUST_ADDED ", el.name);
+        el.state = CRL_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED ", el.name);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
         el.clicked = true;
@@ -281,53 +267,53 @@ private:
             ImVec4 btnColor{};
             // Set colors based on state
             switch (e.state) {
-                case AR_STATE_CONNECTED:
+                case CRL_STATE_CONNECTED:
                     break;
-                case AR_STATE_CONNECTING:
+                case CRL_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case AR_STATE_ACTIVE:
+                case CRL_STATE_ACTIVE:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
                     break;
-                case AR_STATE_INACTIVE:
+                case CRL_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case AR_STATE_LOST_CONNECTION:
+                case CRL_STATE_LOST_CONNECTION:
                     buttonIdentifier = "Lost connection...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case AR_STATE_DISCONNECTED:
+                case CRL_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case AR_STATE_UNAVAILABLE:
+                case CRL_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLDarkGray425);
                     btnColor = VkRender::Colors::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
-                case AR_STATE_JUST_ADDED:
+                case CRL_STATE_JUST_ADDED:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
-                case AR_STATE_DISCONNECT_AND_FORGET:
-                case AR_STATE_REMOVE_FROM_LIST:
-                case AR_STATE_RESET:
+                case CRL_STATE_DISCONNECT_AND_FORGET:
+                case CRL_STATE_REMOVE_FROM_LIST:
+                case CRL_STATE_RESET:
                     buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -348,13 +334,13 @@ private:
                 // Check if we are currently trying to connect.
                 bool busy = false;
                 for (const auto &dev: handles->devices) {
-                    if (dev.state == AR_STATE_CONNECTING)
+                    if (dev.state == CRL_STATE_CONNECTING)
                         busy = true;
                 }
                 if (ImGui::SmallButton("X") && !busy) {
                     // delete and disconnect devices
-                    handles->devices.at(i).state = AR_STATE_DISCONNECT_AND_FORGET;
-                    Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECT_AND_FORGET ",
+                    handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
+                    Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECT_AND_FORGET ",
                                                      handles->devices.at(i).name);
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor(3);
@@ -424,7 +410,7 @@ private:
             // Check if other device is already attempting to connect
             bool busy = false;
             for (const auto &dev: handles->devices) {
-                if (dev.state == AR_STATE_CONNECTING)
+                if (dev.state == CRL_STATE_CONNECTING)
                     busy = true;
             }
 
@@ -815,10 +801,7 @@ private:
                     ImGui::PopStyleColor();
                     ImGui::SameLine(0.0f, 10.0f);
                 }
-
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-
-
                 // Call once a second
                 auto time = std::chrono::steady_clock::now();
                 std::chrono::duration<float> time_span =
@@ -826,9 +809,7 @@ private:
                                 time - searchNewAdaptersManualConnectTimer);
                 if (time_span.count() > ONE_SECOND) {
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-
                     manualConnectAdapters = Utils::listAdapters();
-
                     interfaceNameList.clear();
                     indexList.clear();
 // Following three ifdef macros are a bit janky but required since Windows uses a HEX-ID AND Name to describe a network adapter whereas linux only uses a Name
@@ -836,7 +817,6 @@ private:
                     interfaceIDList.clear();
 #endif
                 }
-
                 // immediate mode vector item ordering
                 // -- requirements --
                 // Always have a base item in it.
@@ -853,13 +833,11 @@ private:
                         interfaceNameList.push_back(a.ifName);
 #endif
                         indexList.push_back(a.ifIndex);
-
                         if (Utils::isInVector(interfaceNameList, "No adapters found")) {
                             Utils::delFromVector(&interfaceNameList, std::string("No adapters found"));
                         }
                     }
                 }
-
                 if (!Utils::isInVector(interfaceNameList, "No adapters found") &&
                     interfaceNameList.empty()) {
                     interfaceNameList.emplace_back("No adapters found");
@@ -882,7 +860,7 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
-
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLDarkGray425);
                 if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags)) {
                     for (size_t n = 0; n < interfaceNameList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
@@ -895,7 +873,7 @@ private:
                     }
                     ImGui::EndCombo();
                 }
-                ImGui::PopStyleColor(); // ImGuiCol_FrameBg
+                ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
                 m_Entry.cameraName = "Manual";
 
                 ImGui::Dummy(ImVec2(40.0f, 10.0));

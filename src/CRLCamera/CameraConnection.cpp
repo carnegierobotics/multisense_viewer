@@ -80,7 +80,7 @@ namespace VkRender::MultiSense {
         // Set the correct resolution. Will only update if changed.
 
         for (auto &ch: dev->channelInfo) {
-            if (ch.state == AR_STATE_ACTIVE && ch.updateResolutionMode &&
+            if (ch.state == CRL_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
                 uint32_t width = 0, height = 0, depth = 0;
                 Utils::cameraResolutionToValue(ch.selectedMode, &width, &height, &depth);
@@ -93,7 +93,7 @@ namespace VkRender::MultiSense {
 
         // Stop if the stream is no longer requested
         for (auto &ch: dev->channelInfo) {
-            if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            if (ch.state != CRL_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
                 continue;
             for (const auto &enabled: ch.enabledStreams) {
                 if (!Utils::isInVector(ch.requestedStreams, enabled) && !enabled.empty()) {
@@ -106,7 +106,7 @@ namespace VkRender::MultiSense {
 
         // Start requested streams
         for (auto &ch: dev->channelInfo) {
-            if (ch.state != AR_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            if (ch.state != CRL_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
                 continue;
             for (const auto &requested: ch.requestedStreams) {
                 if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Source") {
@@ -118,7 +118,7 @@ namespace VkRender::MultiSense {
 
 
         for (auto &ch: dev->channelInfo) {
-            if (ch.state != AR_STATE_ACTIVE)
+            if (ch.state != CRL_STATE_ACTIVE)
                 continue;
 
             auto time = std::chrono::steady_clock::now();
@@ -144,22 +144,22 @@ namespace VkRender::MultiSense {
         for (auto &dev: devices) {
 
             // If we have requested (previous frame) to reset a connection or want to remove it from saved profiles
-            if (dev.state == AR_STATE_RESET || dev.state == AR_STATE_DISCONNECT_AND_FORGET ||
-                dev.state == AR_STATE_LOST_CONNECTION) {
-                dev.selectedPreviewTab = TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
+            if (dev.state == CRL_STATE_RESET || dev.state == CRL_STATE_DISCONNECT_AND_FORGET ||
+                dev.state == CRL_STATE_LOST_CONNECTION) {
+                dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
                 dev.isRecording = false;
                 saveProfileAndDisconnect(&dev);
                 pool->Stop();
                 return;
             }
             // Connect if we click a m_Device in the sidebar or if it is just added by add m_Device btn
-            if ((dev.clicked && dev.state != AR_STATE_ACTIVE) || dev.state == AR_STATE_JUST_ADDED) {
+            if ((dev.clicked && dev.state != CRL_STATE_ACTIVE) || dev.state == CRL_STATE_JUST_ADDED) {
                 // reset other active m_Device if present. So loop over all devices again.
                 bool resetOtherDevice = false;
                 VkRender::Device *otherDev;
                 for (auto &d: devices) {
-                    if (d.state == AR_STATE_ACTIVE && d.name != dev.name) {
-                        d.state = AR_STATE_RESET;
+                    if (d.state == CRL_STATE_ACTIVE && d.name != dev.name) {
+                        d.state = CRL_STATE_RESET;
                         Log::Logger::getInstance()->info("Set dev state to RESET {}", d.name);
                         resetOtherDevice = true;
                         otherDev = &d;
@@ -171,8 +171,8 @@ namespace VkRender::MultiSense {
 
                     saveProfileAndDisconnect(otherDev);
                 }
-                dev.state = AR_STATE_CONNECTING;
-                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_CONNECTING ", dev.name);
+                dev.state = CRL_STATE_CONNECTING;
+                Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_CONNECTING ", dev.name);
 
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
                 pool = std::make_unique<VkRender::ThreadPool>(1);
@@ -182,16 +182,16 @@ namespace VkRender::MultiSense {
             }
 
             // Rest of this function is only needed for active devices
-            if (dev.state != AR_STATE_ACTIVE) {
+            if (dev.state != CRL_STATE_ACTIVE) {
                 continue;
             }
 
             updateActiveDevice(&dev);
             // Disable if we click a m_Device already connected
-            if (dev.clicked && dev.state == AR_STATE_ACTIVE) {
+            if (dev.clicked && dev.state == CRL_STATE_ACTIVE) {
                 // Disable all streams and delete camPtr on next update
-                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_RESET ", dev.name);
-                dev.state = AR_STATE_RESET;
+                Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_RESET ", dev.name);
+                dev.state = CRL_STATE_RESET;
                 for (auto ch: dev.channelConnections)
                     pool->Push(stopStreamTask, this, "All", ch);
             }
@@ -203,8 +203,8 @@ namespace VkRender::MultiSense {
                 // Disable all streams and delete camPtr on next update
                 Log::Logger::getInstance()->info("Call to reset state requested for profile {}. Lost connection..",
                                                  dev.name);
-                dev.state = AR_STATE_LOST_CONNECTION;
-                Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_LOST_CONNECTION ", dev.name);
+                dev.state = CRL_STATE_LOST_CONNECTION;
+                Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_LOST_CONNECTION ", dev.name);
 
             }
         }
@@ -219,14 +219,14 @@ namespace VkRender::MultiSense {
             chInfo.modes.clear();
             chInfo.availableSources.emplace_back("Source");
             chInfo.index = ch;
-            chInfo.state = AR_STATE_ACTIVE;
+            chInfo.state = CRL_STATE_ACTIVE;
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
             const auto &imgConf = camPtr->getCameraInfo(ch).imgConf;
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
-            for (int i = 0; i < AR_PREVIEW_TOTAL_MODES; ++i) {
+            for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[(StreamWindowIndex)i].availableRemoteHeads.push_back(std::to_string(ch));
                 if (!chInfo.availableSources.empty())
                     dev.win[(StreamWindowIndex)i].selectedRemoteHeadIndex = ch;
@@ -277,7 +277,7 @@ namespace VkRender::MultiSense {
                     dev.channelInfo.at(ch).selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
-                    for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
+                    for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
                         std::string key = "Preview" + std::to_string(i + 1);
                         std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
                         std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
@@ -481,11 +481,11 @@ namespace VkRender::MultiSense {
             dev->serialName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();
-            dev->state = AR_STATE_ACTIVE;
-            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_ACTIVE ", dev->name);
+            dev->state = CRL_STATE_ACTIVE;
+            Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {
-            dev->state = AR_STATE_UNAVAILABLE;
-            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_UNAVAILABLE ", dev->name);
+            dev->state = CRL_STATE_UNAVAILABLE;
+            Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_UNAVAILABLE ", dev->name);
         }
 
 
@@ -532,7 +532,7 @@ namespace VkRender::MultiSense {
                         resMode)
                 ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string((int) dev->layout));
-                for (int i = 0; i <= AR_PREVIEW_FOUR; ++i) {
+                for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
 
                     std::string source = dev->win[(StreamWindowIndex)i].selectedSource;
                     std::string remoteHead = std::to_string(dev->win[(StreamWindowIndex)i].selectedRemoteHeadIndex);
@@ -545,14 +545,14 @@ namespace VkRender::MultiSense {
         // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
         // save the m_DataPtr back to the file
 
-        if (dev->state == AR_STATE_DISCONNECT_AND_FORGET) {
+        if (dev->state == CRL_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
-            dev->state = AR_STATE_REMOVE_FROM_LIST;
+            dev->state = CRL_STATE_REMOVE_FROM_LIST;
             Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_REMOVE_FROM_LIST ", dev->name);
             Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
 
         } else {
-            dev->state = AR_STATE_DISCONNECTED;
+            dev->state = CRL_STATE_DISCONNECTED;
             Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECTED ", dev->name);
         }
         rc = ini.SaveFile("crl.ini");

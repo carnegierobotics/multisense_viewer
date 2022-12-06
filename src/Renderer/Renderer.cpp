@@ -86,7 +86,7 @@ void Renderer::buildCommandBuffers() {
 
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
-            if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
                 script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
@@ -174,57 +174,57 @@ void Renderer::render() {
     // Enable scripts depending on gui layout chosen
     bool noActivePreview = true;
     for (auto &dev: guiManager->handles.devices) {
-        if (dev.state == AR_STATE_ACTIVE) {
+        if (dev.state == CRL_STATE_ACTIVE) {
             noActivePreview = false;
             switch (dev.layout) {
-                case PREVIEW_LAYOUT_SINGLE:
-                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                case CRL_PREVIEW_LAYOUT_SINGLE:
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
-                case PREVIEW_LAYOUT_DOUBLE:
-                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                case CRL_PREVIEW_LAYOUT_DOUBLE:
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
 
-                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
-                case PREVIEW_LAYOUT_QUAD:
-                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                case CRL_PREVIEW_LAYOUT_QUAD:
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
 
-                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
                 default:
-                    scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
             }
 
             switch (dev.selectedPreviewTab) {
-                case TAB_3D_POINT_CLOUD:
-                    scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DEFAULT);
+                case CRL_TAB_3D_POINT_CLOUD:
+                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     break;
                 default:
-                    scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
             }
 
@@ -239,25 +239,25 @@ void Renderer::render() {
         }
     }
     if (noActivePreview) {
-        scripts.at("SingleLayout")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleTop")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleBot")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("One")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Two")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Three")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Four")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("PointCloud")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
-        scripts.at("Gizmos")->setDrawMethod(AR_SCRIPT_TYPE_DISABLED);
+        scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
-        if (guiManager->handles.devices.at(i).state == AR_STATE_REMOVE_FROM_LIST)
+        if (guiManager->handles.devices.at(i).state == CRL_STATE_REMOVE_FROM_LIST)
             guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
     }
 
 
     for (auto &script: scripts) {
-        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             if (!script.second->sharedData->destination.empty()) {
                 // Send to destination script
                 auto &shared = script.second->sharedData;
@@ -268,13 +268,13 @@ void Renderer::render() {
 
     // UiUpdate on Scripts with const handle to GUI
     for (auto &script: scripts) {
-        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
+        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
     }
 
     // Run update function on Scripts
     for (auto &script: scripts) {
-        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             script.second->updateUniformBufferData(&renderData);
         }
     }
@@ -306,7 +306,7 @@ void Renderer::render() {
         vkCmdSetViewport(renderCmd, 0, 1, &viewport);
         vkCmdSetScissor(renderCmd, 0, 1, &scissor);
         for (auto &script: scripts) {
-            if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED) {
+            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
                 script.second->drawScript(renderCmd, 0, false);
             }
         }
@@ -344,13 +344,13 @@ void Renderer::render() {
                 vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
-            if (dev.state != AR_STATE_ACTIVE)
+            if (dev.state != CRL_STATE_ACTIVE)
                 continue;
             uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
 
-            if (dev.state == AR_STATE_ACTIVE) {
+            if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     if (win.second.selectedSource == "Source")
                         continue;
@@ -389,22 +389,22 @@ void Renderer::render() {
                             dev.pixelInfo.y = y + 1;
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
-                                case AR_POINT_CLOUD:
+                                case CRL_POINT_CLOUD:
                                     break;
-                                case AR_GRAYSCALE_IMAGE: {
+                                case CRL_GRAYSCALE_IMAGE: {
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo.intensity = intensity;
                                 }
                                     break;
-                                case AR_COLOR_IMAGE:
+                                case CRL_COLOR_IMAGE:
                                     break;
-                                case AR_COLOR_IMAGE_YUV420:
+                                case CRL_COLOR_IMAGE_YUV420:
                                     break;
-                                case AR_YUV_PLANAR_FRAME:
+                                case CRL_YUV_PLANAR_FRAME:
                                     break;
-                                case AR_CAMERA_IMAGE_NONE:
+                                case CRL_CAMERA_IMAGE_NONE:
                                     break;
-                                case AR_DISPARITY_IMAGE: {
+                                case CRL_DISPARITY_IMAGE: {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
@@ -456,7 +456,7 @@ void Renderer::windowResized() {
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update general Scripts with handle to GUI
     for (auto &script: scripts) {
-        if (script.second->getType() != AR_SCRIPT_TYPE_DISABLED)
+        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->windowResize(&renderData, &guiManager->handles);
     }
 
@@ -668,7 +668,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
 void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
-        if (item.state == AR_STATE_ACTIVE && item.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+        if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
             camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }

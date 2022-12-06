@@ -45,7 +45,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = AR_SCRIPT_TYPE_DISABLED;
+    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
 
     std::unique_ptr<CRLCameraModels::Model> m_Model;
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;
@@ -59,7 +59,7 @@ public:
     float up = -1.3f;
     unsigned char* m_NoDataTex{};
     unsigned char* m_NoSourceTex{};
-    Page selectedPreviewTab = TAB_NONE;
+    Page selectedPreviewTab = CRL_TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
     float scaleY = 0.25f;
@@ -68,7 +68,7 @@ public:
     std::string src;
     int16_t remoteHeadIndex = 0;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
-    CRLCameraDataType textureType = AR_CAMERA_IMAGE_NONE;
+    CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
     int texWidth = 0, texHeight = 0, texChannels = 0;

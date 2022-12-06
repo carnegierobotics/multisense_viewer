@@ -25,7 +25,7 @@
 #define INTERVAL_1_SECOND 1
 #define MAX_IMAGES_IN_QUEUE 30
 
-
+// Predeclare to speed up compile times
 namespace VkRender::MultiSense {
     class CRLPhysicalCamera;
 }
@@ -34,14 +34,14 @@ namespace VkRender::MultiSense {
  * @brief Defines draw behaviour of a script
  */
 typedef enum ScriptType {
-    /** AR_SCRIPT_TYPE_DISABLED Do not draw script at all */
-    AR_SCRIPT_TYPE_DISABLED,
-    /** AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
-    AR_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
-    /** AR_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
-    AR_SCRIPT_TYPE_DEFAULT,
-    /** AR_SCRIPT_TYPE_RENDER Draw script since application startup */
-    AR_SCRIPT_TYPE_RENDER,
+    /** CRL_SCRIPT_TYPE_DISABLED Do not draw script at all */
+    CRL_SCRIPT_TYPE_DISABLED,
+    /** CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
+    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
+    /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
+    CRL_SCRIPT_TYPE_DEFAULT,
+    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup */
+    CRL_SCRIPT_TYPE_RENDER,
 
 } ScriptType;
 
@@ -49,30 +49,30 @@ typedef enum ScriptType {
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
  */
 typedef enum CRLCameraDataType {
-    AR_POINT_CLOUD,
-    AR_GRAYSCALE_IMAGE,
-    AR_COLOR_IMAGE,
-    AR_COLOR_IMAGE_YUV420,
-    AR_YUV_PLANAR_FRAME,
-    AR_CAMERA_IMAGE_NONE,
-    AR_DISPARITY_IMAGE
+    CRL_POINT_CLOUD,
+    CRL_GRAYSCALE_IMAGE,
+    CRL_COLOR_IMAGE,
+    CRL_COLOR_IMAGE_YUV420,
+    CRL_YUV_PLANAR_FRAME,
+    CRL_CAMERA_IMAGE_NONE,
+    CRL_DISPARITY_IMAGE
 } CRLCameraDataType;
 
 /**
  * @brief What connection state a device seen in the side bar can be in.
  */
 typedef enum ArConnectionState {
-    AR_STATE_CONNECTED = 0,
-    AR_STATE_CONNECTING = 1,
-    AR_STATE_ACTIVE = 2,
-    AR_STATE_INACTIVE = 3,
-    AR_STATE_LOST_CONNECTION = 4,
-    AR_STATE_RESET = 5,
-    AR_STATE_DISCONNECTED = 6,
-    AR_STATE_UNAVAILABLE = 7,
-    AR_STATE_DISCONNECT_AND_FORGET = 8,
-    AR_STATE_REMOVE_FROM_LIST = 9,
-    AR_STATE_JUST_ADDED = 10
+    CRL_STATE_CONNECTED = 0,
+    CRL_STATE_CONNECTING = 1,
+    CRL_STATE_ACTIVE = 2,
+    CRL_STATE_INACTIVE = 3,
+    CRL_STATE_LOST_CONNECTION = 4,
+    CRL_STATE_RESET = 5,
+    CRL_STATE_DISCONNECTED = 6,
+    CRL_STATE_UNAVAILABLE = 7,
+    CRL_STATE_DISCONNECT_AND_FORGET = 8,
+    CRL_STATE_REMOVE_FROM_LIST = 9,
+    CRL_STATE_JUST_ADDED = 10
 } ArConnectionState;
 
 /**
@@ -81,17 +81,17 @@ typedef enum ArConnectionState {
  */
 typedef enum StreamWindowIndex {
     // First 0 - 8 elements also correspond to array indices. Check upon this before adding more PREVIEW indices
-    AR_PREVIEW_ONE = 0,
-    AR_PREVIEW_TWO = 1,
-    AR_PREVIEW_THREE = 2,
-    AR_PREVIEW_FOUR = 3,
-    AR_PREVIEW_FIVE = 4,
-    AR_PREVIEW_SIX = 5,
-    AR_PREVIEW_SEVEN = 6,
-    AR_PREVIEW_EIGHT = 7,
-    AR_PREVIEW_NINE = 8,
-    AR_PREVIEW_POINT_CLOUD = 9,
-    AR_PREVIEW_TOTAL_MODES = AR_PREVIEW_POINT_CLOUD + 1,
+    CRL_PREVIEW_ONE = 0,
+    CRL_PREVIEW_TWO = 1,
+    CRL_PREVIEW_THREE = 2,
+    CRL_PREVIEW_FOUR = 3,
+    CRL_PREVIEW_FIVE = 4,
+    CRL_PREVIEW_SIX = 5,
+    CRL_PREVIEW_SEVEN = 6,
+    CRL_PREVIEW_EIGHT = 7,
+    CRL_PREVIEW_NINE = 8,
+    CRL_PREVIEW_POINT_CLOUD = 9,
+    CRL_PREVIEW_TOTAL_MODES = CRL_PREVIEW_POINT_CLOUD + 1,
     // Other flags
 
 } StreamWindowIndex;
@@ -101,13 +101,13 @@ typedef enum StreamWindowIndex {
  * @brief Identifier for different pages in the GUI.
  */
 typedef enum page {
-    PAGE_PREVIEW_DEVICES = 0,
-    PAGE_DEVICE_INFORMATION = 1,
-    PAGE_CONFIGURE_DEVICE = 2,
-    PAGE_TOTAL_PAGES = 3,
-    TAB_NONE = 10,
-    TAB_2D_PREVIEW = 11,
-    TAB_3D_POINT_CLOUD = 12,
+    CRL_PAGE_PREVIEW_DEVICES = 0,
+    CRL_PAGE_DEVICE_INFORMATION = 1,
+    CRL_PAGE_CONFIGURE_DEVICE = 2,
+    CRL_PAGE_TOTAL_PAGES = 3,
+    CRL_TAB_NONE = 10,
+    CRL_TAB_2D_PREVIEW = 11,
+    CRL_TAB_3D_POINT_CLOUD = 12,
 } Page;
 
 /**
@@ -129,12 +129,12 @@ typedef enum CRLCameraResolution {
  * @brief Page within pages. Which layout is chosen for previews
  */
 typedef enum PreviewLayout {
-    PREVIEW_LAYOUT_NONE = 0,
-    PREVIEW_LAYOUT_SINGLE = 1,
-    PREVIEW_LAYOUT_DOUBLE = 2,
-    PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE = 3,
-    PREVIEW_LAYOUT_QUAD = 4,
-    PREVIEW_LAYOUT_NINE = 5
+    CRL_PREVIEW_LAYOUT_NONE = 0,
+    CRL_PREVIEW_LAYOUT_SINGLE = 1,
+    CRL_PREVIEW_LAYOUT_DOUBLE = 2,
+    CRL_PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE = 3,
+    CRL_PREVIEW_LAYOUT_QUAD = 4,
+    CRL_PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
 
 /**
@@ -266,7 +266,7 @@ namespace VkRender {
     struct ChannelInfo {
         uint32_t index = 0;
         std::vector<std::string> availableSources{};
-        ArConnectionState state = AR_STATE_DISCONNECTED;
+        ArConnectionState state = CRL_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
         CRLCameraResolution selectedMode = CRL_RESOLUTION_NONE;
@@ -298,9 +298,9 @@ namespace VkRender {
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked = false;
         /** @brief Current connection state for this device */
-        ArConnectionState state = AR_STATE_UNAVAILABLE;
+        ArConnectionState state = CRL_STATE_UNAVAILABLE;
         /** @brief What type of layout is selected for this device*/
-        PreviewLayout layout = PREVIEW_LAYOUT_SINGLE;
+        PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
         /** @brief Order each preview window with a index flag*/
@@ -324,7 +324,7 @@ namespace VkRender {
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
         crl::multisense::RemoteHeadChannel configRemoteHead = 0;
         /** @brief Which TAB this preview has selected. 2D or 3D view. */
-        Page selectedPreviewTab = TAB_2D_PREVIEW;
+        Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief Flag to signal application to revert network settings on application exit */
         bool systemNetworkChanged = false;
         /** Interrupt connection if users exits program. */

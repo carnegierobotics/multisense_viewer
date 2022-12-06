@@ -16,7 +16,7 @@
 
 class InteractionMenu : public VkRender::Layer {
 private:
-    bool page[PAGE_TOTAL_PAGES] = {false, false, true};
+    bool page[CRL_PAGE_TOTAL_PAGES] = {false, false, true};
     bool drawActionPage = false;
     ImGuiFileDialog chooseIntrinsicsDialog;
     ImGuiFileDialog chooseExtrinsicsDialog;
@@ -41,7 +41,7 @@ public:
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         bool allUnavailable = true;
         for (auto &d: handles->devices) {
-            if (d.state == AR_STATE_ACTIVE)
+            if (d.state == CRL_STATE_ACTIVE)
                 allUnavailable = false;
         }
 
@@ -57,25 +57,25 @@ public:
 
         // Check if stream was interrupted by a disconnect event and reset pages events across all devices
         for (auto &d: handles->devices) {
-            if (d.state == AR_STATE_RESET) {
-                std::fill_n(page, PAGE_TOTAL_PAGES, false);
+            if (d.state == CRL_STATE_RESET) {
+                std::fill_n(page, CRL_PAGE_TOTAL_PAGES, false);
                 drawActionPage = false;
             }
         }
 
-        for (int i = 0; i < PAGE_TOTAL_PAGES; ++i) {
+        for (int i = 0; i < CRL_PAGE_TOTAL_PAGES; ++i) {
             if (page[i]) {
                 if (drawActionPage) {
                     drawActionPage = false;
                 }
                 switch (i) {
-                    case PAGE_PREVIEW_DEVICES:
+                    case CRL_PAGE_PREVIEW_DEVICES:
                         buildPreview(handles);
                         break;
-                    case PAGE_DEVICE_INFORMATION:
+                    case CRL_PAGE_DEVICE_INFORMATION:
                         buildDeviceInformation(handles);
                         break;
-                    case PAGE_CONFIGURE_DEVICE:
+                    case CRL_PAGE_CONFIGURE_DEVICE:
                         buildConfigurationPreview(handles);
                         break;
                 }
@@ -98,13 +98,13 @@ public:
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::ShowDemoWindow();
 
-            for (int i = 0; i < PAGE_TOTAL_PAGES; i++) {
+            for (int i = 0; i < CRL_PAGE_TOTAL_PAGES; i++) {
                 float imageSpacingX = 200.0f;
 
                 // m_Width of menu buttons layout. Needed to draw on center of screen.
                 float xOffset = ((handles->info->width - handles->info->sidebarWidth) / 2) -
-                                (((float) imageSpacingX * (float) PAGE_CONFIGURE_DEVICE) +
-                                 ((float) PAGE_TOTAL_PAGES * 100.0f) / 2) +
+                                (((float) imageSpacingX * (float) CRL_PAGE_CONFIGURE_DEVICE) +
+                                 ((float) CRL_PAGE_TOTAL_PAGES * 100.0f) / 2) +
                                 handles->info->sidebarWidth +
                                 ((float) i * imageSpacingX);
 
@@ -180,7 +180,7 @@ private:
 
 
         if (ImGui::Button("Back")) {
-            page[PAGE_DEVICE_INFORMATION] = false;
+            page[CRL_PAGE_DEVICE_INFORMATION] = false;
             drawActionPage = true;
         }
 
@@ -201,7 +201,7 @@ private:
 
 
         if (ImGui::Button("Back")) {
-            page[PAGE_PREVIEW_DEVICES] = false;
+            page[CRL_PAGE_PREVIEW_DEVICES] = false;
             drawActionPage = true;
         }
 
@@ -214,7 +214,7 @@ private:
 
     void buildConfigurationPreview(VkRender::GuiObjectHandles *handles) {
         for (auto &dev: handles->devices) {
-            if (dev.state != AR_STATE_ACTIVE)
+            if (dev.state != CRL_STATE_ACTIVE)
                 continue;
             // Control page
             ImGui::BeginGroup();
@@ -271,13 +271,13 @@ private:
         ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
         ImGui::SameLine();
 
-        if (dev.selectedPreviewTab == TAB_2D_PREVIEW)
+        if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW)
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRedActive);
         else
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
 
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
-            dev.selectedPreviewTab = TAB_2D_PREVIEW;
+            dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
             handles->clearColor[0] = VkRender::Colors::CRLCoolGray.x;
             handles->clearColor[1] = VkRender::Colors::CRLCoolGray.y;
@@ -286,7 +286,7 @@ private:
         }
         ImGui::PopStyleColor();
 
-        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD)
+        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRedActive);
         else
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
@@ -297,7 +297,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::TextColorGray);
         }
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
-            dev.selectedPreviewTab = TAB_3D_POINT_CLOUD;
+            dev.selectedPreviewTab = CRL_TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
             handles->clearColor[0] = VkRender::Colors::CRL3DBackground.x;
             handles->clearColor[1] = VkRender::Colors::CRL3DBackground.y;
@@ -322,7 +322,7 @@ private:
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && dev.layout == PREVIEW_LAYOUT_DOUBLE) {
+        if (!handles->info->hoverState && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
 
             if (handles->accumulatedActiveScroll > handles->maxScroll) {
@@ -334,25 +334,25 @@ private:
         }
         int cols = 0, rows = 0;
         switch (dev.layout) {
-            case PREVIEW_LAYOUT_NONE:
+            case CRL_PREVIEW_LAYOUT_NONE:
                 break;
-            case PREVIEW_LAYOUT_SINGLE:
+            case CRL_PREVIEW_LAYOUT_SINGLE:
                 cols = 1;
                 rows = 1;
                 break;
-            case PREVIEW_LAYOUT_DOUBLE:
+            case CRL_PREVIEW_LAYOUT_DOUBLE:
                 rows = 2;
                 cols = 1;
                 break;
-            case PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE:
+            case CRL_PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE:
                 rows = 1;
                 cols = 2;
                 break;
-            case PREVIEW_LAYOUT_QUAD:
+            case CRL_PREVIEW_LAYOUT_QUAD:
                 cols = 2;
                 rows = 2;
                 break;
-            case PREVIEW_LAYOUT_NINE:
+            case CRL_PREVIEW_LAYOUT_NINE:
                 cols = 3;
                 rows = 3;
                 break;
@@ -371,7 +371,7 @@ private:
 
 
                 float offsetX;
-                if (dev.layout == PREVIEW_LAYOUT_DOUBLE || dev.layout == PREVIEW_LAYOUT_SINGLE) {
+                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE || dev.layout == CRL_PREVIEW_LAYOUT_SINGLE) {
                     offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth +
                                ((handles->info->viewingAreaWidth - newWidth) / 2));
                 } else
@@ -390,7 +390,7 @@ private:
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
 
-                if (dev.layout == PREVIEW_LAYOUT_DOUBLE) {
+                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
                 dev.win.at((StreamWindowIndex)index).xPixelStartPos = viewAreaElementPosX;
@@ -459,20 +459,20 @@ private:
                                                      ImGuiHoveredFlags_AnyWindow)) {
                         // Offsset cursor positions.
                         switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex)index).selectedSource)) {
-                            case AR_POINT_CLOUD:
+                            case CRL_POINT_CLOUD:
                                 break;
-                            case AR_GRAYSCALE_IMAGE:
+                            case CRL_GRAYSCALE_IMAGE:
                                 ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
                                 break;
-                            case AR_COLOR_IMAGE:
+                            case CRL_COLOR_IMAGE:
                                 break;
-                            case AR_COLOR_IMAGE_YUV420:
+                            case CRL_COLOR_IMAGE_YUV420:
                                 break;
-                            case AR_YUV_PLANAR_FRAME:
+                            case CRL_YUV_PLANAR_FRAME:
                                 break;
-                            case AR_CAMERA_IMAGE_NONE:
+                            case CRL_CAMERA_IMAGE_NONE:
                                 break;
-                            case AR_DISPARITY_IMAGE:
+                            case CRL_DISPARITY_IMAGE:
                                 ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
                                 break;
                         }
@@ -672,7 +672,7 @@ private:
     void drawVideoPreviewGuiOverlay(VkRender::GuiObjectHandles *handles, VkRender::Device &dev,
                                     bool withStreamControls) {
 
-        if (dev.selectedPreviewTab == TAB_2D_PREVIEW) {
+        if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
 
             if (withStreamControls) {
                 ImVec2 size = ImVec2(65.0f,50.0f);
@@ -699,19 +699,19 @@ private:
                                        uv1,
                                        bg_col, tint_col)) {
                     Log::Logger::getInstance()->info("Single Layout pressed.");
-                    dev.layout = PREVIEW_LAYOUT_SINGLE;
+                    dev.layout = CRL_PREVIEW_LAYOUT_SINGLE;
                 }
                 ImGui::SameLine(0, 20.0f);
                 if (ImGui::ImageButton("Double", handles->info->imageButtonTextureDescriptor[7], size, uv0,
                                        uv1,
                                        bg_col, tint_col)) {
-                    dev.layout = PREVIEW_LAYOUT_DOUBLE;
+                    dev.layout = CRL_PREVIEW_LAYOUT_DOUBLE;
                 }
                 ImGui::SameLine(0, 20.0f);
                 if (ImGui::ImageButton("Quad", handles->info->imageButtonTextureDescriptor[8], size, uv0,
                                        uv1,
                                        bg_col, tint_col))
-                    dev.layout = PREVIEW_LAYOUT_QUAD;
+                    dev.layout = CRL_PREVIEW_LAYOUT_QUAD;
                 /*
                 ImGui::SameLine(0, 20.0f);
 
@@ -731,7 +731,7 @@ private:
                 ImGui::Dummy(ImVec2(00.0f, 7.0));
 
                 for (size_t i = 0; i < dev.channelInfo.size(); ++i) {
-                    if (dev.channelInfo[i].state != AR_STATE_ACTIVE)
+                    if (dev.channelInfo[i].state != CRL_STATE_ACTIVE)
                         continue;
 
                     ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -748,7 +748,7 @@ private:
                     ImGui::SetNextItemWidth(250);
                     std::string resLabel = "##Resolution" + std::to_string(i);
                     auto &chInfo = dev.channelInfo[i];
-                    if (chInfo.state != AR_STATE_ACTIVE)
+                    if (chInfo.state != CRL_STATE_ACTIVE)
                         continue;
                     if (ImGui::BeginCombo(resLabel.c_str(),
                                           Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
@@ -910,7 +910,7 @@ private:
                 }
             }
 
-            if (dev.selectedPreviewTab == TAB_2D_PREVIEW && dev.layout != PREVIEW_LAYOUT_NONE) {
+            if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW && dev.layout != CRL_PREVIEW_LAYOUT_NONE) {
                 createWindowPreviews(handles, dev);
             }
 
@@ -924,7 +924,7 @@ private:
                 // Loop over all previews and check their source.
                 // If it matches either point cloud source then it means it is in use
                 for (const auto &preview: dev.win) {
-                    if (preview.second.selectedSource == source && preview.first != AR_PREVIEW_POINT_CLOUD)
+                    if (preview.second.selectedSource == source && preview.first != CRL_PREVIEW_POINT_CLOUD)
                         inUse = true;
                 }
                 if (!inUse && Utils::isInVector(chInfo.requestedStreams, source)) {
@@ -935,7 +935,7 @@ private:
             }
 
 
-        } else if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD && withStreamControls) {
+        } else if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && withStreamControls) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -1001,9 +1001,9 @@ private:
 
         }
 
-        if (dev.selectedPreviewTab == TAB_3D_POINT_CLOUD) {
+        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
             auto &chInfo = dev.channelInfo.front();
-            dev.win.at(AR_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
+            dev.win.at(CRL_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
             if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
                 chInfo.requestedStreams.emplace_back("Disparity Left");
                 Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
@@ -1039,7 +1039,7 @@ private:
 
         for (auto &d: handles->devices) {
             // Create dropdown
-            if (d.state == AR_STATE_ACTIVE) {
+            if (d.state == CRL_STATE_ACTIVE) {
 
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {

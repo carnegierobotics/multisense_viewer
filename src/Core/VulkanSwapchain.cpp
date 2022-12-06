@@ -311,7 +311,6 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
         throw std::runtime_error("Could not find a graphics and/or presenting queue!");
     }
 
-    // todo : Add support for separate graphics and presenting queue
     if (graphicsQueueNodeIndex != presentQueueNodeIndex) {
         throw std::runtime_error("Separate graphics and presenting queues are not supported yet!");
     }

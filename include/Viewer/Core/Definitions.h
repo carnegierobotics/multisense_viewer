@@ -280,7 +280,7 @@ namespace VkRender {
      */
     struct Device {
         /** @brief Profile Name information  */
-        std::string name = "Profile #1"; // TODO Remove if remains Unused
+        std::string name = "Profile #1";
         /** @brief Name of the camera connected  */
         std::string cameraName;
         /** @brief Identifier of the camera connected  */
@@ -288,7 +288,7 @@ namespace VkRender {
         /** @brief IP of the connected camera  */
         std::string IP;
         /** @brief Default IP of the connected camera  */
-        std::string defaultIP = "10.66.171.21"; // TODO Remove if remains Unused || Ask if this Ip is subject to change?
+        std::string defaultIP = "10.66.171.21";
         /** @brief Name of the network adapter this camera is connected to  */
         std::string interfaceName;
         /** @brief InterFace index of network adapter */
@@ -535,7 +535,6 @@ namespace VkRender {
         std::vector<ImTextureID> imageButtonTextureDescriptor;
 
         /** @brief
-        // TODO crude and "quick" implementation. Lots of missed memory and uses way more memory than necessary. Fix in the future
         * Container to hold animated gif images
         */
         struct {

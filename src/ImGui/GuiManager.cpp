@@ -389,12 +389,11 @@ namespace VkRender {
 
         fontTexture.reserve(3);
         fontDescriptors.reserve(3);
-        handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13); // TODO FIX PATHS
+        handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
         handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
         io->Fonts->SetTexID(fontDescriptors[2]);
 
-        // TODO use separate Descriptors to copy reference to imageButtonTextureDescriptors. Loss of memory alloc.
         imageIconDescriptors.resize(10);
         handles.info->imageButtonTextureDescriptor.resize(10);
         iconTextures.reserve(10);

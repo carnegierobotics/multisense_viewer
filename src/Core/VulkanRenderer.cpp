@@ -151,7 +151,6 @@ namespace VkRender {
             pLogger->info("Enabling YCBCR Sampler Extension");
         } else {
             pLogger->error("YCBCR Sampler support not found!");
-            // TODO Create workaround
         }
 
         // Vulkan m_Device creation

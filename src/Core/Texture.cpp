@@ -29,7 +29,6 @@ void Texture2D::fromglTfImage(tinygltf::Image& gltfimage, TextureSampler texture
 	bool deleteBuffer = false;
 	if (gltfimage.component == 3) {
 		// Most devices don't support RGB only on Vulkan so convert if necessary
-		// TODO: Check actual m_Format support and transform only if required
 		bufferSize = (VkDeviceSize)gltfimage.width * gltfimage.height * 4;
 		buffer = new unsigned char[bufferSize];
 		unsigned char* rgba = buffer;

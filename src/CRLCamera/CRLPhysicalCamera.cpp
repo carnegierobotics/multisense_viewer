@@ -179,7 +179,6 @@ namespace VkRender::MultiSense {
                     std::memcpy(tex->data2, headerTwo->data().imageDataP, headerTwo->data().imageLength);
 
                 // Copy extra zeros to the bottom row if heights does not match
-                // TODO Error if there is no ycbcr sampler
                 if (tex->m_Height != header->data().height) {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);

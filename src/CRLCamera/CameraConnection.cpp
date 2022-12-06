@@ -548,12 +548,12 @@ namespace VkRender::MultiSense {
         if (dev->state == CRL_STATE_DISCONNECT_AND_FORGET) {
             ini.Delete(CRLSerialNumber.c_str(), nullptr);
             dev->state = CRL_STATE_REMOVE_FROM_LIST;
-            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_REMOVE_FROM_LIST ", dev->name);
+            Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_REMOVE_FROM_LIST ", dev->name);
             Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
 
         } else {
             dev->state = CRL_STATE_DISCONNECTED;
-            Log::Logger::getInstance()->info("Set dev {}'s state to AR_STATE_DISCONNECTED ", dev->name);
+            Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECTED ", dev->name);
         }
         rc = ini.SaveFile("crl.ini");
         if (rc < 0) {

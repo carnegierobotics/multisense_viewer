@@ -1,21 +1,36 @@
 cmake_minimum_required(VERSION 3.2)
-project(MultiSense-Viewer C CXX)
-
+project(
+        MultiSense-Viewer
+        DESCRIPTION "A MultiSense Viewer Application"
+        LANGUAGES C CXX
+        )
 
 #set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Set install directory if not specified
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
+option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
+option(BUILD_DOC "Build documentation" ON)
+
 include(cmake/Common.cmake)
 find_package(Vulkan REQUIRED)
 
-option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
+# Build docs
+message(STATUS "Looking for Doxygen")
+find_package(Doxygen
+             REQUIRED dot
+             OPTIONAL_COMPONENTS mscgen dia)
+if(Doxygen_FOUND)
+    add_subdirectory(docs)
+else()
+    message(STATUS "Doxygen not found, not building docs")
+endif()
+
 include_directories(include)
 include_directories(Assets)
 include_directories(external)
@@ -52,7 +67,8 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Video/Previews/Quad/One.cpp
         src/Scripts/Objects/Video/Previews/Quad/Two.cpp
         src/Scripts/Objects/Video/Previews/Quad/Three.cpp
-        src/Scripts/Objects/Video/Previews/Quad/Four.cpp)
+        src/Scripts/Objects/Video/Previews/Quad/Four.cpp
+        )
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;TinyTIFF;MultiSense;LibAutoConnect")
 
@@ -61,9 +77,9 @@ file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 # Generate empty configuration files.
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini "")
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/crl.ini "")
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/logger.log "")
+file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "")
+file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "")
+file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
 
 if (UNIX) ## Linux
     # Set install directory if not specified
@@ -85,7 +101,7 @@ if (UNIX) ## Linux
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(FILES
             ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
             ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
@@ -151,22 +167,15 @@ if (WIN32)
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
 
-    # create a list of files to copy
+    # create a list of third part DLLs to copy
     set(THIRD_PARTY_DLLS
             #FFMPEG
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avcodec-59.dll
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avdevice-59.dll
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avfilter-8.dll
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avformat-59.dll
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swresample-4.dll
-            #${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/postproc-56.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
             # WinPcap DLLs
             ${CMAKE_BINARY_DIR}/internal/AutoConnect/Packet.dll
             ${CMAKE_BINARY_DIR}/internal/AutoConnect/wpcap.dll
             )
-
     # do the copying
     foreach (file_i ${THIRD_PARTY_DLLS})
         add_custom_command(
@@ -181,7 +190,6 @@ if (WIN32)
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-
     # LibMultiSense and WinPCap dll
     install(FILES
             ${CMAKE_BINARY_DIR}/MultiSense.dll
@@ -190,14 +198,12 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/swscale-6.dll
             ${CMAKE_BINARY_DIR}/avutil-57.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-
-
-    #Auto Connect
+    # AutoConnect
     install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-
+    # Create winreg.ini file so installer knows to remove this on uninstall
+    file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
@@ -207,5 +213,5 @@ if (WIN32)
         endif ()
     endif ()
 
-    file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
+
 endif ()

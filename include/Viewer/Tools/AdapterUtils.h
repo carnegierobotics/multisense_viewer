@@ -13,6 +13,7 @@
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #endif
 #ifdef WIN32
 

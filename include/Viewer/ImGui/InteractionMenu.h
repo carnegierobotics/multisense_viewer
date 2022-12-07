@@ -737,7 +737,7 @@ private:
                     ImGui::Dummy(ImVec2(40.0f, 0.0));
                     ImGui::SameLine();
                     if (dev.isRemoteHead) {
-                        std::string descriptionText = "Remote head " + std::to_string(i) + ":";
+                        std::string descriptionText = "Remote head " + std::to_string(i + 1) + ":";
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
                         ImGui::Text("%s", descriptionText.c_str());
                         ImGui::PopStyleColor();

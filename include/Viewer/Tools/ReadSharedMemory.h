@@ -25,7 +25,7 @@
 class ReaderLinux {
     caddr_t memPtr{};
     sem_t *semPtr{};
-    VkRender::EntryConnectDevice entry;
+    std::vector<VkRender::EntryConnectDevice> entries;
     size_t logLine = 0;
     nlohmann::json jsonObj;
 
@@ -90,8 +90,8 @@ public:
         }
     }
 
-    VkRender::EntryConnectDevice getResult() {
-        return entry;
+    std::vector<VkRender::EntryConnectDevice> getResult() {
+        return entries;
     }
 
     std::string getLogLine() {
@@ -131,23 +131,28 @@ public:
                     }
 
                     if (jsonObj.contains("Result")) {
-                        // can be null on linux
                         auto res = jsonObj["Result"];
+                        VkRender::EntryConnectDevice entry{};
+                        for(size_t i = 0; i < res.size(); i++) {
 
-                        entry.interfaceName = res[0]["Name"];
+                            entry.interfaceName = res[i]["Name"];
+                            entry.interfaceIndex = res[i]["Index"];
+                            entry.IP = res[i]["AddressList"][0];
+                            entry.cameraName = res[i]["CameraNameList"][0];
 
-                        // can be null on linux
-                        entry.interfaceIndex = res[0]["Index"];
+                            bool addNewEntry = true;
+                            for (const auto &taken: entries) {
+                                if (taken.interfaceName == entry.interfaceName && taken.IP == entry.IP) {
+                                    addNewEntry = false;
+                                }
+                            }
+                            if (addNewEntry)
+                                entries.emplace_back(entry);
 
-                        // can be null on linux
-                        entry.IP = res[0]["AddressList"][0];
-
-                        // can be null on linux
-                        entry.cameraName = res[0]["CameraNameList"][0];
-
-                        // can be null on linux
-                        if (res.contains("Description")) {
-                            entry.description = res[0]["Description"];
+                            // can be null on linux
+                            if (res.contains("Description")) {
+                                entry.description = res[i]["Description"];
+                            }
                         }
                     }
                 }

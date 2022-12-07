@@ -24,9 +24,7 @@ find_package(Vulkan REQUIRED)
 
 # Build docs
 message(STATUS "Looking for Doxygen")
-find_package(Doxygen
-             REQUIRED dot
-             OPTIONAL_COMPONENTS mscgen dia)
+find_package(Doxygen)
 if(Doxygen_FOUND)
     add_subdirectory(docs)
 else()

@@ -8,11 +8,13 @@
 #include <string>
 #include <string_view>
 
+#include "Viewer/Tools/ThreadPool.h"
+
 #if __has_include(<source_location>)
 
-#   include <source_location>
+#include <source_location>
 
-#   define HAS_SOURCE_LOCATION
+#define HAS_SOURCE_LOCATION
 #elif __has_include(<experimental/filesystem>)
 #   include <experimental/source_location>
 #   define HAS_SOURCE_LOCATION_EXPERIMENTAL
@@ -29,6 +31,7 @@
 // POSIX Socket Header File(s)
 #include <cerrno>
 #include <pthread.h>
+
 #endif
 
 #include <queue>
@@ -95,8 +98,8 @@ namespace Log {
                 uint64_t hardwareVersion;
                 uint64_t hardwareMagic;
                 uint64_t sensorFpgaDna;
-            }info ;
-            const VkRender::Device* dev = nullptr;
+            } info;
+            const VkRender::Device *dev = nullptr;
             std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<std::string, uint32_t>> sourceReceiveMapCounter;
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
@@ -131,15 +134,13 @@ namespace Log {
 
         static Metrics *getLogMetrics() noexcept;
 
-        // Interface for Error Log
-        void _error(const char *text) noexcept;
+        void error(const char *text) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
      * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>
         void error(const FormatString &format, Args &&... args) {
             vinfo(format, fmt::make_format_args(args...));
-
         }
 
         void error(const FormatString &format, fmt::format_args args) {
@@ -147,62 +148,26 @@ namespace Log {
             const auto &loc = format.m_Loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
-
             std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
             preText.append(s);
             std::size_t found = preText.find_last_of('/');
             std::string msg = preText.substr(found + 1);
-
-            _error(msg.c_str());
+            error(msg.c_str());
 #else
             std::string s;
             fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
             _error(s.c_str());
 
 #endif
-
         }
-
-        // Interface for Alarm Log
-        void alarm(const char *text) noexcept;
-
-        void alarm(std::string &text) noexcept;
-
-        void alarm(std::ostringstream &stream) noexcept;
-
-        // Interface for Always Log
-        void always(const char *text) noexcept;
-
-        void always(std::string &text) noexcept;
-
-        void always(std::ostringstream &stream) noexcept;
-
-        // Interface for Buffer Log
-        void buffer(const char *text) noexcept;
-
-        void buffer(std::string &text) noexcept;
-
-        void buffer(std::ostringstream &stream) noexcept;
-
-        // Interface for Info Log
-
-        //void info(std::ostringstream& stream) noexcept;
-
-
-        //void info(std::string &text, const source::source_location &m_Loc = source::source_location::current()) noexcept;
-
         /**@brief Using templates to allow user to use formattet logging.
          * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
-
         template<typename... Args>
         void info(const FormatString &format, Args &&... args) {
             vinfo(format, fmt::make_format_args(args...));
-
         }
-
         void vinfo(const FormatString &format, fmt::format_args args) {
 #if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
-
             const auto &loc = format.m_Loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
@@ -211,84 +176,41 @@ namespace Log {
 #ifdef WIN32
             const char * separator = "\\";
 #else
-            const char* separator = "/";
+            const char *separator = "/";
 #endif
             std::size_t found = preText.find_last_of(separator);
             std::string msg = preText.substr(found + 1);
             msg.append(s);
-
             msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
-            _info(msg.c_str());
+            infoInternal(msg.c_str());
 #else
             std::string s;
             fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
             s = s.insert(0, (std::to_string(frameNumber) + "  ")) ;
-            _info(s.c_str());
+            infoInternal(s.c_str());
 #endif
-
         }
-
-
-        // Interface for Trace log
-        void trace(const char *text) noexcept;
-
-        void trace(std::string &text) noexcept;
-
-        void trace(std::ostringstream &stream) noexcept;
-
-        // Interface for Debug log
-        void debug(const char *text) noexcept;
-
-        void debug(std::string &text) noexcept;
-
-        void debug(std::ostringstream &stream) noexcept;
-
-        // Error and Alarm log must be always flashing
-        // Hence, there is no interfce to control error and alarm logs
-
-        // Interfaces to control log levels
-        void updateLogLevel(LogLevel logLevel);
-
-        void enaleLog();  // Enable all log levels
-        void disableLog(); // Disable all log levels, except error and alarm
-
-        // Interfaces to control log Types
-        void updateLogType(LogType logType);
-
-        void enableConsoleLogging();
-
-        void enableFileLogging();
-
         uint32_t frameNumber = 0;
-
         void operator=(const Logger &obj) = delete;
+        void always(std::string text) noexcept;
 
     protected:
         Logger();
 
         ~Logger();
 
-        // Wrapper function for lock/unlock
-        // For Extensible feature, lock and unlock should be in protected
-        void lock();
-
-        void unlock();
-
-        std::string getCurrentTime();
+        static std::string getCurrentTime();
 
     private:
-        /*
-        void info(const char *fmt, ...);
-         */
-        void _info(const char *text) noexcept;
+        void infoInternal(const char *text) noexcept;
 
-        void logIntoFile(std::string &data);
+        static void logOnConsole(std::string &data);
 
-        void logOnConsole(std::string &data);
-
+        static void logIntoFile(void* ctx, std::string &data);
 
     private:
         static Logger *m_Instance;
+        static VkRender::ThreadPool* m_ThreadPool;
         static Metrics *m_Metrics;
         std::ofstream m_File;
 

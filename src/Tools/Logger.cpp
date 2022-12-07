@@ -21,6 +21,7 @@ namespace Log {
 
 
     Logger *Logger::m_Instance = nullptr;
+    VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
     Metrics* Logger::m_Metrics = nullptr;
 
 // Log file m_Name. File m_Name should be change from here only
@@ -38,12 +39,14 @@ namespace Log {
         m_File.close();
         delete m_Instance;
         delete m_Metrics;
+        delete m_ThreadPool;
     }
 
     Logger *Logger::getInstance() noexcept {
         if (m_Instance == nullptr) {
             m_Instance = new Logger();
             m_Metrics = new Metrics();
+            m_ThreadPool = new VkRender::ThreadPool(1);
         }
         return m_Instance;
     }
@@ -52,17 +55,12 @@ namespace Log {
         return m_Metrics;
     }
 
-    void Logger::lock() {
-    }
-
-    void Logger::unlock() {
-    }
-
-    void Logger::logIntoFile(std::string &data) {
-        m_Mutex.lock();
-        m_File << getCurrentTime() << "  " << data << endl;
-        m_Metrics->logQueue.push(data);
-        m_Mutex.unlock();
+    void Logger::logIntoFile(void* ctx, std::string &data) {
+        auto * app = static_cast<Logger*> (ctx);
+        app->m_Mutex.lock();
+        app->m_File << getCurrentTime() << "  " << data << endl;
+        app->m_Metrics->logQueue.push(data);
+        app->m_Mutex.unlock();
     }
 
     void Logger::logOnConsole(std::string &data) {
@@ -82,175 +80,46 @@ namespace Log {
     }
 
 // Interface for Error Log
-    void Logger::_error(const char *text) throw() {
+    void Logger::error(const char *text) noexcept {
         string data;
         data.append("[ERROR]: ");
         data.append(text);
 
         // ERROR must be capture
         if (m_LogType == FILE_LOG) {
-            logIntoFile(data);
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
         } else if (m_LogType == CONSOLE) {
-            logOnConsole(data);
+            m_ThreadPool->Push(Logger::logOnConsole, data);
         }
     }
 
 
-// Interface for Alarm Log 
-    void Logger::alarm(const char *text) throw() {
+// Interface for Info Log
+    void Logger::infoInternal(const char *text) noexcept {
         string data;
-        data.append("[ALARM]: ");
+        data.append("[INFO]: ");
         data.append(text);
 
-        // ALARM must be capture
-        if (m_LogType == FILE_LOG) {
-            logIntoFile(data);
-        } else if (m_LogType == CONSOLE) {
-            logOnConsole(data);
+        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_INFO)) {
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
+        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_INFO)) {
+            m_ThreadPool->Push(Logger::logOnConsole, data);
         }
+
     }
 
-    void Logger::alarm(std::string &text) throw() {
-        alarm(text.data());
-    }
-
-    void Logger::alarm(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        alarm(text.data());
-    }
-
-// Interface for Always Log 
-    void Logger::always(const char *text) throw() {
+// Interface for Always Log
+    void Logger::always(std::string text) noexcept {
         string data;
         data.append("[ALWAYS]: ");
         data.append(text);
 
         // No check for ALWAYS logs
         if (m_LogType == FILE_LOG) {
-            logIntoFile(data);
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
         } else if (m_LogType == CONSOLE) {
-            logOnConsole(data);
+            m_ThreadPool->Push(Logger::logOnConsole, data);
         }
     }
-
-    void Logger::always(std::string &text) throw() {
-        always(text.data());
-    }
-
-    void Logger::always(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        always(text.data());
-    }
-
-// Interface for Buffer Log 
-    void Logger::buffer(const char *text) throw() {
-        // Buffer is the special case. So don't add log level
-        // and timestamp in the buffer message. Just log the raw bytes.
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_BUFFER)) {
-            lock();
-            m_File << text << endl;
-            unlock();
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_BUFFER)) {
-            cout << text << endl;
-        }
-    }
-
-    void Logger::buffer(std::string &text) throw() {
-        buffer(text.data());
-    }
-
-    void Logger::buffer(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        buffer(text.data());
-    }
-
-// Interface for Info Log
-    void Logger::_info(const char *text) throw() {
-        string data;
-        data.append("[INFO]: ");
-        data.append(text);
-
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_INFO)) {
-            logIntoFile(data);
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_INFO)) {
-            logOnConsole(data);
-        }
-
-    }
-// Interface for Trace Log
-    void Logger::trace(const char *text) throw() {
-        string data;
-        data.append("[TRACE]: ");
-        data.append(text);
-
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
-            logIntoFile(data);
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
-            logOnConsole(data);
-        }
-    }
-
-    void Logger::trace(std::string &text) throw() {
-        trace(text.data());
-    }
-
-    void Logger::trace(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        trace(text.data());
-    }
-
-// Interface for Debug Log
-    void Logger::debug(const char *text) throw() {
-        string data;
-        data.append("[DEBUG]: ");
-        data.append(text);
-
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_DEBUG)) {
-            logIntoFile(data);
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_DEBUG)) {
-            logOnConsole(data);
-        }
-    }
-
-    void Logger::debug(std::string &text) throw() {
-        debug(text.data());
-    }
-
-    void Logger::debug(std::ostringstream &stream) throw() {
-        string text = stream.str();
-        debug(text.data());
-    }
-
-// Interfaces to control log levels
-    void Logger::updateLogLevel(LogLevel logLevel) {
-        m_LogLevel = logLevel;
-    }
-
-// Enable all log levels
-    void Logger::enaleLog() {
-        m_LogLevel = ENABLE_LOG;
-    }
-
-// Disable all log levels, except error and alarm
-    void Logger::disableLog() {
-        m_LogLevel = DISABLE_LOG;
-    }
-
-// Interfaces to control log Types
-    void Logger::updateLogType(LogType logType) {
-        m_LogType = logType;
-    }
-
-    void Logger::enableConsoleLogging() {
-        m_LogType = CONSOLE;
-    }
-
-
-void Logger::enableFileLogging()
-{
-   m_LogType = FILE_LOG ;
-}
-
-
 
 };

@@ -29,7 +29,7 @@ $ sudo apt install vulkan-sdk
 Clone the git repo and build the MultiSense Viewer
 ```sh
 $ git clone https://github.com/M-Gjerde/MultiSense-Viewer
-$ cd MultiSense
+$ cd MultiSense-Viewer
 $ mkdir build && cd build
 $ cmake ..
 $ make -j12 # j-parallell jobs (Same number as cores on your cpu for faster compile)

@@ -17,6 +17,12 @@ set(ARCHITECTURE "amd64")
 option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 option(BUILD_DOC "Build documentation" ON)
 
+if (UNIX)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+elseif(WIN32)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
+endif()
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
 
@@ -83,7 +89,6 @@ file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
 
 if (UNIX) ## Linux
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -123,7 +128,6 @@ endif ()
 
 if (WIN32)
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"

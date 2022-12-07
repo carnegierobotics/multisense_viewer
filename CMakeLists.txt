@@ -17,6 +17,14 @@ set(ARCHITECTURE "amd64")
 option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 option(BUILD_DOC "Build documentation" ON)
 
+if (UNIX)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+elseif(WIN32)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
+endif()
+
+set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY})
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
 

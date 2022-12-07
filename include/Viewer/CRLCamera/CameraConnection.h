@@ -8,7 +8,7 @@
 #include <memory>
 #include <simpleini/SimpleIni.h>
 
-#include "Viewer/CRLCamera/ThreadPool.h"
+#include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 

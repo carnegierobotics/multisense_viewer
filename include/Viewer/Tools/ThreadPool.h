@@ -20,14 +20,21 @@
 #include <utility>
 #include <vector>
 
-#include "Viewer/Tools/Logger.h"
-
 namespace VkRender {
-
+    /**
+     * @brief Implementation of a simple thread poll in c++
+     * Source: https://maidamai0.github.io/post/a-simple-thread-pool/
+     * based on and highly inspired by Easy3D
+     * License: ?
+     */
     class ThreadPool {
         using task_type = std::function<void()>;
 
     public:
+        /**
+         * Initialize with number of threads in the threadpool
+         * @param number of threads in threadpool
+         */
         explicit ThreadPool(size_t num = std::thread::hardware_concurrency()) {
             for (size_t i = 0; i < num; ++i) {
                 workers_.emplace_back(std::thread([this] {
@@ -40,25 +47,22 @@ namespace VkRender {
                             tasks_.pop();
                         }
                         if (!task) {
-                            Log::Logger::getInstance()->info("Worker #{} exited",
-                                                             std::hash<std::thread::id>{}(std::this_thread::get_id()));
-                            push_stop_task();
+                            pushStopTask();
                             return;
                         }
                         task();
                     }
                 }));
-                Log::Logger::getInstance()->info("Worker #{} started",
-                                                 std::hash<std::thread::id>{}(std::this_thread::get_id()));
             }
         }
+
 
         ~ThreadPool() {
             Stop();
         }
 
         void Stop() {
-            push_stop_task();
+            pushStopTask();
             for (auto &worker: workers_) {
                 if (worker.joinable()) {
                     worker.join();
@@ -70,6 +74,14 @@ namespace VkRender {
             std::swap(tasks_, empty);
         }
 
+        /**
+         * Push task to queue list
+         * @tparam F
+         * @tparam Args
+         * @param f
+         * @param args
+         * @return
+         */
         template<typename F, typename... Args>
         auto Push(F &&f, Args &&... args) {
             using return_type = std::invoke_result_t<F, Args...>;
@@ -88,16 +100,21 @@ namespace VkRender {
             return res;
         }
 
+        /**
+         * Get the number of tasks in queue
+         * @return number of tasks
+         */
         size_t getTaskListSize() {
             return tasks_.size();
         }
 
-    private:
-        void push_stop_task() {
+        void pushStopTask() {
             std::lock_guard<std::mutex> lock(task_mutex_);
             tasks_.push(task_type{});
             task_cond_.notify_one();
         }
+
+    private:
 
         std::vector<std::thread> workers_;
         std::queue<task_type> tasks_;

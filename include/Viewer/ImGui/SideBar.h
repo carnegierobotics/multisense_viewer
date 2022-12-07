@@ -337,15 +337,14 @@ private:
 
             // Delete a profile
             {
-                // Check if we are currently trying to connect.
-                bool busy = false;
-                for (const auto &dev: handles->devices) {
-                    if (dev.state == CRL_STATE_CONNECTING)
-                        busy = true;
-                }
-                if (ImGui::SmallButton("X") && !busy) {
+
+                if (ImGui::SmallButton("X")) {
                     // delete and disconnect devices
-                    handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
+                    if ( handles->devices.at(i).state == CRL_STATE_CONNECTING)
+                        handles->devices.at(i).state = CRL_STATE_INTERRUPT_CONNECTION;
+                    else
+                        handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
+
                     Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECT_AND_FORGET ",
                                                      handles->devices.at(i).name);
                     ImGui::PopStyleVar();

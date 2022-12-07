@@ -10,7 +10,7 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
-#include "Viewer/CRLCamera/ThreadPool.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 class RecordFrames : public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels
 {
@@ -57,8 +57,8 @@ public:
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
-    static void saveImageToFile(CRLCameraDataType type, const std::string& path, const std::string& stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
-        std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead, const std::string& compression);
+    static void saveImageToFile(CRLCameraDataType type, const std::string& path, std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
+                                std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead, const std::string& compression);
 };
 
 

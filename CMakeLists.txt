@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.14)
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
@@ -34,7 +34,7 @@ include_directories(Assets)
 include_directories(external)
 include_directories(external/ffmpeg/include)
 include_directories(${Vulkan_INCLUDE_DIRS})
-cmake_language(CALL ExportScriptIncludes)
+ExportScriptIncludes()
 
 set(ENGINE_SRC
         src/Core/Buffer.cpp

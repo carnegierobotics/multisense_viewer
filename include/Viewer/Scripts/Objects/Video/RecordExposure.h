@@ -10,7 +10,7 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
-#include "Viewer/CRLCamera/ThreadPool.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 class RecordExposure : public VkRender::Base, public VkRender::RegisteredInFactory<RecordExposure>, CRLCameraModels
 {

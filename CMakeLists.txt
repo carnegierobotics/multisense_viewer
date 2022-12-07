@@ -18,6 +18,8 @@ option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 option(BUILD_DOC "Build documentation" ON)
 
 include(cmake/Common.cmake)
+include(cmake/CompilerWarnings.cmake)
+
 find_package(Vulkan REQUIRED)
 
 # Build docs
@@ -99,6 +101,9 @@ if (UNIX) ## Linux
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
+
+    #set_project_warnings(ScriptLibrary)
+    #set_project_warnings(VulkanRenderer)
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -212,6 +217,4 @@ if (WIN32)
             set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
         endif ()
     endif ()
-
-
 endif ()

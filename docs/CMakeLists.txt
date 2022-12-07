@@ -11,6 +11,5 @@
  doxygen_add_docs(build_viewer_docs
          ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
          EXCLUDE json.hpp
-         ALL
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
          COMMENT "Generating API documentation with Doxygen")

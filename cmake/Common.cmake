@@ -165,11 +165,15 @@ function(ExportScriptIncludes)
     endforeach (Src ${SCRIPT_HEADERS})
 endfunction()
 
+
 if (UNIX)
-    if (ENABLE_ALL_WARNINGS_GCC)
-        message("   INFO:  Enabled all warnings")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wuninitialized")
-        # Not enabled flags but could be nice to enable
-        # -Wundef -Wcast-qual  -Wdouble-promotion
-    endif ()
-endif ()
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+elseif(WIN32)
+    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
+endif()
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message(STATUS "Set install directory to ${INSTALL_DIRECTORY}")
+    set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY}
+            CACHE PATH "default install path" FORCE)
+endif()

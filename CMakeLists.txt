@@ -23,7 +23,11 @@ elseif(WIN32)
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
 endif()
 
-set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY})
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message(STATUS "Set install directory to ${INSTALL_DIRECTORY}")
+    set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY}
+            CACHE PATH "default install path" FORCE)
+endif()
 
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)

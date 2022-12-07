@@ -59,8 +59,11 @@ namespace VkRender::MultiSense {
 
             void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper> &buf) {
                 // Lock
-                std::lock_guard<std::mutex> lock(mut);
+                std::scoped_lock<std::mutex> lock(mut);
                 // replace latest data into m_Image pointers
+                if (imagePointersMap.empty())
+                    return;
+
                 imagePointersMap[id][buf->data().source] = buf;
 
                 Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[id][Utils::dataSourceToString(buf->data().source)]++;

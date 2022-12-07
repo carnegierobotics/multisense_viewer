@@ -18,6 +18,7 @@
 
 #define MAX_TASK_STACK_SIZE 3
 #define MAX_NUM_REMOTEHEADS 4
+
 namespace VkRender::MultiSense {
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
         auto *p = &dev->parameters;
@@ -227,7 +228,7 @@ namespace VkRender::MultiSense {
             chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                  imgConf.disparities());
             for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-                dev.win[(StreamWindowIndex)i].availableRemoteHeads.push_back(std::to_string(ch));
+                dev.win[(StreamWindowIndex)i].availableRemoteHeads.push_back(std::to_string(ch + 1));
                 if (!chInfo.availableSources.empty())
                     dev.win[(StreamWindowIndex)i].selectedRemoteHeadIndex = ch;
             }

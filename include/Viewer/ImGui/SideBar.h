@@ -84,12 +84,15 @@ public:
     SHELLEXECUTEINFOA shellInfo;
 #endif
     std::string btnLabel = "Start";
+
     void onAttach() override {
         gifFrameTimer = std::chrono::steady_clock::now();
         gifFrameTimer2 = std::chrono::steady_clock::now();
     }
+
     void onFinishedRender() override {
     }
+
     void onDetach() override {
 #ifdef __linux__
         if (autoConnectProcess != nullptr) {
@@ -187,19 +190,22 @@ private:
 #endif
                     }
                     // Same IP on same adapter is treated as the same camera
-                    VkRender::EntryConnectDevice entry = reader->getResult();
-                    if (!entry.cameraName.empty()) {
-                        bool cameraExists = false;
-                        for (const auto &e: entryConnectDeviceList) {
-                            if (e.IP == entry.IP && e.interfaceIndex == entry.interfaceIndex)
-                                cameraExists = true;
-                        }
-                        if (!cameraExists) {
-                            VkRender::EntryConnectDevice e{entry.IP, entry.interfaceName, entry.cameraName,
-                                                           entry.interfaceIndex,
-                                                           entry.description};
-                            entryConnectDeviceList.push_back(e);
-                            resultsComboIndex = entryConnectDeviceList.size() - 1;
+                    std::vector<VkRender::EntryConnectDevice> entries = reader->getResult();
+                    for (const auto &entry: entries) {
+                        if (!entry.cameraName.empty()) {
+                            bool cameraExists = false;
+                            for (const auto &e: entryConnectDeviceList) {
+                                if (e.IP == entry.IP && e.interfaceIndex == entry.interfaceIndex)
+                                    cameraExists = true;
+                            }
+                            if (!cameraExists) {
+                                VkRender::EntryConnectDevice e{entry.IP, entry.interfaceName, entry.cameraName,
+                                                               entry.interfaceIndex,
+                                                               entry.description};
+
+                                entryConnectDeviceList.push_back(e);
+                                resultsComboIndex = entryConnectDeviceList.size() - 1;
+                            }
                         }
                     }
                 }
@@ -605,24 +611,6 @@ private:
                 }
 
 
-                /*
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                ImGui::Text("Status:");
-                if (showRestartButton) {
-                    ImGui::SameLine(0, 15.0f);
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
-                    btnRestartAutoConnect = ImGui::SmallButton("Restart?");
-                    if (btnRestartAutoConnect) {
-                        entryConnectDeviceList.clear();
-                        //autoConnect.clearSearchedAdapters();
-                        m_Entry.reset();
-                        //autoConnect.stopAutoConnect();
-                        showRestartButton = false;
-                    }
-                    ImGui::PopStyleColor();
-                }
-                ImGui::PopStyleColor();
-                */
 
                 /** STATUS SPINNER */
                 ImGui::SameLine();
@@ -966,7 +954,7 @@ private:
 
     void addSpinnerGif(VkRender::GuiObjectHandles *handles) {
 
-        ImVec2 size = ImVec2(40.0f,40.0f);
+        ImVec2 size = ImVec2(40.0f, 40.0f);
         ImVec2 uv0 = ImVec2(0.0f, 0.0f);
         ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 

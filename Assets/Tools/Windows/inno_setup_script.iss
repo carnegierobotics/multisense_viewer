@@ -5,7 +5,7 @@
 #define MyAppVersion "1"
 #define MyAppPublisher "Carnegie Robotics"
 #define MyAppURL "https://www.carnegierobotics.com"
-#define MyAppExeName "MultiSense-Viewer.exe.exe"
+#define MyAppExeName "MultiSense-Viewer.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt

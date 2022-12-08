@@ -122,8 +122,10 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
                                             crl::multisense::RemoteHeadChannel channelID) {
-        if (channelMap[channelID] == nullptr)
+        if (channelMap[channelID] == nullptr) {
+            Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
+        }
 
         auto src = Utils::stringToDataSource(stringSrc);
         crl::multisense::DataSource colorSource;
@@ -135,35 +137,45 @@ namespace VkRender::MultiSense {
             lumaSource = crl::multisense::Source_Luma_Aux;
             header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
             headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
-            if (headerTwo == nullptr)
+            if (headerTwo == nullptr) {
+                Log::Logger::getInstance()->error("In getCameraStream: Secondary header is null");
                 return false;
+            }
 
         } else if (stringSrc == "Color Rectified Aux") {
             colorSource = crl::multisense::Source_Chroma_Rectified_Aux;
             lumaSource = crl::multisense::Source_Luma_Rectified_Aux;
             header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
             headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
-            if (headerTwo == nullptr)
+            if (headerTwo == nullptr) {
+                Log::Logger::getInstance()->error("In getCameraStream: Secondary header is null");
                 return false;
+            }
         } else {
             header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, src);
         }
 
-        if (header == nullptr)
+        if (header == nullptr) {
+            Log::Logger::getInstance()->error("In getCameraStream: Header is null");
             return false;
+        }
 
         switch (tex->m_Type) {
             case CRL_COLOR_IMAGE_YUV420: {
                 if (headerTwo->data().source != src ||
                     tex->m_Width != header->data().width ||
-                    tex->m_Height < header->data().height)
+                    tex->m_Height < header->data().height) {
+                    Log::Logger::getInstance()->error("In getCameraStream: Color Source and dimensions did not match expected values");
                     return false;
+                }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 tex->m_Id2 = static_cast<uint32_t>(headerTwo->data().frameId);
 
-                // These should be the same height. This can happen with the Color_Aux source when switching between max and quarter res.
-                if (header->data().height == headerTwo->data().height)
+                // These should be the same height. This can happen with the Color_Aux source when switching between max and h res.
+                if (header->data().height == headerTwo->data().height) {
+                    Log::Logger::getInstance()->error("In getCameraStream: Color Source and dimensions does not have matching height");
                     return false;
+                }
 
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
                 // if data3 is not null we are using a manual ycbcr sampler. Therefore do a strided copy
@@ -203,15 +215,16 @@ namespace VkRender::MultiSense {
                 DISABLE_WARNING_PUSH
                 DISABLE_WARNING_IMPLICIT_FALLTHROUGH
                 if (header->data().bitsPerPixel != 16) {
-                    std::cerr << "Unsupported disparity pixel depth" <<
-                              std::endl;
+                    Log::Logger::getInstance()->error("In getCameraStream: Unsupported disparity pixel depth");
                     return false;
                 }DISABLE_WARNING_POP
             case CRL_GRAYSCALE_IMAGE:
             case CRL_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data()
-                        .width || tex->m_Height < header->data().height)
+                        .width || tex->m_Height < header->data().height) {
+                    Log::Logger::getInstance()->error("In getCameraStream: Monochrome source and dimensions did not match expected values");
                     return false;
+                }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
 // Copy extra zeros (black pixels) to the bottom row if heights does not match

@@ -152,6 +152,6 @@ namespace VkRender {
         }
     };
 
-};
+}
 
 #endif //MULTISENSE_LAYER_H

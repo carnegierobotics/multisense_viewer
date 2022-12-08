@@ -14,7 +14,6 @@ set(VERSION_MINOR "0")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
-option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 option(BUILD_DOC "Build documentation" ON)
 
 # Set a default build type if none was specified
@@ -110,6 +109,7 @@ if (UNIX) ## Linux
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
+    set_project_warnings(MultiSense-Viewer)
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -198,9 +198,9 @@ if (WIN32)
 
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME ARCHIVE LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
     # LibMultiSense and WinPCap dll
     install(FILES
             ${CMAKE_BINARY_DIR}/MultiSense.dll

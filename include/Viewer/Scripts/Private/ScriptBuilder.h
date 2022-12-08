@@ -62,7 +62,7 @@ protected:
 
 template<typename T >
 bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
-};
+}
 
 
 

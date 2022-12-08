@@ -122,7 +122,7 @@ namespace VkRender {
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
             if (time_span.count() > INTERVAL_10_SECONDS || renderData.scriptDrawCount == 0) {
                 lastLogTime = std::chrono::steady_clock::now();
-                Log::Logger::getInstance()->info("Draw-number: {} for script: {}", (int) renderData.scriptDrawCount,
+                Log::Logger::getInstance()->info("Draw-number: {} for script: {}", renderData.scriptDrawCount,
                                                  renderData.scriptName.c_str());
             }
             draw(commandBuffer, i, b);
@@ -135,7 +135,7 @@ namespace VkRender {
         void updateUniformBufferData(VkRender::RenderData *data) {
             updateRenderData(data);
 
-            renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
+            renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
             if (*renderData.crlCamera != nullptr)
                 update();
@@ -193,7 +193,7 @@ namespace VkRender {
                 uniformBuffer.bufferThree.map();
 
             }
-            renderData.scriptRuntime = (float) (std::chrono::steady_clock::now() - startTime).count();
+            renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
             sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 

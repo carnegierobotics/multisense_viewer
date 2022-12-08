@@ -43,6 +43,8 @@
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION                     DISABLE_WARNING(-Wunused-function)
 // other warnings you want to deactivate...
 
+#define DISABLE_WARNING_ALL
+
 #else
 #define DISABLE_WARNING_PUSH
 #define DISABLE_WARNING_POP

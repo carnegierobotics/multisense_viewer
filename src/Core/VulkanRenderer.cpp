@@ -541,7 +541,7 @@ namespace VkRender {
             glfwWaitEvents();
         }
         // Recreate swap chain
-        swapchain->create(&m_Width, &m_Height);
+        swapchain->create(&m_Width, &m_Height, settings.vsync);
 
         // Recreate the frame buffers
         vkDestroyImageView(device, depthStencil.view, nullptr);

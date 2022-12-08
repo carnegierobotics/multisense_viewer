@@ -558,7 +558,7 @@ namespace Utils {
             VkShaderModuleCreateInfo moduleCreateInfo{};
             moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             moduleCreateInfo.codeSize = size;
-            moduleCreateInfo.pCode = (uint32_t *) shaderCode.data();
+            moduleCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
             VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr, module);
             if (res != VK_SUCCESS)
                 throw std::runtime_error("Failed to create shader module");

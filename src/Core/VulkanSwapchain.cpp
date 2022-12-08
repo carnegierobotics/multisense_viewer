@@ -319,12 +319,12 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
     // Get list of supported surface formats
     uint32_t formatCount;
     VkResult result = vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, surface, &formatCount, NULL);
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get m_Device surface formats");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get device surface formats");
     assert(formatCount > 0);
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(info.physicalDevice, surface, &formatCount, surfaceFormats.data());
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get m_Device surface formats");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get device surface formats");
 
     // If the surface m_Format list only includes one m_Entry with VK_FORMAT_UNDEFINED,
     // there is no preferred m_Format, so we assume VK_FORMAT_B8G8R8A8_UNORM

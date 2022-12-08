@@ -34,8 +34,8 @@ namespace VkRender {
             calcImageSize();
 
             if (m_Manual) {
-                data = (uint8_t *) malloc(m_Len);
-                data2 = (uint8_t *) malloc(m_Len2);
+                data = reinterpret_cast<uint8_t *>(malloc(m_Len));
+                data2 = reinterpret_cast<uint8_t *>(malloc(m_Len2));
             }
         }
 
@@ -49,8 +49,8 @@ namespace VkRender {
             calcImageSize();
 
             if (m_Manual) {
-                data = (uint8_t *) malloc(m_Len);
-                data2 = (uint8_t *) malloc(m_Len2);
+                data = reinterpret_cast<uint8_t *>(malloc(m_Len));
+                data2 = reinterpret_cast<uint8_t *>(malloc(m_Len2));
             }
         }
 

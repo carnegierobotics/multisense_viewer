@@ -102,7 +102,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 break;
             case CRL_GRAYSCALE_IMAGE: {
                 auto *d = ptr->data;
-                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.c_str(), 8, TinyTIFFWriter_UInt, 1,
+                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.string().c_str(), 8, TinyTIFFWriter_UInt, 1,
                                                               ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
                 TinyTIFFWriter_writeImage(tif, d);
                 TinyTIFFWriter_close(tif);
@@ -110,7 +110,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 break;
             case CRL_DISPARITY_IMAGE: {
                 auto *d =  ptr->data;
-                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.c_str(), 16, TinyTIFFWriter_UInt, 1,
+                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.string().c_str(), 16, TinyTIFFWriter_UInt, 1,
                                                               ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
                 TinyTIFFWriter_writeImage(tif, d);
                 TinyTIFFWriter_close(tif);
@@ -119,7 +119,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             case CRL_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
             {
-                std::ofstream outputStream((fileLocation).c_str(),
+                std::ofstream outputStream((fileLocation.string()).c_str(),
                                            std::ios::out | std::ios::binary);
                 if (!outputStream.good()) {
                     Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());
@@ -144,7 +144,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 break;
             case CRL_GRAYSCALE_IMAGE: {
 
-                stbi_write_png((fileLocation).c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
+                stbi_write_png((fileLocation.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
                                ptr->m_Width);
             }
                 break;
@@ -157,7 +157,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                     uint8_t lsb = d[i] & 0x000000FF;
                     buf.emplace_back(lsb);
                 }
-                stbi_write_png((fileLocation).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
+                stbi_write_png((fileLocation.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
                                ptr->m_Width);
             }
                 break;
@@ -220,7 +220,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                                                         nullptr);
                 sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
                 sws_freeContext(conversion);
-                stbi_write_png((fileLocation).c_str(), width, height, 3, dst->data[0], dst->linesize[0]);
+                stbi_write_png((fileLocation.string()).c_str(), width, height, 3, dst->data[0], dst->linesize[0]);
 
                 av_freep(&src->data[0]);
                 av_frame_free(&src);

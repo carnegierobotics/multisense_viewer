@@ -180,8 +180,7 @@ public:
     }
 
     void logError(const char *msg) {
-        Log::Logger::getInstance()->error("%s: strerror: %s", msg, strerror(errno));
-
+        Log::Logger::getInstance()->error("{}: strerror: {}", msg, strerror(errno));
     }
 };
 

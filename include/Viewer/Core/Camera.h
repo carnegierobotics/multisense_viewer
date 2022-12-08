@@ -23,9 +23,9 @@ private:
     void updateViewMatrix() {
         if (type == CameraType::firstperson) {
             glm::vec3 dir;
-            dir.x = (float) cos(glm::radians(yaw)) * (float) cos(glm::radians(pitch));
-            dir.y = (float) sin(glm::radians(pitch));
-            dir.z = (float) sin(glm::radians(yaw)) * (float) cos(glm::radians(pitch));
+            dir.x = cosf(glm::radians(yaw)) * cosf(glm::radians(pitch));
+            dir.y = sinf(glm::radians(pitch));
+            dir.z = sinf(glm::radians(yaw)) * cosf(glm::radians(pitch));
             cameraFront = glm::normalize(dir);
             matrices.view = glm::lookAt(m_Position, m_Position + cameraFront, cameraUp);
             m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
@@ -118,7 +118,7 @@ public:
         if (type != lookat)
             return;
 
-        m_Position = m_Position * (float) std::abs((f));
+        m_Position = m_Position * std::abs((f));
         // reset angles to we dont accidently rotate around our last angle
         xAngle = 0.0f;
         yAngle = 0.0f;

@@ -17,6 +17,16 @@ set(ARCHITECTURE "amd64")
 option(ENABLE_ALL_WARNINGS_GCC "Compile with all warnings" OFF)
 option(BUILD_DOC "Build documentation" ON)
 
+# Set a default build type if none was specified
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE
+            Release
+            CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui, ccmake
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"  "MinSizeRel" "RelWithDebInfo")
+endif ()
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
 
@@ -29,11 +39,12 @@ else()
     message(STATUS "Doxygen not found, not building docs")
 endif()
 
+
 include_directories(include)
 include_directories(Assets)
-include_directories(external)
-include_directories(external/ffmpeg/include)
-include_directories(${Vulkan_INCLUDE_DIRS})
+include_directories(SYSTEM external)
+include_directories(SYSTEM external/ffmpeg/include)
+include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
 
 set(ENGINE_SRC
@@ -57,7 +68,6 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Example.cpp
         src/Scripts/Objects/Pointcloud/PointCloud.cpp
         src/Scripts/Objects/SceneGizmos/Gizmos.cpp
-        src/Scripts/Objects/Video/RecordExposure.cpp
         src/Scripts/Objects/Video/RecordFrames.cpp
         src/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
         src/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp
@@ -98,8 +108,8 @@ if (UNIX) ## Linux
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
-    #set_project_warnings(ScriptLibrary)
-    #set_project_warnings(VulkanRenderer)
+    set_project_warnings(ScriptLibrary)
+    set_project_warnings(VulkanRenderer)
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})

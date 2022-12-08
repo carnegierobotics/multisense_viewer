@@ -98,7 +98,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             case CRL_POINT_CLOUD:
                 break;
             case CRL_GRAYSCALE_IMAGE: {
-                auto *d = (uint8_t *) ptr->data;
+                auto *d = ptr->data;
                 TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.c_str(), 8, TinyTIFFWriter_UInt, 1,
                                                               ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
                 TinyTIFFWriter_writeImage(tif, d);
@@ -106,7 +106,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
                 break;
             case CRL_DISPARITY_IMAGE: {
-                auto *d = (uint16_t *) ptr->data;
+                auto *d =  ptr->data;
                 TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.c_str(), 16, TinyTIFFWriter_UInt, 1,
                                                               ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
                 TinyTIFFWriter_writeImage(tif, d);
@@ -146,7 +146,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
                 break;
             case CRL_DISPARITY_IMAGE: {
-                auto *d = (uint16_t *) ptr->data;
+                auto *d = reinterpret_cast<uint16_t *>( ptr->data);
                 std::vector<uint8_t> buf;
                 buf.reserve(ptr->m_Width * ptr->m_Height);
                 for (size_t i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
@@ -184,7 +184,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 }
 
                 std::memcpy(src->data[0], ptr->data, ptr->m_Len);
-                auto *d = (uint16_t *) ptr->data2;
+                auto *d = reinterpret_cast<uint16_t *>( ptr->data2);
                 for (size_t i = 0; i < ptr->m_Height / 2 * ptr->m_Width / 2; ++i) {
                     src->data[1][i] = d[i] & 0xff;
                     src->data[2][i] = (d[i] >> (8)) & 0xff;
@@ -207,14 +207,14 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 }
                 SwsContext *conversion = sws_getContext(width,
                                                         height,
-                                                        (AVPixelFormat) AV_PIX_FMT_YUV420P,
+                                                        AV_PIX_FMT_YUV420P,
                                                         width,
                                                         height,
                                                         AV_PIX_FMT_RGB24,
                                                         SWS_FAST_BILINEAR,
-                                                        NULL,
-                                                        NULL,
-                                                        NULL);
+                                                        nullptr,
+                                                        nullptr,
+                                                        nullptr);
                 sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
                 sws_freeContext(conversion);
                 stbi_write_png((fileLocation).c_str(), width, height, 3, dst->data[0], dst->linesize[0]);

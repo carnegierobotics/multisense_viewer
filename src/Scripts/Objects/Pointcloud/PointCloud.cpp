@@ -16,7 +16,7 @@ void PointCloud::update() {
 
 
     if (model->draw) {
-        const auto& conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+        const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());
         model->getTextureDataPointers(&tex);
         if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
@@ -87,8 +87,9 @@ void PointCloud::prepareTexture() {
     // first few rows and cols (20) are discarded in the shader anyway
     for (uint32_t i = 20; i < width - 20; ++i) {
         for (uint32_t j = 20; j < height - 20; ++j) {
-            meshData[v].pos = glm::vec3((float) i, (float) j, 0.0f);
-            meshData[v].uv0 = glm::vec2(1.0f - ((float) i / (float) width), 1.0f-((float) j / (float) height));
+            meshData[v].pos = glm::vec3(static_cast<float>(i), static_cast<float>(j), 0.0f);
+            meshData[v].uv0 = glm::vec2(1.0f - (static_cast<float>(i) / static_cast<float>(width)),
+                                        1.0f - (static_cast<float>(j) / static_cast<float>(height)));
             v++;
         }
     }
@@ -100,7 +101,7 @@ void PointCloud::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
-    auto *buf = (VkRender::PointCloudParam *) bufferThreeData.get();
+    auto *buf = bufferThreeData.get();
     buf->Q = renderData.crlCamera->get()->getCameraInfo(0).QMat;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);

@@ -6,20 +6,6 @@
 # - Option to enabled all warnings when compiling with GCC
 
 
-
-# Set a default build type if none was specified
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(
-            STATUS "Setting build type to 'Release' as none was specified.")
-    set(CMAKE_BUILD_TYPE
-            Release
-            CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui, ccmake
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-            "MinSizeRel" "RelWithDebInfo")
-endif ()
-
-
 find_package(Git QUIET)
 if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     # Update submodules as needed
@@ -54,7 +40,7 @@ else ()
     message("[INFO] Adding GLM from directory: ${GLM_DIR}")
 
     add_subdirectory(${GLM_DIR})
-    include_directories(${GLM_DIR})
+    include_directories(SYSTEM ${GLM_DIR})
 endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLFW_DIR}/CMakeLists.txt")
@@ -63,8 +49,8 @@ else ()
     message("[INFO] Adding GLFW from directory: ${GLFW_DIR}")
 
     add_subdirectory(${GLFW_DIR} glfw_binary EXCLUDE_FROM_ALL)
-    include_directories(${GLFW_DIR}/include)
-    include_directories(${GLFW_DIR}/deps)
+    include_directories(SYSTEM ${GLFW_DIR}/include)
+    include_directories(SYSTEM ${GLFW_DIR}/deps)
 endif ()
 
 
@@ -75,7 +61,7 @@ else ()
 
     set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
     set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
-    include_directories(${TINYGLFT_DIR})
+    include_directories(SYSTEM ${TINYGLFT_DIR})
 endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${FMT_DIR}/CMakeLists.txt")
@@ -106,7 +92,7 @@ else ()
     if (WIN32)
         set(BUILD_SHARED_LIBS ON)
     endif()
-    include_directories(${LIBMULTISENSE_DIR}/source/LibMultiSense)
+    include_directories(SYSTEM ${LIBMULTISENSE_DIR}/source/LibMultiSense)
     add_subdirectory(${LIBMULTISENSE_DIR}/source/LibMultiSense)
     if (WIN32)
         set(BUILD_SHARED_LIBS OFF)
@@ -131,7 +117,7 @@ else ()
 
     set(IMGUI_DIR external/imgui)
     set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
-    include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+    include_directories(SYSTEM ${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
     set(IMGUI_SRC
             ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
             ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp

@@ -33,7 +33,7 @@ namespace VkRender {
     public:
         explicit VulkanRenderer(const std::string &title, bool enableValidation = false);
 
-        ~VulkanRenderer();
+        virtual ~VulkanRenderer();
 
         /** @brief Setup the vulkan instance, flashing required extensions and connect to the physical m_Device (GPU) */
         bool initVulkan();
@@ -45,7 +45,7 @@ namespace VkRender {
             /** @brief Set to true if fullscreen mode has been requested via command line */
             bool fullscreen = false;
             /** @brief Set to true if v-sync will be forced for the swapchain */
-            bool vsync = false;
+            bool vsync = true;
             /** @brief Enable UI overlay */
             bool overlay = true;
         } settings;

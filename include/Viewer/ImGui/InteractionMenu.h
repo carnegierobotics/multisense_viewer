@@ -5,13 +5,17 @@
 #ifndef MULTISENSE_INTERACTIONMENU_H
 #define MULTISENSE_INTERACTIONMENU_H
 
+#include <filesystem>
 #include <GLFW/glfw3.h>
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
+
 #ifdef WIN32
 #else
+
 #include <unistd.h>
+
 #endif
 
 class InteractionMenu : public VkRender::Layer {
@@ -23,6 +27,7 @@ private:
     ImGuiFileDialog saveCalibrationDialog;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSavedTimer;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
+    std::string setCalibrationFeedbackText;
 
 // Create global object for convenience in other functions
 public:
@@ -112,7 +117,7 @@ public:
                                            (handles->info->height / 2) - ((float) imageButtonHeight / 2)));
                 float posY = ImGui::GetCursorScreenPos().y;
 
-                ImVec2 size = ImVec2(100.0f,100.0f);
+                ImVec2 size = ImVec2(100.0f, 100.0f);
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -153,8 +158,9 @@ public:
                     page[i] = true;
 
                 ImGui::GetWindowDrawList()->AddRectFilled(pos, posMax, ImGui::GetColorU32(
-                        hovered && held ? VkRender::Colors::CRLBlueIshTransparent2 :
-                        hovered ? VkRender::Colors::CRLBlueIshTransparent : VkRender::Colors::CRLCoolGrayTransparent), 5.0f);
+                                                                  hovered && held ? VkRender::Colors::CRLBlueIshTransparent2 :
+                                                                  hovered ? VkRender::Colors::CRLBlueIshTransparent : VkRender::Colors::CRLCoolGrayTransparent),
+                                                          5.0f);
 
                 ImGui::SameLine();
             }
@@ -393,8 +399,8 @@ private:
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-                dev.win.at((StreamWindowIndex)index).xPixelStartPos = viewAreaElementPosX;
-                dev.win.at((StreamWindowIndex)index).yPixelStartPos = viewAreaElementPosY;
+                dev.win.at((StreamWindowIndex) index).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at((StreamWindowIndex) index).yPixelStartPos = viewAreaElementPosY;
                 ImGui::SetNextWindowPos(ImVec2(viewAreaElementPosX, viewAreaElementPosY),
                                         ImGuiCond_Always);
 
@@ -411,7 +417,8 @@ private:
                 ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
                 ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
                                      viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
-                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax, ImColor(VkRender::Colors::CRLBlueIsh),
+                ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax,
+                                                          ImColor(VkRender::Colors::CRLBlueIsh),
                                                           0.0f,
                                                           0);
 
@@ -422,7 +429,8 @@ private:
                                   topBarRectMax.y + handles->info->viewAreaElementSizeY -
                                   (handles->info->previewBorderPadding * 0.5f));
 
-                ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax, ImColor(VkRender::Colors::CRLGray424Main),
+                ImGui::GetWindowDrawList()->AddRectFilled(leftBarMin, leftBarMax,
+                                                          ImColor(VkRender::Colors::CRLGray424Main),
                                                           0.0f,
                                                           0);
 
@@ -435,7 +443,8 @@ private:
                                    topBarRectMax.y + handles->info->viewAreaElementSizeY -
                                    (handles->info->previewBorderPadding * 0.5f));
 
-                ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax, ImColor(VkRender::Colors::CRLGray424Main),
+                ImGui::GetWindowDrawList()->AddRectFilled(rightBarMin, rightBarMax,
+                                                          ImColor(VkRender::Colors::CRLGray424Main),
                                                           0.0f,
                                                           0);
 
@@ -454,43 +463,44 @@ private:
                 // Min Y and Min Y is top left corner
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
-                    // Also only if a window is hovered
-                    if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
-                                                     ImGuiHoveredFlags_AnyWindow)) {
-                        // Offsset cursor positions.
-                        switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex)index).selectedSource)) {
-                            case CRL_POINT_CLOUD:
-                                break;
-                            case CRL_GRAYSCALE_IMAGE:
-                                ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
-                                break;
-                            case CRL_COLOR_IMAGE:
-                                break;
-                            case CRL_COLOR_IMAGE_YUV420:
-                                break;
-                            case CRL_YUV_PLANAR_FRAME:
-                                break;
-                            case CRL_CAMERA_IMAGE_NONE:
-                                break;
-                            case CRL_DISPARITY_IMAGE:
-                                ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
-                                break;
-                        }
-
+                // Also only if a window is hovered
+                if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
+                                                 ImGuiHoveredFlags_AnyWindow)) {
+                    // Offsset cursor positions.
+                    switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
+                        case CRL_POINT_CLOUD:
+                            break;
+                        case CRL_GRAYSCALE_IMAGE:
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
+                            break;
+                        case CRL_COLOR_IMAGE:
+                            break;
+                        case CRL_COLOR_IMAGE_YUV420:
+                            break;
+                        case CRL_YUV_PLANAR_FRAME:
+                            break;
+                        case CRL_CAMERA_IMAGE_NONE:
+                            break;
+                        case CRL_DISPARITY_IMAGE:
+                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
+                            break;
                     }
+
+                }
 
 
 
                 // Max X and Min Y is top right corner
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(80.0f);
-                auto &window = dev.win[(StreamWindowIndex)index];
+                auto &window = dev.win[(StreamWindowIndex) index];
 
                 if (dev.isRemoteHead) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                     std::string label = window.availableRemoteHeads[Utils::getIndexOf(window.availableRemoteHeads,
                                                                                       std::to_string(
-                                                                                              window.selectedRemoteHeadIndex + 1))];
+                                                                                              window.selectedRemoteHeadIndex +
+                                                                                              1))];
                     std::string comboLabel = "##RemoteHeadSelection" + std::to_string(index);
                     if (ImGui::BeginCombo(comboLabel.c_str(), label.c_str(),
                                           ImGuiComboFlags_HeightLarge)) {
@@ -548,7 +558,8 @@ private:
                 window.availableSources = dev.channelInfo[(crl::multisense::RemoteHeadChannel) std::stoi(
                         window.availableRemoteHeads[
                                 Utils::getIndexOf(window.availableRemoteHeads,
-                                                  std::to_string(window.selectedRemoteHeadIndex + 1))]) - 1].availableSources;
+                                                  std::to_string(window.selectedRemoteHeadIndex + 1))]) -
+                                                          1].availableSources;
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
@@ -675,7 +686,7 @@ private:
         if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
 
             if (withStreamControls) {
-                ImVec2 size = ImVec2(65.0f,50.0f);
+                ImVec2 size = ImVec2(65.0f, 50.0f);
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
 
@@ -881,32 +892,32 @@ private:
                     ImGui::PopStyleVar();
                 }
                 bool anyStreamActive = false;
-                for (const auto& ch : dev.channelInfo) {
+                for (const auto &ch: dev.channelInfo) {
                     if (!ch.requestedStreams.empty())
                         anyStreamActive = true;
                 }
-                if (anyStreamActive){
-                ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                ImGui::Text("Currently Active Streams:");
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextLightGray);
-                for (const auto& ch : dev.channelInfo) {
-                    if (dev.isRemoteHead){
-                        for(const auto& src : ch.requestedStreams){
-                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
-                            ImGui::SameLine();
-                            ImGui::Text("Head: %d, Source: %s", ch.index + 1, src.c_str());
-                        }
-                    } else {
-                        for(const auto& src : ch.requestedStreams){
-                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
-                            ImGui::SameLine();
-                            ImGui::Text("%s", src.c_str());
+                if (anyStreamActive) {
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+                    ImGui::Text("Currently Active Streams:");
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextLightGray);
+                    for (const auto &ch: dev.channelInfo) {
+                        if (dev.isRemoteHead) {
+                            for (const auto &src: ch.requestedStreams) {
+                                ImGui::Dummy(ImVec2(60.0f, 0.0f));
+                                ImGui::SameLine();
+                                ImGui::Text("Head: %d, Source: %s", ch.index + 1, src.c_str());
+                            }
+                        } else {
+                            for (const auto &src: ch.requestedStreams) {
+                                ImGui::Dummy(ImVec2(60.0f, 0.0f));
+                                ImGui::SameLine();
+                                ImGui::Text("%s", src.c_str());
+                            }
                         }
                     }
-                }
-                ImGui::PopStyleColor(2);
+                    ImGui::PopStyleColor(2);
                 }
             }
 
@@ -984,7 +995,12 @@ private:
             }
    */
             // Check if mouse hover a window
-
+            ImGui::Dummy(ImVec2(0.0f, 15.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Text("2. Choose Camera Type");
+            ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -1238,7 +1254,8 @@ private:
                 static char buf3[5] = "0";
                 static char buf4[5] = "0";
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::HelpMarker("\n Set the Region Of Interest for the auto exposure. Note: by default only the left image is used for auto exposure \n ");
+                ImGui::HelpMarker(
+                        "\n Set the Region Of Interest for the auto exposure. Note: by default only the left image is used for auto exposure \n ");
                 ImGui::SameLine(0.0f, 5.0f);
 
                 if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
@@ -1393,7 +1410,8 @@ private:
                 ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::HelpMarker("\n If enabled then LEDs are only on when the image sensor is exposing. This significantly reduces the sensor's power consumption \n ");
+                ImGui::HelpMarker(
+                        "\n If enabled then LEDs are only on when the image sensor is exposing. This significantly reduces the sensor's power consumption \n ");
                 ImGui::PopStyleColor();
                 ImGui::SameLine(0.0f, 5);
                 std::string txtEnableFlash = "Flash LED:";
@@ -1720,15 +1738,24 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::TextColorGray);
                     ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::Colors::TextColorGray);
                 }
-                if (ImGui::Button("Set New Calibration")) {
-                    ImGui::OpenPopup("Overwrite calibration?");
 
+                if (ImGui::Button("Set New Calibration")) {
+                    // Check if file exist before opening popup
+                    bool extrinsicsExists = std::filesystem::exists(d.parameters.calib.extrinsicsFilePath);
+                    bool intrinsicsExists = std::filesystem::exists(d.parameters.calib.intrinsicsFilePath);
+                    if (extrinsicsExists && intrinsicsExists) {
+                        ImGui::OpenPopup("Overwrite calibration?");
+                    } else {
+                        showSetTimer = std::chrono::steady_clock::now();
+                        setCalibrationFeedbackText = "Path(s) not valid";
+                    }
                 }
 
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
                 if (ImGui::BeginPopupModal("Overwrite calibration?", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-                    ImGui::Text(" Setting a new calibration will overwrite the current setting. \n This operation cannot be undone! \n Remember to backup calibration as to not loose the factory calibration \n");
+                    ImGui::Text(
+                            " Setting a new calibration will overwrite the current setting. \n This operation cannot be undone! \n Remember to backup calibration as to not loose the factory calibration \n");
                     ImGui::Separator();
 
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
@@ -1755,20 +1782,20 @@ private:
                 if (d.parameters.calib.update) {
                     showSetTimer = std::chrono::steady_clock::now();
                 }
+
+                if (!d.parameters.calib.updateFailed && d.parameters.calib.update) {
+                    setCalibrationFeedbackText = "Set calibration.";
+                } else if (d.parameters.calib.updateFailed && d.parameters.calib.update) {
+                    setCalibrationFeedbackText = "Failed to set calibration...";
+                }
+
                 time = std::chrono::steady_clock::now();
                 threeSeconds = 3.0f;
                 time_span = std::chrono::duration_cast<std::chrono::duration<float>>(time - showSetTimer);
                 if (time_span.count() < threeSeconds) {
                     ImGui::SameLine();
-                    if (d.parameters.calib.updateFailed) {
-                        ImGui::Text("Set calibration!");
-                    } else {
-                        ImGui::Text("Failed to set calibration...");
-                    }
-
+                    ImGui::Text("%s", setCalibrationFeedbackText.c_str());
                 }
-
-
             }
             ImGui::PopStyleColor();
         }

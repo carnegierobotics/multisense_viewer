@@ -64,7 +64,12 @@ namespace VkRender::MultiSense {
                 if (imagePointersMap.empty())
                     return;
 
+                if (buf->data().frameId != (counterMap[id][buf->data().source] + 1) && counterMap[id][buf->data().source] != 0){
+                    Log::Logger::getInstance()->info("We skipped frames. new frame {}, last received {}", buf->data().frameId, (counterMap[id][buf->data().source]));
+                }
+
                 imagePointersMap[id][buf->data().source] = buf;
+                counterMap[id][buf->data().source] = buf->data().frameId;
 
                 Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter[id][Utils::dataSourceToString(buf->data().source)]++;
 
@@ -80,6 +85,8 @@ namespace VkRender::MultiSense {
         private:
             std::mutex mut;
             std::unordered_map<uint32_t, std::unordered_map<crl::multisense::DataSource, std::shared_ptr<ImageBufferWrapper>>> imagePointersMap{};
+            std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, uint32_t>> counterMap;
+
 
         };
 

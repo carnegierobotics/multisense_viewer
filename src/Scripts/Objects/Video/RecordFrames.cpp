@@ -45,6 +45,9 @@ void RecordFrames::update() {
                 if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
                     threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
                                      remoteIdx, tex, isRemoteHead, compression);
+                } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
+                    Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
+
                 }
             }
         }

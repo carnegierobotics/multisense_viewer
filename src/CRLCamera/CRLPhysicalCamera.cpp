@@ -138,7 +138,6 @@ namespace VkRender::MultiSense {
             header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
             headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
             if (headerTwo == nullptr) {
-                Log::Logger::getInstance()->error("In getCameraStream: Secondary header is null");
                 return false;
             }
 
@@ -148,7 +147,6 @@ namespace VkRender::MultiSense {
             header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
             headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
             if (headerTwo == nullptr) {
-                Log::Logger::getInstance()->error("In getCameraStream: Secondary header is null");
                 return false;
             }
         } else {
@@ -156,7 +154,6 @@ namespace VkRender::MultiSense {
         }
 
         if (header == nullptr) {
-            Log::Logger::getInstance()->error("In getCameraStream: Header is null");
             return false;
         }
 
@@ -205,10 +202,7 @@ namespace VkRender::MultiSense {
                         std::memset(tex->data2 + headerTwo->data().imageLength, 0x00, diff2 * tex->m_Width);
                     }
                 }
-
             }
-
-
                 return true;
 
             case CRL_DISPARITY_IMAGE:
@@ -434,7 +428,7 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
+        if (channelMap[channelID] == nullptr){
             Log::Logger::getInstance()->error("Attempted to set resolution on a channel that was not connected, Channel {}", channelID);
             return false;
         }

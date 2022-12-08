@@ -587,10 +587,16 @@ private:
                     } else {
                         reader->sendStopSignal();
 #ifdef __linux__
-                        if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
+                        if (autoConnectProcess != nullptr) {
+                            int err =  pclose(autoConnectProcess);
+                            if (err != 0){
+                                Log::Logger::getInstance()->info("Error in closing AutoConnectProcess err: {} errno: {}", err, strerror(errno));
+
+                            } else {
+                                Log::Logger::getInstance()->info("Stopped the auto connect process gracefully");
+                            }
                             startedAutoConnect = false;
                             reader.reset();
-                            Log::Logger::getInstance()->info("Stopped the auto connect process gracefully");
                             autoConnectProcess = nullptr;
                             btnLabel = "Start";
                         }

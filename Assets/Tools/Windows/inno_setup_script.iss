@@ -5,7 +5,7 @@
 #define MyAppVersion "1"
 #define MyAppPublisher "Carnegie Robotics"
 #define MyAppURL "https://www.carnegierobotics.com"
-#define MyAppExeName "MultiSense-viewer.exe"
+#define MyAppExeName "MultiSense-Viewer.exe.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
@@ -59,5 +59,5 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFile
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\Assets\Tools\windows\{#MyAppIcoName}"; Tasks: desktopicon
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\{#MyAppExeName}"" ""MultiSense-viewer"" ENABLE ALL"; StatusMsg: "MultiSense-viewer Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
+Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\{#MyAppExeName}"" ""MultiSense-Viewer"" ENABLE ALL"; StatusMsg: "MultiSense-Viewer Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
 

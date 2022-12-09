@@ -546,18 +546,16 @@ private:
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             //ImGui::BeginChild("IconChild", ImVec2(handles->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
-
-            (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, ImVec2(190.0f, 55.0f),
+            ImVec2 imageButtonSize(245.0f, 55.0f);
+            ImGui::PushFont(handles->info->font15);
+            (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
                                     handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
                                     tint_col));
-
-
-            ImGui::SameLine(0, 25.0f);
-            (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, ImVec2(190.0f, 55.0f),
+            ImGui::SameLine(0, 30.0f);
+            (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
                                     handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
                                     tint_col));
-
-
+            ImGui::PopFont();
             /*
                          ImGui::SameLine(0, 30.0f);
             (ImGui::ImageButtonText("Virtual", &connectMethodSelector, VIRTUAL_CONNECT, ImVec2(125.0f, 55.0f),
@@ -626,7 +624,7 @@ private:
                     addSpinnerGif(handles);
                 ImGui::EndChild();
 
-                ImGui::SameLine(0, 250.0f);
+                ImGui::SameLine(0, 360.0f);
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
@@ -710,10 +708,9 @@ private:
 
                 if (entryConnectDeviceList.empty() && startedAutoConnect) {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
-                } else if (entryConnectDeviceList.empty())
-                    ImGui::Text("Searching...");
+                }
                 else {
-                    ImGui::Text("Select:");
+                    ImGui::Text("Select device:");
                 }
 
                 ImGui::PopStyleColor();
@@ -768,6 +765,7 @@ private:
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == MANUAL_CONNECT) {
                 {
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
@@ -784,14 +782,15 @@ private:
                                                ImGuiInputTextFlags_CharsScientific |
                                                ImGuiInputTextFlags_AutoSelectAll |
                                                ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                ImGui::Dummy(ImVec2(0.0f, 15.0f));
 
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
-                    ImGui::SameLine(0.0f, 10.0f);
+                    ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
                     ImGui::Text("Select network adapter:");
                     ImGui::PopStyleColor();
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::SameLine(0.0f, 10.0f);
                 }
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -869,15 +868,18 @@ private:
                 ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
                 m_Entry.cameraName = "Manual";
 
-                ImGui::Dummy(ImVec2(40.0f, 10.0));
+                ImGui::Dummy(ImVec2(40.0f, 20.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
-                ImGui::SameLine(0, 20.0f);
-                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
-
-                ImGui::PopStyleColor();
+                //ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
+                //ImGui::SameLine(0, 20.0f);
+                ImGui::Checkbox("  Remote Head", &m_Entry.isRemoteHead);
+                ImGui::SameLine(0, 5.0f);
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
+                ImGui::PopStyleColor(3);
             } else {
 
             }
@@ -906,13 +908,15 @@ private:
             ImGui::SetCursorPos(ImVec2(0.0f, handles->info->popupHeight - 50.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            bool btnCancel = ImGui::Button("cancel", ImVec2(150.0f, 30.0f));
-            ImGui::SameLine(0, 110.0f);
+            ImGui::PushFont(handles->info->font15);
+            bool btnCancel = ImGui::Button("Cancel", ImVec2(190.0f, 30.0f));
+            ImGui::SameLine(0, 130.0f);
             if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::TextColorGray);
             }
-            btnConnect = ImGui::Button("connect", ImVec2(150.0f, 30.0f));
+            btnConnect = ImGui::Button("Connect", ImVec2(190.0f, 30.0f));
+            ImGui::PopFont();
             // If hovered, and no admin rights while auto config is checked, and a connect method must be selected
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) &&
                 (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) &&
@@ -922,16 +926,22 @@ private:
                 ImGui::BeginTooltip();
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
+                if (connectMethodSelector == AUTO_CONNECT) {
+                    errors.insert(errors.begin(), "No device selected");
+                    Utils::removeFromVector(&errors, "No selected network adapter");
+                }
                 if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork) {
 #ifdef WIN32
                     errors.emplace_back("Admin rights is needed to auto configure network");
 #else
                     errors.emplace_back("Root access is needed to auto configure network");
 #endif
+
                 }
                 for (size_t i = 0; i < errors.size(); ++i) {
                     ImGui::Text("%s", (std::to_string(i + 1) + ". " + errors[i]).c_str());
                 }
+
                 ImGui::EndTooltip();
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();

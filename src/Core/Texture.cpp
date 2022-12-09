@@ -1,9 +1,38 @@
-//
-// Created by magnus on 9/13/21.
-// Based of Sascha Willems vulkan texture loading
-// Copyright(C) by Sascha Willems - www.saschawillems.de
-// This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
-
+/**
+ * @file: MultiSense-Viewer/src/Core/Texture.cpp
+ *
+ * Copyright 2022
+ * Carnegie Robotics, LLC
+ * 4501 Hatfield Street, Pittsburgh, PA 15201
+ * http://www.carnegierobotics.com
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Carnegie Robotics, LLC nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL CARNEGIE ROBOTICS, LLC BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Significant history (date, user, action):
+ *   2021-09-13, mgjerde@carnegierobotics.com, Created file.
+ **/
 
 #ifdef WIN32
 #define NOMINMAX
@@ -688,140 +717,6 @@ void TextureVideo::updateTextureFromBufferYUV() {
 
 }
 
-/*
-void TextureVideo::updateTextureFromBufferYUV(VkRender::MP4Frame *frame) {
-
-
-	// Create a host-visible staging buffer that contains the raw m_Image m_DataPtr
-	VkBuffer plane0, plane1, plane2;
-	VkDeviceMemory planeMem0, planeMem1, planeMem2;
-
-	CHECK_RESULT(m_Device->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			frame->plane0Size,
-			&plane0,
-			&planeMem0, frame->plane0));
-
-	CHECK_RESULT(m_Device->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			frame->plane1Size,
-			&plane1,
-			&planeMem1, frame->plane1));
-
-	CHECK_RESULT(m_Device->createBuffer(
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			frame->plane2Size,
-			&plane2,
-			&planeMem2, frame->plane2));
-
-
-	VkImageSubresourceRange subresourceRange = {};
-	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresourceRange.baseMipLevel = 0;
-	subresourceRange.levelCount = m_MipLevels;
-	subresourceRange.m_LayerCount = 1;
-
-	VkBufferImageCopy bufferCopyRegion = {};
-	bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT;
-	bufferCopyRegion.imageSubresource.mipLevel = 0;
-	bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-	bufferCopyRegion.imageSubresource.m_LayerCount = 1;
-	bufferCopyRegion.imageExtent.m_Width = m_Width;
-	bufferCopyRegion.imageExtent.m_Height = m_Height;
-	bufferCopyRegion.imageExtent.depth = 1;
-	bufferCopyRegion.bufferOffset = 0;
-
-	VkBufferImageCopy bufferCopyRegionPlane1 = {};
-	bufferCopyRegionPlane1.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_1_BIT;
-	bufferCopyRegionPlane1.imageSubresource.mipLevel = 0;
-	bufferCopyRegionPlane1.imageSubresource.baseArrayLayer = 0;
-	bufferCopyRegionPlane1.imageSubresource.m_LayerCount = 1;
-	bufferCopyRegionPlane1.imageExtent.m_Width = m_Width / 2;
-	bufferCopyRegionPlane1.imageExtent.m_Height = m_Height / 2;
-	bufferCopyRegionPlane1.imageExtent.depth = 1;
-	bufferCopyRegionPlane1.bufferOffset = 0;
-
-	VkBufferImageCopy bufferCopyRegionPlane2 = {};
-	bufferCopyRegionPlane2.imageSubresource.aspectMask = VK_IMAGE_ASPECT_PLANE_2_BIT;
-	bufferCopyRegionPlane2.imageSubresource.mipLevel = 0;
-	bufferCopyRegionPlane2.imageSubresource.baseArrayLayer = 0;
-	bufferCopyRegionPlane2.imageSubresource.m_LayerCount = 1;
-	bufferCopyRegionPlane2.imageExtent.m_Width = m_Width / 2;
-	bufferCopyRegionPlane2.imageExtent.m_Height = m_Height / 2;
-	bufferCopyRegionPlane2.imageExtent.depth = 1;
-	bufferCopyRegionPlane2.bufferOffset = 0;
-
-	// Use a separate command buffer for texture loading|
-	VkCommandBuffer copyCmd = m_Device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-	// Image barrier for optimal m_Image (target)
-	// Optimal m_Image will be used as destination for the copy
-	Utils::setImageLayout(
-			copyCmd,
-			m_Image,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresourceRange,
-			VK_PIPELINE_STAGE_HOST_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-	// Copy m_DataPtr from staging buffer
-	vkCmdCopyBufferToImage(
-			copyCmd,
-			plane0,
-			m_Image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferCopyRegion
-	);
-
-	// Copy m_DataPtr from staging buffer
-	vkCmdCopyBufferToImage(
-			copyCmd,
-			plane1,
-			m_Image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferCopyRegionPlane1
-	);
-
-	vkCmdCopyBufferToImage(
-			copyCmd,
-			plane2,
-			m_Image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&bufferCopyRegionPlane2
-	);
-
-	// Change texture m_Image layout to shader read after all mip levels have been copied
-	this->m_ImageLayout = m_ImageLayout;
-	Utils::setImageLayout(
-			copyCmd,
-			m_Image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			subresourceRange,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-	m_Device->flushCommandBuffer(copyCmd, m_Device->m_TransferQueue);
-
-
-	vkFreeMemory(m_Device->m_LogicalDevice, planeMem0, nullptr);
-	vkDestroyBuffer(m_Device->m_LogicalDevice, plane0, nullptr);
-
-	vkFreeMemory(m_Device->m_LogicalDevice, planeMem1, nullptr);
-	vkDestroyBuffer(m_Device->m_LogicalDevice, plane1, nullptr);
-
-	vkFreeMemory(m_Device->m_LogicalDevice, planeMem2, nullptr);
-	vkDestroyBuffer(m_Device->m_LogicalDevice, plane2, nullptr);
-
-}
-*/
 VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) {
 
 	// YUV TEXTURE SAMPLER

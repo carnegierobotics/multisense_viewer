@@ -33,11 +33,10 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include <TinyTIFF/src/tinytiffwriter.h>
-
 #include "Viewer/Scripts/Objects/Video/RecordFrames.h"
 
 #include <filesystem>
+#include <tiffio.h>
 
 extern "C" {
 #include<libavutil/avutil.h>
@@ -72,7 +71,6 @@ void RecordFrames::update() {
                     if (tex->m_Id != tex->m_Id2)
                         continue;
                 }
-                Log::Logger::getInstance()->info("Record queue size: {}", threadPool->getTaskListSize());
 
                 if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
                     threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
@@ -109,15 +107,21 @@ void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
                                    crl::multisense::RemoteHeadChannel remoteHead,
                                    std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead,
-                                   const std::string &compression) {
+                                   std::string &compression) {
     // Create folders. One for each Source
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');
+    if (type == CRL_COLOR_IMAGE_YUV420 && compression != "png") {
+        compression = "ppm";
+    }
+
     if (isRemoteHead) {
         saveDirectory = path + "/Head_" + std::to_string(remoteHead + 1) + "/" + stringSrc + "/" + compression + "/";
     } else {
         saveDirectory = path + "/" + stringSrc + "/" + compression + "/";
     }
+
+
     std::filesystem::path fileLocation = saveDirectory.string() + std::to_string(ptr->m_Id) + "." + compression;
     // Dont overwrite already saved images
     if (std::filesystem::exists(fileLocation))
@@ -128,30 +132,64 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         std::filesystem::create_directories(saveDirectory); // create src folder
     }
     // Create file
-    if (compression == "tiff") {
+    if (compression == "tiff" || compression == "ppm") {
         switch (type) {
             case CRL_POINT_CLOUD:
                 break;
             case CRL_GRAYSCALE_IMAGE: {
-                auto *d = ptr->data;
-                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.string().c_str(), 8, TinyTIFFWriter_UInt, 1,
-                                                              ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
-                TinyTIFFWriter_writeImage(tif, d);
-                TinyTIFFWriter_close(tif);
+                int samplesPerPixel = 1;
+                TIFF *out = TIFFOpen(fileLocation.string().c_str(), "w");
+                TIFFSetField(out, TIFFTAG_IMAGEWIDTH, ptr->m_Width);  // set the width of the image
+                TIFFSetField(out, TIFFTAG_IMAGELENGTH, ptr->m_Height);    // set the height of the image
+                TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
+                TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 8);    // set the size of the channels
+                TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
+                //   Some other essential fields to set that you do not have to understand for now.
+                TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+                TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+                TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+
+                // We set the strip size of the file to be size of one row of pixels
+                TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
+                //Now writing image to the file one strip at a time
+                for (uint32_t row = 0; row < ptr->m_Height; row++) {
+                    if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width]), row, 0) < 0)
+                        break;
+                }
+                TIFFClose(out);
             }
                 break;
             case CRL_DISPARITY_IMAGE: {
-                auto *d =  ptr->data;
-                TinyTIFFWriterFile *tif = TinyTIFFWriter_open(fileLocation.string().c_str(), 16, TinyTIFFWriter_UInt, 1,
-                                                              ptr->m_Width, ptr->m_Height, TinyTIFFWriter_Greyscale);
-                TinyTIFFWriter_writeImage(tif, d);
-                TinyTIFFWriter_close(tif);
+                int samplesPerPixel = 1;
+                TIFF *out = TIFFOpen(fileLocation.string().c_str(), "w");
+                TIFFSetField(out, TIFFTAG_IMAGEWIDTH, ptr->m_Width);  // set the width of the image
+                TIFFSetField(out, TIFFTAG_IMAGELENGTH, ptr->m_Height);    // set the height of the image
+                TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
+                TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 16);    // set the size of the channels
+                TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
+                //   Some other essential fields to set that you do not have to understand for now.
+                TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+                TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+                // We set the strip size of the file to be size of one row of pixels
+                TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
+                //Now writing image to the file one strip at a time
+                for (uint32_t row = 0; row < ptr->m_Height; row++) {
+                    if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width * sizeof(uint16_t)]), row, 0) < 0)
+                        break;
+                }
+                TIFFClose(out);
             }
                 break;
             case CRL_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
             {
-                std::ofstream outputStream((saveDirectory.string() + std::to_string(ptr->m_Id) + ".ppm").c_str(),
+                std::vector<uint8_t> output(ptr->m_Width * ptr->m_Height * 3);
+                RecordFrames::ycbcrToBgr(ptr->data, ptr->data2, ptr->m_Width , ptr->m_Height, output.data());
+                // something like this
+
+                std::ofstream outputStream((fileLocation.string()).c_str(),
                                            std::ios::out | std::ios::binary);
                 if (!outputStream.good()) {
                     Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());
@@ -161,7 +199,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 outputStream << "P6\n"
                              << ptr->m_Width << " " << ptr->m_Height << "\n"
                              << 0xFF << "\n";
-                outputStream.write(reinterpret_cast<const char *>(ptr->data), imageSize);
+                outputStream.write(reinterpret_cast<const char *>(output.data()), imageSize);
                 outputStream.close();
                 break;
             }
@@ -271,4 +309,22 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
         }
     }
 
+}
+
+
+
+void RecordFrames::ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
+                              const uint32_t &height,  uint8_t *output)
+{
+    const size_t rgb_stride = width * 3;
+
+    for (uint32_t y = 0; y < height; ++y)
+    {
+        const size_t row_offset = y * rgb_stride;
+
+        for (uint32_t x = 0; x < width; ++x)
+        {
+            memcpy(output + row_offset + (3 * x), RecordFrames::ycbcrToBgr<uint8_t>(luma, chroma, width, x, y).data(), 3);
+        }
+    }
 }

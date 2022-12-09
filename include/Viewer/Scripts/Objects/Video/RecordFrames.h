@@ -89,8 +89,43 @@ public:
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
-    static void saveImageToFile(CRLCameraDataType type, const std::string& path, std::string &stringSrc, crl::multisense::RemoteHeadChannel remoteHead,
-                                std::shared_ptr<VkRender::TextureData>& ptr, bool isRemoteHead, const std::string& compression);
+    template <typename T>
+    static std::array<uint8_t, 3> ycbcrToBgr(uint8_t* luma,
+                                                    uint8_t* chroma,
+                                                    const uint32_t& imageWidth,
+                                                    size_t u,
+                                                    size_t v)
+    {
+        const auto* lumaP = reinterpret_cast<const uint8_t*>(luma);
+        const auto* chromaP = reinterpret_cast<const uint8_t*>(chroma);
+
+        const size_t luma_offset = (v * imageWidth) + u;
+        const size_t chroma_offset = 2 * (((v / 2) * (imageWidth / 2)) + (u / 2));
+
+        const auto px_y = static_cast<float>(lumaP[luma_offset]);
+        const auto px_cb = static_cast<float>(chromaP[chroma_offset + 0]) - 128.0f;
+        const auto px_cr = static_cast<float>(chromaP[chroma_offset + 1]) - 128.0f;
+
+        float px_r = px_y + 1.13983f * px_cr;
+        float px_g = px_y - 0.39465f * px_cb - 0.58060f * px_cr;
+        float px_b = px_y + 2.03211f * px_cb;
+
+        if (px_r < 0.0f)        px_r = 0.0f;
+        else if (px_r > 255.0f) px_r = 255.0f;
+        if (px_g < 0.0f)        px_g = 0.0f;
+        else if (px_g > 255.0f) px_g = 255.0f;
+        if (px_b < 0.0f)        px_b = 0.0f;
+        else if (px_b > 255.0f) px_b = 255.0f;
+
+        return { {static_cast<uint8_t>(px_r), static_cast<uint8_t>(px_g), static_cast<uint8_t>(px_b)} };
+    }
+
+    static void
+    ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
+               const uint32_t &height, uint8_t *output);
+
+    static void saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
+                         std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
 };
 
 

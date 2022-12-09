@@ -58,7 +58,7 @@ Everyone is permitted to copy and distribute verbatim copies
 of this license document, but changing it is not allowed.
 
 
-# ImGui, ImGuiFileDialog, SimpleIni, tinygltf: MIT LICENSE
+# ImGui, ImGuiFileDialog, SimpleIni, tinygltf, nlohmann JSON, stb: MIT LICENSE
 MIT License
 
 Copyright (c) 2017 Syoyo Fujita, Aurélien Chatelain and many contributors
@@ -80,3 +80,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Vulkan API

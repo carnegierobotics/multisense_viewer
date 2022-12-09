@@ -1,5 +1,5 @@
 /**
- * @file shared/CalibrationYaml.hh
+ * @file MultiSense-Viewer/include/Viewer/CRLCamera/CalibrationYaml.hh
  *
  * Copyright 2013-2022
  * Carnegie Robotics, LLC

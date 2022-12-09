@@ -1,7 +1,3 @@
-//
-// Created by magnus on 11/28/22.
-//
-
 #ifndef MULTISENSE_VIEWER_JSON_HPP
 #define MULTISENSE_VIEWER_JSON_HPP
 

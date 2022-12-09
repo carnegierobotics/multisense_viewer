@@ -82,7 +82,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');
     if (isRemoteHead) {
-        saveDirectory = path + "/Head_" + std::to_string(remoteHead + 1) + "/" + stringSrc + "/";
+        saveDirectory = path + "/Head_" + std::to_string(remoteHead + 1) + "/" + stringSrc + "/" + compression + "/";
     } else {
         saveDirectory = path + "/" + stringSrc + "/" + compression + "/";
     }
@@ -119,7 +119,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             case CRL_COLOR_IMAGE_YUV420:
                 // Normalize ycbcr
             {
-                std::ofstream outputStream((fileLocation.string()).c_str(),
+                std::ofstream outputStream((saveDirectory.string() + std::to_string(ptr->m_Id) + ".ppm").c_str(),
                                            std::ios::out | std::ios::binary);
                 if (!outputStream.good()) {
                     Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());

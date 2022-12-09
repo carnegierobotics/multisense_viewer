@@ -195,6 +195,7 @@ jobs:
           mv .\files\Assets\Tools\compile.sh .\
           mv .\files\Assets\Tools\install_spirv_compiler.sh .\
           mv .\files\Assets\Tools\monitor_memory_usage.py .\
+          rm  -R .\files\Assets\Tools\Ubuntu
 
         shell: cmd
       - name: Building the installer

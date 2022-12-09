@@ -529,7 +529,7 @@ namespace VkRender {
         /** @brief Current frame*/
         uint64_t frameID = 0;
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
-        ImFont *font13{}, *font18{}, *font24{};
+        ImFont *font13{}, *font15, *font18{}, *font24{};
 
         /** @brief Containing descriptor handles for each image button texture */
         std::vector<ImTextureID> imageButtonTextureDescriptor;
@@ -558,7 +558,7 @@ namespace VkRender {
         /** @brief Height of popupModal*/
         float popupHeight = 600.0f;
         /** @brief Width of popupModal*/
-        float popupWidth = 450.0f;
+        float popupWidth = 550.0f;
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/

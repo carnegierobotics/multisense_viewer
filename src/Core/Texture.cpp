@@ -854,7 +854,7 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
 	// With NEAREST, chroma is duplicated to a 2x2 block for YUV420p.
 	// In fancy video players, you might even get bicubic/sinc
 	// interpolation filters for chroma because why not ...
-	info.chromaFilter = VK_FILTER_LINEAR;
+	info.chromaFilter = VK_FILTER_NEAREST;
 
 	// COSITED or MIDPOINT? I think normal YUV420p content is MIDPOINT,
 	// but not quite sure ...
@@ -880,7 +880,7 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
 
 	samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
 	samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;

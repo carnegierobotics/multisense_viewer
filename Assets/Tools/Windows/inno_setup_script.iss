@@ -60,4 +60,5 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\{#MyAppExeName}"" ""MultiSense-Viewer"" ENABLE ALL"; StatusMsg: "MultiSense-Viewer Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
+Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\AutoConnect.exe"" ""AutoConnect"" ENABLE ALL"; StatusMsg: "AutoConnect Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
 

@@ -199,7 +199,6 @@ jobs:
           rm  -R .\files\bin
           rm  -R .\files\include
           rm  -R .\files\lib
-          rm  -R .\files\share
 
         shell: cmd
       - name: Building the installer

@@ -22,10 +22,10 @@
 [submodule "external/simpleini"]
 	path = external/simpleini
 	url = https://github.com/brofield/simpleini
-[submodule "external/TinyTIFF"]
-	path = external/TinyTIFF
-	url = https://github.com/jkriege2/TinyTIFF
 [submodule "internal/AutoConnect"]
 	path = internal/AutoConnect
 	url = https://github.com/M-Gjerde/AutoConnect
     branch = main
+[submodule "external/libtiff"]
+	path = external/libtiff
+	url = https://gitlab.com/libtiff/libtiff

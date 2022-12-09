@@ -199,8 +199,8 @@ if (WIN32)
     ### INSTALL TARGETS ###
     # VkRender Viewer DLL and libraries
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME ARCHIVE LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    #install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
     # LibMultiSense and WinPCap dll
     install(FILES
             ${CMAKE_BINARY_DIR}/MultiSense.dll

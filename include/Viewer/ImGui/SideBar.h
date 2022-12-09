@@ -788,7 +788,7 @@ private:
 
                 {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
-                    ImGui::SameLine(0.0f, 10.0f);
+                    ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
                     ImGui::Text("Select network adapter:");
                     ImGui::PopStyleColor();
@@ -873,9 +873,9 @@ private:
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
-                ImGui::SameLine(0, 20.0f);
-                ImGui::Checkbox(" Remote Head", &m_Entry.isRemoteHead);
+                //ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
+                //ImGui::SameLine(0, 20.0f);
+                ImGui::Checkbox("  Remote Head", &m_Entry.isRemoteHead);
 
                 ImGui::PopStyleColor();
             } else {

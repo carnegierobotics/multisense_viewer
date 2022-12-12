@@ -149,14 +149,15 @@ namespace VkRender {
             if (!renderData.drawThisScript)
                 return;
 
+            /*
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - lastLogTime);
             if (time_span.count() > INTERVAL_10_SECONDS || renderData.scriptDrawCount == 0) {
                 lastLogTime = std::chrono::steady_clock::now();
-                Log::Logger::getInstance()->info("Draw-number: {} for script: {}", renderData.scriptDrawCount,
-                                                 renderData.scriptName.c_str());
+                Log::Logger::getInstance()->info("Draw-number: {} for script: {}", renderData.scriptDrawCount, renderData.scriptName.c_str());
             }
+             */
             draw(commandBuffer, i, b);
             if (i == 0)
                 renderData.scriptDrawCount++;

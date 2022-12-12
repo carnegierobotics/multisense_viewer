@@ -19,17 +19,11 @@ Quickly test your MultiSense device by using this application. The application w
 
 ## Installation
 ### Ubuntu:
-Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. (Ubuntu 20.04 and 22.04)
+Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the latest release. Tested on Ubuntu 20.04 and 22.04
 
-Launch through start menu or run a start script at
-```
-$ /opt/multisense/start.sh
-```
 
 ### Windows
-Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the the MultiSenseSetup.exe installer.
-To use the autoconnect feature also have WinPcap drivers installed, installer also located at releases page.
-
+Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and run the windows installer from the latest release. Tested on Windows 10 and 11.
 
 ## How to use
 

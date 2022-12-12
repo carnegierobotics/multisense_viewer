@@ -1817,7 +1817,7 @@ private:
                 }
 
                 if (!d.parameters.calib.updateFailed && d.parameters.calib.update) {
-                    setCalibrationFeedbackText = "Set calibration.";
+                    setCalibrationFeedbackText = "Set calibration. Please reboot camera";
                 } else if (d.parameters.calib.updateFailed && d.parameters.calib.update) {
                     setCalibrationFeedbackText = "Failed to set calibration...";
                 }

@@ -1038,9 +1038,9 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::RadioButton("ArcBall camera", &dev.cameraType, 0);
+            ImGui::RadioButton("ArcBall Camera", &dev.cameraType, 0);
             ImGui::SameLine();
-            ImGui::RadioButton("Arrow keys", &dev.cameraType, 1);
+            ImGui::RadioButton("First Person View", &dev.cameraType, 1);
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));

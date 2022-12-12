@@ -38,10 +38,13 @@
 #ifdef WIN32
 //#include <WinRegEditor.h>
 #else
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sstream>
+
 #endif
+
 #include <array>
 
 #include "Viewer/Renderer/Renderer.h"
@@ -262,7 +265,7 @@ void Renderer::render() {
                 camera.type = Camera::lookat;
             if (dev.cameraType == 1)
                 camera.type = Camera::firstperson;
-            if (dev.resetCamera){
+            if (dev.resetCamera) {
                 camera.setPosition(defaultCameraPosition);
                 camera.setRotation(yaw, pitch);
             }
@@ -680,25 +683,25 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     float dx = (float) x - mousePos.x;
     float dy = (float) y - mousePos.y;
 
-    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) {
-
-        //glm::vec3 rot(dy * camera.m_RotationSpeed, 0.0f, dx * camera.m_RotationSpeed);
-
+    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI){ // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
     }
     if (mouseButtons.middle && camera.type == Camera::firstperson) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
+    } else if (mouseButtons.middle && camera.type == Camera::lookat){
+        //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
-    mousePos = glm::vec2((float) x, (float) y);
+        mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
 }
 
 void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
-        if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && !guiManager->handles.disableCameraRotationFromGUI) {
+        if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
+            !guiManager->handles.disableCameraRotationFromGUI) {
             camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }

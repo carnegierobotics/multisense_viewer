@@ -64,14 +64,23 @@ private:
         } else if (type == CameraType::lookat) {
             cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
             glm::vec4 pos(m_Position.x, m_Position.y, m_Position.z, 1.0f);
+
+            // Extra step to handle the problem when the camera direction is the same as the up vector
+            float cosAngle = dot(glm::vec3(-glm::transpose(matrices.view)[2]), cameraUp);
+            // sign function
+            if (cosAngle * ((yAngle > 0) ? 1 : ((yAngle < 0) ? -1 : 0))
+                                         > 0.99f)
+                yAngle = 0;
+
+
             glm::mat4 xRot = glm::rotate(glm::mat4(1.0f), (xAngle), cameraUp);
             pos = xRot * pos;
 
-            glm::mat4 yRot = glm::rotate(glm::mat4(1.0f), (yAngle), glm::cross(cameraUp, cameraFront));
+            glm::mat4 yRot = glm::rotate(glm::mat4(1.0f), yAngle, glm::vec3(glm::transpose(matrices.view)[0]));
             pos = yRot * pos;
 
             m_Position = glm::vec3(pos.x, pos.y, pos.z);
-            matrices.view = glm::lookAt(m_Position, glm::vec3(0.0f, 0.0f, 0.0f), cameraUp);
+            matrices.view = glm::lookAt(m_Position, m_FocalPoint, cameraUp);
 
         }
 
@@ -85,6 +94,7 @@ public:
     glm::vec3 m_Rotation = glm::vec3();
     glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec4 m_ViewPos = glm::vec4();
+    glm::vec3 m_FocalPoint = glm::vec3(0.0f);
 
     float m_RotationSpeed = 1.0f;
     float m_MovementSpeed = 3.0f;
@@ -101,8 +111,8 @@ public:
     bool flipY = false;
 
     struct {
-        glm::mat4 perspective{};
-        glm::mat4 view{};
+        glm::mat4 perspective = glm::mat4(1.0f);
+        glm::mat4 view = glm::mat4(1.0f);
     } matrices{};
 
     struct {
@@ -176,6 +186,18 @@ public:
             yAngle = dy * deltaAngleY;
 
         }
+        updateViewMatrix();
+    }
+    void orbitPan(float dx, float dy) {
+        // right
+        auto trans = glm::vec4(dx, dy, 0.0f, 1.0f);
+        auto right = glm::vec3(glm::transpose(matrices.view)[0]);
+        auto up = glm::vec3(-glm::transpose(matrices.view)[2]);
+
+        auto rot = glm::rotate(glm::mat4(1.0f), glm::dot(right, cameraFront), glm::cross(right, up));
+        m_FocalPoint += glm::vec3(trans * rot);
+        yAngle = 0.0f;
+        xAngle = 0.0f;
         updateViewMatrix();
     }
 

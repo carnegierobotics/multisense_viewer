@@ -834,7 +834,7 @@ private:
                     ImGui::PopStyleColor();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::HelpMarker(
-                            " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n ");
+                            " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n\n Color images are saved as either ppm/png files   ");
                     // if start then show gif spinner
                     ImGui::PopStyleColor();
 

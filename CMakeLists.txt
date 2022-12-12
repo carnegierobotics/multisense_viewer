@@ -84,9 +84,9 @@ file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 # Generate empty configuration files.
-file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "" FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "" FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-file(WRITE FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE WORLD_WRITE ${CMAKE_BINARY_DIR}/logger.log "" )
+file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "")
+file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "")
+file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
 
 if (UNIX) ## Linux
     # Set install directory if not specified
@@ -117,7 +117,7 @@ if (UNIX) ## Linux
             ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
             ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
             ${CMAKE_CURRENT_BINARY_DIR}/logger.log
-            FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE GROUP_WRITE WORLD_READ WORLD_EXECUTE WORLD_WRITE
+            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
             CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
             )
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -210,12 +210,20 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/swscale-6.dll
             ${CMAKE_BINARY_DIR}/avutil-57.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+
+    install(FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
+            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
+            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
+            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
+            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
+            )
+
     # AutoConnect
     install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     # Create winreg.ini file so installer knows to remove this on uninstall
-    file(WRITE ${INSTALL_DIRECTORY}/winreg.ini "")
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")

@@ -29,3 +29,5 @@
 [submodule "external/libtiff"]
 	path = external/libtiff
 	url = https://gitlab.com/libtiff/libtiff
+[submodule ".\\AutoConnect"]
+	url = https://github.com/carnegierobotics/AutoConnect

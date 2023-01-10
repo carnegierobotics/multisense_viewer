@@ -58,8 +58,8 @@ namespace VkRender {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_Width = 1720;
-        m_Height = 880;
+        m_Width = 1280;
+        m_Height = 720;
         window = glfwCreateWindow(m_Width, m_Height, title.c_str(), nullptr, nullptr);
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
@@ -562,7 +562,6 @@ namespace VkRender {
         }
         backendInitialized = false;
 
-        uint32_t oldSwapChainImageCount = swapchain->imageCount;
         // Ensure all operations on the m_Device have been finished before destroying resources
         vkQueueWaitIdle(queue);
         vkDeviceWaitIdle(device);
@@ -672,10 +671,10 @@ namespace VkRender {
             windowResize();
             VkResult res = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
             if (res != VK_SUCCESS)
-                throw std::runtime_error("Failed to acquire next m_Image");
+                Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image after windoResize. VkResult: {}", std::to_string(result));
 
         } else if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to acquire next m_Image");
+            throw std::runtime_error("Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
         // Use a fence to wait until the command buffer has finished execution before using it again
         result = vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX);
@@ -698,11 +697,10 @@ namespace VkRender {
                 return;
             }
         } else if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to acquire next m_Image");
-            return;
+            Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}", std::to_string(result));
         }
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
-            throw std::runtime_error("Failed to wait for Queue Idle");
+            throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down instance");
     }
 
 /** CALLBACKS **/

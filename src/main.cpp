@@ -43,7 +43,12 @@
 
 int main() {
     Renderer app("MultiSense Viewer");
-    app.run();
-    app.cleanUp();
+    try{
+        app.run();
+        app.cleanUp();
+    } catch (std::runtime_error& e){
+        Log::Logger::getInstance()->error("Caught exception! RuntimeError: {}", e.what());
+        app.cleanUp();
+    }
     return 0;
 }

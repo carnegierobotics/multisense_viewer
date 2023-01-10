@@ -102,7 +102,7 @@ namespace VkRender {
 
         {
             for (auto &layer: m_LayerStack) {
-                layer->onUIRender(&handles);
+                //layer->onUIRender(&handles);
 
             }
         }

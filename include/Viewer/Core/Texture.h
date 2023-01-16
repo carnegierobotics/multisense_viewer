@@ -43,8 +43,8 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
 #include <tiny_gltf.h>
+#include <filesystem>
 
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Core/Buffer.h"
@@ -186,6 +186,17 @@ public:
 
     //void updateTextureFromBufferYUV(VkRender::MP4Frame *frame);
 
+};
+
+class TextureCubeMap : public Texture {
+public:
+    TextureCubeMap() = default;
+
+    ~TextureCubeMap() {}
+
+    void loadFromFile(const std::filesystem::path &path, VulkanDevice *device,
+                      VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+                      VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };
 
 #endif //MULTISENSE_TEXTURE_H

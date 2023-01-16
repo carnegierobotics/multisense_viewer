@@ -700,7 +700,7 @@ namespace VkRender {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}", std::to_string(result));
         }
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
-            throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down instance");
+        throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down . VkResult: " + std::to_string(result));
     }
 
 /** CALLBACKS **/

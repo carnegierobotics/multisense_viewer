@@ -32,6 +32,7 @@ set(LIBMULTISENSE_DIR external/LibMultiSense)
 set(SIMPLEINI_DIR external/simpleini)
 set(IMGUI_DIR external/imgui)
 set(AUTOCONNECT_DIR internal/AutoConnect)
+set(KTX_DIR external/KTX-Software)
 
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
@@ -133,6 +134,16 @@ else ()
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(BUILD_STANDALONE OFF)
     add_subdirectory(${AUTOCONNECT_DIR})
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${KTX_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${KTX_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding KTX from directory: ${KTX_DIR}")
+    set(KTX_FEATURE_STATIC_LIBRARY ON)
+    set(KTX_FEATURE_TESTS OFF)
+    include_directories(${KTX_DIR}/include)
+    add_subdirectory(${KTX_DIR})
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

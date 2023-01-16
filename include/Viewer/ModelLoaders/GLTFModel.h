@@ -135,11 +135,16 @@ public:
         }
         ~Model();
 
-        VulkanDevice *m_Device;
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
         std::vector<Primitive> primitives;
         std::vector<Texture2D> textures;
+
+        TextureCubeMap environmentMap;
+        TextureCubeMap irradianceCube;
+        TextureCubeMap prefilterEnv;
+        Texture2D lutBrdf;
+
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;
         TextureIndices textureIndices;
@@ -166,7 +171,6 @@ public:
             VkDeviceMemory memory;
         } indices{};
 
-
         std::vector<Node*> nodes{};
         std::vector<Node*> linearNodes{};
 
@@ -174,6 +178,9 @@ public:
             glm::vec3 min = glm::vec3(FLT_MAX);
             glm::vec3 max = glm::vec3(-FLT_MAX);
         } dimensions{};
+
+        std::vector<VkDescriptorSet> descriptors;
+
 
         void destroy(VkDevice device);
         void loadNode(GLTFModel::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& _model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
@@ -189,22 +196,21 @@ public:
 
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
         void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-        std::vector<VkDescriptorSet> descriptors;
+        void generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> vector);
+
+
         VkDescriptorSetLayout descriptorSetLayout{};
         VkDescriptorSetLayout descriptorSetLayoutNode{};
-
         VkDescriptorPool descriptorPool{};
         VkPipeline pipeline{};
         VkPipelineLayout pipelineLayout{};
-
-
-        void createDescriptorSetLayout();
 
         void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
 
         void setupNodeDescriptorSet(Node *node);
 
-        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
+        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+                            bool skybox);
 
 
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
@@ -224,6 +230,15 @@ public:
                              const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptType flags);
 
         void createDescriptorSetLayoutAdditionalBuffers();
+
+        void setEnvironmentMap(const VkRender::RenderUtils &utils, const std::filesystem::path &path, const std::vector<VkPipelineShaderStageCreateInfo> &envShaders);
+        void generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> vector);
+        void setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &vector);
+
+        void createDescriptorSetLayout();
+
+        void createSkybox(std::filesystem::path path, std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                          const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass);
     };
 
 

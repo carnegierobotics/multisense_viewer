@@ -38,6 +38,7 @@
 #include <glm/ext.hpp>
 #include <stb_image.h>
 
+#include "Viewer/Core/Definitions.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
@@ -78,13 +79,13 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
 
+    emptyTexture.fromKtxFile(Utils::getAssetsPath() + "Textures/empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
+                             vulkanDevice->m_TransferQueue);
+
     size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
     size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
     indices.count = static_cast<uint32_t>(indexBuffer.size());
-
-
     assert(vertexBufferSize > 0);
-
     struct StagingBuffer {
         VkBuffer buffer;
         VkDeviceMemory memory;
@@ -146,7 +147,8 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     }
 }
 
-void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &uboVec) {
+void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &uboVec,
+                                              VkRender::SkyboxTextures *textures) {
     descriptors.resize(uboVec.size());
 
     {
@@ -209,7 +211,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Skybox
             writeDescriptorSets[2].descriptorCount = 1;
             writeDescriptorSets[2].dstSet = descriptors[i];
             writeDescriptorSets[2].dstBinding = 2;
-            writeDescriptorSets[2].pImageInfo = &prefilterEnv.m_Descriptor;
+            writeDescriptorSets[2].pImageInfo = &textures->prefilterEnv.m_Descriptor;
 
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                    writeDescriptorSets.data(), 0, nullptr);
@@ -239,7 +241,8 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Skybox
 /*
     Generate a BRDF integration map storing roughness/NdotV as a look-up-table
 */
-void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> envShaders) {
+void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                                       VkRender::SkyboxTextures *textures) {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     const VkFormat format = VK_FORMAT_R16G16_SFLOAT;
@@ -258,16 +261,16 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    (vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &lutBrdf.m_Image));
+    (vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &textures->lutBrdf.m_Image));
     VkMemoryRequirements memReqs;
-    vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, lutBrdf.m_Image, &memReqs);
+    vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, textures->lutBrdf.m_Image, &memReqs);
     VkMemoryAllocateInfo memAllocInfo{};
     memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &lutBrdf.m_DeviceMemory));
-    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, lutBrdf.m_Image, lutBrdf.m_DeviceMemory, 0));
+    (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &textures->lutBrdf.m_DeviceMemory));
+    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures->lutBrdf.m_Image, textures->lutBrdf.m_DeviceMemory, 0));
 
     // View
     VkImageViewCreateInfo viewCI{};
@@ -278,8 +281,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewCI.subresourceRange.levelCount = 1;
     viewCI.subresourceRange.layerCount = 1;
-    viewCI.image = lutBrdf.m_Image;
-    (vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &lutBrdf.m_View));
+    viewCI.image = textures->lutBrdf.m_Image;
+    (vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &textures->lutBrdf.m_View));
 
     // Sampler
     VkSamplerCreateInfo samplerCI{};
@@ -294,7 +297,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     samplerCI.maxLod = 1.0f;
     samplerCI.maxAnisotropy = 1.0f;
     samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    (vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &lutBrdf.m_Sampler));
+    (vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &textures->lutBrdf.m_Sampler));
 
     // FB, Att, RP, Pipe, etc.
     VkAttachmentDescription attDesc{};
@@ -348,7 +351,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     framebufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferCI.renderPass = renderpass;
     framebufferCI.attachmentCount = 1;
-    framebufferCI.pAttachments = &lutBrdf.m_View;
+    framebufferCI.pAttachments = &textures->lutBrdf.m_View;
     framebufferCI.width = dim;
     framebufferCI.height = dim;
     framebufferCI.layers = 1;
@@ -487,10 +490,10 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     vkDestroyFramebuffer(vulkanDevice->m_LogicalDevice, framebuffer, nullptr);
     vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorsetlayout, nullptr);
 
-    lutBrdf.m_Descriptor.imageView = lutBrdf.m_View;
-    lutBrdf.m_Descriptor.sampler = lutBrdf.m_Sampler;
-    lutBrdf.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    lutBrdf.m_Device = vulkanDevice;
+    textures->lutBrdf.m_Descriptor.imageView = textures->lutBrdf.m_View;
+    textures->lutBrdf.m_Descriptor.sampler = textures->lutBrdf.m_Sampler;
+    textures->lutBrdf.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    textures->lutBrdf.m_Device = vulkanDevice;
 
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -498,7 +501,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 }
 
 
-void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> envShaders) {
+void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                                        VkRender::SkyboxTextures *textures) {
     enum Target {
         IRRADIANCE = 0, PREFILTEREDENV = 1
     };
@@ -737,7 +741,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         writeDescriptorSet.descriptorCount = 1;
         writeDescriptorSet.dstSet = descriptorset;
         writeDescriptorSet.dstBinding = 0;
-        writeDescriptorSet.pImageInfo = &environmentMap.m_Descriptor;
+        writeDescriptorSet.pImageInfo = &textures->environmentMap.m_Descriptor;
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
 
         struct PushBlockIrradiance {
@@ -1060,12 +1064,13 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         cubemap.m_Descriptor.sampler = cubemap.m_Sampler;
         cubemap.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         cubemap.m_Device = vulkanDevice;
+
         switch (target) {
             case IRRADIANCE:
-                irradianceCube = cubemap;
+                textures->irradianceCube = cubemap;
                 break;
             case PREFILTEREDENV:
-                prefilterEnv = cubemap;
+                textures->prefilterEnv = cubemap;
                 break;
         };
 
@@ -1085,7 +1090,6 @@ void GLTFModel::Model::scale(const glm::vec3 &scale) {
     nodeScale = scale;
 }
 
-
 void GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer) {
     for (Primitive primitive: primitives) {
         vkCmdDrawIndexed(commandBuffer, primitive.m_IndexCount, 1, primitive.m_FirstIndex, 0, 0);
@@ -1098,8 +1102,27 @@ void GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer) {
 }
 
 void GLTFModel::Model::draw(VkCommandBuffer commandBuffer, uint32_t i) {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                            &descriptors[i], 0, nullptr);
+    const std::vector<VkDescriptorSet> descriptorsets = {
+            descriptors[i],
+            materials[0].descriptorSet
+    };
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                            static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, nullptr);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
+    if (indices.buffer != VK_NULL_HANDLE) {
+        vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+    }
+    for (auto &node: nodes) {
+        drawNode(node, commandBuffer);
+    }
+}
+
+void GLTFModel::Model::drawSkybox(VkCommandBuffer commandBuffer, uint32_t i) {
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                            1, &descriptors[i], 0, nullptr);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -1309,47 +1332,111 @@ void GLTFModel::Model::loadTextureSamplers(tinygltf::Model &gltfModel) {
 void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *device, VkQueue transferQueue) {
     for (tinygltf::Texture &tex: gltfModel.textures) {
         tinygltf::Image image = gltfModel.images[tex.source];
-        Texture::TextureSampler sampler{};
+        Texture::TextureSampler textureSampler{};
         if (tex.sampler == -1) {
             // No m_Sampler specified, use a default one
-            sampler.magFilter = VK_FILTER_LINEAR;
-            sampler.minFilter = VK_FILTER_LINEAR;
-            sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            textureSampler.magFilter = VK_FILTER_LINEAR;
+            textureSampler.minFilter = VK_FILTER_LINEAR;
+            textureSampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            textureSampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            textureSampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         } else {
-            sampler = textureSamplers[tex.sampler];
+            textureSampler = textureSamplers[tex.sampler];
         }
-        //Texture2D texture2D(device);
-        //texture2D.fromglTfImage(image, sampler, device, transferQueue);
-        //textures.push_back(texture2D);
+        Texture2D texture2D(device);
+        texture2D.fromglTfImage(image, textureSampler, device, transferQueue);
+        textures.push_back(texture2D);
     }
-
-
 }
 
 void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
-    /* for (tinygltf::Material &mat: gltfModel.materials) {
-         GLTFModel::Material material{};
-         if (mat.values.find("baseColorTexture") != mat.values.end()) {
-             material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
-             material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
-             textureIndices.baseColor = 0;
+    for (tinygltf::Material &mat: gltfModel.materials) {
+        GLTFModel::Material material{};
+        material.doubleSided = mat.doubleSided;
+        if (mat.values.find("baseColorTexture") != mat.values.end()) {
+            material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
+            material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+        }
+        if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
+            material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+            material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+        }
+        if (mat.values.find("roughnessFactor") != mat.values.end()) {
+            material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
+        }
+        if (mat.values.find("metallicFactor") != mat.values.end()) {
+            material.metallicFactor = static_cast<float>(mat.values["metallicFactor"].Factor());
+        }
+        if (mat.values.find("baseColorFactor") != mat.values.end()) {
+            material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+        }
+        if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
+            material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
+            material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
+            material.emissiveTexture = &textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
+            material.texCoordSets.emissive = mat.additionalValues["emissiveTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
+            material.occlusionTexture = &textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
+            material.texCoordSets.occlusion = mat.additionalValues["occlusionTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
+            tinygltf::Parameter param = mat.additionalValues["alphaMode"];
+            if (param.string_value == "BLEND") {
+                material.alphaMode = Material::ALPHAMODE_BLEND;
+            }
+            if (param.string_value == "MASK") {
+                material.alphaCutoff = 0.5f;
+                material.alphaMode = Material::ALPHAMODE_MASK;
+            }
+        }
+        if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end()) {
+            material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
+        }
+        if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end()) {
+            material.emissiveFactor = glm::vec4(
+                    glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
+        }
 
-         }
-         if (mat.values.find("baseColorFactor") != mat.values.end()) {
-             material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
-         }
+        // Extensions
+        // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
+        if (mat.extensions.find("KHR_materials_pbrSpecularGlossiness") != mat.extensions.end()) {
+            auto ext = mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
+            if (ext->second.Has("specularGlossinessTexture")) {
+                auto index = ext->second.Get("specularGlossinessTexture").Get("index");
+                material.extension.specularGlossinessTexture = &textures[index.Get<int>()];
+                auto texCoordSet = ext->second.Get("specularGlossinessTexture").Get("texCoord");
+                material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
+                material.pbrWorkflows.specularGlossiness = true;
+            }
+            if (ext->second.Has("diffuseTexture")) {
+                auto index = ext->second.Get("diffuseTexture").Get("index");
+                material.extension.diffuseTexture = &textures[index.Get<int>()];
+            }
+            if (ext->second.Has("diffuseFactor")) {
+                auto factor = ext->second.Get("diffuseFactor");
+                for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
+                    auto val = factor.Get(i);
+                    material.extension.diffuseFactor[i] = val.IsNumber() ? (float) val.Get<double>()
+                                                                         : (float) val.Get<int>();
+                }
+            }
+            if (ext->second.Has("specularFactor")) {
+                auto factor = ext->second.Get("specularFactor");
+                for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
+                    auto val = factor.Get(i);
+                    material.extension.specularFactor[i] = val.IsNumber() ? (float) val.Get<double>()
+                                                                          : (float) val.Get<int>();
+                }
+            }
+        }
 
-         if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-             textureIndices.normalMap = mat.additionalValues["normalTexture"].TextureIndex();
-             material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
-             material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
-         }
-
-         materials.push_back(material);
-     }
-     */
+        materials.push_back(material);
+    }
+    // Push a default material at the end of the list for meshes with no material assigned
+    materials.emplace_back();
 }
 
 VkSamplerAddressMode GLTFModel::Model::getVkWrapMode(int32_t wrapMode) {
@@ -1455,92 +1542,174 @@ GLTFModel::Primitive::Primitive(uint32_t _firstIndex, uint32_t indexCount) {
     this->m_IndexCount = indexCount;
 }
 
-void GLTFModel::Model::createDescriptorSetLayout() {
-    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
-            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
-    };
+void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    descriptors.resize(uboCount);
+    {
+        /*
+            Descriptor Pool
+        */
+        uint32_t imageSamplerCount = 0;
+        uint32_t materialCount = 0;
+        uint32_t meshCount = 0;
 
+        // Environment samplers (radiance, irradiance, brdf lut)
+        imageSamplerCount += 8;
 
-    if (textureIndices.baseColor != -1) {
-        setLayoutBindings.push_back(
-                {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * uboCount},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * uboCount}
+        };
+        VkDescriptorPoolCreateInfo descriptorPoolCI{};
+        descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        descriptorPoolCI.poolSizeCount = 2;
+        descriptorPoolCI.pPoolSizes = poolSizes.data();
+        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * uboCount;
+        (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
+    }
+    /*
+        Descriptor sets
+    */
+
+    // Scene (matrices and environment maps)
+    {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1,
+                                                                  VK_SHADER_STAGE_VERTEX_BIT |
+                                                                  VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+        descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+        descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+        (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                     &descriptorSetLayout));
+
+        for (auto i = 0; i < uboCount; i++) {
+
+            VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+            descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocInfo.descriptorPool = descriptorPool;
+            descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+            descriptorSetAllocInfo.descriptorSetCount = 1;
+            (vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptors[i]));
+
+            std::array<VkWriteDescriptorSet, 5> writeDescriptorSets{};
+
+            writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescriptorSets[0].descriptorCount = 1;
+            writeDescriptorSets[0].dstSet = descriptors[i];
+            writeDescriptorSets[0].dstBinding = 0;
+            writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
+
+            writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writeDescriptorSets[1].descriptorCount = 1;
+            writeDescriptorSets[1].dstSet = descriptors[i];
+            writeDescriptorSets[1].dstBinding = 1;
+            writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
+
+            writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[2].descriptorCount = 1;
+            writeDescriptorSets[2].dstSet = descriptors[i];
+            writeDescriptorSets[2].dstBinding = 2;
+            writeDescriptorSets[2].pImageInfo = &irradianceCube->m_Descriptor;
+
+            writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[3].descriptorCount = 1;
+            writeDescriptorSets[3].dstSet = descriptors[i];
+            writeDescriptorSets[3].dstBinding = 3;
+            writeDescriptorSets[3].pImageInfo = &prefilterEnv->m_Descriptor;
+
+            writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[4].descriptorCount = 1;
+            writeDescriptorSets[4].dstSet = descriptors[i];
+            writeDescriptorSets[4].dstBinding = 4;
+            writeDescriptorSets[4].pImageInfo = &lutBrdf->m_Descriptor;
+
+            vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                                   writeDescriptorSets.data(), 0, NULL);
+        }
     }
 
-    if (textureIndices.normalMap != -1) {
-        setLayoutBindings.push_back(
-                {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+    // Material (samplers)
+    {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+        descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+        descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+        (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                     &descriptorSetLayoutMaterial));
 
+        // Per-Material descriptor sets
+        for (auto &material: materials) {
+            VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+            descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocInfo.descriptorPool = descriptorPool;
+            descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayoutMaterial;
+            descriptorSetAllocInfo.descriptorSetCount = 1;
+            VkResult res = vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                                    &material.descriptorSet);
+            if (res != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate material descriptors. VkResult: " + std::to_string(res));
+            }
+
+            std::vector<VkDescriptorImageInfo> imageDescriptors = {
+                    emptyTexture.m_Descriptor,
+                    emptyTexture.m_Descriptor,
+                    material.normalTexture ? material.normalTexture->m_Descriptor : emptyTexture.m_Descriptor,
+                    material.occlusionTexture ? material.occlusionTexture->m_Descriptor : emptyTexture.m_Descriptor,
+                    material.emissiveTexture ? material.emissiveTexture->m_Descriptor : emptyTexture.m_Descriptor
+            };
+
+            // TODO: glTF specs states that metallic roughness should be preferred, even if specular glosiness is present
+
+            if (material.pbrWorkflows.metallicRoughness) {
+                if (material.baseColorTexture) {
+                    imageDescriptors[0] = material.baseColorTexture->m_Descriptor;
+                }
+                if (material.metallicRoughnessTexture) {
+                    imageDescriptors[1] = material.metallicRoughnessTexture->m_Descriptor;
+                }
+            }
+
+            if (material.pbrWorkflows.specularGlossiness) {
+                if (material.extension.diffuseTexture) {
+                    imageDescriptors[0] = material.extension.diffuseTexture->m_Descriptor;
+                }
+                if (material.extension.specularGlossinessTexture) {
+                    imageDescriptors[1] = material.extension.specularGlossinessTexture->m_Descriptor;
+                }
+            }
+
+            std::array<VkWriteDescriptorSet, 5> writeDescriptorSets{};
+            for (size_t i = 0; i < imageDescriptors.size(); i++) {
+                writeDescriptorSets[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSets[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSets[i].descriptorCount = 1;
+                writeDescriptorSets[i].dstSet = material.descriptorSet;
+                writeDescriptorSets[i].dstBinding = static_cast<uint32_t>(i);
+                writeDescriptorSets[i].pImageInfo = &imageDescriptors[i];
+            }
+
+            vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                                   writeDescriptorSets.data(), 0, NULL);
+        }
     }
-
-
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
-    descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
-    descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                             &descriptorSetLayout))
-}
-
-void GLTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
-    descriptors.resize(count);
-    // Check for how many m_Image descriptors
-    /**
-     * Create Descriptor Pool
-     */
-    uint32_t uniformDescriptorCount = (3 * count + (uint32_t) nodes.size());
-    uint32_t imageDescriptorSamplerCount = (3 * count * 3);
-    std::vector<VkDescriptorPoolSize> poolSizes = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
-
-    };
-    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-                                                                                   static_cast<uint32_t>(count +
-                                                                                                         nodes.size()));
-    CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-    /**
-     * Create Descriptor Sets
-     */
-    for (size_t i = 0; i < descriptors.size(); i++) {
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
-        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
-        descriptorSetAllocInfo.descriptorSetCount = 1;
-        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                              &descriptors[i]));
-
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets(3);
-
-        writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSets[0].descriptorCount = 1;
-        writeDescriptorSets[0].dstSet = descriptors[i];
-        writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &ubo[i].bufferOne.m_DescriptorBufferInfo;
-
-        writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSets[1].descriptorCount = 1;
-        writeDescriptorSets[1].dstSet = descriptors[i];
-        writeDescriptorSets[1].dstBinding = 1;
-        writeDescriptorSets[1].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
-
-        writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSets[2].descriptorCount = 1;
-        writeDescriptorSets[2].dstSet = descriptors[i];
-        writeDescriptorSets[2].dstBinding = 2;
-        writeDescriptorSets[2].pBufferInfo = &ubo[i].bufferThree.m_DescriptorBufferInfo;
-
-        vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
-                               writeDescriptorSets.data(), 0, NULL);
-    }
-
-
     // Model node (matrices)
     {
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -1550,11 +1719,10 @@ void GLTFModel::Model::createDescriptors(uint32_t count, const std::vector<VkRen
         descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
         descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-        CHECK_RESULT(
-                vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                            &descriptorSetLayoutNode));
+        (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                     &descriptorSetLayoutNode));
 
-        // Per-Node m_Descriptor set
+        // Per-Node descriptor set
         for (auto &node: nodes) {
             setupNodeDescriptorSet(node);
         }
@@ -1577,7 +1745,8 @@ void GLTFModel::Model::createDescriptorSetLayoutAdditionalBuffers() {
 }
 
 void
-GLTFModel::Model::createDescriptorsAdditionalBuffers(const std::vector<VkRender::RenderDescriptorBuffersData> &ubo) {
+GLTFModel::Model::createDescriptorsAdditionalBuffers(
+        const std::vector<VkRender::RenderDescriptorBuffersData> &ubo) {
     descriptors.resize(ubo.size());
     // Check for how many m_Image descriptors
     /**
@@ -1588,8 +1757,9 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(const std::vector<VkRender:
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-                                                                                   static_cast<uint32_t>(ubo.size() +
-                                                                                                         nodes.size()));
+                                                                                   static_cast<uint32_t>(
+                                                                                           ubo.size() +
+                                                                                           nodes.size()));
     CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
     /**
      * Create Descriptor Sets
@@ -1674,18 +1844,19 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
 
 
 void
-GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-                                 bool isSkybox) {
+GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, isSkybox ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
     rasterizationStateCI.lineWidth = 1.0f;
 
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT,
             VK_FALSE);
 
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = Populate::pipelineColorBlendStateCreateInfo(1,
@@ -1719,16 +1890,21 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 
 
     // Pipeline layout
-    const std::vector<VkDescriptorSetLayout> setLayouts = {
-            descriptorSetLayout, descriptorSetLayoutNode
-    };
+    std::vector<VkDescriptorSetLayout> setLayouts =
+            {descriptorSetLayout, descriptorSetLayoutMaterial, descriptorSetLayoutNode};
+
+
     VkPipelineLayoutCreateInfo pipelineLayoutCI{};
     pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCI.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
     pipelineLayoutCI.pSetLayouts = setLayouts.data();
-    pipelineLayoutCI.pushConstantRangeCount = 0;
-    pipelineLayoutCI.pPushConstantRanges = nullptr;
-    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelineLayout));
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.size = sizeof(PushConstBlockMaterial);
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pipelineLayoutCI.pushConstantRangeCount = 1;
+    pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
+    CHECK_RESULT(
+            vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
 
     // Vertex bindings an attributes
@@ -1765,15 +1941,16 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 
-    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
+    CHECK_RESULT(
+            vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
                                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders) {
     this->vulkanDevice = utils.device;
-    createDescriptorSetLayout();
+    //createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
-    createPipeline(*utils.renderPass, shaders, false);
+    createPipeline(*utils.renderPass, shaders);
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
@@ -1784,7 +1961,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
-        createPipeline(*utils.renderPass, shaders, false);
+        createPipeline(*utils.renderPass, shaders);
     }
 
 }
@@ -1811,19 +1988,112 @@ GLTFModel::Model::~Model() {
     }
 }
 
-void GLTFModel::Model::createSkybox(std::filesystem::path path, std::vector<VkPipelineShaderStageCreateInfo> envShaders,
-                                    const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass) {
+void
+GLTFModel::Model::createSkybox(const std::filesystem::path &path,
+                               std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                               const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
+                               VkRender::SkyboxTextures *skyboxTextures) {
+
     loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice,
                  vulkanDevice->m_TransferQueue, 1.0f);
-
-    environmentMap.loadFromFile(path, vulkanDevice);
-    generateCubemaps(envShaders);
-    generateBRDFLUT(envShaders);
-    setupSkyboxDescriptors(uboVec);
+    generateCubemaps(envShaders, skyboxTextures);
+    generateBRDFLUT(envShaders, skyboxTextures);
+    setupSkyboxDescriptors(uboVec, skyboxTextures);
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {envShaders[5], envShaders[6]};
-    createPipeline(renderPass, shaders, true);
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
+    VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+    rasterizationStateCI.lineWidth = 1.0f;
+
+    VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT,
+            VK_FALSE);
+
+    VkPipelineColorBlendStateCreateInfo colorBlendStateCI = Populate::pipelineColorBlendStateCreateInfo(1,
+                                                                                                        &blendAttachmentState);
+
+    VkPipelineDepthStencilStateCreateInfo depthStencilStateCI =
+            Populate::pipelineDepthStencilStateCreateInfo(VK_TRUE,
+                                                          VK_TRUE,
+                                                          VK_COMPARE_OP_LESS);
+    depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
+    depthStencilStateCI.stencilTestEnable = VK_FALSE;
+
+    VkPipelineViewportStateCreateInfo viewportStateCI{};
+    viewportStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportStateCI.viewportCount = 1;
+    viewportStateCI.scissorCount = 1;
+
+    VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
+    multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+
+
+    std::vector<VkDynamicState> dynamicStateEnables = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR
+    };
+    VkPipelineDynamicStateCreateInfo dynamicStateCI{};
+    dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
+    dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+
+
+    // Pipeline layout
+    std::vector<VkDescriptorSetLayout> setLayouts =
+            {descriptorSetLayout, descriptorSetLayoutNode};
+
+
+    VkPipelineLayoutCreateInfo pipelineLayoutCI{};
+    pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutCI.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+    pipelineLayoutCI.pSetLayouts = setLayouts.data();
+    pipelineLayoutCI.pushConstantRangeCount = 0;
+    pipelineLayoutCI.pPushConstantRanges = nullptr;
+    CHECK_RESULT(
+            vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelineLayout));
+
+
+    // Vertex bindings an attributes
+    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(GLTFModel::Model::Vertex),
+                                                          VK_VERTEX_INPUT_RATE_VERTEX};
+    std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
+            {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
+            {3, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 8},
+    };
+    VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
+    vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputStateCI.vertexBindingDescriptionCount = 1;
+    vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
+    vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+    vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+    // Pipelines
+    VkGraphicsPipelineCreateInfo pipelineCI{};
+    pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineCI.layout = pipelineLayout;
+    pipelineCI.renderPass = renderPass;
+    pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+    pipelineCI.pVertexInputState = &vertexInputStateCI;
+    pipelineCI.pRasterizationState = &rasterizationStateCI;
+    pipelineCI.pColorBlendState = &colorBlendStateCI;
+    pipelineCI.pMultisampleState = &multisampleStateCI;
+    pipelineCI.pViewportState = &viewportStateCI;
+    pipelineCI.pDepthStencilState = &depthStencilStateCI;
+    pipelineCI.pDynamicState = &dynamicStateCI;
+    pipelineCI.stageCount = static_cast<uint32_t>(shaders.size());
+    pipelineCI.pStages = shaders.data();
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    CHECK_RESULT(
+            vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
 }
 
 

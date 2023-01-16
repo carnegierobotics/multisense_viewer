@@ -96,6 +96,22 @@ public:
         std::vector<glm::mat4> inverseBindMatrices;
         std::vector<Node*> joints;
     };
+    struct PushConstBlockMaterial {
+        glm::vec4 baseColorFactor;
+        glm::vec4 emissiveFactor;
+        glm::vec4 diffuseFactor;
+        glm::vec4 specularFactor;
+        float workflow;
+        int colorTextureSet;
+        int PhysicalDescriptorTextureSet;
+        int normalTextureSet;
+        int occlusionTextureSet;
+        int emissiveTextureSet;
+        float metallicFactor;
+        float roughnessFactor;
+        float alphaMask;
+        float alphaMaskCutoff;
+    } pushConstBlockMaterial;
 
     struct Material {
         enum AlphaMode{ ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
@@ -120,6 +136,17 @@ public:
             bool specularGlossiness = false;
         } pbrWorkflows;
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        bool doubleSided;
+        Texture2D *metallicRoughnessTexture;
+        Texture2D *emissiveTexture;
+        Texture2D *occlusionTexture;
+
+        struct Extension {
+            Texture2D *specularGlossinessTexture;
+            Texture2D *diffuseTexture;
+            glm::vec4 diffuseFactor = glm::vec4(1.0f);
+            glm::vec3 specularFactor = glm::vec3(0.0f);
+        } extension;
     };
 
     struct TextureIndices{
@@ -133,17 +160,23 @@ public:
         explicit Model(VulkanDevice* dev){
             this->vulkanDevice = dev;
         }
+        explicit Model(VkRender::RenderUtils* r){
+            this->vulkanDevice = r->device;
+            prefilterEnv = r->skybox.prefilterEnv;
+            irradianceCube = r->skybox.irradianceCube;
+            lutBrdf = r->skybox.lutBrdf;
+        }
         ~Model();
 
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
         std::vector<Primitive> primitives;
         std::vector<Texture2D> textures;
+        Texture2D emptyTexture;
 
-        TextureCubeMap environmentMap;
-        TextureCubeMap irradianceCube;
-        TextureCubeMap prefilterEnv;
-        Texture2D lutBrdf;
+        TextureCubeMap *irradianceCube;
+        TextureCubeMap *prefilterEnv;
+        Texture2D *lutBrdf;
 
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;
@@ -196,10 +229,11 @@ public:
 
         void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
         void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-        void generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> vector);
+
 
 
         VkDescriptorSetLayout descriptorSetLayout{};
+        VkDescriptorSetLayout descriptorSetLayoutMaterial{};
         VkDescriptorSetLayout descriptorSetLayoutNode{};
         VkDescriptorPool descriptorPool{};
         VkPipeline pipeline{};
@@ -209,8 +243,7 @@ public:
 
         void setupNodeDescriptorSet(Node *node);
 
-        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
-                            bool skybox);
+        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
 
 
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
@@ -231,14 +264,15 @@ public:
 
         void createDescriptorSetLayoutAdditionalBuffers();
 
-        void setEnvironmentMap(const VkRender::RenderUtils &utils, const std::filesystem::path &path, const std::vector<VkPipelineShaderStageCreateInfo> &envShaders);
-        void generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> vector);
-        void setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &vector);
+        void generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> vector, VkRender::SkyboxTextures *skyboxTextures);
+        void setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &vector, VkRender::SkyboxTextures *skyboxTextures);
+        void generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> vector,
+                              VkRender::SkyboxTextures *skyboxTextures);
+        void createSkybox(const std::filesystem::path &path, std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                          const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
+                          VkRender::SkyboxTextures *skyboxTextures);
 
-        void createDescriptorSetLayout();
-
-        void createSkybox(std::filesystem::path path, std::vector<VkPipelineShaderStageCreateInfo> envShaders,
-                          const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass);
+        void drawSkybox(VkCommandBuffer commandBuffer, uint32_t i);
     };
 
 

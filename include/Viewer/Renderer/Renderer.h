@@ -50,6 +50,7 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Generated/ScriptHeader.h"
+#include "Viewer/Core/Skybox.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -102,6 +103,8 @@ private:
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
 
+
+    VkRender::SkyboxTextures skyboxTextures;
     std::unique_ptr<GLTFModel::Model> skybox;
 
     std::vector<VkRender::SkyboxBuffer> skyboxUniformBuffers;

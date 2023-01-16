@@ -37,10 +37,22 @@
 #include "Viewer/Scripts/Objects/SceneGizmos/S27.h"
 
 void S27::setup() {
-    m_Model = std::make_unique<GLTFModel::Model>(renderUtils.device);
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/S27.gltf", renderUtils.device,
+    m_Skybox = std::make_unique<GLTFModel::Model>(renderUtils.device);
+    m_Skybox->loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
 
+    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
+                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
+                                                               {loadShader("Scene/spv/irradiancecube.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)},
+                                                               {loadShader("Scene/spv/prefilterenvmap.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
+                                                               {loadShader("Scene/spv/genbrdflut.vert",
+                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
+                                                               {loadShader("Scene/spv/genbrdflut.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)}};
+
+    //m_Skybox->setEnvironmentMap(renderUtils, Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders);
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
@@ -49,23 +61,19 @@ void S27::setup() {
 
 
     // Obligatory call to prepare render resources for GLTFModel.
-    m_Model->createRenderPipeline(renderUtils, shaders);
+    //m_Skybox->createRenderPipeline(renderUtils, shaders);
 }
 
 void S27::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
     if (primaryDraw)
-        m_Model->draw(commandBuffer, i);
+        ;//m_Skybox->draw(commandBuffer, i);
 }
 
 void S27::update() {
     VkRender::UBOMatrix mat{};
-    mat.model = glm::mat4(1.0f);
-    //mat.model = glm::scale(mat.model, glm::vec3(0.01f, 0.01f, 0.01f));
-    mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::scale(mat.model, glm::vec3(0.0015f, 0.0015f, 0.0015f));
 
     auto &d = bufferOneData;
-    d->model = mat.model;
+    d->model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     auto &d2 = bufferTwoData;
@@ -73,6 +81,7 @@ void S27::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
+    //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
 
 }
 

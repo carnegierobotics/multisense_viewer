@@ -1,5 +1,5 @@
 # install glslc in project folder
-git clone https://github.com/google/shaderc ../../
+git clone https://github.com/google/shaderc ../../shaderc
 cd ../../shaderc || exit
 python3 ./utils/git-sync-deps || exit
 mkdir build

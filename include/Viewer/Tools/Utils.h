@@ -63,6 +63,7 @@ namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
+    // TODO use std::filesystem for paths
 #ifdef __linux__
     static std::string getShadersPath() {
         return "./Assets/Shaders/";
@@ -81,6 +82,7 @@ namespace Utils {
 
 #endif
 
+    // TODO use std::filesystem for paths
 #ifdef WIN32
     static std::string getShadersPath() {
         return ".\\Assets\\Shaders\\";

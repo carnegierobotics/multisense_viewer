@@ -408,12 +408,23 @@ namespace VkRender {
      * @brief Basic lighting params for simple light calculation
      */
     struct FragShaderParams {
+        glm::vec4 lightDir{};
+        float exposure = 4.5f;
+        float gamma = 2.2f;
+        float prefilteredCubeMipLevels;
+        float scaleIBLAmbient = 1.0f;
+        float debugViewInputs = 0;
+        float debugViewEquation = 0;
         glm::vec4 lightColor{};
         glm::vec4 objectColor{};
         glm::vec4 lightPos{};
         glm::vec4 viewPos{};
     };
 
+    struct SkyboxBuffer{
+        Buffer shaderValuesSkybox{};
+        Buffer shaderValuesParams{};
+    };
     /**
      * @brief Memory block for point clouds
      */

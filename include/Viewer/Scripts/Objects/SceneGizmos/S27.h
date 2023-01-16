@@ -76,8 +76,8 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_RENDER;
-    std::unique_ptr<GLTFModel::Model> m_Model;
+    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
+    std::unique_ptr<GLTFModel::Model> m_Skybox;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 };

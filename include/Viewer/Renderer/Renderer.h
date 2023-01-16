@@ -102,6 +102,16 @@ private:
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
 
+    std::unique_ptr<GLTFModel::Model> skybox;
+
+    std::vector<VkRender::SkyboxBuffer> skyboxUniformBuffers;
+    VkRender::UBOMatrix shaderValuesSkybox;
+    struct LightSource {
+        glm::vec3 color = glm::vec3(1.0f);
+        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
+    } lightSource;
+    VkRender::FragShaderParams shaderValuesParams;
+
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = true;
@@ -137,6 +147,9 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
+
+    VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stageFlag);
+    std::vector<VkShaderModule> shaderModules{};
 };
 
 

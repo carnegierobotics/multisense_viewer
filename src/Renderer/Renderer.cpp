@@ -61,6 +61,39 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
+    // Create Skybox
+    skybox = std::make_unique<GLTFModel::Model>(vulkanDevice.get());
+    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
+                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
+                                                               {loadShader("Scene/spv/irradiancecube.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
+                                                               {loadShader("Scene/spv/prefilterenvmap.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
+                                                               {loadShader("Scene/spv/genbrdflut.vert",
+                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
+                                                               {loadShader("Scene/spv/genbrdflut.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
+                                                               {loadShader("Scene/spv/skybox.vert",
+                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
+                                                               {loadShader("Scene/spv/skybox.frag",
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)}};
+
+    skyboxUniformBuffers.resize(swapchain->imageCount);
+    for (auto &uniformBuffer: skyboxUniformBuffers) {
+        vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &uniformBuffer.shaderValuesSkybox, sizeof(VkRender::UBOMatrix));
+
+        vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   &uniformBuffer.shaderValuesParams, sizeof(VkRender::FragShaderParams));
+    }
+    skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders,
+                         skyboxUniformBuffers, renderPass);
+
+
     // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
     std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
@@ -69,11 +102,9 @@ void Renderer::prepareRenderer() {
         // Skip comment # line
         if (line.find('#') != std::string::npos)
             continue;
-
         buildScript(line);
     }
 }
-
 
 void Renderer::addDeviceFeatures() {
     if (deviceFeatures.fillModeNonSolid) {
@@ -83,7 +114,6 @@ void Renderer::addDeviceFeatures() {
             enabledFeatures.wideLines = VK_TRUE;
         }
     }
-
 }
 
 void Renderer::buildCommandBuffers() {
@@ -116,7 +146,7 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-
+        skybox->draw(drawCmdBuffers[i], i);
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
@@ -189,6 +219,7 @@ void Renderer::render() {
     camera.viewportHeight = m_Height;
     camera.viewportWidth = m_Width;
 
+    // RenderData
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
     renderData.camera = &camera;
@@ -198,6 +229,27 @@ void Renderer::render() {
     renderData.width = m_Width;
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
+
+    // Skybox params
+    auto &d = shaderValuesSkybox;
+    shaderValuesSkybox.model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
+    shaderValuesSkybox.projection = renderData.camera->matrices.perspective;
+    shaderValuesSkybox.view = renderData.camera->matrices.view;
+
+    shaderValuesParams.lightDir = glm::vec4(
+            sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
+            sin(glm::radians(lightSource.rotation.y)),
+            cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
+            0.0f);
+
+    VkRender::SkyboxBuffer& currentUB = skyboxUniformBuffers[currentBuffer];
+    currentUB.shaderValuesParams.map();
+    currentUB.shaderValuesSkybox.map();
+    memcpy(currentUB.shaderValuesSkybox.mapped, &shaderValuesSkybox, sizeof(VkRender::UBOMatrix));
+    memcpy(currentUB.shaderValuesParams.mapped, &shaderValuesParams, sizeof(VkRender::FragShaderParams));
+    currentUB.shaderValuesParams.unmap();
+    currentUB.shaderValuesSkybox.unmap();
+
     // Update GUI
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
@@ -280,7 +332,7 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
@@ -288,7 +340,7 @@ void Renderer::render() {
             guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
     }
 
-
+    // Scripts that share dataa
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             if (!script.second->sharedData->destination.empty()) {
@@ -299,7 +351,7 @@ void Renderer::render() {
         }
     }
 
-    // UiUpdate on Scripts with const handle to GUI
+    // UIUpdateFunction on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
@@ -683,17 +735,17 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     float dx = (float) x - mousePos.x;
     float dy = (float) y - mousePos.y;
 
-    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI){ // && !mouseButtons.middle) {
+    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
     }
     if (mouseButtons.middle && camera.type == Camera::firstperson) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
-    } else if (mouseButtons.middle && camera.type == Camera::lookat){
+    } else if (mouseButtons.middle && camera.type == Camera::lookat) {
         //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
-        mousePos = glm::vec2((float) x, (float) y);
+    mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
 }
@@ -707,4 +759,23 @@ void Renderer::mouseScroll(float change) {
     }
 
 
+}
+
+VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {
+        // Check if we have .spv extensions. If not then add it.
+        std::size_t extension = fileName.find(".spv");
+        if (extension == std::string::npos)
+            fileName.append(".spv");
+        VkShaderModule module;
+        Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+                          vulkanDevice->m_LogicalDevice, &module);
+        assert(module != VK_NULL_HANDLE);
+
+        shaderModules.emplace_back(module);
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage = stageFlag;
+        shaderStage.module = module;
+        shaderStage.pName = "main";
+        return shaderStage;
 }

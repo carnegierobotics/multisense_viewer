@@ -37,43 +37,29 @@
 #include "Viewer/Scripts/Objects/SceneGizmos/S27.h"
 
 void S27::setup() {
-    m_Skybox = std::make_unique<GLTFModel::Model>(renderUtils.device);
-    m_Skybox->loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", renderUtils.device,
+    helmet = std::make_unique<GLTFModel::Model>(&renderUtils);
+    helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
 
-    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
-                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/irradiancecube.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/prefilterenvmap.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.vert",
-                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    //m_Skybox->setEnvironmentMap(renderUtils, Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders);
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/box.frag",
+                                                            {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
 
     // Obligatory call to prepare render resources for GLTFModel.
-    //m_Skybox->createRenderPipeline(renderUtils, shaders);
+    helmet->createRenderPipeline(renderUtils, shaders);
 }
 
 void S27::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
     if (primaryDraw)
-        ;//m_Skybox->draw(commandBuffer, i);
+        helmet->draw(commandBuffer, i);
 }
 
 void S27::update() {
-    VkRender::UBOMatrix mat{};
-
     auto &d = bufferOneData;
-    d->model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
+    d->model = glm::mat4(1.0f);
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     auto &d2 = bufferTwoData;

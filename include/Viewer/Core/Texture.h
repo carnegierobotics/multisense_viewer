@@ -46,7 +46,6 @@
 #include <tiny_gltf.h>
 #include <filesystem>
 
-#include "Viewer/Core/Definitions.h"
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
 
@@ -80,6 +79,7 @@ public:
 
 
     ~Texture() {
+        /*
         if (m_Width != 0 && m_Height != 0) {
             vkDestroyImageView(m_Device->m_LogicalDevice, m_View, nullptr);
             vkDestroyImage(m_Device->m_LogicalDevice, m_Image, nullptr);
@@ -88,10 +88,8 @@ public:
             }
             vkFreeMemory(m_Device->m_LogicalDevice, m_DeviceMemory, nullptr);
         }
+         */
     }
-    //ktxResult loadKTXFile(std::string filename, ktxTexture **target);
-    // Load a texture from a glTF m_Image (stored as vector of chars loaded via stb_image) and generate a full mip chaing for it
-
 };
 
 
@@ -134,6 +132,10 @@ public:
 
     void
     fromglTfImage(tinygltf::Image &gltfimage, TextureSampler textureSampler, VulkanDevice *device, VkQueue copyQueue);
+
+    void fromKtxFile(std::string filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
+                     VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+                     VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bool forceLinear = false);
 };
 
 

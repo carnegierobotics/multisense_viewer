@@ -37,7 +37,7 @@
 #include "Viewer/Scripts/Objects/SceneGizmos/Gizmos.h"
 
 void Gizmos::setup() {
-    m_Model = std::make_unique<GLTFModel::Model>(renderUtils.device);
+    m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
     m_Model->loadFromFile(Utils::getAssetsPath() + "Models/coordinates.gltf", renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
 

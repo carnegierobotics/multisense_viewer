@@ -52,10 +52,12 @@
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/Texture.h"
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define MAX_IMAGES_IN_QUEUE 30
+
 
 // Predeclare to speed up compile times
 namespace VkRender::MultiSense {
@@ -421,7 +423,14 @@ namespace VkRender {
         glm::vec4 viewPos{};
     };
 
-    struct SkyboxBuffer{
+    struct SkyboxTextures {
+        TextureCubeMap environmentMap;
+        TextureCubeMap irradianceCube;
+        TextureCubeMap prefilterEnv;
+        Texture2D lutBrdf;
+    };
+
+    struct SkyboxBuffer {
         Buffer shaderValuesSkybox{};
         Buffer shaderValuesParams{};
     };
@@ -489,6 +498,11 @@ namespace VkRender {
         VkRenderPass *renderPass{};
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
+        struct {
+            TextureCubeMap *irradianceCube;
+            TextureCubeMap *prefilterEnv;
+            Texture2D *lutBrdf;
+        } skybox;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/

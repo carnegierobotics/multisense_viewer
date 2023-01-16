@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Populate.h"
 
 void Renderer::prepareRenderer() {
-    camera.type = Camera::CameraType::lookat;
+    camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
@@ -90,8 +90,10 @@ void Renderer::prepareRenderer() {
                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                    &uniformBuffer.shaderValuesParams, sizeof(VkRender::FragShaderParams));
     }
+    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", vulkanDevice.get());
+
     skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders,
-                         skyboxUniformBuffers, renderPass);
+                         skyboxUniformBuffers, renderPass, &skyboxTextures);
 
 
     // Prefer to load the m_Model only once, so load it in first setup
@@ -146,7 +148,7 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-        skybox->draw(drawCmdBuffers[i], i);
+        skybox->drawSkybox(drawCmdBuffers[i], i);
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
@@ -182,6 +184,10 @@ void Renderer::buildScript(const std::string &scriptName) {
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     renderData.scriptName = scriptName;
+    vars.skybox.irradianceCube = &skyboxTextures.irradianceCube;
+    vars.skybox.lutBrdf = &skyboxTextures.lutBrdf;
+    vars.skybox.prefilterEnv = &skyboxTextures.prefilterEnv;
+
     // Run script setup function
     scripts[scriptName]->createUniformBuffers(vars, renderData);
 }

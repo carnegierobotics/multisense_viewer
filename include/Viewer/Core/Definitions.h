@@ -385,6 +385,7 @@ namespace VkRender {
         glm::vec2 uv1{};
         glm::vec4 joint0{};
         glm::vec4 weight0{};
+        glm::vec4 color{};
     };
 
     /**
@@ -404,6 +405,7 @@ namespace VkRender {
         glm::mat4 projection{};
         glm::mat4 view{};
         glm::mat4 model{};
+        glm::vec3 camPos;
     };
 
     /**

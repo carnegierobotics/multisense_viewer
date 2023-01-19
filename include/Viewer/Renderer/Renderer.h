@@ -109,10 +109,7 @@ private:
 
     std::vector<VkRender::SkyboxBuffer> skyboxUniformBuffers;
     VkRender::UBOMatrix shaderValuesSkybox;
-    struct LightSource {
-        glm::vec3 color = glm::vec3(1.0f);
-        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-    } lightSource;
+
     VkRender::FragShaderParams shaderValuesParams;
 
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};

@@ -237,16 +237,15 @@ void Renderer::render() {
     renderData.crlCamera = &cameraConnection->camPtr;
 
     // Skybox params
-    auto &d = shaderValuesSkybox;
     shaderValuesSkybox.model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
     shaderValuesSkybox.projection = renderData.camera->matrices.perspective;
     shaderValuesSkybox.view = renderData.camera->matrices.view;
 
-    shaderValuesParams.lightDir = glm::vec4(
-            sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
-            sin(glm::radians(lightSource.rotation.y)),
-            cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
-            0.0f);
+    shaderValuesParams.exposure = 4.5f;
+    shaderValuesParams.gamma = 2.2f;
+    shaderValuesParams.scaleIBLAmbient = 1.0f;
+    shaderValuesParams.debugViewInputs = 0;
+    shaderValuesParams.debugViewEquation = 0;
 
     VkRender::SkyboxBuffer& currentUB = skyboxUniformBuffers[currentBuffer];
     currentUB.shaderValuesParams.map();

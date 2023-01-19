@@ -54,48 +54,9 @@ public:
     ~GLTFModel() = default;
     VulkanDevice *vulkanDevice = nullptr;
 
-    struct Primitive {
-        uint32_t m_FirstIndex{};
-        uint32_t m_IndexCount{};
-        Primitive(uint32_t _firstIndex, uint32_t indexCount);
-    };
+    enum PBRWorkflows{ PBR_WORKFLOW_METALLIC_ROUGHNESS = 0, PBR_WORKFLOW_SPECULAR_GLOSINESS = 1 };
 
-    struct Mesh {
-        VulkanDevice *device;
-        std::vector<Primitive*> primitives;
-        struct UniformBuffer {
-            VkBuffer buffer;
-            VkDeviceMemory memory;
-            VkDescriptorBufferInfo descriptor;
-            VkDescriptorSet descriptorSet;
-            void *mapped;
-        } uniformBuffer{};
 
-    } m_Mesh;
-
-    struct Node {
-        Node *parent;
-        uint32_t index;
-        std::vector<Node*> children;
-        glm::mat4 matrix;
-        std::string name;
-        Mesh *mesh;
-        int32_t skinIndex = -1;
-        glm::vec3 translation{ 0.0f};
-        glm::vec3 scale{ 1.0f };
-        glm::quat rotation{};
-        glm::mat4 localMatrix();
-        glm::mat4 getMatrix();
-        void update();
-        ~Node() = default;
-    };
-
-    struct Skin {
-        std::string name;
-        Node *skeletonRoot = nullptr;
-        std::vector<glm::mat4> inverseBindMatrices;
-        std::vector<Node*> joints;
-    };
     struct PushConstBlockMaterial {
         glm::vec4 baseColorFactor;
         glm::vec4 emissiveFactor;
@@ -154,6 +115,87 @@ public:
         int normalMap = -1;
     } ;
 
+    struct BoundingBox {
+        glm::vec3 min;
+        glm::vec3 max;
+        bool valid = false;
+        BoundingBox();
+        BoundingBox(glm::vec3 min, glm::vec3 max);
+        BoundingBox getAABB(glm::mat4 m);
+    };
+
+    struct Primitive {
+        uint32_t firstIndex = 0;
+        uint32_t indexCount = 0;
+        uint32_t vertexCount = 0;
+        Material &material;
+        bool hasIndices = false;
+        Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material &material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+            hasIndices = indexCount > 0;
+        };
+    };
+
+    struct Mesh {
+        VulkanDevice *device;
+        std::vector<Primitive*> primitives;
+        struct UniformBuffer {
+            VkBuffer buffer;
+            VkDeviceMemory memory;
+            VkDescriptorBufferInfo descriptor;
+            VkDescriptorSet descriptorSet;
+            void *mapped;
+        } uniformBuffer;
+        struct UniformBlock {
+            glm::mat4 matrix;
+            glm::mat4 jointMatrix[32]{};
+            float jointcount{ 0 };
+        } uniformBlock;
+
+        Mesh(VulkanDevice *pDevice, glm::mat4 mat1){
+            this->device = pDevice;
+            this->uniformBlock.matrix = mat1;
+            (device->createBuffer(
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    sizeof(uniformBlock),
+                    &uniformBuffer.buffer,
+                    &uniformBuffer.memory,
+                    &uniformBlock));
+            (vkMapMemory(device->m_LogicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
+            uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
+        }
+    };
+
+    struct LoaderInfo {
+        uint32_t* indexBuffer;
+        VkRender::Vertex* vertexBuffer;
+        size_t indexPos = 0;
+        size_t vertexPos = 0;
+    };
+    struct Node {
+        Node *parent;
+        uint32_t index;
+        std::vector<Node*> children;
+        glm::mat4 matrix;
+        std::string name;
+        Mesh *mesh;
+        int32_t skinIndex = -1;
+        glm::vec3 translation{ 0.0f};
+        glm::vec3 scale{ 1.0f };
+        glm::quat rotation{};
+        glm::mat4 localMatrix();
+        glm::mat4 getMatrix();
+        void update();
+        ~Node() = default;
+    };
+
+    struct Skin {
+        std::string name;
+        Node *skeletonRoot = nullptr;
+        std::vector<glm::mat4> inverseBindMatrices;
+        std::vector<Node*> joints;
+    };
+
     struct Model {
         VulkanDevice *vulkanDevice = nullptr;
         std::string m_FileName;
@@ -170,7 +212,6 @@ public:
 
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
-        std::vector<Primitive> primitives;
         std::vector<Texture2D> textures;
         Texture2D emptyTexture;
 
@@ -184,15 +225,6 @@ public:
         bool useCustomTranslation = false;
         glm::vec3 nodeTranslation{};
         glm::vec3 nodeScale = glm::vec3(1.0f, 1.0f, 1.0f);
-
-        struct Vertex {
-            glm::vec3 pos;
-            glm::vec3 normal;
-            glm::vec2 uv0;
-            glm::vec2 uv1;
-            glm::vec4 joint0;
-            glm::vec4 weight0;
-        };
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
@@ -216,7 +248,8 @@ public:
 
 
         void destroy(VkDevice device);
-        void loadNode(GLTFModel::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& _model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
+        void loadNode(GLTFModel::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex,
+                      const tinygltf::Model &_model, float globalscale, LoaderInfo &loaderInfo);
         void loadSkins(tinygltf::Model& gltfModel);
         void loadTextures(tinygltf::Model& gltfModel, VulkanDevice* device, VkQueue transferQueue);
         VkSamplerAddressMode getVkWrapMode(int32_t wrapMode);
@@ -236,7 +269,12 @@ public:
         VkDescriptorSetLayout descriptorSetLayoutMaterial{};
         VkDescriptorSetLayout descriptorSetLayoutNode{};
         VkDescriptorPool descriptorPool{};
-        VkPipeline pipeline{};
+        struct Pipelines {
+            VkPipeline pbr;
+            VkPipeline pbrDoubleSided;
+            VkPipeline pbrAlphaBlend;
+            VkPipeline skybox;
+        } pipelines;
         VkPipelineLayout pipelineLayout{};
 
         void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
@@ -247,7 +285,7 @@ public:
 
 
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
-        void drawNode(Node *node, VkCommandBuffer commandBuffer);
+        void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
         void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
 
@@ -273,6 +311,14 @@ public:
                           VkRender::SkyboxTextures *skyboxTextures);
 
         void drawSkybox(VkCommandBuffer commandBuffer, uint32_t i);
+
+        void
+        getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount, size_t &indexCount);
+
+        void
+        createOpaqueGraphicsPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> envShaders);
+
+        void drawNode(Node *node, VkCommandBuffer commandBuffer);
     };
 
 

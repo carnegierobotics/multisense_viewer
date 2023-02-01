@@ -371,7 +371,7 @@ namespace VkRender::MultiSense {
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
         std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
-        std::unordered_map<crl::multisense::RemoteHeadChannel, CameraInfo> infoMap;
+        std::unordered_map<crl::multisense::RemoteHeadChannel, CameraInfo> infoMap{};
         std::mutex setCameraDataMutex;
 
         /**@brief Boolean to ensure the streamcallbacks called from LibMultiSense threads dont access class data while this class is being destroyed. It does happens once in a while */

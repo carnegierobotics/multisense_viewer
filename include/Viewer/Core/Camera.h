@@ -53,7 +53,7 @@ private:
     float m_Znear = 0, m_Zfar = 1000;
 
     void updateViewMatrix() {
-        if (type == CameraType::firstperson) {
+        if (type == CameraType::flycam) {
             glm::vec3 dir;
             dir.x = cosf(glm::radians(yaw)) * cosf(glm::radians(pitch));
             dir.y = sinf(glm::radians(pitch));
@@ -61,7 +61,7 @@ private:
             cameraFront = glm::normalize(dir);
             matrices.view = glm::lookAt(m_Position, m_Position + cameraFront, cameraUp);
             m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-        } else if (type == CameraType::lookat) {
+        } else if (type == CameraType::arcball) {
             cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
             glm::vec4 pos(m_Position.x, m_Position.y, m_Position.z, 1.0f);
 
@@ -87,9 +87,9 @@ private:
     };
 public:
     enum CameraType {
-        lookat, firstperson
+        arcball, flycam
     };
-    CameraType type = CameraType::firstperson;
+    CameraType type = CameraType::flycam;
 
     glm::vec3 m_Rotation = glm::vec3();
     glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, -3.0f);
@@ -157,7 +157,7 @@ public:
     }
 
     void setArcBallPosition(float f){
-        if (type != lookat)
+        if (type != arcball)
             return;
 
         m_Position = m_Position * std::abs((f));
@@ -176,7 +176,7 @@ public:
     void rotate(float dx, float dy) {
         dx *= m_RotationSpeed;
         dy *= m_RotationSpeed;
-        if (type == firstperson){
+        if (type == flycam){
             yaw -= (dx / 5.0f);
             pitch -= (dy / 5.0f);
         } else {
@@ -220,7 +220,7 @@ public:
     }
 
     void update(float deltaTime) {
-        if (type == CameraType::firstperson) {
+        if (type == CameraType::flycam) {
             if (moving()) {
                 float moveSpeed = deltaTime * m_MovementSpeed;
                 if (keys.up)

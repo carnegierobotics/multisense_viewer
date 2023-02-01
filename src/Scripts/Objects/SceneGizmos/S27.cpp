@@ -38,18 +38,16 @@
 
 void S27::setup() {
     helmet = std::make_unique<GLTFModel::Model>(&renderUtils);
-    helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
+    helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf",
+                         renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
     //helmet->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
                                                             {loadShader("Scene/spv/object.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                            {loadShader("Scene/spv/skybox.vert",
-                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/skybox.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}
+    };
 
 
     // Obligatory call to prepare render resources for GLTFModel.
@@ -63,7 +61,8 @@ void S27::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
 
 void S27::update() {
     auto &d = bufferOneData;
-    d->model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     auto &d2 = bufferTwoData;
@@ -71,7 +70,7 @@ void S27::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
-    d2->lightDir   = glm::vec4(
+    d2->lightDir = glm::vec4(
             sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
             sin(glm::radians(lightSource.rotation.y)),
             cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
@@ -79,9 +78,11 @@ void S27::update() {
 
     //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
     d->camPos = glm::vec3(
-            -renderData.camera->m_Position.z * sin(glm::radians(renderData.camera->m_Rotation.y)) * cos(glm::radians(renderData.camera->m_Rotation.x)),
+            -renderData.camera->m_Position.z * sin(glm::radians(renderData.camera->m_Rotation.y)) *
+            cos(glm::radians(renderData.camera->m_Rotation.x)),
             -renderData.camera->m_Position.z * sin(glm::radians(renderData.camera->m_Rotation.x)),
-            renderData.camera->m_Position.z * cos(glm::radians(renderData.camera->m_Rotation.y)) * cos(glm::radians(renderData.camera->m_Rotation.x))
+            renderData.camera->m_Position.z * cos(glm::radians(renderData.camera->m_Rotation.y)) *
+            cos(glm::radians(renderData.camera->m_Rotation.x))
     );
 
 

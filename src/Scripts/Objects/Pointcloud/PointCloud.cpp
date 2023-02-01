@@ -44,8 +44,6 @@ void PointCloud::setup() {
 }
 
 void PointCloud::update() {
-
-
     if (model->draw) {
         const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());

@@ -76,9 +76,12 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
+    ScriptType type = CRL_SCRIPT_TYPE_RENDER;
     std::unique_ptr<GLTFModel::Model> m_Model;
-
+    struct LightSource {
+        glm::vec3 color = glm::vec3(1.0f);
+        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
+    } lightSource;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 };
 

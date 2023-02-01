@@ -63,7 +63,7 @@ void S27::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
 
 void S27::update() {
     auto &d = bufferOneData;
-    d->model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    d->model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     auto &d2 = bufferTwoData;

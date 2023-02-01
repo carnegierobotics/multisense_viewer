@@ -38,8 +38,8 @@
 
 void S27::setup() {
     helmet = std::make_unique<GLTFModel::Model>(&renderUtils);
-    //helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
-    helmet->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
+    helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
+    //helmet->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",

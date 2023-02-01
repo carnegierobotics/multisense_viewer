@@ -46,6 +46,20 @@
 
 #define MAX_FAILED_STATUS_ATTEMPTS 8
 
+/**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/
+static const std::vector<uint32_t> maskArrayAll = {
+        crl::multisense::Source_Luma_Left,
+        crl::multisense::Source_Luma_Rectified_Left,
+        crl::multisense::Source_Disparity_Left,
+        crl::multisense::Source_Luma_Right,
+        crl::multisense::Source_Luma_Rectified_Right,
+        crl::multisense::Source_Chroma_Rectified_Aux,
+        crl::multisense::Source_Luma_Aux,
+        crl::multisense::Source_Luma_Rectified_Aux,
+        crl::multisense::Source_Chroma_Aux,
+
+};
+
 namespace VkRender::MultiSense {
 	/**
 	 * Class handles the bridge between the GUI interaction and actual communication to camera
@@ -74,7 +88,9 @@ namespace VkRender::MultiSense {
 		 */
 		void saveProfileAndDisconnect(VkRender::Device* dev);
 
-	private:
+        static void updateUIDataBlock(VkRender::Device &dev, const std::unique_ptr<CRLPhysicalCamera> &camPtr);
+
+    private:
 		/**@brief file m_Descriptor to configure network settings on Linux */
 		int m_FD = -1;
 		/** @brief get status attempt counter */
@@ -106,7 +122,7 @@ namespace VkRender::MultiSense {
 		void getProfileFromIni(VkRender::Device& dev) const;
 
 		/**@brief Create a user readable list of the possible camera modes*/
-		void
+		static void
 			initCameraModes(std::vector<std::string>* modes, std::vector<crl::multisense::system::DeviceMode> vector);
 
 		// Add ini m_Entry with log lines
@@ -207,7 +223,9 @@ namespace VkRender::MultiSense {
 			updateFromCameraParameters(VkRender::Device* dev, crl::multisense::RemoteHeadChannel remoteHeadIndex) const;
 
 		/**@brief Filter the unsupported sources defined by \ref maskArrayAll*/
-		void filterAvailableSources(std::vector<std::string>* sources, std::vector<uint32_t> maskVec, crl::multisense::RemoteHeadChannel idx);
+		static void filterAvailableSources(std::vector<std::string> *sources, const std::vector<uint32_t> &maskVec,
+                                           crl::multisense::RemoteHeadChannel idx,
+                                           const std::unique_ptr<CRLPhysicalCamera> &camPtr);
 
         /**
          * @brief task to set the extrinsic/intrinsic calibration using yml files
@@ -229,20 +247,6 @@ namespace VkRender::MultiSense {
         static void getCalibrationTask(void *context, const std::string& saveLocation, crl::multisense::RemoteHeadChannel index, bool* success);
 
 
-        /**@brief MaskArray to sort out unsupported streaming modes. Unsupported for this application*/
-		std::vector<uint32_t> maskArrayAll = {
-				crl::multisense::Source_Luma_Left,
-				crl::multisense::Source_Luma_Rectified_Left,
-				crl::multisense::Source_Disparity_Left,
-				crl::multisense::Source_Luma_Right,
-				crl::multisense::Source_Luma_Rectified_Right,
-				crl::multisense::Source_Chroma_Rectified_Aux,
-				crl::multisense::Source_Luma_Aux,
-				crl::multisense::Source_Luma_Rectified_Aux,
-				crl::multisense::Source_Chroma_Aux,
-
-		};
-
 		std::vector<uint32_t> maskArrayUnused{
 								crl::multisense::Source_Compressed_Aux,
 				crl::multisense::Source_Compressed_Rectified_Aux,
@@ -251,8 +255,6 @@ namespace VkRender::MultiSense {
 									crl::multisense::Source_Compressed_Left,
 				crl::multisense::Source_Compressed_Rectified_Left,
 		};
-
-		void updateUIDataBlock(VkRender::Device& dev);
 
     };
 

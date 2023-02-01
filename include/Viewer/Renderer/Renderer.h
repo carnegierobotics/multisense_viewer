@@ -122,9 +122,8 @@ private:
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
 
-    glm::vec3 defaultCameraPosition = glm::vec3(-0.4f, 0.25f, -0.55f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, -1.0f);
     float yaw = -270.0f, pitch = 0.0f;
-    glm::vec3 defaultCameraRotation = glm::vec3(0.0f, 0.0f , 0.0f);
 
     void windowResized() override;
     void addDeviceFeatures() override;

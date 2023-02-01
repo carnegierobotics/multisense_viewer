@@ -59,7 +59,7 @@ void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
 
 void Gizmos::update() {
     VkRender::UBOMatrix mat{};
-    mat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f, 0.0f, 0.0f));
+    mat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(0.0015f, 0.0015f, 0.0015f));
 

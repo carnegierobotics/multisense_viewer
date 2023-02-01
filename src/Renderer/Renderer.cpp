@@ -690,8 +690,8 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = (float) x - mousePos.x;
-    float dy = (float) y - mousePos.y;
+    float dx = mousePos.x - (float) x ;
+    float dy = mousePos.y - (float) y ;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI){ // && !mouseButtons.middle) {
         camera.rotate(dx, dy);

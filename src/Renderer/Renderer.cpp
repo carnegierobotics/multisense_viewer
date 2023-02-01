@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Populate.h"
 
 void Renderer::prepareRenderer() {
-    camera.type = Camera::CameraType::firstperson;
+    camera.type = Camera::CameraType::lookat;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
@@ -759,11 +759,9 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
-            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }
-
-
+    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
 }
 
 VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {

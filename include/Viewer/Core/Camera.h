@@ -95,6 +95,8 @@ public:
     glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec4 m_ViewPos = glm::vec4();
     glm::vec3 m_FocalPoint = glm::vec3(0.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float m_RotationSpeed = 1.0f;
     float m_MovementSpeed = 3.0f;
@@ -103,8 +105,7 @@ public:
     float viewportWidth = 1720;
     float viewportHeight = 880;
 
-    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 cameraUp = glm::vec3(0.0f, -1.0f, 0.0f);
+
     glm::vec3 direction;
     float xAngle = 0.0f, yAngle = 0;
     float yaw = 0.0f, pitch = 0.0f;

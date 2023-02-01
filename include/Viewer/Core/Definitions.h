@@ -361,10 +361,12 @@ namespace VkRender {
         Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief Flag to signal application to revert network settings on application exit */
         bool systemNetworkChanged = false;
-        /** Interrupt connection if users exits program. */
+        /** Interrupt connection flow if users exits program. */
         bool interruptConnection = false;
         /** @brief Which compression method to use. Default is tiff which offer no compression */
         std::string saveImageCompressionMethod = "tiff";
+        /** @brief Not a physical device just testing the GUI */
+        bool notRealDevice = false;
 
         /**
          * @brief Constructor for Device

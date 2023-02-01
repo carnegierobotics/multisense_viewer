@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Populate.h"
 
 void Renderer::prepareRenderer() {
-    camera.type = Camera::CameraType::lookat;
+    camera.type = Camera::CameraType::arcball;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
@@ -106,6 +106,16 @@ void Renderer::prepareRenderer() {
             continue;
         buildScript(line);
     }
+
+
+    VkRender::Device testDevice;
+    testDevice.state = CRL_STATE_ACTIVE;
+    testDevice.cameraName = "Test Device";
+    testDevice.notRealDevice = true;
+    cameraConnection->camPtr = std::make_unique<VkRender::MultiSense::CRLPhysicalCamera>();
+    Utils::initializeUIDataBlockWithTestData(testDevice);
+    guiManager->handles.devices.emplace_back(testDevice);
+
 }
 
 void Renderer::addDeviceFeatures() {
@@ -319,9 +329,9 @@ void Renderer::render() {
             }
 
             if (dev.cameraType == 0)
-                camera.type = Camera::lookat;
+                camera.type = Camera::arcball;
             if (dev.cameraType == 1)
-                camera.type = Camera::firstperson;
+                camera.type = Camera::flycam;
             if (dev.resetCamera) {
                 camera.setPosition(defaultCameraPosition);
                 camera.setRotation(yaw, pitch);
@@ -337,7 +347,6 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
@@ -434,8 +443,9 @@ void Renderer::render() {
                 vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != CRL_STATE_ACTIVE || dev.notRealDevice)
                 continue;
+
             uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
@@ -737,20 +747,20 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = (float) x - mousePos.x;
-    float dy = (float) y - mousePos.y;
+    float dx = mousePos.x - (float) x ;
+    float dy = mousePos.y - (float) y ;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
     }
-    if (mouseButtons.middle && camera.type == Camera::firstperson) {
+    if (mouseButtons.middle && camera.type == Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
-    } else if (mouseButtons.middle && camera.type == Camera::lookat) {
+    } else if (mouseButtons.middle && camera.type == Camera::arcball){
         //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
-    mousePos = glm::vec2((float) x, (float) y);
+        mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
 }
@@ -759,9 +769,9 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
+            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }
-    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
 }
 
 VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {

@@ -954,4 +954,23 @@ namespace VkRender::MultiSense {
         return true;
     }
 
+    bool CRLPhysicalCamera::getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const {
+        auto it = channelMap.find(channelID);
+
+        if (it == channelMap.end()){
+            Log::Logger::getInstance()->error("Channel not connected {}", channelID);
+            return false;
+        }
+
+        std::shared_ptr<ImageBufferWrapper> header;
+        header = it->second->imageBuffer->getImageBuffer(channelID, Utils::stringToDataSource("IMU"));
+
+        if (header == nullptr) {
+            return false;
+        }
+
+        Log::Logger::getInstance()->info("Header {}", header->data().imageLength);
+
+    }
+
 }

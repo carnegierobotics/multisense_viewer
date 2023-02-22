@@ -149,11 +149,10 @@ namespace VkRender::MultiSense {
             }
         }
 
-
+        // Query for status
         for (auto &ch: dev->channelInfo) {
             if (ch.state != CRL_STATE_ACTIVE)
                 continue;
-
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> time_span =
                     std::chrono::duration_cast<std::chrono::duration<float >>(time - queryStatusTimer);

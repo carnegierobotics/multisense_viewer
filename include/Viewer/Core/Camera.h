@@ -108,7 +108,7 @@ public:
     glm::vec3 direction;
     float xAngle = 0.0f, yAngle = 0;
     float yaw = 0.0f, pitch = 0.0f;
-    bool flipY = false;
+    bool flipY = true;
 
     struct {
         glm::mat4 perspective = glm::mat4(1.0f);

@@ -125,6 +125,12 @@ namespace VkRender {
 
     };
 
+    struct IMUData{
+        float roll = 0.0f;
+        float pitch = 0.0f;
+
+    };
+
     struct Shared{
         size_t frame{};
         std::string time;

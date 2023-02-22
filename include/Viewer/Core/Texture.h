@@ -79,7 +79,7 @@ public:
 
 
     ~Texture() {
-        /*
+
         if (m_Width != 0 && m_Height != 0) {
             vkDestroyImageView(m_Device->m_LogicalDevice, m_View, nullptr);
             vkDestroyImage(m_Device->m_LogicalDevice, m_Image, nullptr);
@@ -88,7 +88,6 @@ public:
             }
             vkFreeMemory(m_Device->m_LogicalDevice, m_DeviceMemory, nullptr);
         }
-         */
     }
 };
 
@@ -193,8 +192,6 @@ public:
 class TextureCubeMap : public Texture {
 public:
     TextureCubeMap() = default;
-
-    ~TextureCubeMap() {}
 
     void loadFromFile(const std::filesystem::path &path, VulkanDevice *device,
                       VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,

@@ -130,7 +130,7 @@ public:
         uint32_t vertexCount = 0;
         Material &material;
         bool hasIndices = false;
-        Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material &material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+        Primitive(uint32_t firstIdx, uint32_t idxCount, uint32_t vtxCount, Material &mat) : firstIndex(firstIdx), indexCount(idxCount), vertexCount(vtxCount), material(mat) {
             hasIndices = indexCount > 0;
         };
     };
@@ -164,6 +164,12 @@ public:
             (vkMapMemory(device->m_LogicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
             uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
         }
+
+        ~Mesh(){
+            vkUnmapMemory(device->m_LogicalDevice, uniformBuffer.memory);
+            vkFreeMemory(device->m_LogicalDevice, uniformBuffer.memory, nullptr);
+            vkDestroyBuffer(device->m_LogicalDevice, uniformBuffer.buffer, nullptr);
+        }
     };
 
     struct LoaderInfo {
@@ -178,7 +184,7 @@ public:
         std::vector<Node*> children;
         glm::mat4 matrix;
         std::string name;
-        Mesh *mesh;
+        Mesh *mesh = nullptr;
         int32_t skinIndex = -1;
         glm::vec3 translation{ 0.0f};
         glm::vec3 scale{ 1.0f };
@@ -186,7 +192,10 @@ public:
         glm::mat4 localMatrix();
         glm::mat4 getMatrix();
         void update();
-        ~Node() = default;
+        ~Node() {
+            if (mesh)
+                delete mesh;
+        }
     };
 
     struct Skin {
@@ -228,12 +237,12 @@ public:
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory;
+            VkDeviceMemory memory= VK_NULL_HANDLE;
         } vertices{};
         struct Indices {
             int count = 0;
             VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory;
+            VkDeviceMemory memory= VK_NULL_HANDLE;
         } indices{};
 
         std::vector<Node*> nodes{};
@@ -265,16 +274,16 @@ public:
 
 
 
-        VkDescriptorSetLayout descriptorSetLayout{};
-        VkDescriptorSetLayout descriptorSetLayoutMaterial{};
-        VkDescriptorSetLayout descriptorSetLayoutNode{};
-        VkDescriptorPool descriptorPool{};
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorSetLayoutMaterial = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorSetLayoutNode = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
         struct Pipelines {
-            VkPipeline pbr;
-            VkPipeline pbrDoubleSided;
-            VkPipeline pbrAlphaBlend;
-            VkPipeline skybox;
-        } pipelines;
+            VkPipeline pbr = VK_NULL_HANDLE;
+            VkPipeline pbrDoubleSided = VK_NULL_HANDLE;
+            VkPipeline pbrAlphaBlend = VK_NULL_HANDLE;
+            VkPipeline skybox = VK_NULL_HANDLE;
+        } pipelines{};
         VkPipelineLayout pipelineLayout{};
 
         void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
@@ -306,7 +315,7 @@ public:
         void setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &vector, VkRender::SkyboxTextures *skyboxTextures);
         void generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> vector,
                               VkRender::SkyboxTextures *skyboxTextures);
-        void createSkybox(const std::filesystem::path &path, std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+        void createSkybox(const std::filesystem::path &path, const std::vector<VkPipelineShaderStageCreateInfo>& envShaders,
                           const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
                           VkRender::SkyboxTextures *skyboxTextures);
 

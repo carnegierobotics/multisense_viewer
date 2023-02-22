@@ -75,19 +75,24 @@ void Gizmos::update() {
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
     d2->lightDir = glm::vec4(
-            sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
-            sin(glm::radians(lightSource.rotation.y)),
-            cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
+            static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
+            sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
+            cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
             0.0f);
 
     //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
     d->camPos = glm::vec3(
-            -renderData.camera->m_Position.z * sin(glm::radians(renderData.camera->m_Rotation.y)) *
-            cos(glm::radians(renderData.camera->m_Rotation.x)),
-            -renderData.camera->m_Position.z * sin(glm::radians(renderData.camera->m_Rotation.x)),
-            renderData.camera->m_Position.z * cos(glm::radians(renderData.camera->m_Rotation.y)) *
-            cos(glm::radians(renderData.camera->m_Rotation.x))
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(renderData.camera->m_Position.z) * cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
+
 
 
 }

@@ -148,8 +148,8 @@ namespace VkRender::MultiSense {
                                    crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
                                    crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM};
                      auto &e : v){
-                        if (deviceInfo.hardwareRevision == e)
-                            skipLogging = true;
+                    if (deviceInfo.hardwareRevision == e)
+                        skipLogging = true;
                 }
 
 
@@ -248,6 +248,13 @@ namespace VkRender::MultiSense {
         getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
                         crl::multisense::RemoteHeadChannel idx) const;
 
+        /**
+         * Get the IMU rotation from the MultiSense camera and put it into a VkRender:: object
+         * @param tex
+         * @param idx
+         * @return
+         */
+        bool getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel idx) const;
 
         /**
          * @brief get a status update from the MultiSense m_Device

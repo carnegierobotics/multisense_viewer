@@ -367,7 +367,8 @@ namespace VkRender {
         std::string saveImageCompressionMethod = "tiff";
         /** @brief Not a physical device just testing the GUI */
         bool notRealDevice = false;
-
+        /** @brief If possible then use the IMU in the camera */
+        bool useIMU = false;
         /**
          * @brief Constructor for Device
          * Allocate save folder buffer for user input. Max path is 255 characters long. Required for implementation with ImGui.

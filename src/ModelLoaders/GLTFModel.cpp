@@ -2054,7 +2054,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
             VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
@@ -2247,7 +2247,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass renderPass,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
             VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
     rasterizationStateCI.lineWidth = 1.0f;
 

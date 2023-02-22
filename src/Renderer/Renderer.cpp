@@ -92,10 +92,10 @@ void Renderer::prepareRenderer() {
                                    &uniformBuffer.shaderValuesParams, sizeof(VkRender::FragShaderParams));
     }
 
-    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx",
+    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/woods.ktx2",
                                                vulkanDevice.get());
 
-    skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders,
+    skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/clarens_night_2k.exr", envShaders,
                          skyboxUniformBuffers, renderPass, &skyboxTextures);
 
 

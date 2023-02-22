@@ -37,16 +37,17 @@
 #include "Viewer/Scripts/Objects/MultiSenseCamera.h"
 
 void MultiSenseCamera::setup() {
-    m_Model = std::make_unique<GLTFModel::Model>(renderUtils.device);
+    m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
+    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/multisense_s27.gltf",
+                          renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
+    //m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/S27.gltf", renderUtils.device,
-                         renderUtils.device->m_TransferQueue, 1.0f);
 
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/box.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/box.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
+                                                            {loadShader("Scene/spv/object.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}
+    };
 
 
     // Obligatory call to prepare render resources for GLTFModel.
@@ -54,40 +55,60 @@ void MultiSenseCamera::setup() {
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (previewTab == CRL_TAB_3D_POINT_CLOUD && b)
+    if (b)
         m_Model->draw(commandBuffer, i);
 }
 
 void MultiSenseCamera::update() {
-    VkRender::UBOMatrix mat{};
-    mat.model = glm::mat4(1.0f);
-    mat.model = glm::scale(mat.model, glm::vec3(0.001f, 0.001f, 0.001f));
 
-    /*
+    auto &d = bufferOneData;
+    d->model = glm::mat4(1.0f);
+    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    d->model = glm::scale(d->model, glm::vec3(1.0f, 1.0f, 1.0f));
+
     if (imuEnabled) {
-        VkRender::Rotation rot{};
-        //renderData.crlCamera->getImuRotation(&rot);
+        VkRender::IMUData rot{};
+        renderData.crlCamera->getImuRotation(&rot, 0);
         float P = (rot.pitch - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
         float R = (rot.roll - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
-        //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", P, R, rot.pitch, rot.roll);
-        mat.model = glm::rotate(mat.model, glm::radians(P), glm::vec3(1.0f, 0.0f, 0.0f));
-        mat.model = glm::rotate(mat.model, glm::radians(R), glm::vec3(0.0f, 0.0f, 1.0f));
+        printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R),
+               static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
+        d->model = glm::rotate(d->model, glm::radians(P), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::rotate(d->model, glm::radians(R), glm::vec3(0.0f, 0.0f, 1.0f));
     } else {
-        mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }
-     */
-    mat.model = glm::rotate(mat.model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-    auto& d = bufferOneData;
-    d->model = mat.model;
+
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto& d2 = bufferTwoData;
+    auto &d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
+    d2->lightDir = glm::vec4(
+            static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
+            sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
+            cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
+            0.0f);
+
+    //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
+    d->camPos = glm::vec3(
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(renderData.camera->m_Position.z) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
+    );
+
 
 }
 
@@ -97,6 +118,6 @@ void MultiSenseCamera::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
 
-        previewTab = d.selectedPreviewTab;
+        imuEnabled = d.useIMU;
     }
 }

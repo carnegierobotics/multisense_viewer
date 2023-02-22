@@ -67,7 +67,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Example.cpp
         src/Scripts/Objects/Pointcloud/PointCloud.cpp
         src/Scripts/Objects/SceneGizmos/Gizmos.cpp
-        src/Scripts/Objects/SceneGizmos/S27.cpp
+        src/Scripts/Objects/SceneGizmos/Helmet.cpp
         src/Scripts/Objects/Video/RecordFrames.cpp
         src/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
         src/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp

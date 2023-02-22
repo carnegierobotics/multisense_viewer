@@ -1048,6 +1048,19 @@ private:
             dev.resetCamera = ImGui::Button("Reset camera position");
             ImGui::PopStyleColor(2);
 
+            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Checkbox("Enable IMU", &dev.useIMU);
+            if (dev.useIMU){
+                if (!Utils::isInVector(dev.channelInfo[0].requestedStreams, "IMU"))
+                    dev.channelInfo[0].requestedStreams.emplace_back("IMU");
+            } else {
+                Utils::removeFromVector(&dev.channelInfo[0].requestedStreams, "IMU");
+            }
+            ImGui::PopStyleColor();
+
         }
 
         if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {

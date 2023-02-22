@@ -106,6 +106,9 @@ public:
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
+
+    bool virtualDevice = false;
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */

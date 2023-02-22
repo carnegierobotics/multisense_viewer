@@ -36,6 +36,7 @@
 #define TINYGLTF_IMPLEMENTATION
 
 #include <glm/ext.hpp>
+#include <utility>
 #include <stb_image.h>
 
 #include "Viewer/Core/Definitions.h"
@@ -71,8 +72,7 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     loadTextures(gltfModel, vulkanDevice, transferQueue);
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
-    emptyTexture.fromKtxFile(Utils::getAssetsPath() + "Textures/empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
-                             vulkanDevice->m_TransferQueue);
+    emptyTexture.fromKtxFile(Utils::getAssetsPath() + "Textures/empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,vulkanDevice->m_TransferQueue);
 
     const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
     // Get vertex and index buffer sizes up-front
@@ -480,9 +480,6 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     };
     VkPipeline pipeline;
     (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
-    for (auto shaderStage: shaderStages) {
-        vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
-    }
 
     // Render
     VkClearValue clearValues[1];
@@ -532,7 +529,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    std::cout << "Generating BRDF LUT took " << tDiff << " ms" << std::endl;
+    Log::Logger::getInstance()->info("Generating BRDF LUT took {} ms", tDiff);
 }
 
 
@@ -1112,7 +1109,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         auto tEnd = std::chrono::high_resolution_clock::now();
         auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-        std::cout << "Generating cube map with " << numMips << " mip levels took " << tDiff << " ms" << std::endl;
+        Log::Logger::getInstance()->info("Generating cube map with {} mip levels took {} ms", numMips, tDiff);
     }
 }
 
@@ -1547,7 +1544,8 @@ void GLTFModel::Model::loadTextureSamplers(tinygltf::Model &gltfModel) {
 }
 
 void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *device, VkQueue transferQueue) {
-    for (tinygltf::Texture &tex: gltfModel.textures) {
+    textures.resize(gltfModel.textures.size());
+    for (size_t i = 0; tinygltf::Texture &tex: gltfModel.textures) {
         tinygltf::Image image = gltfModel.images[tex.source];
         Texture::TextureSampler textureSampler{};
         if (tex.sampler == -1) {
@@ -1560,9 +1558,8 @@ void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             textureSampler = textureSamplers[tex.sampler];
         }
-        Texture2D texture2D(device);
-        texture2D.fromglTfImage(image, textureSampler, device, transferQueue);
-        textures.push_back(texture2D);
+        textures[i].fromglTfImage(image, textureSampler, device, transferQueue);
+        i++;
     }
 }
 
@@ -1683,7 +1680,7 @@ VkFilter GLTFModel::Model::getVkFilterMode(int32_t filterMode) {
         case 9987:
             return VK_FILTER_LINEAR;
         default:
-            std::cerr << "Sampler filter defaulted to VK_FILTER_LINEAR" << std::endl;
+            Log::Logger::getInstance()->warning("Sampler filter defaulted to VK_FILTER_LINEAR");
             return VK_FILTER_LINEAR;
     }
 }
@@ -2192,18 +2189,34 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
 
 GLTFModel::Model::~Model() {
     {
-        vkFreeMemory(vulkanDevice->m_LogicalDevice, vertices.memory, nullptr);
-        vkFreeMemory(vulkanDevice->m_LogicalDevice, indices.memory, nullptr);
-        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertices.buffer, nullptr);
-        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, indices.buffer, nullptr);
+        if (vertices.memory != VK_NULL_HANDLE)
+            vkFreeMemory(vulkanDevice->m_LogicalDevice, vertices.memory, nullptr);
+        if (indices.memory != VK_NULL_HANDLE)
+            vkFreeMemory(vulkanDevice->m_LogicalDevice, indices.memory, nullptr);
+        if (vertices.buffer != VK_NULL_HANDLE)
+            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertices.buffer, nullptr);
+        if (indices.buffer != VK_NULL_HANDLE)
+            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, indices.buffer, nullptr);
 
-        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
-        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayoutNode, nullptr);
-        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbr, nullptr);
-        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbrAlphaBlend, nullptr);
-        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbrDoubleSided, nullptr);
+        if (descriptorSetLayout != VK_NULL_HANDLE)
+            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+        if (descriptorSetLayoutMaterial != VK_NULL_HANDLE)
+            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayoutMaterial, nullptr);
+        if (descriptorSetLayoutNode != VK_NULL_HANDLE)
+            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayoutNode, nullptr);
+        if (descriptorPool != VK_NULL_HANDLE)
+            vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+        if (pipelineLayout != VK_NULL_HANDLE)
+            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+
+        if (pipelines.pbr != VK_NULL_HANDLE)
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbr, nullptr);
+        if (pipelines.pbrAlphaBlend != VK_NULL_HANDLE)
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbrAlphaBlend, nullptr);
+        if (pipelines.pbrDoubleSided != VK_NULL_HANDLE)
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.pbrDoubleSided, nullptr);
+        if (pipelines.skybox != VK_NULL_HANDLE)
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipelines.skybox, nullptr);
 
         for (auto *node: linearNodes) {
             delete node;
@@ -2216,12 +2229,11 @@ GLTFModel::Model::~Model() {
 
 void
 GLTFModel::Model::createSkybox(const std::filesystem::path &path,
-                               std::vector<VkPipelineShaderStageCreateInfo> envShaders,
+                               const std::vector<VkPipelineShaderStageCreateInfo>& envShaders,
                                const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
                                VkRender::SkyboxTextures *skyboxTextures) {
 
-    loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice,
-                 vulkanDevice->m_TransferQueue, 1.0f);
+    loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);
     generateBRDFLUT(envShaders, skyboxTextures);
     setupSkyboxDescriptors(uboVec, skyboxTextures);
@@ -2354,5 +2366,6 @@ glm::mat4 GLTFModel::Node::getMatrix() {
 }
 
 glm::mat4 GLTFModel::Node::localMatrix() {
-    return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
+    return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) *
+           matrix;
 }

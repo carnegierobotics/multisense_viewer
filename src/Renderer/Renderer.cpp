@@ -61,7 +61,7 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
-    /*
+
     // Create Skybox
     skybox = std::make_unique<GLTFModel::Model>(vulkanDevice.get());
     std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
@@ -91,11 +91,13 @@ void Renderer::prepareRenderer() {
                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                    &uniformBuffer.shaderValuesParams, sizeof(VkRender::FragShaderParams));
     }
-    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", vulkanDevice.get());
+
+    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx",
+                                               vulkanDevice.get());
 
     skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders,
                          skyboxUniformBuffers, renderPass, &skyboxTextures);
-    */
+
 
     // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
@@ -149,7 +151,7 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-        //skybox->drawSkybox(drawCmdBuffers[i], i);
+        skybox->drawSkybox(drawCmdBuffers[i], i);
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
@@ -248,7 +250,7 @@ void Renderer::render() {
     shaderValuesParams.debugViewInputs = 0;
     shaderValuesParams.debugViewEquation = 0;
 
-    /*
+
     VkRender::SkyboxBuffer& currentUB = skyboxUniformBuffers[currentBuffer];
     currentUB.shaderValuesParams.map();
     currentUB.shaderValuesSkybox.map();
@@ -256,7 +258,7 @@ void Renderer::render() {
     memcpy(currentUB.shaderValuesParams.mapped, &shaderValuesParams, sizeof(VkRender::FragShaderParams));
     currentUB.shaderValuesParams.unmap();
     currentUB.shaderValuesSkybox.unmap();
-*/
+
     // Update GUI
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
@@ -453,7 +455,7 @@ void Renderer::render() {
                                                      true);
 
                     if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
-                                                                     win.second.selectedRemoteHeadIndex)) {
+                                                              win.second.selectedRemoteHeadIndex)) {
                         uint32_t width = 0, height = 0, depth = 0;
                         Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
                                                        &width, &height, &depth);
@@ -601,6 +603,24 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
+    for (auto &shaderModule: shaderModules) {
+        vkDestroyShaderModule(device, shaderModule, nullptr);
+    }
+    skybox.reset();
+    vkDestroyImageView(device, skyboxTextures.irradianceCube.m_View, nullptr);
+    vkDestroyImage(device, skyboxTextures.irradianceCube.m_Image, nullptr);
+    vkDestroySampler(device, skyboxTextures.irradianceCube.m_Sampler, nullptr);
+    vkFreeMemory(device, skyboxTextures.irradianceCube.m_DeviceMemory, nullptr);
+
+    vkDestroyImageView(device, skyboxTextures.prefilterEnv.m_View, nullptr);
+    vkDestroyImage(device, skyboxTextures.prefilterEnv.m_Image, nullptr);
+    vkDestroySampler(device, skyboxTextures.prefilterEnv.m_Sampler, nullptr);
+    vkFreeMemory(device, skyboxTextures.prefilterEnv.m_DeviceMemory, nullptr);
+
+    vkDestroyImageView(device, skyboxTextures.lutBrdf.m_View, nullptr);
+    vkDestroyImage(device, skyboxTextures.lutBrdf.m_Image, nullptr);
+    vkDestroySampler(device, skyboxTextures.lutBrdf.m_Sampler, nullptr);
+    vkFreeMemory(device, skyboxTextures.lutBrdf.m_DeviceMemory, nullptr);
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 
 }
@@ -740,8 +760,8 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = mousePos.x - (float) x ;
-    float dy = mousePos.y - (float) y ;
+    float dx = mousePos.x - (float) x;
+    float dy = mousePos.y - (float) y;
 
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
@@ -750,10 +770,10 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     }
     if (mouseButtons.middle && camera.type == Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
-    } else if (mouseButtons.middle && camera.type == Camera::arcball){
+    } else if (mouseButtons.middle && camera.type == Camera::arcball) {
         //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
-        mousePos = glm::vec2((float) x, (float) y);
+    mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
 }
@@ -768,20 +788,20 @@ void Renderer::mouseScroll(float change) {
 }
 
 VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {
-        // Check if we have .spv extensions. If not then add it.
-        std::size_t extension = fileName.find(".spv");
-        if (extension == std::string::npos)
-            fileName.append(".spv");
-        VkShaderModule module;
-        Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
-                          vulkanDevice->m_LogicalDevice, &module);
-        assert(module != VK_NULL_HANDLE);
+    // Check if we have .spv extensions. If not then add it.
+    std::size_t extension = fileName.find(".spv");
+    if (extension == std::string::npos)
+        fileName.append(".spv");
+    VkShaderModule module;
+    Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+                      vulkanDevice->m_LogicalDevice, &module);
+    assert(module != VK_NULL_HANDLE);
 
-        shaderModules.emplace_back(module);
-        VkPipelineShaderStageCreateInfo shaderStage = {};
-        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStage.stage = stageFlag;
-        shaderStage.module = module;
-        shaderStage.pName = "main";
-        return shaderStage;
+    shaderModules.emplace_back(module);
+    VkPipelineShaderStageCreateInfo shaderStage = {};
+    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStage.stage = stageFlag;
+    shaderStage.module = module;
+    shaderStage.pName = "main";
+    return shaderStage;
 }

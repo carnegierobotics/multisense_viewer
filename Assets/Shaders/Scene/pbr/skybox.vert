@@ -14,7 +14,7 @@ layout (binding = 0) uniform UBO
 	vec3 camPos;
 } ubo;
 
-layout (location = 0) out vec3 outUVW;
+layout (location = 1) out vec3 outUVW;
 
 out gl_PerVertex
 {

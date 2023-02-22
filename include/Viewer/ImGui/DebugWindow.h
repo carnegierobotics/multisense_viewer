@@ -336,6 +336,25 @@ public:
             if (showDemo)
                 ImGui::ShowDemoWindow();
 
+            static bool addTestDevice = true;
+            ImGui::Checkbox("Add test device", &addTestDevice);
+            if (addTestDevice){
+                // Add test device to renderer if not present
+                bool exists = false;
+                for (const auto& device : handles->devices){
+                    if (device.cameraName == "Test Device")
+                        exists = true;
+                }
+                if (!exists){
+                    VkRender::Device testDevice;
+                    testDevice.state = CRL_STATE_ACTIVE;
+                    testDevice.cameraName = "Test Device";
+                    testDevice.notRealDevice = true;
+                    Utils::initializeUIDataBlockWithTestData(testDevice);
+                    handles->devices.emplace_back(testDevice);
+                }
+            }
+
             ImGui::Text("About: ");
             ImGui::Text("Icons from https://icons8.com");
 

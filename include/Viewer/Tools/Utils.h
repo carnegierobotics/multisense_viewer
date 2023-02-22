@@ -613,7 +613,7 @@ namespace Utils {
     }
 
 
-    inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+    static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
             dev.channelInfo.resize(4); // max number of remote heads
             dev.win.clear();
             for (crl::multisense::RemoteHeadChannel ch: {0}) {

@@ -72,7 +72,7 @@ namespace VkRender::MultiSense {
 		~CameraConnection();
 
 		/**Pointer to actual camera object*/
-		std::unique_ptr<CRLPhysicalCamera> camPtr;
+		CRLPhysicalCamera camPtr;
 		/**Pointer to thread-pool commonly used for UI blocking operations*/
 		std::unique_ptr<VkRender::ThreadPool> pool;
 
@@ -88,7 +88,7 @@ namespace VkRender::MultiSense {
 		 */
 		void saveProfileAndDisconnect(VkRender::Device* dev);
 
-        static void updateUIDataBlock(VkRender::Device &dev, const std::unique_ptr<CRLPhysicalCamera> &camPtr);
+        static void updateUIDataBlock(VkRender::Device &dev, CRLPhysicalCamera &camPtr);
 
     private:
 		/**@brief file m_Descriptor to configure network settings on Linux */
@@ -225,7 +225,7 @@ namespace VkRender::MultiSense {
 		/**@brief Filter the unsupported sources defined by \ref maskArrayAll*/
 		static void filterAvailableSources(std::vector<std::string> *sources, const std::vector<uint32_t> &maskVec,
                                            crl::multisense::RemoteHeadChannel idx,
-                                           const std::unique_ptr<CRLPhysicalCamera> &camPtr);
+                                           CRLPhysicalCamera &camPtr);
 
         /**
          * @brief task to set the extrinsic/intrinsic calibration using yml files

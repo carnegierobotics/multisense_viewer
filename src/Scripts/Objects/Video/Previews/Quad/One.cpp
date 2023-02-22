@@ -77,12 +77,12 @@ void One::update() {
 
     m_Model->getTextureDataPointers(&tex);
     // If we get an image attempt to update the GPU buffer
-    if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
+    if (renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
-        float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
+        float frameTime = 1.0f / renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf.fps();
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;

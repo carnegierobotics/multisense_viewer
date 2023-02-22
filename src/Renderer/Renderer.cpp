@@ -61,6 +61,7 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
+    /*
     // Create Skybox
     skybox = std::make_unique<GLTFModel::Model>(vulkanDevice.get());
     std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
@@ -94,7 +95,7 @@ void Renderer::prepareRenderer() {
 
     skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", envShaders,
                          skyboxUniformBuffers, renderPass, &skyboxTextures);
-
+    */
 
     // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
@@ -106,16 +107,6 @@ void Renderer::prepareRenderer() {
             continue;
         buildScript(line);
     }
-
-
-    VkRender::Device testDevice;
-    testDevice.state = CRL_STATE_ACTIVE;
-    testDevice.cameraName = "Test Device";
-    testDevice.notRealDevice = true;
-    cameraConnection->camPtr = std::make_unique<VkRender::MultiSense::CRLPhysicalCamera>();
-    Utils::initializeUIDataBlockWithTestData(testDevice);
-    guiManager->handles.devices.emplace_back(testDevice);
-
 }
 
 void Renderer::addDeviceFeatures() {
@@ -158,7 +149,7 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-        skybox->drawSkybox(drawCmdBuffers[i], i);
+        //skybox->drawSkybox(drawCmdBuffers[i], i);
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
             if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
@@ -257,6 +248,7 @@ void Renderer::render() {
     shaderValuesParams.debugViewInputs = 0;
     shaderValuesParams.debugViewEquation = 0;
 
+    /*
     VkRender::SkyboxBuffer& currentUB = skyboxUniformBuffers[currentBuffer];
     currentUB.shaderValuesParams.map();
     currentUB.shaderValuesSkybox.map();
@@ -264,7 +256,7 @@ void Renderer::render() {
     memcpy(currentUB.shaderValuesParams.mapped, &shaderValuesParams, sizeof(VkRender::FragShaderParams));
     currentUB.shaderValuesParams.unmap();
     currentUB.shaderValuesSkybox.unmap();
-
+*/
     // Update GUI
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
@@ -319,7 +311,7 @@ void Renderer::render() {
 
             switch (dev.selectedPreviewTab) {
                 case CRL_TAB_3D_POINT_CLOUD:
-                    //scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     break;
                 default:
@@ -459,7 +451,7 @@ void Renderer::render() {
                                                      dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
                                                      true);
 
-                    if (renderData.crlCamera->get()->getCameraStream(win.second.selectedSource, &tex,
+                    if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
                                                                      win.second.selectedRemoteHeadIndex)) {
                         uint32_t width = 0, height = 0, depth = 0;
                         Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
@@ -509,9 +501,9 @@ void Renderer::render() {
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
                                     // get focal length
-                                    float fx = cameraConnection->camPtr->getCameraInfo(
+                                    float fx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
-                                    float tx = cameraConnection->camPtr->getCameraInfo(
+                                    float tx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] /
                                                (fx * (1920.0f / (float) w));
                                     if (disparity > 0) {

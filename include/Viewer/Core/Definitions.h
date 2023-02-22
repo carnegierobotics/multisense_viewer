@@ -96,18 +96,18 @@ typedef enum CRLCameraDataType {
  * @brief What connection state a device seen in the side bar can be in.
  */
 typedef enum ArConnectionState {
-    CRL_STATE_CONNECTED = 0,
-    CRL_STATE_CONNECTING = 1,
-    CRL_STATE_ACTIVE = 2,
-    CRL_STATE_INACTIVE = 3,
-    CRL_STATE_LOST_CONNECTION = 4,
-    CRL_STATE_RESET = 5,
-    CRL_STATE_DISCONNECTED = 6,
-    CRL_STATE_UNAVAILABLE = 7,
-    CRL_STATE_DISCONNECT_AND_FORGET = 8,
-    CRL_STATE_REMOVE_FROM_LIST = 9,
-    CRL_STATE_INTERRUPT_CONNECTION = 10,
-    CRL_STATE_JUST_ADDED = 11
+    CRL_STATE_CONNECTED = 0,                /// Not implemented cause its the same state as ACTIVE
+    CRL_STATE_CONNECTING = 1,               /// Just clicked connect
+    CRL_STATE_ACTIVE = 2,                   /// Normal operation
+    CRL_STATE_INACTIVE = 3,                 /// Not sure ?
+    CRL_STATE_LOST_CONNECTION = 4,          /// Lost connection... Will go into UNAVAILABLE state
+    CRL_STATE_RESET = 5,                    /// Reset this device (Put it in disconnected state) if it was clicked while being in ACTIVE state or another device was activated
+    CRL_STATE_DISCONNECTED = 6,             /// Not currently active but can be activated by clicking it
+    CRL_STATE_UNAVAILABLE = 7,              /// Could not be found on any network adapters
+    CRL_STATE_DISCONNECT_AND_FORGET = 8,    /// Device is removed and the profile in crl.ini is deleted
+    CRL_STATE_REMOVE_FROM_LIST = 9,         /// Device is removed from sidebar list on next frame
+    CRL_STATE_INTERRUPT_CONNECTION = 10,    /// Stop attempting to connect (For closing application quickly and gracefully)
+    CRL_STATE_JUST_ADDED = 11               /// Skip to connection flow, just added into sidebar list
 } ArConnectionState;
 
 /**
@@ -522,7 +522,7 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera{};
+        const MultiSense::CRLPhysicalCamera *crlCamera{};
         ScriptType type{};
         uint32_t height = 0;
         uint32_t width = 0;

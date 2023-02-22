@@ -45,16 +45,16 @@ void PointCloud::setup() {
 
 void PointCloud::update() {
     if (model->draw) {
-        const auto &conf = renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf;
+        const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());
         model->getTextureDataPointers(&tex);
-        if (renderData.crlCamera->get()->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
+        if (renderData.crlCamera->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
             model->updateTexture(tex.m_Type);
         }
 
         auto depthTex = VkRender::TextureData(CRL_DISPARITY_IMAGE, conf.width(), conf.height());
         model->getTextureDataPointers(&depthTex);
-        if (renderData.crlCamera->get()->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
+        if (renderData.crlCamera->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
             model->updateTexture(depthTex.m_Type);
         }
     }
@@ -123,7 +123,7 @@ void PointCloud::prepareTexture() {
         }
     }
     model->createMeshDeviceLocal(meshData);
-    renderData.crlCamera->get()->preparePointCloud(width, 0);
+    //renderData.crlCamera->preparePointCloud(width, 0);
     model->createEmptyTexture(width, height, CRL_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -131,7 +131,7 @@ void PointCloud::prepareTexture() {
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
     auto *buf = bufferThreeData.get();
-    buf->Q = renderData.crlCamera->get()->getCameraInfo(0).QMat;
+    buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     buf->disparity = static_cast<float>(depth);

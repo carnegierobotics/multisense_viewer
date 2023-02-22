@@ -350,7 +350,15 @@ private:
                     buttonIdentifier = "Added...";
                     break;
                 case CRL_STATE_DISCONNECT_AND_FORGET:
+                    buttonIdentifier = "Disconnecting...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    break;
                 case CRL_STATE_REMOVE_FROM_LIST:
+                    buttonIdentifier = "Removing...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    break;
                 case CRL_STATE_RESET:
                     buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));

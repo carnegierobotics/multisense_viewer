@@ -171,7 +171,7 @@ namespace VkRender {
 
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
-            if (*renderData.crlCamera != nullptr)
+            if (renderData.crlCamera != nullptr)
                 update();
             if (renderData.type == CRL_SCRIPT_TYPE_RENDER)
                 update();

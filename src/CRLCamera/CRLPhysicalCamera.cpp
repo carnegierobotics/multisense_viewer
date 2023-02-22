@@ -148,13 +148,21 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Failed to add callback for channel {}", channelID);
     }
 
-    CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(crl::multisense::RemoteHeadChannel idx) {
-        return infoMap[idx];
+    CRLPhysicalCamera::CameraInfo CRLPhysicalCamera::getCameraInfo(crl::multisense::RemoteHeadChannel idx) const {
+        auto it = infoMap.find(idx);
+        if (it != infoMap.end())
+            return it->second;
+        else {
+            Log::Logger::getInstance()->info("Camera info for channel {} does not exist", idx);
+            return {};
+        }
     }
 
     bool CRLPhysicalCamera::getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
-                                            crl::multisense::RemoteHeadChannel channelID) {
-        if (channelMap[channelID] == nullptr) {
+                                            crl::multisense::RemoteHeadChannel channelID) const {
+        auto it = channelMap.find(channelID);
+
+        if (it == channelMap.end()){
             Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
         }
@@ -167,8 +175,8 @@ namespace VkRender::MultiSense {
         if (stringSrc == "Color Aux") {
             colorSource = crl::multisense::Source_Chroma_Aux;
             lumaSource = crl::multisense::Source_Luma_Aux;
-            header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
-            headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
+            header = it->second->imageBuffer->getImageBuffer(channelID, lumaSource);
+            headerTwo = it->second->imageBuffer->getImageBuffer(channelID, colorSource);
             if (headerTwo == nullptr) {
                 return false;
             }
@@ -176,13 +184,13 @@ namespace VkRender::MultiSense {
         } else if (stringSrc == "Color Rectified Aux") {
             colorSource = crl::multisense::Source_Chroma_Rectified_Aux;
             lumaSource = crl::multisense::Source_Luma_Rectified_Aux;
-            header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, lumaSource);
-            headerTwo = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, colorSource);
+            header = it->second->imageBuffer->getImageBuffer(channelID, lumaSource);
+            headerTwo = it->second->imageBuffer->getImageBuffer(channelID, colorSource);
             if (headerTwo == nullptr) {
                 return false;
             }
         } else {
-            header = channelMap[channelID]->imageBuffer->getImageBuffer(channelID, src);
+            header = it->second->imageBuffer->getImageBuffer(channelID, src);
         }
 
         if (header == nullptr) {
@@ -268,20 +276,24 @@ namespace VkRender::MultiSense {
     }
 
 
-    void CRLPhysicalCamera::preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) {
-        const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
+    void CRLPhysicalCamera::preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) const {
+        /*
+        auto it = infoMap.find(channelID);
+        auto channelIt = channelMap.find(channelID);
+
+        const float xScale = 1.0f / ((static_cast<float>(it->second.devInfo.imagerWidth) /
                                       static_cast<float>(width)));
         // From LibMultisenseUtility
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        channelIt->second->ptr()->getImageConfig(it->second.imgConf);
 
-        channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
-        crl::multisense::image::Config c = infoMap[channelID].imgConf;
+        crl::multisense::image::Config c = it->second.imgConf;
         const float &fx = c.fx();
         const float &fy = c.fy();
         const float &cx = c.cx();
         const float &cy = c.cy();
         const float &tx = c.tx();
-        const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
+        const float cxRight = (float) it->second.calibration.right.P[0][2] * xScale;
 
         // glm::mat4 indexing
         // [column][row]
@@ -295,7 +307,8 @@ namespace VkRender::MultiSense {
         Q[3][2] = fx * fy * tx;
         Q[3][3] = fy * (cx - cxRight);
         // keep as is
-        infoMap[channelID].QMat = Q;
+        it->second.QMat = Q;
+         */
     }
 
 
@@ -495,6 +508,37 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set resolution to {}x{}x{} on channel {}", width, height, depth,
                                              channelID);
             currentResolutionMap[channelID] = resolution;
+
+            /// Also update correct Q matrix with the new width
+            // TODO Put into separate function to increase code readability
+            const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
+                                          static_cast<float>(width)));
+            // From LibMultisenseUtility
+            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
+
+
+            crl::multisense::image::Config c = infoMap[channelID].imgConf;
+            const float &fx = c.fx();
+            const float &fy = c.fy();
+            const float &cx = c.cx();
+            const float &cy = c.cy();
+            const float &tx = c.tx();
+            const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
+
+            // glm::mat4 indexing
+            // [column][row]
+            // Inserted values col by col
+            glm::mat4 Q(0.0f);
+            Q[0][0] = fy * tx;
+            Q[1][1] = fx * tx;
+            Q[2][3] = -fy;
+            Q[3][0] = -fy * cx * tx;
+            Q[3][1] = -fx * cy * tx;
+            Q[3][2] = fx * fy * tx;
+            Q[3][3] = fy * (cx - cxRight);
+            // keep as is
+            infoMap[channelID].QMat = Q;
+            /// Finished updating Q matrix
         } else {
             Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height,
                                              depth, ret);

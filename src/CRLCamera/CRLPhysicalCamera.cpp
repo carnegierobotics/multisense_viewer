@@ -221,7 +221,6 @@ namespace VkRender::MultiSense {
                     auto *p = (uint16_t *) headerTwo->data().imageDataP;
                     for (size_t i = 0; i < channelSize; i++) {
                         tex->data2[i] = ((uint16_t) p[i] >> 0) & 0xFF;
-                        // shift by 0 not needed, of course, just stylistic
                         tex->data3[i] = ((uint16_t) p[i] >> 8) & 0xFF;
                     }
                 } else

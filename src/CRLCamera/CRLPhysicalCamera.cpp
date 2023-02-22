@@ -249,14 +249,14 @@ namespace VkRender::MultiSense {
                 DISABLE_WARNING_PUSH
                 DISABLE_WARNING_IMPLICIT_FALLTHROUGH
                 if (header->data().bitsPerPixel != 16) {
-                    Log::Logger::getInstance()->error("In getCameraStream: Unsupported disparity pixel depth");
+                    Log::Logger::getInstance()->warning("In getCameraStream: Unsupported disparity pixel depth");
                     return false;
                 }DISABLE_WARNING_POP
             case CRL_GRAYSCALE_IMAGE:
             case CRL_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data()
                         .width || tex->m_Height < header->data().height) {
-                    Log::Logger::getInstance()->error("In getCameraStream: Monochrome source and dimensions did not match expected values");
+                    Log::Logger::getInstance()->warning("In getCameraStream: Monochrome source and dimensions did not match expected values");
                     return false;
                 }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
@@ -269,7 +269,7 @@ namespace VkRender::MultiSense {
 
                 return true;
             default:
-                Log::Logger::getInstance()->info("This texture type is not supported {}", (int) tex->m_Type);
+                Log::Logger::getInstance()->warning("This texture type is not supported {}", (int) tex->m_Type);
                 break;
         }
         return false;

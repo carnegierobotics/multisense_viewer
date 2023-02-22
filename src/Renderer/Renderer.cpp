@@ -373,7 +373,7 @@ void Renderer::render() {
     /** Generate Draw Commands **/
     guiManager->updateBuffers();
     buildCommandBuffers();
-    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: PerPixelInformation) **/
+    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 2> clearValues{};
@@ -444,7 +444,8 @@ void Renderer::render() {
 
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
-                    if (win.second.selectedSource == "Source")
+                    // Skip second render pass if we dont have a source selected or if the source is point cloud related
+                    if (win.second.selectedSource == "Source" || win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),

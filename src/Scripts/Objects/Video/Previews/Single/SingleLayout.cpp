@@ -80,7 +80,7 @@ void SingleLayout::update() {
 
     m_Model->getTextureDataPointers(&tex);
     // If we get an image attempt to update the GPU buffer
-    if (renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
+    if (!virtualDevice && renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
@@ -205,6 +205,7 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         selectedPreviewTab = dev.selectedPreviewTab;
         auto &preview = dev.win.at(CRL_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        virtualDevice = dev.notRealDevice;
 
         if (src == "Source") {
             state = DRAW_NO_SOURCE;

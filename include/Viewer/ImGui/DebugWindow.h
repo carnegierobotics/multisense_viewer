@@ -336,8 +336,8 @@ public:
             if (showDemo)
                 ImGui::ShowDemoWindow();
 
-            static bool addTestDevice = true;
-            ImGui::Checkbox("Add test device", &addTestDevice);
+            static bool addTestDevice = false;
+            addTestDevice = ImGui::Button("Add test device");
             if (addTestDevice){
                 // Add test device to renderer if not present
                 bool exists = false;

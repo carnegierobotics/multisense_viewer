@@ -88,7 +88,7 @@ public:
             ImGui::SameLine();
             bool copy = ImGui::Button("Copy");
             ImGui::SameLine();
-            Filter.Draw("Filter", -100.0f);
+            Filter.Draw("Filter", 300.0f);
 
             ImGui::Separator();
             if (ImGui::BeginChild("scrolling", ImVec2(pHandles->info->debuggerWidth - pHandles->info->metricsWidth, 0),

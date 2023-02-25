@@ -178,7 +178,7 @@ public:
         dy *= m_RotationSpeed;
         if (type == flycam){
             yaw -= (dx / 5.0f);
-            pitch -= (dy / 5.0f);
+            pitch += (dy / 5.0f);
         } else {
             float deltaAngleX = (2.0f * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
             float deltaAngleY = (PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg

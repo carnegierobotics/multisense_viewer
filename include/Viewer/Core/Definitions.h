@@ -171,6 +171,12 @@ typedef enum PreviewLayout {
     CRL_PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
 
+typedef enum ScriptWidgetType {
+    FLOAT_SLIDER = 0,
+    INT_SLIDER = 1,
+    INPUT_NUMBER = 2,
+} ScriptWidgetType;
+
 /**
  * @brief Adjustable sensor parameters
  */
@@ -333,8 +339,6 @@ namespace VkRender {
         bool clicked = false;
         /** @brief Current connection state for this device */
         ArConnectionState state = CRL_STATE_UNAVAILABLE;
-        /** @brief What type of layout is selected for this device*/
-        PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
         /** @brief Order each preview window with a index flag*/
@@ -357,8 +361,6 @@ namespace VkRender {
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
         crl::multisense::RemoteHeadChannel configRemoteHead = 0;
-        /** @brief Which TAB this preview has selected. 2D or 3D view. */
-        Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief Flag to signal application to revert network settings on application exit */
         bool systemNetworkChanged = false;
         /** Interrupt connection flow if users exits program. */
@@ -369,10 +371,14 @@ namespace VkRender {
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
         bool useIMU = false;
-        /**
-         * @brief Constructor for Device
-         * Allocate save folder buffer for user input. Max path is 255 characters long. Required for implementation with ImGui.
-         */
+
+        /** @brief Following is UI elements settings for the active device **/
+        /** @brief Which TAB this preview has selected. 2D or 3D view. */
+        Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
+        /** @brief What type of layout is selected for this device*/
+        PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
+        /** @brief IF 3D area should be extended or not */
+        bool extend3DArea = false;
         Device() {
             outputSaveFolder.resize(255);
         }
@@ -660,6 +666,7 @@ namespace VkRender {
         }
 
     };
+
 }
 
 

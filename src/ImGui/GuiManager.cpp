@@ -49,7 +49,8 @@
 #include "Viewer/ImGui/LayerExample.h"
 #include "Viewer/ImGui/SideBar.h"
 #include "Viewer/ImGui/DebugWindow.h"
-#include "Viewer/ImGui/InteractionMenu.h"
+#include "Viewer/ImGui/Preview2D3D.h"
+
 
 namespace VkRender {
 
@@ -78,7 +79,7 @@ namespace VkRender {
         initializeFonts();
 
         pushLayer<SideBar>();
-        pushLayer<InteractionMenu>();
+        pushLayer<Preview2D3D>();
         pushLayer<LayerExample>();
         pushLayer<DebugWindow>();
 
@@ -86,7 +87,6 @@ namespace VkRender {
 
         // setup graphics pipeline
         setup(width, height, renderPass);
-
     }
 
     void

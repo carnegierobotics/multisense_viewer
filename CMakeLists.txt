@@ -60,7 +60,7 @@ set(ENGINE_SRC
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
-        )
+        src/ImGui/ScriptUIAddons.cpp)
 
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
@@ -76,7 +76,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Video/Previews/Quad/Two.cpp
         src/Scripts/Objects/Video/Previews/Quad/Three.cpp
         src/Scripts/Objects/Video/Previews/Quad/Four.cpp
-        )
+        src/Scripts/Objects/UI/Slider.cpp)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx")
 

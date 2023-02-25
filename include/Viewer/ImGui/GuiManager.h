@@ -51,6 +51,7 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
+#include "ScriptUIAddons.h"
 
 namespace VkRender {
     class GuiManager {

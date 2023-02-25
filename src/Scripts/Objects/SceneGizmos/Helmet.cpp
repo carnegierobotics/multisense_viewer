@@ -35,6 +35,7 @@
  **/
 
 #include "Viewer/Scripts/Objects/SceneGizmos/Helmet.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 void Helmet::setup() {
     helmet = std::make_unique<GLTFModel::Model>(&renderUtils);
@@ -48,6 +49,9 @@ void Helmet::setup() {
                                                             {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}
     };
+
+
+    Widgets::make()->slider("MySlider", &value, 0.0f, 100.0f);
 
 
     // Obligatory call to prepare render resources for GLTFModel.
@@ -85,7 +89,8 @@ void Helmet::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
             static_cast<double>(-renderData.camera->m_Position.z) * sin(
                     static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(renderData.camera->m_Position.z) * cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            static_cast<double>(renderData.camera->m_Position.z) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 

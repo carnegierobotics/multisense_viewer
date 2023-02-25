@@ -43,6 +43,7 @@
 #include <ImGuiFileDialog/ImGuiFileDialog.h>
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 #ifdef WIN32
 #else
@@ -51,7 +52,8 @@
 
 #endif
 
-class InteractionMenu : public VkRender::Layer {
+
+class Preview2D3D : public VkRender::Layer {
 private:
     bool page[CRL_PAGE_TOTAL_PAGES] = {false, false, true};
     bool drawActionPage = false;
@@ -256,8 +258,12 @@ private:
             if (dev.state != CRL_STATE_ACTIVE)
                 continue;
             // Control page
+            handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
+                                                     ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) ||
+                                                     ImGui::IsAnyItemActive());
             ImGui::BeginGroup();
-            createControlArea(handles, dev);
+            if (!dev.extend3DArea)
+                createControlArea(handles, dev);
             ImGui::EndGroup();
 
             // Viewing page
@@ -276,44 +282,33 @@ private:
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                 ImGuiWindowFlags_NoScrollWithMouse;
 
-        ImGui::SetNextWindowPos(
-                ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0), ImGuiCond_Always);
+        ImVec2 windowPos = dev.extend3DArea ?
+                           ImVec2(handles->info->sidebarWidth, 0):
+                           ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0);
+
+        ImGui::SetNextWindowPos(windowPos
+                , ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
 
-        handles->info->viewingAreaWidth =
-                handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
+        float viewAreaWidth = dev.extend3DArea ?
+                              handles->info->width - handles->info->sidebarWidth:
+                              handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
+        handles->info->viewingAreaWidth =viewAreaWidth;
 
         ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight),
                                  ImGuiCond_Always);
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
-        ImVec2 backButtonPos = ImGui::GetCursorScreenPos();
 
-        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 30.0f, 0.0f));
+
+        ImGui::Dummy(ImVec2((dev.extend3DArea ?
+        (handles->info->viewingAreaWidth + handles->info->controlAreaWidth) / 2 :
+        (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
         ImGui::SameLine();
 
-        ImGui::PushFont(handles->info->font18);
-        ImGui::Text("Viewing");
-        ImGui::PopFont();
-
-        /*
-        backButtonPos.x += handles->info->viewingAreaWidth - 100.0f;
-        ImGui::SetCursorScreenPos(backButtonPos);
-        ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
-        if (ImGui::Button("Back", ImVec2(100.0f, 20.0f))) {
-            page[PAGE_CONFIGURE_DEVICE] = false;
-            drawActionPage = true;
-        }
-        ImGui::PopStyleColor();
-         */
-
-        ImGui::Dummy(ImVec2((handles->info->viewingAreaWidth / 2) - 80.0f, 0.0f));
-        ImGui::SameLine();
-
-        if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW)
-            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRedActive);
-        else
-            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
+        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW ?
+                                               VkRender::Colors::CRLRedActive :
+                                               VkRender::Colors::CRLRed);
 
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
             dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW;
@@ -322,13 +317,13 @@ private:
             handles->clearColor[1] = VkRender::Colors::CRLCoolGray.y;
             handles->clearColor[2] = VkRender::Colors::CRLCoolGray.z;
             handles->clearColor[3] = VkRender::Colors::CRLCoolGray.w;
+            dev.extend3DArea = false;
         }
-        ImGui::PopStyleColor();
+        ImGui::PopStyleColor(); // Btn Color
 
-        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
-            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRedActive);
-        else
-            ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
+        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD ?
+                                               VkRender::Colors::CRLRedActive :
+                                               VkRender::Colors::CRLRed);
 
         ImGui::SameLine();
         if (dev.isRemoteHead) {
@@ -347,9 +342,28 @@ private:
             ImGui::PopItemFlag();
             ImGui::PopStyleColor();
         }
-        ImGui::PopStyleColor();
-        ImGui::End();
+        ImGui::PopStyleColor(); // Btn Color
 
+        // Extend 3D area and hide control area
+
+        ImGui::PushStyleColor(ImGuiCol_Button, dev.extend3DArea ?
+                                               VkRender::Colors::CRLRedActive :
+                                               VkRender::Colors::CRLRed);
+
+
+        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+            // Maintain position of buttons in viewing bar even if 3D area is extended
+            ImGui::SameLine(0.0f, (dev.extend3DArea ?
+                                   (handles->info->viewingAreaWidth - handles->info->controlAreaWidth) / 2 :
+                                   (handles->info->viewingAreaWidth / 2)) - 220.0f);
+            if(ImGui::Button("Hide Control Tab", ImVec2(150.0f, 20.0f))){
+                dev.extend3DArea = dev.extend3DArea ? false : true;
+            }
+
+        }
+        ImGui::PopStyleColor(); // Btn Color
+
+        ImGui::End();
         ImGui::PopStyleColor(); // Bg color
 
 
@@ -1053,13 +1067,24 @@ private:
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Checkbox("Enable IMU", &dev.useIMU);
-            if (dev.useIMU){
+            if (dev.useIMU) {
                 if (!Utils::isInVector(dev.channelInfo[0].requestedStreams, "IMU"))
                     dev.channelInfo[0].requestedStreams.emplace_back("IMU");
             } else {
                 Utils::removeFromVector(&dev.channelInfo[0].requestedStreams, "IMU");
             }
             ImGui::PopStyleColor();
+
+
+
+
+            for(const auto& elem : Widgets::make()->elements){
+                // for each element type
+                if (elem.type == FLOAT_SLIDER){
+                    ImGui::SliderFloat("Slider", elem.value, elem.min, elem.max);
+                }
+
+            }
 
         }
 
@@ -1075,10 +1100,6 @@ private:
                 Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
             }
         }
-
-        handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
-                                                 ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) ||
-                                                 ImGui::IsAnyItemActive());
 
     }
 
@@ -1106,7 +1127,7 @@ private:
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
-                    if (ImGui::BeginTabItem("Preview Control")) {
+                    if (ImGui::BeginTabItem((std::string("Preview Control  ") + ( d.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD ? "(3D)" : "(2D)")).c_str())) {
 
                         drawVideoPreviewGuiOverlay(handles, dev, true);
                         ImGui::EndTabItem();

@@ -1080,8 +1080,12 @@ private:
 
             for(const auto& elem : Widgets::make()->elements){
                 // for each element type
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+
                 if (elem.type == FLOAT_SLIDER){
-                    ImGui::SliderFloat("Slider", elem.value, elem.min, elem.max);
+                    ImGui::SliderFloat(elem.label, elem.value, elem.min, elem.max);
                 }
 
             }

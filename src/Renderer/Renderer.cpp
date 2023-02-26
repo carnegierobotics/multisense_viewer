@@ -53,7 +53,7 @@
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::arcball;
-    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
+    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
     createSelectionImages();
@@ -61,54 +61,9 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
-
-    // Create Skybox
-    skybox = std::make_unique<GLTFModel::Model>(vulkanDevice.get());
-    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
-                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/irradiancecube.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/prefilterenvmap.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.vert",
-                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/skybox.vert",
-                                                                           VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/skybox.frag",
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)}};
-
-    skyboxUniformBuffers.resize(swapchain->imageCount);
-    for (auto &uniformBuffer: skyboxUniformBuffers) {
-        vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.shaderValuesSkybox, sizeof(VkRender::UBOMatrix));
-
-        vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                   &uniformBuffer.shaderValuesParams, sizeof(VkRender::FragShaderParams));
-    }
-
-    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/woods.ktx2",
-                                               vulkanDevice.get());
-
-    skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/clarens_night_2k.exr", envShaders,
-                         skyboxUniformBuffers, renderPass, &skyboxTextures);
-
-
-    // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
-    std::string line;
-    while (std::getline(infile, line)) {
-        // Skip comment # line
-        if (line.find('#') != std::string::npos)
-            continue;
-        buildScript(line);
-    }
+    buildScripts();
+
 }
 
 void Renderer::addDeviceFeatures() {
@@ -151,10 +106,16 @@ void Renderer::buildCommandBuffers() {
         vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-        skybox->drawSkybox(drawCmdBuffers[i], i);
+
+        // Draw scripts that must be drawn first
+        for(auto& script : scripts){
+            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
+                script.second->drawScript(drawCmdBuffers[i], i, true);
+        }
+
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
-            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
+            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED && script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
                 script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
@@ -166,33 +127,50 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(const std::string &scriptName) {
-    // Do not recreate script if already created
-    auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
-    if (it != builtScriptNames.end())
-        return;
-    builtScriptNames.emplace_back(scriptName);
-    scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
+void Renderer::buildScripts() {
+    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
+    std::string scriptName;
+    while (std::getline(infile, scriptName)) {
+        // Skip comment # line
+        if (scriptName.find('#') != std::string::npos)
+            continue;
+        // Do not recreate script if already created
+        auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
+        if (it != builtScriptNames.end())
+            return;
+        builtScriptNames.emplace_back(scriptName);
+        scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
 
-    if (scripts[scriptName].get() == nullptr) {
-        pLogger->error("Failed to register script {}. Did you remember to include it in renderer.h?", scriptName);
-        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
-        return;
+        if (scripts[scriptName].get() == nullptr) {
+            pLogger->error("Failed to register script {}.", scriptName);
+            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+            return;
+        }
+        pLogger->info("Registered script: {} in factory", scriptName.c_str());
     }
-    pLogger->info("Registered script: {} in factory", scriptName.c_str());
+
     // Run Once
     VkRender::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
-    renderData.scriptName = scriptName;
-    vars.skybox.irradianceCube = &skyboxTextures.irradianceCube;
-    vars.skybox.lutBrdf = &skyboxTextures.lutBrdf;
-    vars.skybox.prefilterEnv = &skyboxTextures.prefilterEnv;
-
+    // create first set of scripts for TOP OF PIPE
+    for (auto& script : scripts){
+        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE){
+            script.second->createUniformBuffers(vars, renderData);
+        }
+    }
+    // Copy data generated from TOP OF PIPE scripts
+    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
+    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
+    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
     // Run script setup function
-    scripts[scriptName]->createUniformBuffers(vars, renderData);
+    for (auto& script : scripts){
+        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE){
+            script.second->createUniformBuffers(vars, renderData);
+        }
+    }
 }
 
 void Renderer::deleteScript(const std::string &scriptName) {
@@ -240,24 +218,8 @@ void Renderer::render() {
     renderData.crlCamera = &cameraConnection->camPtr;
 
     // Skybox params
-    shaderValuesSkybox.model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
-    shaderValuesSkybox.projection = renderData.camera->matrices.perspective;
-    shaderValuesSkybox.view = renderData.camera->matrices.view;
-
-    shaderValuesParams.exposure = 4.5f;
-    shaderValuesParams.gamma = 2.2f;
-    shaderValuesParams.scaleIBLAmbient = 1.0f;
-    shaderValuesParams.debugViewInputs = 0;
-    shaderValuesParams.debugViewEquation = 0;
 
 
-    VkRender::SkyboxBuffer& currentUB = skyboxUniformBuffers[currentBuffer];
-    currentUB.shaderValuesParams.map();
-    currentUB.shaderValuesSkybox.map();
-    memcpy(currentUB.shaderValuesSkybox.mapped, &shaderValuesSkybox, sizeof(VkRender::UBOMatrix));
-    memcpy(currentUB.shaderValuesParams.mapped, &shaderValuesParams, sizeof(VkRender::FragShaderParams));
-    currentUB.shaderValuesParams.unmap();
-    currentUB.shaderValuesSkybox.unmap();
 
     // Update GUI
     guiManager->handles.info->frameID = frameID;
@@ -353,8 +315,17 @@ void Renderer::render() {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             if (!script.second->sharedData->destination.empty()) {
                 // Send to destination script
-                auto &shared = script.second->sharedData;
-                memcpy(scripts[shared->destination]->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
+                if (script.second->sharedData->destination == "All") {
+                    // Copy shared data to all
+                    auto &shared = script.second->sharedData;
+
+                    for (auto &s: scripts) {
+                        if (s == script)
+                            continue;
+                        memcpy(s.second->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
+
+                    }
+                }
             }
         }
     }
@@ -547,6 +518,7 @@ void Renderer::windowResized() {
     renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;
 
+    Widgets::clear();
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update general Scripts with handle to GUI
@@ -564,16 +536,7 @@ void Renderer::windowResized() {
     }
     builtScriptNames.clear();
 
-    // Load Object Scripts from file
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
-    std::string line;
-    while (std::getline(infile, line)) {
-        // Skip comment # line
-        if (line.find('#') != std::string::npos)
-            continue;
-
-        buildScript(line);
-    }
+    buildScripts();
 }
 
 
@@ -606,23 +569,7 @@ void Renderer::cleanUp() {
     for (auto &shaderModule: shaderModules) {
         vkDestroyShaderModule(device, shaderModule, nullptr);
     }
-    skybox.reset();
-    vkDestroyImageView(device, skyboxTextures.irradianceCube.m_View, nullptr);
-    vkDestroyImage(device, skyboxTextures.irradianceCube.m_Image, nullptr);
-    vkDestroySampler(device, skyboxTextures.irradianceCube.m_Sampler, nullptr);
-    vkFreeMemory(device, skyboxTextures.irradianceCube.m_DeviceMemory, nullptr);
-
-    vkDestroyImageView(device, skyboxTextures.prefilterEnv.m_View, nullptr);
-    vkDestroyImage(device, skyboxTextures.prefilterEnv.m_Image, nullptr);
-    vkDestroySampler(device, skyboxTextures.prefilterEnv.m_Sampler, nullptr);
-    vkFreeMemory(device, skyboxTextures.prefilterEnv.m_DeviceMemory, nullptr);
-
-    vkDestroyImageView(device, skyboxTextures.lutBrdf.m_View, nullptr);
-    vkDestroyImage(device, skyboxTextures.lutBrdf.m_Image, nullptr);
-    vkDestroySampler(device, skyboxTextures.lutBrdf.m_Sampler, nullptr);
-    vkFreeMemory(device, skyboxTextures.lutBrdf.m_DeviceMemory, nullptr);
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
-
 }
 
 
@@ -782,9 +729,11 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
-            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+            //camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }
+    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+
 }
 
 VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {

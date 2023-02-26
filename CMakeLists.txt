@@ -76,7 +76,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Video/Previews/Quad/Two.cpp
         src/Scripts/Objects/Video/Previews/Quad/Three.cpp
         src/Scripts/Objects/Video/Previews/Quad/Four.cpp
-        src/Scripts/Objects/UI/Slider.cpp)
+        src/Scripts/Objects/SceneGizmos/Skybox.cpp)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx")
 

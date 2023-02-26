@@ -34,6 +34,7 @@ public:
     }
 
     static Widgets* make();
+    static void clear();
 };
 
 

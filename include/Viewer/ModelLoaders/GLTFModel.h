@@ -312,11 +312,11 @@ public:
         void createDescriptorSetLayoutAdditionalBuffers();
 
         void generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> vector, VkRender::SkyboxTextures *skyboxTextures);
-        void setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &vector, VkRender::SkyboxTextures *skyboxTextures);
+        void setupSkyboxDescriptors(const std::vector<VkRender::UniformBufferSet> &vector, VkRender::SkyboxTextures *skyboxTextures);
         void generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> vector,
                               VkRender::SkyboxTextures *skyboxTextures);
         void createSkybox(const std::filesystem::path &path, const std::vector<VkPipelineShaderStageCreateInfo>& envShaders,
-                          const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
+                          const std::vector<VkRender::UniformBufferSet> &uboVec, VkRenderPass const *renderPass,
                           VkRender::SkyboxTextures *skyboxTextures);
 
         void drawSkybox(VkCommandBuffer commandBuffer, uint32_t i);
@@ -325,7 +325,7 @@ public:
         getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount, size_t &indexCount);
 
         void
-        createOpaqueGraphicsPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> envShaders);
+        createOpaqueGraphicsPipeline(VkRenderPass const *renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaders);
 
         void drawNode(Node *node, VkCommandBuffer commandBuffer);
     };

@@ -51,9 +51,6 @@ void Helmet::setup() {
     };
 
 
-    Widgets::make()->slider("MySlider", &value, 0.0f, 100.0f);
-
-
     // Obligatory call to prepare render resources for GLTFModel.
     helmet->createRenderPipeline(renderUtils, shaders);
 }
@@ -65,10 +62,21 @@ void Helmet::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
 
 void Helmet::update() {
     auto &d = bufferOneData;
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    d->model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
+    d->camPos = glm::vec3(
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(renderData.camera->m_Position.z) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
+    );
+
     auto &d2 = bufferTwoData;
     d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -83,18 +91,11 @@ void Helmet::update() {
             0.0f);
 
     //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
-    d->camPos = glm::vec3(
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(renderData.camera->m_Position.z) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
-    );
 
 
+    auto* ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data) ;
+    d2->gamma = ptr->gamma;
+    d2->exposure = ptr->exposure;
 }
 
 

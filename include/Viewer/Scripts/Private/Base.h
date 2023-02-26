@@ -71,6 +71,7 @@ namespace VkRender {
         std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
 
         std::vector<VkShaderModule> shaderModules{};
+        VkRender::SkyboxTextures skyboxTextures;
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};

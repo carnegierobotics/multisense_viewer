@@ -182,7 +182,7 @@ void GLTFModel::Model::getNodeProps(const tinygltf::Node &node, const tinygltf::
 }
 
 
-void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::SkyboxBuffer> &uboVec,
+void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::UniformBufferSet> &uboVec,
                                               VkRender::SkyboxTextures *textures) {
     descriptors.resize(uboVec.size());
 
@@ -232,14 +232,14 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Skybox
             writeDescriptorSets[0].descriptorCount = 1;
             writeDescriptorSets[0].dstSet = descriptors[i];
             writeDescriptorSets[0].dstBinding = 0;
-            writeDescriptorSets[0].pBufferInfo = &uboVec[i].shaderValuesSkybox.m_DescriptorBufferInfo;
+            writeDescriptorSets[0].pBufferInfo = &uboVec[i].bufferOne.m_DescriptorBufferInfo;
 
             writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             writeDescriptorSets[1].descriptorCount = 1;
             writeDescriptorSets[1].dstSet = descriptors[i];
             writeDescriptorSets[1].dstBinding = 1;
-            writeDescriptorSets[1].pBufferInfo = &uboVec[i].shaderValuesParams.m_DescriptorBufferInfo;
+            writeDescriptorSets[1].pBufferInfo = &uboVec[i].bufferTwo.m_DescriptorBufferInfo;
 
             writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -2054,7 +2054,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
             VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
 
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
@@ -2230,7 +2230,7 @@ GLTFModel::Model::~Model() {
 void
 GLTFModel::Model::createSkybox(const std::filesystem::path &path,
                                const std::vector<VkPipelineShaderStageCreateInfo>& envShaders,
-                               const std::vector<VkRender::SkyboxBuffer> &uboVec, VkRenderPass renderPass,
+                               const std::vector<VkRender::UniformBufferSet> &uboVec, VkRenderPass const *renderPass,
                                VkRender::SkyboxTextures *skyboxTextures) {
 
     loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
@@ -2241,13 +2241,13 @@ GLTFModel::Model::createSkybox(const std::filesystem::path &path,
     createOpaqueGraphicsPipeline(renderPass, shaders);
 }
 
-void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass renderPass,
+void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPass,
                                                     std::vector<VkPipelineShaderStageCreateInfo> shaders) {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
             VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
     rasterizationStateCI.lineWidth = 1.0f;
 
@@ -2321,7 +2321,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass renderPass,
     VkGraphicsPipelineCreateInfo pipelineCI{};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.layout = pipelineLayout;
-    pipelineCI.renderPass = renderPass;
+    pipelineCI.renderPass = *renderPass;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pVertexInputState = &vertexInputStateCI;
     pipelineCI.pRasterizationState = &rasterizationStateCI;

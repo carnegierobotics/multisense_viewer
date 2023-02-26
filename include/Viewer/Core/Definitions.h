@@ -74,9 +74,12 @@ typedef enum ScriptType {
     CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
     /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
     CRL_SCRIPT_TYPE_DEFAULT,
-    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup */
+    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup. No particular order */
     CRL_SCRIPT_TYPE_RENDER,
-
+    /**
+     * Create this script before default and always render this type first. No internal ordering amongst scripts
+     */
+    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
 } ScriptType;
 
 /**
@@ -441,10 +444,6 @@ namespace VkRender {
         Texture2D lutBrdf;
     };
 
-    struct SkyboxBuffer {
-        Buffer shaderValuesSkybox{};
-        Buffer shaderValuesParams{};
-    };
     /**
      * @brief Memory block for point clouds
      */

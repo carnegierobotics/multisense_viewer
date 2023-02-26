@@ -12,3 +12,9 @@ Widgets *Widgets::make() {
     }
     return m_Instance;
 }
+
+void Widgets::clear() {
+    if (m_Instance != nullptr) {
+        m_Instance->elements.clear();
+    }
+}

@@ -103,15 +103,6 @@ private:
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
 
-
-    VkRender::SkyboxTextures skyboxTextures;
-    std::unique_ptr<GLTFModel::Model> skybox;
-
-    std::vector<VkRender::SkyboxBuffer> skyboxUniformBuffers;
-    VkRender::UBOMatrix shaderValuesSkybox;
-
-    VkRender::FragShaderParams shaderValuesParams;
-
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = true;
@@ -122,7 +113,7 @@ private:
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
 
-    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     float yaw = -270.0f, pitch = 0.0f;
 
     void windowResized() override;
@@ -134,7 +125,7 @@ private:
      * @brief creates instances from classes located in src/Scripts/Objects directory.
      * Usually each class here represents object(s) in the scene
      */
-    void buildScript(const std::string &scriptName);
+    void buildScripts();
 
     /**
      * @brief deletes a script if stored in \refitem builtScriptNames

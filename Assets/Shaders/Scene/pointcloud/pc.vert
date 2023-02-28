@@ -26,6 +26,7 @@ layout (set = 0, binding = 2) uniform sampler2D depthMap;
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 fragPos;
+layout(location = 3) out vec3 outCoords;
 
 void main()
 {
@@ -51,5 +52,6 @@ void main()
     float invB = 1.0f / (-width * depth);
     vec3 outCoordinates = vec3(coords.x * invB, -1 * coords.y * invB, coords.z * invB);
 
+    outCoords = outCoordinates;
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
 }

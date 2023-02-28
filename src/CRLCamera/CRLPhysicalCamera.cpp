@@ -1037,8 +1037,6 @@ namespace VkRender::MultiSense {
                                       static_cast<float>(infoMap[channelID].imgConf.width())));
         // From LibMultisenseUtility
         channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
-
-
         crl::multisense::image::Config c = infoMap[channelID].imgConf;
         const float &fx = c.fx();
         const float &fy = c.fy();
@@ -1046,7 +1044,6 @@ namespace VkRender::MultiSense {
         const float &cy = c.cy();
         const float &tx = c.tx();
         const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
-
         // glm::mat4 indexing
         // [column][row]
         // Inserted values col by col
@@ -1061,6 +1058,18 @@ namespace VkRender::MultiSense {
         // keep as is
         infoMap[channelID].QMat = Q;
         /// Finished updating Q matrix
+
+        auto aux = infoMap[channelID].calibration.aux;
+        float afx = aux.M[0][0];
+        float afy = aux.M[1][1];
+        float acx = aux.M[2][0];
+        float acy = aux.M[2][1];
+        glm::mat4 K(1.0f);
+        K[0][0] = afx;
+        K[1][1] = afy;
+        K[2][0] = acx;
+        K[2][1] = acy;
+        infoMap[channelID].KColorMat = K;
     }
 
 }

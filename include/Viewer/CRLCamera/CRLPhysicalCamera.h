@@ -278,6 +278,7 @@ namespace VkRender::MultiSense {
             int sensorMTU = 0;
             crl::multisense::image::Calibration calibration{};
             glm::mat4 QMat{};
+            glm::mat4 KColorMat{};
         };
 
         /**@brief Connects to a VkRender m_Device

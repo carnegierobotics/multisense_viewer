@@ -254,7 +254,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
                                         CRLCameraModels::Model *model) {
     model->descriptors.resize(count);
 
-    uint32_t uniformDescriptorCount = (4 * count);
+    uint32_t uniformDescriptorCount = (5 * count);
     uint32_t imageDescriptorSamplerCount = (3 * count);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
@@ -381,7 +381,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
                                               &model->descriptors[i]));
 
 
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets(4);
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets(5);
         writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptorSets[0].descriptorCount = 1;
@@ -410,6 +410,13 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
         writeDescriptorSets[3].dstBinding = 3;
         writeDescriptorSets[3].pImageInfo = &model->textureColorMap->m_Descriptor;
 
+        writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSets[4].descriptorCount = 1;
+        writeDescriptorSets[4].dstSet = model->descriptors[i];
+        writeDescriptorSets[4].dstBinding = 4;
+        writeDescriptorSets[4].pBufferInfo = &model->colorPointCloudBuffer.m_DescriptorBufferInfo;
+
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
     }
@@ -435,6 +442,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
 
             };
             break;

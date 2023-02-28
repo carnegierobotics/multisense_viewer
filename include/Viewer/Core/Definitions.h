@@ -427,10 +427,10 @@ namespace VkRender {
         glm::vec4 lightDir{};
         float exposure = 4.5f;
         float gamma = 2.2f;
-        float prefilteredCubeMipLevels;
+        float prefilteredCubeMipLevels = 0.0f;
         float scaleIBLAmbient = 1.0f;
-        float debugViewInputs = 0;
-        float debugViewEquation = 0;
+        float debugViewInputs = 0.0f;
+        float debugViewEquation = 0.0f;
         glm::vec4 lightColor{};
         glm::vec4 objectColor{};
         glm::vec4 lightPos{};

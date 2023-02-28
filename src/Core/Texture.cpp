@@ -218,7 +218,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
     samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     samplerInfo.maxAnisotropy = 1.0;
-    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.anisotropyEnable = VK_TRUE;
     samplerInfo.maxLod = (float) m_MipLevels;
     samplerInfo.maxAnisotropy = 8.0f;
     CHECK_RESULT(vkCreateSampler(device->m_LogicalDevice, &samplerInfo, nullptr, &m_Sampler));

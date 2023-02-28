@@ -1141,7 +1141,10 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                         break;
                 }
 
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                if (pipeline != boundPipeline) {
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                    boundPipeline = pipeline;
+                }
 
                 const std::vector<VkDescriptorSet> descriptorsets = {
                         descriptors[cbIndex],
@@ -1224,6 +1227,7 @@ void GLTFModel::Model::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
         vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     }
 
+    boundPipeline = VK_NULL_HANDLE;
 
     // Opaque primitives first
     for (auto &node: nodes) {
@@ -1293,7 +1297,7 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
 
     if (node.rotation.size() == 4) {
         glm::quat q = glm::make_quat(node.rotation.data());
-        newNode->rotation = glm::mat4(q);
+        newNode->rotation = glm::mat4(1.0f);
     }
     glm::vec3 scale = glm::vec3(1.0f);
     if (node.scale.size() == 3) {
@@ -1610,8 +1614,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
         }
         if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end()) {
-            material.emissiveFactor = glm::vec4(
-                    glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
+            material.emissiveFactor = glm::vec4(glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
         }
 
         // Extensions
@@ -1633,16 +1636,14 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
                 auto factor = ext->second.Get("diffuseFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.diffuseFactor[i] = val.IsNumber() ? (float) val.Get<double>()
-                                                                         : (float) val.Get<int>();
+                    material.extension.diffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                 }
             }
             if (ext->second.Has("specularFactor")) {
                 auto factor = ext->second.Get("specularFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.specularFactor[i] = val.IsNumber() ? (float) val.Get<double>()
-                                                                          : (float) val.Get<int>();
+                    material.extension.specularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                 }
             }
         }
@@ -1650,7 +1651,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         materials.push_back(material);
     }
     // Push a default material at the end of the list for meshes with no material assigned
-    materials.emplace_back();
+    materials.push_back(Material());
 }
 
 VkSamplerAddressMode GLTFModel::Model::getVkWrapMode(int32_t wrapMode) {
@@ -1667,6 +1668,7 @@ VkSamplerAddressMode GLTFModel::Model::getVkWrapMode(int32_t wrapMode) {
 
 VkFilter GLTFModel::Model::getVkFilterMode(int32_t filterMode) {
     switch (filterMode) {
+        case -1:
         case 9728:
             return VK_FILTER_NEAREST;
         case 9729:
@@ -1681,7 +1683,7 @@ VkFilter GLTFModel::Model::getVkFilterMode(int32_t filterMode) {
             return VK_FILTER_LINEAR;
         default:
             Log::Logger::getInstance()->warning("Sampler filter defaulted to VK_FILTER_LINEAR");
-            return VK_FILTER_LINEAR;
+            return VK_FILTER_NEAREST;
     }
 }
 
@@ -2078,6 +2080,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {
@@ -2142,7 +2145,6 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
     pipelineCI.pStages = shaderStages.data();
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipelines.pbr));
 
@@ -2262,10 +2264,8 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI =
             Populate::pipelineDepthStencilStateCreateInfo(VK_FALSE,
                                                           VK_FALSE,
-                                                          VK_COMPARE_OP_LESS);
-    depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
-    depthStencilStateCI.stencilTestEnable = VK_FALSE;
+                                                          VK_COMPARE_OP_LESS_OR_EQUAL);
+    depthStencilStateCI.front = depthStencilStateCI.back;
 
     VkPipelineViewportStateCreateInfo viewportStateCI{};
     viewportStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -2348,6 +2348,7 @@ void GLTFModel::Node::update() {
     if (mesh) {
         glm::mat4 m = getMatrix();
         memcpy(mesh->uniformBuffer.mapped, &m, sizeof(glm::mat4));
+
     }
 
     for (auto &child: children) {

@@ -27,6 +27,8 @@ void Skybox::setup() {
 
     Widgets::make()->slider("Exposure", &exposure, 0.0f, 25.0f);
     Widgets::make()->slider("Gamma", &gamma, 0.0f, 8.0f);
+    Widgets::make()->slider("IBL", &ibl, 0.0f, 8.0f);
+    Widgets::make()->slider("debugView", &debugViewInputs, 0, 6);
 
     skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", renderUtils.device);
 
@@ -55,9 +57,10 @@ void Skybox::update() {
 
     d2->exposure = exposure;
     d2->gamma = gamma;
-    d2->scaleIBLAmbient = 1.0f;
     d2->debugViewInputs = 0;
     d2->debugViewEquation = 0;
+    d2->scaleIBLAmbient = ibl;
+    d2->debugViewInputs = debugViewInputs;
 
     sharedData->put(d2.get(), sizeof(VkRender::FragShaderParams));
 

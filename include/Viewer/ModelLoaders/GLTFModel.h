@@ -147,8 +147,6 @@ public:
         } uniformBuffer;
         struct UniformBlock {
             glm::mat4 matrix;
-            glm::mat4 jointMatrix[32]{};
-            float jointcount{ 0 };
         } uniformBlock;
 
         Mesh(VulkanDevice *pDevice, glm::mat4 mat1){
@@ -285,6 +283,7 @@ public:
             VkPipeline skybox = VK_NULL_HANDLE;
         } pipelines{};
         VkPipelineLayout pipelineLayout{};
+        VkPipeline boundPipeline = VK_NULL_HANDLE;
 
         void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo);
 

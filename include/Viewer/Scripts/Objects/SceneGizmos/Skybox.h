@@ -62,8 +62,11 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE;
     std::unique_ptr<GLTFModel::Model> skybox;
-    float exposure = 10.5f;
-    float gamma = 3.5f;
+    float exposure = 4.5f;
+    float gamma = 2.2f;
+    float ibl = 1.0f;
+    int debugViewInputs = 0;
+
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 };

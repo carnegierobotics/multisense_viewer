@@ -96,6 +96,8 @@ void Helmet::update() {
     auto* ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data) ;
     d2->gamma = ptr->gamma;
     d2->exposure = ptr->exposure;
+    d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
+    d2->debugViewInputs = ptr->debugViewInputs;
 }
 
 

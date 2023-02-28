@@ -73,6 +73,9 @@ void Renderer::addDeviceFeatures() {
         if (deviceFeatures.wideLines) {
             enabledFeatures.wideLines = VK_TRUE;
         }
+        if (deviceFeatures.samplerAnisotropy) {
+            enabledFeatures.samplerAnisotropy = VK_TRUE;
+        }
     }
 }
 
@@ -108,14 +111,15 @@ void Renderer::buildCommandBuffers() {
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
         // Draw scripts that must be drawn first
-        for(auto& script : scripts){
+        for (auto &script: scripts) {
             if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
                 script.second->drawScript(drawCmdBuffers[i], i, true);
         }
 
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
-            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED && script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
+            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED &&
+                script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
                 script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
@@ -156,8 +160,8 @@ void Renderer::buildScripts() {
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     // create first set of scripts for TOP OF PIPE
-    for (auto& script : scripts){
-        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE){
+    for (auto &script: scripts) {
+        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
             script.second->createUniformBuffers(vars, renderData);
         }
     }
@@ -166,8 +170,8 @@ void Renderer::buildScripts() {
     vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
     vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
     // Run script setup function
-    for (auto& script : scripts){
-        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE){
+    for (auto &script: scripts) {
+        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
             script.second->createUniformBuffers(vars, renderData);
         }
     }

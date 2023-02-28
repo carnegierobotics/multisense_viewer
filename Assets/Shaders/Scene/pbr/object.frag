@@ -49,12 +49,12 @@ layout (push_constant) uniform Material {
 	float workflow;
 	int baseColorTextureSet;
 	int physicalDescriptorTextureSet;
-	int normalTextureSet;	
+	int normalTextureSet;
 	int occlusionTextureSet;
 	int emissiveTextureSet;
-	float metallicFactor;	
-	float roughnessFactor;	
-	float alphaMask;	
+	float metallicFactor;
+	float roughnessFactor;
+	float alphaMask;
 	float alphaMaskCutoff;
 } material;
 
@@ -102,7 +102,7 @@ vec3 Uncharted2Tonemap(vec3 color)
 vec4 tonemap(vec4 color)
 {
 	vec3 outcol = Uncharted2Tonemap(color.rgb * uboParams.exposure);
-	outcol = outcol * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	
+	outcol = outcol * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
 	return vec4(pow(outcol, vec3(1.0f / uboParams.gamma)), color.a);
 }
 
@@ -293,7 +293,7 @@ void main()
 
 	diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
 	diffuseColor *= 1.0 - metallic;
-		
+
 	float alphaRoughness = perceptualRoughness * perceptualRoughness;
 
 	vec3 specularColor = mix(f0, baseColor.rgb, metallic);
@@ -321,18 +321,18 @@ void main()
 	float VdotH = clamp(dot(v, h), 0.0, 1.0);
 
 	PBRInfo pbrInputs = PBRInfo(
-		NdotL,
-		NdotV,
-		NdotH,
-		LdotH,
-		VdotH,
-		perceptualRoughness,
-		metallic,
-		specularEnvironmentR0,
-		specularEnvironmentR90,
-		alphaRoughness,
-		diffuseColor,
-		specularColor
+	NdotL,
+	NdotV,
+	NdotH,
+	LdotH,
+	VdotH,
+	perceptualRoughness,
+	metallic,
+	specularEnvironmentR0,
+	specularEnvironmentR90,
+	alphaRoughness,
+	diffuseColor,
+	specularColor
 	);
 
 	// Calculate the shading terms for the microfacet specular shading model
@@ -363,7 +363,7 @@ void main()
 		vec3 emissive = SRGBtoLINEAR(texture(emissiveMap, material.emissiveTextureSet == 0 ? inUV0 : inUV1)).rgb * u_EmissiveFactor;
 		color += emissive;
 	}
-	
+
 	outColor = vec4(color, baseColor.a);
 
 	// Shader inputs debug visualization
@@ -371,26 +371,27 @@ void main()
 		int index = int(uboParams.debugViewInputs);
 		switch (index) {
 			case 1:
-				outColor.rgba = material.baseColorTextureSet > -1 ? texture(colorMap, material.baseColorTextureSet == 0 ? inUV0 : inUV1) : vec4(1.0f);
-				break;
+			outColor.rgba = material.baseColorTextureSet > -1 ? texture(colorMap, material.baseColorTextureSet == 0 ? inUV0 : inUV1) : vec4(1.0f);
+			break;
 			case 2:
-				outColor.rgb = (material.normalTextureSet > -1) ? texture(normalMap, material.normalTextureSet == 0 ? inUV0 : inUV1).rgb : normalize(inNormal);
-				break;
+			outColor.rgb = (material.normalTextureSet > -1) ? texture(normalMap, material.normalTextureSet == 0 ? inUV0 : inUV1).rgb : normalize(inNormal);
+			break;
 			case 3:
-				outColor.rgb = (material.occlusionTextureSet > -1) ? texture(aoMap, material.occlusionTextureSet == 0 ? inUV0 : inUV1).rrr : vec3(0.0f);
-				break;
+			outColor.rgb = (material.occlusionTextureSet > -1) ? texture(aoMap, material.occlusionTextureSet == 0 ? inUV0 : inUV1).rrr : vec3(0.0f);
+			break;
 			case 4:
-				outColor.rgb = (material.emissiveTextureSet > -1) ? texture(emissiveMap, material.emissiveTextureSet == 0 ? inUV0 : inUV1).rgb : vec3(0.0f);
-				break;
+			outColor.rgb = (material.emissiveTextureSet > -1) ? texture(emissiveMap, material.emissiveTextureSet == 0 ? inUV0 : inUV1).rgb : vec3(0.0f);
+			break;
 			case 5:
-				outColor.rgb = texture(physicalDescriptorMap, inUV0).bbb;
-				break;
+			outColor.rgb = texture(physicalDescriptorMap, inUV0).bbb;
+			break;
 			case 6:
-				outColor.rgb = texture(physicalDescriptorMap, inUV0).ggg;
-				break;
+			outColor.rgb = texture(physicalDescriptorMap, inUV0).ggg;
+			break;
 		}
 		outColor = SRGBtoLINEAR(outColor);
 	}
+	/*
 
 	// PBR equation debug visualization
 	// "none", "Diff (l,n)", "F (l,h)", "G (l,v,h)", "D (h)", "Specular"
@@ -398,21 +399,22 @@ void main()
 		int index = int(uboParams.debugViewEquation);
 		switch (index) {
 			case 1:
-				outColor.rgb = diffuseContrib;
-				break;
+			outColor.rgb = diffuseContrib;
+			break;
 			case 2:
-				outColor.rgb = F;
-				break;
+			outColor.rgb = F;
+			break;
 			case 3:
-				outColor.rgb = vec3(G);
-				break;
-			case 4: 
-				outColor.rgb = vec3(D);
-				break;
+			outColor.rgb = vec3(G);
+			break;
+			case 4:
+			outColor.rgb = vec3(D);
+			break;
 			case 5:
-				outColor.rgb = specContrib;
-				break;				
+			outColor.rgb = specContrib;
+			break;
 		}
 	}
+	*/
 
 }

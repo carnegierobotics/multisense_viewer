@@ -1084,8 +1084,13 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
 
-                if (elem.type == FLOAT_SLIDER){
-                    ImGui::SliderFloat(elem.label, elem.value, elem.min, elem.max);
+                switch (elem.type) {
+                    case FLOAT_SLIDER:
+                        ImGui::SliderFloat(elem.label, elem.value, elem.min, elem.max);
+                        break;
+                    case INT_SLIDER:
+                        ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
+                        break;
                 }
 
             }

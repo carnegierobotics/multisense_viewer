@@ -110,6 +110,8 @@ public:
         std::unique_ptr<TextureVideo> textureColorMap;
         std::unique_ptr<TextureVideo> textureChromaU;
         std::unique_ptr<TextureVideo> textureChromaV;
+        Buffer colorPointCloudBuffer;
+
 
         std::vector<Texture::TextureSampler> textureSamplers;
 

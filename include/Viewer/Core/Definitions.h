@@ -461,6 +461,11 @@ namespace VkRender {
 
     };
 
+    struct ColorPointCloudParams {
+        glm::mat4 instrinsics{};
+        glm::mat4 extrinsics{};
+    };
+
     /** @brief Additional default buffers for rendering mulitple models with distrinct MVP */
     struct RenderDescriptorBuffers {
         UBOMatrix mvp{};

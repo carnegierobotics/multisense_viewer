@@ -41,6 +41,12 @@ void PointCloud::setup() {
     model->draw = false;
     model->modelType = CRL_POINT_CLOUD;
 
+    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                     &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
+    model->colorPointCloudBuffer.map();
+
 }
 
 void PointCloud::update() {
@@ -48,7 +54,7 @@ void PointCloud::update() {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());
         model->getTextureDataPointers(&tex);
-        if (renderData.crlCamera->getCameraStream("Luma Rectified Left", &tex, remoteHeadIndex)) {
+        if (renderData.crlCamera->getCameraStream("Color Rectified Aux", &tex, remoteHeadIndex)) {
             model->updateTexture(tex.m_Type);
         }
 
@@ -76,6 +82,13 @@ void PointCloud::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
+
+    VkRender::ColorPointCloudParams data;
+
+    data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
+    data.extrinsics = glm::mat4(1.0f);
+    memcpy(model->colorPointCloudBuffer.mapped, bufferTwoData.get(), sizeof(VkRender::ColorPointCloudParams));
+
 }
 
 

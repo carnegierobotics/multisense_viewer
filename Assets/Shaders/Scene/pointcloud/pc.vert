@@ -49,7 +49,7 @@ void main()
     coords = matrix.Q * imgCoords;
 
     float invB = 1.0f / (-width * depth);
-    vec3 outCoordinates = vec3(coords.x * invB, coords.y * invB, coords.z * invB);
+    vec3 outCoordinates = vec3(coords.x * invB, -1 * coords.y * invB, coords.z * invB);
 
     gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
 }

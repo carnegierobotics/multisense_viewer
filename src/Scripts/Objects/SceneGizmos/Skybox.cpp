@@ -29,10 +29,11 @@ void Skybox::setup() {
     Widgets::make()->slider("Gamma", &gamma, 0.0f, 8.0f);
     Widgets::make()->slider("IBL", &ibl, 0.0f, 8.0f);
     Widgets::make()->slider("debugView", &debugViewInputs, 0, 6);
+    Widgets::make()->slider("Skybox - LOD", &lod, 0, 10.0f);
 
     skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", renderUtils.device);
 
-    skybox->createSkybox(Utils::getAssetsPath() + "Textures/Environments/clarens_night_2k.exr", envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures);
+    skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures);
     sharedData->destination = "All";
 }
 
@@ -61,6 +62,7 @@ void Skybox::update() {
     d2->debugViewEquation = 0;
     d2->scaleIBLAmbient = ibl;
     d2->debugViewInputs = debugViewInputs;
+    d2->debugViewEquation = lod;
 
     sharedData->put(d2.get(), sizeof(VkRender::FragShaderParams));
 

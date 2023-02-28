@@ -2231,10 +2231,9 @@ GLTFModel::Model::~Model() {
 }
 
 void
-GLTFModel::Model::createSkybox(const std::filesystem::path &path,
-                               const std::vector<VkPipelineShaderStageCreateInfo>& envShaders,
-                               const std::vector<VkRender::UniformBufferSet> &uboVec, VkRenderPass const *renderPass,
-                               VkRender::SkyboxTextures *skyboxTextures) {
+GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo> &envShaders,
+                               const std::vector<VkRender::UniformBufferSet> &uboVec,
+                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures) {
 
     loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);

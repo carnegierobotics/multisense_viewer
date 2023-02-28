@@ -83,6 +83,33 @@ namespace VkRender::MultiSense {
         const crl::multisense::image::Header data_;
     };
 
+    class IMUBufferWrapper {
+    public:
+        IMUBufferWrapper(crl::multisense::Channel *driver,
+                           crl::multisense::imu::Header data) :
+                driver_(driver),
+                callbackBuffer_(driver->reserveCallbackBuffer()),
+                data_(std::move(data)) {
+        }
+
+        ~IMUBufferWrapper() {
+            if (driver_) {
+                driver_->releaseCallbackBuffer(callbackBuffer_);
+            }
+        }
+
+        [[nodiscard]] const crl::multisense::imu::Header &data() const noexcept {
+            return data_;
+        }
+
+        IMUBufferWrapper operator=(const ImageBufferWrapper &) = delete;
+
+    private:
+        crl::multisense::Channel *driver_ = nullptr;
+        void *callbackBuffer_;
+        const crl::multisense::imu::Header data_;
+    };
+
     class ImageBuffer {
     public:
         explicit ImageBuffer(crl::multisense::RemoteHeadChannel remoteHeadChannel, bool logSkippedFrames) :
@@ -129,6 +156,43 @@ namespace VkRender::MultiSense {
 
     };
 
+    class IMUBuffer {
+    public:
+        explicit IMUBuffer(crl::multisense::RemoteHeadChannel remoteHeadChannel, bool logSkippedFrames) :
+                id(remoteHeadChannel), m_SkipLogging(logSkippedFrames) {}
+
+
+        void updateIMUBuffer(const std::shared_ptr<IMUBufferWrapper> &buf) {
+            // Lock
+            std::scoped_lock<std::mutex> lock(mut);
+            // replace latest data into m_Image pointers
+            if (imuPointersMap.empty())
+                return;
+
+
+            imuPointersMap[id]= buf;
+            counterMap[id] = buf->data().sequence;
+
+            Log::Logger::getLogMetrics()->device.imuReceiveMapCounter[id]++;
+
+        }
+
+        // Question: making it a return statement initiates a copy? Pass by reference and return m_Image pointer?
+        std::shared_ptr<IMUBufferWrapper> getIMUBuffer(uint32_t idx) {
+            std::lock_guard<std::mutex> lock(mut);
+            return imuPointersMap[idx];
+        }
+
+        crl::multisense::RemoteHeadChannel id{};
+        bool m_SkipLogging = false;
+    private:
+        std::mutex mut;
+        std::unordered_map<uint32_t, std::shared_ptr<IMUBufferWrapper>> imuPointersMap{};
+        std::unordered_map<crl::multisense::RemoteHeadChannel, uint32_t> counterMap;
+
+
+    };
+
     class ChannelWrapper {
     public:
         explicit ChannelWrapper(const std::string &ipAddress,
@@ -140,7 +204,7 @@ namespace VkRender::MultiSense {
 #endif
 
             bool skipLogging = false;
-            // Don't log skipped frames on remote head, as we do intentionally skip frames there
+            // Don't log skipped frames on remote head, as we do intentionally skip frames there with the multiplexer
             if (channelPtr_) {
                 crl::multisense::system::DeviceInfo deviceInfo;
                 channelPtr_->getDeviceInfo(deviceInfo);
@@ -156,10 +220,13 @@ namespace VkRender::MultiSense {
                 //skipLogging =
             }
             imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel, skipLogging);
+            imuBuffer = new IMUBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel, skipLogging);
+
         }
 
         ~ChannelWrapper() {
             delete imageBuffer;
+            delete imuBuffer;
             // Reset image counter for debugger
             for (auto &src: Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
                 for (auto &counter: src.second)
@@ -176,6 +243,7 @@ namespace VkRender::MultiSense {
         }
 
         ImageBuffer *imageBuffer{};
+        IMUBuffer* imuBuffer{};
 
         ChannelWrapper(const ChannelWrapper &) = delete;
 
@@ -386,6 +454,8 @@ namespace VkRender::MultiSense {
 
         static void remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP);
 
+        static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
+
         /**@brief Updates the \ref CameraInfo struct for the chosen remote head. Usually only called once on first connection
          *
          * @param[in] idx Which remote head to select
@@ -400,6 +470,9 @@ namespace VkRender::MultiSense {
         std::ostream &
         writeImageExtrinics(std::ostream &stream, const crl::multisense::image::Calibration &calibration,
                             bool hasAuxCamera);
+
+        // For pointclouds
+        void updateQMatrix(crl::multisense::RemoteHeadChannel channelID);
     };
 
 

@@ -66,7 +66,7 @@ public:
     float gamma = 2.2f;
     float ibl = 1.0f;
     int debugViewInputs = 0;
-
+    float lod = 1.5f;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 };

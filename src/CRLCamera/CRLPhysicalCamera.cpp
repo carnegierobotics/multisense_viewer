@@ -37,7 +37,10 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #endif
+
 #include <vulkan/vulkan_core.h>
+
+#include <cmath>
 
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 #include "Viewer/Core/Definitions.h"
@@ -129,6 +132,13 @@ namespace VkRender::MultiSense {
         p->imageBuffer->updateImageBuffer(std::make_shared<ImageBufferWrapper>(p->ptr(), header));
     }
 
+    void CRLPhysicalCamera::imuCallback(const crl::multisense::imu::Header &header,
+                                        void *userDataP) {
+        auto p = reinterpret_cast<ChannelWrapper *>(userDataP);
+        p->imuBuffer->updateIMUBuffer(std::make_shared<IMUBufferWrapper>(p->ptr(), header));
+
+    }
+
     void CRLPhysicalCamera::addCallbacks(crl::multisense::RemoteHeadChannel channelID) {
         for (const auto &e: infoMap[channelID].supportedDeviceModes)
             infoMap[channelID].supportedSources |= e.supportedDataSources;
@@ -139,11 +149,19 @@ namespace VkRender::MultiSense {
             num_sources += (d & 1);
             d >>= 1;
         }
+
+        if (channelMap[channelID]->ptr()->addIsolatedCallback(imuCallback, channelMap[channelID].get()) ==
+            crl::multisense::Status_Ok) {
+            Log::Logger::getInstance()->info("Added imu callback for channel {}", channelID);
+        } else {
+            Log::Logger::getInstance()->info("Failed to add callback for channel {}", channelID);
+        }
+
         if (channelMap[channelID]->ptr()->addIsolatedCallback(remoteHeadCallback,
                                                               infoMap[channelID].supportedSources,
                                                               channelMap[channelID].get()) ==
             crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info("Added callback for channel {}", channelID);
+            Log::Logger::getInstance()->info("Added image callback for channel {}", channelID);
         } else
             Log::Logger::getInstance()->info("Failed to add callback for channel {}", channelID);
     }
@@ -162,7 +180,7 @@ namespace VkRender::MultiSense {
                                             crl::multisense::RemoteHeadChannel channelID) const {
         auto it = channelMap.find(channelID);
 
-        if (it == channelMap.end()){
+        if (it == channelMap.end()) {
             Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
         }
@@ -202,7 +220,8 @@ namespace VkRender::MultiSense {
                 if (headerTwo->data().source != src ||
                     tex->m_Width != header->data().width ||
                     tex->m_Height < header->data().height) {
-                    Log::Logger::getInstance()->error("In getCameraStream: Color Source and dimensions did not match expected values");
+                    Log::Logger::getInstance()->error(
+                            "In getCameraStream: Color Source and dimensions did not match expected values");
                     return false;
                 }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
@@ -210,7 +229,8 @@ namespace VkRender::MultiSense {
 
                 // These should be the same height. This can happen with the Color_Aux source when switching between max and h res.
                 if (header->data().height == headerTwo->data().height) {
-                    Log::Logger::getInstance()->error("In getCameraStream: Color Source and dimensions does not have matching height");
+                    Log::Logger::getInstance()->error(
+                            "In getCameraStream: Color Source and dimensions does not have matching height");
                     return false;
                 }
 
@@ -233,7 +253,7 @@ namespace VkRender::MultiSense {
 
                     if (tex->data3 != nullptr) {
                         size_t diff2 = (size_t) (tex->m_Height / 2) - headerTwo->data().height;
-                        std::memset(tex->data2 + (headerTwo->data().imageLength/ 2), 0x00, diff2 * tex->m_Width);
+                        std::memset(tex->data2 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
                         std::memset(tex->data3 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
 
                     } else {
@@ -255,7 +275,8 @@ namespace VkRender::MultiSense {
             case CRL_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data()
                         .width || tex->m_Height < header->data().height) {
-                    Log::Logger::getInstance()->warning("In getCameraStream: Monochrome source and dimensions did not match expected values");
+                    Log::Logger::getInstance()->warning(
+                            "In getCameraStream: Monochrome source and dimensions did not match expected values");
                     return false;
                 }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
@@ -357,13 +378,16 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Failed to update '{}'", "calibration");
             return;
         }
+
+        updateQMatrix(channelID);
     }
 
 
     bool CRLPhysicalCamera::setGamma(float gamma, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set gamma on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error("Attempted to set gamma on a channel that was not connected, Channel {}",
+                                              channelID);
             return false;
         }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
@@ -391,8 +415,9 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::setFps(float fps, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set fps on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error("Attempted to set fps on a channel that was not connected, Channel {}",
+                                              channelID);
             return false;
         }
 
@@ -437,8 +462,9 @@ namespace VkRender::MultiSense {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set gain on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error("Attempted to set gain on a channel that was not connected, Channel {}",
+                                              channelID);
             return false;
         }
 
@@ -472,8 +498,9 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::setResolution(CRLCameraResolution resolution, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID] == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set resolution on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID] == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set resolution on a channel that was not connected, Channel {}", channelID);
             return false;
         }
 
@@ -507,37 +534,8 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set resolution to {}x{}x{} on channel {}", width, height, depth,
                                              channelID);
             currentResolutionMap[channelID] = resolution;
+            updateQMatrix(channelID);
 
-            /// Also update correct Q matrix with the new width
-            // TODO Put into separate function to increase code readability
-            const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
-                                          static_cast<float>(width)));
-            // From LibMultisenseUtility
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
-
-
-            crl::multisense::image::Config c = infoMap[channelID].imgConf;
-            const float &fx = c.fx();
-            const float &fy = c.fy();
-            const float &cx = c.cx();
-            const float &cy = c.cy();
-            const float &tx = c.tx();
-            const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
-
-            // glm::mat4 indexing
-            // [column][row]
-            // Inserted values col by col
-            glm::mat4 Q(0.0f);
-            Q[0][0] = fy * tx;
-            Q[1][1] = fx * tx;
-            Q[2][3] = -fy;
-            Q[3][0] = -fy * cx * tx;
-            Q[3][1] = -fx * cy * tx;
-            Q[3][2] = fx * fy * tx;
-            Q[3][3] = fy * (cx - cxRight);
-            // keep as is
-            infoMap[channelID].QMat = Q;
-            /// Finished updating Q matrix
         } else {
             Log::Logger::getInstance()->info("Failed setting resolution to {}x{}x{}. Error: {}", width, height,
                                              depth, ret);
@@ -558,8 +556,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set exposure on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set exposure on a channel that was not connected, Channel {}", channelID);
             return false;
         }
 
@@ -605,8 +604,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setPostFilterStrength(float filter, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set post filter strength on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set post filter strength on a channel that was not connected, Channel {}", channelID);
             return false;
         }
 
@@ -643,8 +643,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setHDR(bool hdr, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set hdr on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error("Attempted to set hdr on a channel that was not connected, Channel {}",
+                                              channelID);
             return false;
         }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
@@ -673,8 +674,9 @@ namespace VkRender::MultiSense {
     bool
     CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set white balance on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set white balance on a channel that was not connected, Channel {}", channelID);
             return false;
         }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
@@ -712,8 +714,9 @@ namespace VkRender::MultiSense {
 
     bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set light configuration on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set light configuration on a channel that was not connected, Channel {}", channelID);
             return false;
         }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getLightingConfig(
@@ -729,8 +732,10 @@ namespace VkRender::MultiSense {
         } else
             infoMap[channelID].lightConf.setDutyCycle(param.dutyCycle);
 
-        infoMap[channelID].lightConf.setNumberOfPulses((uint32_t)param.numLightPulses * 1000);  // convert from ms to us and from float to uin32_t
-        infoMap[channelID].lightConf.setStartupTime((uint32_t)(param.startupTime * 1000)); // convert from ms to us and from float to uin32_t
+        infoMap[channelID].lightConf.setNumberOfPulses(
+                (uint32_t) param.numLightPulses * 1000);  // convert from ms to us and from float to uin32_t
+        infoMap[channelID].lightConf.setStartupTime(
+                (uint32_t) (param.startupTime * 1000)); // convert from ms to us and from float to uin32_t
         infoMap[channelID].lightConf.setFlash(param.flashing);
         status = channelMap[channelID]->ptr()->setLightingConfig(infoMap[channelID].lightConf);
         if (crl::multisense::Status_Ok != status) {
@@ -751,8 +756,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setMtu(uint32_t mtu, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set mtu on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error("Attempted to set mtu on a channel that was not connected, Channel {}",
+                                              channelID);
             return false;
         }
         int status = channelMap[channelID]->ptr()->setMtu((int32_t) mtu);
@@ -778,8 +784,9 @@ namespace VkRender::MultiSense {
     bool CRLPhysicalCamera::setSensorCalibration(const std::string &intrinsicsFile, const std::string &extrinsicsFile,
                                                  crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to set sensor calibration on a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set sensor calibration on a channel that was not connected, Channel {}", channelID);
             return false;
         }
         crl::multisense::Status status = channelMap[channelID]->ptr()->getImageCalibration(
@@ -909,8 +916,9 @@ namespace VkRender::MultiSense {
                                                   crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 
-        if (channelMap[channelID]->ptr() == nullptr){
-            Log::Logger::getInstance()->error("Attempted to save calibration from a channel that was not connected, Channel {}", channelID);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to save calibration from a channel that was not connected, Channel {}", channelID);
             return false;
         }
 
@@ -954,23 +962,105 @@ namespace VkRender::MultiSense {
         return true;
     }
 
-    bool CRLPhysicalCamera::getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const {
+    bool
+    CRLPhysicalCamera::getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const {
         auto it = channelMap.find(channelID);
 
-        if (it == channelMap.end()){
+        if (it == channelMap.end()) {
             Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
         }
 
-        std::shared_ptr<ImageBufferWrapper> header;
-        header = it->second->imageBuffer->getImageBuffer(channelID, Utils::stringToDataSource("IMU"));
+        auto header = it->second->imuBuffer->getIMUBuffer(channelID);
 
         if (header == nullptr) {
             return false;
         }
+        std::vector<crl::multisense::imu::Info> info;
+        uint32_t msgs;
+        it->second->ptr()->getImuInfo(msgs, info);
+        auto iterator = header->data().samples.begin();
+        double time = 0, prevTime = 0;
+        struct ImuData {
+            float x, y, z;
+            double time;
+            double dTime;
+        };
 
-        Log::Logger::getInstance()->info("Header {}", header->data().imageLength);
+        std::vector<ImuData> gyro;
+        std::vector<ImuData> accel;
 
+
+        for (; iterator != header->data().samples.end(); ++iterator) {
+            const crl::multisense::imu::Sample &s = *iterator;
+
+            switch (s.type) {
+                case crl::multisense::imu::Sample::Type_Accelerometer:
+                    accel.push_back({s.x, s.y, s.z, s.time(), 0});
+                    break;
+                case crl::multisense::imu::Sample::Type_Gyroscope: {
+                    time = s.time();
+                    double dt = time - prevTime;
+
+                    if (prevTime == 0)
+                        dt = 0;
+
+                    gyro.push_back({s.x, s.y, s.z, s.time(), dt});
+                    prevTime = time;
+                }
+                    break;
+                case crl::multisense::imu::Sample::Type_Magnetometer:
+                    break;
+            }
+
+        }
+        double roll = 0, pitch = 0;
+        for (int i = 0; i < accel.size(); ++i) {
+            auto &a = accel[i];
+            auto &g = gyro[i];
+            if (a.time != g.time)
+                continue;
+
+            roll = std::atan2(a.y,  a.z);
+            pitch = std::atan2(-a.x, std::sqrt(a.y*a.y + a.z*a.z));
+        }
+        data->pitch = pitch;
+        data->roll = roll;
+        return true;
+
+    }
+
+    void CRLPhysicalCamera::updateQMatrix(crl::multisense::RemoteHeadChannel channelID) {
+        /// Also update correct Q matrix with the new width
+        // TODO Put into separate function to increase code readability
+        const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
+                                      static_cast<float>(infoMap[channelID].imgConf.width())));
+        // From LibMultisenseUtility
+        channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
+
+
+        crl::multisense::image::Config c = infoMap[channelID].imgConf;
+        const float &fx = c.fx();
+        const float &fy = c.fy();
+        const float &cx = c.cx();
+        const float &cy = c.cy();
+        const float &tx = c.tx();
+        const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
+
+        // glm::mat4 indexing
+        // [column][row]
+        // Inserted values col by col
+        glm::mat4 Q(0.0f);
+        Q[0][0] = fy * tx;
+        Q[1][1] = fx * tx;
+        Q[2][3] = -fy;
+        Q[3][0] = -fy * cx * tx;
+        Q[3][1] = -fx * cy * tx;
+        Q[3][2] = fx * fy * tx;
+        Q[3][3] = fy * (cx - cxRight);
+        // keep as is
+        infoMap[channelID].QMat = Q;
+        /// Finished updating Q matrix
     }
 
 }

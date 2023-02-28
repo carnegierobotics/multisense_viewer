@@ -438,10 +438,11 @@ namespace VkRender {
     };
 
     struct SkyboxTextures {
-        TextureCubeMap environmentMap;
-        TextureCubeMap irradianceCube;
-        TextureCubeMap prefilterEnv;
-        Texture2D lutBrdf;
+        TextureCubeMap environmentMap{};
+        TextureCubeMap irradianceCube{};
+        TextureCubeMap prefilterEnv{};
+        Texture2D lutBrdf{};
+        int prefilteredCubeMipLevels = 0;
     };
 
     /**
@@ -512,6 +513,7 @@ namespace VkRender {
             TextureCubeMap *irradianceCube;
             TextureCubeMap *prefilterEnv;
             Texture2D *lutBrdf;
+            int prefilteredCubeMipLevels = 0;
         } skybox;
     };
 

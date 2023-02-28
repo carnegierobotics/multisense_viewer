@@ -1104,6 +1104,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 break;
             case PREFILTEREDENV:
                 textures->prefilterEnv = cubemap;
+                textures->prefilteredCubeMipLevels = static_cast<float>(numMips);
                 break;
         };
 
@@ -1651,7 +1652,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         materials.push_back(material);
     }
     // Push a default material at the end of the list for meshes with no material assigned
-    materials.push_back(Material());
+    materials.emplace_back();
 }
 
 VkSamplerAddressMode GLTFModel::Model::getVkWrapMode(int32_t wrapMode) {
@@ -1682,7 +1683,7 @@ VkFilter GLTFModel::Model::getVkFilterMode(int32_t filterMode) {
         case 9987:
             return VK_FILTER_LINEAR;
         default:
-            Log::Logger::getInstance()->warning("Sampler filter defaulted to VK_FILTER_LINEAR");
+            Log::Logger::getInstance()->warning("Sampler filter defaulted to VK_FILTER_NEAREST");
             return VK_FILTER_NEAREST;
     }
 }

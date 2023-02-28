@@ -53,6 +53,14 @@
 
 namespace VkRender::MultiSense {
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
+
+        if (dev->useIMU) {
+            if (!Utils::isInVector(dev->channelInfo[0].requestedStreams, "IMU"))
+                dev->channelInfo[0].requestedStreams.emplace_back("IMU");
+        } else {
+            Utils::removeFromVector(&dev->channelInfo[0].requestedStreams, "IMU");
+        }
+
         auto *p = &dev->parameters;
         if (dev->parameters.updateGuiParams) {
             const auto &conf = camPtr.getCameraInfo(dev->configRemoteHead).imgConf;

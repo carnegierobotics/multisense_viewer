@@ -35,10 +35,11 @@
  **/
 
 #include "Viewer/Scripts/Objects/MultiSenseCamera.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 void MultiSenseCamera::setup() {
     m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/multisense_s27.gltf",
+    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_textured3.gltf",
                           renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
     //m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
@@ -48,7 +49,6 @@ void MultiSenseCamera::setup() {
                                                             {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}
     };
-
 
     // Obligatory call to prepare render resources for GLTFModel.
     m_Model->createRenderPipeline(renderUtils, shaders);
@@ -62,20 +62,17 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 void MultiSenseCamera::update() {
 
     auto &d = bufferOneData;
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f));
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    d->model = glm::scale(d->model, glm::vec3(1.0f, 1.0f, 1.0f));
+    //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
 
     if (imuEnabled) {
         VkRender::IMUData rot{};
         renderData.crlCamera->getImuRotation(&rot, 0);
-        float P = (rot.pitch - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
-        float R = (rot.roll - (-90.0f)) / ((90.0f - (-90.0f))) * (180.0f);
-        printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R),
-               static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
-        d->model = glm::rotate(d->model, glm::radians(P), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, glm::radians(R), glm::vec3(0.0f, 0.0f, 1.0f));
+        //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R), static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
+        d->model = glm::rotate(d->model, static_cast<float>(rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
     } else {
         //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }
@@ -83,21 +80,6 @@ void MultiSenseCamera::update() {
 
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
-
-    auto &d2 = bufferTwoData;
-    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->m_ViewPos;
-    d2->lightDir = glm::vec4(
-            static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
-                    static_cast<double>(glm::radians(lightSource.rotation.y))),
-            sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
-            cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
-                    static_cast<double>(glm::radians(lightSource.rotation.y))),
-            0.0f);
-
-    //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
     d->camPos = glm::vec3(
             static_cast<double>(-renderData.camera->m_Position.z) * sin(
                     static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
@@ -109,9 +91,25 @@ void MultiSenseCamera::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
+    auto &d2 = bufferTwoData;
+    d2->viewPos = renderData.camera->m_ViewPos;
+    d2->lightDir = glm::vec4(
+            static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
+            sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
+            cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
+                    static_cast<double>(glm::radians(lightSource.rotation.y))),
+            0.0f);
+
+
     auto* ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data) ;
     d2->gamma = ptr->gamma;
     d2->exposure = ptr->exposure;
+    d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
+    d2->debugViewInputs = ptr->debugViewInputs;
+    d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
+
+
 }
 
 

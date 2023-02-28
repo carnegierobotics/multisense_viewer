@@ -355,7 +355,7 @@ private:
             // Maintain position of buttons in viewing bar even if 3D area is extended
             ImGui::SameLine(0.0f, (dev.extend3DArea ?
                                    (handles->info->viewingAreaWidth - handles->info->controlAreaWidth) / 2 :
-                                   (handles->info->viewingAreaWidth / 2)) - 220.0f);
+                                   (handles->info->viewingAreaWidth / 2)) - 260.0f);
             if(ImGui::Button("Hide Control Tab", ImVec2(150.0f, 20.0f))){
                 dev.extend3DArea = dev.extend3DArea ? false : true;
             }
@@ -1062,21 +1062,22 @@ private:
             dev.resetCamera = ImGui::Button("Reset camera position");
             ImGui::PopStyleColor(2);
 
+            // IMU
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Checkbox("Enable IMU", &dev.useIMU);
-            if (dev.useIMU) {
-                if (!Utils::isInVector(dev.channelInfo[0].requestedStreams, "IMU"))
-                    dev.channelInfo[0].requestedStreams.emplace_back("IMU");
-            } else {
-                Utils::removeFromVector(&dev.channelInfo[0].requestedStreams, "IMU");
-            }
+
             ImGui::PopStyleColor();
 
-
-
+            // Color point cloud
+            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Checkbox("Use color stream", &dev.colorStreamForPointCloud);
+            ImGui::PopStyleColor();
 
             for(const auto& elem : Widgets::make()->elements){
                 // for each element type

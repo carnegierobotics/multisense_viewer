@@ -136,6 +136,8 @@ namespace Log {
             } info;
             const VkRender::Device *dev = nullptr;
             std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<std::string, uint32_t>> sourceReceiveMapCounter;
+            std::unordered_map<crl::multisense::RemoteHeadChannel, uint32_t> imuReceiveMapCounter;
+
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
             std::vector<std::string> disabledSources;

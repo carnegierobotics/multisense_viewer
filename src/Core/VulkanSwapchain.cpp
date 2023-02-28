@@ -367,11 +367,11 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
     else
     {
         // iterate over the list of available surface m_Format and
-        // check for the presence of VK_FORMAT_B8G8R8A8_SRGB
+        // check for the presence of VK_FORMAT_B8G8R8A8_UNORM
         bool found_B8G8R8A8_UNORM = false;
         for (auto&& surfaceFormat : surfaceFormats)
         {
-            if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB)
+            if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
             {
                 colorFormat = surfaceFormat.format;
                 colorSpace = surfaceFormat.colorSpace;

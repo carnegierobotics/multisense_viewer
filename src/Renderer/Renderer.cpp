@@ -169,6 +169,8 @@ void Renderer::buildScripts() {
     vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
     vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
     vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
+    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
+
     // Run script setup function
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {

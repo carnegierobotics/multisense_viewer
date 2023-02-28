@@ -214,6 +214,7 @@ public:
             prefilterEnv = r->skybox.prefilterEnv;
             irradianceCube = r->skybox.irradianceCube;
             lutBrdf = r->skybox.lutBrdf;
+
         }
         ~Model();
 

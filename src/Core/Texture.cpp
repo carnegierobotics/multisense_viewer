@@ -185,7 +185,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
         mipSubRange.levelCount = 1;
         mipSubRange.layerCount = 1;
 
-        Utils::setImageLayout(copyCmd, m_Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        Utils::setImageLayout(blitCmd, m_Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                               mipSubRange, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 

@@ -142,7 +142,8 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
 
     switch (type) {
         case CRL_POINT_CLOUD:
-            textureColorMap->updateTextureFromBuffer();
+            //pointCloudTexture->updateTextureFromBuffer();
+            pointCloudTexture->updateTextureFromBufferYUV();
             break;
         case CRL_GRAYSCALE_IMAGE:
         case CRL_DISPARITY_IMAGE:
@@ -151,7 +152,7 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
             break;
         case CRL_COLOR_IMAGE_YUV420:
             if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
-                textureVideo->updateTextureFromBufferYUV();
+                pointCloudTexture->updateTextureFromBufferYUV();
             } else {
                 textureVideo->updateTextureFromBuffer();
                 textureChromaU->updateTextureFromBuffer();
@@ -192,9 +193,9 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
         case CRL_POINT_CLOUD:
             format = VK_FORMAT_R16_UNORM;
             // two textures are needed for point clouds. this one for coloring and other for displacement
-            textureColorMap = std::make_unique<TextureVideo>(width, height, vulkanDevice,
-                                                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                             VK_FORMAT_R8_UNORM);
+            pointCloudTexture = std::make_unique<TextureVideo>(width, height, vulkanDevice,
+                                                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                               VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
             break;
         case CRL_YUV_PLANAR_FRAME:
             format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
@@ -218,7 +219,8 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
 
     switch (tex->m_Type) {
         case CRL_POINT_CLOUD:
-            tex->data = textureColorMap->m_DataPtr;
+            tex->data = pointCloudTexture->m_DataPtr;
+            tex->data2 = pointCloudTexture->m_DataPtrSecondary;
             break;
         case CRL_GRAYSCALE_IMAGE:
         case CRL_DISPARITY_IMAGE:
@@ -229,8 +231,8 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
         case CRL_COLOR_IMAGE_YUV420:
 
             if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
-                tex->data = textureVideo->m_DataPtr;
-                tex->data2 = textureVideo->m_DataPtrSecondary;
+                tex->data = pointCloudTexture->m_DataPtr;
+                tex->data2 = pointCloudTexture->m_DataPtrSecondary;
             }
             else {
                 tex->data = textureVideo->m_DataPtr;
@@ -408,7 +410,7 @@ CRLCameraModels::createPointCloudDescriptors(CRLCameraModels::Model *model,
         writeDescriptorSets[3].descriptorCount = 1;
         writeDescriptorSets[3].dstSet = model->descriptors[i];
         writeDescriptorSets[3].dstBinding = 3;
-        writeDescriptorSets[3].pImageInfo = &model->textureColorMap->m_Descriptor;
+        writeDescriptorSets[3].pImageInfo = &model->pointCloudTexture->m_Descriptor;
 
         writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -476,6 +478,9 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
 // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
     if (nullptr != model->textureVideo->m_Sampler && hasYcbcrSampler) {
         setLayoutBindings[2].pImmutableSamplers = &model->textureVideo->m_Sampler;
+    }
+    if (model->pointCloudTexture && model->pointCloudTexture->m_Sampler && hasYcbcrSampler) {
+        setLayoutBindings[3].pImmutableSamplers = &model->pointCloudTexture->m_Sampler;
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
                                                                                                static_cast<uint32_t>(setLayoutBindings.size()));

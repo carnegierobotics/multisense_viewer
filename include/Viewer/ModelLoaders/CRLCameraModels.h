@@ -107,7 +107,7 @@ public:
         std::vector<std::string> extensions;
 
         std::unique_ptr<TextureVideo> textureVideo;
-        std::unique_ptr<TextureVideo> textureColorMap;
+        std::unique_ptr<TextureVideo> pointCloudTexture;
         std::unique_ptr<TextureVideo> textureChromaU;
         std::unique_ptr<TextureVideo> textureChromaV;
         Buffer colorPointCloudBuffer;

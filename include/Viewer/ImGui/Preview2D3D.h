@@ -1105,9 +1105,15 @@ private:
                 chInfo.requestedStreams.emplace_back("Disparity Left");
                 Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
             }
-            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
-                chInfo.requestedStreams.emplace_back("Luma Rectified Left");
-                Log::Logger::getInstance()->info(("Adding Luma Rectified Left source to user requested sources"));
+
+            std::string colorStream = dev.colorStreamForPointCloud ? "Color Rectified Aux" : "Luma Rectified Left";
+            if (!Utils::isInVector(chInfo.requestedStreams, colorStream)) {
+                chInfo.requestedStreams.emplace_back(colorStream);
+                Log::Logger::getInstance()->info(("Adding {} source to user requested sources"), colorStream);
+            }
+            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Aux")) {
+                chInfo.requestedStreams.emplace_back("Luma Rectified Aux");
+                Log::Logger::getInstance()->info(("Adding {} source to user requested sources"), "Luma Rectified Aux");
             }
         }
 

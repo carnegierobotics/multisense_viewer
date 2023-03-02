@@ -373,8 +373,8 @@ namespace VkRender {
         /** @brief Not a physical device just testing the GUI */
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
-        bool useIMU = false;
-        bool colorStreamForPointCloud = false;
+        bool useIMU = true;
+        bool colorStreamForPointCloud = true;
 
         /** @brief Following is UI elements settings for the active device **/
         /** @brief Which TAB this preview has selected. 2D or 3D view. */

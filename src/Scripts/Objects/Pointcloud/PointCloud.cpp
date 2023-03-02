@@ -52,7 +52,7 @@ void PointCloud::setup() {
 void PointCloud::update() {
     if (model->draw) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = VkRender::TextureData(CRL_POINT_CLOUD, conf.width(), conf.height());
+        auto tex = VkRender::TextureData(CRL_COLOR_IMAGE_YUV420, conf.width(), conf. height());
         model->getTextureDataPointers(&tex);
         if (renderData.crlCamera->getCameraStream("Color Rectified Aux", &tex, remoteHeadIndex)) {
             model->updateTexture(tex.m_Type);
@@ -83,11 +83,10 @@ void PointCloud::update() {
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
 
-    VkRender::ColorPointCloudParams data;
-
+    VkRender::ColorPointCloudParams data{};
     data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
     data.extrinsics = glm::mat4(1.0f);
-    memcpy(model->colorPointCloudBuffer.mapped, bufferTwoData.get(), sizeof(VkRender::ColorPointCloudParams));
+    memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
 }
 
@@ -114,7 +113,7 @@ void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
 
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (model->draw && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
+    if (model->draw && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b)
         CRLCameraModels::draw(commandBuffer, i, model.get(), b);
 }
 
@@ -136,7 +135,6 @@ void PointCloud::prepareTexture() {
         }
     }
     model->createMeshDeviceLocal(meshData);
-    //renderData.crlCamera->preparePointCloud(width, 0);
     model->createEmptyTexture(width, height, CRL_POINT_CLOUD);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);

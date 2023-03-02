@@ -10,7 +10,7 @@ layout(location = 3) in vec3 inCoords;
 
 layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
 
-layout (set = 0, binding = 4) uniform PointCloudParam {
+layout (set = 0, binding = 4) uniform colorConversionParams {
     mat4 intrinsic;
     mat4 extrinsic;
 } mat;
@@ -26,7 +26,7 @@ void main()
 
     // Sample bilinearly
 
-    vec3 tex = texture(samplerColorMap, vec2(uvColorProjected.rg)).rgb;
+    vec3 tex = texture(samplerColorMap, vec2(inUV)).rgb;
     outColor = vec4(tex, 1.0);
 
 }

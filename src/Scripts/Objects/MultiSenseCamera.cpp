@@ -39,7 +39,7 @@
 
 void MultiSenseCamera::setup() {
     m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_textured3.gltf",
+    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_scuffed_metal.gltf",
                           renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
     //m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
@@ -62,10 +62,10 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 void MultiSenseCamera::update() {
 
     auto &d = bufferOneData;
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f));
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+    d->model = glm::scale(d->model, glm::vec3(0.002f, 0.002f, 0.002f));
 
     if (imuEnabled) {
         VkRender::IMUData rot{};
@@ -76,8 +76,6 @@ void MultiSenseCamera::update() {
     } else {
         //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }
-
-
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     d->camPos = glm::vec3(

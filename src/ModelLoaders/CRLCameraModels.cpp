@@ -151,12 +151,22 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
             textureVideo->updateTextureFromBuffer();
             break;
         case CRL_COLOR_IMAGE_YUV420:
-            if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
-                pointCloudTexture->updateTextureFromBufferYUV();
+            if (modelType == CRL_POINT_CLOUD) {
+                if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                    pointCloudTexture->updateTextureFromBufferYUV();
+                } else {
+                    pointCloudTexture->updateTextureFromBuffer();
+                    textureChromaU->updateTextureFromBuffer();
+                    textureChromaV->updateTextureFromBuffer();
+                }
             } else {
-                textureVideo->updateTextureFromBuffer();
-                textureChromaU->updateTextureFromBuffer();
-                textureChromaV->updateTextureFromBuffer();
+                if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                    textureVideo->updateTextureFromBufferYUV();
+                }else {
+                    textureVideo->updateTextureFromBuffer();
+                    textureChromaU->updateTextureFromBuffer();
+                    textureChromaV->updateTextureFromBuffer();
+                }
             }
             break;
         case CRL_YUV_PLANAR_FRAME:
@@ -176,10 +186,10 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
                 format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
             else {
                 format = VK_FORMAT_R8_UNORM;
-                textureChromaU = std::make_unique<TextureVideo>(width/2, height/2, vulkanDevice,
+                textureChromaU = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
-                textureChromaV = std::make_unique<TextureVideo>(width/2, height/2, vulkanDevice,
+                textureChromaV = std::make_unique<TextureVideo>(width / 2, height / 2, vulkanDevice,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                 VK_FORMAT_R8_UNORM);
             }
@@ -229,15 +239,20 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
 
             break;
         case CRL_COLOR_IMAGE_YUV420:
-
-            if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
-                tex->data = pointCloudTexture->m_DataPtr;
-                tex->data2 = pointCloudTexture->m_DataPtrSecondary;
-            }
-            else {
-                tex->data = textureVideo->m_DataPtr;
-                tex->data2 = textureChromaU->m_DataPtr;
-                tex->data3 = textureChromaV->m_DataPtr;
+            if (modelType == CRL_POINT_CLOUD) {
+                if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                    tex->data = pointCloudTexture->m_DataPtr;
+                    tex->data2 = pointCloudTexture->m_DataPtrSecondary;
+                } else {
+                    tex->data = textureVideo->m_DataPtr;
+                    tex->data2 = textureChromaU->m_DataPtr;
+                    tex->data3 = textureChromaV->m_DataPtr;
+                }
+            } else {
+                if (vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME)) {
+                    tex->data = textureVideo->m_DataPtr;
+                    tex->data2 = textureVideo->m_DataPtrSecondary;
+                }
             }
             break;
         case CRL_YUV_PLANAR_FRAME:
@@ -360,7 +375,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
             writeDescriptorSet.dstBinding = 2;
             writeDescriptorSet.pImageInfo = &model->textureVideo->m_Descriptor;
             writeDescriptorSets.emplace_back(writeDescriptorSet);
-         
+
         }
 
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -444,7 +459,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
                     {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                     {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                    {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+                    {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
 
             };
             break;
@@ -484,7 +499,8 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
     }
     VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
                                                                                                static_cast<uint32_t>(setLayoutBindings.size()));
-    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr, &model->descriptorSetLayout));
+    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr,
+                                             &model->descriptorSetLayout));
 }
 
 void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, const VkDescriptorSetLayout &layout) {

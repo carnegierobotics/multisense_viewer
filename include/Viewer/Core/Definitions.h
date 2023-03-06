@@ -80,6 +80,7 @@ typedef enum ScriptType {
      * Create this script before default and always render this type first. No internal ordering amongst scripts
      */
     CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
+    CRL_SCRIPT_TYPE_RENDER_PBR,
 } ScriptType;
 
 /**
@@ -374,6 +375,7 @@ namespace VkRender {
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
         bool useIMU = true;
+        bool enablePBR = false;
         bool colorStreamForPointCloud = true;
 
         /** @brief Following is UI elements settings for the active device **/
@@ -458,7 +460,10 @@ namespace VkRender {
         float height{};
         /** @brief Max disparity of image*/
         float disparity{};
-
+        /** @brief Distance between left and right camera (tx)*/
+        float focalLength{};
+        /** @brief Scaling factor used when operating in cropped mode assuming uniform scaling in x- and y direction */
+        float scale{};
     };
 
     struct ColorPointCloudParams {

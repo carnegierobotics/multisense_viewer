@@ -83,6 +83,8 @@ public:
     Page selectedPreviewTab = CRL_TAB_NONE;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
 
+    bool lumaOrColor = false; // False luma // true Color
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     int point = 0;

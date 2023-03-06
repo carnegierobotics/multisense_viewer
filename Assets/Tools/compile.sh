@@ -48,3 +48,6 @@ $glslc ${sceneDir}/depth/depth.frag -o ${sceneOutDir}depth.frag.spv
 
 $glslc ${sceneDir}/depth/preview.vert -o ${sceneOutDir}preview.vert.spv
 $glslc ${sceneDir}/depth/preview.frag -o ${sceneOutDir}preview.frag.spv
+
+
+cp ${sceneOutDir}/*.spv /home/magnus/crl/multisense_viewer/cmake-build-debug/Assets/Shaders/Scene/spv/

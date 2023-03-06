@@ -1021,8 +1021,8 @@ namespace VkRender::MultiSense {
             if (a.time != g.time)
                 continue;
 
-            roll = std::atan2(a.y,  a.z);
-            pitch = std::atan2(-a.x, std::sqrt(a.y*a.y + a.z*a.z));
+            roll = std::atan2(a.y, a.z);
+            pitch = std::atan2(-a.x, std::sqrt(a.y * a.y + a.z * a.z));
         }
         data->pitch = pitch;
         data->roll = roll;
@@ -1032,43 +1032,74 @@ namespace VkRender::MultiSense {
 
     void CRLPhysicalCamera::updateQMatrix(crl::multisense::RemoteHeadChannel channelID) {
         /// Also update correct Q matrix with the new width
-        // TODO Put into separate function to increase code readability
-        const float xScale = 1.0f / ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
-                                      static_cast<float>(infoMap[channelID].imgConf.width())));
         // From LibMultisenseUtility
+
         channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
         crl::multisense::image::Config c = infoMap[channelID].imgConf;
+
+        float scale = ((static_cast<float>(infoMap[channelID].devInfo.imagerWidth) /
+                        static_cast<float>(infoMap[channelID].imgConf.width())));
+        float dcx = (infoMap[channelID].calibration.right.P[0][2] - infoMap[channelID].calibration.left.P[0][2]) *
+                    (1.0f / scale);
         const float &fx = c.fx();
         const float &fy = c.fy();
         const float &cx = c.cx();
         const float &cy = c.cy();
         const float &tx = c.tx();
-        const float cxRight = (float) infoMap[channelID].calibration.right.P[0][2] * xScale;
         // glm::mat4 indexing
         // [column][row]
         // Inserted values col by col
         glm::mat4 Q(0.0f);
+
         Q[0][0] = fy * tx;
         Q[1][1] = fx * tx;
         Q[2][3] = -fy;
         Q[3][0] = -fy * cx * tx;
         Q[3][1] = -fx * cy * tx;
         Q[3][2] = fx * fy * tx;
-        Q[3][3] = fy * (cx - cxRight);
+        Q[3][3] = fy * dcx;
+
         // keep as is
         infoMap[channelID].QMat = Q;
+        infoMap[channelID].focalLength = fx;
+        infoMap[channelID].pointCloudScale = scale;
         /// Finished updating Q matrix
 
         auto aux = infoMap[channelID].calibration.aux;
-        float afx = aux.M[0][0];
-        float afy = aux.M[1][1];
-        float acx = aux.M[2][0];
-        float acy = aux.M[2][1];
+        float afx = aux.M[0][0] * 1.0f / scale;
+        float afy = aux.M[1][1] * 1.0f / scale;
+        float acx = aux.M[0][2] * 1.0f / scale;
+        float acy = aux.M[1][2] * 1.0f / scale;
         glm::mat4 K(1.0f);
         K[0][0] = afx;
         K[1][1] = afy;
         K[2][0] = acx;
         K[2][1] = acy;
+
+        auto r00 = aux.R[0][0];
+        auto r01 = aux.R[1][0];
+        auto r02 = aux.R[2][0];
+        auto r10 = aux.R[0][1];
+        auto r11 = aux.R[1][1];
+        auto r12 = aux.R[2][1];
+        auto r20 = aux.R[0][2];
+        auto r21 = aux.R[1][2];
+        auto r22 = aux.R[2][2];
+
+        glm::mat4 T(1.0f);
+        T[0][0] = r00;
+        T[1][0] = r01;
+        T[2][0] = r02;
+        T[0][1] = r10;
+        T[1][1] = r11;
+        T[2][1] = r12;
+        T[0][2] = r20;
+        T[1][2] = r21;
+        T[2][2] = r22;
+
+        T[3][0] = 0.0335; // tx
+
+        infoMap[channelID].KColorMatExtrinsic = T;
         infoMap[channelID].KColorMat = K;
     }
 

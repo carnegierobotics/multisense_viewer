@@ -39,7 +39,7 @@
 
 void MultiSenseCamera::setup() {
     m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_scuffed_metal.gltf",
+    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_powdered_metal.gltf",
                           renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
     //m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 

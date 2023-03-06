@@ -119,10 +119,10 @@ namespace VkRender::MultiSense {
             if (ch.state == CRL_STATE_ACTIVE && ch.updateResolutionMode &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
                 uint32_t width = 0, height = 0, depth = 0;
-                Utils::cameraResolutionToValue(ch.selectedMode, &width, &height, &depth);
+                Utils::cameraResolutionToValue(ch.selectedResolutionMode, &width, &height, &depth);
                 Log::Logger::getInstance()->info("Requesting resolution {}x{}x{} on channel {}", width, height, depth,
                                                  ch.index);
-                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedMode, dev, ch.index);
+                pool->Push(CameraConnection::setResolutionTask, this, ch.selectedResolutionMode, dev, ch.index);
                 ch.updateResolutionMode = false;
             }
         }
@@ -377,8 +377,8 @@ namespace VkRender::MultiSense {
             const auto &supportedModes = camPtr.getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
             const auto &imgConf = camPtr.getCameraInfo(ch).imgConf;
-            chInfo.selectedMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
-                                                                 imgConf.disparities());
+            chInfo.selectedResolutionMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
+                                                                           imgConf.disparities());
             for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[(StreamWindowIndex) i].availableRemoteHeads.push_back(std::to_string(ch + 1));
                 if (!chInfo.availableSources.empty())
@@ -428,7 +428,7 @@ namespace VkRender::MultiSense {
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
-                    dev.channelInfo.at(ch).selectedMode = static_cast<CRLCameraResolution>(std::stoi(mode));
+                    dev.channelInfo.at(ch).selectedResolutionMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
                     for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {

@@ -807,13 +807,13 @@ private:
                     if (chInfo.state != CRL_STATE_ACTIVE)
                         continue;
                     if (ImGui::BeginCombo(resLabel.c_str(),
-                                          Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
+                                          Utils::cameraResolutionToString(chInfo.selectedResolutionMode).c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
                         for (size_t n = 0; n < chInfo.modes.size(); n++) {
                             const bool is_selected = (chInfo.selectedModeIndex == n);
                             if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
                                 chInfo.selectedModeIndex = static_cast<uint32_t>(n);
-                                chInfo.selectedMode = Utils::stringToCameraResolution(
+                                chInfo.selectedResolutionMode = Utils::stringToCameraResolution(
                                         chInfo.modes[chInfo.selectedModeIndex]);
                                 chInfo.updateResolutionMode = true;
 
@@ -1004,13 +1004,13 @@ private:
             ImGui::SetNextItemWidth(200);
             std::string resLabel = "##Resolution";
             auto &chInfo = dev.channelInfo.front();
-            if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedMode).c_str(),
+            if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedResolutionMode).c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);
                     if (ImGui::Selectable(chInfo.modes[n].c_str(), is_selected)) {
                         chInfo.selectedModeIndex = static_cast<uint32_t>(n);
-                        chInfo.selectedMode = Utils::stringToCameraResolution(
+                        chInfo.selectedResolutionMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
                         chInfo.updateResolutionMode = true;
                     }

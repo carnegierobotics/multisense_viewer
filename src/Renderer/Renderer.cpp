@@ -428,13 +428,13 @@ void Renderer::render() {
                         continue;
 
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
-                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
+                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
                                                      true);
 
                     if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
                                                               win.second.selectedRemoteHeadIndex)) {
                         uint32_t width = 0, height = 0, depth = 0;
-                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
+                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
                                                        &width, &height, &depth);
 
                         float viewAreaElementPosX = win.second.xPixelStartPos;
@@ -451,7 +451,7 @@ void Renderer::render() {
                             && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
                             uint32_t w = 0, h = 0, d = 0;
                             Utils::cameraResolutionToValue(
-                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode, &w, &h,
+                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode, &w, &h,
                                     &d);
 
                             auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);

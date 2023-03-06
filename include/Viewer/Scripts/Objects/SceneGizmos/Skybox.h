@@ -69,6 +69,8 @@ public:
     float lod = 1.5f;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+
+    Page selectedPreviewTab = CRL_TAB_NONE;
 };
 
 

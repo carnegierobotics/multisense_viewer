@@ -234,6 +234,8 @@ public:
         glm::vec3 nodeTranslation{};
         glm::vec3 nodeScale = glm::vec3(1.0f, 1.0f, 1.0f);
 
+        bool gltfModelLoaded = false;
+
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory= VK_NULL_HANDLE;

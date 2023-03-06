@@ -55,7 +55,7 @@ void MultiSenseCamera::setup() {
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (b)
+    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b)
         m_Model->draw(commandBuffer, i);
 }
 
@@ -72,7 +72,7 @@ void MultiSenseCamera::update() {
         renderData.crlCamera->getImuRotation(&rot, 0);
         //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R), static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
         d->model = glm::rotate(d->model, static_cast<float>(rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
+        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, -1.0f, 0.0f));
     } else {
         //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }
@@ -115,6 +115,7 @@ void MultiSenseCamera::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
+        selectedPreviewTab = d.selectedPreviewTab;
 
         imuEnabled = d.useIMU;
     }

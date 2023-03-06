@@ -121,6 +121,8 @@ namespace VkRender::MultiSense {
 		 */
 		void getProfileFromIni(VkRender::Device& dev) const;
 
+        void activeDeviceCameraStreams(VkRender::Device *dev);
+
 		/**@brief Create a user readable list of the possible camera modes*/
 		static void
 			initCameraModes(std::vector<std::string>* modes, std::vector<crl::multisense::system::DeviceMode> vector);

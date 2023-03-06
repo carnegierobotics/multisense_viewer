@@ -56,11 +56,12 @@ namespace VkRender {
          * @param height Width of texture/frame
          * @param manualMemoryMgmt true: Malloc memory with this object, false: dont malloc memory, default = false
          */
-        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool manualMemoryMgmt = false)
+        explicit TextureData(CRLCameraDataType texType, uint32_t width, uint32_t height, bool pointCloud = false, bool manualMemoryMgmt = false)
                 :
                 m_Type(texType),
                 m_Width(width),
                 m_Height(height),
+                m_ForPointCloud(pointCloud),
                 m_Manual(manualMemoryMgmt) {
 
             calcImageSize();
@@ -101,6 +102,7 @@ namespace VkRender {
         uint8_t* data2{};
         uint8_t* data3 = nullptr;
         uint32_t m_Len = 0, m_Len2 = 0, m_Id{}, m_Id2{};
+        bool m_ForPointCloud = false;
 
     private:
         bool m_Manual = true;
@@ -111,7 +113,6 @@ namespace VkRender {
                     m_Len = m_Width * m_Height;
                     break;
                 case CRL_COLOR_IMAGE_YUV420:
-                case CRL_YUV_PLANAR_FRAME:
                     m_Len = m_Width * m_Height;
                     m_Len2 = m_Width * m_Height / 2;
                     break;

@@ -468,11 +468,9 @@ void Renderer::render() {
                                     dev.pixelInfo.intensity = intensity;
                                 }
                                     break;
-                                case CRL_COLOR_IMAGE:
+                                case CRL_COLOR_IMAGE_RGBA:
                                     break;
                                 case CRL_COLOR_IMAGE_YUV420:
-                                    break;
-                                case CRL_YUV_PLANAR_FRAME:
                                     break;
                                 case CRL_CAMERA_IMAGE_NONE:
                                     break;

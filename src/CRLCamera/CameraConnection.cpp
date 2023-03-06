@@ -54,12 +54,7 @@
 namespace VkRender::MultiSense {
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
 
-        if (dev->useIMU) {
-            if (!Utils::isInVector(dev->channelInfo[0].requestedStreams, "IMU"))
-                dev->channelInfo[0].requestedStreams.emplace_back("IMU");
-        } else {
-            Utils::removeFromVector(&dev->channelInfo[0].requestedStreams, "IMU");
-        }
+        activeDeviceCameraStreams(dev);
 
         auto *p = &dev->parameters;
         if (dev->parameters.updateGuiParams) {
@@ -176,6 +171,103 @@ namespace VkRender::MultiSense {
         Log::Logger::getLogMetrics()->device.dev = dev;
     }
 
+
+    void CameraConnection::activeDeviceCameraStreams(VkRender::Device *dev) {
+        // If we are in 3D mode automatically enable disparity and color streams.
+        if (dev->selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+
+            if (dev->useIMU) {
+                if (!Utils::isInVector(dev->channelInfo[0].requestedStreams, "IMU"))
+                    dev->channelInfo[0].requestedStreams.emplace_back("IMU");
+            } else {
+                Utils::removeFromVector(&dev->channelInfo[0].requestedStreams, "IMU");
+            }
+
+            auto &chInfo = dev->channelInfo.front();
+            if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
+                chInfo.requestedStreams.emplace_back("Disparity Left");
+                Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
+            }
+
+
+            if (dev->colorStreamForPointCloud) {
+                auto streams = {"Color Rectified Aux", "Luma Rectified Aux"};
+                for (const auto &s: streams) {
+                    if (!Utils::isInVector(chInfo.requestedStreams, s)) {
+                        chInfo.requestedStreams.emplace_back(s);
+                        Log::Logger::getInstance()->info(("Adding {} source to user requested sources"), s);
+                    }
+                }
+                // Stop Luma rectified left if not used in the 2D view
+                bool inUse = false;
+                for (const auto &win: dev->win) {
+                    if (win.second.selectedSource == "Luma Rectified Left")
+                        inUse = true;
+                }
+                if (!inUse) {
+                    Utils::removeFromVector(&chInfo.requestedStreams, "Luma Rectified Left");
+                }
+
+            } else {
+                if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
+                    chInfo.requestedStreams.emplace_back("Luma Rectified Left");
+                    Log::Logger::getInstance()->info(("Adding {} source to user requested sources"),
+                                                     "Luma Rectified Left");
+                }
+                bool auxLumaActive = false;
+                bool auxColorActive = false;
+                std::string colorRectified = "Color Rectified Aux";
+                std::string auxLumaRectified = "Luma Rectified Aux";
+                // Check if we have any color or luma
+                for (const auto &win: dev->win) {
+                    if (colorRectified == win.second.selectedSource) {
+                        auxColorActive = true;
+                    }
+                    if (auxLumaRectified == win.second.selectedSource) {
+                        auxLumaActive = true;
+                    }
+                }
+                auto &chInfo = dev->channelInfo.front();
+
+                if (!auxColorActive && !auxLumaActive){
+                    Utils::removeFromVector(&chInfo.requestedStreams, colorRectified);
+                    Utils::removeFromVector(&chInfo.requestedStreams, auxLumaRectified);
+                }
+                else if (auxLumaActive && !auxColorActive){
+                    Utils::removeFromVector(&chInfo.requestedStreams, colorRectified);
+                }
+
+            }
+        } else {
+            // Remember to stop streams if we exit 3D view and our color streams are not in use
+            bool auxLumaActive = false;
+            bool auxColorActive = false;
+            std::string colorRectified = "Color Rectified Aux";
+            std::string auxLumaRectified = "Luma Rectified Aux";
+            // Check if we have any color or luma
+            for (const auto &win: dev->win) {
+                if (colorRectified == win.second.selectedSource) {
+                    auxColorActive = true;
+                }
+                if (auxLumaRectified == win.second.selectedSource) {
+                    auxLumaActive = true;
+                }
+            }
+            auto &chInfo = dev->channelInfo.front();
+
+            if (!auxColorActive && !auxLumaActive){
+                Utils::removeFromVector(&chInfo.requestedStreams, colorRectified);
+                Utils::removeFromVector(&chInfo.requestedStreams, auxLumaRectified);
+            }
+            else if (auxLumaActive && !auxColorActive){
+                Utils::removeFromVector(&chInfo.requestedStreams, colorRectified);
+            }
+
+            Utils::removeFromVector(&dev->channelInfo[0].requestedStreams, "IMU");
+        }
+    }
+
+
     void
     CameraConnection::onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork) {
         if (devices.empty())
@@ -185,13 +277,13 @@ namespace VkRender::MultiSense {
             // Skip update test for non-real (debug) devices
             if (dev.notRealDevice) {
                 // Just delete and remove if requested
-                if (dev.state == CRL_STATE_DISCONNECT_AND_FORGET){
+                if (dev.state == CRL_STATE_DISCONNECT_AND_FORGET) {
                     dev.state = CRL_STATE_REMOVE_FROM_LIST;
                 }
                 continue;
             }
 
-            if (dev.state == CRL_STATE_INTERRUPT_CONNECTION){
+            if (dev.state == CRL_STATE_INTERRUPT_CONNECTION) {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_INTERRUPT_CONNECTION", dev.name);
                 dev.isRecording = false;
                 dev.interruptConnection = true;
@@ -202,7 +294,9 @@ namespace VkRender::MultiSense {
             // If we have requested (previous frame) to reset a connection or want to remove it from saved profiles
             if (dev.state == CRL_STATE_RESET || dev.state == CRL_STATE_DISCONNECT_AND_FORGET ||
                 dev.state == CRL_STATE_LOST_CONNECTION) {
-                Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET", dev.name);
+                Log::Logger::getInstance()->info(
+                        "Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET",
+                        dev.name);
                 dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
                 dev.isRecording = false;
                 saveProfileAndDisconnect(&dev);
@@ -547,7 +641,8 @@ namespace VkRender::MultiSense {
                  auto &e : v){
                 if (hwRev == e && !isRemoteHead) {
                     dev->state = CRL_STATE_UNAVAILABLE;
-                    Log::Logger::getInstance()->error("User connected to a remote head but didn't check the remote head box");
+                    Log::Logger::getInstance()->error(
+                            "User connected to a remote head but didn't check the remote head box");
                     return;
                 }
             }

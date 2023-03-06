@@ -39,7 +39,7 @@
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
     model->draw = false;
-    model->modelType = CRL_POINT_CLOUD;
+    model->cameraDataType = CRL_POINT_CLOUD;
 
     renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -52,10 +52,10 @@ void PointCloud::setup() {
 void PointCloud::update() {
     if (model->draw) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = VkRender::TextureData(CRL_COLOR_IMAGE_YUV420, conf.width(), conf. height());
+        auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(), conf. height(), true);
         model->getTextureDataPointers(&tex);
-        if (renderData.crlCamera->getCameraStream("Color Rectified Aux", &tex, remoteHeadIndex)) {
-            model->updateTexture(tex.m_Type);
+        if (renderData.crlCamera->getCameraStream(lumaOrColor ? "Color Rectified Aux" : "Luma Rectified Left", &tex, remoteHeadIndex)) {
+            model->updateTexture(&tex);
         }
 
         auto depthTex = VkRender::TextureData(CRL_DISPARITY_IMAGE, conf.width(), conf.height());
@@ -86,6 +86,8 @@ void PointCloud::update() {
     VkRender::ColorPointCloudParams data{};
     data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
     data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;
+    data.useColor = lumaOrColor == 1;
+    data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
     memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
 }
@@ -98,15 +100,16 @@ void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
         selectedPreviewTab = dev.selectedPreviewTab;
-        lumaOrColor = dev.colorStreamForPointCloud;
 
         auto &preview = dev.win.at(CRL_PREVIEW_POINT_CLOUD);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
 
         if ((currentRes != res ||
-             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+             remoteHeadIndex != preview.selectedRemoteHeadIndex || lumaOrColor != dev.colorStreamForPointCloud)) {
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
+            lumaOrColor = dev.colorStreamForPointCloud;
+
             prepareTexture();
         }
     }
@@ -136,7 +139,7 @@ void PointCloud::prepareTexture() {
         }
     }
     model->createMeshDeviceLocal(meshData);
-    model->createEmptyTexture(width, height, CRL_POINT_CLOUD);
+    model->createEmptyTexture(width, height, CRL_DISPARITY_IMAGE, true, lumaOrColor);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
@@ -147,8 +150,8 @@ void PointCloud::prepareTexture() {
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     buf->disparity = static_cast<float>(depth);
-    buf->focalLength = static_cast<float>(renderData.crlCamera->getCameraInfo(0).focalLength);
-    buf->scale = static_cast<float>(renderData.crlCamera->getCameraInfo(0).pointCloudScale);
+    buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
+    buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
 
     model->draw = true;
 }

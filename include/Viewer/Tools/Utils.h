@@ -623,10 +623,11 @@ namespace Utils {
                 chInfo.availableSources.emplace_back("Source");
                 chInfo.index = ch;
                 chInfo.state = CRL_STATE_ACTIVE;
+                chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
                 std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
                 supportedDeviceModes.emplace_back();
                 //initCameraModes(&chInfo.modes, supportedModes);
-                chInfo.selectedMode = Utils::valueToCameraResolution(1920 ,1080, 128);
+                chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920 , 1080, 128);
                 for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
                     dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
                     if (!chInfo.availableSources.empty())

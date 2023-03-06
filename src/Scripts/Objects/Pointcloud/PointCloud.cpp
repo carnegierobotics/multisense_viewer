@@ -102,7 +102,10 @@ void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         selectedPreviewTab = dev.selectedPreviewTab;
 
         auto &preview = dev.win.at(CRL_PREVIEW_POINT_CLOUD);
-        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        auto currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
+
+        if (dev.notRealDevice)
+            currentRes = CRL_RESOLUTION_1920_1200_128;
 
         if ((currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex || lumaOrColor != dev.colorStreamForPointCloud)) {

@@ -203,7 +203,7 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
         auto &preview = dev.win.at(CRL_PREVIEW_ONE);
-        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
         virtualDevice = dev.notRealDevice;
 
         if (src == "Source") {

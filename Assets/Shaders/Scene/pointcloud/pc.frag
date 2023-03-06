@@ -18,6 +18,49 @@ layout (set = 0, binding = 4) uniform colorConversionParams {
 
 layout(location = 0) out vec4 outColor;
 
+float Triangular( float f )
+{
+    f = f / 2.0;
+    if( f < 0.0 )
+    {
+        return ( f + 1.0 );
+    }
+    else
+    {
+        return ( 1.0 - f );
+    }
+    return 0.0;
+}
+
+// Function to get interpolated texel data from a texture with GL_NEAREST property.
+// Bi-Linear interpolation is implemented in this function with the
+// help of nearest four data.
+vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord )
+{
+    float texelSizeX = 1.0 / imageDimmensions.x; //size of one texel
+    float texelSizeY = 1.0 / imageDimmensions.y; //size of one texel
+    vec4 nSum = vec4( 0.0, 0.0, 0.0, 0.0 );
+    vec4 nDenom = vec4( 0.0, 0.0, 0.0, 0.0 );
+    float a = fract( TexCoord.x * imageDimmensions.x ); // get the decimal part
+    float b = fract( TexCoord.y * imageDimmensions.y ); // get the decimal part
+    for( int m = -1; m <=2; m++ )
+    {
+        for( int n =-1; n<= 2; n++)
+        {
+            vec4 vecData = texture(textureSampler,
+            TexCoord + vec2(texelSizeX * float( m ),
+            texelSizeY * float( n )));
+            float f  = Triangular( float( m ) - a );
+            vec4 vecCooef1 = vec4( f,f,f,f );
+            float f1 = Triangular ( -( float( n ) - b ) );
+            vec4 vecCoeef2 = vec4( f1, f1, f1, f1 );
+            nSum = nSum + ( vecData * vecCoeef2 * vecCooef1  );
+            nDenom = nDenom + (( vecCoeef2 * vecCooef1 ));
+        }
+    }
+    return nSum / nDenom;
+}
+
 void main()
 {
     if (inCoords.z > 50 && inCoords.z < 0.1){
@@ -33,6 +76,7 @@ void main()
     vec3 tex = texture(samplerColorMap, sampleCoords).rgb;
 
     outColor = vec4(tex, 1.0f);
+    outColor = BiCubic(samplerColorMap, sampleCoords);
     //outColor = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 
 }

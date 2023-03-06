@@ -25,12 +25,13 @@ void Skybox::setup() {
 
 
 
+    /*
     Widgets::make()->slider("Exposure", &exposure, 0.0f, 25.0f);
     Widgets::make()->slider("Gamma", &gamma, 0.0f, 8.0f);
     Widgets::make()->slider("IBL", &ibl, 0.0f, 8.0f);
     Widgets::make()->slider("debugView", &debugViewInputs, 0, 6);
     Widgets::make()->slider("Skybox - LOD", &lod, 0, 10.0f);
-
+*/
     skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath() + "Textures/Environments/papermill.ktx", renderUtils.device);
 
     skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures);
@@ -38,7 +39,7 @@ void Skybox::setup() {
 }
 
 void Skybox::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
-    if (primaryDraw)
+    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && primaryDraw)
         skybox->drawSkybox(commandBuffer, i);
 }
 
@@ -73,6 +74,7 @@ void Skybox::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
+        selectedPreviewTab = d.selectedPreviewTab;
 
     }
 }

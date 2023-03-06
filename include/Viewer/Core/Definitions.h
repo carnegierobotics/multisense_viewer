@@ -87,13 +87,13 @@ typedef enum ScriptType {
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
  */
 typedef enum CRLCameraDataType {
-    CRL_POINT_CLOUD,
+    CRL_DATA_NONE,
     CRL_GRAYSCALE_IMAGE,
-    CRL_COLOR_IMAGE,
+    CRL_COLOR_IMAGE_RGBA,
     CRL_COLOR_IMAGE_YUV420,
-    CRL_YUV_PLANAR_FRAME,
     CRL_CAMERA_IMAGE_NONE,
-    CRL_DISPARITY_IMAGE
+    CRL_DISPARITY_IMAGE,
+    CRL_POINT_CLOUD
 } CRLCameraDataType;
 
 /**
@@ -146,7 +146,10 @@ typedef enum page {
     CRL_TAB_NONE = 10,
     CRL_TAB_2D_PREVIEW = 11,
     CRL_TAB_3D_POINT_CLOUD = 12,
-} Page;
+
+    CRL_TAB_PREVIEW_CONTROL = 20,
+    CRL_TAB_SENSOR_CONFIG = 21
+    } Page;
 
 /**
  * @brief Hardcoded Camera resolutions using descriptive enums
@@ -376,15 +379,15 @@ namespace VkRender {
         /** @brief If possible then use the IMU in the camera */
         bool useIMU = true;
         bool enablePBR = false;
-        bool colorStreamForPointCloud = true;
-
+        int colorStreamForPointCloud = 1; // 0 : luma // 1 : Color
+        Page controlTabActive = CRL_TAB_PREVIEW_CONTROL;
         /** @brief Following is UI elements settings for the active device **/
         /** @brief Which TAB this preview has selected. 2D or 3D view. */
         Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief What type of layout is selected for this device*/
         PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief IF 3D area should be extended or not */
-        bool extend3DArea = false;
+        bool extend3DArea = true;
         Device() {
             outputSaveFolder.resize(255);
         }
@@ -469,6 +472,8 @@ namespace VkRender {
     struct ColorPointCloudParams {
         glm::mat4 instrinsics{};
         glm::mat4 extrinsics{};
+        float useColor = true;
+        float hasSampler = false;
     };
 
     /** @brief Additional default buffers for rendering mulitple models with distrinct MVP */

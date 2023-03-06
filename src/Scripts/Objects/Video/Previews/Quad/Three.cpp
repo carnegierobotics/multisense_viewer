@@ -128,8 +128,8 @@ void Three::update() {
 
 
 void Three::prepareDefaultTexture() {
-    m_NoDataModel->modelType = CRL_COLOR_IMAGE;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
+    m_NoDataModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     std::string vertexShaderFileName = "Scene/spv/quad.vert";
     std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -138,17 +138,17 @@ void Three::prepareDefaultTexture() {
                                                             {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
-    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
+    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
         std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
         m_NoDataModel->updateTexture(defTex->m_Type);
     }
 
-    m_NoSourceModel->modelType = CRL_COLOR_IMAGE;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
+    m_NoSourceModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
-    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
+    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
         std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
         m_NoSourceModel->updateTexture(tex->m_Type);
@@ -164,7 +164,6 @@ void Three::prepareMultiSenseTexture() {
             fragmentShaderFileName = "Scene/spv/preview.frag";
             break;
         case CRL_COLOR_IMAGE_YUV420:
-        case CRL_YUV_PLANAR_FRAME:
             vertexShaderFileName = "Scene/spv/quad.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
                                      "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
@@ -187,8 +186,8 @@ void Three::prepareMultiSenseTexture() {
         Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
-    m_Model->modelType = textureType;
-    m_Model->createEmptyTexture(width, height, textureType);
+    m_Model->cameraDataType = textureType;
+    m_Model->createEmptyTexture(width, height, textureType, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }

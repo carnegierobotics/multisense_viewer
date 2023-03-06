@@ -160,6 +160,8 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
 
     delete[] loaderInfo.vertexBuffer;
     delete[] loaderInfo.indexBuffer;
+
+    gltfModelLoaded = true;
 }
 
 void GLTFModel::Model::getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount,
@@ -1221,7 +1223,8 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
 }
 
 void GLTFModel::Model::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
-
+    if (!gltfModelLoaded)
+        return;
     VkDeviceSize offsets[1] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
     if (indices.buffer != VK_NULL_HANDLE) {

@@ -262,7 +262,7 @@ private:
                                                      ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) ||
                                                      ImGui::IsAnyItemActive());
             ImGui::BeginGroup();
-            if (!dev.extend3DArea)
+            if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW || !dev.extend3DArea)
                 createControlArea(handles, dev);
             ImGui::EndGroup();
 
@@ -282,7 +282,9 @@ private:
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                 ImGuiWindowFlags_NoScrollWithMouse;
 
-        ImVec2 windowPos = dev.extend3DArea ?
+        bool is3DAreaExtended = (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && dev.extend3DArea);
+
+        ImVec2 windowPos = is3DAreaExtended ?
                            ImVec2(handles->info->sidebarWidth, 0):
                            ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0);
 
@@ -290,7 +292,7 @@ private:
                 , ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
 
-        float viewAreaWidth = dev.extend3DArea ?
+        float viewAreaWidth = is3DAreaExtended ?
                               handles->info->width - handles->info->sidebarWidth:
                               handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         handles->info->viewingAreaWidth =viewAreaWidth;
@@ -301,7 +303,7 @@ private:
 
 
 
-        ImGui::Dummy(ImVec2((dev.extend3DArea ?
+        ImGui::Dummy(ImVec2((is3DAreaExtended ?
         (handles->info->viewingAreaWidth + handles->info->controlAreaWidth) / 2 :
         (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
         ImGui::SameLine();
@@ -317,7 +319,6 @@ private:
             handles->clearColor[1] = VkRender::Colors::CRLCoolGray.y;
             handles->clearColor[2] = VkRender::Colors::CRLCoolGray.z;
             handles->clearColor[3] = VkRender::Colors::CRLCoolGray.w;
-            dev.extend3DArea = false;
         }
         ImGui::PopStyleColor(); // Btn Color
 
@@ -346,17 +347,18 @@ private:
 
         // Extend 3D area and hide control area
 
-        ImGui::PushStyleColor(ImGuiCol_Button, dev.extend3DArea ?
+        ImGui::PushStyleColor(ImGuiCol_Button, !is3DAreaExtended ?
                                                VkRender::Colors::CRLRedActive :
                                                VkRender::Colors::CRLRed);
 
 
         if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
             // Maintain position of buttons in viewing bar even if 3D area is extended
-            ImGui::SameLine(0.0f, (dev.extend3DArea ?
+            ImGui::SameLine(0.0f, (is3DAreaExtended ?
                                    (handles->info->viewingAreaWidth - handles->info->controlAreaWidth) / 2 :
                                    (handles->info->viewingAreaWidth / 2)) - 260.0f);
-            if(ImGui::Button("Hide Control Tab", ImVec2(150.0f, 20.0f))){
+            std::string btnLabel = dev.extend3DArea ? "Show Control Tab" : "Hide Control Tab";
+            if(ImGui::Button(btnLabel.c_str(), ImVec2(150.0f, 20.0f))){
                 dev.extend3DArea = dev.extend3DArea ? false : true;
             }
 
@@ -520,11 +522,9 @@ private:
                         case CRL_GRAYSCALE_IMAGE:
                             ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
                             break;
-                        case CRL_COLOR_IMAGE:
+                        case CRL_COLOR_IMAGE_RGBA:
                             break;
                         case CRL_COLOR_IMAGE_YUV420:
-                            break;
-                        case CRL_YUV_PLANAR_FRAME:
                             break;
                         case CRL_CAMERA_IMAGE_NONE:
                             break;
@@ -666,12 +666,12 @@ private:
                                         window.selectedSource)) {
                                     Log::Logger::getInstance()->info("Removed source '{}' from user requested sources",
                                                                      window.selectedSource);
-                                    if (window.selectedSource == "Color Aux" && !stopColor) {
+                                    if (window.selectedSource == "Color Aux" && stopColor) {
                                         Utils::removeFromVector(
                                                 &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                                 "Luma Aux");
                                     }
-                                    if (window.selectedSource == "Color Rectified Aux" && !stopColor) {
+                                    if (window.selectedSource == "Color Rectified Aux" && stopColor) {
                                         Utils::removeFromVector(
                                                 &dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams,
                                                 "Luma Rectified Aux");
@@ -727,12 +727,11 @@ private:
         }
     }
 
-    void drawVideoPreviewGuiOverlay(VkRender::GuiObjectHandles *handles, VkRender::Device &dev,
-                                    bool withStreamControls) {
+    void drawVideoPreviewGuiOverlay(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
 
         if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
 
-            if (withStreamControls) {
+            if (dev.controlTabActive == CRL_TAB_PREVIEW_CONTROL) {
                 ImVec2 size = ImVec2(65.0f, 50.0f);
                 ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
                 ImVec2 uv1 = ImVec2(1.0f, 1.0f);
@@ -992,13 +991,14 @@ private:
                 }
             }
 
-
-        } else if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && withStreamControls) {
+        } else if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && dev.controlTabActive == CRL_TAB_PREVIEW_CONTROL) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("1. Choose Sensor Resolution");
+            ImGui::PushFont(handles->info->font15);
+            ImGui::Text("1. Sensor Resolution");
+            ImGui::PopFont();
             ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -1046,7 +1046,9 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("2. Choose Camera Type");
+            ImGui::PushFont(handles->info->font15);
+            ImGui::Text("2. Camera Type");
+            ImGui::PopFont();
             ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(40.0f, 10.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -1062,27 +1064,34 @@ private:
             dev.resetCamera = ImGui::Button("Reset camera position");
             ImGui::PopStyleColor(2);
 
+            ImGui::Dummy(ImVec2(0.0f, 15.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::PushFont(handles->info->font15);
+            ImGui::Text("3. Options");
+            ImGui::PopStyleColor();
+            ImGui::PopFont();
+
             // IMU
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Checkbox("Enable IMU", &dev.useIMU);
+            ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Checkbox("Enable PBR", &dev.enablePBR);
-
-            ImGui::PopStyleColor(2);
-
-            // Color point cloud
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Text("Color:");
+            ImGui::Dummy(ImVec2(40.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Checkbox("Use color stream", &dev.colorStreamForPointCloud);
+            ImGui::RadioButton("Left imager", &dev.colorStreamForPointCloud, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("Aux imager", &dev.colorStreamForPointCloud, 1);
             ImGui::PopStyleColor();
 
             for(const auto& elem : Widgets::make()->elements){
@@ -1102,25 +1111,6 @@ private:
 
             }
 
-        }
-
-        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
-            auto &chInfo = dev.channelInfo.front();
-            dev.win.at(CRL_PREVIEW_POINT_CLOUD).selectedSource = "Disparity Left";
-            if (!Utils::isInVector(chInfo.requestedStreams, "Disparity Left")) {
-                chInfo.requestedStreams.emplace_back("Disparity Left");
-                Log::Logger::getInstance()->info(("Adding Disparity Left source to user requested sources"));
-            }
-
-            std::string colorStream = dev.colorStreamForPointCloud ? "Color Rectified Aux" : "Luma Rectified Left";
-            if (!Utils::isInVector(chInfo.requestedStreams, colorStream)) {
-                chInfo.requestedStreams.emplace_back(colorStream);
-                Log::Logger::getInstance()->info(("Adding {} source to user requested sources"), colorStream);
-            }
-            if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Aux")) {
-                chInfo.requestedStreams.emplace_back("Luma Rectified Aux");
-                Log::Logger::getInstance()->info(("Adding {} source to user requested sources"), "Luma Rectified Aux");
-            }
         }
 
     }
@@ -1149,16 +1139,16 @@ private:
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
-                    if (ImGui::BeginTabItem((std::string("Preview Control  ") + ( d.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD ? "(3D)" : "(2D)")).c_str())) {
-
-                        drawVideoPreviewGuiOverlay(handles, dev, true);
+                    if (ImGui::BeginTabItem((std::string("Preview Control")).c_str())) {
+                        dev.controlTabActive = CRL_TAB_PREVIEW_CONTROL;
+                        drawVideoPreviewGuiOverlay(handles, dev);
                         ImGui::EndTabItem();
                     }
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
 
                     if (ImGui::BeginTabItem("Sensor Config")) {
-
-                        drawVideoPreviewGuiOverlay(handles, dev, false);
+                        dev.controlTabActive = CRL_TAB_SENSOR_CONFIG;
+                        drawVideoPreviewGuiOverlay(handles, dev);
                         buildConfigurationTab(handles, dev);
                         ImGui::EndTabItem();
                     }

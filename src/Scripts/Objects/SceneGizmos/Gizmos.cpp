@@ -55,15 +55,15 @@ void Gizmos::setup() {
 }
 
 void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
-    if (primaryDraw)
+    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && primaryDraw)
         m_Model->draw(commandBuffer, i);
 }
 
 void Gizmos::update() {
     VkRender::UBOMatrix mat{};
-    mat.model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+    mat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::scale(mat.model, glm::vec3(0.015f, 0.015f, 0.015f));
+    mat.model = glm::scale(mat.model, glm::vec3(0.002f, 0.002f, 0.002f));
 
     auto &d = bufferOneData;
     d->model = mat.model;
@@ -102,5 +102,7 @@ void Gizmos::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
+        selectedPreviewTab = d.selectedPreviewTab;
+
     }
 }

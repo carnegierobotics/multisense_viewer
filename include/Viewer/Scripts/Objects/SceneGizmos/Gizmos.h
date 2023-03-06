@@ -83,6 +83,8 @@ public:
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
     } lightSource;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+
+    Page selectedPreviewTab = CRL_TAB_NONE;
 };
 
 

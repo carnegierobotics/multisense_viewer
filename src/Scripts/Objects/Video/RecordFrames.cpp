@@ -201,9 +201,8 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 outputStream.close();
                 break;
             }
-            case CRL_YUV_PLANAR_FRAME:
             case CRL_CAMERA_IMAGE_NONE:
-            case CRL_COLOR_IMAGE:
+            case CRL_COLOR_IMAGE_RGBA:
                 break;
         }
     } else if (compression == "png") {
@@ -298,11 +297,9 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
 
                 break;
-            case CRL_YUV_PLANAR_FRAME:
-                break;
             case CRL_CAMERA_IMAGE_NONE:
                 break;
-            case CRL_COLOR_IMAGE:
+            case CRL_COLOR_IMAGE_RGBA:
                 break;
         }
     }

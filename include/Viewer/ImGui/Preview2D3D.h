@@ -288,14 +288,13 @@ private:
                            ImVec2(handles->info->sidebarWidth, 0):
                            ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0);
 
-        ImGui::SetNextWindowPos(windowPos
-                , ImGuiCond_Always);
+        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
 
         float viewAreaWidth = is3DAreaExtended ?
                               handles->info->width - handles->info->sidebarWidth:
                               handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
-        handles->info->viewingAreaWidth =viewAreaWidth;
+        handles->info->viewingAreaWidth = viewAreaWidth;
 
         ImGui::SetNextWindowSize(ImVec2(handles->info->viewingAreaWidth, handles->info->viewingAreaHeight),
                                  ImGuiCond_Always);
@@ -304,7 +303,7 @@ private:
 
 
         ImGui::Dummy(ImVec2((is3DAreaExtended ?
-        (handles->info->viewingAreaWidth + handles->info->controlAreaWidth) / 2 :
+        (handles->info->viewingAreaWidth) / 2 :
         (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
         ImGui::SameLine();
 
@@ -355,7 +354,7 @@ private:
         if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
             // Maintain position of buttons in viewing bar even if 3D area is extended
             ImGui::SameLine(0.0f, (is3DAreaExtended ?
-                                   (handles->info->viewingAreaWidth - handles->info->controlAreaWidth) / 2 :
+                                   (handles->info->viewingAreaWidth) / 2 :
                                    (handles->info->viewingAreaWidth / 2)) - 260.0f);
             std::string btnLabel = dev.extend3DArea ? "Show Control Tab" : "Hide Control Tab";
             if(ImGui::Button(btnLabel.c_str(), ImVec2(150.0f, 20.0f))){

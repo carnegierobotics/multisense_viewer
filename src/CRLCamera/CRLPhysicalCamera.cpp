@@ -1071,10 +1071,10 @@ namespace VkRender::MultiSense {
         float acx = aux.M[0][2] * 1.0f / scale;
         float acy = aux.M[1][2] * 1.0f / scale;
         glm::mat4 K(1.0f);
-        K[0][0] = afx;
-        K[1][1] = afy;
-        K[2][0] = acx;
-        K[2][1] = acy;
+        K[0][0] = fx;
+        K[1][1] = fy;
+        K[2][0] = cx;
+        K[2][1] = cy;
 
         auto r00 = aux.R[0][0];
         auto r01 = aux.R[1][0];
@@ -1097,7 +1097,7 @@ namespace VkRender::MultiSense {
         T[1][2] = r21;
         T[2][2] = r22;
 
-        T[3][0] = 0.0335; // tx
+        T[3][0] = -0.0335; // tx
 
         infoMap[channelID].KColorMatExtrinsic = T;
         infoMap[channelID].KColorMat = K;

@@ -67,15 +67,17 @@ void main()
         outColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
         return;
     }
+    mat4 m = mat.extrinsic;
+    m[3][0] += 0.01;
     // Project into color image
-    vec4 colorCamCoords = 1/inCoords.z * mat.intrinsic * mat.extrinsic * vec4(inCoords, 1.0f);
+    vec4 colorCamCoords = 1/inCoords.z * mat.intrinsic * m * vec4(inCoords, 1.0f);
 
     vec2 sampleCoords = vec2((colorCamCoords.x / imageDimmensions.x), colorCamCoords.y / imageDimmensions.y);
 
     // sample from color image
     vec3 tex = texture(samplerColorMap, sampleCoords).rgb;
 
-    outColor = vec4(tex, 1.0f);
+    //outColor = vec4(tex, 1.0f);
     outColor = BiCubic(samplerColorMap, sampleCoords);
     //outColor = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 

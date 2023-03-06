@@ -115,7 +115,7 @@ public:
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
     float m_RotationSpeed = 0.20f;
-    float m_MovementSpeed = 3.0f;
+    float m_MovementSpeed = 1.0f;
     float m_SpeedModifier = 50.0f;
 
     float viewportWidth = 1720;
@@ -194,7 +194,7 @@ public:
         dy *= m_RotationSpeed;
         if (type == flycam){
             yaw -= (dx / 5.0f);
-            pitch += (dy / 5.0f);
+            pitch -= (dy / 5.0f);
         } else {
             float deltaAngleX = (2.0f * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
             float deltaAngleY = (PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg

@@ -85,7 +85,7 @@ void PointCloud::update() {
 
     VkRender::ColorPointCloudParams data{};
     data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
-    data.extrinsics = glm::mat4(1.0f);
+    data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;
     memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
 }
@@ -98,6 +98,7 @@ void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             continue;
 
         selectedPreviewTab = dev.selectedPreviewTab;
+        lumaOrColor = dev.colorStreamForPointCloud;
 
         auto &preview = dev.win.at(CRL_PREVIEW_POINT_CLOUD);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
@@ -146,6 +147,8 @@ void PointCloud::prepareTexture() {
     buf->height = static_cast<float>(height);
     buf->width = static_cast<float>(width);
     buf->disparity = static_cast<float>(depth);
+    buf->focalLength = static_cast<float>(renderData.crlCamera->getCameraInfo(0).focalLength);
+    buf->scale = static_cast<float>(renderData.crlCamera->getCameraInfo(0).pointCloudScale);
 
     model->draw = true;
 }

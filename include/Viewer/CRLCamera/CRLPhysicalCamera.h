@@ -279,6 +279,9 @@ namespace VkRender::MultiSense {
             crl::multisense::image::Calibration calibration{};
             glm::mat4 QMat{};
             glm::mat4 KColorMat{};
+            glm::mat4 KColorMatExtrinsic{};
+            float focalLength = 0.0f;
+            float pointCloudScale = 1.0f;
         };
 
         /**@brief Connects to a VkRender m_Device

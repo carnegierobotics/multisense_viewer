@@ -65,7 +65,7 @@ void MultiSenseCamera::update() {
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.002f, 0.002f, 0.002f));
+    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
 
     if (imuEnabled) {
         VkRender::IMUData rot{};

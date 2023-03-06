@@ -1069,7 +1069,13 @@ private:
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Checkbox("Enable IMU", &dev.useIMU);
 
-            ImGui::PopStyleColor();
+            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Checkbox("Enable PBR", &dev.enablePBR);
+
+            ImGui::PopStyleColor(2);
 
             // Color point cloud
             ImGui::Dummy(ImVec2(0.0f, 3.0));

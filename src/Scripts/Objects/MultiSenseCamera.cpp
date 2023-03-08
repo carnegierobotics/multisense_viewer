@@ -68,11 +68,10 @@ void MultiSenseCamera::update() {
     d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
 
     if (imuEnabled) {
-        VkRender::IMUData rot{};
         renderData.crlCamera->getImuRotation(&rot, 0);
         //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R), static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
-        d->model = glm::rotate(d->model, static_cast<float>(rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, -1.0f, 0.0f));
+        d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
     } else {
         //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     }

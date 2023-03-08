@@ -76,6 +76,7 @@ public:
     } lightSource;
     bool imuEnabled = false;
     Page selectedPreviewTab = CRL_TAB_NONE;
+    VkRender::IMUData rot{};
 
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;

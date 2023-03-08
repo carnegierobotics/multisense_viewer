@@ -1056,18 +1056,19 @@ namespace VkRender::MultiSense {
             }
 
         }
-        double roll = 0, pitch = 0;
+        double rollAcc = 0, pitchAcc = 0;
+        double alpha = 0.97;
         for (int i = 0; i < accel.size(); ++i) {
             auto &a = accel[i];
             auto &g = gyro[i];
             if (a.time != g.time)
                 continue;
+            rollAcc = std::atan2(a.y, a.z);
+            pitchAcc = std::atan2(-a.x, std::sqrt(a.y * a.y + a.z * a.z));
 
-            roll = std::atan2(a.y, a.z);
-            pitch = std::atan2(-a.x, std::sqrt(a.y * a.y + a.z * a.z));
+            data->pitch = alpha * (data->pitch + (g.dTime * (g.y*M_PI/180))) + (1-alpha) * pitchAcc;
+            data->roll = alpha * (data->roll + (g.dTime * (g.x*M_PI/180))) + (1-alpha) * rollAcc;
         }
-        data->pitch = pitch;
-        data->roll = roll;
         return true;
 
     }

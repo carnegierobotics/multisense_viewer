@@ -57,6 +57,7 @@ namespace VkRender::MultiSense {
         activeDeviceCameraStreams(dev);
 
         auto *p = &dev->parameters;
+        // Populate dev-parameters with the currently set settings on the camera
         if (dev->parameters.updateGuiParams) {
             const auto &conf = camPtr.getCameraInfo(dev->configRemoteHead).imgConf;
             p->ep.exposure = conf.exposure();
@@ -85,7 +86,6 @@ namespace VkRender::MultiSense {
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = (float) lightConf.getStartupTime() / 1000.0f;
             p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
-
             dev->parameters.updateGuiParams = false;
         }
 

@@ -205,7 +205,7 @@ void Renderer::render() {
         auto &cam = Log::Logger::getLogMetrics()->camera;
         cam.pitch = camera.yAngle;
         cam.pos = camera.m_Position;
-        cam.yaw = camera.xAngle;
+        cam.rot = camera.m_Rotation;
         cam.cameraFront = camera.cameraFront;
     }
 
@@ -282,7 +282,7 @@ void Renderer::render() {
             switch (dev.selectedPreviewTab) {
                 case CRL_TAB_3D_POINT_CLOUD:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE);
                     scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     break;

@@ -159,6 +159,7 @@ namespace Log {
             float yaw = 0;
             float pitch = 0;
             glm::vec3 pos;
+            glm::vec3 rot;
             glm::vec3 cameraFront;
         } camera;
 

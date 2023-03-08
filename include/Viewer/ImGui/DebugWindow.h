@@ -324,9 +324,7 @@ public:
             ImGui::Text("Camera: ");
 
             ImGui::Text("Position: (%f, %f, %f)", met->camera.pos.x, met->camera.pos.y, met->camera.pos.z);
-            ImGui::Text("Yaw: %f, Pitch: %f", met->camera.yaw, met->camera.pitch);
-            ImGui::Text("Front: (%f, %f, %f)", met->camera.cameraFront.x, met->camera.cameraFront.y,
-                        met->camera.cameraFront.z);
+            ImGui::Text("Rotation: (%f, %f, %f)", met->camera.rot.x, met->camera.rot.y, met->camera.rot.z);
 
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);

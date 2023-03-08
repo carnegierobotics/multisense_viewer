@@ -601,6 +601,48 @@ namespace VkRender::MultiSense {
         return true;
     }
 
+    bool CRLPhysicalCamera::setSecondaryExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set exposure on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
+        crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->error("Unable to query exposure configuration");
+            return false;
+        }
+        std::vector<crl::multisense::image::ExposureConfig> exposures = infoMap[channelID].imgConf.secondaryExposures();
+
+
+        crl::multisense::image::ExposureConfig config;
+        config.setExposure(p.exposure);
+        config.setAutoExposure(false);
+        config.setExposureSource(crl::multisense::Source_Luma_Right | crl::multisense::Source_Luma_Aux);
+        exposures.push_back(config);
+        infoMap[channelID].imgConf.setSecondaryExposures(exposures);
+
+        status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->error("Unable to set exposure configuration");
+            return false;
+        } else {
+            Log::Logger::getInstance()->info("Set secondary exposure on channel {}", channelID);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+            Log::Logger::getInstance()->error("Failed to verify Exposure params");
+            return false;
+        }
+        return true;
+    }
+
     bool CRLPhysicalCamera::setPostFilterStrength(float filter, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
 

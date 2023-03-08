@@ -358,6 +358,7 @@ namespace VkRender::MultiSense {
          * @return if the value was successfully set
          * */
         bool setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
+        bool setSecondaryExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
 
         /** @brief Sets the white balance for the sensor
          *

@@ -249,6 +249,8 @@ struct CalibrationParams {
 /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
 struct Parameters {
     ExposureParams ep{};
+    ExposureParams epSecondary{};
+
     WhiteBalanceParams wb{};
     LightingParams light{};
     CalibrationParams calib{};

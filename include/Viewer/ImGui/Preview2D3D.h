@@ -122,6 +122,7 @@ public:
             }
         }
 
+        // Not in use --- For future use if a three action menu should open on application startup before previewing
         if (drawActionPage) {
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
@@ -1182,7 +1183,6 @@ private:
     }
 
     void buildConfigurationTab(VkRender::GuiObjectHandles *handles, VkRender::Device &d) {
-        // Exposure Tab
         {
             float textSpacing = 90.0f;
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
@@ -1209,7 +1209,7 @@ private:
                                        crl::multisense::Remote_Head_3))
                     d.parameters.updateGuiParams = true;
             }
-
+            // Exposure Tab
             ImGui::PushFont(handles->info->font18);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             ImGui::Dummy(ImVec2(10.0f, 0.0f));
@@ -1265,6 +1265,20 @@ private:
                                    14.2f, "%.1f");
                 d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
+
+                /*
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "exposure2:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::SliderInt("##exp2", &d.parameters.epSecondary.exposure, 20, 30000);
+                d.parameters.epSecondary.update = ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::PopStyleColor();
+*/
 
             } else {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));

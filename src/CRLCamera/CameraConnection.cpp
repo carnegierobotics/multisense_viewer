@@ -96,6 +96,9 @@ namespace VkRender::MultiSense {
         if (dev->parameters.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, dev->configRemoteHead);
 
+        if (dev->parameters.epSecondary.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::setSecondaryExposureTask, this, &p->epSecondary, dev, dev->configRemoteHead);
+
         if (dev->parameters.wb.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, dev->configRemoteHead);
 
@@ -743,6 +746,14 @@ namespace VkRender::MultiSense {
 
         std::scoped_lock lock(app->writeParametersMtx);
         if (app->camPtr.setExposureParams(*arg1, remoteHeadIndex))
+            app->updateFromCameraParameters(dev, remoteHeadIndex);
+    }
+    void CameraConnection::setSecondaryExposureTask(void *context, ExposureParams *arg1, VkRender::Device *dev,
+                                           crl::multisense::RemoteHeadChannel remoteHeadIndex) {
+        auto *app = reinterpret_cast<CameraConnection *>(context);
+
+        std::scoped_lock lock(app->writeParametersMtx);
+        if (app->camPtr.setSecondaryExposureParams(*arg1, remoteHeadIndex))
             app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 

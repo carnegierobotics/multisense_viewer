@@ -283,10 +283,14 @@ void Renderer::render() {
                 case CRL_TAB_3D_POINT_CLOUD:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     break;
                 default:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
             }
 
@@ -309,6 +313,10 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {

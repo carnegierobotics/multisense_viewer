@@ -204,6 +204,9 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             case CRL_CAMERA_IMAGE_NONE:
             case CRL_COLOR_IMAGE_RGBA:
                 break;
+            default:
+                Log::Logger::getInstance()->info("Recording not specified for this format");
+                break;
         }
     } else if (compression == "png") {
         switch (type) {
@@ -297,9 +300,8 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
             }
 
                 break;
-            case CRL_CAMERA_IMAGE_NONE:
-                break;
-            case CRL_COLOR_IMAGE_RGBA:
+            default:
+                Log::Logger::getInstance()->info("Recording not specified for this format");
                 break;
         }
     }

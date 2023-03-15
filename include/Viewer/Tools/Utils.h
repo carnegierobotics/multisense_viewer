@@ -611,6 +611,6 @@ namespace Utils {
     }
 
 
-};
+}
 
 #endif //MULTISENSE_VIEWER_UTILS_H

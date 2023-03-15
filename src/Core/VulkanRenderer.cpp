@@ -89,8 +89,8 @@ namespace VkRender {
         appInfo.pEngineName = m_Name.c_str();
         appInfo.apiVersion = apiVersion;
         pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
-                      VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
-                      VK_API_VERSION_PATCH(apiVersion));
+                      VK_VERSION_MAJOR(apiVersion), VK_VERSION_MINOR(apiVersion),
+                      VK_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
         enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
         // Check if extensions are supported
@@ -165,8 +165,8 @@ namespace VkRender {
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
-        VkPhysicalDeviceVulkan11Features features;
-        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        VkPhysicalDeviceSamplerYcbcrConversionFeatures features;
+        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
         features.pNext = nullptr;
         // Derived examples can override this to set actual m_Features (based on above readings) to flashing for logical m_Device creation
         addDeviceFeatures();

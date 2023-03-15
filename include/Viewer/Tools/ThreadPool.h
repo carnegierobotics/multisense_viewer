@@ -153,5 +153,5 @@ namespace VkRender {
         std::mutex task_mutex_;
         std::condition_variable task_cond_;
     };
-};
+}
 #endif //MULTISENSE_VIEWER_THREADPOOL_H

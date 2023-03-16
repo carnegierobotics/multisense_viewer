@@ -223,6 +223,7 @@ struct ExposureParams {
     uint16_t autoExposureRoiWidth = crl::multisense::Roi_Full_Image;
     uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
     crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
+    uint32_t currentExposure = 0.0f;
 
     bool update = false;
 };

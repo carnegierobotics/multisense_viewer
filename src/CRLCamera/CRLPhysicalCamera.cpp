@@ -1146,4 +1146,27 @@ namespace VkRender::MultiSense {
         infoMap[channelID].KColorMat = K;
     }
 
+    bool CRLPhysicalCamera::getExposure(crl::multisense::RemoteHeadChannel channelID) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to get exposure on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+        crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->error("Unable to query exposure configuration");
+            return false;
+        }
+        if (infoMap[channelID].imgConf.autoExposure())
+            infoMap[channelID].imgConf.exposure();
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
+            Log::Logger::getInstance()->error("Failed to verify Exposure params");
+            return false;
+        }
+        return true;
+    }
+
 }

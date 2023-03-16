@@ -1282,6 +1282,15 @@ private:
 
             } else {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Current Exp:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::Text("%d us", d.parameters.ep.currentExposure);
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);

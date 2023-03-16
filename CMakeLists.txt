@@ -104,7 +104,7 @@ if (UNIX) ## Linux
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary stdc++fs)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)
@@ -166,7 +166,7 @@ if (WIN32)
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale)
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary stdc++fs)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     #AutoConnect

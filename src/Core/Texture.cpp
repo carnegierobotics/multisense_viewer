@@ -218,7 +218,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
     samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     samplerInfo.maxAnisotropy = 1.0;
-    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.anisotropyEnable = VK_FALSE;
     samplerInfo.maxLod = (float) m_MipLevels;
     samplerInfo.maxAnisotropy = 8.0f;
     CHECK_RESULT(vkCreateSampler(device->m_LogicalDevice, &samplerInfo, nullptr, &m_Sampler));
@@ -679,7 +679,7 @@ void Texture2D::fromKtxFile(std::string filename, VkFormat format, VulkanDevice 
     // Only enable anisotropic filtering if enabled on the device
     samplerCreateInfo.maxAnisotropy = m_Device->m_EnabledFeatures.samplerAnisotropy
                                       ? m_Device->m_Properties.limits.maxSamplerAnisotropy : 1.0f;
-    samplerCreateInfo.anisotropyEnable = m_Device->m_EnabledFeatures.samplerAnisotropy;
+    samplerCreateInfo.anisotropyEnable = VK_FALSE;
     samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
     CHECK_RESULT(vkCreateSampler(m_Device->m_LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler));
@@ -1282,7 +1282,7 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     samplerCreateInfo.mipLodBias = 0.0f;
     samplerCreateInfo.maxAnisotropy = device->m_EnabledFeatures.samplerAnisotropy
                                       ? device->m_Properties.limits.maxSamplerAnisotropy : 1.0f;
-    samplerCreateInfo.anisotropyEnable = false;
+    samplerCreateInfo.anisotropyEnable = VK_FALSE;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerCreateInfo.minLod = 0.0f;
     samplerCreateInfo.maxLod = (float) m_MipLevels;

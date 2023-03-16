@@ -611,6 +611,45 @@ namespace Utils {
     }
 
 
-}
+    inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+            dev.channelInfo.resize(4); // max number of remote heads
+            dev.win.clear();
+            for (crl::multisense::RemoteHeadChannel ch: {0}) {
+                VkRender::ChannelInfo chInfo;
+                chInfo.availableSources.clear();
+                chInfo.modes.clear();
+                chInfo.availableSources.emplace_back("Source");
+                chInfo.index = ch;
+                chInfo.state = CRL_STATE_ACTIVE;
+                std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+                supportedDeviceModes.emplace_back();
+                //initCameraModes(&chInfo.modes, supportedModes);
+                chInfo.selectedMode = Utils::valueToCameraResolution(1920 ,1080, 128);
+                for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
+                    dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+                    if (!chInfo.availableSources.empty())
+                        dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
+                }
+
+                // stop streams if there were any enabled, just so we can start with a clean slate
+                //stopStreamTask(this, "All", ch);
+
+                dev.channelInfo.at(ch) = chInfo;
+            }
+
+            // Update Debug Window
+            auto &info = Log::Logger::getLogMetrics()->device.info;
+
+            info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
+            info.firmwareVersion = 12;
+            info.apiBuildDate = "cInfo.apiBuildDate";
+            info.apiVersion = 13;
+            info.hardwareMagic = 14;
+            info.hardwareVersion = 16;
+            info.sensorFpgaDna = 17;
+
+        }
+
+};
 
 #endif //MULTISENSE_VIEWER_UTILS_H

@@ -175,6 +175,9 @@ namespace VkRender::MultiSense {
             return;
 
         for (auto &dev: devices) {
+            // Skip update test for non-real (debug) devices
+            if (dev.notRealDevice)
+                continue;
 
             if (dev.state == CRL_STATE_INTERRUPT_CONNECTION){
                 dev.isRecording = false;
@@ -250,7 +253,7 @@ namespace VkRender::MultiSense {
         }
     }
 
-    void CameraConnection::updateUIDataBlock(VkRender::Device &dev) {
+    void CameraConnection::updateUIDataBlock(VkRender::Device &dev, const std::unique_ptr<CRLPhysicalCamera> &camPtr) {
         dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
         dev.win.clear();
         for (crl::multisense::RemoteHeadChannel ch: dev.channelConnections) {
@@ -260,7 +263,7 @@ namespace VkRender::MultiSense {
             chInfo.availableSources.emplace_back("Source");
             chInfo.index = ch;
             chInfo.state = CRL_STATE_ACTIVE;
-            filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch);
+            filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch, camPtr);
             const auto &supportedModes = camPtr->getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
             const auto &imgConf = camPtr->getCameraInfo(ch).imgConf;
@@ -273,10 +276,11 @@ namespace VkRender::MultiSense {
             }
 
             // stop streams if there were any enabled, just so we can start with a clean slate
-            stopStreamTask(this, "All", ch);
+            //stopStreamTask(this, "All", ch);
 
             dev.channelInfo.at(ch) = chInfo;
         }
+
 
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;
@@ -354,8 +358,10 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::filterAvailableSources(std::vector<std::string> *sources, std::vector<uint32_t> maskVec,
-                                                  crl::multisense::RemoteHeadChannel idx) {
+    void
+    CameraConnection::filterAvailableSources(std::vector<std::string> *sources, const std::vector<uint32_t> &maskVec,
+                                             crl::multisense::RemoteHeadChannel idx,
+                                             const std::unique_ptr<CRLPhysicalCamera> &camPtr) {
         uint32_t bits = camPtr->getCameraInfo(idx).supportedSources;
         for (auto mask: maskVec) {
             bool enabled = (bits & mask);
@@ -533,7 +539,7 @@ namespace VkRender::MultiSense {
             }
 
             //app->getProfileFromIni(*dev);
-            app->updateUIDataBlock(*dev);
+            app->updateUIDataBlock(*dev, app->camPtr);
             if (!isRemoteHead) app->getProfileFromIni(*dev);
             // Set the resolution read from config file
             dev->cameraName = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.name;

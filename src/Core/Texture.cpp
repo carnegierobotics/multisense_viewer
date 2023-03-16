@@ -40,7 +40,8 @@
 
 #include <filesystem>
 #include <vulkan/vulkan.h>
-#include <ktxvulkan.h>
+#include <KTX-Software/include/ktx.h>
+#include <KTX-Software/include/ktxvulkan.h>
 
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/Macros.h"

@@ -88,38 +88,38 @@ namespace VkRender {
         virtual void setup() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function setup not overridden for {} script", renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called once every frame*/
         virtual void update() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called each frame*/
         virtual void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onUIUpdate not overridden for {} script",                                                 renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
         virtual void setDrawMethod(ScriptType type) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function setDrawMethod not overridden for {} script",                                                 renderData.scriptName);
-        };
+        }
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onWindowResize not overridden for {} script",                                                renderData.scriptName);
-        };
+        }
 
         /**@brief Called once script is requested for deletion */
         virtual void onDestroy() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onDestroy not overridden for {} script",                                                 renderData.scriptName);
 
-        };
+        }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
         virtual ScriptType getType() {
@@ -130,7 +130,7 @@ namespace VkRender {
         virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
-        };
+        }
         DISABLE_WARNING_POP
 
         void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
@@ -164,7 +164,7 @@ namespace VkRender {
             if (i == 0)
                 renderData.scriptDrawCount++;
 
-        };
+        }
 
 
         void updateUniformBufferData(VkRender::RenderData *data) {

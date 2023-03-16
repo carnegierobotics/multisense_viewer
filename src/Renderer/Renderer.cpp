@@ -73,15 +73,6 @@ void Renderer::prepareRenderer() {
         buildScript(line);
     }
 
-
-    VkRender::Device testDevice;
-    testDevice.state = CRL_STATE_ACTIVE;
-    testDevice.cameraName = "Test Device";
-    testDevice.notRealDevice = true;
-    cameraConnection->camPtr = std::make_unique<VkRender::MultiSense::CRLPhysicalCamera>();
-    Utils::initializeUIDataBlockWithTestData(testDevice);
-    guiManager->handles.devices.emplace_back(testDevice);
-
 }
 
 

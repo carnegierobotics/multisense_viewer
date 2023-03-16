@@ -1282,7 +1282,7 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     samplerCreateInfo.mipLodBias = 0.0f;
     samplerCreateInfo.maxAnisotropy = device->m_EnabledFeatures.samplerAnisotropy
                                       ? device->m_Properties.limits.maxSamplerAnisotropy : 1.0f;
-    samplerCreateInfo.anisotropyEnable = device->m_EnabledFeatures.samplerAnisotropy;
+    samplerCreateInfo.anisotropyEnable = false;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
     samplerCreateInfo.minLod = 0.0f;
     samplerCreateInfo.maxLod = (float) m_MipLevels;

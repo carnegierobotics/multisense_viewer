@@ -89,8 +89,8 @@ namespace VkRender {
         appInfo.pEngineName = m_Name.c_str();
         appInfo.apiVersion = apiVersion;
         pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
-                      VK_VERSION_MAJOR(apiVersion), VK_VERSION_MINOR(apiVersion),
-                      VK_VERSION_PATCH(apiVersion));
+                      VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
+                      VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
         enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
         // Check if extensions are supported

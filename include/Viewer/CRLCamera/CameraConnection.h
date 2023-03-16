@@ -97,7 +97,9 @@ namespace VkRender::MultiSense {
 		int m_FailedGetStatusCount = 0;
 		/** @brief get status timer */
 		std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
-		/**@brief mutex to prevent multiple threads to communicate with camera.
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryExposureTimer;
+
+        /**@brief mutex to prevent multiple threads to communicate with camera.
 		 * could be omitted if threadpool will always consist of one thread */
 		std::mutex writeParametersMtx{};
 		std::mutex statusCountMutex{};
@@ -226,6 +228,12 @@ namespace VkRender::MultiSense {
 		 */
 		static void getStatusTask(void* context, crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
+        /**@brief Get the current exposure setting (If AutoExposure is enabled)
+		 * @param[in] context pointer to the callers context
+		 * @param[in] remoteHeadIndex id of remote head to select
+		 */
+		static void getExposureTask(void *context, VkRender::Device *dev, short index);
+
 		/**@brief Update the UI block using the active information block from the physical camera
 		 * @param[in] dev profile to update UI from
 		 * @param[in] remoteHeadIndex id of remote head
@@ -267,7 +275,7 @@ namespace VkRender::MultiSense {
 				crl::multisense::Source_Compressed_Rectified_Left,
 		};
 
-    };
+	};
 
 }
 #endif //MULTISENSE_CAMERACONNECTION_H

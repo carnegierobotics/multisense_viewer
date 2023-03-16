@@ -446,7 +446,9 @@ namespace VkRender::MultiSense {
          * @param[in] savePath where to save .yml files
          * @return true successful
          */
-        bool saveSensorCalibration(const std::string &savePath, short channelID);
+        bool saveSensorCalibration(const std::string &savePath, crl::multisense::RemoteHeadChannel channelID);
+
+        bool getExposure(crl::multisense::RemoteHeadChannel i);
 
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};

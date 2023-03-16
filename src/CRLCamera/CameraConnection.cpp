@@ -112,6 +112,14 @@ namespace VkRender::MultiSense {
             dev->parameters.calib.update = false;
         }
 
+        // Read exposure setting around once a second if auto exposure is enabled Also put it into GUI structure
+        auto time = std::chrono::steady_clock::now();
+        std::chrono::duration<float> time_span =
+                std::chrono::duration_cast<std::chrono::duration<float >>(time - queryExposureTimer);
+        if (dev->parameters.ep.autoExposure && time_span.count() > INTERVAL_1_SECOND && pool->getTaskListSize() < MAX_TASK_STACK_SIZE){
+            queryExposureTimer = std::chrono::steady_clock::now();
+            pool->Push(CameraConnection::getExposureTask, this, dev, dev->configRemoteHead);
+        }
 
         if (dev->parameters.calib.save && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath,
@@ -658,6 +666,7 @@ namespace VkRender::MultiSense {
             dev->serialName = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();
+            app->queryExposureTimer = std::chrono::steady_clock::now();
             dev->state = CRL_STATE_ACTIVE;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {
@@ -854,6 +863,18 @@ namespace VkRender::MultiSense {
         }
         // Increment a counter
 
+    }
+
+    void CameraConnection::getExposureTask(void *context, VkRender::Device *dev,
+                                              crl::multisense::RemoteHeadChannel index) {
+        auto *app = reinterpret_cast<CameraConnection *>(context);
+        std::scoped_lock lock(app->writeParametersMtx);
+        if (app->camPtr.getExposure(index)){
+            // Update GUI value
+            const auto &conf = app->camPtr.getCameraInfo(index).imgConf;
+            auto *p = &dev->parameters;
+            p->ep.currentExposure = conf.exposure();
+        }
     }
 
     void CameraConnection::getCalibrationTask(void *context, const std::string &saveLocation,

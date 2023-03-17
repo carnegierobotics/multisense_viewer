@@ -184,6 +184,7 @@ if (WIN32)
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
     # create a list of third part DLLs to copy
+
     set(THIRD_PARTY_DLLS
             #FFMPEG
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll

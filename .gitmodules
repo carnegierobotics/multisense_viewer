@@ -31,3 +31,6 @@
 	url = https://gitlab.com/libtiff/libtiff
 [submodule ".\\AutoConnect"]
 	url = https://github.com/carnegierobotics/AutoConnect
+[submodule "external/KTX-Software"]
+	path = external/KTX-Software
+	url = https://github.com/M-Gjerde/KTX-Software

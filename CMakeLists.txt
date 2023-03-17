@@ -26,10 +26,10 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"  "MinSizeRel" "RelWithDebInfo")
 endif ()
 
+find_package(Vulkan REQUIRED)
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
-
-find_package(Vulkan REQUIRED)
 
 find_package(Doxygen)
 if(Doxygen_FOUND)
@@ -175,8 +175,10 @@ if (WIN32)
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})

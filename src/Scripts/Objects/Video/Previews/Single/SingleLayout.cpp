@@ -50,19 +50,19 @@ void SingleLayout::setup() {
     m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    m_NoDataTex = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
+    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth, &texHeight, &texChannels,
                             STBI_rgb_alpha);
     if (!m_NoDataTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
-                                         (Utils::getTexturePath() + "no_image_tex.png"));
+                                         (Utils::getTexturePath().append("no_image_tex.png")).string());
     }
     // Create texture m_Image if not created
-    m_NoSourceTex = stbi_load((Utils::getTexturePath() + "no_source_selected.png").c_str(), &texWidth, &texHeight,
+    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth, &texHeight,
                               &texChannels,
                               STBI_rgb_alpha);
     if (!m_NoSourceTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
-                                         (Utils::getTexturePath() + "no_source_selected.png"));
+                                         (Utils::getTexturePath().append("no_source_selected.png")).string());
     }
 
     lastPresentTime = std::chrono::steady_clock::now();

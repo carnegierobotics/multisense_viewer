@@ -13,18 +13,18 @@ private:
     struct Element {
         const char *label;
         float *value = nullptr;
-        float min = 0.0f;
-        float max = 1.0f;
+        float minValue = 0.0f;
+        float maxValue = 1.0f;
         ScriptWidgetType type{};
 
         Element(const char *labelVal, float *valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
-                                                                                   min(minVal), max(maxVal) {
+            minValue(minVal), maxValue(maxVal) {
             type = FLOAT_SLIDER;
         }
 
         int *intValue = nullptr;
-        int intMin = 0.0f;
-        int intMax = 1.0f;
+        int intMin = 0;
+        int intMax = 1;
         Element(const char *labelVal, int *valPtr, int minVal, int maxVal) : label(labelVal), intValue(valPtr),
                                                                              intMin(minVal), intMax(maxVal) {
             type = INT_SLIDER;

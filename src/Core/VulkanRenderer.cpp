@@ -71,7 +71,7 @@ namespace VkRender {
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
 
         GLFWimage images[1];
-        std::string fileName = (Utils::getAssetsPath() + "Textures/CRL96x96.png");
+        std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
         images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
         if (!images[0].pixels) {
             throw std::runtime_error("Failed to load window icon: " + fileName);
@@ -240,11 +240,11 @@ namespace VkRender {
         vkDestroyImageView(device, depthStencil.view, nullptr);
         vkFreeMemory(device, depthStencil.mem, nullptr);
         vkDestroyCommandPool(device, cmdPool, nullptr);
-        for (auto *fence: waitFences) {
+        for (auto &fence: waitFences) {
             vkDestroyFence(device, fence, nullptr);
         }
         vkDestroyRenderPass(device, renderPass, nullptr);
-        for (auto *fb: frameBuffers) {
+        for (auto &fb: frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
         vkDestroyPipelineCache(device, pipelineCache, nullptr);

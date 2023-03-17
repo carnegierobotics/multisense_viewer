@@ -38,7 +38,7 @@
 
 void Gizmos::setup() {
     m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
-    m_Model->loadFromFile(Utils::getAssetsPath() + "Models/coordinates.gltf", renderUtils.device,
+    m_Model->loadFromFile(Utils::getAssetsPath().append( "Models/coordinates.gltf").string(), renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
 
 

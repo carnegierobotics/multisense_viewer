@@ -39,7 +39,7 @@
 
 void Helmet::setup() {
     helmet = std::make_unique<GLTFModel::Model>(&renderUtils);
-    helmet->loadFromFile(Utils::getAssetsPath() + "Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf",
+    helmet->loadFromFile(Utils::getAssetsPath().append("Models/DamagedHelmet/glTF-Embedded/DamagedHelmet.gltf").string(),
                          renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
     //helmet->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 

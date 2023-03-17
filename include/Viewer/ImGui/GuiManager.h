@@ -66,7 +66,7 @@ namespace VkRender {
             vkDestroyPipelineLayout(device->m_LogicalDevice, pipelineLayout, nullptr);
             vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->m_LogicalDevice, descriptorSetLayout, nullptr);
-            for (auto * shaderModule: shaderModules) {
+            for (auto& shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
 

@@ -84,19 +84,19 @@ namespace Utils {
 
     // TODO use std::filesystem for paths
 #ifdef WIN32
-    static std::string getShadersPath() {
-        return ".\\Assets\\Shaders\\";
+    static  std::filesystem::path getShadersPath() {
+        return { "./Assets/Shaders" };
     }
-    static std::string getAssetsPath() {
-        return ".\\Assets\\";
-    }
-
-    static std::string getTexturePath() {
-        return ".\\Assets\\Textures\\";
+    static std::filesystem::path getAssetsPath() {
+        return { "./Assets/" };
     }
 
-    static std::string getScriptsPath() {
-        return "Scripts\\";
+    static std::filesystem::path getTexturePath() {
+        return { "./Assets/Textures" };
+    }
+
+    static  std::filesystem::path getScriptsPath() {
+        return { "Scripts/" };
     }
 #endif
 

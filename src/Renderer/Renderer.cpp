@@ -132,7 +132,7 @@ void Renderer::buildCommandBuffers() {
 
 
 void Renderer::buildScripts() {
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
+    std::ifstream infile(Utils::getAssetsPath().append( "Generated/Scripts.txt").string());
     std::string scriptName;
     while (std::getline(infile, scriptName)) {
         // Skip comment # line
@@ -754,7 +754,7 @@ VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkSha
     if (extension == std::string::npos)
         fileName.append(".spv");
     VkShaderModule module;
-    Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+    Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
                       vulkanDevice->m_LogicalDevice, &module);
     assert(module != VK_NULL_HANDLE);
 

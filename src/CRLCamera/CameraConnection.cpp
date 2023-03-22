@@ -627,7 +627,8 @@ namespace VkRender::MultiSense {
     CameraConnection::~CameraConnection() {
         // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
         // stops all streams on the camera
-        pool->Stop();
+        if (pool)
+            pool->Stop();
 #ifndef WIN32
         if (m_FD != -1)
             close(m_FD);

@@ -232,7 +232,7 @@ namespace VkRender {
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
         VkShaderModule vtxModule{};
-        Utils::loadShader((Utils::getShadersPath() + "Scene/imgui/ui.vert.spv").c_str(), device->m_LogicalDevice, &vtxModule);
+        Utils::loadShader((Utils::getShadersPath().append( "Scene/imgui/ui.vert.spv")).string().c_str(), device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -242,7 +242,7 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath() + "Scene/imgui/ui.frag.spv").c_str(), device->m_LogicalDevice, &frgModule);
+        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(), device->m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -424,24 +424,24 @@ namespace VkRender {
         handles.info->font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15);
         handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
-        io->Fonts->SetTexID(fontDescriptors[3]);
+        io->Fonts->SetTexID(reinterpret_cast<ImTextureID>(fontDescriptors[3]));
 
         imageIconDescriptors.resize(10);
         handles.info->imageButtonTextureDescriptor.resize(10);
         iconTextures.reserve(10);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_preview.png", 0);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_information.png", 1);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_configure.png", 2);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_auto_configure.png", 3);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_manual_configure.png", 4);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_playback.png", 5);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_single_layout.png", 6);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_double_layout.png", 7);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_quad_layout.png", 8);
-        loadImGuiTextureFromFileName(Utils::getTexturePath() + "icon_nine_layout.png", 9);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_preview.png").string(), 0);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_information.png").string(), 1);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_configure.png").string(), 2);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_auto_configure.png").string(), 3);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_manual_configure.png").string(), 4);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_playback.png").string(), 5);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_single_layout.png").string(), 6);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_double_layout.png").string(), 7);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_quad_layout.png").string(), 8);
+        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_nine_layout.png").string(), 9);
 
 
-        loadAnimatedGif(Utils::getTexturePath() + "spinner.gif");
+        loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
     }
 

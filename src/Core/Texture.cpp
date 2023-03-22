@@ -1133,9 +1133,9 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     ktxTexture *ktxTexture;
 
     ktxResult result = KTX_SUCCESS;
-    result = ktxTexture_CreateFromNamedFile(path.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+    result = ktxTexture_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
     assert(result == KTX_SUCCESS);
-    Log::Logger::getInstance()->info("Loading TextureCubeMap {}", path.c_str());
+    Log::Logger::getInstance()->info("Loading TextureCubeMap {}", reinterpret_cast<const char*>(path.c_str()));
     m_Width = ktxTexture->baseWidth;
     m_Height = ktxTexture->baseHeight;
     m_MipLevels = ktxTexture->numLevels;

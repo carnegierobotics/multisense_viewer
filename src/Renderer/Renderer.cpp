@@ -132,7 +132,7 @@ void Renderer::buildCommandBuffers() {
 
 
 void Renderer::buildScripts() {
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
+    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
     std::string scriptName;
     while (std::getline(infile, scriptName)) {
         // Skip comment # line
@@ -209,8 +209,8 @@ void Renderer::render() {
         cam.cameraFront = camera.cameraFront;
     }
 
-    camera.viewportHeight = m_Height;
-    camera.viewportWidth = m_Width;
+    camera.viewportHeight = static_cast<float>(m_Height);
+    camera.viewportWidth = static_cast<float>(m_Width);
 
     // RenderData
     submitInfo.commandBufferCount = 1;
@@ -442,8 +442,9 @@ void Renderer::render() {
                     if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
                                                               win.second.selectedRemoteHeadIndex)) {
                         uint32_t width = 0, height = 0, depth = 0;
-                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
-                                                       &width, &height, &depth);
+                        Utils::cameraResolutionToValue(
+                                dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
+                                &width, &height, &depth);
 
                         float viewAreaElementPosX = win.second.xPixelStartPos;
                         float viewAreaElementPosY = win.second.yPixelStartPos;
@@ -557,15 +558,15 @@ void Renderer::cleanUp() {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);
     }
+
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file
-    for (const auto& dev : guiManager->handles.devices) {
+    for (const auto &dev: guiManager->handles.devices) {
         //WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
         //regEditor.resetJumbo();
         //regEditor.restartNetAdapters(); // Make changes into effect
     }
-
 #endif
 
     // Clear script and scriptnames
@@ -754,7 +755,7 @@ VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkSha
     if (extension == std::string::npos)
         fileName.append(".spv");
     VkShaderModule module;
-    Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+    Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
                       vulkanDevice->m_LogicalDevice, &module);
     assert(module != VK_NULL_HANDLE);
 

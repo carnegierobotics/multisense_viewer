@@ -142,8 +142,10 @@ else ()
     message("[INFO] Adding KTX from directory: ${KTX_DIR}")
     set(KTX_FEATURE_STATIC_LIBRARY ON)
     set(KTX_FEATURE_TESTS OFF)
-    include_directories(${KTX_DIR}/include)
     add_subdirectory(${KTX_DIR})
+    include_directories(${KTX_DIR}/include)
+    link_directories(${KTX_DIR}/lib)
+
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

@@ -44,6 +44,11 @@
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
 
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
+
 void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device, VkQueue transferQueue, float scale) {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF gltfContext;
@@ -72,7 +77,7 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     loadTextures(gltfModel, vulkanDevice, transferQueue);
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
-    emptyTexture.fromKtxFile(Utils::getAssetsPath() + "Textures/empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,vulkanDevice->m_TransferQueue);
+    emptyTexture.fromKtxFile(Utils::getAssetsPath().append("Textures/empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,vulkanDevice->m_TransferQueue);
 
     const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
     // Get vertex and index buffer sizes up-front
@@ -190,8 +195,8 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
 
     {
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         static_cast<uint32_t>(2 * uboVec.size())},
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(1 * uboVec.size())}
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         static_cast<uint32_t>(2 * uboVec.size() * 2)},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(1 * uboVec.size() * 2)}
         };
         VkDescriptorPoolCreateInfo descriptorPoolCI{};
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -481,7 +486,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
             envShaders[4]
     };
     VkPipeline pipeline;
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
+    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
 
     // Render
     VkClearValue clearValues[1];
@@ -898,7 +903,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 break;
         };
         VkPipeline pipeline;
-        (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
+        (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
 
         // Render cubemap
         VkClearValue clearValues[1];
@@ -1766,14 +1771,14 @@ void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<Vk
         imageSamplerCount += 8;
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * uboCount},
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * uboCount}
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * uboCount * 2},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * uboCount * 2}
         };
         VkDescriptorPoolCreateInfo descriptorPoolCI{};
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCI.poolSizeCount = 2;
         descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * uboCount;
+        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * uboCount * 5;
         (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
     }
     /*
@@ -2033,10 +2038,13 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
         descriptorSetAllocInfo.descriptorPool = descriptorPool;
         descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayoutNode;
         descriptorSetAllocInfo.descriptorSetCount = 1;
-        CHECK_RESULT(
+        VkResult res =
                 vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                         &node->mesh->uniformBuffer.descriptorSet));
-
+                                         &node->mesh->uniformBuffer.descriptorSet);
+        if (res != VK_SUCCESS){
+            // TODO No need to exit application but treat error accordingly
+            Log::Logger::getInstance()->error("VkResult Error in setting up node descriptor set {}", static_cast<int>(res));
+        }
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2150,10 +2158,10 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
     pipelineCI.pStages = shaderStages.data();
 
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipelines.pbr));
+    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipelines.pbr));
 
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                &pipelines.pbrDoubleSided));
 
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
@@ -2166,7 +2174,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                &pipelines.pbrAlphaBlend));
 
 }
@@ -2238,7 +2246,7 @@ GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo
                                const std::vector<VkRender::UniformBufferSet> &uboVec,
                                VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures) {
 
-    loadFromFile(Utils::getAssetsPath() + "Models/Box/glTF-Embedded/Box.gltf", vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
+    loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);
     generateBRDFLUT(envShaders, skyboxTextures);
     setupSkyboxDescriptors(uboVec, skyboxTextures);
@@ -2338,7 +2346,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     CHECK_RESULT(
-            vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+            vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                       &pipelines.skybox));
 }
 

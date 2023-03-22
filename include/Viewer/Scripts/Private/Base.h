@@ -240,7 +240,7 @@ namespace VkRender {
 
         /**@brief Call to delete the attached script. */
         void onDestroyScript() {
-            for (auto *shaderModule: shaderModules) {
+            for (auto &shaderModule: shaderModules) {
                 vkDestroyShaderModule(renderUtils.device->m_LogicalDevice, shaderModule, nullptr);
             }
 
@@ -266,7 +266,7 @@ namespace VkRender {
             if (extension == std::string::npos)
                 fileName.append(".spv");
             VkShaderModule module;
-            Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+            Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
                               renderUtils.device->m_LogicalDevice, &module);
             assert(module != VK_NULL_HANDLE);
 

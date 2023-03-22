@@ -1102,7 +1102,7 @@ private:
 
                 switch (elem.type) {
                     case FLOAT_SLIDER:
-                        ImGui::SliderFloat(elem.label, elem.value, elem.min, elem.max);
+                        ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue);
                         break;
                     case INT_SLIDER:
                         ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);

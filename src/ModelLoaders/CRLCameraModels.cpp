@@ -512,7 +512,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
 
 
 // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-    if (nullptr != model->textureVideo->m_Sampler && hasYcbcrSampler) {
+    if (VK_NULL_HANDLE != model->textureVideo->m_Sampler && hasYcbcrSampler) {
         setLayoutBindings[2].pImmutableSamplers = &model->textureVideo->m_Sampler;
     }
     if (model->pointCloudTexture && model->pointCloudTexture->m_Sampler && hasYcbcrSampler) {
@@ -631,7 +631,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     pipelineCI.pStages = vector.data();
     multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+    VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                              pPipelineT);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create graphics pipeline");

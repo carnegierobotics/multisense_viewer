@@ -123,6 +123,9 @@ namespace VkRender::MultiSense {
             if (imagePointersMap.empty())
                 return;
 
+            if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
+                return;
+
             if (!m_SkipLogging) {
                 if (buf->data().frameId != (counterMap[id][buf->data().source] + 1) &&
                     counterMap[id][buf->data().source] != 0) {
@@ -168,7 +171,8 @@ namespace VkRender::MultiSense {
             // replace latest data into m_Image pointers
             if (imuPointersMap.empty())
                 return;
-
+            if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
+                return;
 
             imuPointersMap[id]= buf;
             counterMap[id] = buf->data().sequence;

@@ -79,7 +79,9 @@ void main()
         vec4 colorCamCoords = 1/inCoords.z * mat.intrinsic * m * vec4(inCoords, 1.0f);
         vec2 sampleCoords = vec2((colorCamCoords.x / imageDimmensions.x), colorCamCoords.y / imageDimmensions.y);
         if (mat.hasSampler == 1){
-            outColor = BiCubic(samplerColorMap, sampleCoords);
+            //outColor = BiCubic(samplerColorMap, sampleCoords);
+            outColor = texture(samplerColorMap, sampleCoords);
+
         } else {
             float r, g, b, y, u, v;
             mat3 colorMatrix = mat3(
@@ -95,11 +97,11 @@ void main()
             //vec3 tex = texture(samplerColorMap, sampleCoords).rgb;
             outColor = vec4(rgb, 1.0f);
         }
-        //outColor = vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    } else {
+    }
+
+    if (mat.useColor == 0 ){
         vec3 tex = texture(samplerColorMap, inUV).rgb;
         outColor = vec4(tex.r, tex.r, tex.r, 1.0f);
-
     }
 
 }

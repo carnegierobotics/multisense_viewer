@@ -166,13 +166,14 @@ namespace VkRender::MultiSense {
 
 
         void updateIMUBuffer(const std::shared_ptr<IMUBufferWrapper> &buf) {
-            // Lock
-            std::scoped_lock<std::mutex> lock(mut);
+
             // replace latest data into m_Image pointers
             if (imuPointersMap.empty())
                 return;
             if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
                 return;
+            // Lock
+            std::scoped_lock<std::mutex> lock(mut);
 
             imuPointersMap[id]= buf;
             counterMap[id] = buf->data().sequence;

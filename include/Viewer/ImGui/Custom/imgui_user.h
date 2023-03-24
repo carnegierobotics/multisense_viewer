@@ -35,6 +35,7 @@
  **/
 #ifndef MULTISENSE_VIEWER_IMGUI_USER_H
 #define MULTISENSE_VIEWER_IMGUI_USER_H
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui_internal.h>
 #include <string>

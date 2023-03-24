@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <queue>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui/imgui_internal.h>
 #include <sys/types.h>
 

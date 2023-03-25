@@ -54,6 +54,7 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/Texture.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
@@ -686,6 +687,8 @@ namespace VkRender {
             clearColor[3] = 1.0f;
         }
 
+        /** @brief Reference to threadpool held by GuiManager */
+        std::shared_ptr<ThreadPool> pool{};
     };
 
 }

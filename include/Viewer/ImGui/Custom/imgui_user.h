@@ -146,7 +146,7 @@ namespace ImGui {
         return pressed;
     }
 
-    inline void
+    inline bool
     ImageButtonText(const char *str_id, int *idx, int defaultValue, const ImVec2 btnSize, ImTextureID user_texture_id,
                     const ImVec2 &size,
                     const ImVec2 &uv0,
@@ -154,7 +154,7 @@ namespace ImGui {
         ImGuiContext &g = *GImGui;
         ImGuiWindow *window = g.CurrentWindow;
         if (window->SkipItems)
-            return;
+            return false;
 
         ImVec2 posMinScreen = ImGui::GetCursorScreenPos();
         ImVec2 posMin = ImGui::GetCursorPos();
@@ -163,12 +163,13 @@ namespace ImGui {
         ImGui::PushID(1);
         bool hovered = false;
         bool held;
+        bool clicked = false;
         if (HoveredInvisibleButton(str_id, &hovered, &held, btnSize, 0)) {
             if (*idx != defaultValue)
                 *idx = defaultValue;
             else if (*idx == defaultValue)
-                *idx = -1; // reset variable
-
+                *idx = 0; // reset variable
+            clicked = true;
         }
         ImGui::PopID();
         ImGui::SameLine();
@@ -196,6 +197,7 @@ namespace ImGui {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ((btnSize.x - size.x - txtSize.x - 30.0f)));
         ImageButtonEx(window->GetID(str_id), user_texture_id, size, uv0, uv1, color, tint_col);
         ImGui::PopID();
+        return clicked;
     };
 
     inline bool ButtonWithGif(const char *str_id, const ImVec2 btnSize, ImTextureID user_texture_id, const ImVec2 &size,

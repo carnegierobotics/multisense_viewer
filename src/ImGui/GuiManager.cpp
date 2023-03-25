@@ -84,7 +84,8 @@ namespace VkRender {
         pushLayer<DebugWindow>();
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
-
+        pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
+        handles.pool = pool;
         // setup graphics pipeline
         setup(width, height, renderPass);
     }

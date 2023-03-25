@@ -270,6 +270,10 @@ public:
             return;
         }
         Log::Logger::getInstance()->info("Opened shared memory handle");
+        // Clear memory in shared segment
+        std::string emptyString;
+        emptyString.resize(SharedBufferSize);
+        strcpy(pBuf, emptyString.c_str());
         isOpen = true;
     }
 
@@ -319,12 +323,6 @@ public:
                     }
                 }
 
-                if (jsonObj.contains("Command")) {
-                    if (jsonObj["Command"] == "Stop") {
-                        stopRequested = true;
-                        return true;
-                    }
-                }
 
                 if (jsonObj.contains("Result")) {
                     auto res = jsonObj["Result"];

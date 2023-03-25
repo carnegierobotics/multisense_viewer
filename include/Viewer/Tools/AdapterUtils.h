@@ -51,105 +51,171 @@
 
 #include <iphlpapi.h>
 #include <pcap.h>
+
 #endif
 
-namespace Utils {
+#define LIST_ADAPTER_INTERVAL_MS 500
+
+class AdapterUtils {
+public:
     struct Adapter {
         std::string ifName;
         uint32_t ifIndex = 0;
         std::string description;
         bool supports = true;
+
         Adapter(std::string name, uint32_t index) : ifName(std::move(name)), ifIndex(index) {
         }
+
         Adapter() = default;
 
     };
+
+
+
+    std::vector<Adapter> getAdaptersList() {
 #ifdef WIN32
-
-    std::vector<Adapter> listAdapters() {
-        std::vector<Adapter> adapters;
-
-        pcap_if_t *alldevs;
-        pcap_if_t *d;
-        char errbuf[PCAP_ERRBUF_SIZE];
-
-        // Retrieve the device list
-        if (pcap_findalldevs(&alldevs, errbuf) == -1) {
-            return adapters;
-        }
-
-        // Print the list
-        int i = 0;
-        std::string prefix = "\\Device\\Tcpip_";
-        const char *token = "{";
-        // Find { token in order to find correct prefix
-        for (d = alldevs; d; d = d->next) {
-            Adapter adapter(d->name, 0);
-            if (d->description)
-                adapter.description = d->description;
-            size_t found = std::string(d->name).find(token);
-            if (found != std::string::npos)
-                prefix = std::string(d->name).substr(0, found);
-        }
-
-        DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
-        PIP_ADAPTER_INFO AdapterInfo;
-        AdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
-        // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
-        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
-            free(AdapterInfo);
-            AdapterInfo = (IP_ADAPTER_INFO *) malloc(dwBufLen);
-            if (AdapterInfo == NULL) {
-                free(AdapterInfo);
-                return adapters;
-            }
-        }
-        if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
-            // Contains pointer to current adapter info
-            PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
-            do {
-                // Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
-                // I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
-                char *bleFoundInName = strstr(pAdapterInfo->Description, "Bluetooth");
-                if (bleFoundInName || pAdapterInfo->Type != MIB_IF_TYPE_ETHERNET) {
-                    pAdapterInfo = pAdapterInfo->Next;
-                    continue;
-                }
-
-                // Internal loopback device always located at index = 1. Skip it..
-                if (pAdapterInfo->Index == 1) {
-                    pAdapterInfo = pAdapterInfo->Next;
-                    continue;
-                }
-
-                Adapter adapter("Unnamed", 0);
-                adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
-                adapter.description = pAdapterInfo->Description;
-
-                //CONCATENATE two strings safely windows workaround
-                int lenA = strlen(prefix.c_str());
-                int lenB = strlen(pAdapterInfo->AdapterName);
-                char *con = (char *) malloc(lenA + lenB + 1);
-                memcpy(con, prefix.c_str(), lenA);
-                memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
-                adapter.ifName = con;
-                //adapter.networkAdapter = pAdapterInfo->AdapterName;
-                adapter.ifIndex = pAdapterInfo->Index;
-                adapters.push_back(adapter);
-                free(con);
-                pAdapterInfo = pAdapterInfo->Next;
-            } while (pAdapterInfo);
-        }
-        free(AdapterInfo);
-
+        std::scoped_lock<std::mutex> lock(mut);
         return adapters;
+#else
+        return listAdapters();
+#endif
+    }
+
+    void startAdapterScan(VkRender::ThreadPool *pool) {
+#ifdef WIN32
+        std::scoped_lock<std::mutex> lock(mut);
+        if (!runThread && !isThreadAlive) {
+            pool->Push(AdapterUtils::listAdapters, &adapters, this);
+            runThread = true;
+        }
+#endif
+    }
+
+    void stopAdapterScan() {
+#ifdef WIN32
+        std::scoped_lock<std::mutex> lock(mut);
+        if (runThread) {
+            runThread = false;
+        }
+#endif
+    }
+
+    bool shutdownReady(){
+        std::scoped_lock<std::mutex> lock(mut);
+        return !isThreadAlive;
+    }
+
+#ifdef WIN32
+    /**
+     * Threaded function to list the connected adapter
+     * All subsequent calls checks if there is any found adapters
+     * starts execution by calling startAdapterScan
+     * Stops execution by calling stopAdapterScan()
+     * @return
+     */
+    static void listAdapters(std::vector<Adapter> *adapters, AdapterUtils *ctx) {
+        {
+            std::scoped_lock<std::mutex> lock(ctx->mut);
+            ctx->isThreadAlive = true;
+        }
+        while (true) {
+            {
+                std::scoped_lock<std::mutex> lock(ctx->mut);
+                if (!ctx->runThread)
+                    break;
+            }
+            Log::Logger::getInstance()->info("Listing connected adapters");
+
+            pcap_if_t *alldevs;
+            pcap_if_t *d;
+            char errbuf[PCAP_ERRBUF_SIZE];
+
+            // Retrieve the device list
+            if (pcap_findalldevs(&alldevs, errbuf) == -1) {
+                Log::Logger::getInstance()->error("Failed to list adapters in pcap_findalldevs");
+                std::this_thread::sleep_for(std::chrono::milliseconds(LIST_ADAPTER_INTERVAL_MS));
+                continue;
+            }
+
+            // Print the list
+            int i = 0;
+            std::string prefix = "\\Device\\Tcpip_";
+            const char *token = "{";
+            // Find { token in order to find correct prefix
+            for (d = alldevs; d; d = d->next) {
+                Adapter adapter(d->name, 0);
+                if (d->description)
+                    adapter.description = d->description;
+                size_t found = std::string(d->name).find(token);
+                if (found != std::string::npos)
+                    prefix = std::string(d->name).substr(0, found);
+            }
+
+            DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
+            PIP_ADAPTER_INFO AdapterInfo;
+            AdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof(IP_ADAPTER_INFO));
+            // Make an initial call to GetAdaptersInfo to get the necessary size into the dwBufLen variable
+            if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == ERROR_BUFFER_OVERFLOW) {
+                free(AdapterInfo);
+                AdapterInfo = (IP_ADAPTER_INFO *) malloc(dwBufLen);
+                if (AdapterInfo == NULL) {
+                    free(AdapterInfo);
+                    Log::Logger::getInstance()->error("Failed to GetAdaptersInfo");
+                    std::this_thread::sleep_for(std::chrono::milliseconds(LIST_ADAPTER_INTERVAL_MS));
+                    continue;
+                }
+            }
+            if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
+                // Contains pointer to current adapter info
+                std::scoped_lock<std::mutex> lock(ctx->mut);
+                adapters->clear();
+
+                PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+                do {
+                    // Somehow The integrated bluetooth adapter is considered an ethernet adapter cause of the same type in PIP_ADAPTER_INFO field "MIB_IF_TYPE_ETHERNET"
+                    // I'll filter it out here assuming it has Bluetooth in its name. Just a soft error which increases running time of the auto connect feature
+                    char *bleFoundInName = strstr(pAdapterInfo->Description, "Bluetooth");
+                    if (bleFoundInName || pAdapterInfo->Type != MIB_IF_TYPE_ETHERNET) {
+                        pAdapterInfo = pAdapterInfo->Next;
+                        continue;
+                    }
+
+                    // Internal loopback device always located at index = 1. Skip it..
+                    if (pAdapterInfo->Index == 1) {
+                        pAdapterInfo = pAdapterInfo->Next;
+                        continue;
+                    }
+
+                    Adapter adapter("Unnamed", 0);
+                    adapter.supports = (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET);
+                    adapter.description = pAdapterInfo->Description;
+
+                    //CONCATENATE two strings safely windows workaround
+                    int lenA = strlen(prefix.c_str());
+                    int lenB = strlen(pAdapterInfo->AdapterName);
+                    char *con = (char *) malloc(lenA + lenB + 1);
+                    memcpy(con, prefix.c_str(), lenA);
+                    memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);
+                    adapter.ifName = con;
+                    //adapter.networkAdapter = pAdapterInfo->AdapterName;
+                    adapter.ifIndex = pAdapterInfo->Index;
+                    adapters->push_back(adapter);
+                    free(con);
+                    pAdapterInfo = pAdapterInfo->Next;
+                } while (pAdapterInfo);
+            }
+            free(AdapterInfo);
+            std::this_thread::sleep_for(std::chrono::milliseconds(LIST_ADAPTER_INTERVAL_MS));
+        }
+
+        std::scoped_lock<std::mutex> lock(ctx->mut);
+        ctx->isThreadAlive = false;
     }
 
 #else
 
-
-
-    std::vector<Adapter> listAdapters() {
+    static inline std::vector<Adapter> listAdapters() {
         // Get list of interfaces
         std::vector<Adapter> adapters;
         auto ifn = if_nameindex();
@@ -193,8 +259,13 @@ namespace Utils {
 
         return adapters;
     }
-
-
 #endif // Linux/Win32
+
+private:
+    std::vector<Adapter> adapters;
+    std::mutex mut;
+    bool runThread = false;
+    bool isThreadAlive = false;
 };
+
 #endif //MULTISENSE_VIEWER_ADAPTERUTILS_H

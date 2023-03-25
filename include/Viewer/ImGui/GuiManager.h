@@ -120,6 +120,7 @@ namespace VkRender {
 
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
+        std::shared_ptr<VkRender::ThreadPool> pool;
 
         // Initialization functions
         void initializeFonts();

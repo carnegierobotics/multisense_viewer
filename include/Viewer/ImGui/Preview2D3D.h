@@ -723,16 +723,15 @@ private:
                 ImGui::PopStyleColor(); // PopupBg
                 /** Color rest of area in the background color exluding previews**/
                 ImGui::End();
-
                 bool isHovered = ImGui::IsWindowHoveredByName(windowName, ImGuiHoveredFlags_AnyWindow);
                 if (isHovered){
-                    handles->previewWindowScroll[windowName] += ImGui::GetIO().MouseWheel * 100.0f;
+                    handles->previewZoom[windowName] += ImGui::GetIO().MouseWheel / 5.0f;
 
-                    if (handles->previewWindowScroll[windowName] > handles->maxScroll) {
-                        handles->previewWindowScroll[windowName] = handles->maxScroll - 1.0f;
+                    if (handles->previewZoom[windowName] > handles->maxZoom) {
+                        handles->previewZoom[windowName] = handles->maxZoom;
                     }
-                    if (handles->previewWindowScroll[windowName] < handles->minScroll) {
-                        handles->previewWindowScroll[windowName] = handles->minScroll + 1.0f;
+                    if (handles->previewZoom[windowName] < handles->minZoom) {
+                        handles->previewZoom[windowName] = handles->minZoom;
                     }
                 }
 

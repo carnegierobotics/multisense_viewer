@@ -60,6 +60,7 @@ void Skybox::update() {
     d2->debugViewInputs = 0;
     d2->scaleIBLAmbient = ibl;
     d2->debugViewInputs = debugViewInputs;
+    d2->lod = lod;
 
     sharedData->put(d2.get(), sizeof(VkRender::FragShaderParams));
 

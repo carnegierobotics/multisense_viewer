@@ -7,12 +7,14 @@ layout (location = 0) out vec4 outColor;
 
 layout (set = 0, binding = 1) uniform UBOParams {
 	vec4 lightDir;
+	vec4 zoomCenter;
 	float exposure;
 	float gamma;
 	float prefilteredCubeMipLevels;
 	float scaleIBLAmbient;
 	float debugViewInputs;
 	float lod;
+	vec2 pad;
 } uboParams;
 
 layout (binding = 2) uniform samplerCube samplerEnv;

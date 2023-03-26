@@ -23,5 +23,4 @@ void main()
 {
     gl_Position = ubo.modelMatrix  * vec4(inPos, 1.0f);
     outUV = inUV;
-    mousePos= MousePos.pos;
 }

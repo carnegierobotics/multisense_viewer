@@ -111,6 +111,10 @@ public:
 
     glm::vec2 zoomCenter;
     float zoomValue = 0.0f;
+    float prevZoomValue = 0.0f;
+    bool isZoomActive = false;
+    float cursorX = 0.0f;
+    float cursorY = 0.0f;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

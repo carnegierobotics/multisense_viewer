@@ -50,14 +50,16 @@ void SingleLayout::setup() {
     m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth, &texHeight, &texChannels,
+    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth,
+                            &texHeight, &texChannels,
                             STBI_rgb_alpha);
     if (!m_NoDataTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath().append("no_image_tex.png")).string());
     }
     // Create texture m_Image if not created
-    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth, &texHeight,
+    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth,
+                              &texHeight,
                               &texChannels,
                               STBI_rgb_alpha);
     if (!m_NoSourceTex) {
@@ -92,7 +94,7 @@ void SingleLayout::update() {
             return;
         }
 
-        if (lastPresentedFrameID != tex.m_Id){
+        if (lastPresentedFrameID != tex.m_Id) {
             lastPresentTime = std::chrono::steady_clock::now();
         }
         // If we get MultiSense images then
@@ -122,12 +124,6 @@ void SingleLayout::update() {
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
-
-    auto &d2 = bufferTwoData;
-    d2->zoomCenter = zoomCenter;
-    d2->zoom = zoomValue;
-
-    Log::Logger::getInstance()->info("Scroll {} at {}, {}", zoomValue,  zoomCenter.x,  zoomCenter.y);
 
     updateLog();
     handleZoom();
@@ -226,19 +222,34 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
 
         zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
-        zoomValue = uiHandle->previewWindowScroll.find("View Area 0")->second;
+        zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
+
+        isZoomActive = prevZoomValue != zoomValue;
+
+        prevZoomValue = zoomValue;
     }
 }
 
-void SingleLayout::handleZoom(){
+void SingleLayout::handleZoom() {
+    auto &d2 = bufferTwoData;
 
+
+    if (isZoomActive) {
+        cursorX = zoomCenter.x / 960.0f - 0.5f;
+
+    }
+
+    d2->zoomCenter = glm::vec4(cursorX, cursorY, zoomValue, isZoomActive);
+    Log::Logger::getInstance()->info("Zoom {} at {}, {}, active: {}", zoomValue, cursorX, cursorY,
+                                     isZoomActive);
 }
 
 void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight +
-                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.win.at(CRL_PREVIEW_ONE).row) * uiHandle->info->viewAreaElementSizeY) +
+                   ((uiHandle->info->viewAreaElementSizeY / 2) +
+                    ((dev.win.at(CRL_PREVIEW_ONE).row) * uiHandle->info->viewAreaElementSizeY) +
                     ((dev.win.at(CRL_PREVIEW_ONE).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *

@@ -109,6 +109,9 @@ public:
 
     bool virtualDevice = false;
 
+    glm::vec2 zoomCenter;
+    float zoomValue = 0.0f;
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
@@ -119,6 +122,8 @@ public:
     void prepareDefaultTexture();
 
     void updateLog() const;
+
+    void handleZoom();
 };
 
 

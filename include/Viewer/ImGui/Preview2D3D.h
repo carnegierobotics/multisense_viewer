@@ -416,6 +416,7 @@ private:
         int index = 0;
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
+                std::string windowName = std::string("View Area ") + std::to_string(index);
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
                 float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
@@ -459,7 +460,7 @@ private:
                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::Begin((std::string("View Area") + std::to_string(index)).c_str(), &open, window_flags);
+                ImGui::Begin(windowName.c_str(), &open, window_flags);
 
                 // The colored bars around the preview window is made up of rectangles
                 // Top bar
@@ -513,7 +514,7 @@ private:
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
                 // Also only if a window is hovered
-                if (ImGui::IsWindowHoveredByName(std::string("View Area") + std::to_string(index),
+                if (ImGui::IsWindowHoveredByName(std::string("View Area ") + std::to_string(index),
                                                  ImGuiHoveredFlags_AnyWindow)) {
                     // Offsset cursor positions.
                     switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
@@ -722,6 +723,19 @@ private:
                 ImGui::PopStyleColor(); // PopupBg
                 /** Color rest of area in the background color exluding previews**/
                 ImGui::End();
+
+                bool isHovered = ImGui::IsWindowHoveredByName(windowName, ImGuiHoveredFlags_AnyWindow);
+                if (isHovered){
+                    handles->previewWindowScroll[windowName] += ImGui::GetIO().MouseWheel * 100.0f;
+
+                    if (handles->previewWindowScroll[windowName] > handles->maxScroll) {
+                        handles->previewWindowScroll[windowName] = handles->maxScroll - 1.0f;
+                    }
+                    if (handles->previewWindowScroll[windowName] < handles->minScroll) {
+                        handles->previewWindowScroll[windowName] = handles->minScroll + 1.0f;
+                    }
+                }
+
                 index++;
             }
         }

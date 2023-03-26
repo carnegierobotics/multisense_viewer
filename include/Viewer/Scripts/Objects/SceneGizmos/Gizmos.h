@@ -76,7 +76,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_RENDER;
+    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
     std::unique_ptr<GLTFModel::Model> m_Model;
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

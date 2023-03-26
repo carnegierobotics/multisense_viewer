@@ -436,13 +436,14 @@ namespace VkRender {
      */
     struct FragShaderParams {
         glm::vec4 lightDir{};
+        glm::vec4 zoomCenter{};
         float exposure = 4.5f;
         float gamma = 2.2f;
         float prefilteredCubeMipLevels = 0.0f;
         float scaleIBLAmbient = 1.0f;
         float debugViewInputs = 0.0f;
-        glm::vec2 zoomCenter;
-        float zoom;
+        float lod = 0.0f;
+        glm::vec2 pad{};
     };
 
     struct SkyboxTextures {
@@ -666,7 +667,8 @@ namespace VkRender {
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
-        std::unordered_map<std::string, float> previewWindowScroll{};
+        std::unordered_map<std::string, float> previewZoom{};
+        float minZoom = 1.0f; float maxZoom = 10.0f;
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 500.0f, minScroll = -850.0f;
         /** @brief when a GUI window is hovered dont move the camera in the 3D view */
@@ -685,10 +687,10 @@ namespace VkRender {
             clearColor[3] = 1.0f;
 
             // Initialize map used for zoom for each preview window
-            previewWindowScroll["View Area 0"] = 0.0f;
-            previewWindowScroll["View Area 1"] = 0.0f;
-            previewWindowScroll["View Area 2"] = 0.0f;
-            previewWindowScroll["View Area 3"] = 0.0f;
+            previewZoom["View Area 0"] = 0.0f;
+            previewZoom["View Area 1"] = 0.0f;
+            previewZoom["View Area 2"] = 0.0f;
+            previewZoom["View Area 3"] = 0.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */

@@ -446,6 +446,8 @@ namespace VkRender {
         glm::vec4 objectColor{};
         glm::vec4 lightPos{};
         glm::vec4 viewPos{};
+        float zoom;
+        glm::vec2 zoomCenter;
     };
 
     struct SkyboxTextures {
@@ -669,6 +671,7 @@ namespace VkRender {
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
+        std::unordered_map<std::string, float> previewWindowScroll{};
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 500.0f, minScroll = -850.0f;
         /** @brief when a GUI window is hovered dont move the camera in the 3D view */
@@ -685,6 +688,12 @@ namespace VkRender {
             clearColor[1] = 0.878f;
             clearColor[2] = 0.862f;
             clearColor[3] = 1.0f;
+
+            // Initialize map used for zoom for each preview window
+            previewWindowScroll["View Area 0"] = 0.0f;
+            previewWindowScroll["View Area 1"] = 0.0f;
+            previewWindowScroll["View Area 2"] = 0.0f;
+            previewWindowScroll["View Area 3"] = 0.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */

@@ -128,7 +128,12 @@ void SingleLayout::update() {
     d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
     d2->viewPos = renderData.camera->m_ViewPos;
+    d2->zoomCenter = zoomCenter;
+    d2->zoom = zoomValue;
     updateLog();
+    handleZoom();
+
+
 }
 
 void SingleLayout::prepareDefaultTexture() {
@@ -220,7 +225,15 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
+
+        Log::Logger::getInstance()->info("Scroll {} at {}, {}", uiHandle->previewWindowScroll.find("View Area 0")->second, dev.pixelInfo.x, dev.pixelInfo.y);
+        zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
+        zoomValue = uiHandle->previewWindowScroll.find("View Area 0")->second;
     }
+}
+
+void SingleLayout::handleZoom(){
+
 }
 
 void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {

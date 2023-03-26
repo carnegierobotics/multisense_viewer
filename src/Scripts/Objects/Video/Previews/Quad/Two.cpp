@@ -120,18 +120,15 @@ void Two::update() {
     d->view = renderData.camera->matrices.view;
 
     auto &d2 = bufferTwoData;
-    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->m_ViewPos;
+
 }
 
 
 void Two::prepareDefaultTexture() {
     m_NoDataModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
-    std::string vertexShaderFileName = "Scene/spv/quad.vert";
-    std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
+    std::string vertexShaderFileName = "Scene/spv/color.vert";
+    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
@@ -160,17 +157,17 @@ void Two::prepareMultiSenseTexture() {
     std::string fragmentShaderFileName;
     switch (textureType) {
         case CRL_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "Scene/spv/preview.vert";
-            fragmentShaderFileName = "Scene/spv/preview.frag";
+            vertexShaderFileName = "Scene/spv/grayscale.vert";
+            fragmentShaderFileName = "Scene/spv/grayscale.frag";
             break;
         case CRL_COLOR_IMAGE_YUV420:
-            vertexShaderFileName = "Scene/spv/quad.vert";
+            vertexShaderFileName = "Scene/spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
+                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.vert";
             break;
         case CRL_DISPARITY_IMAGE:
-            vertexShaderFileName = "Scene/spv/depth.vert";
-            fragmentShaderFileName = "Scene/spv/depth.frag";
+            vertexShaderFileName = "Scene/spv/disparity.vert";
+            fragmentShaderFileName = "Scene/spv/disparity.frag";
             break;
         default:
             return;

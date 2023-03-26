@@ -13,13 +13,6 @@ layout (binding = 0) uniform UBO
     mat4 modelMatrix;
 } ubo;
 
-//push constants block
-layout(push_constant) uniform constants
-{
-    vec2 pos;
-} MousePos;
-
-
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 fragPos;

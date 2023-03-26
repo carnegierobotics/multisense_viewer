@@ -80,7 +80,6 @@ void Helmet::update() {
     );
 
     auto &d2 = bufferTwoData;
-    d2->viewPos = renderData.camera->m_ViewPos;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),

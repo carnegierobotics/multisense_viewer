@@ -441,13 +441,8 @@ namespace VkRender {
         float prefilteredCubeMipLevels = 0.0f;
         float scaleIBLAmbient = 1.0f;
         float debugViewInputs = 0.0f;
-        float debugViewEquation = 0.0f;
-        glm::vec4 lightColor{};
-        glm::vec4 objectColor{};
-        glm::vec4 lightPos{};
-        glm::vec4 viewPos{};
-        float zoom;
         glm::vec2 zoomCenter;
+        float zoom;
     };
 
     struct SkyboxTextures {

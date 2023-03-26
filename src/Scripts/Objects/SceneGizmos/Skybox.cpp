@@ -53,19 +53,13 @@ void Skybox::update() {
 
 
     auto &d2 = bufferTwoData;
-    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->m_ViewPos;
 
 
     d2->exposure = exposure;
     d2->gamma = gamma;
     d2->debugViewInputs = 0;
-    d2->debugViewEquation = 0;
     d2->scaleIBLAmbient = ibl;
     d2->debugViewInputs = debugViewInputs;
-    d2->debugViewEquation = lod;
 
     sharedData->put(d2.get(), sizeof(VkRender::FragShaderParams));
 

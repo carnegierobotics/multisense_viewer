@@ -70,10 +70,6 @@ void Gizmos::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     auto &d2 = bufferTwoData;
-    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->m_ViewPos;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),

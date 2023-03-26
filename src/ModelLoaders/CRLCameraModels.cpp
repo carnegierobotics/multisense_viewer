@@ -529,7 +529,7 @@ void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, const VkDescrip
 
     VkPushConstantRange pushconstantRanges{};
 
-    pushconstantRanges.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushconstantRanges.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     pushconstantRanges.offset = 0;
     pushconstantRanges.size = sizeof(VkRender::MousePositionPushConstant);
 
@@ -679,7 +679,7 @@ void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *mod
 
     VkRender::MousePositionPushConstant constants{};
     constants.position = glm::vec2(640, 360);
-    vkCmdPushConstants(commandBuffer, model->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+    vkCmdPushConstants(commandBuffer, model->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(VkRender::MousePositionPushConstant), &constants);
 
 

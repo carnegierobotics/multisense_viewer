@@ -46,7 +46,9 @@
 #include <MultiSense/MultiSenseTypes.hh>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
+
 #define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui/imgui.h>
 
 #include "Viewer/Core/KeyInput.h"
@@ -151,7 +153,7 @@ typedef enum page {
 
     CRL_TAB_PREVIEW_CONTROL = 20,
     CRL_TAB_SENSOR_CONFIG = 21
-    } Page;
+} Page;
 
 /**
  * @brief Hardcoded Camera resolutions using descriptive enums
@@ -393,6 +395,7 @@ namespace VkRender {
         PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief IF 3D area should be extended or not */
         bool extend3DArea = true;
+
         Device() {
             outputSaveFolder.resize(255);
         }
@@ -419,6 +422,8 @@ namespace VkRender {
         bool right = false;
         bool middle = false;
         float wheel = 0.0f; // to initialize arcball zoom
+        float dx = 0.0f;
+        float dy = 0.0f;
     };
 
     /**
@@ -668,7 +673,8 @@ namespace VkRender {
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
         std::unordered_map<std::string, float> previewZoom{};
-        float minZoom = 1.0f; float maxZoom = 10.0f;
+        float minZoom = 1.0f;
+        float maxZoom = 10.0f;
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 500.0f, minScroll = -850.0f;
         /** @brief when a GUI window is hovered dont move the camera in the 3D view */
@@ -678,6 +684,9 @@ namespace VkRender {
         std::array<float, 4> clearColor{};
         /** @brief Display the debug window */
         bool showDebugWindow = false;
+
+
+        const VkRender::MouseButtons *mouse;
 
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {

@@ -72,7 +72,7 @@ public:
         pLogger->info("Initialized Backend");
 
         guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
-
+        guiManager->handles.mouse = &mouseButtons;
         prepareRenderer();
         pLogger->info("Prepared Renderer");
 

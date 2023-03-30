@@ -723,6 +723,9 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     float dx = mousePos.x - (float) x;
     float dy = mousePos.y - (float) y;
 
+    mouseButtons.dx = dx;
+    mouseButtons.dy = dy;
+
     if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }

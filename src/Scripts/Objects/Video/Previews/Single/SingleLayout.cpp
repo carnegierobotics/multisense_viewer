@@ -224,7 +224,20 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
         zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
 
-        isZoomActive = prevZoomValue != zoomValue;
+        bool isZoomActive = prevZoomValue != zoomValue;
+        dx = uiHandle->mouse->dx;
+
+        if (uiHandle->mouse->left)
+            cursorX += (dx / 1000);
+        //cursorY = zoomCenter.y / 600; 
+
+        if (isZoomActive){
+            float tx = (zoomCenter.x)/ (960 );
+            float dx = tx - prevX;
+            offset = dx;
+
+            prevX = dx;
+        }
 
         prevZoomValue = zoomValue;
     }
@@ -234,14 +247,10 @@ void SingleLayout::handleZoom() {
     auto &d2 = bufferTwoData;
 
 
-    if (isZoomActive) {
-        cursorX = zoomCenter.x / 960.0f - 0.5f;
-
-    }
-
-    d2->zoomCenter = glm::vec4(cursorX, cursorY, zoomValue, isZoomActive);
+    d2->zoomCenter = glm::vec4(cursorX, cursorY, zoomValue, offset);
     Log::Logger::getInstance()->info("Zoom {} at {}, {}, active: {}", zoomValue, cursorX, cursorY,
-                                     isZoomActive);
+                                     offset);
+
 }
 
 void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {

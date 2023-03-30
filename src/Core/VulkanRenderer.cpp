@@ -642,6 +642,8 @@ namespace VkRender {
             keyPress = -1;
             keyAction = -1;
             io.MouseWheel = 0;
+            mouseButtons.dx = 0;
+            mouseButtons.dy = 0;
             /** FrameTiming **/
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;

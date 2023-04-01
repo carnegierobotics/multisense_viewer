@@ -68,7 +68,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
     /** @brief UI update function called once per frame **/
-    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 

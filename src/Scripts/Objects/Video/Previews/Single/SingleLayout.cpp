@@ -127,10 +127,11 @@ void SingleLayout::update() {
 
     updateLog();
 
-    if (stopZoom)
+    if (zoomEnabled)
         handleZoom();
 
-
+    auto &d2 = bufferTwoData;
+    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
 }
 
 void SingleLayout::prepareDefaultTexture() {
@@ -199,8 +200,10 @@ void SingleLayout::prepareMultiSenseTexture() {
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
-void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const VkRender::Device &dev: uiHandle->devices) {
+void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
@@ -223,60 +226,13 @@ void SingleLayout::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
         }
         transformToUISpace(uiHandle, dev);
 
-        zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
-        zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
-        zoomValue = 0.8f * zoomValue * zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
-        if (uiHandle->mouse->right && uiHandle->mouse->action == GLFW_PRESS)
-            stopZoom = !stopZoom;
+        zoom.zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
+        zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
+        zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+        zoomEnabled = preview.enableZoom;
+        dev.pixelInfoDisplayed.x = (zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) + zoom.newMinF;
+        dev.pixelInfoDisplayed.y = (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF;
     }
-}
-
-void SingleLayout::handleZoom() {
-    float newWidth = (960 / zoomValue);
-    float changeInWidth = prevWidth - newWidth;
-    float fullChangeInWidth = 960.0f - newWidth;
-    float minRange = newMinF;
-    float maxRange = 960-newMaxF;
-    float zoomedXMapped = (zoomCenter.x - 0) * (maxRange - minRange) / (960 - 0) + minRange;
-
-    float panOffsetX = cursorX * 960;
-    float tx  = ((zoomedXMapped) / 960.0f);
-    newMin = (changeInWidth * tx ) + panOffsetX;
-    newMax = changeInWidth * (1 - tx) + panOffsetX;
-    newMinF = (fullChangeInWidth * tx ) + panOffsetX;
-    newMaxF = fullChangeInWidth * (1 - tx) + panOffsetX;
-    offset = (((prevWidth - newMax) + newMin) / (1/tx));
-    offset /= prevWidth;
-    float delta = prevOffsetX - offset;
-    offset = offset + (delta / 1.5f);
-
-    if (offset >= 1.0f)
-        offset = 1;
-    prevOffsetX = offset;
-
-    float newHeight = (600 / zoomValue);
-    float changeInHeight = prevHeight - newHeight;
-    float zoomedYMapped = (zoomCenter.y - 0) * ((600-newMaxYF) - newMinYF) / (600 - 0) + newMinYF;
-    float ty = ((zoomedYMapped) / 600.0f);
-
-    newMinY = changeInHeight * ty + (cursorY * 600.0f);
-    newMaxY = (changeInHeight * (1 - ty)) + (cursorY * 600.0f);
-    newMinYF = (600.0f - newHeight) * ty + (cursorY * 600.0f);
-    newMaxYF = ((600.0f - newHeight) * (1 - ty)) + (cursorY * 600.0f);
-
-    offsetY = (((prevHeight - newMaxY) + newMinY) / (1/ty)) / prevHeight;
-    delta = prevOffsetY - offsetY;
-    offsetY = offsetY + (delta / 2);
-    if (offsetY >= 1.0f)
-        offsetY = 1;
-    prevOffsetY = offsetY;
-
-    prevWidth = newWidth;
-    prevHeight = newHeight;
-
-    auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(cursorX, offsetY, zoomValue, offset);
-    //Log::Logger::getInstance()->info("Zoom {} at {}, {}, active: {}", zoomValue, cursorX, cursorY,offset);
 }
 
 void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {

@@ -74,7 +74,7 @@ public:
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
-    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
@@ -109,24 +109,8 @@ public:
 
     bool virtualDevice = false;
 
-    glm::vec2 zoomCenter;
-    float zoomValue = 0.0f;
-    float cursorX = 0.0f;
-    float cursorY = 0.0f;
-    float dx = 0.0f;
-    float dy = 0.0f;
-    float offset = 0.0f;
-    float prevOffsetX = 0.0f;
-    float prevOffsetY = 0.0f;
-    float offsetY = 0.0f;
-    float prevHeight = 600;
-
-    float prevWidth = 960.0f;
-    float newMin = 0.0f, newMax = 0.0f;
-    float newMinF = 0.0f, newMaxF = 0.0f;
-    float newMinY = 0.0f, newMaxY = 0.0f;
-    float newMinYF = 0.0f, newMaxYF = 0.0f;
-    bool stopZoom = false;
+    ZoomParameters zoom{};
+    bool zoomEnabled = false;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

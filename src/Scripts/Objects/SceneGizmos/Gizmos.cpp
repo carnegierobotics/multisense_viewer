@@ -94,7 +94,8 @@ void Gizmos::update() {
 }
 
 
-void Gizmos::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+void Gizmos::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;

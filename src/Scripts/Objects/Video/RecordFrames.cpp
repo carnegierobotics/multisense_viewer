@@ -83,8 +83,11 @@ void RecordFrames::update() {
     }
 }
 
-void RecordFrames::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const VkRender::Device &dev: uiHandle->devices) {
+void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
 

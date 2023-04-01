@@ -8,14 +8,29 @@ layout(location = 2) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 
+layout(binding = 1, set = 0) uniform Info {
+    vec4 lightDir;
+    vec4 zoom;
+    float exposure;
+    float gamma;
+    float prefilteredCubeMipLevels;
+    float scaleIBLAmbient;
+    float debugViewInputs;
+    float lod;
+    vec2 pad;
+} info;
+
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
 
 void main()
 {
+    vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
+    float uvSampleX = (inUV.x + zoom.x - info.zoom.w) / info.zoom.z + info.zoom.w;
+    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
 
-    vec3 tex = texture(samplerColorMap, inUV).rgb;
+    vec3 tex = texture(samplerColorMap, vec2(uvSampleX, uvSampleY)).rgb;
     outColor = vec4(tex, 1.0);
 
 }

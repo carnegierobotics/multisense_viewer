@@ -189,8 +189,11 @@ void One::prepareMultiSenseTexture() {
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
-void One::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const VkRender::Device &dev: uiHandle->devices) {
+void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;

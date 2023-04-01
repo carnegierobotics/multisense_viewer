@@ -260,7 +260,8 @@ private:
                 continue;
             // Control page
             handles->disableCameraRotationFromGUI = (ImGui::IsWindowHovered() ||
-                                                     ImGui::IsWindowHoveredByName("SideBar", ImGuiHoveredFlags_AnyWindow) ||
+                                                     ImGui::IsWindowHoveredByName("SideBar",
+                                                                                  ImGuiHoveredFlags_AnyWindow) ||
                                                      ImGui::IsAnyItemActive());
             ImGui::BeginGroup();
             if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW || !dev.extend3DArea)
@@ -286,14 +287,14 @@ private:
         bool is3DAreaExtended = (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && dev.extend3DArea);
 
         ImVec2 windowPos = is3DAreaExtended ?
-                           ImVec2(handles->info->sidebarWidth, 0):
+                           ImVec2(handles->info->sidebarWidth, 0) :
                            ImVec2(handles->info->sidebarWidth + handles->info->controlAreaWidth, 0);
 
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
 
         float viewAreaWidth = is3DAreaExtended ?
-                              handles->info->width - handles->info->sidebarWidth:
+                              handles->info->width - handles->info->sidebarWidth :
                               handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         handles->info->viewingAreaWidth = viewAreaWidth;
 
@@ -302,10 +303,9 @@ private:
         ImGui::Begin("ViewingArea", &pOpen, window_flags);
 
 
-
         ImGui::Dummy(ImVec2((is3DAreaExtended ?
-        (handles->info->viewingAreaWidth) / 2 :
-        (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
+                             (handles->info->viewingAreaWidth) / 2 :
+                             (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
         ImGui::SameLine();
 
         ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW ?
@@ -358,7 +358,7 @@ private:
                                    (handles->info->viewingAreaWidth) / 2 :
                                    (handles->info->viewingAreaWidth / 2)) - 260.0f);
             std::string btnLabel = dev.extend3DArea ? "Show Control Tab" : "Hide Control Tab";
-            if(ImGui::Button(btnLabel.c_str(), ImVec2(150.0f, 20.0f))){
+            if (ImGui::Button(btnLabel.c_str(), ImVec2(150.0f, 20.0f))) {
                 dev.extend3DArea = dev.extend3DArea ? false : true;
             }
 
@@ -417,6 +417,7 @@ private:
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
+                auto &window = dev.win[(StreamWindowIndex) index];
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
                 float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
@@ -512,8 +513,15 @@ private:
 
                 // Min Y and Min Y is top left corner
 
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 5.0f));
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, topBarRectMin.y + 2.0f));
                 // Also only if a window is hovered
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 0));
+                ImGui::Text("Lock zoom (Right click): ");
+                ImGui::SameLine();
+                bool lock = !window.enableZoom;
+                ImGui::Checkbox("##Label", &lock);
+                ImGui::SameLine();
                 if (ImGui::IsWindowHoveredByName(std::string("View Area ") + std::to_string(index),
                                                  ImGuiHoveredFlags_AnyWindow)) {
                     // Offsset cursor positions.
@@ -521,7 +529,7 @@ private:
                         case CRL_POINT_CLOUD:
                             break;
                         case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.intensity);
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoDisplayed.x, dev.pixelInfoDisplayed.y, dev.pixelInfoDisplayed.intensity);
                             break;
                         case CRL_COLOR_IMAGE_RGBA:
                             break;
@@ -530,18 +538,18 @@ private:
                         case CRL_CAMERA_IMAGE_NONE:
                             break;
                         case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfo.x, dev.pixelInfo.y, dev.pixelInfo.depth);
+                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfoDisplayed.x, dev.pixelInfoDisplayed.y, dev.pixelInfoDisplayed.depth);
                             break;
                     }
 
                 }
+                ImGui::PopStyleVar(); // FramePadding
 
 
 
                 // Max X and Min Y is top right corner
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(80.0f);
-                auto &window = dev.win[(StreamWindowIndex) index];
 
                 if (dev.isRemoteHead) {
                     ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
@@ -724,7 +732,7 @@ private:
                 /** Color rest of area in the background color exluding previews**/
                 ImGui::End();
                 bool isHovered = ImGui::IsWindowHoveredByName(windowName, ImGuiHoveredFlags_AnyWindow);
-                if (isHovered){
+                if (isHovered) {
                     handles->previewZoom[windowName] += ImGui::GetIO().MouseWheel / 5.0f;
 
                     if (handles->previewZoom[windowName] > handles->maxZoom) {
@@ -733,6 +741,8 @@ private:
                     if (handles->previewZoom[windowName] < handles->minZoom) {
                         handles->previewZoom[windowName] = handles->minZoom;
                     }
+                    if (handles->mouse->right && handles->mouse->action == GLFW_PRESS)
+                        window.enableZoom = !window.enableZoom;
                 }
 
                 index++;
@@ -1004,7 +1014,8 @@ private:
                 }
             }
 
-        } else if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && dev.controlTabActive == CRL_TAB_PREVIEW_CONTROL) {
+        } else if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
+                   dev.controlTabActive == CRL_TAB_PREVIEW_CONTROL) {
             ImGui::Dummy(ImVec2(40.0f, 40.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
@@ -1018,7 +1029,8 @@ private:
             ImGui::SetNextItemWidth(200);
             std::string resLabel = "##Resolution";
             auto &chInfo = dev.channelInfo.front();
-            if (ImGui::BeginCombo(resLabel.c_str(), Utils::cameraResolutionToString(chInfo.selectedResolutionMode).c_str(),
+            if (ImGui::BeginCombo(resLabel.c_str(),
+                                  Utils::cameraResolutionToString(chInfo.selectedResolutionMode).c_str(),
                                   ImGuiComboFlags_HeightSmall)) {
                 for (size_t n = 0; n < chInfo.modes.size(); n++) {
                     const bool is_selected = (chInfo.selectedModeIndex == n);
@@ -1107,7 +1119,7 @@ private:
             ImGui::RadioButton("Aux imager", &dev.colorStreamForPointCloud, 1);
             ImGui::PopStyleColor();
 
-            for(const auto& elem : Widgets::make()->elements){
+            for (const auto &elem: Widgets::make()->elements) {
                 // for each element type
                 ImGui::Dummy(ImVec2(0.0f, 3.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));

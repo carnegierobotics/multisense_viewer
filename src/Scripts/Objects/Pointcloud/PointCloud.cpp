@@ -89,7 +89,8 @@ void PointCloud::update() {
 }
 
 
-void PointCloud::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
     // GUi elements if a PHYSICAL camera has been initialized
     for (const auto &dev: uiHandle->devices) {
         if (dev.state != CRL_STATE_ACTIVE)

@@ -311,6 +311,7 @@ namespace VkRender {
         float yPixelStartPos = 0;
         float row = 0;
         float col = 0;
+        bool enableZoom = true;
     };
 
     /**
@@ -369,8 +370,10 @@ namespace VkRender {
         int cameraType = 0;
         /** @brief Reset 3D view camera position and rotation */
         bool resetCamera = false;
-        /** @brief Pixel information, on mouse hover for textures */
+        /** @brief Pixel information from renderer, on mouse hover for textures */
         CursorPixelInformation pixelInfo{};
+        /** @brief Pixel information scaled after zoom */
+        CursorPixelInformation pixelInfoDisplayed{};
         /** @brief Indices for each remote head if connected.*/
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
@@ -501,6 +504,21 @@ namespace VkRender {
      */
     struct MousePositionPushConstant {
         glm::vec2 position{};
+    };
+
+    struct ZoomParameters {
+        glm::vec2 zoomCenter;
+        float zoomValue = 0.0f;
+        float offsetX = 0.0f;
+        float prevOffsetX = 0.0f;
+        float prevOffsetY = 0.0f;
+        float offsetY = 0.0f;
+        float prevWidth = 960.0f;
+        float prevHeight = 600;
+        float newMin = 0.0f, newMax = 0.0f;
+        float newMinF = 0.0f, newMaxF = 0.0f;
+        float newMinY = 0.0f, newMaxY = 0.0f;
+        float newMinYF = 0.0f, newMaxYF = 0.0f;
     };
 
     /**

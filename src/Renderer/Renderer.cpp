@@ -475,6 +475,9 @@ void Renderer::render() {
                                 case CRL_GRAYSCALE_IMAGE: {
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo.intensity = intensity;
+
+                                    intensity = tex.data[(w * dev.pixelInfoDisplayed.y) + dev.pixelInfoDisplayed.x];
+                                    dev.pixelInfoDisplayed.intensity = intensity;
                                 }
                                     break;
                                 case CRL_COLOR_IMAGE_RGBA:
@@ -487,6 +490,7 @@ void Renderer::render() {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
+
                                     // get focal length
                                     float fx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
@@ -498,6 +502,13 @@ void Renderer::render() {
                                         dev.pixelInfo.depth = dist;
                                     } else {
                                         dev.pixelInfo.depth = 0;
+                                    }
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoDisplayed.y) + dev.pixelInfoDisplayed.x] / 16.0f;
+                                    if (disparityDisplayed > 0) {
+                                        float dist = (fx * abs(tx)) / disparityDisplayed;
+                                        dev.pixelInfoDisplayed.depth = dist;
+                                    } else {
+                                        dev.pixelInfoDisplayed.depth = 0;
                                     }
                                 }
                                     break;

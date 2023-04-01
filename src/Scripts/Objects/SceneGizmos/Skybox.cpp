@@ -67,7 +67,8 @@ void Skybox::update() {
 }
 
 
-void Skybox::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+void Skybox::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;

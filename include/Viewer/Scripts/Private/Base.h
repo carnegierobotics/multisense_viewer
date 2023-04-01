@@ -97,7 +97,7 @@ namespace VkRender {
         }
 
         /**@brief Pure virtual function called each frame*/
-        virtual void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+        virtual void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onUIUpdate not overridden for {} script",                                                 renderData.scriptName);
         }
@@ -138,7 +138,7 @@ namespace VkRender {
             onWindowResize(uiHandle);
         }
 
-        void uiUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+        void uiUpdate(VkRender::GuiObjectHandles *uiHandle) {
             if (!this->renderData.drawThisScript)
                 return;
             if (renderData.crlCamera != nullptr)

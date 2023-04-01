@@ -198,8 +198,11 @@ void DoubleBot::prepareMultiSenseTexture() {
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
-void DoubleBot::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const VkRender::Device &dev: uiHandle->devices) {
+void DoubleBot::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;

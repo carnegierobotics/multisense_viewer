@@ -291,10 +291,10 @@ namespace VkRender {
      * @brief Data block for displaying pixel intensity and depth in textures on mouse hover
      */
     struct CursorPixelInformation {
-        uint32_t x{}, y{};
-        uint32_t r{}, g{}, b{};
-        uint32_t intensity{};
-        float depth{};
+        uint32_t x = 0, y = 0;
+        uint32_t r = 0, g = 0, b = 0;
+        uint32_t intensity = 0;
+        float depth = 0;
     };
 
     /**
@@ -373,7 +373,7 @@ namespace VkRender {
         /** @brief Pixel information from renderer, on mouse hover for textures */
         CursorPixelInformation pixelInfo{};
         /** @brief Pixel information scaled after zoom */
-        CursorPixelInformation pixelInfoDisplayed{};
+        CursorPixelInformation pixelInfoZoomed{};
         /** @brief Indices for each remote head if connected.*/
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
@@ -519,6 +519,26 @@ namespace VkRender {
         float newMinF = 0.0f, newMaxF = 0.0f;
         float newMinY = 0.0f, newMaxY = 0.0f;
         float newMinYF = 0.0f, newMaxYF = 0.0f;
+
+        uint32_t m_Width = 0, m_Height = 0;
+
+        bool resChanged = false;
+        void resolutionUpdated(uint32_t width, uint32_t height){
+            m_Width = width;
+            m_Height = height;
+            prevWidth = m_Width;
+            prevHeight = m_Height;
+            prevOffsetX = 0.0f;
+            prevOffsetY = 0.0f;
+            newMin = 0.0f;
+            newMax = 0.0f;
+            newMinF = 0.0f;
+            newMaxF = 0.0f;
+            newMinY = 0.0f;
+            newMaxY = 0.0f;
+            newMinYF = 0.0f;
+            newMaxYF = 0.0f;
+        }
     };
 
     /**

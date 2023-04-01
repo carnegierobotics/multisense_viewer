@@ -3,19 +3,20 @@
 # Simple script to compile shaders. Just configure it to run on every build for convenience.
 # Make sure the glslc exec is installed.
 
-glslc="../../shaderc/build/glslc/Debug/glslc" #
+#glslc="../../shaderc/build/glslc/Debug/glslc" #
+glslc="../../shaderc/build/glslc/glslc" #
 
 sceneOutDir="../Shaders/Scene/spv/"
 sceneDir="../Shaders/Scene"
 
 mkdir -p ${sceneOutDir}
 
-#$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv
-#$glslc ${sceneDir}/video/disparity.vert -o ${sceneOutDir}disparity.vert.spv
-#$glslc ${sceneDir}/video/grayscale.vert -o ${sceneOutDir}grayscale.vert.spv
-#$glslc ${sceneDir}/video/color_default_sampler.frag -o ${sceneOutDir}color_default_sampler.frag.spv
-#$glslc ${sceneDir}/video/color_ycbcr_sampler.frag -o ${sceneOutDir}color_ycbcr_sampler.frag.spv
-#$glslc ${sceneDir}/video/disparity.frag -o ${sceneOutDir}disparity.frag.spv
+$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv
+$glslc ${sceneDir}/video/disparity.vert -o ${sceneOutDir}disparity.vert.spv
+$glslc ${sceneDir}/video/grayscale.vert -o ${sceneOutDir}grayscale.vert.spv
+$glslc ${sceneDir}/video/color_default_sampler.frag -o ${sceneOutDir}color_default_sampler.frag.spv
+$glslc ${sceneDir}/video/color_ycbcr_sampler.frag -o ${sceneOutDir}color_ycbcr_sampler.frag.spv
+$glslc ${sceneDir}/video/disparity.frag -o ${sceneOutDir}disparity.frag.spv
 $glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
 
 echo "Compiled video shaders"

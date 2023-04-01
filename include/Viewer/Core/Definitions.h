@@ -421,6 +421,7 @@ namespace VkRender {
         bool left = false;
         bool right = false;
         bool middle = false;
+        int action = 0;
         float wheel = 0.0f; // to initialize arcball zoom
         float dx = 0.0f;
         float dy = 0.0f;

@@ -34,9 +34,10 @@ void main()
     float val = info.zoom.z;
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
-    //float uvSampleX = (inUV.x + zoom.x - info.zoom.w) / info.zoom.z + info.zoom.w;
-    float uvSampleY = inUV.y;
-    float uvSampleX = inUV.x + info.zoom.w *(1 - 1/zoom.z);
+    float uvSampleX = (inUV.x + zoom.x - info.zoom.w) / info.zoom.z + info.zoom.w;
+    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
+    //float uvSampleY = (inUV.y );
+    //float uvSampleX = inUV.x + info.zoom.w *(1 - 1/info.zoom.z);
 
     vec3 tex = texture(samplerColorMap, vec2(uvSampleX, uvSampleY)).rgb;
     outColor = vec4(tex.r, tex.r, tex.r, 1.0);

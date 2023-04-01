@@ -312,6 +312,7 @@ namespace VkRender {
         float row = 0;
         float col = 0;
         bool enableZoom = true;
+        bool enableInterpolation = false;
     };
 
     /**
@@ -371,9 +372,9 @@ namespace VkRender {
         /** @brief Reset 3D view camera position and rotation */
         bool resetCamera = false;
         /** @brief Pixel information from renderer, on mouse hover for textures */
-        CursorPixelInformation pixelInfo{};
+        std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfo{};
         /** @brief Pixel information scaled after zoom */
-        CursorPixelInformation pixelInfoZoomed{};
+        std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfoZoomed{};
         /** @brief Indices for each remote head if connected.*/
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
@@ -508,7 +509,7 @@ namespace VkRender {
 
     struct ZoomParameters {
         glm::vec2 zoomCenter;
-        float zoomValue = 0.0f;
+        float zoomValue = 1.0f;
         float offsetX = 0.0f;
         float prevOffsetX = 0.0f;
         float prevOffsetY = 0.0f;
@@ -715,7 +716,7 @@ namespace VkRender {
         float minZoom = 1.0f;
         float maxZoom = 10.0f;
         /** @brief min/max scroll used in DoublePreview layout */
-        float maxScroll = 500.0f, minScroll = -850.0f;
+        float maxScroll = 450.0f, minScroll = -550.0f;
         /** @brief when a GUI window is hovered dont move the camera in the 3D view */
         bool disableCameraRotationFromGUI = false;
         /** @brief Input from backend to IMGUI */
@@ -735,10 +736,10 @@ namespace VkRender {
             clearColor[3] = 1.0f;
 
             // Initialize map used for zoom for each preview window
-            previewZoom["View Area 0"] = 0.0f;
-            previewZoom["View Area 1"] = 0.0f;
-            previewZoom["View Area 2"] = 0.0f;
-            previewZoom["View Area 3"] = 0.0f;
+            previewZoom["View Area 0"] = 1.0f;
+            previewZoom["View Area 1"] = 1.0f;
+            previewZoom["View Area 2"] = 1.0f;
+            previewZoom["View Area 3"] = 1.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */

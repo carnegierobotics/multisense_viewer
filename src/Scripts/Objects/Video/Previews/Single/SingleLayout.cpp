@@ -130,10 +130,11 @@ void SingleLayout::update() {
     updateLog();
 
     if (zoomEnabled || zoom.resChanged) {
-        VkRender::ScriptUtils::handleZoom(&zoom, res);
-        auto &d2 = bufferTwoData;
-        d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+        VkRender::ScriptUtils::handleZoom(&zoom);
     }
+    auto &d2 = bufferTwoData;
+    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+
 }
 
 void SingleLayout::prepareDefaultTexture() {
@@ -235,18 +236,20 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         }
         transformToUISpace(uiHandle, dev);
 
-        zoom.zoomCenter = glm::vec2(dev.pixelInfo.x, dev.pixelInfo.y);
-        zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
-        zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
         zoomEnabled = preview.enableZoom;
-
+        if (zoomEnabled) {
+            zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
+            zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+        }
+        useInterpolation = preview.enableInterpolation;
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(
                 (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
         if (mappedX <= width && mappedY <= height) {
-            dev.pixelInfoZoomed.x = mappedX;
-            dev.pixelInfoZoomed.y = mappedY;
+            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
+            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;
         }
     }
 }

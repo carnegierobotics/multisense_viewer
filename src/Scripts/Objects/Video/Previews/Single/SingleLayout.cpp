@@ -36,6 +36,8 @@
 
 #include "Viewer/Scripts/Objects/Video/Previews/Single/SingleLayout.h"
 
+#include "Viewer/Scripts/Private/ScriptUtils.h"
+
 void SingleLayout::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
@@ -127,11 +129,11 @@ void SingleLayout::update() {
 
     updateLog();
 
-    if (zoomEnabled)
-        handleZoom();
-
-    auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    if (zoomEnabled || zoom.resChanged) {
+        VkRender::ScriptUtils::handleZoom(&zoom, res);
+        auto &d2 = bufferTwoData;
+        d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    }
 }
 
 void SingleLayout::prepareDefaultTexture() {
@@ -216,12 +218,19 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         } else {
             state = DRAW_NO_DATA;
         }
+
+        zoom.resChanged = currentRes != res;
+        uint32_t width = 0, height = 0, depth = 0;
+        Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
+
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             src = preview.selectedSource;
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             textureType = Utils::CRLSourceToTextureType(src);
+
+            zoom.resolutionUpdated(width, height);
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
@@ -230,8 +239,15 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
         zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         zoomEnabled = preview.enableZoom;
-        dev.pixelInfoDisplayed.x = (zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) + zoom.newMinF;
-        dev.pixelInfoDisplayed.y = (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF;
+
+        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
+                                             zoom.newMinF);
+        auto mappedY = static_cast<uint32_t>(
+                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
+        if (mappedX <= width && mappedY <= height) {
+            dev.pixelInfoZoomed.x = mappedX;
+            dev.pixelInfoZoomed.y = mappedY;
+        }
     }
 }
 

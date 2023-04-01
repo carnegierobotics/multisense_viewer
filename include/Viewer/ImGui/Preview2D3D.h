@@ -529,7 +529,7 @@ private:
                         case CRL_POINT_CLOUD:
                             break;
                         case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfoDisplayed.x, dev.pixelInfoDisplayed.y, dev.pixelInfoDisplayed.intensity);
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed.x, dev.pixelInfoZoomed.y, dev.pixelInfoZoomed.intensity);
                             break;
                         case CRL_COLOR_IMAGE_RGBA:
                             break;
@@ -538,7 +538,7 @@ private:
                         case CRL_CAMERA_IMAGE_NONE:
                             break;
                         case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfoDisplayed.x, dev.pixelInfoDisplayed.y, dev.pixelInfoDisplayed.depth);
+                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfoZoomed.x, dev.pixelInfoZoomed.y, dev.pixelInfoZoomed.depth);
                             break;
                     }
 

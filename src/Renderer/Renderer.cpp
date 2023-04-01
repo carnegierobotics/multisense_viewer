@@ -476,8 +476,8 @@ void Renderer::render() {
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo.intensity = intensity;
 
-                                    intensity = tex.data[(w * dev.pixelInfoDisplayed.y) + dev.pixelInfoDisplayed.x];
-                                    dev.pixelInfoDisplayed.intensity = intensity;
+                                    intensity = tex.data[(w * dev.pixelInfoZoomed.y) + dev.pixelInfoZoomed.x];
+                                    dev.pixelInfoZoomed.intensity = intensity;
                                 }
                                     break;
                                 case CRL_COLOR_IMAGE_RGBA:
@@ -503,12 +503,12 @@ void Renderer::render() {
                                     } else {
                                         dev.pixelInfo.depth = 0;
                                     }
-                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoDisplayed.y) + dev.pixelInfoDisplayed.x] / 16.0f;
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed.y) + dev.pixelInfoZoomed.x] / 16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
-                                        dev.pixelInfoDisplayed.depth = dist;
+                                        dev.pixelInfoZoomed.depth = dist;
                                     } else {
-                                        dev.pixelInfoDisplayed.depth = 0;
+                                        dev.pixelInfoZoomed.depth = 0;
                                     }
                                 }
                                     break;

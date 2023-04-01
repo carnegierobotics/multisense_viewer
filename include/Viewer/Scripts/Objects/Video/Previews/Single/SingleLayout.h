@@ -109,7 +109,7 @@ public:
 
     bool virtualDevice = false;
 
-    ZoomParameters zoom{};
+    VkRender::ZoomParameters zoom{};
     bool zoomEnabled = false;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
@@ -122,8 +122,6 @@ public:
     void prepareDefaultTexture();
 
     void updateLog() const;
-
-    void handleZoom();
 };
 
 

@@ -644,6 +644,7 @@ namespace VkRender {
             io.MouseWheel = 0;
             mouseButtons.dx = 0;
             mouseButtons.dy = 0;
+            mouseButtons.action = -1;
             /** FrameTiming **/
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
@@ -838,6 +839,7 @@ namespace VkRender {
                     myApp->mouseButtons.left = true;
                     break;
             }
+            myApp->mouseButtons.action = GLFW_PRESS;
         }
         if (action == GLFW_RELEASE) {
             switch (button) {
@@ -851,6 +853,7 @@ namespace VkRender {
                     myApp->mouseButtons.left = false;
                     break;
             }
+            myApp->mouseButtons.action = GLFW_RELEASE;
         }
     }
 

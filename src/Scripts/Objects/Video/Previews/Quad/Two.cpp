@@ -34,6 +34,7 @@
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
 #include "Viewer/Scripts/Objects/Video/Previews/Quad/Two.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
 void Two::setup() {
@@ -119,7 +120,11 @@ void Two::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
+    if (zoomEnabled || zoom.resChanged) {
+        VkRender::ScriptUtils::handleZoom(&zoom);
+    }
     auto &d2 = bufferTwoData;
+    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
 
 }
 
@@ -206,16 +211,36 @@ void Two::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         } else {
             state = DRAW_NO_DATA;
         }
-
+        zoom.resChanged = currentRes != res;
+        uint32_t width = 0, height = 0, depth = 0;
+        Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             src = preview.selectedSource;
             textureType = Utils::CRLSourceToTextureType(src);
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
+            zoom.resolutionUpdated(width, height);
+
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
+        transformToUISpace(uiHandle, dev);
+        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_TWO].x, dev.pixelInfo[CRL_PREVIEW_TWO].y);
+        zoomEnabled = preview.enableZoom;
+        if (zoomEnabled) {
+            zoom.zoomValue = uiHandle->previewZoom.find("View Area 1")->second;
+            zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+        }
+        useInterpolation = preview.enableInterpolation;
+        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
+                                             zoom.newMinF);
+        auto mappedY = static_cast<uint32_t>(
+                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
+        if (mappedX <= width && mappedY <= height) {
+            dev.pixelInfoZoomed[CRL_PREVIEW_TWO].x = mappedX;
+            dev.pixelInfoZoomed[CRL_PREVIEW_TWO].y = mappedY;
+        }
     }
 }
 

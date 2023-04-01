@@ -65,10 +65,6 @@ void Example::update() {
 
     auto &d = bufferOneData;
     d->model = mat.model;
-
-
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
-
-    auto &d2 = bufferTwoData;
 }

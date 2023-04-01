@@ -77,8 +77,6 @@ void PointCloud::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    auto &d2 = bufferTwoData;
-
     VkRender::ColorPointCloudParams data{};
     data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
     data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;

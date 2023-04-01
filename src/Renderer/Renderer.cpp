@@ -435,6 +435,7 @@ void Renderer::render() {
                     if (win.second.selectedSource == "Source" || win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
+                    auto windowIndex = win.first;
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
                                                      dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
                                                      true);
@@ -466,18 +467,18 @@ void Renderer::render() {
                             auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
                             auto y = (uint32_t) ((float) h * (imGuiPosY) / maxInRangeY);
                             // Add one since we are not counting from zero anymore :)
-                            dev.pixelInfo.x = x + 1;
-                            dev.pixelInfo.y = y + 1;
+                            dev.pixelInfo[windowIndex].x = x + 1;
+                            dev.pixelInfo[windowIndex].y = y + 1;
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
                                 case CRL_POINT_CLOUD:
                                     break;
                                 case CRL_GRAYSCALE_IMAGE: {
                                     uint8_t intensity = tex.data[(w * y) + x];
-                                    dev.pixelInfo.intensity = intensity;
+                                    dev.pixelInfo[windowIndex].intensity = intensity;
 
-                                    intensity = tex.data[(w * dev.pixelInfoZoomed.y) + dev.pixelInfoZoomed.x];
-                                    dev.pixelInfoZoomed.intensity = intensity;
+                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x];
+                                    dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
                                 case CRL_COLOR_IMAGE_RGBA:
@@ -499,16 +500,16 @@ void Renderer::render() {
                                                (fx * (1920.0f / (float) w));
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
-                                        dev.pixelInfo.depth = dist;
+                                        dev.pixelInfo[windowIndex].depth = dist;
                                     } else {
-                                        dev.pixelInfo.depth = 0;
+                                        dev.pixelInfo[windowIndex].depth = 0;
                                     }
-                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed.y) + dev.pixelInfoZoomed.x] / 16.0f;
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
-                                        dev.pixelInfoZoomed.depth = dist;
+                                        dev.pixelInfoZoomed[windowIndex].depth = dist;
                                     } else {
-                                        dev.pixelInfoZoomed.depth = 0;
+                                        dev.pixelInfoZoomed[windowIndex].depth = 0;
                                     }
                                 }
                                     break;

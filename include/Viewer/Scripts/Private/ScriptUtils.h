@@ -8,7 +8,7 @@
 #include "Viewer/Core/Definitions.h"
 
 namespace VkRender::ScriptUtils {
-    static inline void handleZoom(ZoomParameters *zoom, CRLCameraResolution resolution) {
+    static inline void handleZoom(ZoomParameters *zoom) {
         float newWidth = (zoom->m_Width / zoom->zoomValue);
         float changeInWidth = zoom->prevWidth - newWidth;
         float fullChangeInWidth = zoom->m_Width - newWidth;

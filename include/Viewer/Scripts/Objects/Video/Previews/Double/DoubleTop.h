@@ -105,7 +105,9 @@ public:
     std::chrono::steady_clock::time_point lastPresentTime;
     int texWidth = 0, texHeight = 0, texChannels = 0;
     unsigned char* pixels{};
-
+    VkRender::ZoomParameters zoom{};
+    bool zoomEnabled = false;
+    bool useInterpolation = false;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */

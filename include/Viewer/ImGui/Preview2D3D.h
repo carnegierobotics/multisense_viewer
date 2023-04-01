@@ -377,7 +377,9 @@ private:
                 handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
         // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+        bool hoveringPreviewWindows = ImGui::IsWindowHoveredByName("View Area 0", ImGuiHoveredFlags_AnyWindow) ||
+                                      ImGui::IsWindowHoveredByName("View Area 1", ImGuiHoveredFlags_AnyWindow);
+        if (!handles->info->hoverState && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE && !hoveringPreviewWindows) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
 
             if (handles->accumulatedActiveScroll > handles->maxScroll) {
@@ -420,8 +422,11 @@ private:
                 auto &window = dev.win[(StreamWindowIndex) index];
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
+                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE)
+                    newWidth -= 50.0f * (handles->info->width / 1280);
+
                 float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
-                // Calculate window size
+
                 handles->info->viewAreaElementSizeX = newWidth;
                 handles->info->viewAreaElementSizeY = newHeight;
                 handles->info->previewBorderPadding = 35.0f * (handles->info->width / 1280);
@@ -520,32 +525,34 @@ private:
                 ImGui::Text("Lock zoom (Right click): ");
                 ImGui::SameLine();
                 bool lock = !window.enableZoom;
-                ImGui::Checkbox("##Label", &lock);
-                ImGui::SameLine();
+                ImGui::Checkbox(("##enableZoom" + std::to_string(index)).c_str(), &lock);
                 if (ImGui::IsWindowHoveredByName(std::string("View Area ") + std::to_string(index),
                                                  ImGuiHoveredFlags_AnyWindow)) {
                     // Offsset cursor positions.
+                    ImGui::SameLine();
+
                     switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
-                        case CRL_POINT_CLOUD:
-                            break;
                         case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed.x, dev.pixelInfoZoomed.y, dev.pixelInfoZoomed.intensity);
-                            break;
-                        case CRL_COLOR_IMAGE_RGBA:
-                            break;
-                        case CRL_COLOR_IMAGE_YUV420:
-                            break;
-                        case CRL_CAMERA_IMAGE_NONE:
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].intensity);
                             break;
                         case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfoZoomed.x, dev.pixelInfoZoomed.y, dev.pixelInfoZoomed.depth);
+                            ImGui::Text("(%d, %d) %.3f", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
                             break;
+                        default:
+                            ImGui::Text("");
                     }
 
                 }
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMin.x + 20.0f, bottomBarMin.y + 2.0f));
+                ImGui::Text("Interpolate pixels: ");
+                ImGui::SameLine();
+                ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.enableInterpolation);
+
                 ImGui::PopStyleVar(); // FramePadding
-
-
 
                 // Max X and Min Y is top right corner
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));

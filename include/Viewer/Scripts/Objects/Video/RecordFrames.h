@@ -85,7 +85,7 @@ public:
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
-    bool pointCloudColorSource = false; // 0 luma, 1 color
+    bool useAuxColor = false; // 0 luma, 1 color
     bool savePointCloud = false;
     bool saveImage = false;
     bool isRemoteHead = false;
@@ -101,7 +101,7 @@ public:
 
 
     template<typename T>
-    static std::array<uint8_t, 3> ycbcrToBgr(uint8_t *luma,
+    static std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
                                              uint8_t *chroma,
                                              const uint32_t &imageWidth,
                                              size_t u,
@@ -131,14 +131,20 @@ public:
     }
 
     static void
-    ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
+    ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
                const uint32_t &height, uint8_t *output);
 
     static void
     saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
                     std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
 
-    void savePointCloudToPlyFile();
+    void
+    static savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+                                   std::shared_ptr<VkRender::TextureData> &depthTex,
+                                   std::shared_ptr<VkRender::TextureData> &colorTex,
+                                   bool useAuxColor,
+                                   const glm::mat4 &Q, const float &scale, const float &focalLength
+    );
 };
 
 

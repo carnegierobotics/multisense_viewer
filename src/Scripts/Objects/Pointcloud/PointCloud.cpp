@@ -103,10 +103,10 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             currentRes = CRL_RESOLUTION_1920_1200_128;
 
         if ((currentRes != res ||
-             remoteHeadIndex != preview.selectedRemoteHeadIndex || lumaOrColor != dev.colorStreamForPointCloud)) {
+             remoteHeadIndex != preview.selectedRemoteHeadIndex || lumaOrColor != dev.useAuxForPointCloudColor)) {
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
-            lumaOrColor = dev.colorStreamForPointCloud;
+            lumaOrColor = dev.useAuxForPointCloudColor;
 
             prepareTexture();
         }

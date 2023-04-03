@@ -60,7 +60,7 @@ void RecordFrames::update() {
                  (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
                 const auto &conf = renderData.crlCamera->getCameraInfo(remoteIdx).imgConf;
                 auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
-                                                                   conf.height(), true);
+                                                                   conf.height(), false, true);
 
                 if (renderData.crlCamera->getCameraStream(src, tex.get(), remoteIdx)) {
                     if (src == "Color Aux" || src == "Color Rectified Aux") {
@@ -79,19 +79,34 @@ void RecordFrames::update() {
             }
         }
     }
-    if (savePointCloud){
+    if (savePointCloud) {
 
         const auto &conf = renderData.crlCamera->getCameraInfo(0).imgConf;
-        auto disparityTex = std::make_shared<VkRender::TextureData>(CRL_DISPARITY_IMAGE, conf.width(), conf.height(), true);
+        auto disparityTex = std::make_shared<VkRender::TextureData>(CRL_DISPARITY_IMAGE, conf.width(), conf.height(),
+                                                                    false, true);
 
-        if (pointCloudColorSource){
-            auto lumaTex = std::make_shared<VkRender::TextureData>(CRL_GRAYSCALE_IMAGE, conf.width(), conf.height(), true);
-            auto colorTex = std::make_shared<VkRender::TextureData>(CRL_COLOR_IMAGE_YUV420, conf.width(), conf.height(), true);
-
-        } else {
-
+        std::shared_ptr<VkRender::TextureData> colorTex;
+        CRLCameraDataType texType = CRL_GRAYSCALE_IMAGE;
+        std::string source = "Luma Rectified Left";
+        if (useAuxColor) {
+            source = "Color Rectified Aux";
+            texType = CRL_COLOR_IMAGE_YUV420;
         }
+        colorTex = std::make_shared<VkRender::TextureData>(texType, conf.width(), conf.height(), false, true);
 
+        // If we successfully fetch both image streams into a texture
+        if (renderData.crlCamera->getCameraStream(source, colorTex.get(), 0) &&
+            renderData.crlCamera->getCameraStream("Disparity Left", disparityTex.get(), 0)) {
+            // Calculate pointcloud then save to file
+            if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
+                threadPool->Push(savePointCloudToPlyFile, saveImagePathPointCloud, disparityTex,
+                                 colorTex, useAuxColor,
+                                 renderData.crlCamera->getCameraInfo(0).QMat,
+                                 renderData.crlCamera->getCameraInfo(0).pointCloudScale,
+                                 renderData.crlCamera->getCameraInfo(0).focalLength
+                );
+            }
+        }
     }
 }
 
@@ -115,11 +130,112 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         compression = dev.saveImageCompressionMethod;
         isRemoteHead = dev.isRemoteHead;
         savePointCloud = dev.isRecordingPointCloud;
-        pointCloudColorSource = dev.colorStreamForPointCloud == 1;
+        useAuxColor = dev.useAuxForPointCloudColor == 1;
     }
 }
 
-void RecordFrames::savePointCloudToPlyFile(){
+void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+                                           std::shared_ptr<VkRender::TextureData> &depthTex,
+                                           std::shared_ptr<VkRender::TextureData> &colorTex, bool useAuxColor,
+                                           const glm::mat4 &Q, const float &scale, const float &focalLength) {
+
+    std::filesystem::path fileLocation = saveDirectory;
+    fileLocation.append(std::to_string(depthTex->m_Id) + ".ply");
+    // Dont overwrite already saved images
+    if (std::filesystem::exists(fileLocation))
+        return;
+    // Create folders if no exists
+    if (!std::filesystem::is_directory(saveDirectory) ||
+        !std::filesystem::exists(saveDirectory)) { // Check if src folder exists
+        std::filesystem::create_directories(saveDirectory); // create src folder
+    }
+
+    struct WorldPoint {
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+        float r = 0.0f, g = 0.0f, b = 0.0f;
+    };
+
+
+    const auto *disparityP = reinterpret_cast<const uint16_t *>(depthTex->data);
+    const auto *leftRectifiedP = reinterpret_cast<const uint8_t *>(colorTex->data);
+    uint32_t width = depthTex->m_Width;
+    uint32_t height = depthTex->m_Height;
+    uint32_t minDisparity = 5;
+
+    std::vector<WorldPoint> points;
+    points.reserve(height * width);
+
+    std::vector<uint8_t> colorRGB(colorTex->m_Width * colorTex->m_Height * 3);
+    if (useAuxColor) {
+        RecordFrames::ycbcrToRGB(colorTex->data, colorTex->data2, colorTex->m_Width, colorTex->m_Height,
+                                 colorRGB.data());
+    }
+
+    for (size_t h = 0; h < height; ++h) {
+        for (size_t w = 0; w < width; ++w) {
+
+            const size_t index = h * width + w;
+
+            //
+            // MultiSense 16 bit disparity images are stored in 1/16 of a pixel. This allows us to send subpixel
+            // resolutions with integer values
+
+            const float d = static_cast<float>(disparityP[index]) / 16.0f;
+
+            if (d < minDisparity) {
+                continue;
+            }
+            float invB = focalLength / d;
+            glm::vec4 imgCoords(w, h, d, 1);
+            glm::vec4 worldCoords = Q * imgCoords * (1 / invB);
+            worldCoords = worldCoords / worldCoords.w * scale;
+
+            if (useAuxColor) {
+                const size_t colorIndex = (h * width + w) * 3;
+                points.emplace_back(WorldPoint{worldCoords.x,
+                                               worldCoords.y,
+                                               worldCoords.z,
+                                               static_cast<float>(colorRGB[colorIndex]),
+                                               static_cast<float>(colorRGB[colorIndex + 1]),
+                                               static_cast<float>(colorRGB[colorIndex + 2])});
+
+            } else {
+                points.emplace_back(WorldPoint{worldCoords.x,
+                                               worldCoords.y,
+                                               worldCoords.z,
+                                               static_cast<float>(leftRectifiedP[index]),
+                                               static_cast<float>(leftRectifiedP[index]),
+                                               static_cast<float>(leftRectifiedP[index])});
+            }
+
+            // Calculate color if required
+
+
+        }
+    }
+
+    std::stringstream ss;
+
+    ss << "ply\n";
+    ss << "format ascii 1.0\n";
+    ss << "element vertex " << points.size() << "\n";
+    ss << "property float x\n";
+    ss << "property float y\n";
+    ss << "property float z\n";
+    ss << "property uchar red\n";
+    ss << "property uchar green\n";
+    ss << "property uchar blue\n";
+    ss << "end_header\n";
+
+    for (const auto &point: points) {
+        ss << point.x << " " << point.y << " " << point.z << " " << point.r << " " << point.g << " " << point.b << "\n";
+    }
+
+    std::ofstream ply(fileLocation.c_str());
+    ply << ss.str();
+
 
 }
 
@@ -205,7 +321,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 // Normalize ycbcr
             {
                 std::vector<uint8_t> output(ptr->m_Width * ptr->m_Height * 3);
-                RecordFrames::ycbcrToBgr(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
+                RecordFrames::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
                 // something like this
 
                 std::ofstream outputStream((fileLocation.string()).c_str(),
@@ -330,7 +446,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
 }
 
 
-void RecordFrames::ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
+void RecordFrames::ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
                               const uint32_t &height, uint8_t *output) {
     const size_t rgb_stride = width * 3;
 
@@ -338,7 +454,7 @@ void RecordFrames::ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &wi
         const size_t row_offset = y * rgb_stride;
 
         for (uint32_t x = 0; x < width; ++x) {
-            memcpy(output + row_offset + (3 * x), RecordFrames::ycbcrToBgr<uint8_t>(luma, chroma, width, x, y).data(),
+            memcpy(output + row_offset + (3 * x), RecordFrames::ycbcrToRGB<uint8_t>(luma, chroma, width, x, y).data(),
                    3);
         }
     }

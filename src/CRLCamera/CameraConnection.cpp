@@ -201,7 +201,7 @@ namespace VkRender::MultiSense {
             }
 
 
-            if (dev->colorStreamForPointCloud) {
+            if (dev->useAuxForPointCloudColor) {
                 auto streams = {"Color Rectified Aux", "Luma Rectified Aux"};
                 for (const auto &s: streams) {
                     if (!Utils::isInVector(chInfo.requestedStreams, s)) {

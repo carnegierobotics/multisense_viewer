@@ -394,7 +394,7 @@ namespace VkRender {
         /** @brief If possible then use the IMU in the camera */
         bool useIMU = true;
         bool enablePBR = false;
-        int colorStreamForPointCloud = 1; // 0 : luma // 1 : Color
+        int useAuxForPointCloudColor = 1; // 0 : luma // 1 : Color
         Page controlTabActive = CRL_TAB_PREVIEW_CONTROL;
         /** @brief Following is UI elements settings for the active device **/
         /** @brief Which TAB this preview has selected. 2D or 3D view. */

@@ -178,6 +178,6 @@ namespace Validation {
     }
 
 DISABLE_WARNING_POP
-};
+}
 
 #endif //MULTISENSE_VALIDATION_H

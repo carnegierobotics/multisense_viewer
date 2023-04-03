@@ -144,10 +144,10 @@ namespace VkRender::MultiSense {
             if (channelPtr_) {
                 crl::multisense::system::DeviceInfo deviceInfo;
                 channelPtr_->getDeviceInfo(deviceInfo);
-                for (std::vector v{crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
-                                   crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
-                                   crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM};
-                     auto &e : v){
+                std::vector v{crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
+                    crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
+                    crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM};
+                for (auto &e : v){
                         if (deviceInfo.hardwareRevision == e)
                             skipLogging = true;
                 }

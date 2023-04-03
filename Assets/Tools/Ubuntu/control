@@ -3,9 +3,9 @@ Name: MultiSense Viewer
 Description: A MultiSense interface tool
  Quickly connect your MultiSense device and start previewing camera streams with this MultiSense viewer and interface tool.
  Visit releases page for latest versions of this tool at the CarnegieRobotics's github page: https://github.com/carnegierobotics
-Author: Mr. Magnus mgjerde@carnegierobotics.com
+Author: Magnus mgjerde@carnegierobotics.com
 Maintainer: Carnegie Robotics LLC mgjerde@carnegierobotics.com
-Version: 1.0-0
+Version: 1.1-0
 Homepage: https://carnegierobotics.com
 Website: https://github.com/carnegierobotics
 Architecture: amd64

@@ -70,7 +70,7 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
 
-    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
@@ -78,8 +78,13 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
     std::unique_ptr<GLTFModel::Model> m_Model;
-
+    struct LightSource {
+        glm::vec3 color = glm::vec3(1.0f);
+        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
+    } lightSource;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+
+    Page selectedPreviewTab = CRL_TAB_NONE;
 };
 
 

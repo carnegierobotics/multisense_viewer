@@ -43,6 +43,7 @@
 #include <vector>
 #include <functional>
 #include <glm/vec2.hpp>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui/imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
@@ -51,6 +52,7 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
+#include "ScriptUIAddons.h"
 
 namespace VkRender {
     class GuiManager {
@@ -65,7 +67,7 @@ namespace VkRender {
             vkDestroyPipelineLayout(device->m_LogicalDevice, pipelineLayout, nullptr);
             vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->m_LogicalDevice, descriptorSetLayout, nullptr);
-            for (auto * shaderModule: shaderModules) {
+            for (auto& shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
 
@@ -118,6 +120,7 @@ namespace VkRender {
 
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
+        std::shared_ptr<VkRender::ThreadPool> pool;
 
         // Initialization functions
         void initializeFonts();

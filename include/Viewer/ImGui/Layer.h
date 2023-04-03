@@ -39,6 +39,7 @@
 
 #define IMGUI_INCLUDE_IMGUI_USER_H
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui.h>
 #include <array>

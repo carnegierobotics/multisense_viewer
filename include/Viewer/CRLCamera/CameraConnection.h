@@ -72,7 +72,7 @@ namespace VkRender::MultiSense {
 		~CameraConnection();
 
 		/**Pointer to actual camera object*/
-		std::unique_ptr<CRLPhysicalCamera> camPtr;
+		CRLPhysicalCamera camPtr;
 		/**Pointer to thread-pool commonly used for UI blocking operations*/
 		std::unique_ptr<VkRender::ThreadPool> pool;
 
@@ -88,7 +88,7 @@ namespace VkRender::MultiSense {
 		 */
 		void saveProfileAndDisconnect(VkRender::Device* dev);
 
-        static void updateUIDataBlock(VkRender::Device &dev, const std::unique_ptr<CRLPhysicalCamera> &camPtr);
+        static void updateUIDataBlock(VkRender::Device &dev, CRLPhysicalCamera &camPtr);
 
     private:
 		/**@brief file m_Descriptor to configure network settings on Linux */
@@ -97,7 +97,9 @@ namespace VkRender::MultiSense {
 		int m_FailedGetStatusCount = 0;
 		/** @brief get status timer */
 		std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
-		/**@brief mutex to prevent multiple threads to communicate with camera.
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryExposureTimer;
+
+        /**@brief mutex to prevent multiple threads to communicate with camera.
 		 * could be omitted if threadpool will always consist of one thread */
 		std::mutex writeParametersMtx{};
 		std::mutex statusCountMutex{};
@@ -121,6 +123,8 @@ namespace VkRender::MultiSense {
 		 */
 		void getProfileFromIni(VkRender::Device& dev) const;
 
+        void activeDeviceCameraStreams(VkRender::Device *dev);
+
 		/**@brief Create a user readable list of the possible camera modes*/
 		static void
 			initCameraModes(std::vector<std::string>* modes, std::vector<crl::multisense::system::DeviceMode> vector);
@@ -140,6 +144,15 @@ namespace VkRender::MultiSense {
 		 * @param[in] index Which remote-head to select
 		 * */
 		static void setExposureTask(void* context, ExposureParams* arg1, VkRender::Device* dev,
+			crl::multisense::RemoteHeadChannel remoteHeadIndex);
+
+		/**@brief static function given to the threadpool to configure secondary exposure of the sensor.
+		 * @param[in] context pointer to the calling context
+		 * @param[in] arg1 pointer to exposure params block
+		 * @param[in] dev Which profile to update
+		 * @param[in] index Which remote-head to select
+		 * */
+		static void setSecondaryExposureTask(void* context, ExposureParams* arg1, VkRender::Device* dev,
 			crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
 		/**@brief static function given to the threadpool to configure the white balance of the sensor.
@@ -215,6 +228,12 @@ namespace VkRender::MultiSense {
 		 */
 		static void getStatusTask(void* context, crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
+        /**@brief Get the current exposure setting (If AutoExposure is enabled)
+		 * @param[in] context pointer to the callers context
+		 * @param[in] remoteHeadIndex id of remote head to select
+		 */
+		static void getExposureTask(void *context, VkRender::Device *dev, short index);
+
 		/**@brief Update the UI block using the active information block from the physical camera
 		 * @param[in] dev profile to update UI from
 		 * @param[in] remoteHeadIndex id of remote head
@@ -225,7 +244,7 @@ namespace VkRender::MultiSense {
 		/**@brief Filter the unsupported sources defined by \ref maskArrayAll*/
 		static void filterAvailableSources(std::vector<std::string> *sources, const std::vector<uint32_t> &maskVec,
                                            crl::multisense::RemoteHeadChannel idx,
-                                           const std::unique_ptr<CRLPhysicalCamera> &camPtr);
+                                           CRLPhysicalCamera &camPtr);
 
         /**
          * @brief task to set the extrinsic/intrinsic calibration using yml files
@@ -256,7 +275,7 @@ namespace VkRender::MultiSense {
 				crl::multisense::Source_Compressed_Rectified_Left,
 		};
 
-    };
+	};
 
 }
 #endif //MULTISENSE_CAMERACONNECTION_H

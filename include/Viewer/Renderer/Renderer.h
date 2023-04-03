@@ -50,6 +50,7 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Generated/ScriptHeader.h"
+#include "Viewer/Core/Skybox.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -71,7 +72,7 @@ public:
         pLogger->info("Initialized Backend");
 
         guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
-
+        guiManager->handles.mouse = &mouseButtons;
         prepareRenderer();
         pLogger->info("Prepared Renderer");
 
@@ -112,7 +113,7 @@ private:
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
 
-    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, 1.0f);
     float yaw = -270.0f, pitch = 0.0f;
 
     void windowResized() override;
@@ -124,7 +125,7 @@ private:
      * @brief creates instances from classes located in src/Scripts/Objects directory.
      * Usually each class here represents object(s) in the scene
      */
-    void buildScript(const std::string &scriptName);
+    void buildScripts();
 
     /**
      * @brief deletes a script if stored in \refitem builtScriptNames
@@ -136,6 +137,9 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
+
+    VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stageFlag);
+    std::vector<VkShaderModule> shaderModules{};
 };
 
 

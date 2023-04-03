@@ -77,7 +77,7 @@ public:
 
         /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
         bool draw = true;
-        CRLCameraDataType modelType{};
+        CRLCameraDataType cameraDataType{};
 
         struct Mesh {
             VulkanDevice *device = nullptr;
@@ -106,10 +106,11 @@ public:
         VulkanDevice *vulkanDevice{};
         std::vector<std::string> extensions;
 
-        std::unique_ptr<TextureVideo> textureVideo;
-        std::unique_ptr<TextureVideo> textureColorMap;
-        std::unique_ptr<TextureVideo> textureChromaU;
-        std::unique_ptr<TextureVideo> textureChromaV;
+        std::unique_ptr<TextureVideo> textureVideo;       // Default texture that gets updated usually on each camera frame update
+        std::unique_ptr<TextureVideo> pointCloudTexture;  // pc color texture
+        std::unique_ptr<TextureVideo> textureChromaU;     // supporting tex if no ycbcr sampler present (old hw)
+        std::unique_ptr<TextureVideo> textureChromaV;     // supporting tex if no ycbcr sampler is present (oldhw)
+        Buffer colorPointCloudBuffer;
 
         std::vector<Texture::TextureSampler> textureSamplers;
 
@@ -117,11 +118,13 @@ public:
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                               const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
-        void createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType);
+        void createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType, bool forPointCloud = false, int i = 0);
 
         bool updateTexture(CRLCameraDataType type);
 
         bool getTextureDataPointers(VkRender::TextureData *tex) const;
+
+        bool updateTexture(VkRender::TextureData *tex);
     };
 
     /**@brief Primitive for a surface */

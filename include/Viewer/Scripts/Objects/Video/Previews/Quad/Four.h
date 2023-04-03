@@ -73,11 +73,11 @@ public:
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
-    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
+    ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<CRLCameraModels::Model> m_Model;
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;
@@ -105,6 +105,9 @@ public:
     std::chrono::steady_clock::time_point lastPresentTime;
     int texWidth = 0, texHeight = 0, texChannels = 0;
 
+    VkRender::ZoomParameters zoom{};
+    bool zoomEnabled = false;
+    bool useInterpolation = false;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

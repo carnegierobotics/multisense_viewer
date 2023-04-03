@@ -62,6 +62,22 @@ private:
             matrices.view = glm::lookAt(m_Position, m_Position + cameraFront, cameraUp);
             m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
         } else if (type == CameraType::arcball) {
+
+            glm::mat4 rotM = glm::mat4(1.0f);
+            glm::mat4 transM;
+
+            rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+            rotM = glm::rotate(rotM, glm::radians(m_Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+            rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+
+            transM = glm::translate(glm::mat4(1.0f), m_Position * glm::vec3(1.0f, 1.0f, -1.0f));
+
+            if (type == CameraType::flycam)
+                matrices.view = rotM * transM;
+            else
+                matrices.view = transM * rotM;
+
+            /*
             cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
             glm::vec4 pos(m_Position.x, m_Position.y, m_Position.z, 1.0f);
 
@@ -81,7 +97,7 @@ private:
 
             m_Position = glm::vec3(pos.x, pos.y, pos.z);
             matrices.view = glm::lookAt(m_Position, m_FocalPoint, cameraUp);
-
+*/
         }
 
     };
@@ -91,15 +107,15 @@ public:
     };
     CameraType type = CameraType::flycam;
 
-    glm::vec3 m_Rotation = glm::vec3();
-    glm::vec3 m_Position = glm::vec3(1.0f, 0.0f, 3.0f);
+    glm::vec3 m_Rotation = glm::vec3(-10.0f, 155.0f, 0.0f);
+    glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec4 m_ViewPos = glm::vec4();
     glm::vec3 m_FocalPoint =glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    float m_RotationSpeed = 1.0f;
-    float m_MovementSpeed = 3.0f;
+    float m_RotationSpeed = 0.20f;
+    float m_MovementSpeed = 1.0f;
     float m_SpeedModifier = 50.0f;
 
     float viewportWidth = 1720;
@@ -185,6 +201,8 @@ public:
             xAngle = dx * deltaAngleX;
             yAngle = dy * deltaAngleY;
 
+
+            m_Rotation += glm::vec3(dy, -dx, 0.0f);
         }
         updateViewMatrix();
     }

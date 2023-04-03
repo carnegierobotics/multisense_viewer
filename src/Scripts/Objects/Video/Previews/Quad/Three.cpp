@@ -35,6 +35,7 @@
  **/
 
 #include "Viewer/Scripts/Objects/Video/Previews/Quad/Three.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 void Three::setup() {
     // Prepare a m_Model for drawing a texture onto
@@ -50,19 +51,19 @@ void Three::setup() {
     m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    m_NoDataTex = stbi_load((Utils::getTexturePath() + "no_image_tex.png").c_str(), &texWidth, &texHeight, &texChannels,
+    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth, &texHeight, &texChannels,
                             STBI_rgb_alpha);
     if (!m_NoDataTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
-                                         (Utils::getTexturePath() + "no_image_tex.png"));
+                                         (Utils::getTexturePath().append("no_image_tex.png")).string());
     }
     // Create texture m_Image if not created
-    m_NoSourceTex = stbi_load((Utils::getTexturePath() + "no_source_selected.png").c_str(), &texWidth, &texHeight,
+    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth, &texHeight,
                               &texChannels,
                               STBI_rgb_alpha);
     if (!m_NoSourceTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
-                                         (Utils::getTexturePath() + "no_source_selected.png"));
+                                         (Utils::getTexturePath().append("no_source_selected.png")).string());
     }
 
     lastPresentTime = std::chrono::steady_clock::now();
@@ -77,12 +78,12 @@ void Three::update() {
 
     m_Model->getTextureDataPointers(&tex);
     // If we get an image attempt to update the GPU buffer
-    if (renderData.crlCamera->get()->getCameraStream(src, &tex, remoteHeadIndex)) {
+    if (renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
-        float frameTime = 1.0f / renderData.crlCamera->get()->getCameraInfo(remoteHeadIndex).imgConf.fps();
+        float frameTime = 1.0f / renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf.fps();
         if (time_span.count() > (frameTime * TOLERATE_FRAME_NUM_SKIP) &&
             lastPresentedFrameID == tex.m_Id) {
             state = DRAW_NO_DATA;
@@ -119,36 +120,37 @@ void Three::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
+    if (zoomEnabled || zoom.resChanged) {
+        VkRender::ScriptUtils::handleZoom(&zoom);
+    }
     auto &d2 = bufferTwoData;
-    d2->objectColor = glm::vec4(0.25f, 0.25f, 0.25f, 1.0f);
-    d2->lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    d2->lightPos = glm::vec4(glm::vec3(0.0f, -3.0f, 0.0f), 1.0f);
-    d2->viewPos = renderData.camera->m_ViewPos;
+    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+
 }
 
 
 void Three::prepareDefaultTexture() {
-    m_NoDataModel->modelType = CRL_COLOR_IMAGE;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
-    std::string vertexShaderFileName = "Scene/spv/quad.vert";
-    std::string fragmentShaderFileName = "Scene/spv/quad_sampler.frag";
+    m_NoDataModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
+    std::string vertexShaderFileName = "Scene/spv/color.vert";
+    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
-    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
+    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
         std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
         m_NoDataModel->updateTexture(defTex->m_Type);
     }
 
-    m_NoSourceModel->modelType = CRL_COLOR_IMAGE;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE);
+    m_NoSourceModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
-    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE, texWidth, texHeight);
+    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
         std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
         m_NoSourceModel->updateTexture(tex->m_Type);
@@ -160,18 +162,17 @@ void Three::prepareMultiSenseTexture() {
     std::string fragmentShaderFileName;
     switch (textureType) {
         case CRL_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "Scene/spv/preview.vert";
-            fragmentShaderFileName = "Scene/spv/preview.frag";
+            vertexShaderFileName = "Scene/spv/grayscale.vert";
+            fragmentShaderFileName = "Scene/spv/grayscale.frag";
             break;
         case CRL_COLOR_IMAGE_YUV420:
-        case CRL_YUV_PLANAR_FRAME:
-            vertexShaderFileName = "Scene/spv/quad.vert";
+            vertexShaderFileName = "Scene/spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/quad_sampler.frag" :  "Scene/spv/quad.frag";
+                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.vert";
             break;
         case CRL_DISPARITY_IMAGE:
-            vertexShaderFileName = "Scene/spv/depth.vert";
-            fragmentShaderFileName = "Scene/spv/depth.frag";
+            vertexShaderFileName = "Scene/spv/disparity.vert";
+            fragmentShaderFileName = "Scene/spv/disparity.frag";
             break;
         default:
             return;
@@ -187,36 +188,60 @@ void Three::prepareMultiSenseTexture() {
         Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
-    m_Model->modelType = textureType;
-    m_Model->createEmptyTexture(width, height, textureType);
+    m_Model->cameraDataType = textureType;
+    m_Model->createEmptyTexture(width, height, textureType, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
-void Three::onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
-    for (const VkRender::Device &dev: uiHandle->devices) {
+void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
 
         auto &preview = dev.win.at(CRL_PREVIEW_THREE);
-        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedMode;
+        auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
 
         if (src == "Source") {
             state = DRAW_NO_SOURCE;
         } else {
             state = DRAW_NO_DATA;
         }
-
+        zoom.resChanged = currentRes != res;
+        uint32_t width = 0, height = 0, depth = 0;
+        Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
         if ((src != preview.selectedSource || currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
             src = preview.selectedSource;
             textureType = Utils::CRLSourceToTextureType(src);
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
+            zoom.resolutionUpdated(width, height);
+
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
+        transformToUISpace(uiHandle, dev);
+        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_THREE].x, dev.pixelInfo[CRL_PREVIEW_THREE].y);
+        zoomEnabled = preview.enableZoom;
+        if (zoomEnabled) {
+            zoom.zoomValue = uiHandle->previewZoom.find("View Area 2")->second;
+            zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+        }
+        useInterpolation = preview.enableInterpolation;
+
+        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
+                                             zoom.newMinF);
+        auto mappedY = static_cast<uint32_t>(
+                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
+        if (mappedX <= width && mappedY <= height) {
+            dev.pixelInfoZoomed[CRL_PREVIEW_THREE].x = mappedX;
+            dev.pixelInfoZoomed[CRL_PREVIEW_THREE].y = mappedY;
+        }
     }
 }
 

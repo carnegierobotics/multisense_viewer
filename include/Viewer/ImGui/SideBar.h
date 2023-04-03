@@ -39,6 +39,9 @@
 
 #include <algorithm>
 #include <queue>
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui/imgui_internal.h>
 #include <sys/types.h>
 
@@ -85,7 +88,8 @@ public:
     std::chrono::steady_clock::time_point gifFrameTimer2;
     std::chrono::steady_clock::time_point searchingTextAnimTimer;
     std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
-    std::vector<Utils::Adapter> manualConnectAdapters;
+    std::vector<AdapterUtils::Adapter> manualConnectAdapters;
+    AdapterUtils adapterUtils;
     std::string dots;
     bool btnConnect = false;
     bool btnAdd = false;
@@ -100,7 +104,7 @@ public:
     std::vector<std::string> interfaceIDList; // Windows required
     std::vector<uint32_t> indexList;
 
-    int connectMethodSelector = 3;
+    int connectMethodSelector = 0;
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<LOG_COLOR> colors;
@@ -126,20 +130,27 @@ public:
     }
 
     void onDetach() override {
+        adapterUtils.stopAdapterScan();
 #ifdef __linux__
         if (autoConnectProcess != nullptr) {
             if (reader)
                 reader->sendStopSignal();
             pclose(autoConnectProcess);
 #else
-            if (shellInfo.hProcess != nullptr) {
-                if (reader)
-                    reader->sendStopSignal();
-                if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
-                    Log::Logger::getInstance()->info("Terminated AutoConnect program");
-                } else
-                    Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
+        if (shellInfo.hProcess != nullptr) {
+            if (reader)
+                reader->sendStopSignal();
+            if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
+                Log::Logger::getInstance()->info("Terminated AutoConnect program");
+            } else
+                Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
 #endif
+        }
+
+        // Make sure adapter utils scanning thread is shut down correctly
+        while (true){
+            if (adapterUtils.shutdownReady())
+                break;
         }
     }
 
@@ -169,9 +180,9 @@ private:
     void addLogLine(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
-        va_start(args, fmt);
+                va_start(args, fmt);
         Buf.appendfv(fmt, args);
-        va_end(args);
+                va_end(args);
         for (int new_size = Buf.size(); old_size < new_size; old_size++)
             if (Buf[old_size] == '\n') {
                 LineOffsets.push_back(old_size + 1);
@@ -185,6 +196,7 @@ private:
      * Periodically check the status of connected ethernet devices
      * */
     void autoDetectCamera() {
+        // if reader is not opened we don't start autoconnect program
         if (!reader)
             return;
 
@@ -350,7 +362,15 @@ private:
                     buttonIdentifier = "Added...";
                     break;
                 case CRL_STATE_DISCONNECT_AND_FORGET:
+                    buttonIdentifier = "Disconnecting...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    break;
                 case CRL_STATE_REMOVE_FROM_LIST:
+                    buttonIdentifier = "Removing...";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    break;
                 case CRL_STATE_RESET:
                     buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
@@ -372,7 +392,7 @@ private:
 
                 if (ImGui::SmallButton("X")) {
                     // delete and disconnect devices
-                    if ( handles->devices.at(i).state == CRL_STATE_CONNECTING)
+                    if (handles->devices.at(i).state == CRL_STATE_CONNECTING)
                         handles->devices.at(i).state = CRL_STATE_INTERRUPT_CONNECTION;
                     else
                         handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
@@ -516,6 +536,9 @@ private:
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
                                    ImGuiWindowFlags_NoDecoration)) {
+            // Threaded adapter search for manual connect
+            adapterUtils.startAdapterScan(handles->pool.get());
+
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
 
@@ -580,13 +603,19 @@ private:
             //ImGui::BeginChild("IconChild", ImVec2(handles->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
             ImVec2 imageButtonSize(245.0f, 55.0f);
             ImGui::PushFont(handles->info->font15);
-            (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
-                                    handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
-                                    tint_col));
+            if (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
+                                       handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
+                                       tint_col))
+                Log::Logger::getInstance()->info(
+                        "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                        connectMethodSelector);;
             ImGui::SameLine(0, 30.0f);
-            (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
-                                    handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
-                                    tint_col));
+            if (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
+                                       handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
+                                       tint_col))
+                Log::Logger::getInstance()->info(
+                        "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                        connectMethodSelector);;
             ImGui::PopFont();
             /*
                          ImGui::SameLine(0, 30.0f);
@@ -740,8 +769,7 @@ private:
 
                 if (entryConnectDeviceList.empty() && startedAutoConnect) {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
-                }
-                else {
+                } else {
                     ImGui::Text("Select device:");
                 }
 
@@ -796,6 +824,8 @@ private:
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == MANUAL_CONNECT) {
+                // AdapterSearch Threaded operation
+
                 {
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -827,20 +857,15 @@ private:
                 }
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 // Call once a second
-                auto time = std::chrono::steady_clock::now();
-                std::chrono::duration<float> time_span =
-                        std::chrono::duration_cast<std::chrono::duration<float>>(
-                                time - searchNewAdaptersManualConnectTimer);
-                if (time_span.count() > ONE_SECOND) {
                     searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-                    manualConnectAdapters = Utils::listAdapters();
+                    manualConnectAdapters = adapterUtils.getAdaptersList();
                     interfaceNameList.clear();
                     indexList.clear();
 // Following three ifdef macros are a bit janky but required since Windows uses a HEX-ID AND Name to describe a network adapter whereas linux only uses a Name
 #ifdef WIN32
                     interfaceIDList.clear();
 #endif
-                }
+
                 // immediate mode vector item ordering
                 // -- requirements --
                 // Always have a base item in it.
@@ -853,8 +878,8 @@ private:
                         interfaceNameList.push_back(a.description);
                         interfaceIDList.push_back(a.ifName);
 #else
-                    if (a.supports && !Utils::isInVector(interfaceNameList, a.ifName)) {
-                        interfaceNameList.push_back(a.ifName);
+                        if (a.supports && !Utils::isInVector(interfaceNameList, a.ifName)) {
+                            interfaceNameList.push_back(a.ifName);
 #endif
                         indexList.push_back(a.ifIndex);
                         if (Utils::isInVector(interfaceNameList, "No adapters found")) {
@@ -994,6 +1019,8 @@ private:
             }
 
             ImGui::EndPopup();
+        } else {
+            adapterUtils.stopAdapterScan();
         }
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(5); // popup style vars

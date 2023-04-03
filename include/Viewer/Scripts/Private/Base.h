@@ -50,6 +50,7 @@
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
+
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000
 
@@ -70,6 +71,7 @@ namespace VkRender {
         std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
 
         std::vector<VkShaderModule> shaderModules{};
+        VkRender::SkyboxTextures skyboxTextures;
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
@@ -86,38 +88,38 @@ namespace VkRender {
         virtual void setup() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function setup not overridden for {} script", renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called once every frame*/
         virtual void update() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called each frame*/
-        virtual void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+        virtual void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onUIUpdate not overridden for {} script",                                                 renderData.scriptName);
-        };
+        }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
         virtual void setDrawMethod(ScriptType type) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function setDrawMethod not overridden for {} script",                                                 renderData.scriptName);
-        };
+        }
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onWindowResize not overridden for {} script",                                                renderData.scriptName);
-        };
+        }
 
         /**@brief Called once script is requested for deletion */
         virtual void onDestroy() {
             if (getType() != CRL_SCRIPT_TYPE_DISABLED);
             //Log::Logger::getInstance()->info("Function onDestroy not overridden for {} script",                                                 renderData.scriptName);
 
-        };
+        }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
         virtual ScriptType getType() {
@@ -128,7 +130,7 @@ namespace VkRender {
         virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
-        };
+        }
         DISABLE_WARNING_POP
 
         void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
@@ -136,7 +138,7 @@ namespace VkRender {
             onWindowResize(uiHandle);
         }
 
-        void uiUpdate(const VkRender::GuiObjectHandles *uiHandle) {
+        void uiUpdate(VkRender::GuiObjectHandles *uiHandle) {
             if (!this->renderData.drawThisScript)
                 return;
             if (renderData.crlCamera != nullptr)
@@ -162,7 +164,7 @@ namespace VkRender {
             if (i == 0)
                 renderData.scriptDrawCount++;
 
-        };
+        }
 
 
         void updateUniformBufferData(VkRender::RenderData *data) {
@@ -170,7 +172,7 @@ namespace VkRender {
 
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
-            if (*renderData.crlCamera != nullptr)
+            if (renderData.crlCamera != nullptr)
                 update();
             if (renderData.type == CRL_SCRIPT_TYPE_RENDER)
                 update();
@@ -183,7 +185,7 @@ namespace VkRender {
 
                 // TODO Future optimization could be to copy blocks of data instead of for for loops.
                 if (renderData.additionalBuffers) {
-                    for (size_t i = 0; i < additionalBuffers.size();++i) {
+                    for (size_t i = 0; i < additionalBuffers.size(); ++i) {
                         memcpy(additionalBuffersData[i][renderData.index].mvp.mapped, &additionalBuffers[i]->mvp,
                                sizeof(VkRender::UBOMatrix));
 
@@ -230,14 +232,15 @@ namespace VkRender {
 
             sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
-            setup();
-
-            renderData.drawThisScript = true;
+            if (getType() != CRL_SCRIPT_TYPE_DISABLED) {
+                setup();
+                renderData.drawThisScript = true;
+            }
         }
 
         /**@brief Call to delete the attached script. */
         void onDestroyScript() {
-            for (auto *shaderModule: shaderModules) {
+            for (auto &shaderModule: shaderModules) {
                 vkDestroyShaderModule(renderUtils.device->m_LogicalDevice, shaderModule, nullptr);
             }
 
@@ -250,16 +253,20 @@ namespace VkRender {
             onDestroy();
         }
 
+        /**
+         * Utility function to load shaders in scripts. Automatically creates and destroys shaderModule objects if a valid shader file is passed
+         * @param fileName
+         * @param stage
+         * @return
+         */
         [[nodiscard]] VkPipelineShaderStageCreateInfo
         loadShader(std::string fileName, VkShaderStageFlagBits stage) {
-
             // Check if we have .spv extensions. If not then add it.
             std::size_t extension = fileName.find(".spv");
             if (extension == std::string::npos)
                 fileName.append(".spv");
-
             VkShaderModule module;
-            Utils::loadShader((Utils::getShadersPath() + fileName).c_str(),
+            Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
                               renderUtils.device->m_LogicalDevice, &module);
             assert(module != VK_NULL_HANDLE);
 
@@ -269,8 +276,6 @@ namespace VkRender {
             shaderStage.stage = stage;
             shaderStage.module = module;
             shaderStage.pName = "main";
-
-
             return shaderStage;
         }
 

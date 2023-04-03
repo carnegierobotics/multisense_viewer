@@ -1130,9 +1130,20 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 3.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::RadioButton("Left imager", &dev.useAuxForPointCloudColor, 0);
-                ImGui::SameLine();
-                ImGui::RadioButton("Aux imager", &dev.useAuxForPointCloudColor, 1);
+                ImGui::RadioButton("Grayscale", &dev.useAuxForPointCloudColor, 0);
+                if (!dev.hasColorCamera)
+                    ImGui::BeginDisabled();
+                    ImGui::SameLine();
+                    ImGui::RadioButton("Color", &dev.useAuxForPointCloudColor, 1);
+                if (!dev.hasColorCamera){
+                    ImGui::SameLine();
+                    ImGui::EndDisabled();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::HelpMarker("\nColor source is only available if a color imager is present\n\n");
+                    ImGui::PopStyleColor(); // text color
+
+                }
+
                 ImGui::PopStyleColor();
             }
 

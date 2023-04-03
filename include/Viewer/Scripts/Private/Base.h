@@ -86,39 +86,26 @@ namespace VkRender {
 
         /**@brief Pure virtual function called only once when VK is ready to render*/
         virtual void setup() {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function setup not overridden for {} script", renderData.scriptName);
         }
 
         /**@brief Pure virtual function called once every frame*/
         virtual void update() {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function update not overridden for {} script", renderData.scriptName);
         }
 
         /**@brief Pure virtual function called each frame*/
         virtual void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function onUIUpdate not overridden for {} script",                                                 renderData.scriptName);
         }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
         virtual void setDrawMethod(ScriptType type) {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function setDrawMethod not overridden for {} script",                                                 renderData.scriptName);
         }
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function onWindowResize not overridden for {} script",                                                renderData.scriptName);
         }
 
         /**@brief Called once script is requested for deletion */
         virtual void onDestroy() {
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED);
-            //Log::Logger::getInstance()->info("Function onDestroy not overridden for {} script",                                                 renderData.scriptName);
-
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */

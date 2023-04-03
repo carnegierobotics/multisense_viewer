@@ -60,7 +60,7 @@
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
-#define MAX_IMAGES_IN_QUEUE 30
+#define MAX_IMAGES_IN_QUEUE 5
 
 
 // Predeclare to speed up compile times
@@ -404,9 +404,12 @@ namespace VkRender {
         PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief IF 3D area should be extended or not */
         bool extend3DArea = true;
+        /** @brief If the connected device has a color camera */
+        bool hasColorCamera = false;
 
         Device() {
             outputSaveFolder.resize(255);
+            outputSaveFolderPointCloud.resize(255);
         }
     };
 
@@ -526,14 +529,14 @@ namespace VkRender {
         float newMinY = 0.0f, newMaxY = 0.0f;
         float newMinYF = 0.0f, newMaxYF = 0.0f;
 
-        uint32_t m_Width = 0, m_Height = 0;
+        float m_Width = 0, m_Height = 0;
 
         bool resChanged = false;
         void resolutionUpdated(uint32_t width, uint32_t height){
-            m_Width = width;
-            m_Height = height;
-            prevWidth = m_Width;
-            prevHeight = m_Height;
+            m_Width = static_cast<float>(width);
+            m_Height = static_cast<float>(height);
+            prevWidth = static_cast<float>(width);
+            prevHeight =  static_cast<float>(height);;
             prevOffsetX = 0.0f;
             prevOffsetY = 0.0f;
             newMin = 0.0f;

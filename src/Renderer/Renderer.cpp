@@ -753,10 +753,9 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
-            //camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }
-    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
 
 }
 

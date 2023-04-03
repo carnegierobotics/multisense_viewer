@@ -1315,5 +1315,5 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
 
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    Log::Logger::getInstance()->info("Loaded Cubemap {} took {} ms", path.c_str(), tDiff);
+    Log::Logger::getInstance()->info("Loaded Cubemap {} took {} ms", path.string(), tDiff);
 }

@@ -40,6 +40,11 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Macros.h"
 
+//some vulken version compatibility stuff
+#ifndef VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+#define VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT
+#endif
+
 VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
     assert(physicalDevice);
     this->m_PhysicalDevice = physicalDevice;
@@ -357,7 +362,11 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+        #ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+        #else
+        allocFlagsInfo.flags = 0;
+        #endif
         memAlloc.pNext = &allocFlagsInfo;
     }
     if (VK_SUCCESS != vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, memory))
@@ -419,7 +428,11 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+        #ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+        #else
+        allocFlagsInfo.flags = 0;
+        #endif
         memAlloc.pNext = &allocFlagsInfo;
     }
     res = vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &buffer->m_Memory);

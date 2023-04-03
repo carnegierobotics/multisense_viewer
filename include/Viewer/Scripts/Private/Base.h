@@ -326,6 +326,6 @@ namespace VkRender {
 
         const Input *input{};
     };
-};
+}
 
 #endif //MULTISENSE_BASE_H

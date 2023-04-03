@@ -664,12 +664,23 @@ namespace VkRender::MultiSense {
             app->updateUIDataBlock(*dev, app->camPtr);
             if (!isRemoteHead) app->getProfileFromIni(*dev);
             // Set the resolution read from config file
-            dev->cameraName = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo.name;
-            dev->serialName = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo.serialNumber;
+            const auto& info = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo;
+            dev->cameraName = info.name;
+            dev->serialName = info.serialNumber;
+
+            dev->hasColorCamera =
+                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_C6S2_S27 ||
+                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_S30 ||
+                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM;
+
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();
             app->queryExposureTimer = std::chrono::steady_clock::now();
             dev->state = CRL_STATE_ACTIVE;
+
+            dev->hasColorCamera ? dev->useAuxForPointCloudColor = 1 :  dev->useAuxForPointCloudColor = 0;
+
+
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {
             dev->state = CRL_STATE_UNAVAILABLE;

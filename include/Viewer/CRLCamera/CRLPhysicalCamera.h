@@ -154,7 +154,7 @@ namespace VkRender::MultiSense {
     private:
         std::mutex mut;
         std::unordered_map<uint32_t, std::unordered_map<crl::multisense::DataSource, std::shared_ptr<ImageBufferWrapper>>> imagePointersMap{};
-        std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, uint32_t>> counterMap;
+        std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, int64_t>> counterMap;
 
 
     };

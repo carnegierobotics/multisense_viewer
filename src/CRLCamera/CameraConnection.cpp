@@ -527,10 +527,10 @@ namespace VkRender::MultiSense {
         if (!dev->channelConnections.empty() && dev->state == CRL_STATE_CONNECTING) {
             // Check if we actually connected to a RemoteHead or not
             auto hwRev = app->camPtr->getCameraInfo(dev->channelConnections.front()).devInfo.hardwareRevision;
-            for (std::vector v{crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
-                               crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
-                               crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM};
-                 auto &e : v){
+            std::vector v{crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
+                crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
+                crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM}; 
+            for (auto &e : v){
                 if (hwRev == e && !isRemoteHead) {
                     dev->state = CRL_STATE_UNAVAILABLE;
                     Log::Logger::getInstance()->error("User connected to a remote head but didn't check the remote head box");

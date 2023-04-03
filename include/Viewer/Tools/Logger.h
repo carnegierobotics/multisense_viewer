@@ -112,11 +112,11 @@ namespace Log {
 
 #ifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
         std::experimental::source_location m_Loc;
-        FormatString(const char *m_Str, const  std::experimental::source_location &m_Loc =  std::experimental::source_location::current()) : m_Str(m_Str), m_Loc(m_Loc) {}
+        FormatString(const char *Str, const  std::experimental::source_location &Loc =  std::experimental::source_location::current()) : m_Str(Str), m_Loc(Loc) {}
 #endif
 
 #ifdef  NO_SOURCE_LOCATION
-        FormatString(const char *m_Str) : m_Str(m_Str) {}
+        FormatString(const char *Str) : Str(Str) {}
 #endif
     };
 

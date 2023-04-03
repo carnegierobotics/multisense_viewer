@@ -1,4 +1,4 @@
-name: Build for Windows 2022
+name: MultiSense Viewer CI
 
 on:
   push:
@@ -28,21 +28,21 @@ jobs:
           body: |
             MultiSense Viewer Release
             - Windows users:
-            1a. (Optional) Install WinPcap_driver.exe to skip network configuration step
+            1a. (Optional) Install WinPcap_driver.exe to let the viewer configure network settings automatically
             1b. Run the setup: MultiSenseSetup.exe
             
             - Ubuntu users:
             1. Make sure you have updated graphics drivers, ffmpeg and policykit installed. Can be installed via apt pacakge manager: 
             $ apt install ffmpeg libvulkan1 policykit-1
-            2. Install multisense_1.0-0_amd64.deb using your default package manager or type in terminal:
-            $ dpkg --install ./multisense_1.0-0_amd64.deb
+            2. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
+            $ dpkg --install ~/Downloads/multisense_1.1-0_amd64.deb
             3. Launch through start menu or run a start script at 
             $ /opt/multisense/start.sh
             - Uninstall application:
             1. Windows: Run 000-uninstall.exe in the installation folder
-            2. Ubuntu: Uninstall with dpkg (dpkg --remove com.carnegierobotics.multisense)
-          draft: false
-          prerelease: false
+            2. Ubuntu: Uninstall with your package manager or run dpkg ($ dpkg --remove com.carnegierobotics.multisense)
+          draft: true
+          prerelease: true
 
           
   BuildWindows:

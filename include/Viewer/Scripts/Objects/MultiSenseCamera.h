@@ -68,8 +68,11 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
-    std::unique_ptr<GLTFModel::Model> m_Model;
+    std::unique_ptr<GLTFModel::Model> S27;
+    std::unique_ptr<GLTFModel::Model> S30;
+    std::unique_ptr<GLTFModel::Model> KS21;
 
+    std::string selectedModel = "S27";
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
@@ -77,6 +80,7 @@ public:
     bool imuEnabled = false;
     Page selectedPreviewTab = CRL_TAB_NONE;
     VkRender::IMUData rot{};
+    bool stopDraw = false;
 
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;

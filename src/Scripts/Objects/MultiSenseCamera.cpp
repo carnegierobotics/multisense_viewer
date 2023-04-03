@@ -38,25 +38,42 @@
 #include "Viewer/ImGui/ScriptUIAddons.h"
 
 void MultiSenseCamera::setup() {
-    m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
-    m_Model->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(),
-                          renderUtils.device, renderUtils.device->m_TransferQueue, 1.0f);
-    //m_Model->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
-
-
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
                                                             {loadShader("Scene/spv/object.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}
-    };
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    // Obligatory call to prepare render resources for GLTFModel.
-    m_Model->createRenderPipeline(renderUtils, shaders);
+    S27 = std::make_unique<GLTFModel::Model>(&renderUtils);
+    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), renderUtils.device,
+                      renderUtils.device->m_TransferQueue, 1.0f);
+
+
+    S27->createRenderPipeline(renderUtils, shaders);
+    S30 = std::make_unique<GLTFModel::Model>(&renderUtils);
+    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), renderUtils.device,
+                      renderUtils.device->m_TransferQueue, 1.0f);
+    S30->createRenderPipeline(renderUtils, shaders);
+
+    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils);
+    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), renderUtils.device,
+                      renderUtils.device->m_TransferQueue, 1.0f);
+    KS21->createRenderPipeline(renderUtils, shaders);
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b)
-        m_Model->draw(commandBuffer, i);
+
+    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw){
+        if (selectedModel == "Multisense-S30")
+            S30->draw(commandBuffer, i);
+        else if(selectedModel == "Multisense-S27")
+            S27->draw(commandBuffer, i);
+        else if(selectedModel == "Multisense-KS21")
+            KS21->draw(commandBuffer, i);
+        else{
+            Log::Logger::getInstance()->warning("No 3D model corresponding to {}. Not drawing anything", selectedModel);
+            stopDraw = true;
+        }
+    }
 }
 
 void MultiSenseCamera::update() {
@@ -98,7 +115,7 @@ void MultiSenseCamera::update() {
             0.0f);
 
 
-    auto* ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data) ;
+    auto *ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data);
     d2->gamma = ptr->gamma;
     d2->exposure = ptr->exposure;
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
@@ -115,7 +132,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
-
+        selectedModel = d.cameraName;
         imuEnabled = d.useIMU;
     }
 }

@@ -1130,9 +1130,9 @@ private:
                 ImGui::Dummy(ImVec2(40.0f, 3.0));
                 ImGui::Dummy(ImVec2(40.0f, 0.0));
                 ImGui::SameLine();
-                ImGui::RadioButton("Left imager", &dev.colorStreamForPointCloud, 0);
+                ImGui::RadioButton("Left imager", &dev.useAuxForPointCloudColor, 0);
                 ImGui::SameLine();
-                ImGui::RadioButton("Aux imager", &dev.colorStreamForPointCloud, 1);
+                ImGui::RadioButton("Aux imager", &dev.useAuxForPointCloudColor, 1);
                 ImGui::PopStyleColor();
             }
 

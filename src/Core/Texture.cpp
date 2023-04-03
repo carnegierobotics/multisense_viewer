@@ -1129,13 +1129,14 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
                                   VulkanDevice *device,
                                   VkImageUsageFlags imageUsageFlags,
                                   VkImageLayout imageLayout) {
+    auto tStart = std::chrono::high_resolution_clock::now();
+
     m_Device = device;
     ktxTexture *ktxTexture;
 
     ktxResult result = KTX_SUCCESS;
     result = ktxTexture_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
     assert(result == KTX_SUCCESS);
-    Log::Logger::getInstance()->info("Loading TextureCubeMap {}", reinterpret_cast<const char*>(path.c_str()));
     m_Width = ktxTexture->baseWidth;
     m_Height = ktxTexture->baseHeight;
     m_MipLevels = ktxTexture->numLevels;
@@ -1312,4 +1313,7 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     // Update descriptor image info member that can be used for setting up descriptor sets
     updateDescriptor();
 
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    Log::Logger::getInstance()->info("Loaded Cubemap {} took {} ms", path.c_str(), tDiff);
 }

@@ -60,8 +60,8 @@ set(ENGINE_SRC
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
-        src/ImGui/ScriptUIAddons.cpp)
-
+        src/ImGui/ScriptUIAddons.cpp
+        )
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
         src/Scripts/Objects/Example.cpp

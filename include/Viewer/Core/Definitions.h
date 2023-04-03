@@ -312,7 +312,7 @@ namespace VkRender {
         float row = 0;
         float col = 0;
         bool enableZoom = true;
-        bool enableInterpolation = false;
+        bool enableInterpolation = true;
     };
 
     /**

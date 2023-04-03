@@ -222,11 +222,6 @@ void Renderer::render() {
     renderData.width = m_Width;
     renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
-
-    // Skybox params
-
-
-
     // Update GUI
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
@@ -579,6 +574,7 @@ void Renderer::cleanUp() {
         //regEditor.resetJumbo();
         //regEditor.restartNetAdapters(); // Make changes into effect
     }
+
 #endif
 
     // Clear script and scriptnames

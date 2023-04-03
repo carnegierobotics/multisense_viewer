@@ -50,6 +50,8 @@
 #endif
 
 void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device, VkQueue transferQueue, float scale) {
+    auto tStart = std::chrono::high_resolution_clock::now();
+
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF gltfContext;
     std::string error;
@@ -72,6 +74,12 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     if (!fileLoaded) {
         Log::Logger::getInstance()->error("Failed to load glTF file {}", fileName);
         return;
+    }
+
+    {
+        auto tEnd = std::chrono::high_resolution_clock::now();
+        auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+        Log::Logger::getInstance()->info("Put gltf file {} into memory took {} ms", fileName, tDiff);
     }
     loadTextureSamplers(gltfModel);
     loadTextures(gltfModel, vulkanDevice, transferQueue);
@@ -167,6 +175,10 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     delete[] loaderInfo.indexBuffer;
 
     gltfModelLoaded = true;
+
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    Log::Logger::getInstance()->info("Loaded gltf file {} took {} ms", fileName, tDiff);
 }
 
 void GLTFModel::Model::getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount,
@@ -2181,11 +2193,16 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
                                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders) {
+    auto tStart = std::chrono::high_resolution_clock::now();
+
     this->vulkanDevice = utils.device;
-    //createDescriptorSetLayout();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};
     createPipeline(*utils.renderPass, shaders2);
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+    Log::Logger::getInstance()->info("Created render pipeline for {} took {} ms", m_FileName, tDiff);
+
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,

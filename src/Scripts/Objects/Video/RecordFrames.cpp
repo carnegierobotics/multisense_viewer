@@ -209,10 +209,6 @@ void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
                                                static_cast<float>(leftRectifiedP[index]),
                                                static_cast<float>(leftRectifiedP[index])});
             }
-
-            // Calculate color if required
-
-
         }
     }
 
@@ -235,8 +231,6 @@ void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
 
     std::ofstream ply(fileLocation.c_str());
     ply << ss.str();
-
-
 }
 
 void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc,

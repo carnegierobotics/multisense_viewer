@@ -165,8 +165,8 @@ namespace VkRender {
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
-        VkPhysicalDeviceVulkan11Features features;
-        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        VkPhysicalDeviceSamplerYcbcrConversionFeatures features;
+        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
         features.pNext = nullptr;
         // Derived examples can override this to set actual m_Features (based on above readings) to flashing for logical m_Device creation
         addDeviceFeatures();

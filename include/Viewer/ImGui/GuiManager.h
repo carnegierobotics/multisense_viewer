@@ -128,5 +128,5 @@ namespace VkRender {
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
         void loadAnimatedGif(const std::string &file);
     };
-};
+}
 #endif //MULTISENSE_GUIMANAGER_H

@@ -86,8 +86,8 @@ namespace VkRender {
 
         std::string m_Title = "-1";
         std::string m_Name = "VulkanRenderer";
-        /** @brief This application is written against Vulkan API v.1.2+ **/
-        uint32_t apiVersion = VK_API_VERSION_1_2;
+        /** @brief This application is written against Vulkan API v.1.1+ **/
+        uint32_t apiVersion = VK_API_VERSION_1_1;
         bool backendInitialized = false;
         uint32_t m_Width = 1920;      // Default values - Actual values set in constructor
         uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
@@ -270,5 +270,5 @@ namespace VkRender {
         void clipboard();
 #endif
     };
-};
+}
 #endif //MULTISENSE_VULKANRENDERER_H

@@ -88,7 +88,7 @@ public:
             ImGui::SameLine();
             bool copy = ImGui::Button("Copy");
             ImGui::SameLine();
-            Filter.Draw("Filter", -100.0f);
+            Filter.Draw("Filter", 300.0f);
 
             ImGui::Separator();
             if (ImGui::BeginChild("scrolling", ImVec2(pHandles->info->debuggerWidth - pHandles->info->metricsWidth, 0),
@@ -324,9 +324,7 @@ public:
             ImGui::Text("Camera: ");
 
             ImGui::Text("Position: (%f, %f, %f)", met->camera.pos.x, met->camera.pos.y, met->camera.pos.z);
-            ImGui::Text("Yaw: %f, Pitch: %f", met->camera.yaw, met->camera.pitch);
-            ImGui::Text("Front: (%f, %f, %f)", met->camera.cameraFront.x, met->camera.cameraFront.y,
-                        met->camera.cameraFront.z);
+            ImGui::Text("Rotation: (%f, %f, %f)", met->camera.rot.x, met->camera.rot.y, met->camera.rot.z);
 
             ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
@@ -335,6 +333,25 @@ public:
             ImGui::Checkbox("ShowDemo", &showDemo);
             if (showDemo)
                 ImGui::ShowDemoWindow();
+
+            static bool addTestDevice = false;
+            addTestDevice = ImGui::Button("Add test device");
+            if (addTestDevice){
+                // Add test device to renderer if not present
+                bool exists = false;
+                for (const auto& device : handles->devices){
+                    if (device.cameraName == "Test Device")
+                        exists = true;
+                }
+                if (!exists){
+                    VkRender::Device testDevice;
+                    testDevice.state = CRL_STATE_ACTIVE;
+                    testDevice.cameraName = "Test Device";
+                    testDevice.notRealDevice = true;
+                    Utils::initializeUIDataBlockWithTestData(testDevice);
+                    handles->devices.emplace_back(testDevice);
+                }
+            }
 
             ImGui::Text("About: ");
             ImGui::Text("Icons from https://icons8.com");

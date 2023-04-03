@@ -136,6 +136,8 @@ namespace Log {
             } info;
             const VkRender::Device *dev = nullptr;
             std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<std::string, uint32_t>> sourceReceiveMapCounter;
+            std::unordered_map<crl::multisense::RemoteHeadChannel, uint32_t> imuReceiveMapCounter;
+
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
             std::vector<std::string> disabledSources;
@@ -157,6 +159,7 @@ namespace Log {
             float yaw = 0;
             float pitch = 0;
             glm::vec3 pos;
+            glm::vec3 rot;
             glm::vec3 cameraFront;
         } camera;
 
@@ -169,16 +172,16 @@ namespace Log {
 
         static Metrics *getLogMetrics() noexcept;
 
-        void error(const char *text) noexcept;
+        void errorInternal(const char *text) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
      * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>
         void error(const FormatString &format, Args &&... args) {
-            vinfo(format, fmt::make_format_args(args...));
+            verror(format, fmt::make_format_args(args...));
         }
 
-        void error(const FormatString &format, fmt::format_args args) {
+        void verror(const FormatString &format, fmt::format_args args) {
 #if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
             const auto &loc = format.m_Loc;
             std::string s;
@@ -187,7 +190,7 @@ namespace Log {
             preText.append(s);
             std::size_t found = preText.find_last_of('/');
             std::string msg = preText.substr(found + 1);
-            error(msg.c_str());
+            errorInternal(msg.c_str());
 #else
             std::string s;
             fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
@@ -195,6 +198,34 @@ namespace Log {
 
 #endif
         }
+
+        void warningInternal(const char *text) noexcept;
+
+        /**@brief Using templates to allow user to use formattet logging.
+* @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
+        template<typename... Args>
+        void warning(const FormatString &format, Args &&... args) {
+            vwarning(format, fmt::make_format_args(args...));
+        }
+
+        void vwarning(const FormatString &format, fmt::format_args args) {
+#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
+            const auto &loc = format.m_Loc;
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
+            std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            preText.append(s);
+            std::size_t found = preText.find_last_of('/');
+            std::string msg = preText.substr(found + 1);
+            warningInternal(msg.c_str());
+#else
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
+            _error(s.c_str());
+
+#endif
+        }
+
         /**@brief Using templates to allow user to use formattet logging.
          * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>

@@ -115,7 +115,7 @@ namespace Log {
     }
 
 // Interface for Error Log
-    void Logger::error(const char *text) noexcept {
+    void Logger::errorInternal(const char *text) noexcept {
         string data;
         data.append("[ERROR]: ");
         data.append(text);
@@ -128,6 +128,18 @@ namespace Log {
         }
     }
 
+    void Logger::warningInternal(const char *text) noexcept {
+        string data;
+        data.append("[WARNING]: ");
+        data.append(text);
+
+        // ERROR must be capture
+        if (m_LogType == FILE_LOG) {
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_LogType == CONSOLE) {
+            m_ThreadPool->Push(Logger::logOnConsole, data);
+        }
+    }
 
 // Interface for Info Log
     void Logger::infoInternal(const char *text) noexcept {

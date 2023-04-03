@@ -68,13 +68,13 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override {return type;}
     /** @brief UI update function called once per frame **/
-    void onUIUpdate(const VkRender::GuiObjectHandles *uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override{ this->type = _type; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_DISABLED;
+    ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<CRLCameraModels::Model> model;
 
@@ -82,6 +82,8 @@ public:
     std::vector<std::string> startedSources{};
     Page selectedPreviewTab = CRL_TAB_NONE;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
+
+    int lumaOrColor = false; // 0 : luma // 1 : Color
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

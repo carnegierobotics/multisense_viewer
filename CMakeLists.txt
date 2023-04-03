@@ -26,10 +26,10 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"  "MinSizeRel" "RelWithDebInfo")
 endif ()
 
+find_package(Vulkan REQUIRED)
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
-
-find_package(Vulkan REQUIRED)
 
 find_package(Doxygen)
 if(Doxygen_FOUND)
@@ -60,13 +60,14 @@ set(ENGINE_SRC
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
+        src/ImGui/ScriptUIAddons.cpp
         )
-
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
         src/Scripts/Objects/Example.cpp
         src/Scripts/Objects/Pointcloud/PointCloud.cpp
         src/Scripts/Objects/SceneGizmos/Gizmos.cpp
+        src/Scripts/Objects/SceneGizmos/Helmet.cpp
         src/Scripts/Objects/Video/RecordFrames.cpp
         src/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
         src/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp
@@ -75,9 +76,10 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/Video/Previews/Quad/Two.cpp
         src/Scripts/Objects/Video/Previews/Quad/Three.cpp
         src/Scripts/Objects/Video/Previews/Quad/Four.cpp
-        )
+        src/Scripts/Objects/SceneGizmos/Skybox.cpp
+        include/Viewer/Scripts/Private/ScriptUtils.h)
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -174,13 +176,16 @@ if (WIN32)
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
     # create a list of third part DLLs to copy
+
     set(THIRD_PARTY_DLLS
             #FFMPEG
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll

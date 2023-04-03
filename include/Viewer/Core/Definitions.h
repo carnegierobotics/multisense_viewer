@@ -46,16 +46,22 @@
 #include <MultiSense/MultiSenseTypes.hh>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui/imgui.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/Texture.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define MAX_IMAGES_IN_QUEUE 30
+
 
 // Predeclare to speed up compile times
 namespace VkRender::MultiSense {
@@ -72,40 +78,44 @@ typedef enum ScriptType {
     CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
     /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
     CRL_SCRIPT_TYPE_DEFAULT,
-    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup */
+    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup. No particular order */
     CRL_SCRIPT_TYPE_RENDER,
-
+    /**
+     * Create this script before default and always render this type first. No internal ordering amongst scripts
+     */
+    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
+    CRL_SCRIPT_TYPE_RENDER_PBR,
 } ScriptType;
 
 /**
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
  */
 typedef enum CRLCameraDataType {
-    CRL_POINT_CLOUD,
+    CRL_DATA_NONE,
     CRL_GRAYSCALE_IMAGE,
-    CRL_COLOR_IMAGE,
+    CRL_COLOR_IMAGE_RGBA,
     CRL_COLOR_IMAGE_YUV420,
-    CRL_YUV_PLANAR_FRAME,
     CRL_CAMERA_IMAGE_NONE,
-    CRL_DISPARITY_IMAGE
+    CRL_DISPARITY_IMAGE,
+    CRL_POINT_CLOUD
 } CRLCameraDataType;
 
 /**
  * @brief What connection state a device seen in the side bar can be in.
  */
 typedef enum ArConnectionState {
-    CRL_STATE_CONNECTED = 0,
-    CRL_STATE_CONNECTING = 1,
-    CRL_STATE_ACTIVE = 2,
-    CRL_STATE_INACTIVE = 3,
-    CRL_STATE_LOST_CONNECTION = 4,
-    CRL_STATE_RESET = 5,
-    CRL_STATE_DISCONNECTED = 6,
-    CRL_STATE_UNAVAILABLE = 7,
-    CRL_STATE_DISCONNECT_AND_FORGET = 8,
-    CRL_STATE_REMOVE_FROM_LIST = 9,
-    CRL_STATE_INTERRUPT_CONNECTION = 10,
-    CRL_STATE_JUST_ADDED = 11
+    CRL_STATE_CONNECTED = 0,                /// Not implemented cause its the same state as ACTIVE
+    CRL_STATE_CONNECTING = 1,               /// Just clicked connect
+    CRL_STATE_ACTIVE = 2,                   /// Normal operation
+    CRL_STATE_INACTIVE = 3,                 /// Not sure ?
+    CRL_STATE_LOST_CONNECTION = 4,          /// Lost connection... Will go into UNAVAILABLE state
+    CRL_STATE_RESET = 5,                    /// Reset this device (Put it in disconnected state) if it was clicked while being in ACTIVE state or another device was activated
+    CRL_STATE_DISCONNECTED = 6,             /// Not currently active but can be activated by clicking it
+    CRL_STATE_UNAVAILABLE = 7,              /// Could not be found on any network adapters
+    CRL_STATE_DISCONNECT_AND_FORGET = 8,    /// Device is removed and the profile in crl.ini is deleted
+    CRL_STATE_REMOVE_FROM_LIST = 9,         /// Device is removed from sidebar list on next frame
+    CRL_STATE_INTERRUPT_CONNECTION = 10,    /// Stop attempting to connect (For closing application quickly and gracefully)
+    CRL_STATE_JUST_ADDED = 11               /// Skip to connection flow, just added into sidebar list
 } ArConnectionState;
 
 /**
@@ -140,6 +150,9 @@ typedef enum page {
     CRL_TAB_NONE = 10,
     CRL_TAB_2D_PREVIEW = 11,
     CRL_TAB_3D_POINT_CLOUD = 12,
+
+    CRL_TAB_PREVIEW_CONTROL = 20,
+    CRL_TAB_SENSOR_CONFIG = 21
 } Page;
 
 /**
@@ -168,6 +181,13 @@ typedef enum PreviewLayout {
     CRL_PREVIEW_LAYOUT_QUAD = 4,
     CRL_PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
+
+typedef enum ScriptWidgetType {
+    WIDGET_FLOAT_SLIDER = 0,
+    WIDGET_INT_SLIDER = 1,
+    WIDGET_INPUT_NUMBER = 2,
+    WIDGET_TEXT = 3
+} ScriptWidgetType;
 
 /**
  * @brief Adjustable sensor parameters
@@ -208,6 +228,7 @@ struct ExposureParams {
     uint16_t autoExposureRoiWidth = crl::multisense::Roi_Full_Image;
     uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
     crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
+    uint32_t currentExposure = 0;
 
     bool update = false;
 };
@@ -234,6 +255,8 @@ struct CalibrationParams {
 /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
 struct Parameters {
     ExposureParams ep{};
+    ExposureParams epSecondary{};
+
     WhiteBalanceParams wb{};
     LightingParams light{};
     CalibrationParams calib{};
@@ -269,10 +292,10 @@ namespace VkRender {
      * @brief Data block for displaying pixel intensity and depth in textures on mouse hover
      */
     struct CursorPixelInformation {
-        uint32_t x{}, y{};
-        uint32_t r{}, g{}, b{};
-        uint32_t intensity{};
-        float depth{};
+        uint32_t x = 0, y = 0;
+        uint32_t r = 0, g = 0, b = 0;
+        uint32_t intensity = 0;
+        float depth = 0;
     };
 
     /**
@@ -289,6 +312,8 @@ namespace VkRender {
         float yPixelStartPos = 0;
         float row = 0;
         float col = 0;
+        bool enableZoom = true;
+        bool enableInterpolation = true;
     };
 
     /**
@@ -301,7 +326,7 @@ namespace VkRender {
         ArConnectionState state = CRL_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
-        CRLCameraResolution selectedMode = CRL_RESOLUTION_NONE;
+        CRLCameraResolution selectedResolutionMode = CRL_RESOLUTION_NONE;
         std::vector<std::string> requestedStreams{};
         std::vector<std::string> enabledStreams{};
         bool updateResolutionMode = true;
@@ -331,8 +356,6 @@ namespace VkRender {
         bool clicked = false;
         /** @brief Current connection state for this device */
         ArConnectionState state = CRL_STATE_UNAVAILABLE;
-        /** @brief What type of layout is selected for this device*/
-        PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
         /** @brief Order each preview window with a index flag*/
@@ -343,20 +366,24 @@ namespace VkRender {
         Parameters parameters{};
         /**@brief location for which this m_Device should save recorded frames **/
         std::string outputSaveFolder;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string outputSaveFolderPointCloud;
         /**@brief Flag to decide if user is currently recording frames */
         bool isRecording = false;
+        /**@brief Flag to decide if user is currently recording point cloud */
+        bool isRecordingPointCloud = false;
         /** @brief 3D view camera type for this device. Arcball or first person view controls) */
         int cameraType = 0;
         /** @brief Reset 3D view camera position and rotation */
         bool resetCamera = false;
-        /** @brief Pixel information, on mouse hover for textures */
-        CursorPixelInformation pixelInfo{};
+        /** @brief Pixel information from renderer, on mouse hover for textures */
+        std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfo{};
+        /** @brief Pixel information scaled after zoom */
+        std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfoZoomed{};
         /** @brief Indices for each remote head if connected.*/
         std::vector<crl::multisense::RemoteHeadChannel> channelConnections{};
         /** @brief Config index for remote head. Presented as radio buttons for remote head selection in the GUI. 0 is for MultiSense */
         crl::multisense::RemoteHeadChannel configRemoteHead = 0;
-        /** @brief Which TAB this preview has selected. 2D or 3D view. */
-        Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief Flag to signal application to revert network settings on application exit */
         bool systemNetworkChanged = false;
         /** Interrupt connection flow if users exits program. */
@@ -365,11 +392,19 @@ namespace VkRender {
         std::string saveImageCompressionMethod = "tiff";
         /** @brief Not a physical device just testing the GUI */
         bool notRealDevice = false;
+        /** @brief If possible then use the IMU in the camera */
+        bool useIMU = true;
+        bool enablePBR = false;
+        int useAuxForPointCloudColor = 1; // 0 : luma // 1 : Color
+        Page controlTabActive = CRL_TAB_PREVIEW_CONTROL;
+        /** @brief Following is UI elements settings for the active device **/
+        /** @brief Which TAB this preview has selected. 2D or 3D view. */
+        Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
+        /** @brief What type of layout is selected for this device*/
+        PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
+        /** @brief IF 3D area should be extended or not */
+        bool extend3DArea = true;
 
-        /**
-         * @brief Constructor for Device
-         * Allocate save folder buffer for user input. Max path is 255 characters long. Required for implementation with ImGui.
-         */
         Device() {
             outputSaveFolder.resize(255);
         }
@@ -385,6 +420,7 @@ namespace VkRender {
         glm::vec2 uv1{};
         glm::vec4 joint0{};
         glm::vec4 weight0{};
+        glm::vec4 color{};
     };
 
     /**
@@ -394,7 +430,10 @@ namespace VkRender {
         bool left = false;
         bool right = false;
         bool middle = false;
+        int action = 0;
         float wheel = 0.0f; // to initialize arcball zoom
+        float dx = 0.0f;
+        float dy = 0.0f;
     };
 
     /**
@@ -404,16 +443,30 @@ namespace VkRender {
         glm::mat4 projection{};
         glm::mat4 view{};
         glm::mat4 model{};
+        glm::vec3 camPos;
     };
 
     /**
      * @brief Basic lighting params for simple light calculation
      */
     struct FragShaderParams {
-        glm::vec4 lightColor{};
-        glm::vec4 objectColor{};
-        glm::vec4 lightPos{};
-        glm::vec4 viewPos{};
+        glm::vec4 lightDir{};
+        glm::vec4 zoomCenter{};
+        float exposure = 4.5f;
+        float gamma = 2.2f;
+        float prefilteredCubeMipLevels = 0.0f;
+        float scaleIBLAmbient = 1.0f;
+        float debugViewInputs = 0.0f;
+        float lod = 0.0f;
+        glm::vec2 pad{};
+    };
+
+    struct SkyboxTextures {
+        TextureCubeMap environmentMap{};
+        TextureCubeMap irradianceCube{};
+        TextureCubeMap prefilterEnv{};
+        Texture2D lutBrdf{};
+        int prefilteredCubeMipLevels = 0;
     };
 
     /**
@@ -428,7 +481,17 @@ namespace VkRender {
         float height{};
         /** @brief Max disparity of image*/
         float disparity{};
+        /** @brief Distance between left and right camera (tx)*/
+        float focalLength{};
+        /** @brief Scaling factor used when operating in cropped mode assuming uniform scaling in x- and y direction */
+        float scale{};
+    };
 
+    struct ColorPointCloudParams {
+        glm::mat4 instrinsics{};
+        glm::mat4 extrinsics{};
+        float useColor = true;
+        float hasSampler = false;
     };
 
     /** @brief Additional default buffers for rendering mulitple models with distrinct MVP */
@@ -447,6 +510,41 @@ namespace VkRender {
      */
     struct MousePositionPushConstant {
         glm::vec2 position{};
+    };
+
+    struct ZoomParameters {
+        glm::vec2 zoomCenter;
+        float zoomValue = 1.0f;
+        float offsetX = 0.0f;
+        float prevOffsetX = 0.0f;
+        float prevOffsetY = 0.0f;
+        float offsetY = 0.0f;
+        float prevWidth = 960.0f;
+        float prevHeight = 600;
+        float newMin = 0.0f, newMax = 0.0f;
+        float newMinF = 0.0f, newMaxF = 0.0f;
+        float newMinY = 0.0f, newMaxY = 0.0f;
+        float newMinYF = 0.0f, newMaxYF = 0.0f;
+
+        uint32_t m_Width = 0, m_Height = 0;
+
+        bool resChanged = false;
+        void resolutionUpdated(uint32_t width, uint32_t height){
+            m_Width = width;
+            m_Height = height;
+            prevWidth = m_Width;
+            prevHeight = m_Height;
+            prevOffsetX = 0.0f;
+            prevOffsetY = 0.0f;
+            newMin = 0.0f;
+            newMax = 0.0f;
+            newMinF = 0.0f;
+            newMaxF = 0.0f;
+            newMinY = 0.0f;
+            newMaxY = 0.0f;
+            newMinYF = 0.0f;
+            newMaxYF = 0.0f;
+        }
     };
 
     /**
@@ -480,6 +578,12 @@ namespace VkRender {
         VkRenderPass *renderPass{};
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
+        struct {
+            TextureCubeMap *irradianceCube;
+            TextureCubeMap *prefilterEnv;
+            Texture2D *lutBrdf;
+            int prefilteredCubeMipLevels = 0;
+        } skybox;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
@@ -495,7 +599,7 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        std::unique_ptr<MultiSense::CRLPhysicalCamera> *crlCamera{};
+        const MultiSense::CRLPhysicalCamera *crlCamera{};
         ScriptType type{};
         uint32_t height = 0;
         uint32_t width = 0;
@@ -613,8 +717,11 @@ namespace VkRender {
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
+        std::unordered_map<std::string, float> previewZoom{};
+        float minZoom = 1.0f;
+        float maxZoom = 10.0f;
         /** @brief min/max scroll used in DoublePreview layout */
-        float maxScroll = 500.0f, minScroll = -850.0f;
+        float maxScroll = 450.0f, minScroll = -550.0f;
         /** @brief when a GUI window is hovered dont move the camera in the 3D view */
         bool disableCameraRotationFromGUI = false;
         /** @brief Input from backend to IMGUI */
@@ -623,15 +730,27 @@ namespace VkRender {
         /** @brief Display the debug window */
         bool showDebugWindow = false;
 
+
+        const VkRender::MouseButtons *mouse;
+
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
             clearColor[0] = 0.870f;
             clearColor[1] = 0.878f;
             clearColor[2] = 0.862f;
             clearColor[3] = 1.0f;
+
+            // Initialize map used for zoom for each preview window
+            previewZoom["View Area 0"] = 1.0f;
+            previewZoom["View Area 1"] = 1.0f;
+            previewZoom["View Area 2"] = 1.0f;
+            previewZoom["View Area 3"] = 1.0f;
         }
 
+        /** @brief Reference to threadpool held by GuiManager */
+        std::shared_ptr<ThreadPool> pool{};
     };
+
 }
 
 

@@ -53,7 +53,7 @@
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::arcball;
-    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.001f, 1024.0f);
+    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1024.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
     createSelectionImages();
@@ -61,20 +61,10 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
-    // Prefer to load the m_Model only once, so load it in first setup
     // Load Object Scripts from file
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
-    std::string line;
-    while (std::getline(infile, line)) {
-        // Skip comment # line
-        if (line.find('#') != std::string::npos)
-            continue;
-
-        buildScript(line);
-    }
+    buildScripts();
 
 }
-
 
 void Renderer::addDeviceFeatures() {
     if (deviceFeatures.fillModeNonSolid) {
@@ -83,8 +73,10 @@ void Renderer::addDeviceFeatures() {
         if (deviceFeatures.wideLines) {
             enabledFeatures.wideLines = VK_TRUE;
         }
+        if (deviceFeatures.samplerAnisotropy) {
+            enabledFeatures.samplerAnisotropy = VK_TRUE;
+        }
     }
-
 }
 
 void Renderer::buildCommandBuffers() {
@@ -118,9 +110,16 @@ void Renderer::buildCommandBuffers() {
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
+        // Draw scripts that must be drawn first
+        for (auto &script: scripts) {
+            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
+                script.second->drawScript(drawCmdBuffers[i], i, true);
+        }
+
         /** Generate Script draw commands **/
         for (auto &script: scripts) {
-            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
+            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED &&
+                script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
                 script.second->drawScript(drawCmdBuffers[i], i, true);
             }
         }
@@ -132,29 +131,52 @@ void Renderer::buildCommandBuffers() {
 }
 
 
-void Renderer::buildScript(const std::string &scriptName) {
-    // Do not recreate script if already created
-    auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
-    if (it != builtScriptNames.end())
-        return;
-    builtScriptNames.emplace_back(scriptName);
-    scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
+void Renderer::buildScripts() {
+    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
+    std::string scriptName;
+    while (std::getline(infile, scriptName)) {
+        // Skip comment # line
+        if (scriptName.find('#') != std::string::npos)
+            continue;
+        // Do not recreate script if already created
+        auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
+        if (it != builtScriptNames.end())
+            return;
+        builtScriptNames.emplace_back(scriptName);
+        scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
 
-    if (scripts[scriptName].get() == nullptr) {
-        pLogger->error("Failed to register script {}. Did you remember to include it in renderer.h?", scriptName);
-        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
-        return;
+        if (scripts[scriptName].get() == nullptr) {
+            pLogger->error("Failed to register script {}.", scriptName);
+            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+            return;
+        }
+        pLogger->info("Registered script: {} in factory", scriptName.c_str());
     }
-    pLogger->info("Registered script: {} in factory", scriptName.c_str());
+
     // Run Once
     VkRender::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
-    renderData.scriptName = scriptName;
+    // create first set of scripts for TOP OF PIPE
+    for (auto &script: scripts) {
+        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
+            script.second->createUniformBuffers(vars, renderData);
+        }
+    }
+    // Copy data generated from TOP OF PIPE scripts
+    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
+    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
+    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
+    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
+
     // Run script setup function
-    scripts[scriptName]->createUniformBuffers(vars, renderData);
+    for (auto &script: scripts) {
+        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
+            script.second->createUniformBuffers(vars, renderData);
+        }
+    }
 }
 
 void Renderer::deleteScript(const std::string &scriptName) {
@@ -183,13 +205,14 @@ void Renderer::render() {
         auto &cam = Log::Logger::getLogMetrics()->camera;
         cam.pitch = camera.yAngle;
         cam.pos = camera.m_Position;
-        cam.yaw = camera.xAngle;
+        cam.rot = camera.m_Rotation;
         cam.cameraFront = camera.cameraFront;
     }
 
-    camera.viewportHeight = m_Height;
-    camera.viewportWidth = m_Width;
+    camera.viewportHeight = static_cast<float>(m_Height);
+    camera.viewportWidth = static_cast<float>(m_Width);
 
+    // RenderData
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
     renderData.camera = &camera;
@@ -254,11 +277,15 @@ void Renderer::render() {
             switch (dev.selectedPreviewTab) {
                 case CRL_TAB_3D_POINT_CLOUD:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
                     break;
                 default:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
                     break;
             }
 
@@ -281,6 +308,10 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
         scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+
     }
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
@@ -288,18 +319,27 @@ void Renderer::render() {
             guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
     }
 
-
+    // Scripts that share dataa
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             if (!script.second->sharedData->destination.empty()) {
                 // Send to destination script
-                auto &shared = script.second->sharedData;
-                memcpy(scripts[shared->destination]->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
+                if (script.second->sharedData->destination == "All") {
+                    // Copy shared data to all
+                    auto &shared = script.second->sharedData;
+
+                    for (auto &s: scripts) {
+                        if (s == script)
+                            continue;
+                        memcpy(s.second->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
+
+                    }
+                }
             }
         }
     }
 
-    // UiUpdate on Scripts with const handle to GUI
+    // UIUpdateFunction on Scripts with const handle to GUI
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
@@ -315,7 +355,7 @@ void Renderer::render() {
     /** Generate Draw Commands **/
     guiManager->updateBuffers();
     buildCommandBuffers();
-    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: PerPixelInformation) **/
+    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 2> clearValues{};
@@ -386,18 +426,21 @@ void Renderer::render() {
 
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
-                    if (win.second.selectedSource == "Source")
+                    // Skip second render pass if we dont have a source selected or if the source is point cloud related
+                    if (win.second.selectedSource == "Source" || win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
+                    auto windowIndex = win.first;
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
-                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
+                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
                                                      true);
 
-                    if (renderData.crlCamera->get()->getCameraStream(win.second.selectedSource, &tex,
-                                                                     win.second.selectedRemoteHeadIndex)) {
+                    if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
+                                                              win.second.selectedRemoteHeadIndex)) {
                         uint32_t width = 0, height = 0, depth = 0;
-                        Utils::cameraResolutionToValue(dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode,
-                                                       &width, &height, &depth);
+                        Utils::cameraResolutionToValue(
+                                dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
+                                &width, &height, &depth);
 
                         float viewAreaElementPosX = win.second.xPixelStartPos;
                         float viewAreaElementPosY = win.second.yPixelStartPos;
@@ -413,28 +456,29 @@ void Renderer::render() {
                             && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
                             uint32_t w = 0, h = 0, d = 0;
                             Utils::cameraResolutionToValue(
-                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedMode, &w, &h,
+                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode, &w, &h,
                                     &d);
 
                             auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
                             auto y = (uint32_t) ((float) h * (imGuiPosY) / maxInRangeY);
                             // Add one since we are not counting from zero anymore :)
-                            dev.pixelInfo.x = x + 1;
-                            dev.pixelInfo.y = y + 1;
+                            dev.pixelInfo[windowIndex].x = x + 1;
+                            dev.pixelInfo[windowIndex].y = y + 1;
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
                                 case CRL_POINT_CLOUD:
                                     break;
                                 case CRL_GRAYSCALE_IMAGE: {
                                     uint8_t intensity = tex.data[(w * y) + x];
-                                    dev.pixelInfo.intensity = intensity;
+                                    dev.pixelInfo[windowIndex].intensity = intensity;
+
+                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x];
+                                    dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
-                                case CRL_COLOR_IMAGE:
+                                case CRL_COLOR_IMAGE_RGBA:
                                     break;
                                 case CRL_COLOR_IMAGE_YUV420:
-                                    break;
-                                case CRL_YUV_PLANAR_FRAME:
                                     break;
                                 case CRL_CAMERA_IMAGE_NONE:
                                     break;
@@ -442,17 +486,25 @@ void Renderer::render() {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
+
                                     // get focal length
-                                    float fx = cameraConnection->camPtr->getCameraInfo(
+                                    float fx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
-                                    float tx = cameraConnection->camPtr->getCameraInfo(
+                                    float tx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] /
                                                (fx * (1920.0f / (float) w));
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
-                                        dev.pixelInfo.depth = dist;
+                                        dev.pixelInfo[windowIndex].depth = dist;
                                     } else {
-                                        dev.pixelInfo.depth = 0;
+                                        dev.pixelInfo[windowIndex].depth = 0;
+                                    }
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
+                                    if (disparityDisplayed > 0) {
+                                        float dist = (fx * abs(tx)) / disparityDisplayed;
+                                        dev.pixelInfoZoomed[windowIndex].depth = dist;
+                                    } else {
+                                        dev.pixelInfoZoomed[windowIndex].depth = 0;
                                     }
                                 }
                                     break;
@@ -486,6 +538,7 @@ void Renderer::windowResized() {
     renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;
 
+    Widgets::clear();
     // Update gui with new res
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
     // Update general Scripts with handle to GUI
@@ -503,16 +556,7 @@ void Renderer::windowResized() {
     }
     builtScriptNames.clear();
 
-    // Load Object Scripts from file
-    std::ifstream infile(Utils::getAssetsPath() + "Generated/Scripts.txt");
-    std::string line;
-    while (std::getline(infile, line)) {
-        // Skip comment # line
-        if (line.find('#') != std::string::npos)
-            continue;
-
-        buildScript(line);
-    }
+    buildScripts();
 }
 
 
@@ -521,10 +565,11 @@ void Renderer::cleanUp() {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);
     }
+
 /** REVERT NETWORK SETTINGS **/
 #ifdef WIN32
     // Reset Windows registry from backup file
-    for (const auto& dev : guiManager->handles.devices) {
+    for (const auto &dev: guiManager->handles.devices) {
         //WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
         //regEditor.resetJumbo();
         //regEditor.restartNetAdapters(); // Make changes into effect
@@ -542,8 +587,10 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
+    for (auto &shaderModule: shaderModules) {
+        vkDestroyShaderModule(device, shaderModule, nullptr);
+    }
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
-
 }
 
 
@@ -681,20 +728,23 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = mousePos.x - (float) x ;
-    float dy = mousePos.y - (float) y ;
+    float dx = mousePos.x - (float) x;
+    float dy = mousePos.y - (float) y;
 
-    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI){ // && !mouseButtons.middle) {
+    mouseButtons.dx = dx;
+    mouseButtons.dy = dy;
+
+    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
     }
     if (mouseButtons.middle && camera.type == Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
-    } else if (mouseButtons.middle && camera.type == Camera::arcball){
+    } else if (mouseButtons.middle && camera.type == Camera::arcball) {
         //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
-        mousePos = glm::vec2((float) x, (float) y);
+    mousePos = glm::vec2((float) x, (float) y);
 
     handled = true;
 }
@@ -703,9 +753,28 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
-            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+            //camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
         }
     }
+    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
 
+}
 
+VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {
+    // Check if we have .spv extensions. If not then add it.
+    std::size_t extension = fileName.find(".spv");
+    if (extension == std::string::npos)
+        fileName.append(".spv");
+    VkShaderModule module;
+    Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
+                      vulkanDevice->m_LogicalDevice, &module);
+    assert(module != VK_NULL_HANDLE);
+
+    shaderModules.emplace_back(module);
+    VkPipelineShaderStageCreateInfo shaderStage = {};
+    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStage.stage = stageFlag;
+    shaderStage.module = module;
+    shaderStage.pName = "main";
+    return shaderStage;
 }

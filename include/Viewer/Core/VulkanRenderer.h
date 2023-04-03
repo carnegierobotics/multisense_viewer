@@ -50,6 +50,7 @@
 #include <iostream>
 #include <glm/vec2.hpp>
 #include <chrono>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui/imgui.h>
 
 #include "Viewer/ImGui/GuiManager.h"

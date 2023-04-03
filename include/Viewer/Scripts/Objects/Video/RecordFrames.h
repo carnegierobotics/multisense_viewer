@@ -44,35 +44,40 @@
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 #include "Viewer/Tools/ThreadPool.h"
 
-class RecordFrames : public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels
-{
+class RecordFrames : public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     RecordFrames() {
         DISABLE_WARNING_PUSH
-            DISABLE_WARNING_UNREFERENCED_VARIABLE
-            DISABLE_WARNING_UNUSED_VARIABLE
-            s_bRegistered;
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNUSED_VARIABLE
+        s_bRegistered;
         DISABLE_WARNING_POP
     }
+
     void onDestroy() override {
     }
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<RecordFrames>(); }
+
     /** @brief Name which is registered for this class. Same as ClassName **/
     static std::string GetFactoryName() { return "RecordFrames"; }
 
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
+
     /** @brief update function called once per frame **/
     void update() override;
+
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
     ScriptType getType() override { return type; }
+
     /** @brief Method to enable/disable drawing of this script **/
     void setDrawMethod(ScriptType _type) override { this->type = _type; }
 
-    void onUIUpdate(const VkRender::GuiObjectHandles* uiHandle) override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
@@ -80,24 +85,29 @@ public:
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
+    bool useAuxColor = false; // 0 luma, 1 color
+    bool savePointCloud = false;
     bool saveImage = false;
     bool isRemoteHead = false;
     std::string saveImagePath;
+    std::string saveImagePathPointCloud;
     std::string compression;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
-    template <typename T>
-    static std::array<uint8_t, 3> ycbcrToBgr(uint8_t* luma,
-                                                    uint8_t* chroma,
-                                                    const uint32_t& imageWidth,
-                                                    size_t u,
-                                                    size_t v)
-    {
-        const auto* lumaP = reinterpret_cast<const uint8_t*>(luma);
-        const auto* chromaP = reinterpret_cast<const uint8_t*>(chroma);
+    std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
+
+
+    template<typename T>
+    static std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
+                                             uint8_t *chroma,
+                                             const uint32_t &imageWidth,
+                                             size_t u,
+                                             size_t v) {
+        const auto *lumaP = reinterpret_cast<const uint8_t *>(luma);
+        const auto *chromaP = reinterpret_cast<const uint8_t *>(chroma);
 
         const size_t luma_offset = (v * imageWidth) + u;
         const size_t chroma_offset = 2 * (((v / 2) * (imageWidth / 2)) + (u / 2));
@@ -110,26 +120,32 @@ public:
         float px_g = px_y - 0.39465f * px_cb - 0.58060f * px_cr;
         float px_b = px_y + 2.03211f * px_cb;
 
-        if (px_r < 0.0f)        px_r = 0.0f;
+        if (px_r < 0.0f) px_r = 0.0f;
         else if (px_r > 255.0f) px_r = 255.0f;
-        if (px_g < 0.0f)        px_g = 0.0f;
+        if (px_g < 0.0f) px_g = 0.0f;
         else if (px_g > 255.0f) px_g = 255.0f;
-        if (px_b < 0.0f)        px_b = 0.0f;
+        if (px_b < 0.0f) px_b = 0.0f;
         else if (px_b > 255.0f) px_b = 255.0f;
 
-        return { {static_cast<uint8_t>(px_r), static_cast<uint8_t>(px_g), static_cast<uint8_t>(px_b)} };
+        return {{static_cast<uint8_t>(px_r), static_cast<uint8_t>(px_g), static_cast<uint8_t>(px_b)}};
     }
 
     static void
-    ycbcrToBgr(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
+    ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
                const uint32_t &height, uint8_t *output);
 
-    static void saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
-                         std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
+    static void
+    saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
+                    std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
+
+    void
+    static savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+                                   std::shared_ptr<VkRender::TextureData> &depthTex,
+                                   std::shared_ptr<VkRender::TextureData> &colorTex,
+                                   bool useAuxColor,
+                                   const glm::mat4 &Q, const float &scale, const float &focalLength
+    );
 };
-
-
-
 
 
 #endif //MULTISENSE_VIEWER_RECORDFRAMES_H

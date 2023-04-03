@@ -63,40 +63,20 @@ namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
-#ifdef __linux__
-    static std::string getShadersPath() {
-        return "./Assets/Shaders/";
+    static  std::filesystem::path getShadersPath() {
+        return { "./Assets/Shaders" };
     }
-    static std::string getAssetsPath() {
-        return "./Assets/";
-    }
-
-    static std::string getTexturePath() {
-        return "./Assets/Textures/";
+    static std::filesystem::path getAssetsPath() {
+        return { "./Assets/" };
     }
 
-    static std::string getScriptsPath() {
-        return "Scripts/";
+    static std::filesystem::path getTexturePath() {
+        return { "./Assets/Textures" };
     }
 
-#endif
-
-#ifdef WIN32
-    static std::string getShadersPath() {
-        return ".\\Assets\\Shaders\\";
+    static  std::filesystem::path getScriptsPath() {
+        return { "Scripts/" };
     }
-    static std::string getAssetsPath() {
-        return ".\\Assets\\";
-    }
-
-    static std::string getTexturePath() {
-        return ".\\Assets\\Textures\\";
-    }
-
-    static std::string getScriptsPath() {
-        return "Scripts\\";
-    }
-#endif
 
     static std::string dataSourceToString(crl::multisense::DataSource d) {
         switch (d) {
@@ -611,7 +591,7 @@ namespace Utils {
     }
 
 
-    inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+    static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
             dev.channelInfo.resize(4); // max number of remote heads
             dev.win.clear();
             for (crl::multisense::RemoteHeadChannel ch: {0}) {
@@ -621,10 +601,11 @@ namespace Utils {
                 chInfo.availableSources.emplace_back("Source");
                 chInfo.index = ch;
                 chInfo.state = CRL_STATE_ACTIVE;
+                chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
                 std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
                 supportedDeviceModes.emplace_back();
                 //initCameraModes(&chInfo.modes, supportedModes);
-                chInfo.selectedMode = Utils::valueToCameraResolution(1920 ,1080, 128);
+                chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920 , 1080, 128);
                 for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
                     dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
                     if (!chInfo.availableSources.empty())

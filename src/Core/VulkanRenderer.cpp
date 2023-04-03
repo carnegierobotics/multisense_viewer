@@ -71,7 +71,7 @@ namespace VkRender {
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
 
         GLFWimage images[1];
-        std::string fileName = (Utils::getAssetsPath() + "Textures/CRL96x96.png");
+        std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
         images[0].pixels = stbi_load(fileName.c_str(), &images[0].width, &images[0].height, nullptr, 4); //rgba channels
         if (!images[0].pixels) {
             throw std::runtime_error("Failed to load window icon: " + fileName);
@@ -240,11 +240,11 @@ namespace VkRender {
         vkDestroyImageView(device, depthStencil.view, nullptr);
         vkFreeMemory(device, depthStencil.mem, nullptr);
         vkDestroyCommandPool(device, cmdPool, nullptr);
-        for (auto *fence: waitFences) {
+        for (auto &fence: waitFences) {
             vkDestroyFence(device, fence, nullptr);
         }
         vkDestroyRenderPass(device, renderPass, nullptr);
-        for (auto *fb: frameBuffers) {
+        for (auto &fb: frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
@@ -356,8 +356,8 @@ namespace VkRender {
             attachments[1].format = depthFormat;
             attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
             attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -642,6 +642,9 @@ namespace VkRender {
             keyPress = -1;
             keyAction = -1;
             io.MouseWheel = 0;
+            mouseButtons.dx = 0;
+            mouseButtons.dy = 0;
+            mouseButtons.action = -1;
             /** FrameTiming **/
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
@@ -700,7 +703,7 @@ namespace VkRender {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}", std::to_string(result));
         }
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
-            throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down instance");
+        throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down . VkResult: " + std::to_string(result));
     }
 
 /** CALLBACKS **/
@@ -736,7 +739,7 @@ namespace VkRender {
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
-            myApp->pLogger->info("Escape or Quit (Q) key registered. Closing program..");
+            myApp->pLogger->info("Escape key registered. Closing program..");
             glfwSetWindowShouldClose(window, true);
         }
         ImGuiIO &io = ImGui::GetIO();
@@ -836,6 +839,7 @@ namespace VkRender {
                     myApp->mouseButtons.left = true;
                     break;
             }
+            myApp->mouseButtons.action = GLFW_PRESS;
         }
         if (action == GLFW_RELEASE) {
             switch (button) {
@@ -849,6 +853,7 @@ namespace VkRender {
                     myApp->mouseButtons.left = false;
                     break;
             }
+            myApp->mouseButtons.action = GLFW_RELEASE;
         }
     }
 

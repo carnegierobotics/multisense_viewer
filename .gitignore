@@ -1,4 +1,4 @@
-# Project exclude paths
+.gitignore
 /cmake-build-debug/
 out/
 .vs

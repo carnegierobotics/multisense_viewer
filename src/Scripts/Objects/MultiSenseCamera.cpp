@@ -58,6 +58,12 @@ void MultiSenseCamera::setup() {
     KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), renderUtils.device,
                       renderUtils.device->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
+
+    /*
+    Widgets::make()->text("Select other camera models");
+    Widgets::make()->slider("##Select model", &selection, 0, 2);
+    */
+
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -69,7 +75,15 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
             S27->draw(commandBuffer, i);
         else if(selectedModel == "Multisense-KS21")
             KS21->draw(commandBuffer, i);
-        else{
+        /*
+        if (selection == 0)
+            S30->draw(commandBuffer, i);
+        else if(selection == 1)
+            S27->draw(commandBuffer, i);
+        else if(selection == 2)
+            KS21->draw(commandBuffer, i);
+        */
+         else{
             Log::Logger::getInstance()->warning("No 3D model corresponding to {}. Not drawing anything", selectedModel);
             stopDraw = true;
         }

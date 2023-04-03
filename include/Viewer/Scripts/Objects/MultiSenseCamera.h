@@ -73,6 +73,7 @@ public:
     std::unique_ptr<GLTFModel::Model> KS21;
 
     std::string selectedModel = "S27";
+    int selection = 0;
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);

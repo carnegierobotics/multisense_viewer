@@ -19,7 +19,7 @@ private:
 
         Element(const char *labelVal, float *valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
             minValue(minVal), maxValue(maxVal) {
-            type = FLOAT_SLIDER;
+            type = WIDGET_FLOAT_SLIDER;
         }
 
         int *intValue = nullptr;
@@ -27,7 +27,11 @@ private:
         int intMax = 1;
         Element(const char *labelVal, int *valPtr, int minVal, int maxVal) : label(labelVal), intValue(valPtr),
                                                                              intMin(minVal), intMax(maxVal) {
-            type = INT_SLIDER;
+            type = WIDGET_INT_SLIDER;
+        }
+
+        Element(const char *labelVal) : label(labelVal) {
+            type = WIDGET_TEXT;
         }
     };
     static Widgets* m_Instance;
@@ -43,6 +47,10 @@ public:
 
     void slider(const char *label, int *value, int min = 0, int max = 10) {
         elements.emplace_back(label, value, min, max);
+    }
+
+    void text(const char* label){
+        elements.emplace_back(label);
     }
 
     static Widgets* make();

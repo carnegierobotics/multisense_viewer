@@ -183,9 +183,10 @@ typedef enum PreviewLayout {
 } PreviewLayout;
 
 typedef enum ScriptWidgetType {
-    FLOAT_SLIDER = 0,
-    INT_SLIDER = 1,
-    INPUT_NUMBER = 2,
+    WIDGET_FLOAT_SLIDER = 0,
+    WIDGET_INT_SLIDER = 1,
+    WIDGET_INPUT_NUMBER = 2,
+    WIDGET_TEXT = 3
 } ScriptWidgetType;
 
 /**

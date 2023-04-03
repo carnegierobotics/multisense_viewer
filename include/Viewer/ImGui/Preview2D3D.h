@@ -1199,7 +1199,9 @@ private:
                 ImGui::PopStyleVar();
             }
 
+            ImGui::Dummy(ImVec2(0.0f, 10.0));
 
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
 
             for (const auto &elem: Widgets::make()->elements) {
                 // for each element type
@@ -1208,15 +1210,19 @@ private:
                 ImGui::SameLine();
 
                 switch (elem.type) {
-                    case FLOAT_SLIDER:
+                    case WIDGET_FLOAT_SLIDER:
                         ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue);
                         break;
-                    case INT_SLIDER:
+                    case WIDGET_INT_SLIDER:
                         ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
+                        break;
+                    case WIDGET_TEXT:
+                        ImGui::Text(elem.label);
                         break;
                 }
 
             }
+            ImGui::PopStyleColor(); // ImGuiCol_Text
 
         }
 

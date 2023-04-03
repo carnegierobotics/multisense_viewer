@@ -1140,7 +1140,8 @@ namespace VkRender::MultiSense {
         T[1][2] = r21;
         T[2][2] = r22;
 
-        T[3][0] = -0.0335; // tx
+        T[3][0] = infoMap[channelID].calibration.aux.P[0][3] / 1000.0f; // tx in mm
+        T[3][1] = infoMap[channelID].calibration.aux.P[1][3] / 1000.0f; // ty in mm
 
         infoMap[channelID].KColorMatExtrinsic = T;
         infoMap[channelID].KColorMat = K;

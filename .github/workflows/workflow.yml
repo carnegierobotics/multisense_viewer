@@ -18,18 +18,22 @@ jobs:
   VersionJob:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.extract_version.outputs.version }}
-      install_path: ${{steps.extract_version.outputs.path}}
+      install_path: ${{steps.path.install_path_id.install_path}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0 # Mandatory to use the extract version from tag action
-
       - name: Extract version from tag
         uses: damienaicheh/extract-version-from-tag-action@v1.1.0
       - name: Print version
-        run: echo "The version is ${{  env.MAJOR }}"
+        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}.${{  env.PAATCH }}"
+      - name: Set Output
+        id: install_path_id
+        run: echo "install_path=green" >> $GITHUB_OUTPUT
+      - name: get Output
+        run: echo "The selected color is ${{ steps.install_path_id.outputs.install_path}}"
+
 
 #  ReleaseJob:
 #    name: Create Release

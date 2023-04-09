@@ -110,6 +110,6 @@ void main()
     } else {
         color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }
-    vec4 jetColor = colormap(color.r * 16);
-    outColor = jetColor;
+    //vec4 jetColor = colormap(color.r * 16);
+    outColor = vec4(color.r, color.r, color.r, 1.0f) * 16;
 }

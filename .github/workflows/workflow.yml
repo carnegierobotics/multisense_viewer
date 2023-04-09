@@ -16,9 +16,10 @@ env:
 
 jobs:
   VersionJob:
+    name: "Set Version"
     runs-on: ubuntu-latest
     outputs:
-      install_path: ${{  steps.path.install_path_id.install_path  }}
+      install_path: ${{  steps.install_path_id.install_path  }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

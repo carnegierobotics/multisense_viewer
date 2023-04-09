@@ -16,8 +16,8 @@ jobs:
     run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
 
   ReleaseJob:
-    needs: VersionJob
     name: Create Release
+    needs: VersionJob
     runs-on: ubuntu-latest
     outputs: 
       upload_url: ${{ steps.create_release.outputs.upload_url }} 

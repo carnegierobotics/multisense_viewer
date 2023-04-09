@@ -72,7 +72,7 @@ public:
     std::unique_ptr<GLTFModel::Model> S30;
     std::unique_ptr<GLTFModel::Model> KS21;
 
-    std::string selectedModel = "S27";
+    std::string selectedModel = "Multisense-KS21";
     int selection = 0;
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

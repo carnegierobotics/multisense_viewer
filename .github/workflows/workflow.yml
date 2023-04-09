@@ -5,14 +5,10 @@ on:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
   workflow_dispatch:
-    inputs:
-      name:
-        description: "Who to greet"
-        default: "World"
+
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  INSTALL_PATH: multisense_1.1-0_amd64
 
 jobs:
   VersionJob:
@@ -32,8 +28,6 @@ jobs:
       - name: Set Output
         id: install_path_id
         run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
-      - name: get Output
-        run: echo "The version is ${{ steps.install_path_id.outputs.install_path}}"
 
 
   ReleaseJob:
@@ -117,7 +111,7 @@ jobs:
     - name: zipFiles
       uses: vimtor/action-zip@v1
       with:
-        files: ./build/${{env.INSTALL_PATH}}
+        files: ./build/${{ needs.VersionJob.outputs.install_path  }}
         dest:  MultiSense_viewer.zip
 
     - name: Upload Release Asset
@@ -181,16 +175,16 @@ jobs:
     - name: Prepare package step
       working-directory: ${{github.workspace}}/build
       run: |
-        mkdir ${{env.INSTALL_PATH}}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/Ubuntu/control ${{env.INSTALL_PATH}}/DEBIAN/
-        mkdir -p ${{env.INSTALL_PATH}}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/Ubuntu/multisense.desktop ${{env.INSTALL_PATH}}/usr/share/applications/
-        cp ${{github.workspace}}/Assets/Tools/Ubuntu/start.sh ${{env.INSTALL_PATH}}/opt/multisense/
-        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/include
-        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/lib
-        rm -rf ${{env.INSTALL_PATH}}/opt/multisense/share
+        mkdir ${{ needs.VersionJob.outputs.install_path  }}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/Ubuntu/control ${{ needs.VersionJob.outputs.install_path  }}/DEBIAN/
+        mkdir -p ${{ needs.VersionJob.outputs.install_path  }}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/Ubuntu/multisense.desktop ${{ needs.VersionJob.outputs.install_path  }}/usr/share/applications/
+        cp ${{github.workspace}}/Assets/Tools/Ubuntu/start.sh ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/include
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/lib
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/share
 
     - name: Package
       working-directory: ${{github.workspace}}/build
-      run: dpkg-deb --build --root-owner-group ${{env.INSTALL_PATH}}
+      run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}
 
     - name: Upload Release Asset
       id: upload-release-asset
@@ -199,8 +193,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-        asset_path: ./build/${{env.INSTALL_PATH}}.deb
-        asset_name: ${{env.INSTALL_PATH}}.deb
+        asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}.deb
+        asset_name: ${{ needs.VersionJob.outputs.install_path  }}.deb
         asset_content_type: application/zip
 
 

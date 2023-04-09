@@ -52,6 +52,7 @@
 #include "Generated/ScriptHeader.h"
 #include "Viewer/Core/Skybox.h"
 #include "Viewer/Renderer/UsageMonitor.h"
+#include "Viewer/Core/RendererConfig.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -62,6 +63,8 @@ public:
      * @param title Title of application
      */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
+        VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+
         this->m_Title = title;
         // Create Log C++ Interface
         pLogger = Log::Logger::getInstance();

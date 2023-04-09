@@ -7,10 +7,16 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  INSTALL_PATH: multisense_1.0-0_amd64
+  INSTALL_PATH: multisense_1.1-0_amd64
 
 jobs:
+  VersionJob:
+    name: Get the version
+    id: get_version
+    run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
   ReleaseJob:
+    needs: VersionJob
     name: Create Release
     runs-on: ubuntu-latest
     outputs: 
@@ -47,7 +53,7 @@ jobs:
           
   BuildWindows:
     name: Build For Windows
-    needs: ReleaseJob
+    needs: [ReleaseJob, VersionJob]
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -112,7 +118,7 @@ jobs:
 
   BuildUbuntu:
     name: Build and package for Ubuntu
-    needs: ReleaseJob
+    needs: [ReleaseJob, VersionJob]
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix

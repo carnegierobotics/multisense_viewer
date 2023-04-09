@@ -29,7 +29,7 @@ jobs:
       - name: Extract version from tag
         uses: damienaicheh/extract-version-from-tag-action@v1.1.0
       - name: Print version
-        run: echo "The version is ${{  steps.extract-version-from-tag-action.outputs.MAJOR }}"
+        run: echo "The version is ${{  env.MAJOR }}"
 
 #  ReleaseJob:
 #    name: Create Release

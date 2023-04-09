@@ -589,10 +589,6 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
-    for (auto &shaderModule: shaderModules) {
-        vkDestroyShaderModule(device, shaderModule, nullptr);
-    }
-
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 }
 
@@ -760,23 +756,4 @@ void Renderer::mouseScroll(float change) {
         }
     }
 
-}
-
-VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {
-    // Check if we have .spv extensions. If not then add it.
-    std::size_t extension = fileName.find(".spv");
-    if (extension == std::string::npos)
-        fileName.append(".spv");
-    VkShaderModule module;
-    Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
-                      vulkanDevice->m_LogicalDevice, &module);
-    assert(module != VK_NULL_HANDLE);
-
-    shaderModules.emplace_back(module);
-    VkPipelineShaderStageCreateInfo shaderStage = {};
-    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStage.stage = stageFlag;
-    shaderStage.module = module;
-    shaderStage.pName = "main";
-    return shaderStage;
 }

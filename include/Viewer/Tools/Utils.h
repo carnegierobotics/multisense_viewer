@@ -634,6 +634,32 @@ namespace Utils {
 
         }
 
+        /**
+         * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
+         * @return path to cache folder
+         */
+        static inline std::filesystem::path getSystemCachePath(){
+            // ON windows this file should be places in the user cache folder //
+            #ifdef WIN32
+                std::filesystem::path cachePath = std::getenv("APPDATA");
+                std::filesystem::path multiSenseCachePath = cachePath / "multisense";
+            #else
+                std::filesystem::path cachePath = std::getenv("HOME");
+                cachePath /= ".cache";
+                std::filesystem::path multiSenseCachePath = cachePath / "multisense";
+            #endif
+
+            if (!std::filesystem::exists(multiSenseCachePath)) {
+                std::error_code ec;
+                if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
+                    Log::Logger::getInstance(Utils::getSystemCachePath() / "logger.log")->info("Created cache directory {}", multiSenseCachePath.string());
+                } else {
+                    Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}", multiSenseCachePath.string(), ec.value());
+                }
+            }
+            return multiSenseCachePath;
+    }
+
 };
 
 #endif //MULTISENSE_VIEWER_UTILS_H

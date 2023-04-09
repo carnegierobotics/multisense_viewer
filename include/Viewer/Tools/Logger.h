@@ -168,7 +168,7 @@ namespace Log {
     class Logger {
     public:
 
-        static Logger *getInstance() noexcept;
+        static Logger *getInstance(const std::string& logFileName = "") noexcept;
 
         static Metrics *getLogMetrics() noexcept;
 
@@ -261,7 +261,7 @@ namespace Log {
         void always(std::string text) noexcept;
 
     protected:
-        Logger();
+        Logger(const std::string& logFileName);
 
         ~Logger();
 

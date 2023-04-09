@@ -34,3 +34,6 @@
 [submodule "external/KTX-Software"]
 	path = external/KTX-Software
 	url = https://github.com/KhronosGroup/KTX-Software
+[submodule "external/json"]
+	path = external/json
+	url = https://github.com/nlohmann/json

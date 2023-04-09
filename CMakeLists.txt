@@ -61,7 +61,8 @@ set(ENGINE_SRC
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/ScriptUIAddons.cpp
-        )
+        src/Renderer/UsageMonitor.cpp)
+
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
         src/Scripts/Objects/Example.cpp
@@ -79,16 +80,17 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/SceneGizmos/Skybox.cpp
         include/Viewer/Scripts/Private/ScriptUtils.h)
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-# Generate empty configuration files.
-file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "")
-file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "")
-file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
+# Generate empty configuration files. Serve them with the installer so proper permissions is set and files are removed correctly by the uninstaller
+set(CONFIGURATION_FILES imgui.ini crl.ini logger.log usage.json)
+foreach (file_i ${CONFIGURATION_FILES})
+    file(WRITE ${CMAKE_BINARY_DIR}/${file_i} "")
+endforeach (file_i)
 
 if (UNIX) ## Linux
     # Set install directory if not specified
@@ -116,9 +118,7 @@ if (UNIX) ## Linux
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
+            ${CONFIGURATION_FILES}
             PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
             CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
             )
@@ -218,9 +218,7 @@ if (WIN32)
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
     install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
+            ${CONFIGURATION_FILES}
             PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
             CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
             )

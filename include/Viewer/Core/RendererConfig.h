@@ -7,7 +7,13 @@
 
 #include <string>
 #include <fstream>
+#include <vulkan/vulkan.hpp>
+
+#ifdef WIN32
+
+#else
 #include <sys/utsname.h>
+#endif
 
 #include "Viewer/Tools/Logger.h"
 
@@ -19,12 +25,25 @@ namespace VkRender {
             return instance;
         }
 
+        const std::string &getArchitecture() const;
+
+        const std::string &getOsVersion() const;
+
+        const std::string &getAppVersion() const;
+
+        const std::string &getTimeStamp() const;
+
+        const std::string &getOS() const;
+
+        const std::string &getGpuDevice() const;
+
+        void setGpuDevice(const VkPhysicalDevice& physicalDevice);
 
     private:
         RendererConfig() {
-            // Read OS version
-            m_OSVersion = getOSVersion();
-            m_Architecture = getArchitecture();
+            getOSVersion();
+            m_Architecture = fetchArchitecture();
+            m_AppVersion = fetchApplicationVersion();
         }
 
 
@@ -32,14 +51,14 @@ namespace VkRender {
 
         std::string m_Architecture;
         std::string m_OSVersion;
+        std::string m_OS;
         std::string m_AppVersion;
         std::string m_TimeStamp;
         std::string m_GPUDevice;
 
-
-        std::string getArchitecture();
-        std::string getOSVersion();
-        std::string getApplicationVersion();
+        void getOSVersion();
+        std::string fetchArchitecture();
+        std::string fetchApplicationVersion();
     };
 
 };

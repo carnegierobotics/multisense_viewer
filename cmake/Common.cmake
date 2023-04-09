@@ -176,7 +176,7 @@ function(ExportScriptIncludes)
 endfunction()
 
 function (GenerateVersionFile)
-    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/versioninfo "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}")
 endfunction()
 
 if (UNIX)

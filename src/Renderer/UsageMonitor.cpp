@@ -7,6 +7,7 @@
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/RendererConfig.h"
 
 UsageMonitor::UsageMonitor() {
     auto path = Utils::getSystemCachePath() / "usage.json";
@@ -23,9 +24,6 @@ UsageMonitor::UsageMonitor() {
 
     // Parse the JSON from the string stream
     nlohmann::json json_obj = parseJSON(buffer);
-
-    // Output the parsed JSON object
-    std::cout << json_obj.dump(4) << std::endl;
 }
 
 nlohmann::json UsageMonitor::parseJSON(const std::stringstream &buffer) {
@@ -50,33 +48,24 @@ void UsageMonitor::initializeJSONFile() {
         }
     }
 
-    std::string version = "1.1.0";
+    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+
+    std::string version = "1.0.0";
     std::ofstream output_file(usageFilePath);
     std::string jsonBoilerPlate = "{\n"
-                                  "    \"version\": \"" + version + "\",\n"
-                                                                    "    \"timestamp\": \"2023-04-03T15:30:00Z\",\n"
-                                                                    "    \"os\": {\n"
-                                                                    "        \"name\": \"Windows\",\n"
-                                                                    "        \"version\": \"10.0.19042\",\n"
-                                                                    "        \"architecture\": \"x86_64\"\n"
-                                                                    "    },\n"
-                                                                    "    \"app\": {\n"
-                                                                    "        \"name\": \"MyApp\",\n"
-                                                                    "        \"version\": \"1.0.0\"\n"
-                                                                    "    },\n"
-                                                                    "    \"stats\": {\n"
-                                                                    "        \"event\": \"usage\",\n"
-                                                                    "        \"data\": {\n"
-                                                                    "            \"time_spent\": 1200,\n"
-                                                                    "            \"files_opened\": 10,\n"
-                                                                    "            \"searches_performed\": 5,\n"
-                                                                    "            \"settings_changed\": {\n"
-                                                                    "                \"enable_notifications\": true,\n"
-                                                                    "                \"auto_save_interval\": 300\n"
-                                                                    "            }\n"
-                                                                    "        }\n"
-                                                                    "    }\n"
-                                                                    "}";
+                                  "    \"log_version\": \"" + version + "\",\n"
+                                  "    \"os\": {\n"
+                                  "         \"name\": \"" + config.getOS() + "\",\n"
+                                  "         \"version\": \"" + config.getOsVersion() +"\",\n"
+                                  "         \"architecture\": \"" + config.getArchitecture() + "\"\n"
+                                  "    },\n"
+                                  "    \"app\": {\n"
+                                  "        \"name\": \"MultiSense Viewer\",\n"
+                                  "        \"version\": \""+config.getAppVersion()+"\"\n"
+                                  "    },\n"
+                                  "    \"stats\": {\n"
+                                  "    }\n"
+                                  "}";
 
     output_file << jsonBoilerPlate;
     output_file.close();

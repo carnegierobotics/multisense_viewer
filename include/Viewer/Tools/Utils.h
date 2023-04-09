@@ -652,7 +652,7 @@ namespace Utils {
             if (!std::filesystem::exists(multiSenseCachePath)) {
                 std::error_code ec;
                 if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
-                    Log::Logger::getInstance(Utils::getSystemCachePath() / "logger.log")->info("Created cache directory {}", multiSenseCachePath.string());
+                    Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string())->info("Created cache directory {}", multiSenseCachePath.string());
                 } else {
                     Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}", multiSenseCachePath.string(), ec.value());
                 }

@@ -181,7 +181,6 @@ namespace VkRender::MultiSense {
         auto it = channelMap.find(channelID);
 
         if (it == channelMap.end()) {
-            Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
         }
 
@@ -1009,7 +1008,6 @@ namespace VkRender::MultiSense {
         auto it = channelMap.find(channelID);
 
         if (it == channelMap.end()) {
-            Log::Logger::getInstance()->error("Channel not connected {}", channelID);
             return false;
         }
 

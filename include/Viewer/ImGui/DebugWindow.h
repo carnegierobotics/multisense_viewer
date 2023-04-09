@@ -340,16 +340,14 @@ public:
                 // Add test device to renderer if not present
                 bool exists = false;
                 for (const auto& device : handles->devices){
-                    if (device.cameraName == "Test Device")
+                    if (device.cameraName == "Multisense-KS21")
                         exists = true;
                 }
                 if (!exists){
                     VkRender::Device testDevice;
-                    testDevice.state = CRL_STATE_ACTIVE;
-                    testDevice.cameraName = "Test Device";
-                    testDevice.notRealDevice = true;
                     Utils::initializeUIDataBlockWithTestData(testDevice);
                     handles->devices.emplace_back(testDevice);
+                    Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
             }
 

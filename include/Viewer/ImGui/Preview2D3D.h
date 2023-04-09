@@ -539,7 +539,7 @@ private:
                                         dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
                             break;
                         default:
-                            ImGui::Text("");
+                            ImGui::Text(" ");
                     }
 
                 }
@@ -1228,7 +1228,7 @@ private:
                         ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
                         break;
                     case WIDGET_TEXT:
-                        ImGui::Text(elem.label);
+                        ImGui::Text("%s", elem.label);
                         break;
                 }
 

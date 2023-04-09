@@ -6,19 +6,9 @@ on:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
   workflow_dispatch:
     inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-        type: choice
-        options:
-          - info
-          - warning
-          - debug
-      tags:
-        description: 'Test scenario tags'
-        required: false
-        type: boolean
+      name:
+        description: "Who to greet"
+        default: "World"
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
@@ -27,22 +17,20 @@ env:
 jobs:
   VersionJob:
     name: Get the version
-    id: get_version
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.extract_version.outputs.version }}
-      install_path: ${{steps.set_install_path.outputs.path}}
+      version: ${{ steps.extract_version_and_path.outputs.version }}
+      install_path: ${{steps.extract_version_and_path.outputs.path}}
     steps:
       - name: Extract version from tag
-        id: extract_version
+        id: extract_version_and_path
         run: echo "::set-output name=version::${GITHUB_REF#refs/tags/v}"
       - name: Print version
-        run: echo "The version is ${{ steps.extract_version.outputs.version }}"
+        run: echo "The version is ${{ steps.extract_version_and_path.outputs.version }}"
       - name: Set install path
-        id: set_install_path
         run: echo "::set-output name=path::multisense_${GITHUB_REF#refs/tags/v}_amd64"
       - name: Print install path
-        run: echo "The version is ${{ steps.set_install_path.outputs.path}}"
+        run: echo "The version is ${{ steps.extract_version_and_path.outputs.path}}"
   ReleaseJob:
     name: Create Release
     needs: VersionJob

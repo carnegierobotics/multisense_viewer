@@ -91,7 +91,6 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 void MultiSenseCamera::update() {
-
     auto &d = bufferOneData;
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -142,11 +141,16 @@ void MultiSenseCamera::update() {
 
 void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
+    bool noActiveDevice = true;
     for (const auto &d: uiHandle->devices) {
         if (d.state != CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
         selectedModel = d.cameraName;
         imuEnabled = d.useIMU;
+        noActiveDevice = false;
+        stopDraw = false;
     }
+    if (noActiveDevice)
+        stopDraw = true;
 }

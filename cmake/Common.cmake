@@ -33,6 +33,7 @@ set(SIMPLEINI_DIR external/simpleini)
 set(IMGUI_DIR external/imgui)
 set(AUTOCONNECT_DIR internal/AutoConnect)
 set(KTX_DIR external/KTX-Software)
+set(NLOHMANN_JSON external/json)
 
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
@@ -146,6 +147,15 @@ else ()
     include_directories(${KTX_DIR}/include)
     link_directories(${KTX_DIR}/lib)
 
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${NLOHMANN_JSON}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${NLOHMANN_JSON} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding NLOHMANN_JSON from directory: ${NLOHMANN_JSON}")
+    set(JSON_BuildTests OFF CACHE INTERNAL "")
+    set(JSON_Install OFF CACHE INTERNAL "")
+    add_subdirectory(${NLOHMANN_JSON})
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

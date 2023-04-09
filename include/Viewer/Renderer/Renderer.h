@@ -51,6 +51,7 @@
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Generated/ScriptHeader.h"
 #include "Viewer/Core/Skybox.h"
+#include "Viewer/Renderer/UsageMonitor.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -64,7 +65,8 @@ public:
         this->m_Title = title;
         // Create Log C++ Interface
         pLogger = Log::Logger::getInstance();
-        Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
+        // Start up usage monitor
+        usageMonitor = std::make_unique<UsageMonitor>();
 
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
@@ -102,7 +104,7 @@ private:
     std::unique_ptr<VkRender::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
-
+    std::unique_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = true;
@@ -137,9 +139,6 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
-
-    VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stageFlag);
-    std::vector<VkShaderModule> shaderModules{};
 };
 
 

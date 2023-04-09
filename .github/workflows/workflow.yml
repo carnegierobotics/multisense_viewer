@@ -16,17 +16,20 @@ env:
 
 jobs:
   VersionJob:
-    name: Get the version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract_version.outputs.version }}
       install_path: ${{steps.extract_version.outputs.path}}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Mandatory to use the extract version from tag action
+
       - name: Extract version from tag
-        id: extract_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}"
+        uses: damienaicheh/extract-version-from-tag-action@v1.1.0
       - name: Print version
-        run: echo "The version is ${{ steps.extract_version.outputs.version }}"
+        run: echo "The version is ${{  steps.extract-version-from-tag-action.outputs.MAJOR }}"
 
 #  ReleaseJob:
 #    name: Create Release

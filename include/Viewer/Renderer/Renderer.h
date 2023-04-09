@@ -64,7 +64,6 @@ public:
      */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
         VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
-
         this->m_Title = title;
         // Create Log C++ Interface
         pLogger = Log::Logger::getInstance();
@@ -75,6 +74,7 @@ public:
         VulkanRenderer::prepare();
         backendInitialized = true;
         pLogger->info("Initialized Backend");
+        config.setGpuDevice(physicalDevice);
 
         guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
         guiManager->handles.mouse = &mouseButtons;

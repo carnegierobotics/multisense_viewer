@@ -28,12 +28,12 @@ jobs:
       - name: Extract version from tag
         uses: damienaicheh/extract-version-from-tag-action@v1.1.0
       - name: Print version
-        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}.${{  env.PATCH }}"
+        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}"
       - name: Set Output
         id: install_path_id
-        run: echo "install_path=green" >> $GITHUB_OUTPUT
+        run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
       - name: get Output
-        run: echo "The selected color is ${{ steps.install_path_id.outputs.install_path}}"
+        run: echo "The version is ${{ steps.install_path_id.outputs.install_path}}"
 
 
   ReleaseJob:

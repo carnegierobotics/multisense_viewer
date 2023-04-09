@@ -5,17 +5,18 @@ project(
         LANGUAGES C CXX
         )
 
-#set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Set install directory if not specified
+# Set application version. Remember to set it both here and in the git workflow file
 set(VERSION_MAJOR "1")
-set(VERSION_MINOR "0")
+set(VERSION_MINOR "1")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
-option(BUILD_DOC "Build documentation" ON)
+# Set install directory. Used to generate installers for both Windows and Ubuntu using their native approaches
+set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
 
+option(BUILD_DOC "Build documentation" ON)
 # Set a default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -45,6 +46,7 @@ include_directories(SYSTEM external)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
+GenerateVersionFile()
 
 set(ENGINE_SRC
         src/Core/Buffer.cpp
@@ -61,7 +63,8 @@ set(ENGINE_SRC
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/ScriptUIAddons.cpp
-        src/Renderer/UsageMonitor.cpp)
+        src/Renderer/UsageMonitor.cpp
+        src/Core/RendererConfig.cpp)
 
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
@@ -94,7 +97,8 @@ endforeach (file_i)
 
 if (UNIX) ## Linux
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+    set(INSTALL_DIRECTORY ${INSTALL_DIRECTORY}/opt/multisense)
+
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -134,7 +138,6 @@ endif ()
 
 if (WIN32)
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"

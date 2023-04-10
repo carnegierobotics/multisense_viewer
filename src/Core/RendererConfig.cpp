@@ -2,6 +2,7 @@
 // Created by magnus on 4/9/23.
 //
 
+#include <random>
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Tools/Utils.h"
 #ifdef WIN32
@@ -69,10 +70,25 @@ namespace VkRender {
         std::ifstream infile(path);
         std::string line;
         std::string applicationVersion = "Not found";
-        if (std::getline(infile, line)) {
-            applicationVersion = line;
-        } else {
-            Log::Logger::getInstance()->error("Error: failed to read line from file {}", path.string());
+
+        while (std::getline(infile, line)) {
+            if (line.find("VERSION=") != std::string::npos) {
+                applicationVersion = line.substr(line.find("=") + 1);
+                applicationVersion.erase(std::remove(applicationVersion.begin(), applicationVersion.end(), '"'), applicationVersion.end());
+            }
+            if (line.find("SERVER=") != std::string::npos) {
+                m_ServerInfo.server = line.substr(line.find("=") + 1);
+                m_ServerInfo.server.erase(std::remove(m_ServerInfo.server.begin(), m_ServerInfo.server.end(), '"'), m_ServerInfo.server.end());
+            }
+            if (line.find("PROTOCOL=") != std::string::npos) {
+                m_ServerInfo.protocol = line.substr(line.find("=") + 1);
+                m_ServerInfo.protocol.erase(std::remove(m_ServerInfo.protocol.begin(), m_ServerInfo.protocol.end(), '"'), m_ServerInfo.protocol.end());
+            }
+            if (line.find("DESTINATION=") != std::string::npos) {
+                m_ServerInfo.destination = line.substr(line.find("=") + 1);
+                m_ServerInfo.destination.erase(std::remove(m_ServerInfo.destination.begin(), m_ServerInfo.destination.end(), '"'), m_ServerInfo.destination.end());
+            }
+
         }
         Log::Logger::getInstance()->info("Found Application version: {}", applicationVersion);
         return applicationVersion;
@@ -106,6 +122,10 @@ namespace VkRender {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         m_GPUDevice = properties.deviceName;
+    }
+
+    const std::string &RendererConfig::getAnonIdentifierString() const {
+        return m_Identifier;
     }
 
 

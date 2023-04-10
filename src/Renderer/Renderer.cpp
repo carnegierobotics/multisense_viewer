@@ -561,6 +561,8 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
+    usageMonitor->sendUsageLog();
+
     for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);

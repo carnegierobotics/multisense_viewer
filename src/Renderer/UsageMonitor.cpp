@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <httplib.h>
 
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Tools/Logger.h"
@@ -10,14 +11,23 @@
 #include "Viewer/Core/RendererConfig.h"
 
 UsageMonitor::UsageMonitor() {
+    // Initialize usage file
     auto path = Utils::getSystemCachePath() / "usage.json";
     usageFilePath = path;
 
-    if (!std::filesystem::exists(path)) {
+    if (!std::filesystem::exists(usageFilePath)) {
         initializeJSONFile();
     }
-    std::ifstream input_file(path);
+    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
 
+    // Connect to CRL server
+    server = std::make_unique<VkRender::ServerConnection>(config.getAnonIdentifierString(), config.getServerInfo());
+
+
+}
+
+void UsageMonitor::addEvent(){
+    std::ifstream input_file(usageFilePath);
     // Create a string stream and copy the file's contents into it
     std::stringstream buffer;
     buffer << input_file.rdbuf();
@@ -54,19 +64,25 @@ void UsageMonitor::initializeJSONFile() {
     std::ofstream output_file(usageFilePath);
     std::string jsonBoilerPlate = "{\n"
                                   "    \"log_version\": \"" + version + "\",\n"
-                                  "    \"os\": {\n"
-                                  "         \"name\": \"" + config.getOS() + "\",\n"
-                                  "         \"version\": \"" + config.getOsVersion() +"\",\n"
-                                  "         \"architecture\": \"" + config.getArchitecture() + "\"\n"
-                                  "    },\n"
-                                  "    \"app\": {\n"
-                                  "        \"name\": \"MultiSense Viewer\",\n"
-                                  "        \"version\": \""+config.getAppVersion()+"\"\n"
-                                  "    },\n"
-                                  "    \"stats\": {\n"
-                                  "    }\n"
-                                  "}";
+                                                                        "    \"os\": {\n"
+                                                                        "         \"name\": \"" + config.getOS() +
+                                  "\",\n"
+                                  "         \"version\": \"" + config.getOsVersion() + "\",\n"
+                                                                                       "         \"architecture\": \"" +
+                                  config.getArchitecture() + "\"\n"
+                                                             "    },\n"
+                                                             "    \"app\": {\n"
+                                                             "        \"name\": \"MultiSense Viewer\",\n"
+                                                             "        \"version\": \"" + config.getAppVersion() + "\"\n"
+                                                                                                                  "    },\n"
+                                                                                                                  "    \"stats\": {\n"
+                                                                                                                  "    }\n"
+                                                                                                                  "}";
 
     output_file << jsonBoilerPlate;
     output_file.close();
+}
+
+void UsageMonitor::sendUsageLog() {
+    server->sendUsageStatistics(usageFilePath);
 }

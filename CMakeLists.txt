@@ -64,7 +64,7 @@ set(ENGINE_SRC
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/ScriptUIAddons.cpp
         src/Renderer/UsageMonitor.cpp
-        src/Core/RendererConfig.cpp)
+        src/Core/RendererConfig.cpp src/Core/ServerConnection.cpp)
 
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp

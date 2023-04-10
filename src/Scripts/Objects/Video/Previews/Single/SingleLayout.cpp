@@ -134,6 +134,8 @@ void SingleLayout::update() {
     }
     auto &d2 = bufferTwoData;
     d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->pad.x = useDepthColorMap;
+    d2->pad.x = useDepthColorMap;
 
 }
 
@@ -243,6 +245,7 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         }
         useInterpolation = preview.enableInterpolation;
+        useDepthColorMap = preview.useDepthColorMap;
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(

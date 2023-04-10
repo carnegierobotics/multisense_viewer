@@ -380,15 +380,25 @@ private:
         handles->info->hoverState = ImGui::IsWindowHoveredByName("ControlArea", ImGuiHoveredFlags_AnyWindow);
         bool hoveringPreviewWindows = ImGui::IsWindowHoveredByName("View Area 0", ImGuiHoveredFlags_AnyWindow) ||
                                       ImGui::IsWindowHoveredByName("View Area 1", ImGuiHoveredFlags_AnyWindow);
-        if (!handles->info->hoverState && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE && !hoveringPreviewWindows) {
+        handles->scroll = 0.0f;
+        bool hoveringPopupWindows = (dev.win[(StreamWindowIndex) 0].isHovered ||
+                                     dev.win[(StreamWindowIndex) 1].isHovered);
+        if (!handles->info->hoverState && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE && !hoveringPreviewWindows &&
+            !hoveringPopupWindows) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
+            handles->scroll = ImGui::GetIO().MouseWheel * 100.0f;
 
+            float diff = 0.0f;
             if (handles->accumulatedActiveScroll > handles->maxScroll) {
-                handles->accumulatedActiveScroll = handles->maxScroll - 1.0f;
+                diff = handles->accumulatedActiveScroll - handles->maxScroll;
+                handles->accumulatedActiveScroll = handles->maxScroll;
             }
             if (handles->accumulatedActiveScroll < handles->minScroll) {
-                handles->accumulatedActiveScroll = handles->minScroll + 1.0f;
+                diff = handles->accumulatedActiveScroll - handles->minScroll;
+                handles->accumulatedActiveScroll = handles->minScroll;
             }
+            handles->scroll += diff;
+
         }
         int cols = 0, rows = 0;
         switch (dev.layout) {
@@ -468,6 +478,8 @@ private:
 
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
                 ImGui::Begin(windowName.c_str(), &open, window_flags);
+                window.isHovered = ImGui::IsWindowHovered(
+                        ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
 
                 // The colored bars around the preview window is made up of rectangles
                 // Top bar
@@ -524,8 +536,7 @@ private:
 
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 0));
 
-                if (ImGui::IsWindowHoveredByName(std::string("View Area ") + std::to_string(index),
-                                                 ImGuiHoveredFlags_AnyWindow)) {
+                if (window.isHovered) {
                     // Offsset cursor positions.
                     switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
                         case CRL_GRAYSCALE_IMAGE:
@@ -550,11 +561,95 @@ private:
                 ImGui::Checkbox(("##enableZoom" + std::to_string(index)).c_str(), &lock);
                 ImGui::SameLine();
 
-                ImGui::Text("Interpolate: ");
-                ImGui::SameLine();
-                ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.enableInterpolation);
+                std::string btnText = "Image Effects";
+                ImVec2 btnSize = ImGui::CalcTextSize(btnText.c_str());
+                ImGui::SameLine(0, handles->info->viewAreaElementSizeX - ImGui::GetCursorPosX() - btnSize.x - 40.0f);
 
+                if (ImGui::Button(btnText.c_str())) {
+                    ImGui::OpenPopup(("image effect " + std::to_string(index)).c_str());
+                }
                 ImGui::PopStyleVar(); // FramePadding
+
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 10.0f));
+
+
+                // Specific case for scrolled windows and popup position
+                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                        window.popupPosition.y -= handles->scroll;
+                }
+                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                    ImVec2 pos = window.popupPosition;
+                    if (window.popupPosition.x == 0.0f) {
+                        pos.x = handles->mouse->pos.x;
+                        pos.y = handles->mouse->pos.y;
+                    }
+                    if ((window.popupPosition.x + window.popupWindowSize.x) > handles->info->width) {
+                        window.popupPosition.x = window.popupPosition.x -
+                                                 (window.popupPosition.x + window.popupWindowSize.x + 20.0f -
+                                                  handles->info->width);
+                        pos = window.popupPosition;
+                    }
+                    ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
+                }
+
+                if (ImGui::BeginPopup(("image effect " + std::to_string(index)).c_str())) {
+                    if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                        window.popupPosition = ImGui::GetWindowPos();
+                        window.popupWindowSize = ImGui::GetWindowSize();
+                    }
+                    float textSpacing = 90.0f;
+                    { // ROW 1
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+                        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                        ImGui::SameLine();
+                        ImGui::HelpMarker(
+                                "Hover mouse of preview window to use keyboard shortcuts to enable/disable certain effects");
+                        // if start then show gif spinner
+                        ImGui::PopStyleColor();
+                        ImGui::PopStyleVar();
+                        ImGui::SameLine(0, 5.0f);
+                        ImGui::Text("Shortcut");
+                        ImGui::PopStyleVar();
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("Shortcut").x);
+                        std::string txt = "Effect";
+                        ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x - ImGui::CalcTextSize("Option").x / 2.0f);
+                        ImGui::Text("Option");
+                    }
+
+                    ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("i");
+                    ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("i").x);
+                    std::string txt = "Interpolate:";
+                    ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.enableInterpolation);
+
+                    bool isDisparitySelected =
+                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            CRL_DISPARITY_IMAGE;
+                    if (isDisparitySelected) {
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("m");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("m").x);
+                        txt = "Color map:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        ImGui::Checkbox(("##useDepthColorMap" + std::to_string(index)).c_str(),
+                                        &window.useDepthColorMap);
+                    }
+
+                    //window.isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+                    ImGui::EndPopup();
+                }
+                ImGui::PopStyleVar(); // window padding
+
 
                 // Max X and Min Y is top right corner
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 235.0f, topBarRectMin.y));
@@ -740,8 +835,7 @@ private:
                 ImGui::PopStyleColor(); // PopupBg
                 /** Color rest of area in the background color exluding previews**/
                 ImGui::End();
-                bool isHovered = ImGui::IsWindowHoveredByName(windowName, ImGuiHoveredFlags_AnyWindow);
-                if (isHovered) {
+                if (window.isHovered) {
                     handles->previewZoom[windowName] += ImGui::GetIO().MouseWheel / 5.0f;
 
                     if (handles->previewZoom[windowName] > handles->maxZoom) {
@@ -752,6 +846,13 @@ private:
                     }
                     if (handles->mouse->right && handles->mouse->action == GLFW_PRESS)
                         window.enableZoom = !window.enableZoom;
+
+                    if (handles->input->getButtonDown(GLFW_KEY_I)) {
+                        window.enableInterpolation = !window.enableInterpolation;
+                    }
+                    if (handles->input->getButtonDown(GLFW_KEY_M)) {
+                        window.useDepthColorMap = !window.useDepthColorMap;
+                    }
                 }
 
                 index++;
@@ -1133,9 +1234,9 @@ private:
                 ImGui::RadioButton("Grayscale", &dev.useAuxForPointCloudColor, 0);
                 if (!dev.hasColorCamera)
                     ImGui::BeginDisabled();
-                    ImGui::SameLine();
-                    ImGui::RadioButton("Color", &dev.useAuxForPointCloudColor, 1);
-                if (!dev.hasColorCamera){
+                ImGui::SameLine();
+                ImGui::RadioButton("Color", &dev.useAuxForPointCloudColor, 1);
+                if (!dev.hasColorCamera) {
                     ImGui::SameLine();
                     ImGui::EndDisabled();
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
@@ -1176,18 +1277,18 @@ private:
 
                 if (ImGui::Button("Set Dir", btnSize)) {
                     savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                            ".");
+                                                    ".");
                 }
 
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                 if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                  ImVec2(1200.0f, 1000.0f))) {
+                                                 ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
                     if (savePointCloudDialog.IsOk()) {
                         std::string filePathName = savePointCloudDialog.GetFilePathName();
-                       dev.outputSaveFolderPointCloud = filePathName;
+                        dev.outputSaveFolderPointCloud = filePathName;
                         // action
                     }
                     // close
@@ -1204,7 +1305,8 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
 
                 std::string hint = "/Path/To/Dir";
-                ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(), &dev.outputSaveFolderPointCloud,
+                ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
+                                               &dev.outputSaveFolderPointCloud,
                                                ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();

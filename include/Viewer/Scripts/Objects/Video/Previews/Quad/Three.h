@@ -107,7 +107,8 @@ public:
     int texWidth = 0, texHeight = 0, texChannels = 0;
     VkRender::ZoomParameters zoom{};
     bool zoomEnabled = false;
-    bool useInterpolation = false;
+        bool useInterpolation = false;
+    bool useDepthColorMap = false;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */

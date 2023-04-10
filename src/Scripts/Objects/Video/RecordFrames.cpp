@@ -140,7 +140,7 @@ void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
                                            const glm::mat4 &Q, const float &scale, const float &focalLength) {
 
     std::filesystem::path fileLocation = saveDirectory;
-    fileLocation.append(std::to_string(depthTex->m_Id) + ".ply");
+    fileLocation /= (std::to_string(depthTex->m_Id) + ".ply");
     // Dont overwrite already saved images
     if (std::filesystem::exists(fileLocation))
         return;
@@ -229,7 +229,7 @@ void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
         ss << point.x << " " << point.y << " " << point.z << " " << point.r << " " << point.g << " " << point.b << "\n";
     }
 
-    std::ofstream ply(fileLocation.c_str());
+    std::ofstream ply(fileLocation.string());
     ply << ss.str();
 }
 
@@ -318,7 +318,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 RecordFrames::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
                 // something like this
 
-                std::ofstream outputStream((fileLocation.string()).c_str(),
+                std::ofstream outputStream(fileLocation.string(),
                                            std::ios::out | std::ios::binary);
                 if (!outputStream.good()) {
                     Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());

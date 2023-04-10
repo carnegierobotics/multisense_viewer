@@ -134,7 +134,7 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     }
 }
 
-void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path& saveDirectory,
                                            std::shared_ptr<VkRender::TextureData> &depthTex,
                                            std::shared_ptr<VkRender::TextureData> &colorTex, bool useAuxColor,
                                            const glm::mat4 &Q, const float &scale, const float &focalLength) {

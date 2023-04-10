@@ -90,7 +90,7 @@ public:
     bool saveImage = false;
     bool isRemoteHead = false;
     std::string saveImagePath;
-    std::string saveImagePathPointCloud;
+    std::filesystem::path saveImagePathPointCloud;
     std::string compression;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;
@@ -139,7 +139,7 @@ public:
                     std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
 
     void
-    static savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+    static savePointCloudToPlyFile(const std::filesystem::path& saveDirectory,
                                    std::shared_ptr<VkRender::TextureData> &depthTex,
                                    std::shared_ptr<VkRender::TextureData> &colorTex,
                                    bool useAuxColor,

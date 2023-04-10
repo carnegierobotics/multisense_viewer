@@ -34,6 +34,7 @@ set(IMGUI_DIR external/imgui)
 set(AUTOCONNECT_DIR internal/AutoConnect)
 set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
+set(CPP_HTTPLIB external/cpp-httplib)
 
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
@@ -156,6 +157,13 @@ else ()
     set(JSON_BuildTests OFF CACHE INTERNAL "")
     set(JSON_Install OFF CACHE INTERNAL "")
     add_subdirectory(${NLOHMANN_JSON})
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${CPP_HTTPLIB}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${CPP_HTTPLIB} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding CPP_HTTPLIB from directory: ${CPP_HTTPLIB}")
+    add_subdirectory(${CPP_HTTPLIB})
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

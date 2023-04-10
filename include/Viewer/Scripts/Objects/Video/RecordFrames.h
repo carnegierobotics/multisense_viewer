@@ -90,7 +90,7 @@ public:
     bool saveImage = false;
     bool isRemoteHead = false;
     std::string saveImagePath;
-    std::string saveImagePathPointCloud;
+    std::filesystem::path saveImagePathPointCloud;
     std::string compression;
     std::vector<std::string> sources;
     std::unordered_map<std::string, uint32_t> ids;

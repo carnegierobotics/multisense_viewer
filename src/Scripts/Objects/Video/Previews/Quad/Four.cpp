@@ -124,6 +124,7 @@ void Four::update() {
     }
     auto &d2 = bufferTwoData;
     d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->pad.x = useDepthColorMap;
 }
 
 
@@ -226,6 +227,8 @@ void Four::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_FOUR].x, dev.pixelInfo[CRL_PREVIEW_FOUR].y);
         zoomEnabled = preview.enableZoom;
+        useInterpolation = preview.enableInterpolation;
+        useDepthColorMap = preview.useDepthColorMap;
         if (zoomEnabled) {
             zoom.zoomValue = uiHandle->previewZoom.find("View Area 3")->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor

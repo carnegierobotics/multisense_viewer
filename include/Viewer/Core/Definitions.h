@@ -314,6 +314,11 @@ namespace VkRender {
         float col = 0;
         bool enableZoom = true;
         bool enableInterpolation = true;
+        bool useDepthColorMap = true;
+        bool isHovered = false;
+        ImVec2 popupPosition = ImVec2(0.0f, 0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        ImVec2 popupWindowSize = ImVec2(0.0f, 0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        bool updatePosition = false;
     };
 
     /**
@@ -437,6 +442,10 @@ namespace VkRender {
         float wheel = 0.0f; // to initialize arcball zoom
         float dx = 0.0f;
         float dy = 0.0f;
+        struct{
+            float x = 0.0f;
+            float y = 0.0f;
+        }pos;
     };
 
     /**
@@ -720,6 +729,8 @@ namespace VkRender {
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
+        /**  Measures change in scroll. Does not provide change the accumulated scroll is outside of min and max scroll  */
+        float scroll = 0.0f;
         std::unordered_map<std::string, float> previewZoom{};
         float minZoom = 1.0f;
         float maxZoom = 10.0f;

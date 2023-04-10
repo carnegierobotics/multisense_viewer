@@ -4,6 +4,9 @@
 
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Tools/Utils.h"
+#ifdef WIN32
+#include "windows.h"
+#endif
 
 namespace VkRender {
 

@@ -592,6 +592,9 @@ namespace Utils {
 
 
     static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+            dev.state = CRL_STATE_ACTIVE;
+            dev.cameraName = "Multisense-KS21";
+            dev.notRealDevice = true;
             dev.channelInfo.resize(4); // max number of remote heads
             dev.win.clear();
             for (crl::multisense::RemoteHeadChannel ch: {0}) {

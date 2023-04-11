@@ -576,6 +576,8 @@ void Renderer::cleanUp() {
     }
 
 #endif
+    // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
+    guiManager.reset();
 
     // Clear script and scriptnames
     for (const auto &scriptName: builtScriptNames) {
@@ -590,6 +592,7 @@ void Renderer::cleanUp() {
     for (auto &shaderModule: shaderModules) {
         vkDestroyShaderModule(device, shaderModule, nullptr);
     }
+
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 }
 
@@ -753,7 +756,7 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             !guiManager->handles.disableCameraRotationFromGUI) {
-            camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+            camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }
 

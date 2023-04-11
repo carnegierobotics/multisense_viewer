@@ -69,6 +69,7 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
+        glfwSetWindowSizeLimits(window, 1280, 720, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -818,7 +819,8 @@ namespace VkRender {
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove((float) xPos, (float) yPos);
-
+        myApp->mouseButtons.pos.x = static_cast<float>(xPos);
+        myApp->mouseButtons.pos.y = static_cast<float>(yPos);
     }
 
     DISABLE_WARNING_PUSH

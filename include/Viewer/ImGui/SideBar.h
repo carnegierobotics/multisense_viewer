@@ -148,7 +148,7 @@ public:
         }
 
         // Make sure adapter utils scanning thread is shut down correctly
-        while (true){
+        while (true) {
             if (adapterUtils.shutdownReady())
                 break;
         }
@@ -536,8 +536,6 @@ private:
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
                                    ImGuiWindowFlags_NoDecoration)) {
-            // Threaded adapter search for manual connect
-            adapterUtils.startAdapterScan(handles->pool.get());
 
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
@@ -634,6 +632,7 @@ private:
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {
+                adapterUtils.stopAdapterScan(); // Stop scan if we select manual as autoconnect will run its own scan
                 m_Entry.cameraName = "AutoConnect";
                 ImGui::Dummy(ImVec2(0.0f, 12.0f));
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -825,7 +824,8 @@ private:
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == MANUAL_CONNECT) {
                 // AdapterSearch Threaded operation
-
+                // Threaded adapter search for manual connect
+                adapterUtils.startAdapterScan(handles->pool.get());
                 {
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -857,13 +857,13 @@ private:
                 }
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 // Call once a second
-                    searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
-                    manualConnectAdapters = adapterUtils.getAdaptersList();
-                    interfaceNameList.clear();
-                    indexList.clear();
+                searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
+                manualConnectAdapters = adapterUtils.getAdaptersList();
+                interfaceNameList.clear();
+                indexList.clear();
 // Following three ifdef macros are a bit janky but required since Windows uses a HEX-ID AND Name to describe a network adapter whereas linux only uses a Name
 #ifdef WIN32
-                    interfaceIDList.clear();
+                interfaceIDList.clear();
 #endif
 
                 // immediate mode vector item ordering
@@ -938,7 +938,7 @@ private:
                 ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
                 ImGui::PopStyleColor(3);
             } else {
-
+                adapterUtils.stopAdapterScan(); // Stop it if it was started and we deselect manual connect
             }
 
             if (handles->configureNetwork) {
@@ -1020,7 +1020,7 @@ private:
 
             ImGui::EndPopup();
         } else {
-            adapterUtils.stopAdapterScan();
+            adapterUtils.stopAdapterScan(); // Stop scan if we close popup
         }
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(5); // popup style vars

@@ -88,6 +88,7 @@ public:
         if (!runThread && !isThreadAlive) {
             pool->Push(AdapterUtils::listAdapters, &adapters, this);
             runThread = true;
+            Log::Logger::getInstance()->info("Started Manual Adapter Scan");
         }
 #endif
     }
@@ -97,6 +98,7 @@ public:
         std::scoped_lock<std::mutex> lock(mut);
         if (runThread) {
             runThread = false;
+            Log::Logger::getInstance()->info("Sent stop to manual adapter scan thread");
         }
 #endif
     }
@@ -125,7 +127,7 @@ public:
                 if (!ctx->runThread)
                     break;
             }
-            Log::Logger::getInstance()->info("Listing connected adapters");
+            Log::Logger::getInstance()->info("Listing connected adapters for Manual connect");
 
             pcap_if_t *alldevs;
             pcap_if_t *d;
@@ -133,9 +135,9 @@ public:
 
             // Retrieve the device list
             if (pcap_findalldevs(&alldevs, errbuf) == -1) {
-                Log::Logger::getInstance()->error("Failed to list adapters in pcap_findalldevs");
+                Log::Logger::getInstance()->error("Failed to list adapters in pcap_findalldevs in manual connect. Stopping");
                 std::this_thread::sleep_for(std::chrono::milliseconds(LIST_ADAPTER_INTERVAL_MS));
-                continue;
+                break;
             }
 
             // Print the list
@@ -151,6 +153,7 @@ public:
                 if (found != std::string::npos)
                     prefix = std::string(d->name).substr(0, found);
             }
+            pcap_freealldevs(alldevs);
 
             DWORD dwBufLen = sizeof(IP_ADAPTER_INFO);
             PIP_ADAPTER_INFO AdapterInfo;
@@ -211,6 +214,7 @@ public:
 
         std::scoped_lock<std::mutex> lock(ctx->mut);
         ctx->isThreadAlive = false;
+        Log::Logger::getInstance()->info("Manual Adapter Scan task finished");
     }
 
 #else

@@ -176,7 +176,7 @@ void DoubleTop::prepareMultiSenseTexture() {
         case CRL_COLOR_IMAGE_YUV420:
             vertexShaderFileName = "Scene/spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.vert";
+                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.frag";
             break;
         case CRL_DISPARITY_IMAGE:
             vertexShaderFileName = "Scene/spv/disparity.vert";

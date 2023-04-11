@@ -263,6 +263,7 @@ namespace VkRender {
             shaderStage.stage = stage;
             shaderStage.module = module;
             shaderStage.pName = "main";
+            Log::Logger::getInstance()->info("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
             return shaderStage;
         }
 

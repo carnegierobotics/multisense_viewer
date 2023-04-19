@@ -38,6 +38,7 @@
 #include <iostream>
 #include <ctime>
 #include <vector>
+#include <regex>
 
 #ifdef WIN32
 #define semPost(x) SetEvent(x)
@@ -167,6 +168,17 @@ namespace Log {
         } else if (m_LogType == CONSOLE) {
             m_ThreadPool->Push(Logger::logOnConsole, data);
         }
+    }
+
+    std::string Logger::filterFilePath(const std::string& input) {
+        // Filter away the absolute file path given by std::source_location, both for anonymous and readable logs purpose.
+        // Magic regex expression, courtesy of chatgpt4
+        std::regex folderPathRegex(R"(^((?:[a-zA-Z]:[\\\/])?(?:[\w\s-]+[\\\/])+))");
+        std::string result = std::regex_replace(input, folderPathRegex, "");
+
+
+        return result;
+
     }
 
 };

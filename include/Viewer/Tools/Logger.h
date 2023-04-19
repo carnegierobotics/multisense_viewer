@@ -42,36 +42,21 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-
-#include "Viewer/Tools/ThreadPool.h"
-
-#if __has_include(<source_location>)
-
 #include <source_location>
-
-#define HAS_SOURCE_LOCATION
-#elif __has_include(<experimental/filesystem>)
-#   include <experimental/source_location>
-#   define HAS_SOURCE_LOCATION_EXPERIMENTAL
-#else
-#   define NO_SOURCE_LOCATION
-#endif
-
 #include <fmt/core.h>
 #include <mutex>
-
 #ifdef WIN32
 #include <process.h>
 #else
 // POSIX Socket Header File(s)
 #include <cerrno>
 #include <pthread.h>
-
 #endif
-
 #include <queue>
 #include <unordered_map>
+
 #include "Viewer/Core/Definitions.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 namespace Log {
     // Direct Interface for logging into log file or console using MACRO(s)
@@ -79,7 +64,6 @@ namespace Log {
 #define LOG_ALARM(x)       Logger::getInstance()->alarm(x)
 #define LOG_ALWAYS(x)    Logger::getInstance()->always(x)
 #define LOG_INFO(x)     Logger::getInstance()->info(x)
-#define LOG_BUFFER(x)   Logger::getInstance()->buffer(x)
 #define LOG_TRACE(x)    Logger::getInstance()->trace(x)
 #define LOG_DEBUG(x)    Logger::getInstance()->debug(x)
 
@@ -102,22 +86,11 @@ namespace Log {
 
     struct FormatString {
         fmt::string_view m_Str;
-#ifdef HAS_SOURCE_LOCATION
         std::source_location m_Loc;
 
         FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str),
                                                                                                            m_Loc(loc) {}
 
-#endif
-
-#ifdef HAS_SOURCE_LOCATION_EXPERIMENTAL
-        std::experimental::source_location m_Loc;
-        FormatString(const char *Str, const  std::experimental::source_location &Loc =  std::experimental::source_location::current()) : m_Str(Str), m_Loc(Loc) {}
-#endif
-
-#ifdef  NO_SOURCE_LOCATION
-        FormatString(const char *Str) : Str(Str) {}
-#endif
     };
 
     struct Metrics {
@@ -182,21 +155,7 @@ namespace Log {
         }
 
         void verror(const FormatString &format, fmt::format_args args) {
-#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
-            const auto &loc = format.m_Loc;
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
-            std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
-            preText.append(s);
-            std::size_t found = preText.find_last_of('/');
-            std::string msg = preText.substr(found + 1);
-            errorInternal(msg.c_str());
-#else
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
-            _error(s.c_str());
-
-#endif
+            errorInternal(prepareMessage(format, args, frameNumber).c_str());
         }
 
         void warningInternal(const char *text) noexcept;
@@ -209,21 +168,7 @@ namespace Log {
         }
 
         void vwarning(const FormatString &format, fmt::format_args args) {
-#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
-            const auto &loc = format.m_Loc;
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
-            std::string preText = fmt::format("{}:{}: ", loc.file_name(), loc.line());
-            preText.append(s);
-            std::size_t found = preText.find_last_of('/');
-            std::string msg = preText.substr(found + 1);
-            warningInternal(msg.c_str());
-#else
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
-            _error(s.c_str());
-
-#endif
+            warningInternal(prepareMessage(format, args, frameNumber).c_str());
         }
 
         /**@brief Using templates to allow user to use formattet logging.
@@ -233,28 +178,7 @@ namespace Log {
             vinfo(format, fmt::make_format_args(args...));
         }
         void vinfo(const FormatString &format, fmt::format_args args) {
-#if defined(HAS_SOURCE_LOCATION) || defined(HAS_SOURCE_LOCATION_EXPERIMENTAL)
-            const auto &loc = format.m_Loc;
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
-
-            std::string preText = fmt::format(" {}:{}: ", loc.file_name(), loc.line());
-#ifdef WIN32
-            const char * separator = "\\";
-#else
-            const char *separator = "/";
-#endif
-            std::size_t found = preText.find_last_of(separator);
-            std::string msg = preText.substr(found + 1);
-            msg.append(s);
-            msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
-            infoInternal(msg.c_str());
-#else
-            std::string s;
-            fmt::vformat_to(std::back_inserter(s), m_Format.m_Str, args);
-            s = s.insert(0, (std::to_string(frameNumber) + "  ")) ;
-            infoInternal(s.c_str());
-#endif
+            infoInternal(prepareMessage(format, args, frameNumber).c_str());
         }
         uint32_t frameNumber = 0;
         void operator=(const Logger &obj) = delete;
@@ -274,7 +198,18 @@ namespace Log {
 
         static void logIntoFile(void* ctx, std::string &data);
 
-    private:
+        static std::string filterFilePath(const std::string& input);
+        static inline std::string prepareMessage(const FormatString& format, fmt::format_args args, uint32_t frameNumber) {
+            const auto &loc = format.m_Loc;
+            std::string s;
+            fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
+            std::string filePath = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            std::string msg = filterFilePath(filePath);
+            msg.append(s);
+            msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
+            return msg;
+        }
+
         static Logger *m_Instance;
         static VkRender::ThreadPool* m_ThreadPool;
         static Metrics *m_Metrics;

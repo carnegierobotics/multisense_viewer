@@ -3,8 +3,12 @@
 # Simple script to compile shaders. Just configure it to run on every build for convenience.
 # Make sure the glslc exec is installed.
 
-#glslc="../../shaderc/build/glslc/Debug/glslc" #
-glslc="../../shaderc/build/glslc/glslc" #
+# Windows location
+outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+glslc="../../shaderc/build/glslc/Debug/glslc" #
+
+# Unix location
+#glslc="../../shaderc/build/glslc/glslc" #
 
 sceneOutDir="../Shaders/Scene/spv/"
 sceneDir="../Shaders/Scene"
@@ -20,6 +24,9 @@ $glslc ${sceneDir}/video/disparity.frag -o ${sceneOutDir}disparity.frag.spv
 $glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
 
 echo "Compiled video shaders"
+$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
+$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
+echo "Compiled pointcloud shaders"
 
 #$glslc  ${sceneDir}/imgui/ui.vert -o ${sceneOutDir}/ui.vert.spv
 #$glslc  ${sceneDir}/imgui/ui.frag -o ${sceneOutDir}/ui.frag.spv
@@ -34,9 +41,8 @@ echo "Compiled video shaders"
 #$glslc ${sceneDir}/pbr/irradiancecube.frag -o ${sceneOutDir}irradiancecube.frag.spv
 #$glslc ${sceneDir}/pbr/prefilterenvmap.frag -o ${sceneOutDir}prefilterenvmap.frag.spv
 #echo "Compiled PBR shaders"
-#$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
-#$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
+
 
 
 echo "Copying to debug build location"
-cp ${sceneOutDir}/*.spv ./../../cmake-build-debug/Assets/Shaders/Scene/spv/
+cp ${sceneOutDir}/*.spv ${outDir}

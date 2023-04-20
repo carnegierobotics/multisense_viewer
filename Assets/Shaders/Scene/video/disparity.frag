@@ -18,6 +18,7 @@ layout(binding = 1, set = 0) uniform Info {
     float debugViewInputs;
     float lod;
     vec2 pad;
+    vec4 normalize;
 } info;
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
@@ -96,6 +97,10 @@ vec4 colormap(float x) {
     return vec4(r, g, b, 1.0);
 }
 
+float normalizeValue(float value, float oldMin, float oldMax, float newMin, float newMax) {
+    return newMin + (value - oldMin) * (newMax - newMin) / (oldMax - oldMin);
+}
+
 void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
@@ -111,12 +116,27 @@ void main()
         color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }
 
+    color *= 16;
+
+    bool normalize = info.normalize.x == 1.0f;
+    if (normalize){
+        float min = info.normalize.y;
+        float max = info.normalize.z;
+
+        // clamp value between min/max
+        if (color.r < min)
+            color.r = min;
+        else if (color.r > max)
+            color.r = max;
+
+        color.r = normalizeValue(color.r, min, max, 0, 1);
+    }
     // Use jet color map
     if (info.pad.x == 1.0f){
-        vec4 jetColor = colormap(color.r * 16);
+        vec4 jetColor = colormap(color.r);
         outColor = jetColor;
     } else {
-        outColor = vec4(color.r, color.r, color.r, 1.0) * 16;
+        outColor = vec4(color.r, color.r, color.r, 1.0) ;
     }
 
 }

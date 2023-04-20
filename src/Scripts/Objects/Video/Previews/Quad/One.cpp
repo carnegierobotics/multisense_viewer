@@ -230,13 +230,11 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
         zoomEnabled = preview.enableZoom;
-        useInterpolation = preview.enableInterpolation;
-        useDepthColorMap = preview.useDepthColorMap;
+
         if (zoomEnabled) {
             zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         }
-        useInterpolation = preview.enableInterpolation;
 
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);

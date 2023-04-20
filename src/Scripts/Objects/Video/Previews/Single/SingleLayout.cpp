@@ -78,8 +78,6 @@ void SingleLayout::setup() {
 void SingleLayout::update() {
     if (selectedPreviewTab != CRL_TAB_2D_PREVIEW)
         return;
-
-
     auto tex = VkRender::TextureData(textureType, res);
 
     m_Model->getTextureDataPointers(&tex);
@@ -133,9 +131,10 @@ void SingleLayout::update() {
         VkRender::ScriptUtils::handleZoom(&zoom);
     }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-    d2->pad.x = useDepthColorMap;
-    d2->pad.x = useDepthColorMap;
+    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->pad.x = options->depthColorMap;
+    d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
+                                        options->data.maxDisparityValue, 0.0f);
 
 }
 
@@ -244,8 +243,7 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         }
-        useInterpolation = preview.enableInterpolation;
-        useDepthColorMap = preview.useDepthColorMap;
+        options = &preview.effects;
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(

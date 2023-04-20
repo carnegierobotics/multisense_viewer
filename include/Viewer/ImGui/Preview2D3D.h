@@ -47,9 +47,7 @@
 
 #ifdef WIN32
 #else
-
 #include <unistd.h>
-
 #endif
 
 
@@ -575,7 +573,7 @@ private:
 
                 // Specific case for scrolled windows and popup position
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
-                        window.popupPosition.y -= handles->scroll;
+                    window.popupPosition.y -= handles->scroll;
                 }
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
                     ImVec2 pos = window.popupPosition;
@@ -627,22 +625,38 @@ private:
                     ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.enableInterpolation);
+                    ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.effects.interpolation);
 
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
                     if (isDisparitySelected) {
-                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
-                        ImGui::SameLine();
-                        ImGui::Text("m");
-                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("m").x);
-                        txt = "Color map:";
-                        txtSize = ImGui::CalcTextSize(txt.c_str());
-                        ImGui::Text("%s", txt.c_str());
-                        ImGui::SameLine(0, textSpacing - txtSize.x);
-                        ImGui::Checkbox(("##useDepthColorMap" + std::to_string(index)).c_str(),
-                                        &window.useDepthColorMap);
+                        // Color map
+                        {
+                            ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                            ImGui::SameLine();
+                            ImGui::Text("m");
+                            ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("m").x);
+                            txt = "Color map:";
+                            txtSize = ImGui::CalcTextSize(txt.c_str());
+                            ImGui::Text("%s", txt.c_str());
+                            ImGui::SameLine(0, textSpacing - txtSize.x);
+                            ImGui::Checkbox(("##useDepthColorMap" + std::to_string(index)).c_str(),
+                                            &window.effects.depthColorMap);
+                        }
+
+                        // normalize
+                        {
+                            ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                            ImGui::SameLine();
+                            ImGui::Text("n");
+                            ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("n").x);
+                            txt = "Normalize:";
+                            txtSize = ImGui::CalcTextSize(txt.c_str());
+                            ImGui::Text("%s", txt.c_str());
+                            ImGui::SameLine(0, textSpacing - txtSize.x);
+                            ImGui::Checkbox(("##normalize" + std::to_string(index)).c_str(), &window.effects.normalize);
+                        }
                     }
 
                     //window.isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
@@ -848,10 +862,13 @@ private:
                         window.enableZoom = !window.enableZoom;
 
                     if (handles->input->getButtonDown(GLFW_KEY_I)) {
-                        window.enableInterpolation = !window.enableInterpolation;
+                        window.effects.interpolation = !window.effects.interpolation;
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_M)) {
-                        window.useDepthColorMap = !window.useDepthColorMap;
+                        window.effects.depthColorMap = !window.effects.depthColorMap;
+                    }
+                    if (handles->input->getButtonDown(GLFW_KEY_N)) {
+                        window.effects.normalize = !window.effects.normalize;
                     }
                 }
 

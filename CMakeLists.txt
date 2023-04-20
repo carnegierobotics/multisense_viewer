@@ -27,6 +27,8 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 find_package(Vulkan REQUIRED)
+set(OpenCV_DIR "C:/opencv/build/x64/vc16/lib")
+find_package(OpenCV REQUIRED)
 
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
@@ -89,6 +91,7 @@ file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "")
 file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "")
 file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 if (UNIX) ## Linux
     # Set install directory if not specified
@@ -162,7 +165,7 @@ if (WIN32)
             IMPORTED_LOCATION_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${OpenCV_LIBS})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale)

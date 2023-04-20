@@ -45,10 +45,13 @@
 #include <vulkan/vulkan_core.h>
 
 #ifdef WIN32
+
 #include <direct.h>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #include <windows.h>
 
 #else
@@ -63,19 +66,20 @@ namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
-    static  std::filesystem::path getShadersPath() {
-        return { "./Assets/Shaders" };
+    static std::filesystem::path getShadersPath() {
+        return {"./Assets/Shaders"};
     }
+
     static std::filesystem::path getAssetsPath() {
-        return { "./Assets/" };
+        return {"./Assets/"};
     }
 
     static std::filesystem::path getTexturePath() {
-        return { "./Assets/Textures" };
+        return {"./Assets/Textures"};
     }
 
-    static  std::filesystem::path getScriptsPath() {
-        return { "Scripts/" };
+    static std::filesystem::path getScriptsPath() {
+        return {"Scripts/"};
     }
 
     static std::string dataSourceToString(crl::multisense::DataSource d) {
@@ -196,6 +200,20 @@ namespace Utils {
             return true;
         return false;
 
+    }
+
+    /**@brief small utility function. Usage of this makes other code more readable */
+    inline bool isStreamRunning(VkRender::Device &dev, const std::string &stream) {
+        // Check if disparity stream is running
+        for (auto &ch: dev.channelInfo) {
+            if (ch.state != CRL_STATE_ACTIVE)
+                continue;
+
+            if (Utils::isInVector(ch.enabledStreams, stream)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**@brief small utility function. Usage of this makes other code more readable */
@@ -556,83 +574,104 @@ namespace Utils {
     }
 
 
-    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *module) {
-        std::ifstream is(fileName, std::ios::binary | std::ios::ate);
+    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *
 
-        if (is.is_open()) {
-            std::streamsize size = is.tellg();
-            is.seekg(0, std::ios::beg);
-            std::vector<char> shaderCode(size);
-            is.read(shaderCode.data(), size);
-            is.close();
+    module) {
+    std::ifstream is(fileName, std::ios::binary
 
-            assert(size > 0);
-            VkShaderModuleCreateInfo moduleCreateInfo{};
-            moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-            moduleCreateInfo.codeSize = size;
-            moduleCreateInfo.pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
-            VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr, module);
-            if (res != VK_SUCCESS)
-                throw std::runtime_error("Failed to create shader module");
-        } else {
-            Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
+    | std::ios::ate);
+
+    if (is.
+
+    is_open()
+
+    ) {
+    std::streamsize size = is.tellg();
+    is.seekg(0, std::ios::beg);
+    std::vector<char> shaderCode(size);
+    is.
+    read(shaderCode
+    .
+
+    data(), size
+
+    );
+    is.
+
+    close();
+
+    assert(size > 0);
+    VkShaderModuleCreateInfo moduleCreateInfo{};
+    moduleCreateInfo.
+    sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    moduleCreateInfo.
+    codeSize = size;
+    moduleCreateInfo.
+    pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
+    VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr,
+    module);
+    if (res != VK_SUCCESS)
+    throw std::runtime_error("Failed to create shader module");
+}
+else {
+Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
+}
+}
+
+
+template<typename T>
+size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
+    // Find given element in vector
+    auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
+    if (it != vecOfElements.end())
+        return std::distance(vecOfElements.begin(), it);
+    else
+        return 0;
+}
+
+
+static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+    dev.state = CRL_STATE_ACTIVE;
+    dev.cameraName = "Multisense-KS21";
+    dev.notRealDevice = true;
+    dev.channelInfo.resize(4); // max number of remote heads
+    dev.win.clear();
+    for (crl::multisense::RemoteHeadChannel ch: {0}) {
+        VkRender::ChannelInfo chInfo;
+        chInfo.availableSources.clear();
+        chInfo.modes.clear();
+        chInfo.availableSources.emplace_back("Source");
+        chInfo.index = ch;
+        chInfo.state = CRL_STATE_ACTIVE;
+        chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+        supportedDeviceModes.emplace_back();
+        //initCameraModes(&chInfo.modes, supportedModes);
+        chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
+        for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
+            dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+            if (!chInfo.availableSources.empty())
+                dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
         }
+
+        // stop streams if there were any enabled, just so we can start with a clean slate
+        //stopStreamTask(this, "All", ch);
+
+        dev.channelInfo.at(ch) = chInfo;
     }
 
+    // Update Debug Window
+    auto &info = Log::Logger::getLogMetrics()->device.info;
 
-    template<typename T>
-    size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
-        // Find given element in vector
-        auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
-        if (it != vecOfElements.end())
-            return std::distance(vecOfElements.begin(), it);
-        else
-            return 0;
-    }
+    info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
+    info.firmwareVersion = 12;
+    info.apiBuildDate = "cInfo.apiBuildDate";
+    info.apiVersion = 13;
+    info.hardwareMagic = 14;
+    info.hardwareVersion = 16;
+    info.sensorFpgaDna = 17;
 
-
-    static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-            dev.state = CRL_STATE_ACTIVE;
-            dev.cameraName = "Multisense-KS21";
-            dev.notRealDevice = true;
-            dev.channelInfo.resize(4); // max number of remote heads
-            dev.win.clear();
-            for (crl::multisense::RemoteHeadChannel ch: {0}) {
-                VkRender::ChannelInfo chInfo;
-                chInfo.availableSources.clear();
-                chInfo.modes.clear();
-                chInfo.availableSources.emplace_back("Source");
-                chInfo.index = ch;
-                chInfo.state = CRL_STATE_ACTIVE;
-                chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
-                std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
-                supportedDeviceModes.emplace_back();
-                //initCameraModes(&chInfo.modes, supportedModes);
-                chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920 , 1080, 128);
-                for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-                    dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
-                    if (!chInfo.availableSources.empty())
-                        dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
-                }
-
-                // stop streams if there were any enabled, just so we can start with a clean slate
-                //stopStreamTask(this, "All", ch);
-
-                dev.channelInfo.at(ch) = chInfo;
-            }
-
-            // Update Debug Window
-            auto &info = Log::Logger::getLogMetrics()->device.info;
-
-            info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
-            info.firmwareVersion = 12;
-            info.apiBuildDate = "cInfo.apiBuildDate";
-            info.apiVersion = 13;
-            info.hardwareMagic = 14;
-            info.hardwareVersion = 16;
-            info.sensorFpgaDna = 17;
-
-        }
+}
 
 };
 

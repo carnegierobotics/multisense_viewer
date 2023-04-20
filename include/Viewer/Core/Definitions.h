@@ -298,6 +298,28 @@ namespace VkRender {
         float depth = 0;
     };
 
+
+    /**
+     * Shared data for image effects
+     */
+    struct ImageEffectData {
+        float minDisparityValue = 0.0f;
+        float maxDisparityValue = 255.0f;
+
+    };
+
+    /**
+    * Image effect options for each preview window
+    */
+    struct ImageEffectOptions {
+        bool normalize = false;
+        bool interpolation = false;
+        bool depthColorMap = false;
+
+        VkRender::ImageEffectData data;
+    };
+
+
     /**
      * @brief Information block for each Preview window, should support 1-9 possible previews. Contains stream names and info to presented to the user.
      * Contains a mix of GUI related and MultiSense Device related info.
@@ -312,12 +334,14 @@ namespace VkRender {
         float yPixelStartPos = 0;
         float row = 0;
         float col = 0;
+
+        VkRender::ImageEffectOptions effects;
         bool enableZoom = true;
-        bool enableInterpolation = true;
-        bool useDepthColorMap = true;
         bool isHovered = false;
-        ImVec2 popupPosition = ImVec2(0.0f, 0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
-        ImVec2 popupWindowSize = ImVec2(0.0f, 0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        ImVec2 popupPosition = ImVec2(0.0f,
+                                      0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        ImVec2 popupWindowSize = ImVec2(0.0f,
+                                        0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
         bool updatePosition = false;
     };
 
@@ -328,6 +352,7 @@ namespace VkRender {
     struct ChannelInfo {
         uint32_t index = 0;
         std::vector<std::string> availableSources{};
+        /** @brief Current connection state for this channel */
         ArConnectionState state = CRL_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
@@ -359,7 +384,7 @@ namespace VkRender {
         std::string interfaceDescription;
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked = false;
-        /** @brief Current connection state for this device */
+        /** @brief Current connection state for this profile */
         ArConnectionState state = CRL_STATE_UNAVAILABLE;
         /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
@@ -442,10 +467,10 @@ namespace VkRender {
         float wheel = 0.0f; // to initialize arcball zoom
         float dx = 0.0f;
         float dy = 0.0f;
-        struct{
+        struct {
             float x = 0.0f;
             float y = 0.0f;
-        }pos;
+        } pos;
     };
 
     /**
@@ -471,6 +496,7 @@ namespace VkRender {
         float debugViewInputs = 0.0f;
         float lod = 0.0f;
         glm::vec2 pad{};
+        glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
     };
 
     struct SkyboxTextures {
@@ -541,11 +567,12 @@ namespace VkRender {
         float m_Width = 0, m_Height = 0;
 
         bool resChanged = false;
-        void resolutionUpdated(uint32_t width, uint32_t height){
+
+        void resolutionUpdated(uint32_t width, uint32_t height) {
             m_Width = static_cast<float>(width);
             m_Height = static_cast<float>(height);
             prevWidth = static_cast<float>(width);
-            prevHeight =  static_cast<float>(height);;
+            prevHeight = static_cast<float>(height);;
             prevOffsetX = 0.0f;
             prevOffsetY = 0.0f;
             newMin = 0.0f;

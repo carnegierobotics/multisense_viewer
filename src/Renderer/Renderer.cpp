@@ -344,6 +344,13 @@ void Renderer::render() {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
     }
+    // run update function for camera connection
+    for (auto &dev: guiManager->handles.devices) {
+        if (dev.state != CRL_STATE_ACTIVE)
+            continue;
+        cameraConnection->update(dev);
+
+    }
 
     // Run update function on Scripts
     for (auto &script: scripts) {

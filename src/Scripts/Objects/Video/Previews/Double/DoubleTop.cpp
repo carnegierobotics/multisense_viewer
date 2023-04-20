@@ -238,8 +238,7 @@ void DoubleTop::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
         zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         zoomEnabled = preview.enableZoom;
-        useInterpolation = preview.enableInterpolation;
-        useDepthColorMap = preview.useDepthColorMap;
+
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(

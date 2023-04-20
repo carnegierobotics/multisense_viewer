@@ -155,6 +155,18 @@ namespace Log {
         }
 
     }
+    void Logger::traceInternal(const char *text) noexcept {
+        string data;
+        data.append("[TRACE]: ");
+        data.append(text);
+
+        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
+        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
+            m_ThreadPool->Push(Logger::logOnConsole, data);
+        }
+
+    }
 
 // Interface for Always Log
     void Logger::always(std::string text) noexcept {

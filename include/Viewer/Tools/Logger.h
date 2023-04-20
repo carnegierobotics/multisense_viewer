@@ -164,10 +164,10 @@ namespace Log {
 * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>
         void warning(const FormatString &format, Args &&... args) {
-            vwarning(format, fmt::make_format_args(args...));
+            vWarning(format, fmt::make_format_args(args...));
         }
 
-        void vwarning(const FormatString &format, fmt::format_args args) {
+        void vWarning(const FormatString &format, fmt::format_args args) {
             warningInternal(prepareMessage(format, args, frameNumber).c_str());
         }
 
@@ -175,11 +175,22 @@ namespace Log {
          * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
         template<typename... Args>
         void info(const FormatString &format, Args &&... args) {
-            vinfo(format, fmt::make_format_args(args...));
+            vInfo(format, fmt::make_format_args(args...));
         }
-        void vinfo(const FormatString &format, fmt::format_args args) {
+        void vInfo(const FormatString &format, fmt::format_args args) {
             infoInternal(prepareMessage(format, args, frameNumber).c_str());
         }
+
+        template<typename... Args>
+        void trace(const FormatString &format, Args &&... args) {
+            vTrace(format, fmt::make_format_args(args...));
+        }
+
+        void vTrace(const FormatString &format, fmt::format_args args) {
+            traceInternal(prepareMessage(format, args, frameNumber).c_str());
+        }
+
+
         uint32_t frameNumber = 0;
         void operator=(const Logger &obj) = delete;
         void always(std::string text) noexcept;
@@ -193,6 +204,8 @@ namespace Log {
 
     private:
         void infoInternal(const char *text) noexcept;
+
+        void traceInternal(const char *text) noexcept;
 
         static void logOnConsole(std::string &data);
 

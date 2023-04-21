@@ -94,7 +94,7 @@ void Helmet::update() {
     d2->exposure = ptr->exposure;
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
     d2->debugViewInputs = ptr->debugViewInputs;
-    d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
+    d2->prefilteredCubeMipLevels = static_cast<float>(renderUtils.skybox.prefilteredCubeMipLevels);
     d2->lod = ptr->lod;
 
 }

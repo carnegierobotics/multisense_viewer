@@ -706,7 +706,7 @@ private:
 
 
                                 // Disable the previously enabled source if not in use and update the selected source tab
-                                if (window.selectedSource != "Source") {
+                                if (window.selectedSource != "Idle") {
                                     bool inUse = false;
                                     std::string sourceInUse;
                                     for (const auto &win: dev.win) {
@@ -724,12 +724,12 @@ private:
                                         Log::Logger::getInstance()->info(
                                                 "Removed source '{}' from user requested sources",
                                                 window.selectedSource);
-                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Source"
+                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Idle"
                                         window.selectedSourceIndex = 0;
                                     }
-                                    // If its in use, but we don't want to disable it. Just reset the source name to "Source"
+                                    // If its in use, but we don't want to disable it. Just reset the source name to "Idle"
                                     if (inUse && !sourceInUse.empty()) {
-                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Source"
+                                        window.selectedSource = window.availableSources[0]; // 0th index is always "Idle"
                                         window.selectedSourceIndex = 0;
                                     }
                                 }
@@ -771,7 +771,7 @@ private:
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
 
-                            if (window.selectedSource != "Source") {
+                            if (window.selectedSource != "Idle") {
                                 bool inUse = false;
                                 bool stopColor = false;
                                 for (const auto &otherWindow: dev.win) {
@@ -836,7 +836,7 @@ private:
                                                              window.selectedSource, index);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
-                                                   window.selectedSource) && window.selectedSource != "Source") {
+                                                   window.selectedSource) && window.selectedSource != "Idle") {
                                 dev.channelInfo[window.selectedRemoteHeadIndex].requestedStreams.emplace_back(
                                         window.selectedSource);
                                 Log::Logger::getInstance()->info(

@@ -52,7 +52,7 @@ void RecordFrames::update() {
     if (saveImage) {
         // For each enabled source in all windows
         for (auto &src: sources) {
-            if (src == "Source")
+            if (src == "Idle")
                 continue;
 
             // Check if we saved a lot more images of this type than others. So skip it
@@ -157,7 +157,7 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
                 // Check if "foo" exists in the map
                 if (savedImageSourceCount.find(window.second.selectedSource) == savedImageSourceCount.end() &&
-                    window.second.selectedSource != "Source") {
+                    window.second.selectedSource != "Idle") {
                     Log::Logger::getInstance()->trace("Added source {} to saved image counter in record frames",
                                                       window.second.selectedSource);
                     savedImageSourceCount[window.second.selectedSource] = 0;

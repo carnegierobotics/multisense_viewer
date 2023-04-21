@@ -109,7 +109,7 @@ public:
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<LOG_COLOR> colors;
     ImVec4 lastLogTextColor = VkRender::Colors::TextColorGray;
-    uint32_t ethernetComboIndex = 0;
+    size_t ethernetComboIndex = 0;
     size_t resultsComboIndex = -1;
 
     bool startedAutoConnect = false;

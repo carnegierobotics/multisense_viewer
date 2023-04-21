@@ -159,7 +159,7 @@ namespace VkRender::MultiSense {
             if (ch.state != CRL_STATE_ACTIVE && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
                 continue;
             for (const auto &requested: ch.requestedStreams) {
-                if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Source") {
+                if (!Utils::isInVector(ch.enabledStreams, requested) && requested != "Idle") {
                     pool->Push(CameraConnection::startStreamTask, this, requested, ch.index);
                     ch.enabledStreams.emplace_back(requested);
                 }
@@ -299,10 +299,10 @@ namespace VkRender::MultiSense {
                 // Find percentile should not run on main render thread as it slows down the application considerably.
                 // Maybe just update the percentiles around once a second or so in a threaded operation
                 minVal =
-                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 10.0f) /
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), static_cast<size_t>(tex.m_Len / 2.0f), 10.0f) /
                         (16.0f * 255.0f);
                 maxVal =
-                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 90.0f) /
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), static_cast<size_t>(tex.m_Len / 2.0f), 90.0f) /
                         (16.0f * 255.0f);
             }
         }
@@ -460,7 +460,7 @@ namespace VkRender::MultiSense {
             VkRender::ChannelInfo chInfo;
             chInfo.availableSources.clear();
             chInfo.modes.clear();
-            chInfo.availableSources.emplace_back("Source");
+            chInfo.availableSources.emplace_back("Idle");
             chInfo.index = ch;
             chInfo.state = CRL_STATE_ACTIVE;
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch, camPtr);
@@ -514,8 +514,8 @@ namespace VkRender::MultiSense {
                     std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
                     std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources",
                                                               "default");
-                    std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Source");
-                    std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Source");
+                    std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Idle");
+                    std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Idle");
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));

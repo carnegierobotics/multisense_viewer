@@ -22,6 +22,7 @@ layout (set = 0, binding = 0) uniform UBO {
 layout (set = 0, binding = 1) uniform UBOParams {
     vec4 lightDir;
     vec4 zoom;
+    vec4 zoomTranslate;
     float exposure;
     float gamma;
     float prefilteredCubeMipLevels;

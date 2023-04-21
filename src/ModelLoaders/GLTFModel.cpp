@@ -213,7 +213,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCI.poolSizeCount = 2;
         descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = (3) * uboVec.size();
+        descriptorPoolCI.maxSets = static_cast<uint32_t>((3) * uboVec.size());
         (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -1814,7 +1814,7 @@ void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<Vk
         (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                      &descriptorSetLayout));
 
-        for (auto i = 0; i < uboCount; i++) {
+        for (uint32_t i = 0; i < uboCount; i++) {
 
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1978,7 +1978,7 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(
     /**
      * Create Descriptor Pool
      */
-    uint32_t uniformDescriptorCount = (2 * ubo.size() + (uint32_t) nodes.size());
+    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + (uint32_t) nodes.size());
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };

@@ -217,7 +217,7 @@ void DoubleBot::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         auto &preview = dev.win.at(CRL_PREVIEW_TWO);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
-        if (src == "Source") {
+        if (src == "Idle") {
             state = DRAW_NO_SOURCE;
         } else {
             state = DRAW_NO_DATA;

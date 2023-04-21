@@ -7,7 +7,8 @@ layout (location = 0) out vec4 outColor;
 
 layout (set = 0, binding = 1) uniform UBOParams {
 	vec4 lightDir;
-	vec4 zoomCenter;
+	vec4 zoom;
+	vec4 zoomTranslate;
 	float exposure;
 	float gamma;
 	float prefilteredCubeMipLevels;

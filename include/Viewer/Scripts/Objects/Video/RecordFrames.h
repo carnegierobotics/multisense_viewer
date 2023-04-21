@@ -93,11 +93,14 @@ public:
     std::filesystem::path saveImagePathPointCloud;
     std::string compression;
     std::vector<std::string> sources;
+    std::vector<std::string> prevSources;
+    int prevNumberSources = 0;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
     std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
+    std::unordered_map<std::string, uint32_t> savedImageSourceCount;
 
 
     template<typename T>
@@ -145,6 +148,8 @@ public:
                                    bool useAuxColor,
                                    const glm::mat4 &Q, const float &scale, const float &focalLength
     );
+
+    size_t hashVector(const std::vector<std::string> &v);
 };
 
 

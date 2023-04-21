@@ -377,10 +377,10 @@ private:
                               ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Set the window background color to transparent
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
                             ImVec2(0.0f, 0.0f)); // Set the window background color to transparent
-        ImGui::Begin("View Area", &pOpen, window_flags | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::Begin("View Area", &pOpen,
+                     window_flags | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
         handles->info->isViewingAreaHovered = ImGui::IsWindowHovered(
                 ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
-        Log::Logger::getInstance()->info("Hover {}", handles->info->isViewingAreaHovered);
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW)
@@ -393,7 +393,8 @@ private:
         handles->scroll = 0.0f;
         bool hoveringPopupWindows = (dev.win[(StreamWindowIndex) 0].isHovered ||
                                      dev.win[(StreamWindowIndex) 1].isHovered);
-        if (handles->info->isViewingAreaHovered && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE && !handles->info->hoverState) {
+        if (handles->info->isViewingAreaHovered && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE &&
+            !handles->info->hoverState) {
             handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
             handles->scroll = ImGui::GetIO().MouseWheel * 100.0f;
 
@@ -412,7 +413,8 @@ private:
     }
 
     void createWindowPreviews(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
-        handles->info->viewingAreaWidth = handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
+        handles->info->viewingAreaWidth =
+                handles->info->width - handles->info->sidebarWidth - handles->info->controlAreaWidth;
 
         int cols = 0, rows = 0;
         switch (dev.layout) {
@@ -865,20 +867,13 @@ private:
                     ImGui::EndCombo();
                 }
 
-                handles->info->hoverState |= ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+                handles->info->hoverState |= ImGui::IsWindowHovered(
+                        ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
                 ImGui::PopStyleColor();
                 ImGui::PopStyleColor(); // PopupBg
                 /** Color rest of area in the background color exluding previews**/
                 ImGui::EndChild();
                 if (window.isHovered) {
-                    handles->previewZoom[static_cast<StreamWindowIndex>(index)] += ImGui::GetIO().MouseWheel / 5.0f;
-
-                    if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] > handles->maxZoom) {
-                        handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->maxZoom;
-                    }
-                    if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] < handles->minZoom) {
-                        handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->minZoom;
-                    }
                     if (handles->mouse->right && handles->mouse->action == GLFW_PRESS)
                         window.enableZoom = !window.enableZoom;
 
@@ -891,8 +886,18 @@ private:
                     if (handles->input->getButtonDown(GLFW_KEY_N)) {
                         window.effects.normalize = !window.effects.normalize;
                     }
-                }
 
+                    if (window.enableZoom) {
+                        handles->previewZoom[static_cast<StreamWindowIndex>(index)] += ImGui::GetIO().MouseWheel / 5.0f;
+
+                        if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] > handles->maxZoom) {
+                            handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->maxZoom;
+                        }
+                        if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] < handles->minZoom) {
+                            handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->minZoom;
+                        }
+                    }
+                }
                 index++;
             }
         }
@@ -2067,7 +2072,7 @@ private:
             }
             ImGui::SameLine();
 
-            if (ImGui::Button("Set Dir", btnSize)) {
+            if (ImGui::Button("Choose Dir", btnSize)) {
                 savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
                                                 ".");
             }

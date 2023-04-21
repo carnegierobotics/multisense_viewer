@@ -118,13 +118,14 @@ namespace VkRender::MultiSense {
 
         void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper> &buf) {
             // Lock
-            std::scoped_lock<std::mutex> lock(mut);
             // replace latest data into m_Image pointers
             if (imagePointersMap.empty())
                 return;
 
             if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
                 return;
+
+            std::scoped_lock<std::mutex> lock(mut);
 
             if (!m_SkipLogging) {
                 if (buf->data().frameId != (counterMap[id][buf->data().source] + 1) &&
@@ -232,15 +233,14 @@ namespace VkRender::MultiSense {
         ~ChannelWrapper() {
             delete imageBuffer;
             delete imuBuffer;
+            if (channelPtr_) {
+                crl::multisense::Channel::Destroy(channelPtr_);
+            }
             // Reset image counter for debugger
             for (auto &src: Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
                 for (auto &counter: src.second)
                     counter.second = 0;
 
-
-            if (channelPtr_) {
-                crl::multisense::Channel::Destroy(channelPtr_);
-            }
         }
 
         crl::multisense::Channel *ptr() noexcept {

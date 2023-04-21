@@ -108,6 +108,8 @@ public:
     bool zoomEnabled = false;
     bool useInterpolation = false;
     bool useDepthColorMap = false;
+    const VkRender::ImageEffectOptions* options{};
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */

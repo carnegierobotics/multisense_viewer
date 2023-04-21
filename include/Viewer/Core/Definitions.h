@@ -489,6 +489,7 @@ namespace VkRender {
     struct FragShaderParams {
         glm::vec4 lightDir{};
         glm::vec4 zoomCenter{};
+        glm::vec4 zoomTranslate{};
         float exposure = 4.5f;
         float gamma = 2.2f;
         float prefilteredCubeMipLevels = 0.0f;
@@ -563,6 +564,8 @@ namespace VkRender {
         float newMinF = 0.0f, newMaxF = 0.0f;
         float newMinY = 0.0f, newMaxY = 0.0f;
         float newMinYF = 0.0f, newMaxYF = 0.0f;
+        float translateX = 0.0f;
+        float translateY = 0.0f;
 
         float m_Width = 0, m_Height = 0;
 
@@ -763,7 +766,7 @@ namespace VkRender {
         float scroll = 0.0f;
         std::unordered_map<StreamWindowIndex, float> previewZoom{};
         float minZoom = 1.0f;
-        float maxZoom = 10.0f;
+        float maxZoom = 4.5f;
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 450.0f, minScroll = -550.0f;
         /** @brief Input from backend to IMGUI */

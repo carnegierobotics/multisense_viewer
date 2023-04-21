@@ -976,14 +976,13 @@ namespace VkRender::MultiSense {
                             infoMap[channelID].devInfo.hardwareRevision ==
                             crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM;
         std::ofstream inFile, exFile;
-        std::string intrinsicsFile = savePath + "/intrinsics.yml";
-        std::string extrinsicsFile = savePath + "/extrinsics.yml";
+        std::string intrinsicsFile = savePath + "/" + infoMap[channelID].devInfo.serialNumber + "_intrinsics.yml";
+        std::string extrinsicsFile = savePath + "/" + infoMap[channelID].devInfo.serialNumber + "_extrinsics.yml";
 
         inFile.open(intrinsicsFile.c_str(), std::ios_base::out | std::ios_base::trunc);
 
         if (!inFile) {
             Log::Logger::getInstance()->error("Failed to open Intrinsics file for writing!");
-
             return false;
         }
 
@@ -994,12 +993,14 @@ namespace VkRender::MultiSense {
             return false;
         }
 
+        Log::Logger::getInstance()->trace("Writing intrinsics to file");
         writeImageIntrinics(inFile, infoMap[channelID].calibration, hasAuxCamera);
+        Log::Logger::getInstance()->trace("Writing extrinsics to file");
         writeImageExtrinics(exFile, infoMap[channelID].calibration, hasAuxCamera);
         inFile.flush();
         exFile.flush();
 
-        Log::Logger::getInstance()->info("Saved camera calibration to file. HasAux: {}", hasAuxCamera);
+        Log::Logger::getInstance()->info("Wrote camera calibration to file. HasAux: {}", hasAuxCamera);
         return true;
     }
 

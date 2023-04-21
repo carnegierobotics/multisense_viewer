@@ -40,12 +40,15 @@
 #include <vector>
 #include <regex>
 
+
 #ifdef WIN32
 #define semPost(x) SetEvent(x)
 #define semWait(x, y) WaitForSingleObject(x, y)
+#define CTIME(time, size, timer) ctime_s(time, size, timer)
 #else
 #include<bits/stdc++.h>
 #define semPost(x) sem_post(x)
+#define CTIME(time, timer) ctime(timer)
 #endif
 
 #include "Viewer/Tools/Logger.h"
@@ -104,15 +107,20 @@ namespace Log {
     }
 
     string Logger::getCurrentTime() {
-        string currTime;
         //Current date/time based on current time
-        time_t now = time(0);
         // Convert current time to string
-        currTime.assign(ctime(&now));
+        std::time_t currentTime = std::time(nullptr);
+        char timeString[26];
 
-        // Last charactor of currentTime is "\n", so remove it
-        string currentTime = currTime.substr(0, currTime.size() - 1);
-        return currentTime;
+        #ifdef _WIN32
+                ctime_s(timeString, sizeof(timeString), &currentTime);
+        #else
+                std::strcpy(timeString, std::ctime(&currentTime));
+        #endif
+
+        // Last character of currentTime is "\n", so remove it
+        string currentTimeStr(timeString);
+        return currentTimeStr.substr(0, currentTimeStr.size() - 1);
     }
 
 // Interface for Error Log

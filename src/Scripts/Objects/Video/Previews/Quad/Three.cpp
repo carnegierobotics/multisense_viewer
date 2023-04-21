@@ -211,7 +211,7 @@ void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         auto &preview = dev.win.at(CRL_PREVIEW_THREE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
 
-        if (src == "Source") {
+        if (src == "Idle") {
             state = DRAW_NO_SOURCE;
         } else {
             state = DRAW_NO_DATA;

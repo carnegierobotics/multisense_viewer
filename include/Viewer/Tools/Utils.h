@@ -640,7 +640,7 @@ static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
         VkRender::ChannelInfo chInfo;
         chInfo.availableSources.clear();
         chInfo.modes.clear();
-        chInfo.availableSources.emplace_back("Source");
+        chInfo.availableSources.emplace_back("Idle");
         chInfo.index = ch;
         chInfo.state = CRL_STATE_ACTIVE;
         chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;

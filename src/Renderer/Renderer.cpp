@@ -435,7 +435,7 @@ void Renderer::render() {
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
-                    if (win.second.selectedSource == "Source" || win.first == CRL_PREVIEW_POINT_CLOUD)
+                    if (win.second.selectedSource == "Idle" || win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;

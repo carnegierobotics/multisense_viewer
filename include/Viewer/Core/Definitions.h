@@ -327,7 +327,7 @@ namespace VkRender {
     struct PreviewWindow {
         std::vector<std::string> availableSources{}; // Human-readable names of camera sources
         std::vector<std::string> availableRemoteHeads{};
-        std::string selectedSource = "Source";
+        std::string selectedSource = "Idle";
         uint32_t selectedSourceIndex = 0;
         crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
         float xPixelStartPos = 0;
@@ -505,7 +505,7 @@ namespace VkRender {
         TextureCubeMap irradianceCube{};
         TextureCubeMap prefilterEnv{};
         Texture2D lutBrdf{};
-        int prefilteredCubeMipLevels = 0;
+        float prefilteredCubeMipLevels = 0;
     };
 
     /**
@@ -624,7 +624,7 @@ namespace VkRender {
             TextureCubeMap *irradianceCube;
             TextureCubeMap *prefilterEnv;
             Texture2D *lutBrdf;
-            int prefilteredCubeMipLevels = 0;
+            float prefilteredCubeMipLevels = 0.0f;
         } skybox;
         std::mutex* queueSubmitMutex;
     };

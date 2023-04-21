@@ -226,7 +226,7 @@ class ReaderWindows {
     nlohmann::json jsonObj{};
 
     HANDLE hMapFile{};
-    char* pBuf = nullptr;
+    char *pBuf = nullptr;
 
 public:
     bool stopRequested = false;
@@ -252,8 +252,7 @@ public:
                 FALSE,                 // do not inherit the name
                 szName);               // name of mapping object
 
-        if (hMapFile == NULL)
-        {
+        if (hMapFile == NULL) {
             logError("Could not create file mapping object...");
             return;
         }
@@ -273,7 +272,7 @@ public:
         // Clear memory in shared segment
         std::string emptyString;
         emptyString.resize(SharedBufferSize);
-        strcpy(pBuf, emptyString.c_str());
+        strcpy_s(pBuf, SharedBufferSize, emptyString.c_str());
         isOpen = true;
     }
 
@@ -316,8 +315,8 @@ public:
                 //std::ofstream o("pretty.json");
                 //o << std::setw(4) << jsonObj << std::endl;
 
-                if (jsonObj.contains("Command")){
-                    if (jsonObj["Command"] == "Stop"){
+                if (jsonObj.contains("Command")) {
+                    if (jsonObj["Command"] == "Stop") {
                         stopRequested = true;
                         return true;
                     }
@@ -365,7 +364,7 @@ public:
                 {"Command", "Stop"}
         };
 
-        strcpy(pBuf + (SharedBufferSize / 2), to_string(send).c_str());
+        strcpy_s(pBuf + (SharedBufferSize / 2), (SharedBufferSize / 2), to_string(send).c_str());
 
     }
 

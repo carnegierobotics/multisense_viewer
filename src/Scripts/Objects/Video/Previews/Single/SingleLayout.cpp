@@ -217,7 +217,7 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
         virtualDevice = dev.notRealDevice;
 
-        if (src == "Source") {
+        if (src == "Idle") {
             state = DRAW_NO_SOURCE;
         } else {
             state = DRAW_NO_DATA;

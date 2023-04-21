@@ -50,7 +50,14 @@ public:
         DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
         DISABLE_WARNING_POP    }
-    ~MultiSenseCamera() = default;
+    ~MultiSenseCamera()= default;
+
+    void onDestroy() override{
+        // Wait for async models to finish loading before destorying script.
+        // So we dont rush cleaning up vulkan resources for old window before this script finished loading
+        while(loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready);
+    }
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/

@@ -227,6 +227,8 @@ namespace VkRender {
 
         /**@brief Call to delete the attached script. */
         void onDestroyScript() {
+            onDestroy();
+
             for (auto &shaderModule: shaderModules) {
                 vkDestroyShaderModule(renderUtils.device->m_LogicalDevice, shaderModule, nullptr);
             }
@@ -236,8 +238,6 @@ namespace VkRender {
                 uniformBuffer.bufferTwo.unmap();
                 uniformBuffer.bufferThree.unmap();
             }
-
-            onDestroy();
         }
 
         /**

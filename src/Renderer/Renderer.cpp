@@ -526,6 +526,16 @@ void Renderer::render() {
 }
 
 void Renderer::windowResized() {
+
+    // Clear script and scriptnames before rebuilding
+    for (const auto &scriptName: builtScriptNames) {
+        pLogger->info("Deleting Script: {}", scriptName.c_str());
+        scripts[scriptName].get()->onDestroyScript();
+        scripts[scriptName].reset();
+        scripts.erase(scriptName);
+    }
+    builtScriptNames.clear();
+
     // Recreate to fit new dimensions
     vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
     vkDestroyImage(device, selection.colorImage, nullptr);
@@ -555,14 +565,6 @@ void Renderer::windowResized() {
             script.second->windowResize(&renderData, &guiManager->handles);
     }
 
-    // Clear script and scriptnames before rebuilding
-    for (const auto &scriptName: builtScriptNames) {
-        pLogger->info("Deleting Script: {}", scriptName.c_str());
-        scripts[scriptName].get()->onDestroyScript();
-        scripts[scriptName].reset();
-        scripts.erase(scriptName);
-    }
-    builtScriptNames.clear();
 
     buildScripts();
 }

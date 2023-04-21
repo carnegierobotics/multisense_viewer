@@ -500,7 +500,9 @@ namespace VkRender::MultiSense {
         for (auto ch: dev.channelConnections) {
             CSimpleIniA ini;
             ini.SetUnicode();
-            SI_Error rc = ini.LoadFile("crl.ini");
+            auto filePath = (Utils::getSystemCachePath() / "crl.ini");
+
+            SI_Error rc = ini.LoadFile(filePath.c_str());
             if (rc < 0) {} // Handle error
             else {
                 // A serial number is the section identifier of a profile. I can have three following states
@@ -782,13 +784,14 @@ namespace VkRender::MultiSense {
         // Save settings to file. Attempt to create a new file if it doesn't exist
         CSimpleIniA ini;
         ini.SetUnicode();
-        SI_Error rc = ini.LoadFile("crl.ini");
+        auto filePath = (Utils::getSystemCachePath() / "crl.ini");
+        SI_Error rc = ini.LoadFile(filePath.c_str());
         if (rc < 0) {
             // File doesn't exist error, then create one
             if (rc == SI_FILE && errno == ENOENT) {
-                std::ofstream output("crl.ini");
+                std::ofstream output(filePath.c_str());
                 output.close();
-                rc = ini.LoadFile("crl.ini");
+                rc = ini.LoadFile(filePath.c_str());
             } else
                 Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
         }
@@ -841,7 +844,7 @@ namespace VkRender::MultiSense {
             dev->state = CRL_STATE_DISCONNECTED;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECTED ", dev->name);
         }
-        rc = ini.SaveFile("crl.ini");
+        rc = ini.SaveFile(filePath.c_str());
         if (rc < 0) {
             Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
         }

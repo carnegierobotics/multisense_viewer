@@ -5,6 +5,9 @@
 # - Adds internal library Autoconnect
 # - Option to enabled all warnings when compiling with GCC
 
+set(CRL_SERVER_IP 35.211.65.110:80)
+set(CRL_SERVER_PROTOCOL http)
+set(CRL_SERVER_DESTINATION /api.php)
 
 find_package(Git QUIET)
 if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
@@ -33,6 +36,8 @@ set(SIMPLEINI_DIR external/simpleini)
 set(IMGUI_DIR external/imgui)
 set(AUTOCONNECT_DIR internal/AutoConnect)
 set(KTX_DIR external/KTX-Software)
+set(NLOHMANN_JSON external/json)
+set(CPP_HTTPLIB external/cpp-httplib)
 
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
@@ -93,12 +98,12 @@ else ()
     set(MULTISENSE_BUILD_UTILITIES OFF)
     if (WIN32)
         set(BUILD_SHARED_LIBS ON)
-    endif()
+    endif ()
     include_directories(SYSTEM ${LIBMULTISENSE_DIR}/source/LibMultiSense)
     add_subdirectory(${LIBMULTISENSE_DIR}/source/LibMultiSense)
     if (WIN32)
         set(BUILD_SHARED_LIBS OFF)
-    endif()
+    endif ()
 
 endif ()
 
@@ -148,6 +153,22 @@ else ()
 
 endif ()
 
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${NLOHMANN_JSON}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${NLOHMANN_JSON} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding NLOHMANN_JSON from directory: ${NLOHMANN_JSON}")
+    set(JSON_BuildTests OFF CACHE INTERNAL "")
+    set(JSON_Install OFF CACHE INTERNAL "")
+    add_subdirectory(${NLOHMANN_JSON})
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${CPP_HTTPLIB}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${CPP_HTTPLIB} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding CPP_HTTPLIB from directory: ${CPP_HTTPLIB}")
+    add_subdirectory(${CPP_HTTPLIB})
+endif ()
+
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.
 function(ExportScriptIncludes)
     string(TIMESTAMP Today)
@@ -165,15 +186,18 @@ function(ExportScriptIncludes)
     endforeach (Src ${SCRIPT_HEADERS})
 endfunction()
 
+function(GenerateVersionFile)
+    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH} \nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}")
+endfunction()
 
 if (UNIX)
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
-elseif(WIN32)
+elseif (WIN32)
     set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
-endif()
+endif ()
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message(STATUS "Set install directory to ${INSTALL_DIRECTORY}")
     set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY}
             CACHE PATH "default install path" FORCE)
-endif()
+endif ()

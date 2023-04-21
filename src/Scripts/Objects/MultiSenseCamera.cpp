@@ -38,27 +38,8 @@
 #include "Viewer/ImGui/ScriptUIAddons.h"
 
 void MultiSenseCamera::setup() {
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
-                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/object.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    S27 = std::make_unique<GLTFModel::Model>(&renderUtils);
-    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), renderUtils.device,
-                      renderUtils.device->m_TransferQueue, 1.0f);
-
-
-    S27->createRenderPipeline(renderUtils, shaders);
-    S30 = std::make_unique<GLTFModel::Model>(&renderUtils);
-    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), renderUtils.device,
-                      renderUtils.device->m_TransferQueue, 1.0f);
-    S30->createRenderPipeline(renderUtils, shaders);
-
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), renderUtils.device,
-                      renderUtils.device->m_TransferQueue, 1.0f);
-    KS21->createRenderPipeline(renderUtils, shaders);
-
+    loadModelFuture = std::async(std::launch::async,  &MultiSenseCamera::loadModelsAsync, this);
     /*
     Widgets::make()->text("Select other camera models");
     Widgets::make()->slider("##Select model", &selection, 0, 2);
@@ -66,8 +47,34 @@ void MultiSenseCamera::setup() {
 
 }
 
-void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void MultiSenseCamera::loadModelsAsync(){
+    VulkanDevice device(renderUtils.device);
 
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
+                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
+                                                            {loadShader("Scene/spv/object.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
+
+    S30 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
+    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(),&device,
+                     device.m_TransferQueue, 1.0f);
+    S30->createRenderPipeline(renderUtils, shaders);
+
+    S27 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
+    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), &device,
+                     device.m_TransferQueue, 1.0f);
+    S27->createRenderPipeline(renderUtils, shaders);
+
+    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
+    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), &device,
+                      device.m_TransferQueue, 1.0f);
+    KS21->createRenderPipeline(renderUtils, shaders);
+
+}
+
+void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+    if (loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
+        return;
     if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw){
         if (selectedModel == "Multisense-S30")
             S30->draw(commandBuffer, i);

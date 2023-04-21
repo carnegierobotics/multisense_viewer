@@ -49,7 +49,7 @@
 #include <math.h>
 #endif
 
-void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device, VkQueue transferQueue, float scale) {
+void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *device, VkQueue transferQueue, float scale) {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     tinygltf::Model gltfModel;
@@ -57,7 +57,7 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     std::string error;
     std::string warning;
 
-    vulkanDevice = _device;
+    vulkanDevice = device;
     m_FileName = fileName;
     Log::Logger::getInstance()->info("Loading glTF file {}", fileName);
     bool binary = false;
@@ -162,7 +162,6 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
         copyRegion.size = indexBufferSize;
         vulkanDevice->copyVkBuffer(&indexStaging.buffer, &indices.buffer, &copyRegion);
     }
-
 
     vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
     vkFreeMemory(vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
@@ -2192,10 +2191,8 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
-                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders) {
+                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders, VkCommandPool cmdPool) {
     auto tStart = std::chrono::high_resolution_clock::now();
-
-    this->vulkanDevice = utils.device;
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};
     createPipeline(*utils.renderPass, shaders2);

@@ -420,9 +420,10 @@ Texture2D::Texture2D(void *buffer, VkDeviceSize bufferSize, VkFormat format, uin
 *
 */
 void Texture2D::fromKtxFile(std::string filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
-                             VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout, bool forceLinear) {
+                            VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout, bool forceLinear) {
     ktxTexture *ktxTexture;
-    ktxResult result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+    ktxResult result = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                                      &ktxTexture);
     assert(result == KTX_SUCCESS);
 
     m_Device = device;
@@ -447,7 +448,7 @@ void Texture2D::fromKtxFile(std::string filename, VkFormat format, VulkanDevice 
     VkMemoryAllocateInfo memAllocInfo = Populate::memoryAllocateInfo();
     VkMemoryRequirements memReqs;
 
-    // Use a separate command buffer for texture loading
+    // Use a separate command buffer for texture loading. Use provided or create on main thread
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
     if (useStaging) {

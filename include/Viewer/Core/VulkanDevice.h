@@ -41,17 +41,20 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <mutex>
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Core/Buffer.h"
 
 struct VulkanDevice {
-    /** @brief Physical m_Device representation */
+/** @brief Physical m_Device representation */
     VkPhysicalDevice m_PhysicalDevice{};
     /** @brief Logical m_Device representation (application's m_View of the m_Device) */
     VkDevice m_LogicalDevice{};
     /** @brief transfer queue for copy operations*/
     VkQueue m_TransferQueue{};
+    /** @brief synchronozation if vkQueueSubmit is run from thread */
+    std::mutex *m_QueueSubmitMutex;
     /** @brief Properties of the physical m_Device including limits that the application can check against */
     VkPhysicalDeviceProperties m_Properties{};
     /** @brief Features of the physical m_Device that an application can use to check if a feature is supported */
@@ -74,8 +77,9 @@ struct VulkanDevice {
 
     } m_QueueFamilyIndices;
 
-    explicit VulkanDevice(VkPhysicalDevice physicalDevice);
-
+    VulkanDevice(VkPhysicalDevice physicalDevice, std::mutex *mut);
+    explicit VulkanDevice(VulkanDevice* copy);
+    bool isCopy = false;
     ~VulkanDevice();
 
     uint32_t

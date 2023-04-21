@@ -189,7 +189,7 @@ namespace VkRender {
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
-        vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
+        vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice, &queueSubmitMutex);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
             throw std::runtime_error("Failed to create logical device");
@@ -690,6 +690,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::submitFrame() {
+        std::scoped_lock<std::mutex>lock(queueSubmitMutex);
         vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
 
         VkResult result = swapchain->queuePresent(queue, currentBuffer, semaphores.renderComplete);

@@ -10,8 +10,15 @@
 #include <vulkan/vulkan.hpp>
 
 #ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+
+#include <windows.h>
+
+#include <winsock2.h>
 #include <iphlpapi.h>
-#include <WinSock2.h>
+#include <cstdlib>
+
+#pragma comment(lib, "IPHLPAPI.lib")
 #else
 #include <sys/utsname.h>
 #include <sys/ioctl.h>
@@ -50,11 +57,11 @@ namespace VkRender {
 
         const std::string &getGpuDevice() const;
 
-        void setGpuDevice(const VkPhysicalDevice& physicalDevice);
+        void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 
-        const std::string & getAnonIdentifierString() const;
+        const std::string &getAnonIdentifierString() const;
 
-        const CRLServerInfo & getServerInfo() const {
+        const CRLServerInfo &getServerInfo() const {
             return m_ServerInfo;
         }
 
@@ -66,27 +73,41 @@ namespace VkRender {
 
 
 #ifdef WIN32
-            PIP_ADAPTER_INFO adapter_info;
-    PIP_ADAPTER_INFO adapter;
-    DWORD size = 0;
+            std::ostringstream macAddressStream;
+            DWORD dwSize = 0;
+            DWORD dwRetVal = 0;
 
-    GetAdaptersInfo(nullptr, &size);
-    adapter_info = (IP_ADAPTER_INFO*) malloc(size);
-    GetAdaptersInfo(adapter_info, &size);
-
-                std::string macAddress;
-            macAddress.resize(14);
-
-    adapter = adapter_info;
-    while (adapter != nullptr) {
-        printf("MAC address for interface %s: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               adapter->AdapterName,
-               adapter->Address[0], adapter->Address[1], adapter->Address[2],
-               adapter->Address[3], adapter->Address[4], adapter->Address[5]);
-        adapter = adapter->Next;
-    }
-
-    free(adapter_info);
+            MIB_IFTABLE *pIfTable;
+            dwRetVal = GetIfTable(nullptr, &dwSize, false);
+            if (dwRetVal == ERROR_INSUFFICIENT_BUFFER) {
+                pIfTable = reinterpret_cast<MIB_IFTABLE *>(malloc(dwSize));
+                if (pIfTable == nullptr) {
+                    Log::Logger::getInstance()->error("Error allocating memory for getting mac address");
+                } else {
+                    dwRetVal = GetIfTable(pIfTable, &dwSize, false);
+                    if (dwRetVal == NO_ERROR) {
+                        for (DWORD i = 0; i < pIfTable->dwNumEntries; i++) {
+                            if (pIfTable->table[i].dwType == IF_TYPE_ETHERNET_CSMACD) {
+                                for (int j = 0; j < pIfTable->table[i].dwPhysAddrLen; j++) {
+                                    macAddressStream << std::hex << std::setw(2) << std::setfill('0')
+                                                     << static_cast<int>(pIfTable->table[i].bPhysAddr[j]);
+                                    if (j < pIfTable->table[i].dwPhysAddrLen - 1) {
+                                        macAddressStream << ':';
+                                    }
+                                }
+                                macAddressStream << std::endl;
+                                break;
+                            }
+                        }
+                    } else {
+                        Log::Logger::getInstance()->error("Error getting interface table: {}", dwRetVal);
+                    }
+                    free(pIfTable);
+                }
+            } else {
+                Log::Logger::getInstance()->error("Error getting interface table size: {}", dwRetVal);
+            }
+            std::string macAddress = macAddressStream.str();
 #else
             struct ifreq ifr;
             struct ifconf ifc;
@@ -148,7 +169,9 @@ namespace VkRender {
         std::string m_Identifier;
 
         void getOSVersion();
+
         std::string fetchArchitecture();
+
         std::string fetchApplicationVersion();
     };
 

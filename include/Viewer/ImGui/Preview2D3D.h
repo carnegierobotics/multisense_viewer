@@ -1211,6 +1211,9 @@ private:
                     }
                 } else {
                     for (const auto &src: ch.requestedStreams) {
+                        if (src == "Idle")
+                            continue;
+
                         ImGui::Dummy(ImVec2(60.0f, 0.0f));
                         ImGui::SameLine();
                         ImGui::Text("%s", src.c_str());

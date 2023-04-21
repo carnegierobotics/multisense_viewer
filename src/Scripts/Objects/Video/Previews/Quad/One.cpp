@@ -125,8 +125,11 @@ void One::update() {
         VkRender::ScriptUtils::handleZoom(&zoom);
     }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-    d2->pad.x = useDepthColorMap;
+    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->pad.x = options->depthColorMap;
+    d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
+                                        options->data.maxDisparityValue, 0.0f);
+
 }
 
 
@@ -230,7 +233,7 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
         zoomEnabled = preview.enableZoom;
-
+        options = &preview.effects;
         if (zoomEnabled) {
             zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor

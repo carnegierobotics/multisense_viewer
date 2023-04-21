@@ -132,6 +132,8 @@ void SingleLayout::update() {
     }
     auto &d2 = bufferTwoData;
     d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+
+    d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
     d2->pad.x = options->depthColorMap;
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
                                         options->data.maxDisparityValue, 0.0f);
@@ -239,9 +241,22 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
         zoomEnabled = preview.enableZoom;
-        if (zoomEnabled) {
+
+        if (!zoomEnabled) {
+            //if (uiHandle->mouse->left) {
+            //float translation = (uiHandle->mouse->dx / 1000.0f) * zoom.zoomValue;
+            //Log::Logger::getInstance()->info("zoomX {}, offsetX {}, TranslationX {}, zoomValue: {}", ((uiHandle->mouse->dx / 1000.0f)), zoom.offsetX, zoom.translateX, zoom.zoomValue);
+
+            //if ((zoom.offsetX + zoom.translateX + translation) < 1.0f * zoom.zoomValue){
+            //zoom.translateX += translation;
+
+            //}
+            //zoom.translateY += (uiHandle->mouse->dy / 1000.0f);
+            //}
+        } else {
             zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
-            zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
+            zoom.zoomValue = 0.9f * zoom.zoomValue * zoom.zoomValue * zoom.zoomValue + 1 -
+                             0.9f; // cubic growth in scaling factor
         }
         options = &preview.effects;
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +

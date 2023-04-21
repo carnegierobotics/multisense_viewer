@@ -42,8 +42,7 @@
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 
-class One: public VkRender::Base, public VkRender::RegisteredInFactory<One>, CRLCameraModels
-{
+class One : public VkRender::Base, public VkRender::RegisteredInFactory<One>, CRLCameraModels {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
@@ -52,25 +51,34 @@ public:
         DISABLE_WARNING_UNREFERENCED_VARIABLE
         DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-        DISABLE_WARNING_POP    }
-    void onDestroy() override{
+        DISABLE_WARNING_POP
+    }
+
+    void onDestroy() override {
         stbi_image_free(m_NoDataTex);
         stbi_image_free(m_NoSourceTex);
     }
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<One>(); }
+
     /** @brief Name which is registered for this class. Same as ClassName **/
     static std::string GetFactoryName() { return "One"; }
+
     /** @brief Setup function called one during engine prepare **/
     void setup() override;
+
     /** @brief update function called once per frame **/
     void update() override;
+
     /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
-    ScriptType getType() override {return type;}
+    ScriptType getType() override { return type; }
+
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
+
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(ScriptType _type) override{ this->type = _type; }
+    void setDrawMethod(ScriptType _type) override { this->type = _type; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
@@ -88,8 +96,8 @@ public:
     } state;
 
     float up = -1.3f;
-    unsigned char* m_NoDataTex{};
-    unsigned char* m_NoSourceTex{};
+    unsigned char *m_NoDataTex{};
+    unsigned char *m_NoSourceTex{};
     Page selectedPreviewTab = CRL_TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
@@ -106,12 +114,13 @@ public:
     int texWidth = 0, texHeight = 0, texChannels = 0;
     VkRender::ZoomParameters zoom{};
     bool zoomEnabled = false;
-        bool useInterpolation = false;
-    bool useDepthColorMap = false;
+    const VkRender::ImageEffectOptions* options{};
+
+
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Updates PosX-Y variables to match the desired positions before creating the quad. Using positions from ImGui */
-    void transformToUISpace(const VkRender::GuiObjectHandles * handles, const VkRender::Device& element);
+    void transformToUISpace(const VkRender::GuiObjectHandles *handles, const VkRender::Device &element);
 
     void prepareMultiSenseTexture();
 

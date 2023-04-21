@@ -195,8 +195,8 @@ public:
                     adapter.description = pAdapterInfo->Description;
 
                     //CONCATENATE two strings safely windows workaround
-                    int lenA = strlen(prefix.c_str());
-                    int lenB = strlen(pAdapterInfo->AdapterName);
+                    size_t lenA = strlen(prefix.c_str());
+                    size_t lenB = strlen(pAdapterInfo->AdapterName);
                     char *con = (char *) malloc(lenA + lenB + 1);
                     memcpy(con, prefix.c_str(), lenA);
                     memcpy(con + lenA, pAdapterInfo->AdapterName, lenB + 1);

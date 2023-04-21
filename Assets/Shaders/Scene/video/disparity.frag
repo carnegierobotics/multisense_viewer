@@ -11,6 +11,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 1, set = 0) uniform Info {
     vec4 lightDir;
     vec4 zoom;
+    vec4 zoomTranslate;
     float exposure;
     float gamma;
     float prefilteredCubeMipLevels;
@@ -105,8 +106,8 @@ void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
-    float uvSampleX = (inUV.x - info.zoom.w) / info.zoom.z + info.zoom.w;
-    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
+    float uvSampleX = (inUV.x - info.zoom.w + info.zoomTranslate.x) / info.zoom.z + info.zoom.w;
+    float uvSampleY = (inUV.y - zoom.y+ info.zoomTranslate.y) / info.zoom.z + zoom.y;
 
     vec4 color;
     bool useInterpolation = info.zoom.x == 1.0f;

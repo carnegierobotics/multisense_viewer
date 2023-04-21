@@ -46,3 +46,8 @@ echo "Compiled pointcloud shaders"
 
 echo "Copying to debug build location"
 cp ${sceneOutDir}/*.spv ${outDir}
+
+echo "Press any key to exit..."
+read -n 1 -s -r -p ""
+
+echo "Exiting..."

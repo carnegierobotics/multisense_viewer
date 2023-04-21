@@ -28,17 +28,17 @@ layout(binding = 1, set = 0) uniform Info {
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
 // https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
-vec4 cubic(float x)
+vec4 cubic(float v)
 {
-    float x2 = x * x;
-    float x3 = x2 * x;
-    vec4 w;
-    w.x =   -x3 + 3*x2 - 3*x + 1;
-    w.y =  3*x3 - 6*x2       + 4;
-    w.z = -3*x3 + 3*x2 + 3*x + 1;
-    w.w =  x3;
-    return w / 6.f;
+    vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+    vec4 s = n * n * n;
+    float x = s.x;
+    float y = s.y - 4.0 * s.x;
+    float z = s.z - 4.0 * s.y + 6.0 * s.x;
+    float w = 6.0 - x - y - z;
+    return vec4(x, y, z, w);
 }
+
 
 vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
 
@@ -71,9 +71,10 @@ vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
     , sy);
 }
 
+
 void main()
 {
-
+    float scaleFactor = 4.0; // Adjust this value to control the smoothness of the bicubic sampling
     float val = info.zoom.z;
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 

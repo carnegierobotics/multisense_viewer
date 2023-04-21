@@ -291,17 +291,20 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(ctx);
         float minVal = 0;
         float maxVal = 255;
-        auto tex = VkRender::TextureData(CRL_DISPARITY_IMAGE, dev->channelInfo.front().selectedResolutionMode, true);
-        // If we get an image attempt to update the GPU buffer
-        if (app->camPtr.getCameraStream("Disparity Left", &tex, 0)) {
-            // Find percentile should not run on main render thread as it slows down the application considerably.
-            // Maybe just update the percentiles around once a second or so in a threaded operation
-            minVal =
-                    app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 10.0f) /
-                    (16.0f * 255.0f);
-            maxVal =
-                    app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 90.0f) /
-                    (16.0f * 255.0f);
+        if (!dev->channelInfo.empty()) {
+            auto tex = VkRender::TextureData(CRL_DISPARITY_IMAGE, dev->channelInfo.front().selectedResolutionMode,
+                                             true);
+            // If we get an image attempt to update the GPU buffer
+            if (app->camPtr.getCameraStream("Disparity Left", &tex, 0)) {
+                // Find percentile should not run on main render thread as it slows down the application considerably.
+                // Maybe just update the percentiles around once a second or so in a threaded operation
+                minVal =
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 10.0f) /
+                        (16.0f * 255.0f);
+                maxVal =
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), tex.m_Len / 2.0f, 90.0f) /
+                        (16.0f * 255.0f);
+            }
         }
         return {minVal, maxVal};
     }
@@ -981,7 +984,6 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         *success = app->camPtr.saveSensorCalibration(saveLocation, index);
-
     }
 
     void

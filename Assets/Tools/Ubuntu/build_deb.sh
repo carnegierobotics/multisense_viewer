@@ -9,4 +9,6 @@ cp ../Assets/Tools/Ubuntu/control multisense_1.0-0_amd64/DEBIAN
 rm -rf multisense_1.0-0_amd64/opt/multisense/include
 rm -rf multisense_1.0-0_amd64/opt/multisense/lib
 rm -rf multisense_1.0-0_amd64/opt/multisense/share
+rm -rf multisense_1.0-0_amd64/opt/multisense/bin
+rm -rf multisense_1.0-0_amd64/opt/multisense/Assets/Tools
 dpkg-deb --build --root-owner-group multisense_1.0-0_amd64

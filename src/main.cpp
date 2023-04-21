@@ -42,6 +42,9 @@
 #endif
 
 int main() {
+    Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
+    Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
+
     Renderer app("MultiSense Viewer");
     try{
         app.run();

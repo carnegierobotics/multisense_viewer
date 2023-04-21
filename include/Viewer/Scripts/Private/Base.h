@@ -46,7 +46,7 @@
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/Renderer/SharedData.h"
+#include "Viewer/Scripts/Private/SharedData.h"
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"

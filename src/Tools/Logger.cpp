@@ -62,15 +62,11 @@ namespace Log {
     Logger *Logger::m_Instance = nullptr;
     VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
     Metrics* Logger::m_Metrics = nullptr;
+    Logger::Logger(const std::string& logFileName) {
 
-// Log file m_Name. File m_Name should be change from here only
-    const string logFileName = "logger.log";
-
-    Logger::Logger() {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
-        m_LogLevel = LOG_LEVEL_TRACE;
+        m_LogLevel = LOG_LEVEL_INFO;
         m_LogType = FILE_LOG;
-
     }
 
 
@@ -81,11 +77,12 @@ namespace Log {
         delete m_ThreadPool;
     }
 
-    Logger *Logger::getInstance() noexcept {
+    Logger *Logger::getInstance(const std::string& fileName) noexcept {
         if (m_Instance == nullptr) {
-            m_Instance = new Logger();
+            m_Instance = new Logger(fileName);
             m_Metrics = new Metrics();
             m_ThreadPool = new VkRender::ThreadPool(1);
+            Log::Logger::getInstance()->info("Initialized logger instance");
         }
         return m_Instance;
     }

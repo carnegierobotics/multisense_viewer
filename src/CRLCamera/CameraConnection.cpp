@@ -42,10 +42,7 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-
 #endif
-
-#include "opencv2/opencv.hpp"
 
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Viewer/Tools/Utils.h"

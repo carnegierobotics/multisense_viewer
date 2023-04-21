@@ -23,7 +23,6 @@ UsageMonitor::UsageMonitor() {
     // Connect to CRL server
     server = std::make_unique<VkRender::ServerConnection>(config.getAnonIdentifierString(), config.getServerInfo());
 
-
 }
 
 void UsageMonitor::addEvent(){
@@ -60,10 +59,10 @@ void UsageMonitor::initializeJSONFile() {
 
     VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
 
-    std::string version = "1.0.0";
+    std::string logVersion = "1.0.0";
     std::ofstream output_file(usageFilePath);
     std::string jsonBoilerPlate = "{\n"
-                                  "    \"log_version\": \"" + version + "\",\n"
+                                  "    \"log_version\": \"" + logVersion + "\",\n"
                                                                         "    \"os\": {\n"
                                                                         "         \"name\": \"" + config.getOS() +
                                   "\",\n"

@@ -56,6 +56,10 @@ public:
         // Wait for async models to finish loading before destorying script.
         // So we dont rush cleaning up vulkan resources for old window before this script finished loading
         while(loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready);
+        S27.reset();
+        S30.reset();
+        KS21.reset();
+        delete deviceCopy;
     }
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
@@ -79,6 +83,7 @@ public:
     std::unique_ptr<GLTFModel::Model> S30;
     std::unique_ptr<GLTFModel::Model> KS21;
 
+    VulkanDevice* deviceCopy;
     std::string selectedModel = "Multisense-KS21";
     int selection = 0;
     struct LightSource {

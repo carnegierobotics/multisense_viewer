@@ -747,7 +747,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     mouseButtons.dx = dx;
     mouseButtons.dy = dy;
 
-    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
+    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
@@ -765,7 +765,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
-            !guiManager->handles.disableCameraRotationFromGUI) {
+            guiManager->handles.info->isViewingAreaHovered) {
             camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }

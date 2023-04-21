@@ -745,6 +745,8 @@ namespace VkRender {
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
         bool hoverState = false;
+        bool isViewingAreaHovered = false;
+
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
@@ -759,13 +761,11 @@ namespace VkRender {
         float accumulatedActiveScroll = 0.0f;
         /**  Measures change in scroll. Does not provide change the accumulated scroll is outside of min and max scroll  */
         float scroll = 0.0f;
-        std::unordered_map<std::string, float> previewZoom{};
+        std::unordered_map<StreamWindowIndex, float> previewZoom{};
         float minZoom = 1.0f;
         float maxZoom = 10.0f;
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 450.0f, minScroll = -550.0f;
-        /** @brief when a GUI window is hovered dont move the camera in the 3D view */
-        bool disableCameraRotationFromGUI = false;
         /** @brief Input from backend to IMGUI */
         const Input *input{};
         std::array<float, 4> clearColor{};
@@ -783,10 +783,10 @@ namespace VkRender {
             clearColor[3] = 1.0f;
 
             // Initialize map used for zoom for each preview window
-            previewZoom["View Area 0"] = 1.0f;
-            previewZoom["View Area 1"] = 1.0f;
-            previewZoom["View Area 2"] = 1.0f;
-            previewZoom["View Area 3"] = 1.0f;
+            previewZoom[CRL_PREVIEW_ONE] = 1.0f;
+            previewZoom[CRL_PREVIEW_TWO] = 1.0f;
+            previewZoom[CRL_PREVIEW_THREE] = 1.0f;
+            previewZoom[CRL_PREVIEW_FOUR] = 1.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */

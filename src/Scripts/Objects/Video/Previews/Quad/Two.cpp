@@ -231,7 +231,7 @@ void Two::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         zoomEnabled = preview.enableZoom;
 
         if (zoomEnabled) {
-            zoom.zoomValue = uiHandle->previewZoom.find("View Area 1")->second;
+            zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_TWO)->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         }
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +

@@ -14,6 +14,7 @@ UsageMonitor::UsageMonitor() {
     // Initialize usage file
     auto path = Utils::getSystemCachePath() / "usage.json";
     usageFilePath = path;
+    logFilePath = Utils::getSystemCachePath() / "logger.log";
 
     if (!std::filesystem::exists(usageFilePath)) {
         initializeJSONFile();
@@ -83,5 +84,5 @@ void UsageMonitor::initializeJSONFile() {
 }
 
 void UsageMonitor::sendUsageLog() {
-    server->sendUsageStatistics(usageFilePath);
+    server->sendUsageStatistics(usageFilePath, logFilePath);
 }

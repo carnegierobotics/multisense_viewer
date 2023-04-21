@@ -36,7 +36,7 @@ public:
 
     }
 
-    void sendUsageStatistics(std::filesystem::path usageFilePath);
+    void sendUsageStatistics(const std::filesystem::path& usageFilePath, std::filesystem::path logFilePath);
 
 private:
     std::unique_ptr<httplib::Client> m_Client;

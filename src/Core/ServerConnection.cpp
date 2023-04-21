@@ -8,23 +8,33 @@
 #include "Viewer/Tools/Logger.h"
 
 namespace VkRender {
-    void ServerConnection::sendUsageStatistics(std::filesystem::path usageFilePath) {
+    void ServerConnection::sendUsageStatistics(const std::filesystem::path& usageFilePath, std::filesystem::path logFilePath) {
 
         // Open the file to upload
-        std::ifstream file_stream(usageFilePath, std::ios::binary);
-        if (!file_stream.is_open()) {
-            std::cerr << "Failed to open file" << std::endl;
+        std::ifstream jsonFileStream(usageFilePath, std::ios::binary);
+        if (!jsonFileStream.is_open()) {
+            Log::Logger::getInstance()->error("Failed to open usage json file: {}", usageFilePath.string());
+        }
+        // Open the file to upload
+        std::ifstream logFileStream(logFilePath, std::ios::binary);
+        if (!logFileStream.is_open()) {
+            Log::Logger::getInstance()->error("Failed to open log file: {}", usageFilePath.string());
         }
 
         // Read the file into a buffer
-        std::stringstream file_buffer;
-        file_buffer << file_stream.rdbuf();
-        std::string file_contents = file_buffer.str();
+        std::stringstream jsonFileBuffer;
+        jsonFileBuffer << jsonFileStream.rdbuf();
+        std::string jsonContent = jsonFileBuffer.str();
+        // Read the file into a buffer
+        std::stringstream logFileBuffer;
+        logFileBuffer << logFileStream.rdbuf();
+        std::string logContent = logFileBuffer.str();
 
         // Create the POST request with the file contents
         httplib::MultipartFormDataItems items = {
                 {"user", m_Identifier,  "",           ""},
-                {"file", file_contents, "usage.json", "application/json"}
+                {"userFile", jsonContent, "userFile.json", "application/json"},
+                {"logFile", logContent, "logFile.log", "text/plain"}
         };
 
         Log::Logger::getInstance()->info("Sending usage statistics");

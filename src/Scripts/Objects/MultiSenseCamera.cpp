@@ -44,30 +44,30 @@ void MultiSenseCamera::setup() {
     Widgets::make()->text("Select other camera models");
     Widgets::make()->slider("##Select model", &selection, 0, 2);
     */
+    deviceCopy = new VulkanDevice(renderUtils.device);
 
 }
 
 void MultiSenseCamera::loadModelsAsync(){
-    VulkanDevice device(renderUtils.device);
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
                                                             {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    S30 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
-    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(),&device,
-                     device.m_TransferQueue, 1.0f);
+    S30 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
+    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(),deviceCopy,
+                     deviceCopy->m_TransferQueue, 1.0f);
     S30->createRenderPipeline(renderUtils, shaders);
 
-    S27 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
-    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), &device,
-                     device.m_TransferQueue, 1.0f);
+    S27 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
+    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), deviceCopy,
+                     deviceCopy->m_TransferQueue, 1.0f);
     S27->createRenderPipeline(renderUtils, shaders);
 
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, &device);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), &device,
-                      device.m_TransferQueue, 1.0f);
+    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
+    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), deviceCopy,
+                      deviceCopy->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
 
 }

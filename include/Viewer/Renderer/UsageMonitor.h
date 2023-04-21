@@ -17,6 +17,7 @@ public:
 
 private:
     std::filesystem::path usageFilePath;
+    std::filesystem::path logFilePath;
     nlohmann::json jsonFile;
     std::unique_ptr<VkRender::ServerConnection> server;
 

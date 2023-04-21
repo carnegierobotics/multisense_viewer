@@ -85,4 +85,7 @@ public:
 
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+
+    void loadModelsAsync();
+    std::future<void> loadModelFuture;
 };

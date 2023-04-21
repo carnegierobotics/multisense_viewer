@@ -190,6 +190,8 @@ namespace VkRender {
         VkDevice device{};
         // Handle to the m_Device graphics queue that command buffers are submitted to
         VkQueue queue{};
+        /**@brief synchronozation for vkQueueSubmit*/
+        std::mutex queueSubmitMutex;
         // Depth buffer m_Format (selected during Vulkan initialization)
         VkFormat depthFormat{};
         // Wraps the swap chain to present images (framebuffers) to the windowing system

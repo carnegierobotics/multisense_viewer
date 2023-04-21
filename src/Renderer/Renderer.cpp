@@ -159,6 +159,7 @@ void Renderer::buildScripts() {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
+    vars.queueSubmitMutex = &queueSubmitMutex;
     // create first set of scripts for TOP OF PIPE
     for (auto &script: scripts) {
         if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {

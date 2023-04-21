@@ -623,6 +623,7 @@ namespace VkRender {
             Texture2D *lutBrdf;
             int prefilteredCubeMipLevels = 0;
         } skybox;
+        std::mutex* queueSubmitMutex;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/

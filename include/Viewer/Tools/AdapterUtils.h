@@ -127,7 +127,7 @@ public:
                 if (!ctx->runThread)
                     break;
             }
-            Log::Logger::getInstance()->info("Listing connected adapters for Manual connect");
+            Log::Logger::getInstance()->trace("Listing connected adapters for Manual connect");
 
             pcap_if_t *alldevs;
             pcap_if_t *d;

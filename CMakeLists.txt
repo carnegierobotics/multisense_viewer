@@ -97,18 +97,8 @@ if (UNIX) ## Linux
                 CACHE PATH "default install path" FORCE)
     endif ()
 
-    add_library(libssl STATIC IMPORTED GLOBAL)
-    set_target_properties(libssl PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES  "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.a")
-
-    add_library(libcrypto STATIC IMPORTED GLOBAL)
-    set_target_properties(libcrypto PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES  "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.a")
-
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} libssl libcrypto)
+    target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)

@@ -105,7 +105,7 @@ void MultiSenseCamera::update() {
     if (imuEnabled) {
         if (imuRotationFuture.valid() &&
             imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
-            if (imuRotationFuture.get()){
+            if (imuRotationFuture.get()) {
                 d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
                 d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                 //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -127,7 +127,8 @@ void MultiSenseCamera::update() {
             (!imuRotationFuture.valid() ||
              imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)) {
             Log::Logger::getInstance()->trace("Calculating new IMU information");
-            imuRotationFuture = std::async(std::launch::async, &VkRender::MultiSense::CRLPhysicalCamera::getImuRotation, renderData.crlCamera, &rot, 0);;
+            imuRotationFuture = std::async(std::launch::async, &VkRender::MultiSense::CRLPhysicalCamera::getImuRotation,
+                                           renderData.crlCamera, &rot, 0);;
             calcImuRotationTimer = std::chrono::steady_clock::now();
         }
     } else {

@@ -474,10 +474,12 @@ void Renderer::render() {
                             dev.pixelInfo[windowIndex].y = y + 1;
 
                             // Check that we are within bounds
+                            /*
                             if (dev.pixelInfoZoomed[windowIndex].y > h)
                                 dev.pixelInfoZoomed[windowIndex].y = 0;
                             if (dev.pixelInfoZoomed[windowIndex].x > h)
                                 dev.pixelInfoZoomed[windowIndex].x = 0;
+                                */
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
                                 case CRL_POINT_CLOUD:

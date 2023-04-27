@@ -673,8 +673,9 @@ static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
 
 static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
     if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-    if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
-    if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
+    else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
+    else if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
+    return Log::LOG_LEVEL::LOG_LEVEL_INFO;
 };
 
 

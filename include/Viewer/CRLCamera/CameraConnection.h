@@ -159,17 +159,9 @@ namespace VkRender::MultiSense {
 		 * @param[in] dev Which profile to update
 		 * @param[in] index Which remote-head to select
 		 * */
-		static void setSecondaryExposureTask(void* context, ExposureParams* arg1, VkRender::Device* dev,
-			crl::multisense::RemoteHeadChannel remoteHeadIndex);
+		static void setAuxConfigTask(void* context, AUXConfig *arg1, VkRender::Device* dev,
+                                     crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
-		/**@brief static function given to the threadpool to configure the white balance of the sensor.
-		 * @param[in] context pointer to the calling context
-		 * @param[in] arg1 pointer to WhiteBalanceParams params block
-		 * @param[in] dev Which profile to update
-		 * @param[in] index Which remote-head to select
-		 * */
-		static void setWhiteBalanceTask(void* context, WhiteBalanceParams* arg1, VkRender::Device* dev,
-			crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
 		/**@brief static function given to the threadpool to configure lighting of the sensor.
 		 * @param[in] context pointer to the calling context

@@ -47,7 +47,9 @@
 
 #ifdef WIN32
 #else
+
 #include <unistd.h>
+
 #endif
 
 
@@ -1256,7 +1258,7 @@ private:
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             ImGui::Dummy(ImVec2(10.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::Text("Exposure");
+            ImGui::Text("Stereo camera");
             ImGui::PopFont();
 
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLBlueIsh);
@@ -1268,15 +1270,14 @@ private:
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
             ImGui::Dummy(ImVec2(25.0f, 0.0f));
             ImGui::SameLine();
-            std::string txt = "Enable Auto:";
+            std::string txt = "Auto Exp.:";
             ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
             ImGui::Text("%s", txt.c_str());
             ImGui::SameLine(0, textSpacing - txtSize.x);
-            ImGui::Checkbox("##Enable Auto Exposure", &d.parameters.ep.autoExposure);
-            d.parameters.ep.update = ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::Checkbox("##Enable Auto Exposure", &d.parameters.stereo.ep.autoExposure);
+            d.parameters.stereo.ep.update = ImGui::IsItemDeactivatedAfterEdit();
             // Draw Manual eposure controls or auto exposure control
-            ImGui::Dummy(ImVec2(0.0f, 5.0f));
-            if (!d.parameters.ep.autoExposure) {
+            if (!d.parameters.stereo.ep.autoExposure) {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(3.0f, 0.0f));
                 ImGui::SameLine();
@@ -1289,9 +1290,9 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.ep.exposure),
+                ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.stereo.ep.exposure),
                                  20, 30000);
-                d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1303,24 +1304,10 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderFloat("##Gain",
-                                   &d.parameters.gain, 1.68f,
+                                   &d.parameters.stereo.gain, 1.68f,
                                    14.2f, "%.1f");
-                d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
-
-                /*
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::Dummy(ImVec2(25.0f, 0.0f));
-                ImGui::SameLine();
-                txt = "exposure2:";
-                txtSize = ImGui::CalcTextSize(txt.c_str());
-                ImGui::Text("%s", txt.c_str());
-                ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderInt("##exp2", &d.parameters.epSecondary.exposure, 20, 30000);
-                d.parameters.epSecondary.update = ImGui::IsItemDeactivatedAfterEdit();
-                ImGui::PopStyleColor();
-*/
 
             } else {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1330,7 +1317,7 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::Text("%d us", d.parameters.ep.currentExposure);
+                ImGui::Text("%d us", d.parameters.stereo.ep.currentExposure);
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(3.0f, 0.0f));
@@ -1345,9 +1332,9 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderInt("##Max",
-                                 reinterpret_cast<int *>(&d.parameters.ep.autoExposureMax), 10,
+                                 reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureMax), 10,
                                  35000);
-                d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1359,8 +1346,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderInt("##Decay",
-                                 reinterpret_cast<int *>(&d.parameters.ep.autoExposureDecay), 0, 20);
-                d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
+                                 reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureDecay), 0, 20);
+                d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1372,8 +1359,8 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderFloat("##TargetIntensity",
-                                   &d.parameters.ep.autoExposureTargetIntensity, 0, 1);
-                d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
+                                   &d.parameters.stereo.ep.autoExposureTargetIntensity, 0, 1);
+                d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1384,9 +1371,9 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Threshold", &d.parameters.ep.autoExposureThresh,
+                ImGui::SliderFloat("##Threshold", &d.parameters.stereo.ep.autoExposureThresh,
                                    0, 1);
-                d.parameters.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1401,17 +1388,17 @@ private:
                         "\n Set the Region Of Interest for the auto exposure. Note: by default only the left image is used for auto exposure \n ");
                 ImGui::SameLine(0.0f, 5.0f);
 
-                if (ImGui::Button("Set new ROI", ImVec2(80.0f, 20.0f))) {
+                if (ImGui::Button("Set ROI", ImVec2(80.0f, 20.0f))) {
                     try {
-                        d.parameters.ep.autoExposureRoiX = std::stoi(buf1);
-                        d.parameters.ep.autoExposureRoiY = std::stoi(buf2);
-                        d.parameters.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.ep.autoExposureRoiX;
-                        d.parameters.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.ep.autoExposureRoiY;
-                        d.parameters.ep.update |= true;
+                        d.parameters.stereo.ep.autoExposureRoiX = std::stoi(buf1);
+                        d.parameters.stereo.ep.autoExposureRoiY = std::stoi(buf2);
+                        d.parameters.stereo.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.stereo.ep.autoExposureRoiX;
+                        d.parameters.stereo.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.stereo.ep.autoExposureRoiY;
+                        d.parameters.stereo.ep.update |= true;
                     } catch (...) {
                         Log::Logger::getInstance()->error(
                                 "Failed to parse ROI input. User most likely tried to set empty parameters");
-                        d.parameters.ep.update = false;
+                        d.parameters.stereo.ep.update = false;
                     }
                 }
                 ImGui::PopStyleColor();
@@ -1451,39 +1438,218 @@ private:
             ImGui::Text("%s", txt.c_str());
             ImGui::SameLine(0, textSpacing - txtSize.x);
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-            ImGui::SliderFloat("##Gamma",
-                               &d.parameters.gamma, 1.1f,
+            ImGui::SliderFloat("##Gamma stereo",
+                               &d.parameters.stereo.gamma, 1.1f,
                                2.2f, "%.2f");
             // Correct update sequence. This is because gamma and gain was part of general parameters. This will probably be redone in the future once established categories are in place
-            if (d.parameters.ep.autoExposure)
-                d.parameters.update = ImGui::IsItemDeactivatedAfterEdit();
+            if (d.parameters.stereo.ep.autoExposure)
+                d.parameters.stereo.update = ImGui::IsItemDeactivatedAfterEdit();
             else
-                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
-
+                d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
             ImGui::PopStyleColor();
+            ImGui::Separator();
 
             // White Balance
-            {
+            if (d.hasColorCamera) {
                 ImGui::PushFont(handles->info->font18);
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));
                 ImGui::SameLine();
-                ImGui::Text("White Balance");
+                ImGui::Text("Aux camera");
                 ImGui::PopFont();
 
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txtAutoConfig = "Enable Auto:";
-                ImVec2 txtSizeAutoConfig = ImGui::CalcTextSize(txtAutoConfig.c_str());
-                ImGui::Text("%s", txtAutoConfig.c_str());
-                ImGui::SameLine(0, textSpacing - txtSizeAutoConfig.x);
-                ImGui::Checkbox("##EnableAutoWhiteBalance", &d.parameters.wb.autoWhiteBalance);
-                d.parameters.wb.update = ImGui::IsItemDeactivatedAfterEdit();
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                std::string txt = "Auto Exp.:";
+                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::Checkbox("##Enable AUX Auto Exposure", &d.parameters.aux.ep.autoExposure);
+                d.parameters.aux.update = ImGui::IsItemDeactivatedAfterEdit();
+                // Draw Manual eposure controls or auto exposure control
+                if (!d.parameters.aux.ep.autoExposure) {
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(3.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::HelpMarker("\n Exposure in microseconds \n ");
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine(0.0f, 5);
+                    txt = "Exposure:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderInt("##Exposure Value aux: ", reinterpret_cast<int *>(&d.parameters.aux.ep.exposure),
+                                     20, 30000);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
 
-                if (!d.parameters.wb.autoWhiteBalance) {
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Gain:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderFloat("##Gain aux",
+                                       &d.parameters.aux.gain, 1.68f,
+                                       14.2f, "%.1f");
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
+
+                } else {
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Current Exp:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Text("%d us", d.parameters.aux.ep.currentExposure);
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(3.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::HelpMarker("\n Max exposure in microseconds \n ");
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine(0.0f, 5);
+                    txt = "Max Exp.:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderInt("##MaxAux",
+                                     reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureMax), 10,
+                                     35000);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Decay Rate:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderInt("##DecayAux",
+                                     reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureDecay), 0, 20);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Intensity:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderFloat("##TargetIntensityAux",
+                                       &d.parameters.aux.ep.autoExposureTargetIntensity, 0, 1);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Threshold:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderFloat("##ThresholdAux", &d.parameters.aux.ep.autoExposureThresh,
+                                       0, 1);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(3.0f, 0.0f));
+                    ImGui::SameLine();
+                    static char buf1[5] = "0";
+                    static char buf2[5] = "0";
+                    static char buf3[5] = "0";
+                    static char buf4[5] = "0";
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::HelpMarker(
+                            "\n Set the Region Of Interest for the auto exposure. Note: by default only the left image is used for auto exposure \n ");
+                    ImGui::SameLine(0.0f, 5.0f);
+
+                    if (ImGui::Button("Set ROI##aux", ImVec2(80.0f, 20.0f))) {
+                        try {
+                            d.parameters.aux.ep.autoExposureRoiX = std::stoi(buf1);
+                            d.parameters.aux.ep.autoExposureRoiY = std::stoi(buf2);
+                            d.parameters.aux.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.aux.ep.autoExposureRoiX;
+                            d.parameters.aux.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.aux.ep.autoExposureRoiY;
+                            d.parameters.aux.update |= true;
+                        } catch (...) {
+                            Log::Logger::getInstance()->error(
+                                    "Failed to parse ROI input. User most likely tried to set empty parameters");
+                            d.parameters.aux.update = false;
+                        }
+                    }
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine();
+                    float posX = ImGui::GetCursorPosX();
+                    float inputWidth = 15.0f * 2.8;
+                    ImGui::Text("Upper left corner (x, y)");
+
+                    ImGui::SameLine(0, 15.0f);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SetNextItemWidth(inputWidth);
+                    ImGui::InputText("##decimalminXAux", buf1, 5, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(inputWidth);
+                    ImGui::InputText("##decimalminYAux", buf2, 5, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::PopStyleColor();
+
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::SetCursorPosX(posX);
+                    ImGui::Text("Lower right corner (x, y)");
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SetNextItemWidth(inputWidth);
+                    ImGui::InputText("##decimalmaxXAux", buf3, 5, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(inputWidth);
+                    ImGui::InputText("##decimalmaxYAux", buf4, 5, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::PopStyleColor();
+
+                }
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Gamma:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::SliderFloat("##Gamma aux",
+                                   &d.parameters.aux.gamma, 1.1f,
+                                   2.2f, "%.2f");
+                d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+
+                ImGui::PopStyleColor();
+
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                ImGui::SameLine();
+                txt = "Auto WB:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
+                ImGui::Text("%s", txt.c_str());
+                ImGui::SameLine(0, textSpacing - txtSize.x);
+                ImGui::Checkbox("##Enable AUX auto white balance", &d.parameters.aux.whiteBalanceAuto);
+                d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::Dummy(ImVec2(25.0f, 0.0f));
+
+                if (!d.parameters.aux.whiteBalanceAuto) {
                     ImGui::SameLine();
                     txt = "Red Balance:";
                     txtSize = ImGui::CalcTextSize(txt.c_str());
@@ -1491,9 +1657,9 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SliderFloat("##WBRed",
-                                       &d.parameters.wb.whiteBalanceRed, 0.25f,
+                                       &d.parameters.aux.whiteBalanceRed, 0.25f,
                                        4.0f);
-                    d.parameters.wb.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1505,12 +1671,11 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SliderFloat("##WBBlue",
-                                       &d.parameters.wb.whiteBalanceBlue, 0.25f,
+                                       &d.parameters.aux.whiteBalanceBlue, 0.25f,
                                        4.0f);
-                    d.parameters.wb.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
                 } else {
-                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
                     ImGui::SameLine();
                     txt = "Threshold:";
                     txtSize = ImGui::CalcTextSize(txt.c_str());
@@ -1518,9 +1683,9 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SliderFloat("##WBTreshold",
-                                       &d.parameters.wb.autoWhiteBalanceThresh, 0.0,
+                                       &d.parameters.aux.whiteBalanceThreshold, 0.0,
                                        1.0f);
-                    d.parameters.wb.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1532,12 +1697,55 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SliderInt("##DecayRateWB",
-                                     reinterpret_cast<int *>(&d.parameters.wb.autoWhiteBalanceDecay), 0,
+                                     reinterpret_cast<int *>(&d.parameters.aux.whiteBalanceDecay), 0,
                                      20);
-                    d.parameters.wb.update |= ImGui::IsItemDeactivatedAfterEdit();
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
                 }
 
+                // Aux sharpening
+                {
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                    ImGui::SameLine();
+                    txt = "Sharpening:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Checkbox("##Enable AUX sharpening", &d.parameters.aux.sharpening);
+                    d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+
+                    if (d.parameters.aux.sharpening){
+                        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                        ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                        ImGui::SameLine();
+                        txt = "Percentage:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                        ImGui::SliderFloat("##sharpeningPercentage",
+                                           &d.parameters.aux.sharpeningPercentage, 0.0,
+                                           100.0f);
+                        d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                        ImGui::PopStyleColor();
+
+                        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                        ImGui::Dummy(ImVec2(25.0f, 0.0f));
+                        ImGui::SameLine();
+                        txt = "Limit:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                        ImGui::SliderInt("##sharpeningLimit",
+                                         reinterpret_cast<int *>(&d.parameters.aux.sharpeningLimit), 0,
+                                         100);
+                        d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
+                        ImGui::PopStyleColor();
+                    }
+                }
+                ImGui::Separator();
             }
 
             // LightingParams controls
@@ -1631,6 +1839,7 @@ private:
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }
+            ImGui::Separator();
             // Additional Params
             {
                 ImGui::PushFont(handles->info->font18);
@@ -1664,9 +1873,9 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderFloat("##Framerate",
-                                   &d.parameters.fps, 1,
+                                   &d.parameters.stereo.fps, 1,
                                    30, "%.1f");
-                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1678,11 +1887,13 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::SliderFloat("##Stereo",
-                                   &d.parameters.stereoPostFilterStrength, 0.0f,
+                                   &d.parameters.stereo.stereoPostFilterStrength, 0.0f,
                                    1.0f, "%.1f");
-                d.parameters.update |= ImGui::IsItemDeactivatedAfterEdit();
+                d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }
+
+            ImGui::Separator();
 
             // Calibration
             {

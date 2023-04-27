@@ -105,12 +105,12 @@ if (UNIX) ## Linux
     endif ()
 
     add_library(libssl STATIC IMPORTED GLOBAL)
-    set_target_properties(avutil PROPERTIES
+    set_target_properties(libssl PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES  "C"
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.a")
 
     add_library(libcrypto STATIC IMPORTED GLOBAL)
-    set_target_properties(avutil PROPERTIES
+    set_target_properties(libcrypto PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES  "C"
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.a")
 

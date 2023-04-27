@@ -1450,7 +1450,7 @@ private:
             ImGui::Separator();
 
             // White Balance
-            if (!d.hasColorCamera) {
+            if (d.hasColorCamera) {
                 ImGui::PushFont(handles->info->font18);
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(10.0f, 0.0f));

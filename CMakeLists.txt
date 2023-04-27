@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
-set(VERSION_MINOR "0")
+set(VERSION_MINOR "1")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 

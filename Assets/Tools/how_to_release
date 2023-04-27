@@ -1,5 +1,5 @@
-1. Bump version number in cmake in format v*.*-*
-2. Create git tag, Must be same as in cmake
+1. Bump version number in cmake in format format: v*.*-*
+2. Create git tag, Must be same as in cmake format: v*.*.*
 3. Create pull request and await approval
 4. Merge with master
 5. A runner will pick up and do the following:

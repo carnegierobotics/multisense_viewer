@@ -44,22 +44,32 @@
 #include <string_view>
 #include <fmt/core.h>
 #include <mutex>
+
 #ifdef WIN32
+
 #include <process.h>
+
 #else
 // POSIX Socket Header File(s)
 #include <cerrno>
 #include <pthread.h>
 #endif
+
 #include <queue>
 #include <unordered_map>
 
-#if __has_include(<source_location>)
-#include <source_location>
-#elif __has_include(<experimental/filesystem>)
-#include <experimental/source_location>
+#ifndef __has_include
+    #error "__has_include not supported"
 #else
-#error "Does not have source location as part of std location or experimental"
+    #if __has_include(<source_location>)
+    #include <source_location>
+    #define HAS_SOURCE_LOCATION
+#elif __has_include(<experimental/source_location>)
+    #include <experimental/source_location>
+    #define EXPERIMENTAL_SOURCE_LOCATION
+#else
+    #error "Does not have source location as part of std location or experimental"
+    #endif
 #endif
 
 #include "Viewer/Core/Definitions.h"
@@ -76,14 +86,20 @@ namespace Log {
 #define LOG_DEBUG(x)    Logger::getInstance()->debug(x)
 
 
-
     struct FormatString {
         fmt::string_view m_Str;
+#ifdef HAS_SOURCE_LOCATION
         std::source_location m_Loc;
 
         FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str),
                                                                                                            m_Loc(loc) {}
 
+#endif
+#ifdef EXPERIMENTAL_SOURCE_LOCATION
+        std::experimental::source_location m_Loc;
+
+        FormatString(const char *str, const std::experimental::source_location &loc = std::eperimental::source_location::current()) : m_Str(str), m_Loc(loc) {}
+#endif
     };
 
     struct Metrics {
@@ -134,7 +150,7 @@ namespace Log {
     class Logger {
     public:
 
-        static Logger *getInstance(const std::string& logFileName = "") noexcept;
+        static Logger *getInstance(const std::string &logFileName = "") noexcept;
 
         static Metrics *getLogMetrics() noexcept;
 
@@ -170,6 +186,7 @@ namespace Log {
         void info(const FormatString &format, Args &&... args) {
             vInfo(format, fmt::make_format_args(args...));
         }
+
         void vInfo(const FormatString &format, fmt::format_args args) {
             infoInternal(prepareMessage(format, args, frameNumber).c_str());
         }
@@ -185,12 +202,15 @@ namespace Log {
 
 
         uint32_t frameNumber = 0;
+
         void operator=(const Logger &obj) = delete;
+
         void always(std::string text) noexcept;
+
         void setLogLevel(LogLevel logLevel);
 
     protected:
-        Logger(const std::string& logFileName);
+        Logger(const std::string &logFileName);
 
         ~Logger();
 
@@ -217,10 +237,12 @@ namespace Log {
 
         static void logOnConsole(std::string &data);
 
-        static void logIntoFile(void* ctx, std::string &data);
+        static void logIntoFile(void *ctx, std::string &data);
 
-        static std::string filterFilePath(const std::string& input);
-        static inline std::string prepareMessage(const FormatString& format, fmt::format_args args, uint32_t frameNumber) {
+        static std::string filterFilePath(const std::string &input);
+
+        static inline std::string
+        prepareMessage(const FormatString &format, fmt::format_args args, uint32_t frameNumber) {
             const auto &loc = format.m_Loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
@@ -232,7 +254,7 @@ namespace Log {
         }
 
         static Logger *m_Instance;
-        static VkRender::ThreadPool* m_ThreadPool;
+        static VkRender::ThreadPool *m_ThreadPool;
         static Metrics *m_Metrics;
         std::ofstream m_File;
 

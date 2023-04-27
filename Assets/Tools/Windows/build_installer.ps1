@@ -1,11 +1,12 @@
 ## Power shell script to automate building a installer. Run this from ./build folder and as admin. Must allow script running on your machine
 # Allow scripts to run as admin: Set-ExecutionPolicy RemoteSigned
+# Remember to update filepath for installation folder if version number has changed
 
 cmake -B . -DCMAKE_BUILD_TYPE=Release -DGIT_SUBMODULE=OFF ..
 cmake --build . --config Release --target install -- /m:10
 
 mkdir files
-Copy-Item -Recurse .\multisense_1.0-0_amd64\* .\files\
+Copy-Item -Recurse .\multisense_1.1-0_amd64\* .\files\
 
 mv .\files\Assets\Tools\Windows\inno_setup_script.iss .\
 mv .\files\Assets\Tools\compile.sh .\

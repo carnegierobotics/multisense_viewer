@@ -2,7 +2,7 @@
 # Allow scripts to run as admin: Set-ExecutionPolicy RemoteSigned
 
 cmake -B . -DCMAKE_BUILD_TYPE=Release -DGIT_SUBMODULE=OFF ..
-cmake --build . --config Release --target install
+cmake --build . --config Release --target install -- -j6
 
 mkdir files
 Copy-Item -Recurse .\multisense_1.0-0_amd64\* .\files\

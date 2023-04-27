@@ -98,7 +98,7 @@ namespace Log {
 #ifdef EXPERIMENTAL_SOURCE_LOCATION
         std::experimental::source_location m_Loc;
 
-        FormatString(const char *str, const std::experimental::source_location &loc = std::eperimental::source_location::current()) : m_Str(str), m_Loc(loc) {}
+        FormatString(const char *str, const std::experimental::source_location &loc = std::experimental::source_location::current()) : m_Str(str), m_Loc(loc) {}
 #endif
     };
 

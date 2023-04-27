@@ -67,22 +67,7 @@ namespace Log {
 #define LOG_TRACE(x)    Logger::getInstance()->trace(x)
 #define LOG_DEBUG(x)    Logger::getInstance()->debug(x)
 
-    // enum for LOG_LEVEL
-    typedef enum LOG_LEVEL {
-        DISABLE_LOG = 1,
-        LOG_LEVEL_INFO = 2,
-        LOG_LEVEL_BUFFER = 3,
-        LOG_LEVEL_TRACE = 4,
-        LOG_LEVEL_DEBUG = 5,
-        ENABLE_LOG = 6,
-    } LogLevel;
 
-    // enum for LOG_TYPE
-    typedef enum LOG_TYPE {
-        NO_LOG = 1,
-        CONSOLE = 2,
-        FILE_LOG = 3,
-    } LogType;
 
     struct FormatString {
         fmt::string_view m_Str;
@@ -194,6 +179,7 @@ namespace Log {
         uint32_t frameNumber = 0;
         void operator=(const Logger &obj) = delete;
         void always(std::string text) noexcept;
+        void setLogLevel(LogLevel logLevel);
 
     protected:
         Logger(const std::string& logFileName);
@@ -203,6 +189,20 @@ namespace Log {
         static std::string getCurrentTime();
 
     private:
+
+        static inline std::string getLogStringFromEnum(const Log::LOG_LEVEL &logEnum) {
+            switch (logEnum) {
+                case Log::LOG_LEVEL_INFO:
+                    return "LOG_INFO";
+                case Log::LOG_LEVEL_TRACE:
+                    return "LOG_TRACE";
+                case Log::LOG_LEVEL_DEBUG:
+                    return "LOG_DEBUG";
+                default:
+                    return "LOG_INFO";
+            }
+        };
+
         void infoInternal(const char *text) noexcept;
 
         void traceInternal(const char *text) noexcept;

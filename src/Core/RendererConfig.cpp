@@ -142,6 +142,13 @@ namespace VkRender {
                         std::remove(m_ServerInfo.destination.begin(), m_ServerInfo.destination.end(), '"'),
                         m_ServerInfo.destination.end());
             }
+            if (line.find("LOG_LEVEL=") != std::string::npos) {
+                std::string logLevelStr = line.substr(line.find("=") + 1);
+                logLevelStr.erase(
+                        std::remove(logLevelStr.begin(), logLevelStr.end(), '"'),
+                        logLevelStr.end());
+               m_LogLevel = Utils::getLogLevelEnumFromString(logLevelStr);
+            }
 
         }
         Log::Logger::getInstance()->info("Found Application version: {}", applicationVersion);

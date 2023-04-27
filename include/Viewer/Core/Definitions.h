@@ -68,6 +68,27 @@ namespace VkRender::MultiSense {
     class CRLPhysicalCamera;
 }
 
+
+namespace Log {
+    // enum for LOG_LEVEL
+    typedef enum LOG_LEVEL {
+        DISABLE_LOG = 1,
+        LOG_LEVEL_INFO = 2,
+        LOG_LEVEL_BUFFER = 3,
+        LOG_LEVEL_TRACE = 4,
+        LOG_LEVEL_DEBUG = 5,
+        ENABLE_LOG = 6,
+    } LogLevel;
+
+
+    // enum for LOG_TYPE
+    typedef enum LOG_TYPE {
+        NO_LOG = 1,
+        CONSOLE = 2,
+        FILE_LOG = 3,
+    } LogType;
+}
+
 /**
  * @brief Defines draw behaviour of a script
  */

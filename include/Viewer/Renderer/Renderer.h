@@ -66,6 +66,7 @@ public:
         VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
         this->m_Title = title;
         // Create Log C++ Interface
+        Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         pLogger = Log::Logger::getInstance();
         // Start up usage monitor
         usageMonitor = std::make_unique<UsageMonitor>();

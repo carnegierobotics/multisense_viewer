@@ -8,7 +8,8 @@
 #include "Viewer/Tools/Logger.h"
 
 namespace VkRender {
-    void ServerConnection::sendUsageStatistics(const std::filesystem::path& usageFilePath, std::filesystem::path logFilePath) {
+    void ServerConnection::sendUsageStatistics(const std::filesystem::path &usageFilePath,
+                                               std::filesystem::path logFilePath) {
 
         // Open the file to upload
         std::ifstream jsonFileStream(usageFilePath, std::ios::binary);
@@ -32,18 +33,24 @@ namespace VkRender {
 
         // Create the POST request with the file contents
         httplib::MultipartFormDataItems items = {
-                {"user", m_Identifier,  "",           ""},
-                {"userFile", jsonContent, "userFile.json", "application/json"},
-                {"logFile", logContent, "logFile.log", "text/plain"}
+                {"user",     m_Identifier, "",              ""},
+                {"userFile", jsonContent,  "userFile.json", "application/json"},
+                {"logFile",  logContent,   "logFile.log",   "text/plain"}
         };
 
         Log::Logger::getInstance()->info("Sending usage statistics");
 
         auto res = m_Client->Post(m_Destination, items);
         if (res) {
-            if (res->status == 200) {
-                Log::Logger::getInstance()->info("The server replied with {}", res->body);
-
+            switch (res->status) {
+                case 200:
+                    Log::Logger::getInstance()->info("Status code 200. The server replied with: '{}'", res->body);
+                    break;
+                case 500:
+                    Log::Logger::getInstance()->info("Status code 500. Server error: {}", res->body);
+                    break;
+                case 404:
+                    Log::Logger::getInstance()->info("Error 404.Not found {}", res->body);
             }
         } else {
             auto err = res.error();

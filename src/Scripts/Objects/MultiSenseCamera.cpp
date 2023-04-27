@@ -39,7 +39,7 @@
 
 void MultiSenseCamera::setup() {
 
-    loadModelFuture = std::async(std::launch::async,  &MultiSenseCamera::loadModelsAsync, this);
+    loadModelFuture = std::async(std::launch::async, &MultiSenseCamera::loadModelsAsync, this);
     /*
     Widgets::make()->text("Select other camera models");
     Widgets::make()->slider("##Select model", &selection, 0, 2);
@@ -48,7 +48,7 @@ void MultiSenseCamera::setup() {
 
 }
 
-void MultiSenseCamera::loadModelsAsync(){
+void MultiSenseCamera::loadModelsAsync() {
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
@@ -56,41 +56,42 @@ void MultiSenseCamera::loadModelsAsync(){
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     S30 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(),deviceCopy,
-                     deviceCopy->m_TransferQueue, 1.0f);
+    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), deviceCopy,
+                      deviceCopy->m_TransferQueue, 1.0f);
     S30->createRenderPipeline(renderUtils, shaders);
 
     S27 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
     S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), deviceCopy,
-                     deviceCopy->m_TransferQueue, 1.0f);
+                      deviceCopy->m_TransferQueue, 1.0f);
     S27->createRenderPipeline(renderUtils, shaders);
 
     KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
     KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), deviceCopy,
-                      deviceCopy->m_TransferQueue, 1.0f);
+                       deviceCopy->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
 
 }
 
 void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
+    if (loadModelFuture.valid() &&
+        loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
         return;
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw){
+    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
         if (selectedModel == "Multisense-S30")
             S30->draw(commandBuffer, i);
-        else if(selectedModel == "Multisense-S27")
+        else if (selectedModel == "Multisense-S27")
             S27->draw(commandBuffer, i);
-        else if(selectedModel == "Multisense-KS21")
+        else if (selectedModel == "Multisense-KS21")
             KS21->draw(commandBuffer, i);
-        /*
-        if (selection == 0)
-            S30->draw(commandBuffer, i);
-        else if(selection == 1)
-            S27->draw(commandBuffer, i);
-        else if(selection == 2)
-            KS21->draw(commandBuffer, i);
-        */
-         else{
+            /*
+            if (selection == 0)
+                S30->draw(commandBuffer, i);
+            else if(selection == 1)
+                S27->draw(commandBuffer, i);
+            else if(selection == 2)
+                KS21->draw(commandBuffer, i);
+            */
+        else {
             Log::Logger::getInstance()->warning("No 3D model corresponding to {}. Not drawing anything", selectedModel);
             stopDraw = true;
         }
@@ -99,18 +100,40 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
 void MultiSenseCamera::update() {
     auto &d = bufferOneData;
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+
 
     if (imuEnabled) {
-        renderData.crlCamera->getImuRotation(&rot, 0);
-        //printf("Pitch, Roll:  (%f, %f): Orig: (%f, %f)\n", static_cast<double>(P), static_cast<double>(R), static_cast<double>(rot.pitch), static_cast<double>(rot.roll));
-        d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
+        if (imuRotationFuture.valid() &&
+            imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
+            if (imuRotationFuture.get()){
+                d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+                d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+
+                d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
+                d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
+                Log::Logger::getInstance()->trace("Got new IMU data: {}, {}", -rot.roll, rot.pitch);
+            }
+        }
+
+        auto time = std::chrono::steady_clock::now();
+        auto timeSpan =
+                std::chrono::duration_cast<std::chrono::duration<float >>(time - calcImuRotationTimer);
+
+        // Only create new future if updateIntervalSeconds second has passed or we're currently not running our previous future
+        float updateIntervalSeconds = 1.0f / 30.0f;
+        if (timeSpan.count() > updateIntervalSeconds &&
+            (!imuRotationFuture.valid() ||
+             imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)) {
+            Log::Logger::getInstance()->trace("Calculating new IMU information");
+            imuRotationFuture = std::async(std::launch::async, &VkRender::MultiSense::CRLPhysicalCamera::getImuRotation, renderData.crlCamera, &rot, 0);;
+            calcImuRotationTimer = std::chrono::steady_clock::now();
+        }
     } else {
-        //d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
     }
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -140,7 +163,7 @@ void MultiSenseCamera::update() {
     d2->exposure = ptr->exposure;
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
     d2->debugViewInputs = ptr->debugViewInputs;
-    d2->prefilteredCubeMipLevels =renderUtils.skybox.prefilteredCubeMipLevels;
+    d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
 
 }
@@ -157,6 +180,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         imuEnabled = d.useIMU;
         noActiveDevice = false;
         stopDraw = false;
+        frameRate = renderData.crlCamera->getCameraInfo(0).imgConf.fps();
     }
     if (noActiveDevice)
         stopDraw = true;

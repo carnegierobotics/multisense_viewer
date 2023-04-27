@@ -35,7 +35,9 @@
  **/
 #ifdef WIN32
 #define _USE_MATH_DEFINES
+
 #include <cmath>
+
 #endif
 
 #include <vulkan/vulkan_core.h>
@@ -1031,19 +1033,17 @@ namespace VkRender::MultiSense {
         std::vector<crl::multisense::imu::Info> info;
         uint32_t msgs;
         it->second->ptr()->getImuInfo(msgs, info);
-        auto iterator = header->data().samples.begin();
         double time = 0, prevTime = 0;
         struct ImuData {
             float x, y, z;
             double time;
             double dTime;
         };
-
         std::vector<ImuData> gyro;
         std::vector<ImuData> accel;
 
-
-        for (; iterator != header->data().samples.end(); ++iterator) {
+        for (auto iterator = header->data().samples.begin();
+             iterator != header->data().samples.end(); ++iterator) {
             const crl::multisense::imu::Sample &s = *iterator;
 
             switch (s.type) {
@@ -1080,7 +1080,6 @@ namespace VkRender::MultiSense {
             data->roll = alpha * (data->roll + (g.dTime * (g.x * M_PI / 180))) + (1 - alpha) * rollAcc;
         }
         return true;
-
     }
 
     void CRLPhysicalCamera::updateQMatrix(crl::multisense::RemoteHeadChannel channelID) {
@@ -1168,7 +1167,7 @@ namespace VkRender::MultiSense {
             return false;
         }
 
-        if (hasAuxCamera){
+        if (hasAuxCamera) {
             status = channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf);
             if (crl::multisense::Status_Ok != status) {
                 Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure");

@@ -60,8 +60,9 @@ namespace Log {
 
     Logger *Logger::m_Instance = nullptr;
     VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
-    Metrics* Logger::m_Metrics = nullptr;
-    Logger::Logger(const std::string& logFileName) {
+    Metrics *Logger::m_Metrics = nullptr;
+
+    Logger::Logger(const std::string &logFileName) {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
 
         m_LogLevel = LOG_LEVEL_INFO;
@@ -76,7 +77,7 @@ namespace Log {
         delete m_ThreadPool;
     }
 
-    Logger *Logger::getInstance(const std::string& fileName) noexcept {
+    Logger *Logger::getInstance(const std::string &fileName) noexcept {
         if (m_Instance == nullptr) {
             m_Instance = new Logger(fileName);
             m_Metrics = new Metrics();
@@ -86,12 +87,12 @@ namespace Log {
         return m_Instance;
     }
 
-     Metrics * Logger::getLogMetrics() noexcept {
+    Metrics *Logger::getLogMetrics() noexcept {
         return m_Metrics;
     }
 
-    void Logger::logIntoFile(void* ctx, std::string &data) {
-        auto * app = static_cast<Logger*> (ctx);
+    void Logger::logIntoFile(void *ctx, std::string &data) {
+        auto *app = static_cast<Logger *> (ctx);
         app->m_Mutex.lock();
         app->m_File << getCurrentTime() << "  " << data << endl;
         app->m_Metrics->logQueue.push(data);
@@ -108,11 +109,11 @@ namespace Log {
         std::time_t currentTime = std::time(nullptr);
         char timeString[26];
 
-        #ifdef _WIN32
-                ctime_s(timeString, sizeof(timeString), &currentTime);
-        #else
-                std::strcpy(timeString, std::ctime(&currentTime));
-        #endif
+#ifdef _WIN32
+        ctime_s(timeString, sizeof(timeString), &currentTime);
+#else
+        std::strcpy(timeString, std::ctime(&currentTime));
+#endif
 
         // Last character of currentTime is "\n", so remove it
         string currentTimeStr(timeString);
@@ -159,6 +160,7 @@ namespace Log {
         }
 
     }
+
     void Logger::traceInternal(const char *text) noexcept {
         string data;
         data.append("[TRACE]: ");
@@ -186,10 +188,14 @@ namespace Log {
         }
     }
 
-    std::string Logger::filterFilePath(const std::string& input) {
+    std::string Logger::filterFilePath(const std::string &input) {
         // Filter away the absolute file path given by std::source_location, both for anonymous and readable logs purpose.
         // Magic regex expression, courtesy of chatgpt4
+#ifdef WIN32
         std::regex folderPathRegex(R"(^((?:[a-zA-Z]:[\\\/])?(?:[\w\s-]+[\\\/])+))");
+#else
+        std::regex folderPathRegex(R"(^((?:\/|\.\.\/|\.\/)?(?:[\w\s-]+\/)+))");
+#endif
         std::string result = std::regex_replace(input, folderPathRegex, "");
 
 

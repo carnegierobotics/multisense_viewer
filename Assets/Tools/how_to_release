@@ -1,0 +1,11 @@
+1. Bump version number in cmake in format v*.*-*
+2. Create git tag, Must be same as in cmake
+3. Create pull request and await approval
+4. Merge with master
+5. A runner will pick up and do the following:
+ - Create a draft release
+ - Compile Ubuntu version
+ - Compile Windows version
+ - Create Ubuntu/Windows installers
+ - Upload to draft release
+6. A user must then edit and publish the release manually

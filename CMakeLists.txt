@@ -233,6 +233,8 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/wpcap.dll
             ${CMAKE_BINARY_DIR}/swscale-6.dll
             ${CMAKE_BINARY_DIR}/avutil-57.dll
+            ${CMAKE_BINARY_DIR}/libcrypto-1_1-x64.dll
+            ${CMAKE_BINARY_DIR}/libssl-1_1-x64.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
     # AutoConnect

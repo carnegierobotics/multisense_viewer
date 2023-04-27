@@ -20,6 +20,7 @@ layout (binding = 1) uniform PointCloudParam {
     float disparity;
     float focalLength;
     float scale;
+    float pointSize;
 } matrix;
 
 layout (set = 0, binding = 2) uniform sampler2D depthMap;
@@ -33,7 +34,7 @@ layout(location = 4) out vec2 imageDimmensions;
 
 void main()
 {
-    gl_PointSize = 1.0f;
+
     outUV = inUV;
     float width = matrix.width;
     float height = matrix.height;
@@ -41,6 +42,7 @@ void main()
     // When uploaded to GPU, vulkan will scale the texture values to between 0-1. Since we only have 12 bit values of a 16 bit image, we multiply by 64 to scale between [0 - 1]
     float depth = texture(depthMap, vec2(inUV.x, inUV.y)).r * 64 * 255;//  scaled to inbetween [0, 1] then up to 0 - 255 for disparity
 
+    gl_PointSize = matrix.pointSize;
 
     vec2 uvCoords = vec2(int((inUV.x) * width), int((inUV.y) * height));
     if ((uvCoords.x < 20 || uvCoords.x > width - 20) || (uvCoords.y < 20 || uvCoords.y > height - 20) || depth < 5){

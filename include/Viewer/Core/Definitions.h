@@ -551,6 +551,8 @@ namespace VkRender {
         float focalLength{};
         /** @brief Scaling factor used when operating in cropped mode assuming uniform scaling in x- and y direction */
         float scale{};
+        /** @brief Point size to view the point cloud. Larger for more distant points and smaller for closer points */
+        float pointSize{};
     };
 
     struct ColorPointCloudParams {

@@ -335,7 +335,12 @@ namespace VkRender::MultiSense {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->error("Failed to update Light config");
+            Log::Logger::getInstance()->error("Failed to getImageConfig");
+            return;
+        }
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
+            Log::Logger::getInstance()->error("Failed to getAuxImageConfig");
             return;
         }
         if (crl::multisense::Status_Ok !=
@@ -348,7 +353,8 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Failed to update '{}'", "versionInfo");
             return;
         }
-        if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "devInfo");
             return;
         }
@@ -581,7 +587,6 @@ namespace VkRender::MultiSense {
             infoMap[channelID].imgConf.setExposure(p.exposure);
         }
 
-        infoMap[channelID].imgConf.setExposureSource(p.exposureSource);
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
             Log::Logger::getInstance()->error("Unable to set exposure configuration");
@@ -614,15 +619,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Unable to query exposure configuration");
             return false;
         }
-        std::vector<crl::multisense::image::ExposureConfig> exposures = infoMap[channelID].imgConf.secondaryExposures();
 
-
-        crl::multisense::image::ExposureConfig config;
-        config.setExposure(p.exposure);
-        config.setAutoExposure(false);
-        config.setExposureSource(crl::multisense::Source_Luma_Right | crl::multisense::Source_Luma_Aux);
-        exposures.push_back(config);
-        infoMap[channelID].imgConf.setSecondaryExposures(exposures);
 
         status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
         if (crl::multisense::Status_Ok != status) {
@@ -712,47 +709,6 @@ namespace VkRender::MultiSense {
         return true;
     }
 
-    bool
-    CRLPhysicalCamera::setWhiteBalance(WhiteBalanceParams param, crl::multisense::RemoteHeadChannel channelID) {
-        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (channelMap[channelID]->ptr() == nullptr) {
-            Log::Logger::getInstance()->error(
-                    "Attempted to set white balance on a channel that was not connected, Channel {}", channelID);
-            return false;
-        }
-        crl::multisense::Status status = channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf);
-        //
-        // Check to see if the configuration query succeeded
-        if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to query m_Image configuration");
-            return false;
-        }
-        if (param.autoWhiteBalance) {
-            infoMap[channelID].imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
-            infoMap[channelID].imgConf.setAutoWhiteBalanceThresh(param.autoWhiteBalanceThresh);
-            infoMap[channelID].imgConf.setAutoWhiteBalanceDecay(param.autoWhiteBalanceDecay);
-
-        } else {
-            infoMap[channelID].imgConf.setAutoWhiteBalance(param.autoWhiteBalance);
-            infoMap[channelID].imgConf.setWhiteBalance(param.whiteBalanceRed, param.whiteBalanceBlue);
-        }
-        status = channelMap[channelID]->ptr()->setImageConfig(infoMap[channelID].imgConf);
-        if (crl::multisense::Status_Ok != status) {
-            Log::Logger::getInstance()->info("Unable to set m_Image configuration");
-            return false;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(150));
-
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->info("Failed to update white balance");
-            return false;
-        }
-
-        return true;
-    }
-
     bool CRLPhysicalCamera::setLighting(LightingParams param, crl::multisense::RemoteHeadChannel channelID) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         if (channelMap[channelID]->ptr() == nullptr) {
@@ -791,6 +747,61 @@ namespace VkRender::MultiSense {
             return false;
         }
 
+        return true;
+    }
+
+    bool CRLPhysicalCamera::setAuxImageConfig(AUXConfig auxConfig, crl::multisense::RemoteHeadChannel channelID) {
+        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
+
+        if (channelMap[channelID]->ptr() == nullptr) {
+            Log::Logger::getInstance()->error(
+                    "Attempted to set exposure on a channel that was not connected, Channel {}", channelID);
+            return false;
+        }
+
+        crl::multisense::Status status = channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->error("Unable to query aux image configuration");
+            return false;
+        }
+        auto &p = infoMap[channelID].auxImgConf;
+
+        p.setAutoExposure(auxConfig.ep.autoExposure);
+        p.setAutoExposureMax(auxConfig.ep.autoExposureMax);
+        p.setAutoExposureDecay(auxConfig.ep.autoExposureDecay);
+        p.setAutoExposureTargetIntensity(auxConfig.ep.autoExposureTargetIntensity);
+        p.setAutoExposureThresh(auxConfig.ep.autoExposureThresh);
+        p.setAutoExposureRoi(auxConfig.ep.autoExposureRoiX, auxConfig.ep.autoExposureRoiY,
+                             auxConfig.ep.autoExposureRoiWidth,
+                             auxConfig.ep.autoExposureRoiHeight);
+        p.setExposure(auxConfig.ep.exposure);
+
+
+        p.setWhiteBalance(auxConfig.whiteBalanceRed, auxConfig.whiteBalanceBlue);
+        p.setAutoWhiteBalance(auxConfig.whiteBalanceAuto);
+        p.setAutoWhiteBalanceDecay(auxConfig.whiteBalanceDecay);
+        p.setAutoWhiteBalanceThresh(auxConfig.whiteBalanceThreshold);
+        p.setGain(auxConfig.gain);
+        p.setGamma(auxConfig.gamma);
+        p.setSharpeningLimit(auxConfig.sharpeningLimit);
+        p.setSharpeningPercentage(auxConfig.sharpeningPercentage);
+        p.enableSharpening(auxConfig.sharpening);
+
+        status = channelMap[channelID]->ptr()->setAuxImageConfig(infoMap[channelID].auxImgConf);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->error("Unable to set aux image configuration");
+            return false;
+        } else {
+            Log::Logger::getInstance()->info("Set aux image conf on channel {}", channelID);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
+            Log::Logger::getInstance()->error("Failed to verify aux img conf");
+            return false;
+        }
         return true;
     }
 
@@ -1065,8 +1076,8 @@ namespace VkRender::MultiSense {
             rollAcc = std::atan2(a.y, a.z);
             pitchAcc = std::atan2(-a.x, std::sqrt(a.y * a.y + a.z * a.z));
 
-            data->pitch = alpha * (data->pitch + (g.dTime * (g.y*M_PI/180))) + (1-alpha) * pitchAcc;
-            data->roll = alpha * (data->roll + (g.dTime * (g.x*M_PI/180))) + (1-alpha) * rollAcc;
+            data->pitch = alpha * (data->pitch + (g.dTime * (g.y * M_PI / 180))) + (1 - alpha) * pitchAcc;
+            data->roll = alpha * (data->roll + (g.dTime * (g.x * M_PI / 180))) + (1 - alpha) * rollAcc;
         }
         return true;
 
@@ -1144,7 +1155,7 @@ namespace VkRender::MultiSense {
         infoMap[channelID].KColorMat = K;
     }
 
-    bool CRLPhysicalCamera::getExposure(crl::multisense::RemoteHeadChannel channelID) {
+    bool CRLPhysicalCamera::getExposure(short channelID, bool hasAuxCamera) {
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         if (channelMap[channelID]->ptr() == nullptr) {
             Log::Logger::getInstance()->error(
@@ -1156,14 +1167,17 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Unable to query exposure configuration");
             return false;
         }
-        if (infoMap[channelID].imgConf.autoExposure())
-            infoMap[channelID].imgConf.exposure();
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->error("Failed to verify Exposure params");
-            return false;
+
+        if (hasAuxCamera){
+            status = channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf);
+            if (crl::multisense::Status_Ok != status) {
+                Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure");
+                return false;
+            }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
         return true;
     }
 

@@ -213,18 +213,6 @@ typedef enum ScriptWidgetType {
 /**
  * @brief Adjustable sensor parameters
  */
-struct WhiteBalanceParams {
-    float whiteBalanceRed = 1.0f;
-    float whiteBalanceBlue = 1.0f;
-    bool autoWhiteBalance = true;
-    uint32_t autoWhiteBalanceDecay = 3;
-    float autoWhiteBalanceThresh = 0.5f;
-    bool update = false;
-};
-
-/**
- * @brief Adjustable sensor parameters
- */
 struct LightingParams {
     float dutyCycle = 1.0f;
     int selection = -1;
@@ -248,10 +236,39 @@ struct ExposureParams {
     uint16_t autoExposureRoiY = 0;
     uint16_t autoExposureRoiWidth = crl::multisense::Roi_Full_Image;
     uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
-    crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
     uint32_t currentExposure = 0;
 
     bool update = false;
+};
+
+struct AUXConfig {
+    float    gain = 1.7f;
+    float    whiteBalanceBlue = 1.0f;
+    float    whiteBalanceRed = 1.0f;
+    bool     whiteBalanceAuto = true;
+    uint32_t whiteBalanceDecay = 3;
+    float    whiteBalanceThreshold = 0.5f;
+    bool     hdr = false;
+    float    gamma = 2.0f;
+    bool     sharpening = false;
+    float    sharpeningPercentage = 50.0f;
+    uint8_t  sharpeningLimit = 50;
+
+    ExposureParams ep{};
+    bool update = false;
+};
+
+struct ImageConfig {
+    float gain = 1.0f;
+    float fps = 30.0f;
+    float stereoPostFilterStrength = 0.5f;
+    bool hdrEnabled = false;
+    float gamma = 2.0f;
+    bool hdr = false;
+
+    ExposureParams ep{};
+    bool update = false;
+
 };
 
 /**
@@ -275,23 +292,12 @@ struct CalibrationParams {
 
 /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
 struct Parameters {
-    ExposureParams ep{};
-    ExposureParams epSecondary{};
-
-    WhiteBalanceParams wb{};
     LightingParams light{};
     CalibrationParams calib{};
+    ImageConfig stereo;
+    AUXConfig aux;
 
-    float gain = 1.0f;
-    float fps = 30.0f;
-    float stereoPostFilterStrength = 0.5f;
-    bool hdrEnabled = false;
-    float gamma = 2.0f;
-
-    bool update = false;
     bool updateGuiParams = true;
-
-
 };
 
 /**

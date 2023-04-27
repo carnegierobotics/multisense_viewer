@@ -59,47 +59,59 @@ namespace VkRender::MultiSense {
         // Populate dev-parameters with the currently set settings on the camera
         if (dev->parameters.updateGuiParams) {
             const auto &conf = camPtr.getCameraInfo(dev->configRemoteHead).imgConf;
-            p->ep.exposure = conf.exposure();
-            p->ep.autoExposure = conf.autoExposure();
-            p->ep.exposureSource = conf.exposureSource();
-            p->ep.autoExposureThresh = conf.autoExposureThresh();
-            p->ep.autoExposureDecay = conf.autoExposureDecay();
-            p->ep.autoExposureMax = conf.autoExposureMax();
-            p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
-            p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
-            p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
-            p->ep.autoExposureRoiX = conf.autoExposureRoiX();
-            p->ep.autoExposureRoiY = conf.autoExposureRoiY();
-            p->gain = conf.gain();
-            p->fps = conf.fps();
-            p->gamma = conf.gamma();
-            p->wb.autoWhiteBalance = conf.autoWhiteBalance();
-            p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
-            p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
-            p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
-            p->wb.whiteBalanceRed = conf.whiteBalanceRed();
+            p->stereo.ep.exposure = conf.exposure();
+            p->stereo.ep.autoExposure = conf.autoExposure();
+            p->stereo.ep.autoExposureThresh = conf.autoExposureThresh();
+            p->stereo.ep.autoExposureDecay = conf.autoExposureDecay();
+            p->stereo.ep.autoExposureMax = conf.autoExposureMax();
+            p->stereo.ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+            p->stereo.ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+            p->stereo.ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+            p->stereo.ep.autoExposureRoiX = conf.autoExposureRoiX();
+            p->stereo.ep.autoExposureRoiY = conf.autoExposureRoiY();
+            p->stereo.gain = conf.gain();
+            p->stereo.fps = conf.fps();
+            p->stereo.gamma = conf.gamma();
+            // Aux config
+            const auto &auxConf = camPtr.getCameraInfo(dev->configRemoteHead).auxImgConf;
+            p->aux.whiteBalanceAuto = auxConf.autoWhiteBalance();
+            p->aux.whiteBalanceDecay = auxConf.autoWhiteBalanceDecay();
+            p->aux.whiteBalanceThreshold = auxConf.autoWhiteBalanceThresh();
+            p->aux.whiteBalanceBlue = auxConf.whiteBalanceBlue();
+            p->aux.whiteBalanceRed = auxConf.whiteBalanceRed();
+            p->aux.ep.exposure = auxConf.exposure();
+            p->aux.ep.autoExposure = auxConf.autoExposure();
+            p->aux.ep.autoExposureThresh = auxConf.autoExposureThresh();
+            p->aux.ep.autoExposureDecay = auxConf.autoExposureDecay();
+            p->aux.ep.autoExposureMax = auxConf.autoExposureMax();
+            p->aux.ep.autoExposureTargetIntensity = auxConf.autoExposureTargetIntensity();
+            p->aux.ep.autoExposureRoiHeight = auxConf.autoExposureRoiHeight();
+            p->aux.ep.autoExposureRoiWidth = auxConf.autoExposureRoiWidth();
+            p->aux.ep.autoExposureRoiX = auxConf.autoExposureRoiX();
+            p->aux.ep.autoExposureRoiY = auxConf.autoExposureRoiY();
+            p->aux.gain = auxConf.gain();
+            p->aux.gamma = auxConf.gamma();
 
             const auto &lightConf = camPtr.getCameraInfo(dev->configRemoteHead).lightConf;
             p->light.numLightPulses = (float) lightConf.getNumberOfPulses() / 1000.0f;
             p->light.dutyCycle = lightConf.getDutyCycle(0);
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = (float) lightConf.getStartupTime() / 1000.0f;
-            p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
+            p->stereo.stereoPostFilterStrength = conf.stereoPostFilterStrength();
             dev->parameters.updateGuiParams = false;
         }
 
-        if (dev->parameters.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->fps, p->gain, p->gamma,
-                       p->stereoPostFilterStrength, p->hdrEnabled, dev, dev->configRemoteHead);
+        if (dev->parameters.stereo.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->stereo.fps, p->stereo.gain, p->stereo.gamma,
+                       p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, dev, dev->configRemoteHead);
 
-        if (dev->parameters.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setExposureTask, this, &p->ep, dev, dev->configRemoteHead);
+        if (dev->parameters.stereo.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::setExposureTask, this, &p->stereo.ep, dev, dev->configRemoteHead);
 
-        if (dev->parameters.epSecondary.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setSecondaryExposureTask, this, &p->epSecondary, dev, dev->configRemoteHead);
 
-        if (dev->parameters.wb.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setWhiteBalanceTask, this, &p->wb, dev, dev->configRemoteHead);
+        if (dev->parameters.aux.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
+            pool->Push(CameraConnection::setAuxConfigTask, this, &p->aux, dev, dev->configRemoteHead);
+
 
         if (dev->parameters.light.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
             pool->Push(CameraConnection::setLightingTask, this, &p->light, dev, dev->configRemoteHead);
@@ -115,7 +127,7 @@ namespace VkRender::MultiSense {
         auto time = std::chrono::steady_clock::now();
         std::chrono::duration<float> timeSpan =
                 std::chrono::duration_cast<std::chrono::duration<float >>(time - queryExposureTimer);
-        if (dev->parameters.ep.autoExposure && timeSpan.count() > INTERVAL_1_SECOND &&
+        if (dev->parameters.stereo.ep.autoExposure && timeSpan.count() > INTERVAL_1_SECOND &&
             pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
             queryExposureTimer = std::chrono::steady_clock::now();
             pool->Push(CameraConnection::getExposureTask, this, dev, dev->configRemoteHead);
@@ -858,20 +870,12 @@ namespace VkRender::MultiSense {
             app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 
-    void CameraConnection::setSecondaryExposureTask(void *context, ExposureParams *arg1, VkRender::Device *dev,
-                                                    crl::multisense::RemoteHeadChannel remoteHeadIndex) {
+    void CameraConnection::setAuxConfigTask(void *context, AUXConfig *arg1, VkRender::Device *dev,
+                                            crl::multisense::RemoteHeadChannel remoteHeadIndex) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
 
         std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr.setSecondaryExposureParams(*arg1, remoteHeadIndex))
-            app->updateFromCameraParameters(dev, remoteHeadIndex);
-    }
-
-    void CameraConnection::setWhiteBalanceTask(void *context, WhiteBalanceParams *arg1, VkRender::Device *dev,
-                                               crl::multisense::RemoteHeadChannel remoteHeadIndex) {
-        auto *app = reinterpret_cast<CameraConnection *>(context);
-        std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr.setWhiteBalance(*arg1, remoteHeadIndex))
+        if (app->camPtr.setAuxImageConfig(*arg1, remoteHeadIndex))
             app->updateFromCameraParameters(dev, remoteHeadIndex);
     }
 
@@ -926,27 +930,42 @@ namespace VkRender::MultiSense {
         // Query the camera for new values and update the GUI. It is a way to see if the actual value was set.
         const auto &conf = camPtr.getCameraInfo(remoteHeadIndex).imgConf;
         auto *p = &dev->parameters;
-        p->ep.exposure = conf.exposure();
-        p->ep.autoExposure = conf.autoExposure();
-        p->ep.exposureSource = conf.exposureSource();
-        p->ep.autoExposureThresh = conf.autoExposureThresh();
-        p->ep.autoExposureDecay = conf.autoExposureDecay();
-        p->ep.autoExposureMax = conf.autoExposureMax();
-        p->ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
-        p->ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
-        p->ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
-        p->ep.autoExposureRoiX = conf.autoExposureRoiX();
-        p->ep.autoExposureRoiY = conf.autoExposureRoiY();
-        p->gain = conf.gain();
-        p->fps = conf.fps();
-        p->gamma = conf.gamma();
-        p->wb.autoWhiteBalance = conf.autoWhiteBalance();
-        p->wb.autoWhiteBalanceDecay = conf.autoWhiteBalanceDecay();
-        p->wb.autoWhiteBalanceThresh = conf.autoWhiteBalanceThresh();
-        p->wb.whiteBalanceBlue = conf.whiteBalanceBlue();
-        p->wb.whiteBalanceRed = conf.whiteBalanceRed();
-        p->stereoPostFilterStrength = conf.stereoPostFilterStrength();
+        p->stereo.ep.exposure = conf.exposure();
+        p->stereo.ep.autoExposure = conf.autoExposure();
+        p->stereo.ep.autoExposureThresh = conf.autoExposureThresh();
+        p->stereo.ep.autoExposureDecay = conf.autoExposureDecay();
+        p->stereo.ep.autoExposureMax = conf.autoExposureMax();
+        p->stereo.ep.autoExposureTargetIntensity = conf.autoExposureTargetIntensity();
+        p->stereo.ep.autoExposureRoiHeight = conf.autoExposureRoiHeight();
+        p->stereo.ep.autoExposureRoiWidth = conf.autoExposureRoiWidth();
+        p->stereo.ep.autoExposureRoiX = conf.autoExposureRoiX();
+        p->stereo.ep.autoExposureRoiY = conf.autoExposureRoiY();
+        p->stereo.gain = conf.gain();
+        p->stereo.fps = conf.fps();
+        p->stereo.gamma = conf.gamma();
+        p->stereo.stereoPostFilterStrength = conf.stereoPostFilterStrength();
+
+        const auto &auxConf = camPtr.getCameraInfo(dev->configRemoteHead).auxImgConf;
+        p->aux.whiteBalanceAuto = auxConf.autoWhiteBalance();
+        p->aux.whiteBalanceDecay = auxConf.autoWhiteBalanceDecay();
+        p->aux.whiteBalanceThreshold = auxConf.autoWhiteBalanceThresh();
+        p->aux.whiteBalanceBlue = auxConf.whiteBalanceBlue();
+        p->aux.whiteBalanceRed = auxConf.whiteBalanceRed();
+        p->aux.ep.exposure = auxConf.exposure();
+        p->aux.ep.autoExposure = auxConf.autoExposure();
+        p->aux.ep.autoExposureThresh = auxConf.autoExposureThresh();
+        p->aux.ep.autoExposureDecay = auxConf.autoExposureDecay();
+        p->aux.ep.autoExposureMax = auxConf.autoExposureMax();
+        p->aux.ep.autoExposureTargetIntensity = auxConf.autoExposureTargetIntensity();
+        p->aux.ep.autoExposureRoiHeight = auxConf.autoExposureRoiHeight();
+        p->aux.ep.autoExposureRoiWidth = auxConf.autoExposureRoiWidth();
+        p->aux.ep.autoExposureRoiX = auxConf.autoExposureRoiX();
+        p->aux.ep.autoExposureRoiY = auxConf.autoExposureRoiY();
+        p->aux.gain = auxConf.gain();
+        p->aux.gamma = auxConf.gamma();
+
         dev->parameters.updateGuiParams = false;
+
     }
 
     void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex) {
@@ -971,11 +990,16 @@ namespace VkRender::MultiSense {
                                            crl::multisense::RemoteHeadChannel index) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr.getExposure(index)) {
+        if (app->camPtr.getExposure(index, dev->hasColorCamera)) {
             // Update GUI value
             const auto &conf = app->camPtr.getCameraInfo(index).imgConf;
             auto *p = &dev->parameters;
-            p->ep.currentExposure = conf.exposure();
+            p->stereo.ep.currentExposure = conf.exposure();
+
+            if (dev->hasColorCamera){
+                const auto &auxConf = app->camPtr.getCameraInfo(index).auxImgConf;
+                p->aux.ep.currentExposure = auxConf.exposure();
+            }
         }
     }
 

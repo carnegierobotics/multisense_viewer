@@ -98,9 +98,6 @@ if (UNIX) ## Linux
     # Include the OpenSSL header files
     include_directories(${OPENSSL_INCLUDE_DIR})
 
-    # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${INSTALL_DIRECTORY}/opt/multisense)
-
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -108,7 +105,7 @@ if (UNIX) ## Linux
     endif ()
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} -lssl -lcrypto)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)

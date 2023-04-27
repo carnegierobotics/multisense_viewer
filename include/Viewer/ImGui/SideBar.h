@@ -268,13 +268,13 @@ private:
             shellInfo.lpVerb = "runas";
             shellInfo.cbSize = sizeof(SHELLEXECUTEINFO);
             shellInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-            shellInfo.hwnd = NULL;
+            shellInfo.hwnd = nullptr;
             LPCSTR winFileName = fileName.c_str();
             shellInfo.lpFile = winFileName;
             shellInfo.lpParameters = "-i on -c on";
-            shellInfo.lpDirectory = NULL;
+            shellInfo.lpDirectory = ".\\";
             shellInfo.nShow = SW_HIDE;
-            shellInfo.hInstApp = NULL;
+            shellInfo.hInstApp = nullptr;
 
             bool instance = ShellExecuteExA(&shellInfo);
             if (!instance) {
@@ -639,6 +639,7 @@ private:
                 ImGui::SameLine();
 
                 if (ImGui::Button(btnLabel.c_str(), ImVec2(80.0f, 20.0f))) {
+                    Log::Logger::getInstance()->info("User clicked {}", btnLabel);
                     if (btnLabel == "Start") {
                         reader = std::make_unique<AutoConnectReader>();
                         btnLabel = "Stop";

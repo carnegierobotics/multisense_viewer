@@ -45,9 +45,10 @@
 #include <vulkan/vulkan_core.h>
 
 #ifdef WIN32
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN
-    #endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <direct.h>
 #include <windows.h>
 
@@ -670,6 +671,13 @@ static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
 
 }
 
+static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
+    if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
+    if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
+    if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
+};
+
+
 /**
  * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
  * @return path to cache folder
@@ -693,7 +701,7 @@ static inline std::filesystem::path getSystemCachePath() {
     if (!std::filesystem::exists(multiSenseCachePath)) {
         std::error_code ec;
         if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
-            Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string())->info(
+            Log::Logger::getInstance((multiSenseCachePath / "logger.log").string())->info(
                     "Created cache directory {}", multiSenseCachePath.string());
         } else {
             Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}",

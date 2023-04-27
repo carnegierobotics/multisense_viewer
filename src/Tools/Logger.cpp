@@ -53,7 +53,6 @@
 
 #include "Viewer/Tools/Logger.h"
 
-
 // Code Specific Header Files(s)
 using namespace std;
 namespace Log {
@@ -63,8 +62,8 @@ namespace Log {
     VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
     Metrics* Logger::m_Metrics = nullptr;
     Logger::Logger(const std::string& logFileName) {
-
         m_File.open(logFileName.c_str(), ios::out | ios::app);
+
         m_LogLevel = LOG_LEVEL_INFO;
         m_LogType = FILE_LOG;
     }
@@ -82,7 +81,7 @@ namespace Log {
             m_Instance = new Logger(fileName);
             m_Metrics = new Metrics();
             m_ThreadPool = new VkRender::ThreadPool(1);
-            Log::Logger::getInstance()->info("Initialized logger instance");
+            m_Instance->info("Initialized logger instance, fileName: {}", fileName);
         }
         return m_Instance;
     }
@@ -196,6 +195,11 @@ namespace Log {
 
         return result;
 
+    }
+
+    void Logger::setLogLevel(LogLevel logLevel) {
+        getInstance()->info("Setting log level to: {}", getLogStringFromEnum(logLevel));
+        m_LogLevel = logLevel;
     }
 
 };

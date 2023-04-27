@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <vulkan/vulkan.hpp>
+#include <random>
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -45,24 +46,32 @@ namespace VkRender {
             return instance;
         }
 
-        const std::string &getArchitecture() const;
+        [[nodiscard]] const std::string &getArchitecture() const;
 
-        const std::string &getOsVersion() const;
+        [[nodiscard]] const std::string &getOsVersion() const;
 
-        const std::string &getAppVersion() const;
+        [[nodiscard]] const std::string &getAppVersion() const;
 
-        const std::string &getTimeStamp() const;
+        [[nodiscard]] const std::string &getTimeStamp() const;
 
-        const std::string &getOS() const;
+        [[nodiscard]] const std::string &getOS() const;
 
-        const std::string &getGpuDevice() const;
+        [[nodiscard]] const std::string &getGpuDevice() const;
 
         void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 
-        const std::string &getAnonIdentifierString() const;
+        [[nodiscard]]const std::string &getAnonIdentifierString() const;
 
-        const CRLServerInfo &getServerInfo() const {
+        [[nodiscard]]const CRLServerInfo &getServerInfo() const {
             return m_ServerInfo;
+        }
+
+        [[nodiscard]] const Log::LogLevel &getLogLevel() const {
+            return m_LogLevel;
+        }
+
+        void setLogLevel(const Log::LogLevel &level) {
+            m_LogLevel = level;
         }
 
     private:
@@ -167,6 +176,8 @@ namespace VkRender {
         std::string m_GPUDevice;
 
         std::string m_Identifier;
+
+        Log::LogLevel m_LogLevel = Log::LOG_LEVEL_INFO;
 
         void getOSVersion();
 

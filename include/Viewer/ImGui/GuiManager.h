@@ -43,7 +43,9 @@
 #include <vector>
 #include <functional>
 #include <glm/vec2.hpp>
+
 #define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui/imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
@@ -58,16 +60,22 @@ namespace VkRender {
     class GuiManager {
     public:
         GuiObjectHandles handles{};
-        GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass& renderPass, const uint32_t& width, const uint32_t& height);
-        ~GuiManager(){
-            for (const auto& layerStack: m_LayerStack)
+
+        GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
+                   const uint32_t &height);
+
+        ~GuiManager() {
+            Log::Logger::getInstance()->info("Saving ImGui file: {}",
+                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            for (const auto &layerStack: m_LayerStack)
                 layerStack->onDetach();
             vkDestroyPipeline(device->m_LogicalDevice, pipeline, nullptr);
             vkDestroyPipelineCache(device->m_LogicalDevice, pipelineCache, nullptr);
             vkDestroyPipelineLayout(device->m_LogicalDevice, pipelineLayout, nullptr);
             vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->m_LogicalDevice, descriptorSetLayout, nullptr);
-            for (auto& shaderModule: shaderModules) {
+            for (auto &shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
 
@@ -75,10 +83,13 @@ namespace VkRender {
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
+
         /**@brief setup function called once vulkan renderer is setup. Function calls each layer in order to generate buffers for draw commands*/
         void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass);
+
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer);
+
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers();
 
@@ -121,11 +132,15 @@ namespace VkRender {
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
         std::shared_ptr<VkRender::ThreadPool> pool;
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
         // Initialization functions
         void initializeFonts();
+
         ImFont *loadFontFromFileName(std::string file, float fontSize);
+
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
+
         void loadAnimatedGif(const std::string &file);
     };
 }

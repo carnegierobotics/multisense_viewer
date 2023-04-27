@@ -89,12 +89,6 @@ set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibA
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-# Generate empty configuration files. Serve them with the installer so proper permissions is set and files are removed correctly by the uninstaller
-set(CONFIGURATION_FILES imgui.ini crl.ini logger.log usage.json)
-foreach (file_i ${CONFIGURATION_FILES})
-    file(WRITE ${CMAKE_BINARY_DIR}/${file_i} "")
-endforeach (file_i)
-
 if (UNIX) ## Linux
     # Set install directory if not specified
     set(INSTALL_DIRECTORY ${INSTALL_DIRECTORY}/opt/multisense)
@@ -121,11 +115,6 @@ if (UNIX) ## Linux
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    install(FILES
-            ${CONFIGURATION_FILES}
-            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
-            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
-            )
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
@@ -220,17 +209,11 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/avutil-57.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
-    install(FILES
-            ${CONFIGURATION_FILES}
-            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
-            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
-            )
-
     # AutoConnect
     install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    # Create winreg.ini file so installer knows to remove this on uninstall
+
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")

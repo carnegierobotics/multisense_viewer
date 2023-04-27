@@ -54,22 +54,27 @@
 
 namespace VkRender {
 
-    const char* ImGuiGlfwGetClipboardText(void* user_data)
-    {
-        const char* str = glfwGetClipboardString((GLFWwindow*)user_data);
+    const char *ImGuiGlfwGetClipboardText(void *user_data) {
+        const char *str = glfwGetClipboardString((GLFWwindow *) user_data);
         return str;
     }
 
-    void ImGuiGlfwSetClipboardText(void* user_data, const char* text)
-    {
-        glfwSetClipboardString((GLFWwindow*)user_data, text);
+    void ImGuiGlfwSetClipboardText(void *user_data, const char *text) {
+        glfwSetClipboardString((GLFWwindow *) user_data, text);
     }
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
                            const uint32_t &height) {
         device = vulkanDevice;
         ImGui::CreateContext();
-
+        if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
+            Log::Logger::getInstance()->info("Loading imgui conf file from disk {}",
+                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            ImGui::LoadIniSettingsFromDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+        } else {
+            Log::Logger::getInstance()->info("ImGui file does not exist. {}",
+                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+        }
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "GuiManager";
@@ -109,7 +114,14 @@ namespace VkRender {
         ImGui::Render();
         ImGui::EndFrame();
 
-
+        // Save to config file every 5 seconds
+        if (std::chrono::duration_cast<std::chrono::duration<float >>(
+                std::chrono::steady_clock::now() - saveSettingsTimer).count() > 5.0f) {
+            Log::Logger::getInstance()->info("Saving ImGui file: {}",
+                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            saveSettingsTimer = std::chrono::steady_clock::now();
+        }
     }
 
 
@@ -195,7 +207,7 @@ namespace VkRender {
         int32_t vertexOffset = 0;
         int32_t indexOffset = 0;
 
-        if (imDrawData == nullptr) 
+        if (imDrawData == nullptr)
             return;
 
         if (imDrawData->CmdListsCount > 0) {
@@ -206,7 +218,7 @@ namespace VkRender {
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
-                 
+
 
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
@@ -233,7 +245,8 @@ namespace VkRender {
 
     void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
         VkShaderModule vtxModule{};
-        Utils::loadShader((Utils::getShadersPath().append( "Scene/imgui/ui.vert.spv")).string().c_str(), device->m_LogicalDevice, &vtxModule);
+        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
+                          device->m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -243,7 +256,8 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(), device->m_LogicalDevice, &frgModule);
+        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(),
+                          device->m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -273,7 +287,7 @@ namespace VkRender {
 
         // Dimensions
         ImGuiIO *io = &ImGui::GetIO();
-        io->DisplaySize = ImVec2((float)width, (float)height);
+        io->DisplaySize = ImVec2((float) width, (float) height);
         io->DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
         // Initialize all Vulkan resources used by the ui
@@ -459,7 +473,8 @@ namespace VkRender {
         stbi_uc *pixels = nullptr;
         std::vector<stbi_uc> buffer(size);
         if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
-            pixels = stbi_load_gif_from_memory(buffer.data(),static_cast<int> (size), &delays, &width, &height, &depth, &comp, channels);
+            pixels = stbi_load_gif_from_memory(buffer.data(), static_cast<int> (size), &delays, &width, &height, &depth,
+                                               &comp, channels);
             if (!pixels)
                 throw std::runtime_error("failed to load texture m_Image: " + file);
         }
@@ -472,7 +487,7 @@ namespace VkRender {
         handles.info->gif.delay = (uint32_t *) delays;
         gifImageDescriptors.reserve((size_t) depth + 1);
 
-        auto* pixelPointer = pixels; // Store original position in pixels
+        auto *pixelPointer = pixels; // Store original position in pixels
 
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};

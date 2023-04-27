@@ -244,10 +244,10 @@ public:
         time = std::chrono::steady_clock::now();
     }
 
-    void open() {
+    void open(bool byPassTimer = false) {
         // Only try once a second
-        if ((std::chrono::duration_cast<std::chrono::duration<float>>(
-                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) {
+        if (((std::chrono::duration_cast<std::chrono::duration<float>>(
+                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) && !byPassTimer) {
             return;
         }
         time = std::chrono::steady_clock::now();
@@ -276,10 +276,6 @@ public:
             return;
         }
         Log::Logger::getInstance()->trace("Opened shared memory handle");
-        // Clear memory in shared segment
-        std::string emptyString;
-        emptyString.resize(SharedBufferSize);
-        strcpy_s(pBuf, SharedBufferSize, emptyString.c_str());
         isOpen = true;
     }
 

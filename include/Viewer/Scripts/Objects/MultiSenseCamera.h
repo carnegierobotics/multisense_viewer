@@ -35,6 +35,7 @@
  **/
 #pragma once
 
+#include <future>
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
@@ -94,6 +95,11 @@ public:
     Page selectedPreviewTab = CRL_TAB_NONE;
     VkRender::IMUData rot{};
     bool stopDraw = false;
+    float frameRate = 30.0f;
+    glm::mat4 model;
+
+    std::future<bool> imuRotationFuture;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcImuRotationTimer;
 
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;

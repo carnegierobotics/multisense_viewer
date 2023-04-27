@@ -473,6 +473,12 @@ void Renderer::render() {
                             dev.pixelInfo[windowIndex].x = x + 1;
                             dev.pixelInfo[windowIndex].y = y + 1;
 
+                            // Check that we are within bounds
+                            if (dev.pixelInfoZoomed[windowIndex].y > h)
+                                dev.pixelInfoZoomed[windowIndex].y = 0;
+                            if (dev.pixelInfoZoomed[windowIndex].x > h)
+                                dev.pixelInfoZoomed[windowIndex].x = 0;
+
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
                                 case CRL_POINT_CLOUD:
                                     break;
@@ -480,7 +486,8 @@ void Renderer::render() {
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo[windowIndex].intensity = intensity;
 
-                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x];
+                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                                         dev.pixelInfoZoomed[windowIndex].x];
                                     dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
@@ -507,7 +514,8 @@ void Renderer::render() {
                                     } else {
                                         dev.pixelInfo[windowIndex].depth = 0;
                                     }
-                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                                                         dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
                                         dev.pixelInfoZoomed[windowIndex].depth = dist;

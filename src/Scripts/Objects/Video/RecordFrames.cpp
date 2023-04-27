@@ -52,8 +52,29 @@ void RecordFrames::update() {
     if (saveImage) {
         // For each enabled source in all windows
         for (auto &src: sources) {
-            if (src == "Source")
+            if (src == "Idle")
                 continue;
+
+            // Check if we saved a lot more images of this type than others. So skip it
+            bool skipThisFrame = false;
+            auto count = savedImageSourceCount.find(src);
+            std::string otherSrc;
+            for (const auto &i: savedImageSourceCount) {
+                if (src == i.first)
+                    continue;
+                if (count->second > i.second + 3) {
+                    skipThisFrame = true;
+                    otherSrc = i.first;
+                    break;
+                }
+            }
+            if (skipThisFrame) {
+                Log::Logger::getInstance()->trace(
+                        "Skipping saving frame {} of source {} since we have to many compared to {} which has {}",
+                        savedImageSourceCount[src] + 1, src, otherSrc, savedImageSourceCount[otherSrc]);
+                continue;
+            }
+
             // For each remote head index
             for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
                  remoteIdx <=
@@ -67,10 +88,10 @@ void RecordFrames::update() {
                         if (tex->m_Id != tex->m_Id2)
                             continue;
                     }
-
                     if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
                         threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
                                          remoteIdx, tex, isRemoteHead, compression);
+                        savedImageSourceCount[src]++;
                     } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
                         Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
 
@@ -110,6 +131,17 @@ void RecordFrames::update() {
     }
 }
 
+// Function to calculate the hash of a vector of strings
+size_t RecordFrames::hashVector(const std::vector<std::string> &v) {
+    size_t seed = 0;
+    for (const auto &str: v) {
+        std::hash<std::string> hasher;
+        seed ^= hasher(str) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+}
+
+
 void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     for (VkRender::Device &dev: uiHandle->devices) {
@@ -120,9 +152,26 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         sources.clear();
         for (const auto &window: dev.win) {
-            if (!Utils::isInVector(sources, window.second.selectedSource))
+            if (!Utils::isInVector(sources, window.second.selectedSource)) {
                 sources.emplace_back(window.second.selectedSource);
+
+                // Check if "foo" exists in the map
+                if (savedImageSourceCount.find(window.second.selectedSource) == savedImageSourceCount.end() &&
+                    window.second.selectedSource != "Idle") {
+                    Log::Logger::getInstance()->trace("Added source {} to saved image counter in record frames",
+                                                      window.second.selectedSource);
+                    savedImageSourceCount[window.second.selectedSource] = 0;
+                }
+            }
+
         }
+
+        if (hashVector(sources) != hashVector(prevSources)){
+            savedImageSourceCount.clear();
+
+        }
+
+        prevSources = sources;
 
         saveImagePath = dev.outputSaveFolder;
         saveImagePathPointCloud = dev.outputSaveFolderPointCloud;
@@ -134,13 +183,13 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     }
 }
 
-void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDirectory,
                                            std::shared_ptr<VkRender::TextureData> &depthTex,
                                            std::shared_ptr<VkRender::TextureData> &colorTex, bool useAuxColor,
                                            const glm::mat4 &Q, const float &scale, const float &focalLength) {
 
     std::filesystem::path fileLocation = saveDirectory;
-    fileLocation.append(std::to_string(depthTex->m_Id) + ".ply");
+    fileLocation /= (std::to_string(depthTex->m_Id) + ".ply");
     // Dont overwrite already saved images
     if (std::filesystem::exists(fileLocation))
         return;
@@ -229,7 +278,7 @@ void RecordFrames::savePointCloudToPlyFile(std::filesystem::path saveDirectory,
         ss << point.x << " " << point.y << " " << point.z << " " << point.r << " " << point.g << " " << point.b << "\n";
     }
 
-    std::ofstream ply(fileLocation.c_str());
+    std::ofstream ply(fileLocation.string());
     ply << ss.str();
 }
 
@@ -318,7 +367,7 @@ void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &pa
                 RecordFrames::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
                 // something like this
 
-                std::ofstream outputStream((fileLocation.string()).c_str(),
+                std::ofstream outputStream(fileLocation.string(),
                                            std::ios::out | std::ios::binary);
                 if (!outputStream.good()) {
                     Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());

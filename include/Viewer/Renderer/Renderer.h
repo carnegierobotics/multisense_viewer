@@ -51,6 +51,8 @@
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Generated/ScriptHeader.h"
 #include "Viewer/Core/Skybox.h"
+#include "Viewer/Renderer/UsageMonitor.h"
+#include "Viewer/Core/RendererConfig.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -61,15 +63,19 @@ public:
      * @param title Title of application
      */
     explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
+        VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
         this->m_Title = title;
         // Create Log C++ Interface
+        Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         pLogger = Log::Logger::getInstance();
-        Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
+        // Start up usage monitor
+        usageMonitor = std::make_unique<UsageMonitor>();
 
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
         backendInitialized = true;
         pLogger->info("Initialized Backend");
+        config.setGpuDevice(physicalDevice);
 
         guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
         guiManager->handles.mouse = &mouseButtons;
@@ -102,7 +108,7 @@ private:
     std::unique_ptr<VkRender::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
-
+    std::unique_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = true;
@@ -137,9 +143,6 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
-
-    VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stageFlag);
-    std::vector<VkShaderModule> shaderModules{};
 };
 
 

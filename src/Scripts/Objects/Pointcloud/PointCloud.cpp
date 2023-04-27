@@ -33,8 +33,10 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
 #include <glm/gtx/string_cast.hpp>
+
+#include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -47,14 +49,19 @@ void PointCloud::setup() {
                                      &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
     model->colorPointCloudBuffer.map();
 
+    Widgets::make()->text("Set Point Size:");
+    Widgets::make()->slider("##Set Point size", &pointSize, 0, 10);
+
 }
 
 void PointCloud::update() {
     if (model->draw) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
-        auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(), conf. height(), true);
+        auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(),
+                                         conf.height(), true);
         model->getTextureDataPointers(&tex);
-        if (renderData.crlCamera->getCameraStream(lumaOrColor ? "Color Rectified Aux" : "Luma Rectified Left", &tex, remoteHeadIndex)) {
+        if (renderData.crlCamera->getCameraStream(lumaOrColor ? "Color Rectified Aux" : "Luma Rectified Left", &tex,
+                                                  remoteHeadIndex)) {
             model->updateTexture(&tex);
         }
 
@@ -63,27 +70,31 @@ void PointCloud::update() {
         if (renderData.crlCamera->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
             model->updateTexture(depthTex.m_Type);
         }
+
+        VkRender::UBOMatrix mat{};
+        mat.model = glm::mat4(1.0f);
+        mat.model = glm::translate(mat.model, glm::vec3(0.1f, 0.0f, 0.0f));
+
+        // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
+        //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+        //mat.m_Model = glm::translate(mat.m_Model, glm::vec3(2.8, 0.4, -5));
+        auto &d = bufferOneData;
+        d->model = mat.model;
+        d->projection = renderData.camera->matrices.perspective;
+        d->view = renderData.camera->matrices.view;
+
+        VkRender::ColorPointCloudParams data{};
+        data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
+        data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;
+        data.useColor = lumaOrColor == 1;
+        data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+        memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
+
+        auto *buf = bufferThreeData.get();
+        buf->pointSize = pointSize;
+
     }
-    VkRender::UBOMatrix mat{};
-    mat.model = glm::mat4(1.0f);
-    mat.model = glm::translate(mat.model, glm::vec3(0.1f, 0.0f, 0.0f));
-
-    // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
-    //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-    //mat.m_Model = glm::translate(mat.m_Model, glm::vec3(2.8, 0.4, -5));
-    auto &d = bufferOneData;
-    d->model = mat.model;
-    d->projection = renderData.camera->matrices.perspective;
-    d->view = renderData.camera->matrices.view;
-
-    VkRender::ColorPointCloudParams data{};
-    data.instrinsics = renderData.crlCamera->getCameraInfo(0).KColorMat;
-    data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;
-    data.useColor = lumaOrColor == 1;
-    data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-    memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
-
 }
 
 
@@ -99,8 +110,10 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         auto &preview = dev.win.at(CRL_PREVIEW_POINT_CLOUD);
         auto currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
 
-        if (dev.notRealDevice)
+        if (dev.notRealDevice) {
             currentRes = CRL_RESOLUTION_1920_1200_128;
+            model->draw = false;
+        }
 
         if ((currentRes != res ||
              remoteHeadIndex != preview.selectedRemoteHeadIndex || lumaOrColor != dev.useAuxForPointCloudColor)) {
@@ -150,6 +163,7 @@ void PointCloud::prepareTexture() {
     buf->disparity = static_cast<float>(depth);
     buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
     buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
+    buf->pointSize = pointSize;
 
     model->draw = true;
 }

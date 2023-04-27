@@ -209,8 +209,8 @@ public:
         explicit Model(VulkanDevice* dev){
             this->vulkanDevice = dev;
         }
-        explicit Model(VkRender::RenderUtils* r){
-            this->vulkanDevice = r->device;
+        explicit Model(VkRender::RenderUtils* r, VulkanDevice* device = nullptr){
+            this->vulkanDevice = device == nullptr ? r->device : device;
             prefilterEnv = r->skybox.prefilterEnv;
             irradianceCube = r->skybox.irradianceCube;
             lutBrdf = r->skybox.lutBrdf;
@@ -298,7 +298,7 @@ public:
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
         void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
-        void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders);
+        void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders, VkCommandPool cmdPool = VK_NULL_HANDLE);
 
 
         void translate(const glm::vec3 &translation);

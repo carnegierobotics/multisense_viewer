@@ -35,6 +35,7 @@
  **/
 #pragma once
 
+#include <future>
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
@@ -50,7 +51,18 @@ public:
         DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
         DISABLE_WARNING_POP    }
-    ~MultiSenseCamera() = default;
+    ~MultiSenseCamera()= default;
+
+    void onDestroy() override{
+        // Wait for async models to finish loading before destorying script.
+        // So we dont rush cleaning up vulkan resources for old window before this script finished loading
+        while(loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready);
+        S27.reset();
+        S30.reset();
+        KS21.reset();
+        delete deviceCopy;
+    }
+
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
     static std::unique_ptr<Base> CreateMethod() { return std::make_unique<MultiSenseCamera>(); }
     /** @brief Name which is registered for this class. Same as ClassName **/
@@ -72,7 +84,8 @@ public:
     std::unique_ptr<GLTFModel::Model> S30;
     std::unique_ptr<GLTFModel::Model> KS21;
 
-    std::string selectedModel = "S27";
+    VulkanDevice* deviceCopy;
+    std::string selectedModel = "Multisense-KS21";
     int selection = 0;
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
@@ -82,7 +95,15 @@ public:
     Page selectedPreviewTab = CRL_TAB_NONE;
     VkRender::IMUData rot{};
     bool stopDraw = false;
+    float frameRate = 30.0f;
+    glm::mat4 model;
+
+    std::future<bool> imuRotationFuture;
+    std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcImuRotationTimer;
 
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+
+    void loadModelsAsync();
+    std::future<void> loadModelFuture;
 };

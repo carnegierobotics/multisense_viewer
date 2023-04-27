@@ -159,6 +159,7 @@ void Renderer::buildScripts() {
     vars.renderPass = &renderPass;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
+    vars.queueSubmitMutex = &queueSubmitMutex;
     // create first set of scripts for TOP OF PIPE
     for (auto &script: scripts) {
         if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
@@ -344,6 +345,13 @@ void Renderer::render() {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
     }
+    // run update function for camera connection
+    for (auto &dev: guiManager->handles.devices) {
+        if (dev.state != CRL_STATE_ACTIVE)
+            continue;
+        cameraConnection->update(dev);
+
+    }
 
     // Run update function on Scripts
     for (auto &script: scripts) {
@@ -427,7 +435,7 @@ void Renderer::render() {
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
-                    if (win.second.selectedSource == "Source" || win.first == CRL_PREVIEW_POINT_CLOUD)
+                    if (win.second.selectedSource == "Idle" || win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;
@@ -465,6 +473,14 @@ void Renderer::render() {
                             dev.pixelInfo[windowIndex].x = x + 1;
                             dev.pixelInfo[windowIndex].y = y + 1;
 
+                            // Check that we are within bounds
+                            /*
+                            if (dev.pixelInfoZoomed[windowIndex].y > h)
+                                dev.pixelInfoZoomed[windowIndex].y = 0;
+                            if (dev.pixelInfoZoomed[windowIndex].x > h)
+                                dev.pixelInfoZoomed[windowIndex].x = 0;
+                                */
+
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
                                 case CRL_POINT_CLOUD:
                                     break;
@@ -472,7 +488,8 @@ void Renderer::render() {
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo[windowIndex].intensity = intensity;
 
-                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x];
+                                    intensity = tex.data[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                                         dev.pixelInfoZoomed[windowIndex].x];
                                     dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
@@ -499,7 +516,8 @@ void Renderer::render() {
                                     } else {
                                         dev.pixelInfo[windowIndex].depth = 0;
                                     }
-                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) + dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
+                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                                                         dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
                                         dev.pixelInfoZoomed[windowIndex].depth = dist;
@@ -518,6 +536,16 @@ void Renderer::render() {
 }
 
 void Renderer::windowResized() {
+
+    // Clear script and scriptnames before rebuilding
+    for (const auto &scriptName: builtScriptNames) {
+        pLogger->info("Deleting Script: {}", scriptName.c_str());
+        scripts[scriptName].get()->onDestroyScript();
+        scripts[scriptName].reset();
+        scripts.erase(scriptName);
+    }
+    builtScriptNames.clear();
+
     // Recreate to fit new dimensions
     vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
     vkDestroyImage(device, selection.colorImage, nullptr);
@@ -547,20 +575,14 @@ void Renderer::windowResized() {
             script.second->windowResize(&renderData, &guiManager->handles);
     }
 
-    // Clear script and scriptnames before rebuilding
-    for (const auto &scriptName: builtScriptNames) {
-        pLogger->info("Deleting Script: {}", scriptName.c_str());
-        scripts[scriptName].get()->onDestroyScript();
-        scripts[scriptName].reset();
-        scripts.erase(scriptName);
-    }
-    builtScriptNames.clear();
 
     buildScripts();
 }
 
 
 void Renderer::cleanUp() {
+    usageMonitor->sendUsageLog();
+
     for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
         cameraConnection->saveProfileAndDisconnect(&dev);
@@ -576,6 +598,8 @@ void Renderer::cleanUp() {
     }
 
 #endif
+    // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
+    guiManager.reset();
 
     // Clear script and scriptnames
     for (const auto &scriptName: builtScriptNames) {
@@ -587,9 +611,6 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
-    for (auto &shaderModule: shaderModules) {
-        vkDestroyShaderModule(device, shaderModule, nullptr);
-    }
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 }
 
@@ -734,7 +755,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     mouseButtons.dx = dx;
     mouseButtons.dy = dy;
 
-    if (mouseButtons.left && !guiManager->handles.disableCameraRotationFromGUI) { // && !mouseButtons.middle) {
+    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
@@ -752,29 +773,9 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
-            !guiManager->handles.disableCameraRotationFromGUI) {
-            //camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
+            guiManager->handles.info->isViewingAreaHovered) {
+            camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }
-    camera.setArcBallPosition((change > 0.0) ? 0.95 : 1.05);
 
-}
-
-VkPipelineShaderStageCreateInfo Renderer::loadShader(std::string fileName, VkShaderStageFlagBits stageFlag) {
-    // Check if we have .spv extensions. If not then add it.
-    std::size_t extension = fileName.find(".spv");
-    if (extension == std::string::npos)
-        fileName.append(".spv");
-    VkShaderModule module;
-    Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
-                      vulkanDevice->m_LogicalDevice, &module);
-    assert(module != VK_NULL_HANDLE);
-
-    shaderModules.emplace_back(module);
-    VkPipelineShaderStageCreateInfo shaderStage = {};
-    shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStage.stage = stageFlag;
-    shaderStage.module = module;
-    shaderStage.pName = "main";
-    return shaderStage;
 }

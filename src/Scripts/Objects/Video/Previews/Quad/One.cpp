@@ -125,7 +125,11 @@ void One::update() {
         VkRender::ScriptUtils::handleZoom(&zoom);
     }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(useInterpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->pad.x = options->depthColorMap;
+    d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
+                                        options->data.maxDisparityValue, 0.0f);
+
 }
 
 
@@ -168,7 +172,7 @@ void One::prepareMultiSenseTexture() {
         case CRL_COLOR_IMAGE_YUV420:
             vertexShaderFileName = "Scene/spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.vert";
+                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.frag";
             break;
         case CRL_DISPARITY_IMAGE:
             vertexShaderFileName = "Scene/spv/disparity.vert";
@@ -206,7 +210,7 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         auto &preview = dev.win.at(CRL_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
 
-        if (src == "Source") {
+        if (src == "Idle") {
             state = DRAW_NO_SOURCE;
         } else {
             state = DRAW_NO_DATA;
@@ -229,11 +233,11 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
         zoomEnabled = preview.enableZoom;
+        options = &preview.effects;
         if (zoomEnabled) {
-            zoom.zoomValue = uiHandle->previewZoom.find("View Area 0")->second;
+            zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
             zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
         }
-        useInterpolation = preview.enableInterpolation;
 
         auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
                                              zoom.newMinF);

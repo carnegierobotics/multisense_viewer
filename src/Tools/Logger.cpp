@@ -38,17 +38,20 @@
 #include <iostream>
 #include <ctime>
 #include <vector>
+#include <regex>
+
 
 #ifdef WIN32
 #define semPost(x) SetEvent(x)
 #define semWait(x, y) WaitForSingleObject(x, y)
+#define CTIME(time, size, timer) ctime_s(time, size, timer)
 #else
 #include<bits/stdc++.h>
 #define semPost(x) sem_post(x)
+#define CTIME(time, timer) ctime(timer)
 #endif
 
 #include "Viewer/Tools/Logger.h"
-
 
 // Code Specific Header Files(s)
 using namespace std;
@@ -58,15 +61,11 @@ namespace Log {
     Logger *Logger::m_Instance = nullptr;
     VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
     Metrics* Logger::m_Metrics = nullptr;
-
-// Log file m_Name. File m_Name should be change from here only
-    const string logFileName = "logger.log";
-
-    Logger::Logger() {
+    Logger::Logger(const std::string& logFileName) {
         m_File.open(logFileName.c_str(), ios::out | ios::app);
-        m_LogLevel = LOG_LEVEL_TRACE;
-        m_LogType = FILE_LOG;
 
+        m_LogLevel = LOG_LEVEL_INFO;
+        m_LogType = FILE_LOG;
     }
 
 
@@ -77,11 +76,12 @@ namespace Log {
         delete m_ThreadPool;
     }
 
-    Logger *Logger::getInstance() noexcept {
+    Logger *Logger::getInstance(const std::string& fileName) noexcept {
         if (m_Instance == nullptr) {
-            m_Instance = new Logger();
+            m_Instance = new Logger(fileName);
             m_Metrics = new Metrics();
             m_ThreadPool = new VkRender::ThreadPool(1);
+            m_Instance->info("Initialized logger instance, fileName: {}", fileName);
         }
         return m_Instance;
     }
@@ -103,15 +103,20 @@ namespace Log {
     }
 
     string Logger::getCurrentTime() {
-        string currTime;
         //Current date/time based on current time
-        time_t now = time(0);
         // Convert current time to string
-        currTime.assign(ctime(&now));
+        std::time_t currentTime = std::time(nullptr);
+        char timeString[26];
 
-        // Last charactor of currentTime is "\n", so remove it
-        string currentTime = currTime.substr(0, currTime.size() - 1);
-        return currentTime;
+        #ifdef _WIN32
+                ctime_s(timeString, sizeof(timeString), &currentTime);
+        #else
+                std::strcpy(timeString, std::ctime(&currentTime));
+        #endif
+
+        // Last character of currentTime is "\n", so remove it
+        string currentTimeStr(timeString);
+        return currentTimeStr.substr(0, currentTimeStr.size() - 1);
     }
 
 // Interface for Error Log
@@ -154,6 +159,18 @@ namespace Log {
         }
 
     }
+    void Logger::traceInternal(const char *text) noexcept {
+        string data;
+        data.append("[TRACE]: ");
+        data.append(text);
+
+        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
+        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
+            m_ThreadPool->Push(Logger::logOnConsole, data);
+        }
+
+    }
 
 // Interface for Always Log
     void Logger::always(std::string text) noexcept {
@@ -167,6 +184,22 @@ namespace Log {
         } else if (m_LogType == CONSOLE) {
             m_ThreadPool->Push(Logger::logOnConsole, data);
         }
+    }
+
+    std::string Logger::filterFilePath(const std::string& input) {
+        // Filter away the absolute file path given by std::source_location, both for anonymous and readable logs purpose.
+        // Magic regex expression, courtesy of chatgpt4
+        std::regex folderPathRegex(R"(^((?:[a-zA-Z]:[\\\/])?(?:[\w\s-]+[\\\/])+))");
+        std::string result = std::regex_replace(input, folderPathRegex, "");
+
+
+        return result;
+
+    }
+
+    void Logger::setLogLevel(LogLevel logLevel) {
+        getInstance()->info("Setting log level to: {}", getLogStringFromEnum(logLevel));
+        m_LogLevel = logLevel;
     }
 
 };

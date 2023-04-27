@@ -36,7 +36,11 @@
 #ifndef MULTISENSE_VIEWER_DEBUGWINDOW_H
 #define MULTISENSE_VIEWER_DEBUGWINDOW_H
 
+#include <future>
+
 #include "Viewer/ImGui/Layer.h"
+#include "Viewer/Core/RendererConfig.h"
+#include "Viewer/Renderer/UsageMonitor.h"
 
 class DebugWindow : public VkRender::Layer {
 public:
@@ -160,6 +164,7 @@ public:
     }
 
     ExampleAppLog window;
+    std::future<void> sendUserLogFuture;
 
 /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
@@ -340,17 +345,51 @@ public:
                 // Add test device to renderer if not present
                 bool exists = false;
                 for (const auto& device : handles->devices){
-                    if (device.cameraName == "Test Device")
+                    if (device.cameraName == "Multisense-KS21")
                         exists = true;
                 }
                 if (!exists){
                     VkRender::Device testDevice;
-                    testDevice.state = CRL_STATE_ACTIVE;
-                    testDevice.cameraName = "Test Device";
-                    testDevice.notRealDevice = true;
                     Utils::initializeUIDataBlockWithTestData(testDevice);
                     handles->devices.emplace_back(testDevice);
+                    Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
+            }
+
+            // Set log level
+            const char* items[] = { "LOG_TRACE", "LOG_INFO"};
+            static int itemIdIndex = 1; // Here we store our selection data as an index.
+            VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+            if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE){
+                itemIdIndex = 0;
+            } else
+                itemIdIndex = 1;
+
+            const char* previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+            ImGui::SetNextItemWidth(100.0f);
+            if (ImGui::BeginCombo("Set Log level", previewValue, 0))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+                {
+                    const bool is_selected = (itemIdIndex == n);
+                    if (ImGui::Selectable(items[n], is_selected)) {
+                        itemIdIndex = n;
+                        auto level = Utils::getLogLevelEnumFromString(items[n]);
+                        Log::Logger::getInstance()->setLogLevel(level);
+                        config.setLogLevel(level);
+                    }
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+
+            static bool sendUserLog = false;
+            sendUserLog = ImGui::Button("Send user log");
+            if (sendUserLog){
+                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
 
             ImGui::Text("About: ");
@@ -358,7 +397,6 @@ public:
 
         }
         ImGui::EndChild();
-        //ImGui::ShowDemoWindow();
         ImGui::End();
 
     }
@@ -366,6 +404,11 @@ public:
 /** Called once upon this object destruction **/
     void onDetach() override {
 
+    }
+
+    void sendUsageLog(){
+        UsageMonitor usageMonitor;
+        usageMonitor.sendUsageLog();
     }
 
 

@@ -41,6 +41,9 @@
 #include <vector>
 #include <map>
 
+#ifdef _WIN32
+#define sprintf(buffer, size, format, ...) sprintf_s(buffer, size, format, __VA_ARGS__)
+#endif
 template<typename T>
 std::ostream& writeMatrix (std::ostream& stream, std::string const& name, uint32_t rows, uint32_t columns, T const* data)
 {

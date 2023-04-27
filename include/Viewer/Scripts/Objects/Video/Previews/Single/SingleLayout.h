@@ -108,10 +108,10 @@ public:
     std::chrono::steady_clock::time_point lastPresentTime;
 
     bool virtualDevice = false;
+    bool zoomEnabled = false;
 
     VkRender::ZoomParameters zoom{};
-    bool zoomEnabled = false;
-    bool useInterpolation = false;
+    const VkRender::ImageEffectOptions* options{};
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 

@@ -60,12 +60,33 @@
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
-#define MAX_IMAGES_IN_QUEUE 30
+#define MAX_IMAGES_IN_QUEUE 5
 
 
 // Predeclare to speed up compile times
 namespace VkRender::MultiSense {
     class CRLPhysicalCamera;
+}
+
+
+namespace Log {
+    // enum for LOG_LEVEL
+    typedef enum LOG_LEVEL {
+        DISABLE_LOG = 1,
+        LOG_LEVEL_INFO = 2,
+        LOG_LEVEL_BUFFER = 3,
+        LOG_LEVEL_TRACE = 4,
+        LOG_LEVEL_DEBUG = 5,
+        ENABLE_LOG = 6,
+    } LogLevel;
+
+
+    // enum for LOG_TYPE
+    typedef enum LOG_TYPE {
+        NO_LOG = 1,
+        CONSOLE = 2,
+        FILE_LOG = 3,
+    } LogType;
 }
 
 /**
@@ -192,18 +213,6 @@ typedef enum ScriptWidgetType {
 /**
  * @brief Adjustable sensor parameters
  */
-struct WhiteBalanceParams {
-    float whiteBalanceRed = 1.0f;
-    float whiteBalanceBlue = 1.0f;
-    bool autoWhiteBalance = true;
-    uint32_t autoWhiteBalanceDecay = 3;
-    float autoWhiteBalanceThresh = 0.5f;
-    bool update = false;
-};
-
-/**
- * @brief Adjustable sensor parameters
- */
 struct LightingParams {
     float dutyCycle = 1.0f;
     int selection = -1;
@@ -227,10 +236,39 @@ struct ExposureParams {
     uint16_t autoExposureRoiY = 0;
     uint16_t autoExposureRoiWidth = crl::multisense::Roi_Full_Image;
     uint16_t autoExposureRoiHeight = crl::multisense::Roi_Full_Image;
-    crl::multisense::DataSource exposureSource = crl::multisense::Source_Luma_Left;
     uint32_t currentExposure = 0;
 
     bool update = false;
+};
+
+struct AUXConfig {
+    float    gain = 1.7f;
+    float    whiteBalanceBlue = 1.0f;
+    float    whiteBalanceRed = 1.0f;
+    bool     whiteBalanceAuto = true;
+    uint32_t whiteBalanceDecay = 3;
+    float    whiteBalanceThreshold = 0.5f;
+    bool     hdr = false;
+    float    gamma = 2.0f;
+    bool     sharpening = false;
+    float    sharpeningPercentage = 50.0f;
+    uint8_t  sharpeningLimit = 50;
+
+    ExposureParams ep{};
+    bool update = false;
+};
+
+struct ImageConfig {
+    float gain = 1.0f;
+    float fps = 30.0f;
+    float stereoPostFilterStrength = 0.5f;
+    bool hdrEnabled = false;
+    float gamma = 2.0f;
+    bool hdr = false;
+
+    ExposureParams ep{};
+    bool update = false;
+
 };
 
 /**
@@ -254,23 +292,12 @@ struct CalibrationParams {
 
 /** @brief  MultiSense Device configurable parameters. Should contain all adjustable parameters through LibMultiSense */
 struct Parameters {
-    ExposureParams ep{};
-    ExposureParams epSecondary{};
-
-    WhiteBalanceParams wb{};
     LightingParams light{};
     CalibrationParams calib{};
+    ImageConfig stereo;
+    AUXConfig aux;
 
-    float gain = 1.0f;
-    float fps = 30.0f;
-    float stereoPostFilterStrength = 0.5f;
-    bool hdrEnabled = false;
-    float gamma = 2.0f;
-
-    bool update = false;
     bool updateGuiParams = true;
-
-
 };
 
 /**
@@ -298,6 +325,28 @@ namespace VkRender {
         float depth = 0;
     };
 
+
+    /**
+     * Shared data for image effects
+     */
+    struct ImageEffectData {
+        float minDisparityValue = 0.0f;
+        float maxDisparityValue = 255.0f;
+
+    };
+
+    /**
+    * Image effect options for each preview window
+    */
+    struct ImageEffectOptions {
+        bool normalize = false;
+        bool interpolation = false;
+        bool depthColorMap = false;
+
+        VkRender::ImageEffectData data;
+    };
+
+
     /**
      * @brief Information block for each Preview window, should support 1-9 possible previews. Contains stream names and info to presented to the user.
      * Contains a mix of GUI related and MultiSense Device related info.
@@ -305,15 +354,22 @@ namespace VkRender {
     struct PreviewWindow {
         std::vector<std::string> availableSources{}; // Human-readable names of camera sources
         std::vector<std::string> availableRemoteHeads{};
-        std::string selectedSource = "Source";
+        std::string selectedSource = "Idle";
         uint32_t selectedSourceIndex = 0;
         crl::multisense::RemoteHeadChannel selectedRemoteHeadIndex = 0;
         float xPixelStartPos = 0;
         float yPixelStartPos = 0;
         float row = 0;
         float col = 0;
+
+        VkRender::ImageEffectOptions effects;
         bool enableZoom = true;
-        bool enableInterpolation = true;
+        bool isHovered = false;
+        ImVec2 popupPosition = ImVec2(0.0f,
+                                      0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        ImVec2 popupWindowSize = ImVec2(0.0f,
+                                        0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
+        bool updatePosition = false;
     };
 
     /**
@@ -323,6 +379,7 @@ namespace VkRender {
     struct ChannelInfo {
         uint32_t index = 0;
         std::vector<std::string> availableSources{};
+        /** @brief Current connection state for this channel */
         ArConnectionState state = CRL_STATE_DISCONNECTED;
         std::vector<std::string> modes{};
         uint32_t selectedModeIndex = 0;
@@ -354,7 +411,7 @@ namespace VkRender {
         std::string interfaceDescription;
         /** @brief Flag for registering if device is clicked in sidebar */
         bool clicked = false;
-        /** @brief Current connection state for this device */
+        /** @brief Current connection state for this profile */
         ArConnectionState state = CRL_STATE_UNAVAILABLE;
         /** @brief is this device a remote head or a MultiSense camera */
         bool isRemoteHead = false;
@@ -404,9 +461,12 @@ namespace VkRender {
         PreviewLayout layout = CRL_PREVIEW_LAYOUT_SINGLE;
         /** @brief IF 3D area should be extended or not */
         bool extend3DArea = true;
+        /** @brief If the connected device has a color camera */
+        bool hasColorCamera = false;
 
         Device() {
             outputSaveFolder.resize(255);
+            outputSaveFolderPointCloud.resize(255);
         }
     };
 
@@ -434,6 +494,10 @@ namespace VkRender {
         float wheel = 0.0f; // to initialize arcball zoom
         float dx = 0.0f;
         float dy = 0.0f;
+        struct {
+            float x = 0.0f;
+            float y = 0.0f;
+        } pos;
     };
 
     /**
@@ -452,6 +516,7 @@ namespace VkRender {
     struct FragShaderParams {
         glm::vec4 lightDir{};
         glm::vec4 zoomCenter{};
+        glm::vec4 zoomTranslate{};
         float exposure = 4.5f;
         float gamma = 2.2f;
         float prefilteredCubeMipLevels = 0.0f;
@@ -459,6 +524,7 @@ namespace VkRender {
         float debugViewInputs = 0.0f;
         float lod = 0.0f;
         glm::vec2 pad{};
+        glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
     };
 
     struct SkyboxTextures {
@@ -466,7 +532,7 @@ namespace VkRender {
         TextureCubeMap irradianceCube{};
         TextureCubeMap prefilterEnv{};
         Texture2D lutBrdf{};
-        int prefilteredCubeMipLevels = 0;
+        float prefilteredCubeMipLevels = 0;
     };
 
     /**
@@ -485,6 +551,8 @@ namespace VkRender {
         float focalLength{};
         /** @brief Scaling factor used when operating in cropped mode assuming uniform scaling in x- and y direction */
         float scale{};
+        /** @brief Point size to view the point cloud. Larger for more distant points and smaller for closer points */
+        float pointSize{};
     };
 
     struct ColorPointCloudParams {
@@ -525,15 +593,18 @@ namespace VkRender {
         float newMinF = 0.0f, newMaxF = 0.0f;
         float newMinY = 0.0f, newMaxY = 0.0f;
         float newMinYF = 0.0f, newMaxYF = 0.0f;
+        float translateX = 0.0f;
+        float translateY = 0.0f;
 
-        uint32_t m_Width = 0, m_Height = 0;
+        float m_Width = 0, m_Height = 0;
 
         bool resChanged = false;
-        void resolutionUpdated(uint32_t width, uint32_t height){
-            m_Width = width;
-            m_Height = height;
-            prevWidth = m_Width;
-            prevHeight = m_Height;
+
+        void resolutionUpdated(uint32_t width, uint32_t height) {
+            m_Width = static_cast<float>(width);
+            m_Height = static_cast<float>(height);
+            prevWidth = static_cast<float>(width);
+            prevHeight = static_cast<float>(height);;
             prevOffsetX = 0.0f;
             prevOffsetY = 0.0f;
             newMin = 0.0f;
@@ -582,8 +653,9 @@ namespace VkRender {
             TextureCubeMap *irradianceCube;
             TextureCubeMap *prefilterEnv;
             Texture2D *lutBrdf;
-            int prefilteredCubeMipLevels = 0;
+            float prefilteredCubeMipLevels = 0.0f;
         } skybox;
+        std::mutex* queueSubmitMutex;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
@@ -705,6 +777,8 @@ namespace VkRender {
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
         bool hoverState = false;
+        bool isViewingAreaHovered = false;
+
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
@@ -717,13 +791,13 @@ namespace VkRender {
         bool configureNetwork = false;
         /** Keypress and mouse events */
         float accumulatedActiveScroll = 0.0f;
-        std::unordered_map<std::string, float> previewZoom{};
+        /**  Measures change in scroll. Does not provide change the accumulated scroll is outside of min and max scroll  */
+        float scroll = 0.0f;
+        std::unordered_map<StreamWindowIndex, float> previewZoom{};
         float minZoom = 1.0f;
-        float maxZoom = 10.0f;
+        float maxZoom = 4.5f;
         /** @brief min/max scroll used in DoublePreview layout */
         float maxScroll = 450.0f, minScroll = -550.0f;
-        /** @brief when a GUI window is hovered dont move the camera in the 3D view */
-        bool disableCameraRotationFromGUI = false;
         /** @brief Input from backend to IMGUI */
         const Input *input{};
         std::array<float, 4> clearColor{};
@@ -741,10 +815,10 @@ namespace VkRender {
             clearColor[3] = 1.0f;
 
             // Initialize map used for zoom for each preview window
-            previewZoom["View Area 0"] = 1.0f;
-            previewZoom["View Area 1"] = 1.0f;
-            previewZoom["View Area 2"] = 1.0f;
-            previewZoom["View Area 3"] = 1.0f;
+            previewZoom[CRL_PREVIEW_ONE] = 1.0f;
+            previewZoom[CRL_PREVIEW_TWO] = 1.0f;
+            previewZoom[CRL_PREVIEW_THREE] = 1.0f;
+            previewZoom[CRL_PREVIEW_FOUR] = 1.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */

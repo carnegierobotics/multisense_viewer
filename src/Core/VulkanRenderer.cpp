@@ -42,11 +42,13 @@
 #include "Viewer/Tools/Populate.h"
 
 #ifdef WIN32
+
 #include <strsafe.h>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #include <Windows.h>
 
 #endif
@@ -69,6 +71,7 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
+        glfwSetWindowSizeLimits(window, 1280, 720, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -88,7 +91,7 @@ namespace VkRender {
         appInfo.pApplicationName = m_Name.c_str();
         appInfo.pEngineName = m_Name.c_str();
         appInfo.apiVersion = apiVersion;
-        pLogger->info("Setting up vulkan with API Version: {}.{}.{} Minimum recommended version to use is 1.2.0",
+        pLogger->info("Setting up vulkan with API Version: {}.{}.{}",
                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
                       VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
@@ -188,7 +191,7 @@ namespace VkRender {
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
-        vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice);
+        vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice, &queueSubmitMutex);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
             throw std::runtime_error("Failed to create logical device");
@@ -200,7 +203,6 @@ namespace VkRender {
         depthFormat = Utils::findDepthFormat(physicalDevice);
         // Create synchronization Objects
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-        semaphoreCreateInfo.flags =
                 // Create a semaphore used to synchronize m_Image presentation
                 // Ensures that the m_Image is displayed before we start submitting new commands to the queue
         err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
@@ -220,6 +222,8 @@ namespace VkRender {
         submitInfo.pWaitSemaphores = &semaphores.presentComplete;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+
         return true;
     }
 
@@ -562,15 +566,17 @@ namespace VkRender {
         }
         backendInitialized = false;
 
-        // Ensure all operations on the m_Device have been finished before destroying resources
-        vkQueueWaitIdle(queue);
-        vkDeviceWaitIdle(device);
-
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+        // Suspend application while it is in minimized state
+        // Also unsignal semaphore for presentation because we are recreating the swapchain
         while (m_Width == 0 || m_Height == 0) {
             glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
             glfwWaitEvents();
         }
+        // Ensure all operations on the m_Device have been finished before destroying resources
+        vkQueueWaitIdle(queue);
+        vkDeviceWaitIdle(device);
+
         // Recreate swap chain
         swapchain->create(&m_Width, &m_Height, settings.vsync);
 
@@ -583,9 +589,17 @@ namespace VkRender {
             vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
         }
 
-        for (const auto& fence : waitFences) {
-            vkDestroyFence(device, fence, nullptr);
-        }
+        VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
+        // Create a semaphore used to synchronize m_Image presentation
+        // Ensures that the m_Image is displayed before we start submitting new commands to the queue
+        vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+        VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+        if (err != VK_SUCCESS)
+            throw std::runtime_error("Failed to create semaphore");
+        submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+        //for (const auto& fence : waitFences) {
+        //    vkDestroyFence(device, fence, nullptr);
+        //}
         setupMainFramebuffer();
 
         // Maybe resize overlay too
@@ -595,7 +609,6 @@ namespace VkRender {
         // references to the recreated frame buffer
         destroyCommandBuffers();
         createCommandBuffers();
-        createSynchronizationPrimitives();
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
 
@@ -672,12 +685,18 @@ namespace VkRender {
         if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
             Log::Logger::getInstance()->info("SwapChain no longer compatible on acquire next image. Recreating..");
             windowResize();
+            // New swapchain so we dont need to wait for present complete sempahore
             VkResult res = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
-            if (res != VK_SUCCESS)
-                Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image after windoResize. VkResult: {}", std::to_string(result));
+            if (res != VK_SUCCESS) {
+                throw std::runtime_error(
+                        "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
+                        std::to_string(result));
+
+            }
 
         } else if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
+            throw std::runtime_error(
+                    "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
         // Use a fence to wait until the command buffer has finished execution before using it again
         result = vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX);
@@ -689,21 +708,24 @@ namespace VkRender {
     }
 
     void VulkanRenderer::submitFrame() {
+        std::scoped_lock<std::mutex> lock(queueSubmitMutex);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+
         vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
 
         VkResult result = swapchain->queuePresent(queue, currentBuffer, semaphores.renderComplete);
-        if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-                // Swap chain is no longer compatible with the surface and needs to be recreated
-                Log::Logger::getInstance()->info("SwapChain no longer compatible on queue present. Recreating..");
-                windowResize();
-                return;
-            }
+        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
+            // Swap chain is no longer compatible with the surface and needs to be recreated
+            Log::Logger::getInstance()->warning("SwapChain no longer compatible on queue present");
         } else if (result != VK_SUCCESS) {
-            Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}", std::to_string(result));
+            Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
+                                              std::to_string(result));
         }
         if (vkQueueWaitIdle(queue) != VK_SUCCESS)
-        throw std::runtime_error("Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down . VkResult: " + std::to_string(result));
+            throw std::runtime_error(
+                    "Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down . VkResult: " +
+                    std::to_string(result));
     }
 
 /** CALLBACKS **/
@@ -755,7 +777,7 @@ namespace VkRender {
         myApp->keyAction = action;
 
 #ifdef WIN32
-        if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V){
+        if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V) {
             myApp->clipboard();
         }
 #endif
@@ -818,7 +840,8 @@ namespace VkRender {
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove((float) xPos, (float) yPos);
-
+        myApp->mouseButtons.pos.x = static_cast<float>(xPos);
+        myApp->mouseButtons.pos.y = static_cast<float>(yPos);
     }
 
     DISABLE_WARNING_PUSH
@@ -1143,9 +1166,10 @@ namespace VkRender {
 
 
 #ifdef WIN32
+
     void VulkanRenderer::clipboard() {
         // Try opening the clipboard
-        if (! OpenClipboard(nullptr))
+        if (!OpenClipboard(nullptr))
             return;
 
         // Get handle of clipboard object for ANSI text
@@ -1154,16 +1178,17 @@ namespace VkRender {
             return;
 
         // Lock the handle to get the actual text pointer
-        char * pszText = static_cast<char*>( GlobalLock(hData) );
+        char *pszText = static_cast<char *>( GlobalLock(hData));
         if (pszText == nullptr)
             return;
 
         // Save text in a string class instance
         glfwSetClipboardString(window, pszText);
         // Release the lock
-        GlobalUnlock( hData );
+        GlobalUnlock(hData);
 
         CloseClipboard();
     }
+
 #endif
 };

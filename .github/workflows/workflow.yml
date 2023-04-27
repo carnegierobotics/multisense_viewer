@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       install_path: ${{  steps.install_path_id.outputs.install_path  }}
+      install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -28,6 +29,9 @@ jobs:
       - name: Set Output
         id: install_path_id
         run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+      - name: Set Output Ubuntu
+        id: install_path_id_ubuntu
+        run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
 
   ReleaseJob:

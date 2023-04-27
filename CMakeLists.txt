@@ -91,13 +91,6 @@ file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 if (UNIX) ## Linux
-
-    # Find OpenSSL
-    find_package(OpenSSL REQUIRED)
-
-    # Include the OpenSSL header files
-    include_directories(${OPENSSL_INCLUDE_DIR})
-
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"

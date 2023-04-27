@@ -11,6 +11,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 1, set = 0) uniform Info {
     vec4 lightDir;
     vec4 zoom;
+    vec4 zoomTranslate;
     float exposure;
     float gamma;
     float prefilteredCubeMipLevels;

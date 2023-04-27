@@ -45,9 +45,9 @@
 #define VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT
 #endif
 
-VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
+VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, std::mutex *mut) {
     assert(physicalDevice);
-    this->m_PhysicalDevice = physicalDevice;
+    m_PhysicalDevice = physicalDevice;
     // Store property m_Features and such for the m_Device. Can be used for later
     // Device m_Properties also contain limits and sparse m_Properties
     vkGetPhysicalDeviceProperties(physicalDevice, &m_Properties);
@@ -74,7 +74,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice) {
             }
         }
     }
-
+    m_QueueSubmitMutex = mut;
 
 }
 
@@ -82,7 +82,7 @@ VulkanDevice::~VulkanDevice() {
     if (m_CommandPool) {
         vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
     }
-    if (m_LogicalDevice) {
+    if (!isCopy && m_LogicalDevice) {
         vkDestroyDevice(m_LogicalDevice, nullptr);
     }
 }
@@ -179,14 +179,10 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
     // Desired queues need to be requested upon logical m_Device creation
     // Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
     // requests different queue types
-
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-
     // Get queue family indices for the requested queue family types
     // Note that the indices may overlap depending on the implementation
-
     const float defaultQueuePriority(0.0f);
-
     // Graphics queue
     if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT) {
         m_QueueFamilyIndices.graphics = getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
@@ -199,7 +195,6 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
     } else {
         m_QueueFamilyIndices.graphics = 0;
     }
-
     // Dedicated compute queue
     if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT) {
         m_QueueFamilyIndices.compute = getQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
@@ -261,7 +256,6 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
     }
-
     if (!deviceExtensions.empty()) {
         for (const char *enabledExtension: deviceExtensions) {
             if (!extensionSupported(enabledExtension)) {
@@ -270,27 +264,19 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
                 Log::Logger::getInstance()->info("Enabled device extension: '{}'", enabledExtension);
             }
         }
-
         deviceCreateInfo.enabledExtensionCount = (uint32_t) deviceExtensions.size();
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     }
-
     this->m_EnabledFeatures = enabled;
-
     VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
     if (result != VK_SUCCESS) {
         return result;
     }
-
     // Create a default command pool for graphics command buffers
     m_CommandPool = createCommandPool(m_QueueFamilyIndices.graphics);
-
     // Initialize a transfer queue
     vkGetDeviceQueue(m_LogicalDevice, m_QueueFamilyIndices.transfer, 0, &m_TransferQueue);
-
     return result;
-
-
 }
 
 /**
@@ -556,6 +542,7 @@ void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue que
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create fence");
     // Submit to the queue
+    std::scoped_lock<std::mutex> lock(*m_QueueSubmitMutex);
     res = vkQueueSubmit(queue, 1, &submitInfo, fence);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to submit to queue");
@@ -578,3 +565,21 @@ void VulkanDevice::beginCommandBuffer(VkCommandBuffer commandBuffer) {
     commandBufferBI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBI));
 }
+
+/**
+ * Creates a copy of logical device but with new comandbufferpool. Usefull for threaded command buffer generation
+ * @param copy
+ */
+VulkanDevice::VulkanDevice(VulkanDevice *copy) {
+    m_LogicalDevice = copy->m_LogicalDevice;
+    m_QueueFamilyIndices = copy->m_QueueFamilyIndices;
+    m_SupportedExtensions = copy->m_SupportedExtensions;
+    m_EnabledFeatures = copy->m_EnabledFeatures;
+    m_MemoryProperties = copy->m_MemoryProperties;
+    m_TransferQueue = copy->m_TransferQueue;
+    m_CommandPool = createCommandPool(m_QueueFamilyIndices.graphics);
+    m_PhysicalDevice = copy->m_PhysicalDevice;
+    m_QueueSubmitMutex = copy->m_QueueSubmitMutex;
+    isCopy = true;
+}
+

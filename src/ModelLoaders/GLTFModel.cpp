@@ -49,7 +49,7 @@
 #include <math.h>
 #endif
 
-void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device, VkQueue transferQueue, float scale) {
+void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *device, VkQueue transferQueue, float scale) {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     tinygltf::Model gltfModel;
@@ -57,7 +57,7 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
     std::string error;
     std::string warning;
 
-    vulkanDevice = _device;
+    vulkanDevice = device;
     m_FileName = fileName;
     Log::Logger::getInstance()->info("Loading glTF file {}", fileName);
     bool binary = false;
@@ -163,7 +163,6 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *_device,
         vulkanDevice->copyVkBuffer(&indexStaging.buffer, &indices.buffer, &copyRegion);
     }
 
-
     vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
     vkFreeMemory(vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
     if (indexCount > 0) {
@@ -214,7 +213,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCI.poolSizeCount = 2;
         descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = (3) * uboVec.size();
+        descriptorPoolCI.maxSets = static_cast<uint32_t>((3) * uboVec.size());
         (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -1815,7 +1814,7 @@ void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<Vk
         (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                      &descriptorSetLayout));
 
-        for (auto i = 0; i < uboCount; i++) {
+        for (uint32_t i = 0; i < uboCount; i++) {
 
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1979,7 +1978,7 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(
     /**
      * Create Descriptor Pool
      */
-    uint32_t uniformDescriptorCount = (2 * ubo.size() + (uint32_t) nodes.size());
+    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + (uint32_t) nodes.size());
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };
@@ -2192,10 +2191,8 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
-                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders) {
+                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders, VkCommandPool cmdPool) {
     auto tStart = std::chrono::high_resolution_clock::now();
-
-    this->vulkanDevice = utils.device;
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};
     createPipeline(*utils.renderPass, shaders2);

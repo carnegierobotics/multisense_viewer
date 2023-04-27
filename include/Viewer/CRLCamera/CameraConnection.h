@@ -79,11 +79,16 @@ namespace VkRender::MultiSense {
 		/**@brief Called once per frame with a handle to the devices UI information block
 		 * @param devices vector of devices 1:1 relationship with elements shown in sidebar
 		 * @param[in] shouldConfigNetwork if user have ticked the "configure network" checkbox
-		 * @param[in] isRemoteHead if the connected m_Device is a remote head, also selected by user
 		 */
         void onUIUpdate(std::vector<VkRender::Device> &devices, bool shouldConfigNetwork);
 
-		/**@brief Writes the current state of *dev to crl.ini configuration file
+        /**
+         * Called once per frame with a handle to the devices UI information block. called after onUIUpdate()
+         * @param  devices vector of devices 1:1 relationship with elements shown in sidebar
+         */
+        void update(VkRender::Device &devices);
+
+        /**@brief Writes the current state of *dev to crl.ini configuration file
 		 * @param[in] dev which profile to save to crl.ini
 		 */
 		void saveProfileAndDisconnect(VkRender::Device* dev);
@@ -98,6 +103,8 @@ namespace VkRender::MultiSense {
 		/** @brief get status timer */
 		std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryExposureTimer;
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcDisparityNormValuesTimer;
+        std::future<std::pair<float, float>> disparityNormFuture;
 
         /**@brief mutex to prevent multiple threads to communicate with camera.
 		 * could be omitted if threadpool will always consist of one thread */
@@ -152,17 +159,9 @@ namespace VkRender::MultiSense {
 		 * @param[in] dev Which profile to update
 		 * @param[in] index Which remote-head to select
 		 * */
-		static void setSecondaryExposureTask(void* context, ExposureParams* arg1, VkRender::Device* dev,
-			crl::multisense::RemoteHeadChannel remoteHeadIndex);
+		static void setAuxConfigTask(void* context, AUXConfig *arg1, VkRender::Device* dev,
+                                     crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
-		/**@brief static function given to the threadpool to configure the white balance of the sensor.
-		 * @param[in] context pointer to the calling context
-		 * @param[in] arg1 pointer to WhiteBalanceParams params block
-		 * @param[in] dev Which profile to update
-		 * @param[in] index Which remote-head to select
-		 * */
-		static void setWhiteBalanceTask(void* context, WhiteBalanceParams* arg1, VkRender::Device* dev,
-			crl::multisense::RemoteHeadChannel remoteHeadIndex);
 
 		/**@brief static function given to the threadpool to configure lighting of the sensor.
 		 * @param[in] context pointer to the calling context
@@ -275,7 +274,10 @@ namespace VkRender::MultiSense {
 				crl::multisense::Source_Compressed_Rectified_Left,
 		};
 
-	};
+        float findPercentile(uint16_t *image, size_t len, double percentile);
+
+        static std::pair<float, float> findUpperAndLowerDisparityBounds(void* ctx, VkRender::Device* dev);
+    };
 
 }
 #endif //MULTISENSE_CAMERACONNECTION_H

@@ -118,13 +118,14 @@ namespace VkRender::MultiSense {
 
         void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper> &buf) {
             // Lock
-            std::scoped_lock<std::mutex> lock(mut);
             // replace latest data into m_Image pointers
             if (imagePointersMap.empty())
                 return;
 
             if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
                 return;
+
+            std::scoped_lock<std::mutex> lock(mut);
 
             if (!m_SkipLogging) {
                 if (buf->data().frameId != (counterMap[id][buf->data().source] + 1) &&
@@ -154,7 +155,7 @@ namespace VkRender::MultiSense {
     private:
         std::mutex mut;
         std::unordered_map<uint32_t, std::unordered_map<crl::multisense::DataSource, std::shared_ptr<ImageBufferWrapper>>> imagePointersMap{};
-        std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, uint32_t>> counterMap;
+        std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, int64_t>> counterMap;
 
 
     };
@@ -232,15 +233,14 @@ namespace VkRender::MultiSense {
         ~ChannelWrapper() {
             delete imageBuffer;
             delete imuBuffer;
+            if (channelPtr_) {
+                crl::multisense::Channel::Destroy(channelPtr_);
+            }
             // Reset image counter for debugger
             for (auto &src: Log::Logger::getLogMetrics()->device.sourceReceiveMapCounter)
                 for (auto &counter: src.second)
                     counter.second = 0;
 
-
-            if (channelPtr_) {
-                crl::multisense::Channel::Destroy(channelPtr_);
-            }
         }
 
         crl::multisense::Channel *ptr() noexcept {
@@ -274,6 +274,7 @@ namespace VkRender::MultiSense {
         struct CameraInfo {
             crl::multisense::system::DeviceInfo devInfo{};
             crl::multisense::image::Config imgConf{};
+            crl::multisense::image::AuxConfig auxImgConf{};
             crl::multisense::lighting::Config lightConf{};
             crl::multisense::system::NetworkConfig netConfig{};
             crl::multisense::system::VersionInfo versionInfo{};
@@ -365,14 +366,6 @@ namespace VkRender::MultiSense {
         bool setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
         bool setSecondaryExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
 
-        /** @brief Sets the white balance for the sensor
-         *
-         * @param[in] param \ref WhiteBalanceParams
-         * @param[in] channelID which remote head to select
-         * @return if the value was successfully set
-         * */
-        bool setWhiteBalance(WhiteBalanceParams param, crl::multisense::RemoteHeadChannel channelID);
-
         /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
          *
          * @param[in] resolution Resolution enum
@@ -453,7 +446,9 @@ namespace VkRender::MultiSense {
          */
         bool saveSensorCalibration(const std::string &savePath, crl::multisense::RemoteHeadChannel channelID);
 
-        bool getExposure(crl::multisense::RemoteHeadChannel i);
+        bool getExposure(short i, bool b);
+
+        bool setAuxImageConfig(AUXConfig, crl::multisense::RemoteHeadChannel channelID);
 
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
@@ -485,6 +480,7 @@ namespace VkRender::MultiSense {
 
         // For pointclouds
         void updateQMatrix(crl::multisense::RemoteHeadChannel channelID);
+
     };
 
 

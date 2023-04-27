@@ -66,6 +66,7 @@ public:
     bool stopRequested = false;
     bool isOpen = false;
     std::chrono::steady_clock::time_point time;
+    std::string autoConnectVersion;
 
     ReaderLinux() {
         time = std::chrono::steady_clock::now();
@@ -162,6 +163,11 @@ public:
                         }
                     }
 
+                    if (jsonObj.contains("Version") && autoConnectVersion.empty()) {
+                        autoConnectVersion = jsonObj["Version"];
+                        Log::Logger::getInstance()->info("Using AutoConnect version: {}", autoConnectVersion);
+                    }
+
                     if (jsonObj.contains("Result")) {
                         auto res = jsonObj["Result"];
                         VkRender::EntryConnectDevice entry{};
@@ -226,21 +232,22 @@ class ReaderWindows {
     nlohmann::json jsonObj{};
 
     HANDLE hMapFile{};
-    char* pBuf = nullptr;
+    char *pBuf = nullptr;
 
 public:
     bool stopRequested = false;
     bool isOpen = false;
     std::chrono::steady_clock::time_point time;
+    std::string autoConnectVersion;
 
     ReaderWindows() {
         time = std::chrono::steady_clock::now();
     }
 
-    void open() {
+    void open(bool byPassTimer = false) {
         // Only try once a second
-        if ((std::chrono::duration_cast<std::chrono::duration<float>>(
-                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) {
+        if (((std::chrono::duration_cast<std::chrono::duration<float>>(
+                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) && !byPassTimer) {
             return;
         }
         time = std::chrono::steady_clock::now();
@@ -252,28 +259,23 @@ public:
                 FALSE,                 // do not inherit the name
                 szName);               // name of mapping object
 
-        if (hMapFile == NULL)
-        {
+        if (hMapFile == nullptr) {
             logError("Could not create file mapping object...");
             return;
         }
 
-        pBuf = (char *) MapViewOfFile(hMapFile,   // handle to map object
-                                      FILE_MAP_WRITE, // read/write permission
-                                      0,
-                                      0,
-                                      SharedBufferSize);
-        if (pBuf == NULL) {
+        pBuf = reinterpret_cast<char *> (MapViewOfFile(hMapFile,   // handle to map object
+                                                       FILE_MAP_WRITE, // read/write permission
+                                                       0,
+                                                       0,
+                                                       SharedBufferSize));
+        if (pBuf == nullptr) {
             logError("Could not map view of file...");
 
             CloseHandle(hMapFile);
             return;
         }
-        Log::Logger::getInstance()->info("Opened shared memory handle");
-        // Clear memory in shared segment
-        std::string emptyString;
-        emptyString.resize(SharedBufferSize);
-        strcpy(pBuf, emptyString.c_str());
+        Log::Logger::getInstance()->trace("Opened shared memory handle");
         isOpen = true;
     }
 
@@ -302,13 +304,15 @@ public:
 
     bool read() {
         // Only try once a second
+        float oneSecond = 1.0f;
         if ((std::chrono::duration_cast<std::chrono::duration<float>>(
-                std::chrono::steady_clock::now() - time).count() < 1) || isOpen) {
+                std::chrono::steady_clock::now() - time).count() > oneSecond) && isOpen) {
 
             time = std::chrono::steady_clock::now();
             /* use semaphore as a mutex (lock) by waiting for writer to increment it */
-
             std::string str(pBuf);
+
+            Log::Logger::getInstance()->trace("Reading from shared memory (AutoConnect). Message size: {}", str.size());
             if (!str.empty()) {
                 jsonObj = nlohmann::json::parse(str);
 
@@ -316,15 +320,22 @@ public:
                 //std::ofstream o("pretty.json");
                 //o << std::setw(4) << jsonObj << std::endl;
 
-                if (jsonObj.contains("Command")){
-                    if (jsonObj["Command"] == "Stop"){
+                if (jsonObj.contains("Command")) {
+                    if (jsonObj["Command"] == "Stop") {
                         stopRequested = true;
+                        Log::Logger::getInstance()->info("AutConnect has request to stop");
                         return true;
                     }
                 }
 
+                if (jsonObj.contains("Version") && autoConnectVersion.empty()) {
+                    autoConnectVersion = jsonObj["Version"];
+                    Log::Logger::getInstance()->info("Using AutoConnect version: {}", autoConnectVersion);
+                }
 
                 if (jsonObj.contains("Result")) {
+                    Log::Logger::getInstance()->info("AutConnect message contains results: count = {}",
+                                                     jsonObj["Result"].size());
                     auto res = jsonObj["Result"];
                     VkRender::EntryConnectDevice entry{};
                     for (size_t i = 0; i < res.size(); i++) {
@@ -351,6 +362,7 @@ public:
                 }
 
                 memset(pBuf, 0x00, SharedBufferSize / 2);
+                Log::Logger::getInstance()->trace("Clearing shared memory, ready for next message");
                 if (!str.empty())
                     return true;
             }
@@ -365,11 +377,11 @@ public:
                 {"Command", "Stop"}
         };
 
-        strcpy(pBuf + (SharedBufferSize / 2), to_string(send).c_str());
-
+        strcpy_s(pBuf + (SharedBufferSize / 2), (SharedBufferSize / 2), nlohmann::to_string(send).c_str());
+        Log::Logger::getInstance()->info("Sent stop signal to AutoConnect");
     }
 
-    void logError(std::string msg) {
+    void logError(const std::string &msg) {
         Log::Logger::getInstance()->error("{}: GetLastError: {}", msg.c_str(), GetLastError());
 
     }

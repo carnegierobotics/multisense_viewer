@@ -5,17 +5,18 @@ project(
         LANGUAGES C CXX
         )
 
-#set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Set install directory if not specified
+# Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
-set(VERSION_MINOR "0")
+set(VERSION_MINOR "1")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
-option(BUILD_DOC "Build documentation" ON)
+# Set install directory. Used to generate installers for both Windows and Ubuntu using their native approaches
+set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
 
+option(BUILD_DOC "Build documentation" ON)
 # Set a default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -45,6 +46,7 @@ include_directories(SYSTEM external)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
+GenerateVersionFile()
 
 set(ENGINE_SRC
         src/Core/Buffer.cpp
@@ -61,7 +63,9 @@ set(ENGINE_SRC
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/ScriptUIAddons.cpp
-        )
+        src/Renderer/UsageMonitor.cpp
+        src/Core/RendererConfig.cpp src/Core/ServerConnection.cpp)
+
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp
         src/Scripts/Objects/Example.cpp
@@ -79,20 +83,16 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/SceneGizmos/Skybox.cpp
         include/Viewer/Scripts/Private/ScriptUtils.h)
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-# Generate empty configuration files.
-file(WRITE ${CMAKE_BINARY_DIR}/imgui.ini "")
-file(WRITE ${CMAKE_BINARY_DIR}/crl.ini "")
-file(WRITE ${CMAKE_BINARY_DIR}/logger.log "")
-
 if (UNIX) ## Linux
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+    set(INSTALL_DIRECTORY ${INSTALL_DIRECTORY}/opt/multisense)
+
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -115,13 +115,6 @@ if (UNIX) ## Linux
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
-            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
-            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
-            )
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
@@ -134,7 +127,6 @@ endif ()
 
 if (WIN32)
     # Set install directory if not specified
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -217,19 +209,11 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/avutil-57.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
-    install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/imgui.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/crl.ini
-            ${CMAKE_CURRENT_BINARY_DIR}/logger.log
-            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ GROUP_WRITE WORLD_READ WORLD_WRITE
-            CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY}
-            )
-
     # AutoConnect
     install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     # Copy Assets
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    # Create winreg.ini file so installer knows to remove this on uninstall
+
     if (MSVC)
         if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
             message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")

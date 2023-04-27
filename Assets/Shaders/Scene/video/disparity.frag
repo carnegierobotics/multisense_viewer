@@ -11,6 +11,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 1, set = 0) uniform Info {
     vec4 lightDir;
     vec4 zoom;
+    vec4 zoomTranslate;
     float exposure;
     float gamma;
     float prefilteredCubeMipLevels;
@@ -18,6 +19,7 @@ layout(binding = 1, set = 0) uniform Info {
     float debugViewInputs;
     float lod;
     vec2 pad;
+    vec4 normalize;
 } info;
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
@@ -65,12 +67,47 @@ vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
     , sy);
 }
 
+float colormap_red(float x) {
+    if (x < 0.7) {
+        return 4.0 * x - 1.5;
+    } else {
+        return -4.0 * x + 4.5;
+    }
+}
+
+float colormap_green(float x) {
+    if (x < 0.5) {
+        return 4.0 * x - 0.5;
+    } else {
+        return -4.0 * x + 3.5;
+    }
+}
+
+float colormap_blue(float x) {
+    if (x < 0.3) {
+        return 4.0 * x + 0.5;
+    } else {
+        return -4.0 * x + 2.5;
+    }
+}
+
+vec4 colormap(float x) {
+    float r = clamp(colormap_red(x), 0.0, 1.0);
+    float g = clamp(colormap_green(x), 0.0, 1.0);
+    float b = clamp(colormap_blue(x), 0.0, 1.0);
+    return vec4(r, g, b, 1.0);
+}
+
+float normalizeValue(float value, float oldMin, float oldMax, float newMin, float newMax) {
+    return newMin + (value - oldMin) * (newMax - newMin) / (oldMax - oldMin);
+}
+
 void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
-    float uvSampleX = (inUV.x - info.zoom.w) / info.zoom.z + info.zoom.w;
-    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
+    float uvSampleX = (inUV.x - info.zoom.w + info.zoomTranslate.x) / info.zoom.z + info.zoom.w;
+    float uvSampleY = (inUV.y - zoom.y+ info.zoomTranslate.y) / info.zoom.z + zoom.y;
 
     vec4 color;
     bool useInterpolation = info.zoom.x == 1.0f;
@@ -79,5 +116,28 @@ void main()
     } else {
         color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }
-    outColor = vec4(color.r, color.r, color.r, 1.0) * 16;
+
+    color *= 16;
+
+    bool normalize = info.normalize.x == 1.0f;
+    if (normalize){
+        float min = info.normalize.y;
+        float max = info.normalize.z;
+
+        // clamp value between min/max
+        if (color.r < min)
+            color.r = min;
+        else if (color.r > max)
+            color.r = max;
+
+        color.r = normalizeValue(color.r, min, max, 0, 1);
+    }
+    // Use jet color map
+    if (info.pad.x == 1.0f){
+        vec4 jetColor = colormap(color.r);
+        outColor = jetColor;
+    } else {
+        outColor = vec4(color.r, color.r, color.r, 1.0) ;
+    }
+
 }

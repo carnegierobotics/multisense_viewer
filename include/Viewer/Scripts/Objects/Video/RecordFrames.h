@@ -90,14 +90,17 @@ public:
     bool saveImage = false;
     bool isRemoteHead = false;
     std::string saveImagePath;
-    std::string saveImagePathPointCloud;
+    std::filesystem::path saveImagePathPointCloud;
     std::string compression;
     std::vector<std::string> sources;
+    std::vector<std::string> prevSources;
+    int prevNumberSources = 0;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
     CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
 
     std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
+    std::unordered_map<std::string, uint32_t> savedImageSourceCount;
 
 
     template<typename T>
@@ -139,12 +142,14 @@ public:
                     std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
 
     void
-    static savePointCloudToPlyFile(std::filesystem::path saveDirectory,
+    static savePointCloudToPlyFile(const std::filesystem::path& saveDirectory,
                                    std::shared_ptr<VkRender::TextureData> &depthTex,
                                    std::shared_ptr<VkRender::TextureData> &colorTex,
                                    bool useAuxColor,
                                    const glm::mat4 &Q, const float &scale, const float &focalLength
     );
+
+    size_t hashVector(const std::vector<std::string> &v);
 };
 
 

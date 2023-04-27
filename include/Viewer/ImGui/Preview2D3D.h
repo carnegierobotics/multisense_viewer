@@ -2190,6 +2190,9 @@ private:
                 ImGui::EndCombo();
             }
         }
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::Separator();
+
         // Section 2
         {            // Check if mouse hover a window
             ImGui::Dummy(ImVec2(0.0f, 15.0));
@@ -2214,6 +2217,9 @@ private:
             dev.resetCamera = ImGui::Button("Reset camera position");
             ImGui::PopStyleColor(2);
         }
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+        ImGui::Separator();
 
         // Section 3
         {
@@ -2259,6 +2265,36 @@ private:
             ImGui::PopStyleColor();
         }
 
+        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+
+        ImGui::Dummy(ImVec2(0.0f, 5.0));
+
+        for (const auto &elem: Widgets::make()->elements) {
+            // for each element type
+            ImGui::Dummy(ImVec2(0.0f, 0.0));
+            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::SameLine();
+            switch (elem.type) {
+                case WIDGET_FLOAT_SLIDER:
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue);
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_INT_SLIDER:
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_TEXT:
+                    ImGui::Text("%s", elem.label);
+                    break;
+            }
+
+        }
+        ImGui::PopStyleColor(); // ImGuiCol_Text
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+        ImGui::Separator();
         // Section 4
         {
             ImGui::Dummy(ImVec2(0.0f, 15.0));
@@ -2323,30 +2359,6 @@ private:
             ImGui::PopStyleVar();
         }
 
-        ImGui::Dummy(ImVec2(0.0f, 10.0));
-
-        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-
-        for (const auto &elem: Widgets::make()->elements) {
-            // for each element type
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-
-            switch (elem.type) {
-                case WIDGET_FLOAT_SLIDER:
-                    ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue);
-                    break;
-                case WIDGET_INT_SLIDER:
-                    ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
-                    break;
-                case WIDGET_TEXT:
-                    ImGui::Text("%s", elem.label);
-                    break;
-            }
-
-        }
-        ImGui::PopStyleColor(); // ImGuiCol_Text
     }
 
 };

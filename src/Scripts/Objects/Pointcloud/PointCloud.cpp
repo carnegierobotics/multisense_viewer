@@ -33,8 +33,10 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
 #include <glm/gtx/string_cast.hpp>
+
+#include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -46,6 +48,9 @@ void PointCloud::setup() {
                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                      &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
     model->colorPointCloudBuffer.map();
+
+    Widgets::make()->text("Set Point Size:");
+    Widgets::make()->slider("##Set Point size", &pointSize, 0, 10);
 
 }
 
@@ -85,6 +90,10 @@ void PointCloud::update() {
         data.useColor = lumaOrColor == 1;
         data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
+
+        auto *buf = bufferThreeData.get();
+        buf->pointSize = pointSize;
+
     }
 }
 
@@ -154,6 +163,7 @@ void PointCloud::prepareTexture() {
     buf->disparity = static_cast<float>(depth);
     buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
     buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
+    buf->pointSize = pointSize;
 
     model->draw = true;
 }

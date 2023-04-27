@@ -91,6 +91,9 @@ namespace VkRender::MultiSense {
             p->aux.ep.autoExposureRoiY = auxConf.autoExposureRoiY();
             p->aux.gain = auxConf.gain();
             p->aux.gamma = auxConf.gamma();
+            p->aux.sharpening = auxConf.enableSharpening();
+            p->aux.sharpeningPercentage = auxConf.sharpeningPercentage();
+            p->aux.sharpeningLimit = auxConf.sharpeningLimit();
 
             const auto &lightConf = camPtr.getCameraInfo(dev->configRemoteHead).lightConf;
             p->light.numLightPulses = (float) lightConf.getNumberOfPulses() / 1000.0f;
@@ -951,6 +954,9 @@ namespace VkRender::MultiSense {
         p->aux.whiteBalanceThreshold = auxConf.autoWhiteBalanceThresh();
         p->aux.whiteBalanceBlue = auxConf.whiteBalanceBlue();
         p->aux.whiteBalanceRed = auxConf.whiteBalanceRed();
+        p->aux.sharpening = auxConf.enableSharpening();
+        p->aux.sharpeningPercentage = auxConf.sharpeningPercentage();
+        p->aux.sharpeningLimit = auxConf.sharpeningLimit();
         p->aux.ep.exposure = auxConf.exposure();
         p->aux.ep.autoExposure = auxConf.autoExposure();
         p->aux.ep.autoExposureThresh = auxConf.autoExposureThresh();

@@ -4,11 +4,12 @@
 # Make sure the glslc exec is installed.
 
 # Windows location
-outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
-glslc="../../shaderc/build/glslc/Debug/glslc" #
+#outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+#glslc="../../shaderc/build/glslc/Debug/glslc" #
 
 # Unix location
-#glslc="../../shaderc/build/glslc/glslc" #
+glslc="../../shaderc/build/glslc/glslc" #
+outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
 
 sceneOutDir="../Shaders/Scene/spv/"
 sceneDir="../Shaders/Scene"

@@ -84,7 +84,7 @@ public:
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
 
     int lumaOrColor = false; // 0 : luma // 1 : Color
-
+    float pointSize = 1.8f;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     int point = 0;

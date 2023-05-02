@@ -678,6 +678,23 @@ static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr)
     return Log::LOG_LEVEL::LOG_LEVEL_INFO;
 };
 
+static inline bool stringToBool(const std::string& str) {
+    std::string lowerStr;
+    std::transform(str.begin(), str.end(), std::back_inserter(lowerStr), [](unsigned char c) { return std::tolower(c); });
+
+    if (lowerStr == "true") {
+        return true;
+    } else if (lowerStr == "false") {
+        return false;
+    } else {
+        // Handle invalid input string, e.g., throw an exception or return a default value
+        throw std::invalid_argument("Invalid input string for boolean conversion");
+    }
+}
+static inline std::string boolToString(bool value) {
+    return value ? "true" : "false";
+}
+
 
 /**
  * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created

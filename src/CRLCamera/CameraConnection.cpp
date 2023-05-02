@@ -346,7 +346,7 @@ namespace VkRender::MultiSense {
             if (disparityNormFuture.valid() &&
                 disparityNormFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
                 auto result = disparityNormFuture.get();
-                Log::Logger::getInstance()->trace("Calculated new norm {} to {}", result.first, result.second);
+                Log::Logger::getInstance()->traceWithFrequency("normalize future result", 50, "Calculated new norm {} to {}", result.first, result.second);
                 for (auto &window: dev.win) {
                     window.second.effects.data.minDisparityValue = result.first;
                     window.second.effects.data.maxDisparityValue = result.second;
@@ -358,7 +358,7 @@ namespace VkRender::MultiSense {
                 (!disparityNormFuture.valid() ||
                  disparityNormFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                Log::Logger::getInstance()->trace("Pushing new disparity normalizer calculation to pool");
+                Log::Logger::getInstance()->traceWithFrequency("new normalize future", 50, "Pushing new disparity normalizer calculation to pool");
                 disparityNormFuture = pool->Push(CameraConnection::findUpperAndLowerDisparityBounds, this, &dev);
                 calcDisparityNormValuesTimer = std::chrono::steady_clock::now();
 

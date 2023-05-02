@@ -14,6 +14,8 @@ class UsageMonitor {
 public:
     UsageMonitor();
     void sendUsageLog();
+    void setSetting(const std::string &key, const std::string &value);
+    void loadSettingsFromFile();
 
 private:
     std::filesystem::path usageFilePath;
@@ -26,6 +28,8 @@ private:
     void initializeJSONFile();
 
     void addEvent();
+
+    nlohmann::json openUsageFile();
 };
 
 

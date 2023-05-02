@@ -102,18 +102,17 @@ void MultiSenseCamera::update() {
     auto &d = bufferOneData;
 
 
-    if (imuEnabled) {
+    if (imuEnabled && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
         if (imuRotationFuture.valid() &&
             imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
             if (imuRotationFuture.get()) {
                 d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
                 d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-                //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
                 d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
 
                 d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
                 d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
-                Log::Logger::getInstance()->trace("Got new IMU data: {}, {}", -rot.roll, rot.pitch);
+                Log::Logger::getInstance()->traceWithFrequency("Calculate imu result", 30, "Got new IMU data: {}, {}", -rot.roll, rot.pitch);
             }
         }
 
@@ -126,7 +125,7 @@ void MultiSenseCamera::update() {
         if (timeSpan.count() > updateIntervalSeconds &&
             (!imuRotationFuture.valid() ||
              imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)) {
-            Log::Logger::getInstance()->trace("Calculating new IMU information");
+            Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 30,"Calculating new IMU information");
             imuRotationFuture = std::async(std::launch::async, &VkRender::MultiSense::CRLPhysicalCamera::getImuRotation,
                                            renderData.crlCamera, &rot, 0);;
             calcImuRotationTimer = std::chrono::steady_clock::now();

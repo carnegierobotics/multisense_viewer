@@ -1,6 +1,8 @@
 1. Bump version number in cmake in format format: v*.*-*
 2. Create git tag, Must be same as in cmake format: v*.*.*
-3. Create pull request and await approval
+3. Create pull request and await approval.
+    a. Check that the github runner can succesfully compile the project using workflow dispatch
+    command using gh: gh workflow run workflow.yml -r v1.1.0/main
 4. Merge with master
 5. A runner will pick up and do the following:
  - Create a draft release

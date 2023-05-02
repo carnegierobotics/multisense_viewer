@@ -59,17 +59,19 @@
 #include <unordered_map>
 
 #ifndef __has_include
-    #error "__has_include not supported"
+#error "__has_include not supported"
 #else
-    #if __has_include(<source_location>)
-    #include <source_location>
-    #define HAS_SOURCE_LOCATION
+#if __has_include(<source_location>)
+
+#include <source_location>
+
+#define HAS_SOURCE_LOCATION
 #elif __has_include(<experimental/source_location>)
-    #include <experimental/source_location>
-    #define EXPERIMENTAL_SOURCE_LOCATION
+#include <experimental/source_location>
+#define EXPERIMENTAL_SOURCE_LOCATION
 #else
-    #error "Does not have source location as part of std location or experimental"
-    #endif
+#error "Does not have source location as part of std location or experimental"
+#endif
 #endif
 
 #include "Viewer/Core/Definitions.h"
@@ -196,8 +198,39 @@ namespace Log {
             vTrace(format, fmt::make_format_args(args...));
         }
 
+        /**
+         * log trace messages with a specific frequency. frequency == 1 means every frame otherwise every nth frame.
+         * @tparam Args
+         * @param tag Tag used to count the frequency
+         * @param frequency ever nth frame this line should be logged
+         * @param format format string
+         * @param args args for formatted string
+         */
+        template<typename... Args>
+        void
+        traceWithFrequency(const std::string &tag, uint32_t frequency, const FormatString &format, Args &&... args) {
+            if (frequencies.find(tag) != frequencies.end() && counter.find(tag) != counter.end()) {
+                counter[tag]++;
+            } else {
+                counter.insert_or_assign(tag, static_cast<uint32_t>(1));
+                frequencies.insert_or_assign(tag, frequency);
+            }
+            // I would like to use % == 0, but at least on windows if I do
+            // counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the counter map get initialized with NULL.
+            // which makes the next line crash when I reference value in counter[tag].
+            // Does not happen if I use any other value such as 1. No functional difference but just weird
+            // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
+            if (counter[tag] % frequencies[tag]  == 1) {
+                vTrace(tag, format, fmt::make_format_args(args...));
+            }
+        }
+
         void vTrace(const FormatString &format, fmt::format_args args) {
             traceInternal(prepareMessage(format, args, frameNumber).c_str());
+        }
+
+        void vTrace(const std::string &tag, const FormatString &format, fmt::format_args args) {
+            traceInternal(prepareMessage(format, args, frameNumber, tag).c_str());
         }
 
 
@@ -242,11 +275,16 @@ namespace Log {
         static std::string filterFilePath(const std::string &input);
 
         static inline std::string
-        prepareMessage(const FormatString &format, fmt::format_args args, uint32_t frameNumber) {
+        prepareMessage(const FormatString &format, fmt::format_args args, uint32_t frameNumber,
+                       const std::string &tag = "") {
             const auto &loc = format.m_Loc;
             std::string s;
             fmt::vformat_to(std::back_inserter(s), format.m_Str, args);
-            std::string filePath = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            std::string filePath;
+            if (tag.empty())
+                filePath = fmt::format("{}:{}: ", loc.file_name(), loc.line());
+            else
+                filePath = fmt::format("{}: {}-{}: ", loc.file_name(), tag, loc.line());
             std::string msg = filterFilePath(filePath);
             msg.append(s);
             msg = msg.insert(0, (std::to_string(frameNumber) + "  "));
@@ -257,6 +295,8 @@ namespace Log {
         static VkRender::ThreadPool *m_ThreadPool;
         static Metrics *m_Metrics;
         std::ofstream m_File;
+        std::map<std::string, uint32_t> frequencies;
+        std::map<std::string, uint32_t> counter;
 
         std::mutex m_Mutex{};
 

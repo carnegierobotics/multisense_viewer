@@ -259,10 +259,10 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                              0.9f; // cubic growth in scaling factor
         }
         options = &preview.effects;
-        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
+        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
                                              zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(
-                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
+                (zoom.zoomCenter.y - 0) * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) + zoom.newMinYF);
         if (mappedX <= width && mappedY <= height) {
             dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
             dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;

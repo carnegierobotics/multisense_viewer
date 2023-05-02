@@ -252,7 +252,7 @@ struct AUXConfig {
     float    gamma = 2.0f;
     bool     sharpening = false;
     float    sharpeningPercentage = 50.0f;
-    uint8_t  sharpeningLimit = 50;
+    int  sharpeningLimit = 50;
 
     ExposureParams ep{};
     bool update = false;
@@ -370,6 +370,7 @@ namespace VkRender {
         ImVec2 popupWindowSize = ImVec2(0.0f,
                                         0.0f); // Position of popup window for image effects. (Used to update popup position when preview window is scrolled)
         bool updatePosition = false;
+        std::string name = "None";
     };
 
     /**

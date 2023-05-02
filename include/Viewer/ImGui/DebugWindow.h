@@ -44,6 +44,7 @@
 
 class DebugWindow : public VkRender::Layer {
 public:
+    UsageMonitor usageMonitor;
 
 // Usage:
 //  static ExampleAppLog my_log;
@@ -170,6 +171,10 @@ public:
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         if (!handles->showDebugWindow)
             return;
+        VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+           auto user = config.getUserSetting();
+           bool update = false;
+
         static bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         ImGui::SetNextWindowSize(ImVec2(handles->info->debuggerWidth, handles->info->debuggerHeight),
@@ -359,7 +364,6 @@ public:
             // Set log level
             const char* items[] = { "LOG_TRACE", "LOG_INFO"};
             static int itemIdIndex = 1; // Here we store our selection data as an index.
-            VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
             if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE){
                 itemIdIndex = 0;
             } else
@@ -375,8 +379,9 @@ public:
                     if (ImGui::Selectable(items[n], is_selected)) {
                         itemIdIndex = n;
                         auto level = Utils::getLogLevelEnumFromString(items[n]);
-                        Log::Logger::getInstance()->setLogLevel(level);
-                        config.setLogLevel(level);
+                        user.logLevel = level;
+                        usageMonitor.setSetting("log_level", items[n]);
+                        update |= true;
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
@@ -392,12 +397,26 @@ public:
                 sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
 
+
+            if(ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)){
+                update = true;
+                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
             ImGui::Text("About: ");
             ImGui::Text("Icons from https://icons8.com");
+
 
         }
         ImGui::EndChild();
         ImGui::End();
+
+        if (update)
+            config.setUserSetting(user);
 
     }
 
@@ -407,7 +426,6 @@ public:
     }
 
     void sendUsageLog(){
-        UsageMonitor usageMonitor;
         usageMonitor.sendUsageLog();
     }
 

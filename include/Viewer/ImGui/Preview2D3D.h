@@ -450,6 +450,7 @@ private:
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
                 auto &window = dev.win[(StreamWindowIndex) index];
+                window.name = windowName;
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE)
@@ -881,12 +882,15 @@ private:
 
                     if (handles->input->getButtonDown(GLFW_KEY_I)) {
                         window.effects.interpolation = !window.effects.interpolation;
+                        Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_M)) {
                         window.effects.depthColorMap = !window.effects.depthColorMap;
+                        Log::Logger::getInstance()->info("User pressed key M for: {}", window.name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_N)) {
                         window.effects.normalize = !window.effects.normalize;
+                        Log::Logger::getInstance()->info("User pressed key N for: {}", window.name);
                     }
 
                     if (window.enableZoom) {

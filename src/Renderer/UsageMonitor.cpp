@@ -23,7 +23,45 @@ UsageMonitor::UsageMonitor() {
 
     // Connect to CRL server
     server = std::make_unique<VkRender::ServerConnection>(config.getAnonIdentifierString(), config.getServerInfo());
+}
 
+
+void UsageMonitor::loadSettingsFromFile() {
+    nlohmann::json jsonObj = openUsageFile();
+    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+
+    if (!jsonObj.contains("settings")) {
+        return;
+    }
+    auto& setting = jsonObj["settings"];
+    auto user = config.getUserSetting();
+
+    if (setting.contains("log_level"))
+        user.logLevel = Utils::getLogLevelEnumFromString(setting["log_level"]);
+    if (setting.contains("send_usage_log_on_exit"))
+        user.sendUsageLogOnExit = Utils::stringToBool(setting["send_usage_log_on_exit"]);
+
+    Log::Logger::getInstance()->info("Loaded user settings from file");
+    config.setUserSetting(user);
+}
+
+
+void UsageMonitor::setSetting(const std::string& key, const std::string& value){
+    nlohmann::json jsonObj = openUsageFile();
+    if (jsonObj.contains("settings")){
+        // Update the specific key in the "settings" object
+        jsonObj["settings"][key] = value;
+    } else {
+        // Create a new "settings" object and add the key-value pair
+        nlohmann::json settingsJson;
+        settingsJson[key] = value;
+        jsonObj["settings"] = settingsJson;
+    }
+    Log::Logger::getInstance()->info("User updated setting: {} to {}", key, value);
+
+    // Save the modified JSON to the file
+    std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
+    output_file << jsonObj.dump(4);
 }
 
 void UsageMonitor::addEvent(){
@@ -31,11 +69,18 @@ void UsageMonitor::addEvent(){
     // Create a string stream and copy the file's contents into it
     std::stringstream buffer;
     buffer << input_file.rdbuf();
-
-    // Parse the JSON from the string stream
-    nlohmann::json json_obj = parseJSON(buffer);
 }
 
+nlohmann::json UsageMonitor::openUsageFile() {
+    std::ifstream input_file(usageFilePath);
+    // Create a string stream and copy the file's contents into it
+    std::stringstream buffer;
+    buffer << input_file.rdbuf();
+
+    // Parse the JSON from the string stream
+    nlohmann::json jsonObj = parseJSON(buffer);
+    return jsonObj;
+}
 nlohmann::json UsageMonitor::parseJSON(const std::stringstream &buffer) {
     try {
         return nlohmann::json::parse(buffer.str());

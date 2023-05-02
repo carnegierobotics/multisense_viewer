@@ -147,7 +147,7 @@ namespace VkRender {
                 logLevelStr.erase(
                         std::remove(logLevelStr.begin(), logLevelStr.end(), '"'),
                         logLevelStr.end());
-               m_LogLevel = Utils::getLogLevelEnumFromString(logLevelStr);
+               m_UserSetting.logLevel = Utils::getLogLevelEnumFromString(logLevelStr);
             }
 
         }
@@ -187,6 +187,10 @@ namespace VkRender {
 
     const std::string &RendererConfig::getAnonIdentifierString() const {
         return m_Identifier;
+    }
+
+    const RendererConfig::ApplicationUserSetting &RendererConfig::getUserSetting() const {
+        return m_UserSetting;
     }
 
 };

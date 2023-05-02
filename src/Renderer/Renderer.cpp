@@ -435,7 +435,8 @@ void Renderer::render() {
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
-                    if (win.second.selectedSource == "Idle" || win.first == CRL_PREVIEW_POINT_CLOUD)
+                    if (!win.second.isHovered || win.second.selectedSource == "Idle" ||
+                        win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;
@@ -474,17 +475,20 @@ void Renderer::render() {
                             dev.pixelInfo[windowIndex].y = y + 1;
 
                             // Check that we are within bounds
-                            /*
                             if (dev.pixelInfoZoomed[windowIndex].y > h)
                                 dev.pixelInfoZoomed[windowIndex].y = 0;
-                            if (dev.pixelInfoZoomed[windowIndex].x > h)
+                            if (dev.pixelInfoZoomed[windowIndex].x > w)
                                 dev.pixelInfoZoomed[windowIndex].x = 0;
-                                */
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
-                                case CRL_POINT_CLOUD:
-                                    break;
                                 case CRL_GRAYSCALE_IMAGE: {
+                                    Log::Logger::getInstance()->traceWithFrequency("Selection_grayscale_tag", 10,
+                                                                      "Calculating hovered pixel intensity, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
+                                                                      w, h, d, dev.pixelInfo[windowIndex].x,
+                                                                      dev.pixelInfo[windowIndex].y,
+                                                                      dev.pixelInfoZoomed[windowIndex].x,
+                                                                      dev.pixelInfoZoomed[windowIndex].y);
+
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo[windowIndex].intensity = intensity;
 
@@ -493,17 +497,16 @@ void Renderer::render() {
                                     dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
-                                case CRL_COLOR_IMAGE_RGBA:
-                                    break;
-                                case CRL_COLOR_IMAGE_YUV420:
-                                    break;
-                                case CRL_CAMERA_IMAGE_NONE:
-                                    break;
                                 case CRL_DISPARITY_IMAGE: {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
-
+                                    Log::Logger::getInstance()->traceWithFrequency("Selection_disparity_tag", 10,
+                                                                      "Calculating hovered pixel distance, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
+                                                                      w, h, d, dev.pixelInfo[windowIndex].x,
+                                                                      dev.pixelInfo[windowIndex].y,
+                                                                      dev.pixelInfoZoomed[windowIndex].x,
+                                                                      dev.pixelInfoZoomed[windowIndex].y);
                                     // get focal length
                                     float fx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
@@ -525,6 +528,8 @@ void Renderer::render() {
                                         dev.pixelInfoZoomed[windowIndex].depth = 0;
                                     }
                                 }
+                                    break;
+                                default:
                                     break;
                             }
                         }
@@ -581,7 +586,8 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    usageMonitor->sendUsageLog();
+    if (VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
+        usageMonitor->sendUsageLog();
 
     for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early

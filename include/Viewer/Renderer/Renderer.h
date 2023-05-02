@@ -70,6 +70,7 @@ public:
         pLogger = Log::Logger::getInstance();
         // Start up usage monitor
         usageMonitor = std::make_unique<UsageMonitor>();
+        usageMonitor->loadSettingsFromFile();
 
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();

@@ -104,7 +104,9 @@ public:
     }
 
     bool shutdownReady(){
+        Log::Logger::getInstance()->trace("Locking adapterUtils Mutex: shutdownready");
         std::scoped_lock<std::mutex> lock(mut);
+        Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex: shutdownready");
         return !isThreadAlive;
     }
 
@@ -118,14 +120,18 @@ public:
      */
     static void listAdapters(std::vector<Adapter> *adapters, AdapterUtils *ctx) {
         {
+            Log::Logger::getInstance()->trace("Locking adapterUtils Mutex entry manual list");
             std::scoped_lock<std::mutex> lock(ctx->mut);
+            Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex entry manual list");
             ctx->isThreadAlive = true;
         }
         while (true) {
             {
+                Log::Logger::getInstance()->trace("Locking adapterUtils Mutex listing adapters");
                 std::scoped_lock<std::mutex> lock(ctx->mut);
                 if (!ctx->runThread)
                     break;
+                Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex listing adapters");
             }
             Log::Logger::getInstance()->trace("Listing connected adapters for Manual connect");
 
@@ -171,6 +177,7 @@ public:
             }
             if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == NO_ERROR) {
                 // Contains pointer to current adapter info
+                Log::Logger::getInstance()->trace("Locking adapterUtils Mutex listing");
                 std::scoped_lock<std::mutex> lock(ctx->mut);
                 adapters->clear();
 
@@ -207,14 +214,17 @@ public:
                     free(con);
                     pAdapterInfo = pAdapterInfo->Next;
                 } while (pAdapterInfo);
+                Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex listing");
             }
             free(AdapterInfo);
             std::this_thread::sleep_for(std::chrono::milliseconds(LIST_ADAPTER_INTERVAL_MS));
         }
 
+        Log::Logger::getInstance()->trace("Locking adapterUtils Mutex finished manual scan");
         std::scoped_lock<std::mutex> lock(ctx->mut);
         ctx->isThreadAlive = false;
         Log::Logger::getInstance()->info("Manual Adapter Scan task finished");
+        Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex finished manual scan");
     }
 
 #else

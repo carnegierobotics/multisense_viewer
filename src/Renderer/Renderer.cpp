@@ -617,7 +617,6 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
-    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 }
 
 

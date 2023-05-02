@@ -149,6 +149,7 @@ public:
 
         // Make sure adapter utils scanning thread is shut down correctly
         while (true) {
+            Log::Logger::getInstance()->traceWithFrequency("shutdown adapterutils: ", 1000, "Waiting for adapterUtils to shutdown");
             if (adapterUtils.shutdownReady())
                 break;
         }

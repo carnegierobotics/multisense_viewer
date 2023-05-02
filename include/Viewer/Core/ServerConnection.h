@@ -46,6 +46,6 @@ private:
     std::string m_IP;
     std::string m_Destination;
 };
-};
+}
 
 #endif //MULTISENSE_VIEWER_SERVERCONNECTION_H

@@ -676,7 +676,7 @@ static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr)
     else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
     else if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
     return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-};
+}
 
 static inline bool stringToBool(const std::string& str) {
     std::string lowerStr;
@@ -729,6 +729,6 @@ static inline std::filesystem::path getSystemCachePath() {
     return multiSenseCachePath;
 }
 
-};
+}
 
 #endif //MULTISENSE_VIEWER_UTILS_H

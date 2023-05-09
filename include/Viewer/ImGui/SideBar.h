@@ -64,6 +64,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <cstdlib>
 
 #define AutoConnectReader ReaderLinux
 #define elevated() getuid()
@@ -156,27 +157,68 @@ public:
         }
     }
 
+    void open_url(const std::string &url) {
+#ifdef _WIN32
+        ShellExecuteA(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+#elif __linux__
+        std::string command = "xdg-open " + std::string(url);
+        std::system(command.c_str());
+#endif
+    }
+
     void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles *handle) {
-        if (handle->askForUsageLoggingPermissions) {
-            ImGui::OpenPopup("Permissions Modal");
-            handle->askForUsageLoggingPermissions = false;
+        if (VkRender::RendererConfig::getInstance().getUserSetting().askForUsageLoggingPermissions) {
+            ImGui::OpenPopup("Anonymous Usage Statistics");
+
+            auto user = VkRender::RendererConfig::getInstance().getUserSetting();
+            user.askForUsageLoggingPermissions = false;
+            VkRender::RendererConfig::getInstance().setUserSetting(user);
         }
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
-        if (ImGui::BeginPopupModal("Permissions Modal", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("We would like to collect anonymous usage statistics to help improve our product.");
-            ImGui::Text("Data collected will only be used for product improvement purposes \nMore information can be found at: ");
-            ImGui::Spacing();
-            ImGui::Text("Do you grant us permission to log and collect anonymous usage statistics? \nThis option can always be changed under the 'settings' menu");
+        ImVec2 anonymousWindowSize(500.0f, 180.0f);
+        ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x/2), (handle->info->height / 2) - (anonymousWindowSize.y/2) - 50.0f));
+        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/v1.1.0/main/Assets/Generated/PrivacyPolicy.md";
+            static bool isLinkHovered = false;
+            ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f, 1.0f);
 
-            static int radio_value = 0;
-            ImGui::RadioButton("Yes", &radio_value, 0);
+            ImGui::Text("We would like to collect anonymous usage statistics to help improve our product.");
+            ImGui::Text("Data collected will only be used for product improvement purposes");
+            ImGui::Text("More information can be found at: ");
+            ImGui::PushStyleColor(ImGuiCol_Text, blueLinkColor);
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // Transparent button background
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
+                                  ImVec4(0, 0, 0, 0)); // Transparent button background when hovered
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive,
+                                  ImVec4(0, 0, 0, 0)); // Transparent button background when active
             ImGui::SameLine();
-            ImGui::RadioButton("No", &radio_value, 1);
+            ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
+            if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
+                open_url(url);
+            }
+            isLinkHovered = ImGui::IsItemHovered();
+            ImGui::PopStyleColor(4);
+
+            ImGui::Spacing();
+            ImGui::Text("Do you grant us permission to log and collect anonymous usage statistics?");
+            ImGui::Text("This option can always be changed in the settings tab");
+            auto user = VkRender::RendererConfig::getInstance().getUserSetting();
+            static int radio_value =  user.userConsentToSendLogs;
+            bool update =  ImGui::RadioButton("Yes", &radio_value, 1);
+            ImGui::SameLine();
+            update |= ImGui::RadioButton("No", &radio_value, 0);
+            if (update){
+                user.userConsentToSendLogs = radio_value;
+                VkRender::RendererConfig::getInstance().setUserSetting(user);
+                handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+            }
 
             ImVec2 btnSize(120.0f, 0.0f);
-            ImGui::SetCursorPosX((ImGui::GetWindowWidth()/2) - (btnSize.x / 2));
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (btnSize.x / 2));
             if (ImGui::Button("OK", btnSize)) {
+                handle->usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "false");
                 ImGui::CloseCurrentPopup();
             }
 
@@ -200,12 +242,9 @@ public:
         ImGui::Begin("SideBar", &pOpen, window_flags);
         addPopup(handles);
         askUsageLoggingPermissionPopUp(handles);
-        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2), 0.0f));
-
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-        if (ImGui::Button("Open Settings", ImVec2(handles->info->sidebarWidth - 2 * ((handles->info->sidebarWidth / 2) -
-                                                                                     (handles->info->addDeviceWidth /
-                                                                                      2)), 15.0f)))
+        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f)))
             handles->showDebugWindow = !handles->showDebugWindow;
         ImGui::PopStyleVar();
 

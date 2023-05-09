@@ -15,7 +15,10 @@ public:
     UsageMonitor();
     void sendUsageLog();
     void setSetting(const std::string &key, const std::string &value);
+    std::string getSetting(const std::string &key, bool createIfNotExists = false, const std::string& defaultValue = "false");
     void loadSettingsFromFile();
+    bool hasUserLogCollectionConsent();
+    bool shouldAskForUserConsent();
 
 private:
     std::filesystem::path usageFilePath;

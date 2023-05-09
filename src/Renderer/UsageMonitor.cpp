@@ -31,8 +31,10 @@ void UsageMonitor::loadSettingsFromFile() {
     VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
 
     if (!jsonObj.contains("settings")) {
-        return;
+        nlohmann::json settingsJson;
+        jsonObj["settings"] = settingsJson;
     }
+
     auto& setting = jsonObj["settings"];
     auto user = config.getUserSetting();
 
@@ -40,6 +42,12 @@ void UsageMonitor::loadSettingsFromFile() {
         user.logLevel = Utils::getLogLevelEnumFromString(setting["log_level"]);
     if (setting.contains("send_usage_log_on_exit"))
         user.sendUsageLogOnExit = Utils::stringToBool(setting["send_usage_log_on_exit"]);
+
+    std::string str = getSetting("user_consent_to_collect_statistics") == "true" ? "true" : "false";
+    getSetting("send_usage_log_on_exit", true, str);
+
+    user.askForUsageLoggingPermissions = shouldAskForUserConsent();
+    user.userConsentToSendLogs = true;
 
     Log::Logger::getInstance()->info("Loaded user settings from file");
     config.setUserSetting(user);
@@ -62,6 +70,30 @@ void UsageMonitor::setSetting(const std::string& key, const std::string& value){
     // Save the modified JSON to the file
     std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
     output_file << jsonObj.dump(4);
+}
+std::string UsageMonitor::getSetting(const std::string& key, bool createKeyIfNotExists, const std::string& defaultValue){
+    nlohmann::json jsonObj = openUsageFile();
+    if (jsonObj.contains("settings")){
+        if (jsonObj["settings"].contains(key)){
+            Log::Logger::getInstance()->info("Get setting: {}, value: {}", key, nlohmann::to_string(jsonObj["settings"][key]).c_str());
+            return jsonObj["settings"][key];
+        }
+    } else {
+        // Create a new "settings" object and add the key-value pair
+        nlohmann::json settingsJson;
+        jsonObj["settings"] = settingsJson;
+    }
+    if (createKeyIfNotExists) {
+        jsonObj["settings"][key] = defaultValue;
+        Log::Logger::getInstance()->info("Fetched setting: {}, it didnt exists but was created", key);
+        return jsonObj["settings"][key];
+    } else {
+        Log::Logger::getInstance()->info("Fetched setting: {}, but it didnt exist", key);
+    }
+    // Save the modified JSON to the file
+    std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
+    output_file << jsonObj.dump(4);
+    return "";
 }
 
 void UsageMonitor::addEvent(){
@@ -130,4 +162,12 @@ void UsageMonitor::initializeJSONFile() {
 
 void UsageMonitor::sendUsageLog() {
     server->sendUsageStatistics(usageFilePath, logFilePath);
+}
+
+bool UsageMonitor::hasUserLogCollectionConsent() {
+    return getSetting("user_consent_to_collect_statistics", true, "false") == "true";
+}
+
+bool UsageMonitor::shouldAskForUserConsent() {
+    return getSetting("ask_user_consent_to_collect_statistics", true, "true") == "true";
 }

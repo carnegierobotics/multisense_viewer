@@ -586,7 +586,7 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    if (VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
+    if (usageMonitor->hasUserLogCollectionConsent() && VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
         usageMonitor->sendUsageLog();
 
     for (auto &dev: guiManager->handles.devices) {

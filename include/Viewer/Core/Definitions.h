@@ -49,7 +49,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"
@@ -764,7 +764,7 @@ namespace VkRender {
         float viewAreaElementSizeX = {0};
         float previewBorderPadding = 60.0f;
         /** @brief add m_Device button params */
-        float addDeviceBottomPadding = 90.0f;
+        float addDeviceBottomPadding = 45.0f;
         float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
         /** @brief Height of popupModal*/
         float popupHeight = 600.0f;
@@ -805,6 +805,7 @@ namespace VkRender {
         /** @brief Display the debug window */
         bool showDebugWindow = false;
 
+        bool askForUsageLoggingPermissions = true;
 
         const VkRender::MouseButtons *mouse;
 

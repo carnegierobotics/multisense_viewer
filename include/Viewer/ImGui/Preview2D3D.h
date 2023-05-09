@@ -40,7 +40,7 @@
 
 #include <filesystem>
 #include <GLFW/glfw3.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include <ImGuiFileDialog.h>
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/ImGui/ScriptUIAddons.h"

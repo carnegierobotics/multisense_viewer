@@ -219,6 +219,10 @@ public:
             ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (btnSize.x / 2));
             if (ImGui::Button("OK", btnSize)) {
                 handle->usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "false");
+                user.userConsentToSendLogs = radio_value;
+                VkRender::RendererConfig::getInstance().setUserSetting(user);
+                handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+
                 ImGui::CloseCurrentPopup();
             }
 

@@ -50,6 +50,7 @@
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
+#include "Viewer/ImGui/Layer.h"
 
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000

@@ -204,7 +204,6 @@ namespace Log {
     }
 
     void Logger::setLogLevel(LogLevel logLevel) {
-        getInstance()->info("Setting log level to: {}", getLogStringFromEnum(logLevel));
         m_LogLevel = logLevel;
     }
 

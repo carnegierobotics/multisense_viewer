@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Privacy Policy - Anonymous User Information Collection</title>
-</head>
-<body>
+
 <h1>Privacy Policy</h1>
 
 Carnegie Robotics LLC ("we", "us", "our") is committed to protecting the privacy of our users. This Privacy Policy outlines how we collect, use, and disclose information about anonymous users of our application.
@@ -11,7 +6,7 @@ Carnegie Robotics LLC ("we", "us", "our") is committed to protecting the privacy
 <h2>Information We Collect</h2>
 MultiSense Viewer collects anonymous usage and debug logs from the application. This information is uploaded to a server in the cloud once every day and when the application is closed. The logs cannot be traced back to a specific user without asking the user for their specific ID that is automatically generated upon first launch of the application.
 
-<h3>IThe types of information we collect include:</h3>
+<h3>The types of information we collect include:</h3>
 Usage data: This includes information about how our application is used, such as which features are used, how often they are used, and how long users spend using the application.
 
 Debug data: This includes technical information about the application, such as error messages, system configuration data, and other diagnostic information.
@@ -33,6 +28,6 @@ We take reasonable measures to protect the anonymous information that we collect
 
 <h2>Changes to this Privacy Policy</h2>
 We may update this privacy policy from time to time. If we make material changes to this privacy policy, we will provide you with notice of the changes by posting a notice on our website or within our application.
-Contact Information
+<h3>Contact Information</h3>
 
 If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us at mgjerde@carnegierobotics.com.

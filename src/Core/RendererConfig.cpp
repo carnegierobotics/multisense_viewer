@@ -193,4 +193,8 @@ namespace VkRender {
         return m_UserSetting;
     }
 
+    RendererConfig::ApplicationUserSetting* RendererConfig::getUserSettingRef() {
+        return &m_UserSetting;
+    }
+
 };

@@ -348,7 +348,6 @@ public:
             ImGui::PopFont();
             ImGui::Spacing();
             ImGui::Checkbox("Ignore MultiSense missing status update", &met->device.ignoreMissingStatusUpdate);
-            ImGui::Spacing();
 
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
@@ -403,18 +402,20 @@ public:
             }
 
 
-            ImGui::Spacing();
             static bool sendUserLog = false;
             sendUserLog = ImGui::Button("Send user log");
             if (sendUserLog) {
                 sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
 
-            ImGui::Spacing();
             if ( ImGui::Button("Set permissions")) {
-                ImGui::OpenPopup("Permissions Modal");
+                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+                user.askForUsageLoggingPermissions = true;
+                update = true;
             }
-            ImGui::Spacing();
+            if (!user.userConsentToSendLogs)
+                user.sendUsageLogOnExit = false;
+
             if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
                 update = true;
                 usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));

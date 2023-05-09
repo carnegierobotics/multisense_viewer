@@ -47,6 +47,10 @@ namespace VkRender {
         struct ApplicationUserSetting{
             Log::LogLevel logLevel = Log::LOG_LEVEL_INFO;
             bool sendUsageLogOnExit = true;
+            /** @brief Set by user in pop up modal */
+            bool userConsentToSendLogs = true;
+            /** @brief If there is no prior registered consent from the user */
+            bool askForUsageLoggingPermissions = false;
         };
 
         static RendererConfig &getInstance() {
@@ -90,15 +94,14 @@ namespace VkRender {
          * @param setting
          */
         void setUserSetting(const ApplicationUserSetting& setting) {
-            m_UserSetting.logLevel = setting.logLevel;
-            m_UserSetting.sendUsageLogOnExit = setting.sendUsageLogOnExit;
-
+            m_UserSetting = setting;
             Log::Logger::getInstance()->setLogLevel(setting.logLevel);
 
         }
 
         const ApplicationUserSetting &getUserSetting() const;
 
+        RendererConfig::ApplicationUserSetting* getUserSettingRef();
 
     private:
         RendererConfig() {

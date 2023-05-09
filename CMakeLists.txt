@@ -43,7 +43,6 @@ endif()
 
 include_directories(include)
 include_directories(Assets)
-include_directories(SYSTEM external)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()

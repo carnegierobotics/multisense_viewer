@@ -45,8 +45,8 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
 else ()
     message("[INFO] Adding GLM from directory: ${GLM_DIR}")
 
-    add_subdirectory(${GLM_DIR})
     include_directories(SYSTEM ${GLM_DIR})
+
 endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLFW_DIR}/CMakeLists.txt")
@@ -114,17 +114,19 @@ else ()
 
     set(SimpleIni_SRC ${SIMPLEINI_DIR}/SimpleIni.h ${SIMPLEINI_DIR}/ConvertUTF.c ${SIMPLEINI_DIR}/ConvertUTF.h)
     add_library(SimpleIni STATIC ${SimpleIni_SRC})
+    include_directories(${SIMPLEINI_DIR})
     set_target_properties(SimpleIni PROPERTIES LINKER_LANGUAGE CXX)
 endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${IMGUI_DIR}/imgui.h")
     message(FATAL_ERROR "The submodules ${IMGUI_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 else ()
-    message("[INFO] Adding IMGUI from directory: ${IMGUI_DIR}")
+    message("[INFO] Adding IMGUI and ImGuiFileDialog from directory: ${IMGUI_DIR}")
 
     set(IMGUI_DIR external/imgui)
     set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
     include_directories(SYSTEM ${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+    include_directories(SYSTEM ${IMGUI_FILEDIALOG_DIR})
     set(IMGUI_SRC
             ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
             ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp

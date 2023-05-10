@@ -464,7 +464,6 @@ void Renderer::render() {
                 }
                 continue;
             }
-
             uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;

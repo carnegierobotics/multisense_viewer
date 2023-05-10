@@ -159,7 +159,7 @@ public:
 
     void open_url(const std::string &url) {
 #ifdef _WIN32
-        ShellExecuteA(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+        ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __linux__
         std::string command = "xdg-open " + std::string(url);
         std::system(command.c_str());

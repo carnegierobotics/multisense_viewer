@@ -81,16 +81,19 @@ public:
     ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
 
     std::unique_ptr<CRLCameraModels::Model> m_Model;
+    std::unique_ptr<CRLCameraModels::Model> m_ModelTestDevice; // For use with test device i.e. not a MultiSense camera debug version
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;
     std::unique_ptr<CRLCameraModels::Model> m_NoSourceModel;
     enum {
         DRAW_NO_SOURCE = 0,
         DRAW_NO_DATA = 1,
-        DRAW_MULTISENSE = 2
+        DRAW_MULTISENSE = 2,
+        DRAW_TEST = 3
     } state;
 
     float up = -1.3f;
     unsigned char* m_NoDataTex{};
+    unsigned char* m_TestDeviceTex{};
     unsigned char* m_NoSourceTex{};
 
     Page selectedPreviewTab = CRL_TAB_NONE;
@@ -123,6 +126,8 @@ public:
     void prepareDefaultTexture();
 
     void updateLog() const;
+
+    void prepareTestDeviceTexture();
 };
 
 

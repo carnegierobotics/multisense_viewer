@@ -351,7 +351,6 @@ public:
 
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
-            /*
             static bool showDemo = false;
             ImGui::Checkbox("ShowDemo", &showDemo);
             if (showDemo)
@@ -373,7 +372,7 @@ public:
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
             }
-*/
+
             // Set log level
             const char *items[] = {"LOG_TRACE", "LOG_INFO"};
             static int itemIdIndex = 1; // Here we store our selection data as an index.

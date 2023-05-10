@@ -183,7 +183,7 @@ namespace Log {
         }
 
         /**@brief Using templates to allow user to use formattet logging.
-         * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
+         * @refitem @FormatString Is used to obtain name of calling func, file and line number as default parameter */
         template<typename... Args>
         void info(const FormatString &format, Args &&... args) {
             vInfo(format, fmt::make_format_args(args...));

@@ -173,7 +173,7 @@ namespace VkRender::MultiSense {
         if (it != infoMap.end())
             return it->second;
         else {
-            Log::Logger::getInstance()->info("Camera info for channel {} does not exist", idx);
+            Log::Logger::getInstance()->traceWithFrequency("getCameraInfoTag", 1000, "Camera info for channel {} does not exist", idx);
             return {};
         }
     }

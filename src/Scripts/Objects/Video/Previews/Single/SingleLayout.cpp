@@ -128,15 +128,21 @@ void SingleLayout::update() {
     updateLog();
 
     if (zoomEnabled || zoom.resChanged) {
-        VkRender::ScriptUtils::handleZoom(&zoom);
     }
-    auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
 
-    d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
-    d2->pad.x = options->depthColorMap;
-    d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
-                                        options->data.maxDisparityValue, 0.0f);
+    if (updateZoom) {
+        VkRender::ScriptUtils::handleZoom(&zoom);
+
+        auto &d2 = bufferTwoData;
+
+        d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+
+        d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
+        d2->pad.x = options->depthColorMap;
+        d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
+                                            options->data.maxDisparityValue, 0.0f);
+    }
+
 
 }
 
@@ -218,7 +224,7 @@ void SingleLayout::prepareTestDeviceTexture() {
                                 STBI_rgb_alpha);
     if (!m_TestDeviceTex) {
         Log::Logger::getInstance()->error("Failed to load texture image {}",
-                                         (Utils::getTexturePath().append("neist_point.jpg")).string());
+                                          (Utils::getTexturePath().append("neist_point.jpg")).string());
         throw std::runtime_error("Failed to load texture image: neist_point.jpg");
     }
 
@@ -259,7 +265,6 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         }
 
 
-
         zoom.resChanged = currentRes != res;
         uint32_t width = 0, height = 0, depth = 0;
         Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
@@ -285,31 +290,66 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         transformToUISpace(uiHandle, dev);
 
-        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
+        //float interpolationFactor = glm::clamp(1.0f / (zoom.zoomValue * 5), 0.0f, 1.0f);
+        //zoom.currentZoomCenter = glm::mix(zoom.currentZoomCenter,  zoom.targetZoomCenter, interpolationFactor);
+
         zoomEnabled = preview.enableZoom;
 
-        if (!zoomEnabled) {
-            //if (uiHandle->mouse->left) {
-            //float translation = (uiHandle->mouse->dx / 1000.0f) * zoom.zoomValue;
-            //Log::Logger::getInstance()->info("zoomX {}, offsetX {}, TranslationX {}, zoomValue: {}", ((uiHandle->mouse->dx / 1000.0f)), zoom.offsetX, zoom.translateX, zoom.zoomValue);
 
-            //if ((zoom.offsetX + zoom.translateX + translation) < 1.0f * zoom.zoomValue){
-            //zoom.translateX += translation;
+        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
+        zoom.zoomValue = 0.9f * zoom.zoomValue * zoom.zoomValue * zoom.zoomValue + 1 -
+                         0.9f; // cubic growth in scaling factor
+        updateZoom = zoom.zoomValue != zoom.prevZoomValue;
+        zoom.prevZoomValue = zoom.zoomValue;
+        width = texWidth;
+        height = texHeight;
+        if (updateZoom) {
 
-            //}
-            //zoom.translateY += (uiHandle->mouse->dy / 1000.0f);
-            //}
-        } else {
-            zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
-            zoom.zoomValue = 0.9f * zoom.zoomValue * zoom.zoomValue * zoom.zoomValue + 1 -
-                             0.9f; // cubic growth in scaling factor
+            auto mappedX = static_cast<uint32_t>(
+                    dev.pixelInfo[CRL_PREVIEW_ONE].x * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
+                    zoom.newMinF);
+            auto mappedY = static_cast<uint32_t>(
+                    dev.pixelInfo[CRL_PREVIEW_ONE].y * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) +
+                    zoom.newMinYF);
+
+
+            zoom.targetZoomCenter = glm::vec2(2.0f * mappedX / width - 1.0f,
+                                              2.0f * mappedY / height - 1.0f);
+            float interpolationFactor = glm::clamp(1.0f / (zoom.zoomValue * 0.7f), 0.0f, 1.0f);
+
+            zoom.currentZoomCenter = glm::mix(zoom.currentZoomCenter, zoom.targetZoomCenter, interpolationFactor);
+
+
+
+            Log::Logger::getInstance()->trace("mapX {} mapy {}", mappedX, mappedY);
+
         }
+
+        if (uiHandle->mouse->left) {
+            float translation = (uiHandle->mouse->dx / 1000.0f) * zoom.zoomValue;
+            Log::Logger::getInstance()->info("x, y: ({}, {}), zoom: {}",   zoom.translateX,   zoom.translateY, zoom.zoomValue);
+
+            zoom.translateX += (uiHandle->mouse->dx / (500.0f * (zoom.zoomValue / 2)));
+            zoom.translateY += (uiHandle->mouse->dy / (500.0f * (zoom.zoomValue / 2)));
+            zoom.currentZoomCenter.x += (uiHandle->mouse->dx / (500.0f * (zoom.zoomValue / 2)));
+            zoom.currentZoomCenter.y += (uiHandle->mouse->dy / (500.0f * (zoom.zoomValue / 2)));
+            updateZoom = true;
+        }
+        if (zoom.zoomValue <= 1.10f){
+            zoom.translateX = 0;
+            zoom.translateY = 0;
+        }
+
+
+
+
         options = &preview.effects;
         auto mappedX = static_cast<uint32_t>(
-                (zoom.zoomCenter.x - 0) * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
+                dev.pixelInfo[CRL_PREVIEW_ONE].x * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
                 zoom.newMinF);
         auto mappedY = static_cast<uint32_t>(
-                (zoom.zoomCenter.y - 0) * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) + zoom.newMinYF);
+                dev.pixelInfo[CRL_PREVIEW_ONE].y * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) +
+                zoom.newMinYF);
         if (mappedX <= width && mappedY <= height) {
             dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
             dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;

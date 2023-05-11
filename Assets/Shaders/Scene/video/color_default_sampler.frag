@@ -72,8 +72,11 @@ void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
-    float uvSampleX = (inUV.x - info.zoom.w) / info.zoom.z + info.zoom.w;
-    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
+    float zoomCenterX = (info.zoom.w + 1.0f) * 0.5f;
+    float zoomCenterY = (zoom.y + 1.0f) * 0.5f;
+
+    float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
+    float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
 
     bool useInterpolation = info.zoom.x == 1.0f;
     if (useInterpolation){

@@ -112,6 +112,7 @@ public:
 
     bool virtualDevice = false;
     bool zoomEnabled = false;
+    bool updateZoom = true;
 
     VkRender::ZoomParameters zoom{};
     const VkRender::ImageEffectOptions* options{};

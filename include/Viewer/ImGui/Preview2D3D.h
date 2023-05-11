@@ -572,7 +572,8 @@ private:
                                         dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
                             break;
                         default:
-                            ImGui::Text(" ");
+                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y);
                     }
 
                 }

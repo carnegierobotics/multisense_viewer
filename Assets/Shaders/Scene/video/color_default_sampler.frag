@@ -19,6 +19,7 @@ layout(binding = 1, set = 0) uniform Info {
     float debugViewInputs;
     float lod;
     vec2 pad;
+    vec4 normalize;
 } info;
 
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
@@ -78,7 +79,7 @@ void main()
     float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
     float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
 
-    bool useInterpolation = info.zoom.x == 1.0f;
+    bool useInterpolation = info.normalize.w == 1.0f;
     if (useInterpolation){
         outColor = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
     } else {

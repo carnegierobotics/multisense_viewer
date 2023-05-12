@@ -120,17 +120,13 @@ void Three::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
-    if (zoomEnabled || zoom.resChanged) {
-        VkRender::ScriptUtils::handleZoom(&zoom);
-    }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-
+    VkRender::ScriptUtils::handleZoom(&zoom);
+    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
-    d2->pad.x = options->depthColorMap;
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
-                                        options->data.maxDisparityValue, 0.0f);
-
+                                        options->data.maxDisparityValue, options->interpolation);
+    d2->pad.x = options->depthColorMap;
 }
 
 
@@ -230,22 +226,12 @@ void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
-        transformToUISpace(uiHandle, dev);
-        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_THREE].x, dev.pixelInfo[CRL_PREVIEW_THREE].y);
-        zoomEnabled = preview.enableZoom;
         options = &preview.effects;
-        if (zoomEnabled) {
-            zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_THREE)->second;
-            zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
-        }
-        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
-                                             zoom.newMinF);
-        auto mappedY = static_cast<uint32_t>(
-                (zoom.zoomCenter.y - 0) * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) + zoom.newMinYF);
-        if (mappedX <= width && mappedY <= height) {
-            dev.pixelInfoZoomed[CRL_PREVIEW_THREE].x = mappedX;
-            dev.pixelInfoZoomed[CRL_PREVIEW_THREE].y = mappedY;
-        }
+        zoomEnabled = preview.enableZoom;
+        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_THREE)->second;
+        glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_THREE, deltaMouse, (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode);
+
     }
 }
 

@@ -652,6 +652,16 @@ private:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.effects.interpolation);
 
+                    ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("z");
+                    ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("z").x);
+                    txt = "Cursor Zoom:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Checkbox(("##zoom mode" + std::to_string(index)).c_str(), &window.effects.magnifyZoomMode);
+
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
@@ -884,6 +894,10 @@ private:
                     if (handles->input->getButtonDown(GLFW_KEY_I)) {
                         window.effects.interpolation = !window.effects.interpolation;
                         Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
+                    }
+                    if (handles->input->getButtonDown(GLFW_KEY_Z)) {
+                        window.effects.magnifyZoomMode = !window.effects.magnifyZoomMode;
+                        Log::Logger::getInstance()->info("User pressed key Z for: {}", window.name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_M)) {
                         window.effects.depthColorMap = !window.effects.depthColorMap;

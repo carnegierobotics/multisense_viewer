@@ -342,7 +342,7 @@ namespace VkRender {
         bool normalize = false;
         bool interpolation = false;
         bool depthColorMap = false;
-
+        bool magnifyZoomMode = false;
         VkRender::ImageEffectData data;
     };
 
@@ -581,51 +581,6 @@ namespace VkRender {
         glm::vec2 position{};
     };
 
-    struct ZoomParameters {
-        glm::vec2 zoomCenter;
-        float zoomValue = 1.0f;
-        float prevZoomValue = 1.0f;
-
-        glm::vec2 targetZoomCenter = glm::vec2(0.5f, 0.5f);
-        glm::vec2 currentZoomCenter = glm::vec2(0.5f, 0.5f);
-        glm::vec2 currentCenterPixel = glm::vec2(0.0f, 0.0f); // NDC
-
-        float lerpFactor = 0.5f;
-
-        float offsetX = 0.0f;
-        float prevOffsetX = 0.0f;
-        float prevOffsetY = 0.0f;
-        float offsetY = 0.0f;
-        float prevWidth = 960.0f;
-        float prevHeight = 600;
-        float newMin = 0.0f, newMax = 0.0f;
-        float newMinF = 0.0f, newMaxF = 0.0f;
-        float newMinY = 0.0f, newMaxY = 0.0f;
-        float newMinYF = 0.0f, newMaxYF = 0.0f;
-        float translateX = 0.0f;
-        float translateY = 0.0f;
-
-        float m_Width = 0, m_Height = 0;
-
-        bool resChanged = false;
-
-        void resolutionUpdated(uint32_t width, uint32_t height) {
-            m_Width = static_cast<float>(width);
-            m_Height = static_cast<float>(height);
-            prevWidth = static_cast<float>(width);
-            prevHeight = static_cast<float>(height);
-            prevOffsetX = 0.0f;
-            prevOffsetY = 0.0f;
-            newMin = 0.0f;
-            newMax = 0.0f;
-            newMinF = 0.0f;
-            newMaxF = static_cast<float>(width);
-            newMinY = 0.0f;
-            newMaxY = 0.0f;
-            newMinYF = 0.0f;
-            newMaxYF = static_cast<float>(height);
-        }
-    };
 
     /**
      * @brief Vulkan resources for the cursor information pipeline

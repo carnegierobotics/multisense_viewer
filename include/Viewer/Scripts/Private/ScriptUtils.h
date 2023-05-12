@@ -102,13 +102,19 @@ namespace VkRender::ScriptUtils {
         }
         if (isClickedAndHovered) {
             //Log::Logger::getInstance()->info("x, y: ({}, {}), center: ({}, {}), zoom: {}",   zoom->translateX,   zoom->translateY, zoom->currentZoomCenter.x, zoom->currentZoomCenter.y, zoom->zoomValue);
-            float x =  (mousePos.x / (75.0f * (zoom->zoomValue / 2.0f)));
-            float y =  (mousePos.y / (75.0f * (zoom->zoomValue / 3.2f))); // Update x and y speed w.r.t aspect ratio
+#ifdef WIN32
+        float translateFactor = 1000.0f;
+#else
+        float translateFactor = 75.0f;
+#endif
 
-            if (zoom->currentZoomCenter.x + x <= 1.0f && zoom->currentZoomCenter.x >= -1.0f)
+            float x =  (mousePos.x / (translateFactor * (zoom->zoomValue / 2.0f)));
+            float y =  (mousePos.y / (translateFactor * (zoom->zoomValue / 3.2f))); // Update x and y speed w.r.t aspect ratio
+
+            if (zoom->currentZoomCenter.x + x <= 1.0f && zoom->currentZoomCenter.x + x >= -1.0f)
                 zoom->currentZoomCenter.x += x;
 
-            if (zoom->currentZoomCenter.y + y <= 1.0f && zoom->currentZoomCenter.y >= -1.0f)
+            if (zoom->currentZoomCenter.y + y <= 1.0f && zoom->currentZoomCenter.y + y >= -1.0f)
                 zoom->currentZoomCenter.y += y;
         }
         if (zoom->zoomValue <= 1.10f){

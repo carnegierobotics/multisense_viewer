@@ -41,6 +41,7 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 class SingleLayout: public VkRender::Base, public VkRender::RegisteredInFactory<SingleLayout>, CRLCameraModels
 {
@@ -112,9 +113,8 @@ public:
 
     bool virtualDevice = false;
     bool zoomEnabled = false;
-    bool updateZoom = true;
 
-    VkRender::ZoomParameters zoom{};
+    VkRender::ScriptUtils::ZoomParameters zoom{};
     const VkRender::ImageEffectOptions* options{};
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;

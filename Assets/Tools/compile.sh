@@ -3,13 +3,19 @@
 # Simple script to compile shaders. Just configure it to run on every build for convenience.
 # Make sure the glslc exec is installed.
 
-# Windows location
-outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
-glslc="../../shaderc/build/glslc/Debug/glslc" #
 
-# Unix location
-#glslc="../../shaderc/build/glslc/glslc" #
-#outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+if [[ "$1" == "windows" ]]; then
+    # Windows location
+        echo "Compiling from Windows"
+    outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+    glslc="../../shaderc/build/glslc/Debug/glslc"
+else
+    # Unix location
+    echo "Compiling from ubuntu"
+    glslc="../../shaderc/build/glslc/glslc"
+    outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+fi
+
 
 sceneOutDir="../Shaders/Scene/spv/"
 sceneDir="../Shaders/Scene"

@@ -46,7 +46,9 @@
 #define semWait(x, y) WaitForSingleObject(x, y)
 #define CTIME(time, size, timer) ctime_s(time, size, timer)
 #else
+
 #include<bits/stdc++.h>
+
 #define semPost(x) sem_post(x)
 #define CTIME(time, timer) ctime(timer)
 #endif
@@ -63,10 +65,26 @@ namespace Log {
     Metrics *Logger::m_Metrics = nullptr;
 
     Logger::Logger(const std::string &logFileName) {
+        // Check file size
+        std::uintmax_t fileSize = std::filesystem::file_size(logFileName);
+        double fileSizeMB = static_cast<double>(fileSize) / (1024.0 * 1024.0);  // Convert to MB
+        // Delete file if size exceeds 10 MB
+        bool resetLogFile = fileSizeMB > 10.0;
+        if (resetLogFile) {
+            std::filesystem::remove(logFileName);
+        }
         m_File.open(logFileName.c_str(), ios::out | ios::app);
 
         m_LogLevel = LOG_LEVEL_INFO;
         m_LogType = FILE_LOG;
+
+        this->info("<=============================== START OF PROGRAM ===============================>");
+
+        if (resetLogFile)
+            this->info("Log file was larger than 10MB. Deleted: {} and created new empty", logFileName);
+        else {
+            this->info("Log file size is currently: {}MB", fileSizeMB);
+        }
     }
 
 
@@ -79,9 +97,9 @@ namespace Log {
 
     Logger *Logger::getInstance(const std::string &fileName) noexcept {
         if (m_Instance == nullptr) {
-            m_Instance = new Logger(fileName);
             m_Metrics = new Metrics();
             m_ThreadPool = new VkRender::ThreadPool(1);
+            m_Instance = new Logger(fileName);
             m_Instance->info("Initialized logger instance, fileName: {}", fileName);
         }
         return m_Instance;

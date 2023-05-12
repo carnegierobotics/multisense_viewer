@@ -127,21 +127,13 @@ void SingleLayout::update() {
 
     updateLog();
 
-    if (zoomEnabled || zoom.resChanged) {
-    }
-
-    if (updateZoom) {
-        VkRender::ScriptUtils::handleZoom(&zoom);
-
-        auto &d2 = bufferTwoData;
-
-        d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-
-        d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
-        d2->pad.x = options->depthColorMap;
-        d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
-                                            options->data.maxDisparityValue, 0.0f);
-    }
+    auto &d2 = bufferTwoData;
+    VkRender::ScriptUtils::handleZoom(&zoom);
+    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
+    d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
+                                        options->data.maxDisparityValue, options->interpolation);
+    d2->pad.x = options->depthColorMap;
 
 
 }
@@ -270,7 +262,7 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
 
         if ((src != preview.selectedSource || currentRes != res ||
-             remoteHeadIndex != preview.selectedRemoteHeadIndex && !virtualDevice)) {
+             (remoteHeadIndex != preview.selectedRemoteHeadIndex && !virtualDevice))) {
             src = preview.selectedSource;
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
@@ -287,73 +279,12 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                 zoom.resolutionUpdated(texWidth, texHeight);
             }
         }
-
         transformToUISpace(uiHandle, dev);
-
-        //float interpolationFactor = glm::clamp(1.0f / (zoom.zoomValue * 5), 0.0f, 1.0f);
-        //zoom.currentZoomCenter = glm::mix(zoom.currentZoomCenter,  zoom.targetZoomCenter, interpolationFactor);
-
-        zoomEnabled = preview.enableZoom;
-
-
-        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
-        zoom.zoomValue = 0.9f * zoom.zoomValue * zoom.zoomValue * zoom.zoomValue + 1 -
-                         0.9f; // cubic growth in scaling factor
-        updateZoom = zoom.zoomValue != zoom.prevZoomValue;
-        zoom.prevZoomValue = zoom.zoomValue;
-        width = texWidth;
-        height = texHeight;
-        if (updateZoom) {
-
-            auto mappedX = static_cast<uint32_t>(
-                    dev.pixelInfo[CRL_PREVIEW_ONE].x * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
-                    zoom.newMinF);
-            auto mappedY = static_cast<uint32_t>(
-                    dev.pixelInfo[CRL_PREVIEW_ONE].y * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) +
-                    zoom.newMinYF);
-
-
-            zoom.targetZoomCenter = glm::vec2(2.0f * mappedX / width - 1.0f,
-                                              2.0f * mappedY / height - 1.0f);
-            float interpolationFactor = glm::clamp(1.0f / (zoom.zoomValue * 0.7f), 0.0f, 1.0f);
-
-            zoom.currentZoomCenter = glm::mix(zoom.currentZoomCenter, zoom.targetZoomCenter, interpolationFactor);
-
-
-
-            Log::Logger::getInstance()->trace("mapX {} mapy {}", mappedX, mappedY);
-
-        }
-
-        if (uiHandle->mouse->left) {
-            float translation = (uiHandle->mouse->dx / 1000.0f) * zoom.zoomValue;
-            Log::Logger::getInstance()->info("x, y: ({}, {}), zoom: {}",   zoom.translateX,   zoom.translateY, zoom.zoomValue);
-
-            zoom.translateX += (uiHandle->mouse->dx / (500.0f * (zoom.zoomValue / 2)));
-            zoom.translateY += (uiHandle->mouse->dy / (500.0f * (zoom.zoomValue / 2)));
-            zoom.currentZoomCenter.x += (uiHandle->mouse->dx / (500.0f * (zoom.zoomValue / 2)));
-            zoom.currentZoomCenter.y += (uiHandle->mouse->dy / (500.0f * (zoom.zoomValue / 2)));
-            updateZoom = true;
-        }
-        if (zoom.zoomValue <= 1.10f){
-            zoom.translateX = 0;
-            zoom.translateY = 0;
-        }
-
-
-
-
         options = &preview.effects;
-        auto mappedX = static_cast<uint32_t>(
-                dev.pixelInfo[CRL_PREVIEW_ONE].x * (width - zoom.newMaxF - zoom.newMinF) / (width - 0) +
-                zoom.newMinF);
-        auto mappedY = static_cast<uint32_t>(
-                dev.pixelInfo[CRL_PREVIEW_ONE].y * ((height - zoom.newMaxYF) - zoom.newMinYF) / (height - 0) +
-                zoom.newMinYF);
-        if (mappedX <= width && mappedY <= height) {
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;
-        }
+        zoomEnabled = preview.enableZoom;
+        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
+        glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse, (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode);
     }
 }
 

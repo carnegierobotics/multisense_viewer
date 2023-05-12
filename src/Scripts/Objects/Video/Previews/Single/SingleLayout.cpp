@@ -284,7 +284,10 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         zoomEnabled = preview.enableZoom;
         zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
-        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse, (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode);
+            VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
+                                                    (uiHandle->mouse->left && preview.isHovered),
+                                                    options->magnifyZoomMode,
+                                                    preview.enableZoom);
     }
 }
 

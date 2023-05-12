@@ -585,10 +585,12 @@ private:
                 ImGui::SameLine();
 
                 std::string btnText = "Image Effects";
+                float btnHeight = topBarRectMax.y - topBarRectMin.y;
                 ImVec2 btnSize = ImGui::CalcTextSize(btnText.c_str());
-                ImGui::SameLine(0, handles->info->viewAreaElementSizeX - ImGui::GetCursorPosX() - btnSize.x - 40.0f);
-
-                if (ImGui::Button(btnText.c_str())) {
+                ImGui::SameLine(0, handles->info->viewAreaElementSizeX - ImGui::GetCursorPosX() - btnSize.x - 60.0f);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+                float btnWidth = rightBarMin.x - ImGui::GetCursorScreenPos().x;
+                if (ImGui::Button(btnText.c_str(), ImVec2(btnWidth, btnHeight))) {
                     ImGui::OpenPopup(("image effect " + std::to_string(index)).c_str());
                 }
                 ImGui::PopStyleVar(); // FramePadding

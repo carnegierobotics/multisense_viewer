@@ -77,12 +77,14 @@ namespace VkRender::ScriptUtils {
 
     }
 
-    static inline void handleZoomUiLoop(ZoomParameters *zoom,VkRender::Device& dev,  StreamWindowIndex previewWindowIndex,  glm::vec2 mousePos, bool isClickedAndHovered, bool magnifyMode){
+    static inline void
+    handleZoomUiLoop(ZoomParameters *zoom, Device &dev, StreamWindowIndex previewWindowIndex, glm::vec2 mousePos,
+                     bool isClickedAndHovered, bool magnifyMode, bool enableZoom = true) {
         zoom->zoomValue = 0.9f * zoom->zoomValue * zoom->zoomValue * zoom->zoomValue + 1 -
                          0.9f; // cubic growth in scaling factor
         bool updateZoom = zoom->zoomValue != zoom->prevZoomValue;
 
-        if (updateZoom || magnifyMode) {
+        if ((updateZoom || magnifyMode) && enableZoom) {
 
             auto mappedX = static_cast<uint32_t>(
                     dev.pixelInfo[previewWindowIndex].x * (zoom->m_Width - zoom->newMaxF - zoom->newMinF) / (zoom->m_Width - 0) +

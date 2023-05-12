@@ -66,15 +66,19 @@ namespace Log {
 
     Logger::Logger(const std::string &logFileName) {
         // Check file size
-        std::uintmax_t fileSize = std::filesystem::file_size(logFileName);
-        double fileSizeMB = static_cast<double>(fileSize) / (1024.0 * 1024.0);  // Convert to MB
-        // Delete file if size exceeds 10 MB
-        bool resetLogFile = fileSizeMB > 10.0;
-        if (resetLogFile) {
-            std::filesystem::remove(logFileName);
+        bool resetLogFile = false;
+        double fileSizeMB = 0.0;
+        if (std::filesystem::exists(logFileName)) {
+            std::uintmax_t fileSize = std::filesystem::file_size(logFileName);
+            fileSizeMB = static_cast<double>(fileSize) / (1024.0 * 1024.0);  // Convert to MB
+            // Delete file if size exceeds 10 MB
+            resetLogFile = fileSizeMB > 10.0;
+            if (resetLogFile) {
+                std::filesystem::remove(logFileName);
+            }
         }
-        m_File.open(logFileName.c_str(), ios::out | ios::app);
 
+        m_File.open(logFileName.c_str(), ios::out | ios::app);
         m_LogLevel = LOG_LEVEL_INFO;
         m_LogType = FILE_LOG;
 

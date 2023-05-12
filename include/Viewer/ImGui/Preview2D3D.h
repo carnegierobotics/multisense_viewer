@@ -40,7 +40,7 @@
 
 #include <filesystem>
 #include <GLFW/glfw3.h>
-#include <ImGuiFileDialog/ImGuiFileDialog.h>
+#include <ImGuiFileDialog.h>
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/ImGui/ScriptUIAddons.h"
@@ -450,6 +450,7 @@ private:
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
                 auto &window = dev.win[(StreamWindowIndex) index];
+                window.name = windowName;
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE)
@@ -571,7 +572,8 @@ private:
                                         dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
                             break;
                         default:
-                            ImGui::Text(" ");
+                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
+                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y);
                     }
 
                 }
@@ -583,10 +585,12 @@ private:
                 ImGui::SameLine();
 
                 std::string btnText = "Image Effects";
+                float btnHeight = topBarRectMax.y - topBarRectMin.y;
                 ImVec2 btnSize = ImGui::CalcTextSize(btnText.c_str());
-                ImGui::SameLine(0, handles->info->viewAreaElementSizeX - ImGui::GetCursorPosX() - btnSize.x - 40.0f);
-
-                if (ImGui::Button(btnText.c_str())) {
+                ImGui::SameLine(0, handles->info->viewAreaElementSizeX - ImGui::GetCursorPosX() - btnSize.x - 60.0f);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+                float btnWidth = rightBarMin.x - ImGui::GetCursorScreenPos().x;
+                if (ImGui::Button(btnText.c_str(), ImVec2(btnWidth, btnHeight))) {
                     ImGui::OpenPopup(("image effect " + std::to_string(index)).c_str());
                 }
                 ImGui::PopStyleVar(); // FramePadding
@@ -649,6 +653,16 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.effects.interpolation);
+
+                    ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("z");
+                    ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("z").x);
+                    txt = "Cursor Zoom:";
+                    txtSize = ImGui::CalcTextSize(txt.c_str());
+                    ImGui::Text("%s", txt.c_str());
+                    ImGui::SameLine(0, textSpacing - txtSize.x);
+                    ImGui::Checkbox(("##zoom mode" + std::to_string(index)).c_str(), &window.effects.magnifyZoomMode);
 
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
@@ -881,12 +895,19 @@ private:
 
                     if (handles->input->getButtonDown(GLFW_KEY_I)) {
                         window.effects.interpolation = !window.effects.interpolation;
+                        Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
+                    }
+                    if (handles->input->getButtonDown(GLFW_KEY_Z)) {
+                        window.effects.magnifyZoomMode = !window.effects.magnifyZoomMode;
+                        Log::Logger::getInstance()->info("User pressed key Z for: {}", window.name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_M)) {
                         window.effects.depthColorMap = !window.effects.depthColorMap;
+                        Log::Logger::getInstance()->info("User pressed key M for: {}", window.name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_N)) {
                         window.effects.normalize = !window.effects.normalize;
+                        Log::Logger::getInstance()->info("User pressed key N for: {}", window.name);
                     }
 
                     if (window.enableZoom) {

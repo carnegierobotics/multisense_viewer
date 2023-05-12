@@ -44,6 +44,7 @@
 
 class DebugWindow : public VkRender::Layer {
 public:
+    UsageMonitor usageMonitor;
 
 // Usage:
 //  static ExampleAppLog my_log;
@@ -69,9 +70,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-                    va_start(args, fmt);
+            va_start(args, fmt);
             Buf.appendfv(fmt, args);
-                    va_end(args);
+            va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -170,6 +171,10 @@ public:
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         if (!handles->showDebugWindow)
             return;
+        VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+        auto user = config.getUserSetting();
+        bool update = false;
+
         static bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         ImGui::SetNextWindowSize(ImVec2(handles->info->debuggerWidth, handles->info->debuggerHeight),
@@ -197,7 +202,9 @@ public:
 
             {
                 // Renderer Info
-                ImGui::Text("Renderer Info");
+                ImGui::PushFont(handles->info->font15);
+                ImGui::Text("Application Info:");
+                ImGui::PopFont();
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
 
                 ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
@@ -266,6 +273,11 @@ public:
                     ImGui::End();
                     return;
                 }
+
+                ImGui::PushFont(handles->info->font15);
+                ImGui::Text("MultiSense Info:");
+                ImGui::PopFont();
+
                 std::stringstream stream;
                 std::string res;
 
@@ -282,7 +294,6 @@ public:
                 ImGui::Text("Hardware magic: 0x%s", fmt::format("{:x}", met->device.info.hardwareMagic).c_str());
                 stream << std::hex << met->device.info.sensorFpgaDna;
                 ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
-                ImGui::Separator();
 
                 ImGui::Dummy(ImVec2(5.0f, 5.0f));
                 ImGui::Dummy(ImVec2(2.0f, 0.0f));
@@ -313,7 +324,6 @@ public:
                 }
 
 
-                ImGui::Separator();
                 for (const auto &id: met->device.sourceReceiveMapCounter) {
                     for (const auto &src: id.second) {
                         ImGui::Text("%hd :", id.first);
@@ -325,30 +335,40 @@ public:
                 }
                 ImGui::Text("Uptime: %.2f", met->device.upTime);
             }
-            ImGui::Separator();
+            /*
             ImGui::Text("Camera: ");
 
             ImGui::Text("Position: (%f, %f, %f)", met->camera.pos.x, met->camera.pos.y, met->camera.pos.z);
             ImGui::Text("Rotation: (%f, %f, %f)", met->camera.rot.x, met->camera.rot.y, met->camera.rot.z);
+*/
+            ImGui::Separator();
+            ImGui::PushFont(handles->info->font15);
+            ImGui::Text("Application Options:");
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 8.0f));
+            ImGui::PopFont();
+            ImGui::Spacing();
+            ImGui::Checkbox("Ignore MultiSense missing status update", &met->device.ignoreMissingStatusUpdate);
 
-            ImGui::Checkbox("IgnoreMissingStatusUpdate", &met->device.ignoreMissingStatusUpdate);
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
+            /*
             static bool showDemo = false;
             ImGui::Checkbox("ShowDemo", &showDemo);
             if (showDemo)
                 ImGui::ShowDemoWindow();
 
+            */
+
             static bool addTestDevice = false;
             addTestDevice = ImGui::Button("Add test device");
-            if (addTestDevice){
+            if (addTestDevice) {
                 // Add test device to renderer if not present
                 bool exists = false;
-                for (const auto& device : handles->devices){
+                for (const auto &device: handles->devices) {
                     if (device.cameraName == "Multisense-KS21")
                         exists = true;
                 }
-                if (!exists){
+                if (!exists) {
                     VkRender::Device testDevice;
                     Utils::initializeUIDataBlockWithTestData(testDevice);
                     handles->devices.emplace_back(testDevice);
@@ -357,26 +377,24 @@ public:
             }
 
             // Set log level
-            const char* items[] = { "LOG_TRACE", "LOG_INFO"};
+            const char *items[] = {"LOG_TRACE", "LOG_INFO"};
             static int itemIdIndex = 1; // Here we store our selection data as an index.
-            VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
-            if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE){
+            if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE) {
                 itemIdIndex = 0;
             } else
                 itemIdIndex = 1;
 
-            const char* previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+            const char *previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
             ImGui::SetNextItemWidth(100.0f);
-            if (ImGui::BeginCombo("Set Log level", previewValue, 0))
-            {
-                for (int n = 0; n < IM_ARRAYSIZE(items); n++)
-                {
+            if (ImGui::BeginCombo("Set Log level", previewValue, 0)) {
+                for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
                     const bool is_selected = (itemIdIndex == n);
                     if (ImGui::Selectable(items[n], is_selected)) {
                         itemIdIndex = n;
                         auto level = Utils::getLogLevelEnumFromString(items[n]);
-                        Log::Logger::getInstance()->setLogLevel(level);
-                        config.setLogLevel(level);
+                        user.logLevel = level;
+                        usageMonitor.setSetting("log_level", items[n]);
+                        update |= true;
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
@@ -388,16 +406,40 @@ public:
 
             static bool sendUserLog = false;
             sendUserLog = ImGui::Button("Send user log");
-            if (sendUserLog){
+            if (sendUserLog) {
                 sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
+
+            if ( ImGui::Button("Set permissions")) {
+                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+                user.askForUsageLoggingPermissions = true;
+                update = true;
+            }
+            if (!user.userConsentToSendLogs)
+                user.sendUsageLogOnExit = false;
+
+            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
+                update = true;
+                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            }
+
+
+            ImGui::PopStyleVar(); //Item spacing
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
 
             ImGui::Text("About: ");
             ImGui::Text("Icons from https://icons8.com");
 
+
         }
         ImGui::EndChild();
         ImGui::End();
+
+        if (update)
+            config.setUserSetting(user);
 
     }
 
@@ -406,8 +448,7 @@ public:
 
     }
 
-    void sendUsageLog(){
-        UsageMonitor usageMonitor;
+    void sendUsageLog() {
         usageMonitor.sendUsageLog();
     }
 

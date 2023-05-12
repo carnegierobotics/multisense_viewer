@@ -43,7 +43,6 @@
 
 int main() {
     Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
-    Log::LOG_ALWAYS("<=============================== START OF PROGRAM ===============================>");
 
     Renderer app("MultiSense Viewer");
     try{
@@ -53,5 +52,6 @@ int main() {
         Log::Logger::getInstance()->error("Caught exception! RuntimeError: {}", e.what());
         app.cleanUp();
     }
+    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
     return 0;
 }

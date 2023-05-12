@@ -19,6 +19,7 @@ layout(binding = 1, set = 0) uniform Info {
     float debugViewInputs;
     float lod;
     vec2 pad;
+    vec4 normalize;
 } info;
 
 layout (set = 0, binding = 2) uniform sampler2D luma;
@@ -76,8 +77,12 @@ void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
-    float uvSampleX = (inUV.x - info.zoom.w) / info.zoom.z + info.zoom.w;
-    float uvSampleY = (inUV.y - zoom.y) / info.zoom.z + zoom.y;
+    float zoomCenterX = (info.zoom.w + 1.0f) * 0.5f;
+    float zoomCenterY = (zoom.y + 1.0f) * 0.5f;
+
+    float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
+    float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
+
     vec2 uv = vec2(uvSampleX, uvSampleY);
     float r, g, b, y, u, v;
     mat3 colorMatrix = mat3(
@@ -86,7 +91,7 @@ void main()
                 1.402,   -0.71,   0);
 
     vec4 color;
-    bool useInterpolation = info.zoom.x == 1.0f;
+    bool useInterpolation = info.normalize.w == 1.0f;
     if (useInterpolation){
         y = textureBicubic(luma, uv).r;
         u = textureBicubic(chromaU, uv).r - 0.5f;

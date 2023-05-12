@@ -41,6 +41,18 @@ namespace VkRender {
             std::string destination;
         };
 
+        /**
+         * Settings that are changeable by the user
+         */
+        struct ApplicationUserSetting{
+            Log::LogLevel logLevel = Log::LOG_LEVEL_INFO;
+            bool sendUsageLogOnExit = true;
+            /** @brief Set by user in pop up modal */
+            bool userConsentToSendLogs = true;
+            /** @brief If there is no prior registered consent from the user */
+            bool askForUsageLoggingPermissions = false;
+        };
+
         static RendererConfig &getInstance() {
             static RendererConfig instance;
             return instance;
@@ -67,12 +79,29 @@ namespace VkRender {
         }
 
         [[nodiscard]] const Log::LogLevel &getLogLevel() const {
-            return m_LogLevel;
+            return m_UserSetting.logLevel;
         }
 
-        void setLogLevel(const Log::LogLevel &level) {
-            m_LogLevel = level;
+        /**
+         * Function to set the user settings in the application
+         * Example how to set the log level from setUserSetting
+         * VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+         * auto user = config.getUserSetting();
+         * user.logLevel = level;
+         * config.setUserSetting(user);
+         * Line below also notify the usage monitor which is often combined when user modifies application settings
+         * usageMonitor.setSetting("log_level", items[n]);
+         * @param setting
+         */
+        void setUserSetting(const ApplicationUserSetting& setting) {
+            m_UserSetting = setting;
+            Log::Logger::getInstance()->setLogLevel(setting.logLevel);
+
         }
+
+        const ApplicationUserSetting &getUserSetting() const;
+
+        RendererConfig::ApplicationUserSetting* getUserSettingRef();
 
     private:
         RendererConfig() {
@@ -165,9 +194,8 @@ namespace VkRender {
             Log::Logger::getInstance()->info("Generated Random Identifier: {}", m_Identifier);
         }
 
-
-        CRLServerInfo m_ServerInfo;
-
+        CRLServerInfo m_ServerInfo{};
+        ApplicationUserSetting m_UserSetting{};
         std::string m_Architecture;
         std::string m_OSVersion;
         std::string m_OS;
@@ -177,7 +205,6 @@ namespace VkRender {
 
         std::string m_Identifier;
 
-        Log::LogLevel m_LogLevel = Log::LOG_LEVEL_INFO;
 
         void getOSVersion();
 

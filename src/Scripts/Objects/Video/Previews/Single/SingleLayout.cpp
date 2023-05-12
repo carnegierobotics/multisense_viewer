@@ -84,7 +84,7 @@ void SingleLayout::update() {
     // If we get an image attempt to update the GPU buffer
     if (!virtualDevice && renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
-        std::chrono::duration<float> time_span =
+        auto time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(
                         std::chrono::steady_clock::now() - lastPresentTime);
         float frameTime = 1.0f / renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf.fps();
@@ -127,16 +127,14 @@ void SingleLayout::update() {
 
     updateLog();
 
-    if (zoomEnabled || zoom.resChanged) {
-        VkRender::ScriptUtils::handleZoom(&zoom);
-    }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-
+    VkRender::ScriptUtils::handleZoom(&zoom);
+    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
-    d2->pad.x = options->depthColorMap;
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
-                                        options->data.maxDisparityValue, 0.0f);
+                                        options->data.maxDisparityValue, options->interpolation);
+    d2->pad.x = options->depthColorMap;
+
 
 }
 
@@ -206,6 +204,41 @@ void SingleLayout::prepareMultiSenseTexture() {
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
+void SingleLayout::prepareTestDeviceTexture() {
+    m_ModelTestDevice = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    // Create quad and store it locally on the GPU
+    ImageData imgData{};
+    m_ModelTestDevice->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+
+    // Create texture m_Image if not created
+    m_TestDeviceTex = stbi_load((Utils::getTexturePath().append("neist_point.jpg")).string().c_str(), &texWidth,
+                                &texHeight, &texChannels,
+                                STBI_rgb_alpha);
+    if (!m_TestDeviceTex) {
+        Log::Logger::getInstance()->error("Failed to load texture image {}",
+                                          (Utils::getTexturePath().append("neist_point.jpg")).string());
+        throw std::runtime_error("Failed to load texture image: neist_point.jpg");
+    }
+
+    m_ModelTestDevice->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_ModelTestDevice->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
+    // Create graphics render pipeline
+    std::string vertexShaderFileName = "Scene/spv/color.vert";
+    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
+
+    VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
+    VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
+                                                            {fs}};
+
+    CRLCameraModels::createRenderPipeline(shaders, m_ModelTestDevice.get(), &renderUtils);
+    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
+    if (m_ModelTestDevice->getTextureDataPointers(tex.get())) {
+        std::memcpy(tex->data, m_TestDeviceTex, texWidth * texHeight * texChannels);
+        m_ModelTestDevice->updateTexture(tex->m_Type);
+    }
+}
+
 void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
 
@@ -223,12 +256,13 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             state = DRAW_NO_DATA;
         }
 
+
         zoom.resChanged = currentRes != res;
         uint32_t width = 0, height = 0, depth = 0;
         Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
 
         if ((src != preview.selectedSource || currentRes != res ||
-             remoteHeadIndex != preview.selectedRemoteHeadIndex)) {
+             (remoteHeadIndex != preview.selectedRemoteHeadIndex && !virtualDevice))) {
             src = preview.selectedSource;
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
@@ -237,36 +271,23 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             zoom.resolutionUpdated(width, height);
             prepareMultiSenseTexture();
         }
+
+        if (virtualDevice) {
+            state = DRAW_TEST;
+            if (!m_ModelTestDevice) {
+                prepareTestDeviceTexture();
+                zoom.resolutionUpdated(texWidth, texHeight);
+            }
+        }
         transformToUISpace(uiHandle, dev);
-
-        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
-        zoomEnabled = preview.enableZoom;
-
-        if (!zoomEnabled) {
-            //if (uiHandle->mouse->left) {
-            //float translation = (uiHandle->mouse->dx / 1000.0f) * zoom.zoomValue;
-            //Log::Logger::getInstance()->info("zoomX {}, offsetX {}, TranslationX {}, zoomValue: {}", ((uiHandle->mouse->dx / 1000.0f)), zoom.offsetX, zoom.translateX, zoom.zoomValue);
-
-            //if ((zoom.offsetX + zoom.translateX + translation) < 1.0f * zoom.zoomValue){
-            //zoom.translateX += translation;
-
-            //}
-            //zoom.translateY += (uiHandle->mouse->dy / 1000.0f);
-            //}
-        } else {
-            zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
-            zoom.zoomValue = 0.9f * zoom.zoomValue * zoom.zoomValue * zoom.zoomValue + 1 -
-                             0.9f; // cubic growth in scaling factor
-        }
         options = &preview.effects;
-        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
-                                             zoom.newMinF);
-        auto mappedY = static_cast<uint32_t>(
-                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
-        if (mappedX <= width && mappedY <= height) {
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;
-        }
+        zoomEnabled = preview.enableZoom;
+        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
+        glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
+            VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
+                                                    (uiHandle->mouse->left && preview.isHovered),
+                                                    options->magnifyZoomMode,
+                                                    preview.enableZoom);
     }
 }
 
@@ -296,6 +317,9 @@ void SingleLayout::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
                 break;
             case DRAW_MULTISENSE:
                 CRLCameraModels::draw(commandBuffer, i, m_Model.get(), b);
+                break;
+            case DRAW_TEST:
+                CRLCameraModels::draw(commandBuffer, i, m_ModelTestDevice.get(), b);
                 break;
         }
     }

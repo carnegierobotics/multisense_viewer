@@ -41,6 +41,7 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 class DoubleBot: public VkRender::Base, public VkRender::RegisteredInFactory<DoubleBot>, CRLCameraModels
 {
@@ -104,7 +105,7 @@ public:
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
     int texWidth = 0, texHeight = 0, texChannels = 0;
-    VkRender::ZoomParameters zoom{};
+    VkRender::ScriptUtils::ZoomParameters zoom{};
     bool zoomEnabled = false;
     bool useInterpolation = false;
     bool useDepthColorMap = false;

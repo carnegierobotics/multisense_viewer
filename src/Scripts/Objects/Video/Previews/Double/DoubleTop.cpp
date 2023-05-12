@@ -114,15 +114,13 @@ void DoubleTop::update() {
     }
 
     updateTransform();
-    if (zoomEnabled || zoom.resChanged) {
-        VkRender::ScriptUtils::handleZoom(&zoom);
-    }
     auto &d2 = bufferTwoData;
-    d2->zoomCenter = glm::vec4(options->interpolation, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
-    d2->pad.x = options->depthColorMap;
+    VkRender::ScriptUtils::handleZoom(&zoom);
+    d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
+    d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
-                                        options->data.maxDisparityValue, 0.0f);
-
+                                        options->data.maxDisparityValue, options->interpolation);
+    d2->pad.x = options->depthColorMap;
 }
 
 void DoubleTop::updateTransform(){
@@ -236,20 +234,14 @@ void DoubleTop::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             prepareMultiSenseTexture();
         }
         transformToUISpace(uiHandle, dev);
-        zoom.zoomCenter = glm::vec2(dev.pixelInfo[CRL_PREVIEW_ONE].x, dev.pixelInfo[CRL_PREVIEW_ONE].y);
-        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
-        zoom.zoomValue = 0.8f * zoom.zoomValue * zoom.zoomValue + 1 - 0.8f; // Exponential growth in scaling factor
-        zoomEnabled = preview.enableZoom;
         options = &preview.effects;
+        zoomEnabled = preview.enableZoom;
+        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_ONE)->second;
+        glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
+                                                (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,
+                                                false);
 
-        auto mappedX = static_cast<uint32_t>((zoom.zoomCenter.x - 0) * (960 - zoom.newMaxF - zoom.newMinF) / (960 - 0) +
-                                             zoom.newMinF);
-        auto mappedY = static_cast<uint32_t>(
-                (zoom.zoomCenter.y - 0) * ((600 - zoom.newMaxYF) - zoom.newMinYF) / (600 - 0) + zoom.newMinYF);
-        if (mappedX <= width && mappedY <= height) {
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].x = mappedX;
-            dev.pixelInfoZoomed[CRL_PREVIEW_ONE].y = mappedY;
-        }
     }
 }
 

@@ -50,7 +50,157 @@
 
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Core/KeyInput.h"
+#include "Viewer/Renderer/UsageMonitor.h"
+
 namespace VkRender {
+
+    /** @brief Set of Default colors */
+    namespace Colors {
+        static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
+        static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
+        static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
+        static const ImVec4 TextRedColor(0.95f, 0.345f, 0.341f, 1.0f);
+        static const ImVec4 red(0.613f, 0.045f, 0.046f, 1.0f);
+        static const ImVec4 DarkGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 PopupTextInputBackground(0.01f, 0.05f, 0.1f, 1.0f);
+        static const ImVec4 TextColorGray(0.75f, 0.75f, 0.75f, 1.0f);
+        static const ImVec4 PopupHeaderBackgroundColor(0.15f, 0.25, 0.4f, 1.0f);
+        static const ImVec4 PopupBackground(0.183f, 0.33f, 0.47f, 1.0f);
+        static const ImVec4 CRLGray421(0.666f, 0.674f, 0.658f, 1.0f);
+        static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
+        static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
+        static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
+        static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
+        static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
+        static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+        static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
+        static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
+        static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
+        static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
+        static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
+        static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 CRLTextLightGray(0.4f, 0.4f, 0.4f, 1.0f);
+        static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
+        static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
+        static const ImVec4 CRL3DBackground(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+
+    struct GuiLayerUpdateInfo {
+        bool firstFrame{};
+        /** @brief Width of window surface */
+        float width{};
+        /** @brief Height of window surface */
+        float height{};
+        /**@brief Width of sidebar*/
+        float sidebarWidth = 200.0f;
+        /**@brief Size of elements in sidebar */
+        float elementHeight = 140.0f;
+        /**@brief Width of sidebar*/
+        float debuggerWidth = 960.0f * 0.75f;
+        /**@brief Size of elements in sidebar */
+        float debuggerHeight = 480.0f * 0.75f;
+        /**@brief Width of sidebar*/
+        float metricsWidth = 350.0f;
+        /**@brief Physical Graphics m_Device used*/
+        std::string deviceName = "DeviceName";
+        /**@brief Title of Application */
+        std::string title = "TitleName";
+        /**@brief array containing the last 50 entries of frametimes */
+        std::array<float, 50> frameTimes{};
+        /**@brief min/max values for frametimes, used for updating graph*/
+        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+        /**@brief value for current frame timer*/
+        float frameTimer{};
+        /** @brief Current frame*/
+        uint64_t frameID = 0;
+        /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
+        ImFont *font13{}, *font15, *font18{}, *font24{};
+
+        /** @brief Containing descriptor handles for each image button texture */
+        std::vector<ImTextureID> imageButtonTextureDescriptor;
+
+        /** @brief
+        * Container to hold animated gif images
+        */
+        struct {
+            ImTextureID image[20]{};
+            uint32_t id{};
+            uint32_t lastFrame = 0;
+            uint32_t width{};
+            uint32_t height{};
+            uint32_t imageSize{};
+            uint32_t totalFrames{};
+            uint32_t *delay{};
+        } gif{};
+
+        /** @brief ImGUI Overlay on previews window sizes */
+        float viewAreaElementSizeY = {0};
+        float viewAreaElementSizeX = {0};
+        float previewBorderPadding = 60.0f;
+        /** @brief add m_Device button params */
+        float addDeviceBottomPadding = 45.0f;
+        float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
+        /** @brief Height of popupModal*/
+        float popupHeight = 600.0f;
+        /** @brief Width of popupModal*/
+        float popupWidth = 550.0f;
+        /**@brief size of control area tabs*/
+        float tabAreaHeight = 60.0f;
+        /** @brief size of Control Area*/
+        float controlAreaWidth = 440.0f, controlAreaHeight = height;
+        int numControlTabs = 2;
+        /** @brief size of viewing Area*/
+        float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
+        bool hoverState = false;
+        bool isViewingAreaHovered = false;
+
+    };
+
+    /** @brief Handle which is the MAIN link between ''frontend and backend'' */
+    struct GuiObjectHandles {
+        /** @brief Handle for current devices located in sidebar */
+        std::vector<Device> devices;
+        /** @brief GUI window info used for creation and updating */
+        std::unique_ptr<GuiLayerUpdateInfo> info{};
+        /** User action to configure network automatically even when using manual approach **/
+        bool configureNetwork = false;
+        /** Keypress and mouse events */
+        float accumulatedActiveScroll = 0.0f;
+        /**  Measures change in scroll. Does not provide change the accumulated scroll is outside of min and max scroll  */
+        float scroll = 0.0f;
+        std::unordered_map<StreamWindowIndex, float> previewZoom{};
+        float minZoom = 1.0f;
+        float maxZoom = 4.5f;
+        /** @brief min/max scroll used in DoublePreview layout */
+        float maxScroll = 450.0f, minScroll = -550.0f;
+        /** @brief Input from backend to IMGUI */
+        const Input *input{};
+        std::array<float, 4> clearColor{};
+        /** @brief Display the debug window */
+        bool showDebugWindow = false;
+
+
+        std::shared_ptr<UsageMonitor> usageMonitor;
+
+        const VkRender::MouseButtons *mouse;
+
+        /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
+        GuiObjectHandles() {
+            clearColor[0] = 0.870f;
+            clearColor[1] = 0.878f;
+            clearColor[2] = 0.862f;
+            clearColor[3] = 1.0f;
+
+            // Initialize map used for zoom for each preview window
+            previewZoom[CRL_PREVIEW_ONE] = 1.0f;
+            previewZoom[CRL_PREVIEW_TWO] = 1.0f;
+            previewZoom[CRL_PREVIEW_THREE] = 1.0f;
+            previewZoom[CRL_PREVIEW_FOUR] = 1.0f;
+        }
+
+        /** @brief Reference to threadpool held by GuiManager */
+        std::shared_ptr<ThreadPool> pool{};
+    };
 
     /**
      * @brief A UI Layer drawn by \refitem GuiManager.

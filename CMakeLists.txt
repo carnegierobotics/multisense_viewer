@@ -43,7 +43,6 @@ endif()
 
 include_directories(include)
 include_directories(Assets)
-include_directories(SYSTEM external)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
@@ -91,13 +90,6 @@ file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 if (UNIX) ## Linux
-
-    # Find OpenSSL
-    find_package(OpenSSL REQUIRED)
-
-    # Include the OpenSSL header files
-    include_directories(${OPENSSL_INCLUDE_DIR})
-
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
         message("   INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
@@ -105,7 +97,7 @@ if (UNIX) ## Linux
     endif ()
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} -lssl -lcrypto)
+    target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)
@@ -223,6 +215,8 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/wpcap.dll
             ${CMAKE_BINARY_DIR}/swscale-6.dll
             ${CMAKE_BINARY_DIR}/avutil-57.dll
+            ${CMAKE_BINARY_DIR}/libcrypto-1_1-x64.dll
+            ${CMAKE_BINARY_DIR}/libssl-1_1-x64.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
     # AutoConnect

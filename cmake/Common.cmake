@@ -114,7 +114,7 @@ else ()
 
     set(SimpleIni_SRC ${SIMPLEINI_DIR}/SimpleIni.h ${SIMPLEINI_DIR}/ConvertUTF.c ${SIMPLEINI_DIR}/ConvertUTF.h)
     add_library(SimpleIni STATIC ${SimpleIni_SRC})
-    include_directories(${SIMPLEINI_DIR})
+    include_directories(SYSTEM ${SIMPLEINI_DIR})
     set_target_properties(SimpleIni PROPERTIES LINKER_LANGUAGE CXX)
 endif ()
 
@@ -150,7 +150,7 @@ else ()
     set(KTX_FEATURE_STATIC_LIBRARY ON)
     set(KTX_FEATURE_TESTS OFF)
     add_subdirectory(${KTX_DIR})
-    include_directories(${KTX_DIR}/include)
+    include_directories(SYSTEM ${KTX_DIR}/include)
     link_directories(${KTX_DIR}/lib)
 
 endif ()

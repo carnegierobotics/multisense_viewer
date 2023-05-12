@@ -6,19 +6,27 @@
 
 if [[ "$1" == "windows" ]]; then
     # Windows location
-        echo "Compiling from Windows"
-    outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
-    glslc="../../shaderc/build/glslc/Debug/glslc"
+    echo "Compiling from Windows: cwd: $(pwd)"
+    # shellcheck disable=SC2046
+    outDir="$(pwd)/cmake-build-debug/Assets/Shaders/Scene/spv/"
+    glslc="$(pwd)/shaderc/build/glslc/Debug/glslc"
+    sceneOutDir="$(pwd)/Assets/Shaders/Scene/spv/"
+    sceneDir="$(pwd)/Assets/Shaders/Scene"
+    outDir="$(pwd)/cmake-build-debug/Assets/Shaders/Scene/spv/"
+
+        echo "compiling shader from folder ${sceneDir}"
+        echo "copying to this folder ${sceneOutDir}"
+        echo "additional copy to ${outDir}"
+
 else
     # Unix location
-    echo "Compiling from ubuntu"
+    echo "Compiling from ubuntu $(pwd)"
     glslc="../../shaderc/build/glslc/glslc"
     outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
+    sceneOutDir="../Shaders/Scene/spv"
+    sceneDir="../Shaders/Scene"
 fi
 
-
-sceneOutDir="../Shaders/Scene/spv/"
-sceneDir="../Shaders/Scene"
 
 mkdir -p ${sceneOutDir}
 
@@ -51,7 +59,7 @@ echo "Compiled PBR shaders"
 
 
 
-echo "Copying to debug build location"
+echo "Copying to debug build location: ${sceneOutDir}/*.spv:${outDir}"
 cp ${sceneOutDir}/*.spv ${outDir}
 
 echo "Press any key to exit..."

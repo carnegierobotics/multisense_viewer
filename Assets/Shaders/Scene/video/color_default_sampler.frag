@@ -1,6 +1,6 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
-
+precision highp float;
+precision highp sampler2D;
 
 layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
@@ -19,11 +19,10 @@ layout(binding = 1, set = 0) uniform Info {
     float debugViewInputs;
     float lod;
     vec2 pad;
-    vec4 normalize;
+    vec4 normalizeVal;
 } info;
 
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
-
 
 // https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
 vec4 cubic(float x)
@@ -37,6 +36,7 @@ vec4 cubic(float x)
     w.w =  x3;
     return w / 6.f;
 }
+
 
 vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
 
@@ -64,9 +64,7 @@ vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
     float sx = s.x / (s.x + s.y);
     float sy = s.z / (s.z + s.w);
 
-    return mix(
-    mix(sample3, sample2, sx), mix(sample1, sample0, sx)
-    , sy);
+    return mix(mix(sample3, sample2, sx), mix(sample1, sample0, sx), sy);
 }
 
 void main()
@@ -79,7 +77,7 @@ void main()
     float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
     float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
 
-    bool useInterpolation = info.normalize.w == 1.0f;
+    bool useInterpolation = info.normalizeVal.w == 1.0f;
     if (useInterpolation){
         outColor = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
     } else {

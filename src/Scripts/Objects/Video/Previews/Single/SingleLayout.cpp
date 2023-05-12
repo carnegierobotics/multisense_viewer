@@ -187,6 +187,8 @@ void SingleLayout::prepareMultiSenseTexture() {
         default:
             return;
     }
+
+    Log::Logger::getInstance()->info("Loading shaders {} and {} for SingeLayout script", vertexShaderFileName.c_str(), fragmentShaderFileName.c_str());
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},

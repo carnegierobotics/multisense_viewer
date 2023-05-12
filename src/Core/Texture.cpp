@@ -1038,13 +1038,13 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
     // Can also use IDENTITY which lets you sample the raw YUV and
     // do the conversion in shader code.
     // At least you don't have to hit the texture unit 3 times.
-    info.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+    info.ycbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020;
 
     // TV (NARROW) or PC (FULL) range for YUV?
     // Usually, JPEG uses full range and broadcast content is narrow.
     // If using narrow, the YUV components need to be
     // rescaled before it can be converted.
-    info.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
+    info.ycbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
 
     // Deal with order of components.
     info.components = {

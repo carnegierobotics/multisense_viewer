@@ -425,9 +425,45 @@ void Renderer::render() {
                 vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
-            if (dev.state != CRL_STATE_ACTIVE || dev.notRealDevice)
+            if (dev.state != CRL_STATE_ACTIVE)
                 continue;
 
+            if (dev.notRealDevice) {
+                for (auto &win: dev.win) {
+                    // Skip second render pass if we dont have a source selected or if the source is point cloud related
+                    if (!win.second.isHovered ||
+                        win.first == CRL_PREVIEW_POINT_CLOUD)
+                        continue;
+
+                    auto windowIndex = win.first;
+                    float viewAreaElementPosX = win.second.xPixelStartPos;
+                    float viewAreaElementPosY = win.second.yPixelStartPos;
+                    float imGuiPosX = (float) mousePos.x - viewAreaElementPosX -
+                                      (guiManager->handles.info->previewBorderPadding / 2.0f);
+                    float imGuiPosY = (float) mousePos.y - viewAreaElementPosY -
+                                      (guiManager->handles.info->previewBorderPadding / 2.0f);
+                    float maxInRangeX = guiManager->handles.info->viewAreaElementSizeX -
+                                        guiManager->handles.info->previewBorderPadding;
+                    float maxInRangeY = guiManager->handles.info->viewAreaElementSizeY -
+                                        guiManager->handles.info->previewBorderPadding;
+                    if (imGuiPosX > 0 && imGuiPosX < maxInRangeX
+                        && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
+
+                        auto x = (uint32_t) ((float) 1920 * (imGuiPosX) / maxInRangeX);
+                        auto y = (uint32_t) ((float) 1080 * (imGuiPosY) / maxInRangeY);
+                        // Add one since we are not counting from zero anymore :)
+                        dev.pixelInfo[windowIndex].x = x + 1;
+                        dev.pixelInfo[windowIndex].y = y + 1;
+
+                        // Check that we are within bounds
+                        if (dev.pixelInfoZoomed[windowIndex].y > 1080)
+                            dev.pixelInfoZoomed[windowIndex].y = 0;
+                        if (dev.pixelInfoZoomed[windowIndex].x > 1920)
+                            dev.pixelInfoZoomed[windowIndex].x = 0;
+                    }
+                }
+                continue;
+            }
             uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
@@ -435,7 +471,8 @@ void Renderer::render() {
             if (dev.state == CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
-                    if (win.second.selectedSource == "Idle" || win.first == CRL_PREVIEW_POINT_CLOUD)
+                    if (!win.second.isHovered || win.second.selectedSource == "Idle" ||
+                        win.first == CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;
@@ -464,7 +501,8 @@ void Renderer::render() {
                             && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
                             uint32_t w = 0, h = 0, d = 0;
                             Utils::cameraResolutionToValue(
-                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode, &w, &h,
+                                    dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode, &w,
+                                    &h,
                                     &d);
 
                             auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
@@ -474,17 +512,21 @@ void Renderer::render() {
                             dev.pixelInfo[windowIndex].y = y + 1;
 
                             // Check that we are within bounds
-                            /*
                             if (dev.pixelInfoZoomed[windowIndex].y > h)
                                 dev.pixelInfoZoomed[windowIndex].y = 0;
-                            if (dev.pixelInfoZoomed[windowIndex].x > h)
+                            if (dev.pixelInfoZoomed[windowIndex].x > w)
                                 dev.pixelInfoZoomed[windowIndex].x = 0;
-                                */
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
-                                case CRL_POINT_CLOUD:
-                                    break;
                                 case CRL_GRAYSCALE_IMAGE: {
+                                    Log::Logger::getInstance()->traceWithFrequency("Selection_grayscale_tag", 10,
+                                                                                   "Calculating hovered pixel intensity, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
+                                                                                   w, h, d,
+                                                                                   dev.pixelInfo[windowIndex].x,
+                                                                                   dev.pixelInfo[windowIndex].y,
+                                                                                   dev.pixelInfoZoomed[windowIndex].x,
+                                                                                   dev.pixelInfoZoomed[windowIndex].y);
+
                                     uint8_t intensity = tex.data[(w * y) + x];
                                     dev.pixelInfo[windowIndex].intensity = intensity;
 
@@ -493,17 +535,17 @@ void Renderer::render() {
                                     dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
-                                case CRL_COLOR_IMAGE_RGBA:
-                                    break;
-                                case CRL_COLOR_IMAGE_YUV420:
-                                    break;
-                                case CRL_CAMERA_IMAGE_NONE:
-                                    break;
                                 case CRL_DISPARITY_IMAGE: {
                                     float disparity = 0;
                                     auto *p = (uint16_t *) tex.data;
                                     disparity = (float) p[(w * y) + x] / 16.0f;
-
+                                    Log::Logger::getInstance()->traceWithFrequency("Selection_disparity_tag", 10,
+                                                                                   "Calculating hovered pixel distance, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
+                                                                                   w, h, d,
+                                                                                   dev.pixelInfo[windowIndex].x,
+                                                                                   dev.pixelInfo[windowIndex].y,
+                                                                                   dev.pixelInfoZoomed[windowIndex].x,
+                                                                                   dev.pixelInfoZoomed[windowIndex].y);
                                     // get focal length
                                     float fx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
@@ -517,7 +559,8 @@ void Renderer::render() {
                                         dev.pixelInfo[windowIndex].depth = 0;
                                     }
                                     float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) +
-                                                                         dev.pixelInfoZoomed[windowIndex].x] / 16.0f;
+                                                                         dev.pixelInfoZoomed[windowIndex].x] /
+                                                               16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
                                         dev.pixelInfoZoomed[windowIndex].depth = dist;
@@ -525,6 +568,8 @@ void Renderer::render() {
                                         dev.pixelInfoZoomed[windowIndex].depth = 0;
                                     }
                                 }
+                                    break;
+                                default:
                                     break;
                             }
                         }
@@ -581,7 +626,9 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
-    usageMonitor->sendUsageLog();
+    if (usageMonitor->hasUserLogCollectionConsent() &&
+        VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
+        usageMonitor->sendUsageLog();
 
     for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
@@ -611,7 +658,6 @@ void Renderer::cleanUp() {
     builtScriptNames.clear();
     destroySelectionBuffer();
 
-    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
 }
 
 

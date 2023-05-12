@@ -42,7 +42,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
-#include <imgui/imgui_internal.h>
+#include <imgui_internal.h>
 #include <sys/types.h>
 
 #include "Viewer/Tools/Utils.h"
@@ -64,6 +64,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <cstdlib>
 
 #define AutoConnectReader ReaderLinux
 #define elevated() getuid()
@@ -137,28 +138,106 @@ public:
                 reader->sendStopSignal();
             pclose(autoConnectProcess);
 #else
-        if (shellInfo.hProcess != nullptr) {
-            if (reader)
-                reader->sendStopSignal();
-            if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
-                Log::Logger::getInstance()->info("Terminated AutoConnect program");
-            } else
-                Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
+            if (shellInfo.hProcess != nullptr) {
+                if (reader)
+                    reader->sendStopSignal();
+                if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
+                    Log::Logger::getInstance()->info("Terminated AutoConnect program");
+                } else
+                    Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
 #endif
         }
 
         // Make sure adapter utils scanning thread is shut down correctly
         while (true) {
+            Log::Logger::getInstance()->traceWithFrequency("shutdown adapterutils: ", 1000,
+                                                           "Waiting for adapterUtils to shutdown");
             if (adapterUtils.shutdownReady())
                 break;
         }
+    }
+
+    void open_url(const std::string &url) {
+#ifdef _WIN32
+        ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+#elif __linux__
+        std::string command = "xdg-open " + std::string(url);
+        std::system(command.c_str());
+#endif
+    }
+
+    void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles *handle) {
+        if (VkRender::RendererConfig::getInstance().getUserSetting().askForUsageLoggingPermissions) {
+            ImGui::OpenPopup("Anonymous Usage Statistics");
+
+            auto user = VkRender::RendererConfig::getInstance().getUserSetting();
+            user.askForUsageLoggingPermissions = false;
+            VkRender::RendererConfig::getInstance().setUserSetting(user);
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
+        ImVec2 anonymousWindowSize(500.0f, 180.0f);
+        ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x/2), (handle->info->height / 2) - (anonymousWindowSize.y/2) - 50.0f));
+        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/v1.1.0/main/Assets/Generated/PrivacyPolicy.md";
+            static bool isLinkHovered = false;
+            ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f, 1.0f);
+
+            ImGui::Text("We would like to collect anonymous usage statistics to help improve our product.");
+            ImGui::Text("Data collected will only be used for product improvement purposes");
+            ImGui::Text("More information can be found at: ");
+            ImGui::PushStyleColor(ImGuiCol_Text, blueLinkColor);
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // Transparent button background
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
+                                  ImVec4(0, 0, 0, 0)); // Transparent button background when hovered
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive,
+                                  ImVec4(0, 0, 0, 0)); // Transparent button background when active
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
+            if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
+                open_url(url);
+            }
+            isLinkHovered = ImGui::IsItemHovered();
+            ImGui::PopStyleColor(4);
+
+            ImGui::Spacing();
+            ImGui::Text("Do you grant us permission to log and collect anonymous usage statistics?");
+            ImGui::Text("This option can always be changed in the settings tab");
+            auto user = VkRender::RendererConfig::getInstance().getUserSetting();
+            static int radio_value =  user.userConsentToSendLogs;
+            bool update =  ImGui::RadioButton("Yes", &radio_value, 1);
+            ImGui::SameLine();
+            update |= ImGui::RadioButton("No", &radio_value, 0);
+            if (update){
+                user.userConsentToSendLogs = radio_value;
+                VkRender::RendererConfig::getInstance().setUserSetting(user);
+                handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+            }
+
+            ImVec2 btnSize(120.0f, 0.0f);
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (btnSize.x / 2));
+            if (ImGui::Button("OK", btnSize)) {
+                handle->usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "false");
+                user.userConsentToSendLogs = radio_value;
+                VkRender::RendererConfig::getInstance().setUserSetting(user);
+                handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SetItemDefaultFocus();
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar(2);
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags =
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                ImGuiWindowFlags_NoDecoration;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLGray424Main);
@@ -166,8 +245,14 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 10.0f));
         ImGui::Begin("SideBar", &pOpen, window_flags);
         addPopup(handles);
-        ImGui::Spacing();
-        ImGui::Spacing();
+        askUsageLoggingPermissionPopUp(handles);
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f)))
+            handles->showDebugWindow = !handles->showDebugWindow;
+        ImGui::PopStyleVar();
+
+
         if (!handles->devices.empty())
             sidebarElements(handles);
         addDeviceButton(handles);
@@ -180,9 +265,9 @@ private:
     void addLogLine(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
-                va_start(args, fmt);
+        va_start(args, fmt);
         Buf.appendfv(fmt, args);
-                va_end(args);
+        va_end(args);
         for (int new_size = Buf.size(); old_size < new_size; old_size++)
             if (Buf[old_size] == '\n') {
                 LineOffsets.push_back(old_size + 1);
@@ -515,13 +600,6 @@ private:
             ImGui::OpenPopup("add_device_modal");
         }
 
-        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
-                                   handles->info->height - handles->info->addDeviceBottomPadding +
-                                   handles->info->addDeviceHeight + 25.0f));
-
-        if (ImGui::Button("Show Debug")) {
-            handles->showDebugWindow = !handles->showDebugWindow;
-        }
     }
 
     void addPopup(VkRender::GuiObjectHandles *handles) {
@@ -647,9 +725,10 @@ private:
                         reader->sendStopSignal();
 #ifdef __linux__
                         if (autoConnectProcess != nullptr) {
-                            int err =  pclose(autoConnectProcess);
-                            if (err != 0){
-                                Log::Logger::getInstance()->info("Error in closing AutoConnectProcess err: {} errno: {}", err, strerror(errno));
+                            int err = pclose(autoConnectProcess);
+                            if (err != 0) {
+                                Log::Logger::getInstance()->info(
+                                        "Error in closing AutoConnectProcess err: {} errno: {}", err, strerror(errno));
 
                             } else {
                                 Log::Logger::getInstance()->info("Stopped the auto connect process gracefully");
@@ -810,6 +889,7 @@ private:
                 ImGui::PopStyleColor(2);
                 ImGui::PopStyleVar();
 
+                /*
                 ImGui::Dummy(ImVec2(20.0f, 10.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
@@ -820,7 +900,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
                 ImGui::PopStyleColor(3);
-
+                */
             }
                 /** MANUAL_CONNECT FIELD BEGINS HERE*/
             else if (connectMethodSelector == MANUAL_CONNECT) {
@@ -879,8 +959,8 @@ private:
                         interfaceNameList.push_back(a.description);
                         interfaceIDList.push_back(a.ifName);
 #else
-                        if (a.supports && !Utils::isInVector(interfaceNameList, a.ifName)) {
-                            interfaceNameList.push_back(a.ifName);
+                    if (a.supports && !Utils::isInVector(interfaceNameList, a.ifName)) {
+                        interfaceNameList.push_back(a.ifName);
 #endif
                         indexList.push_back(a.ifIndex);
                         if (Utils::isInVector(interfaceNameList, "No adapters found")) {
@@ -925,19 +1005,21 @@ private:
                 }
                 ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
                 m_Entry.cameraName = "Manual";
-
+                /*
                 ImGui::Dummy(ImVec2(40.0f, 20.0));
                 ImGui::Dummy(ImVec2(20.0f, 0.0));
                 ImGui::SameLine();
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
                 //ImGui::Checkbox("  Configure System Network", &handles->configureNetwork);
                 //ImGui::SameLine(0, 20.0f);
+
                 ImGui::Checkbox("  Remote Head", &m_Entry.isRemoteHead);
                 ImGui::SameLine(0, 5.0f);
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
                 ImGui::PopStyleColor(3);
+                 */
             } else {
                 adapterUtils.stopAdapterScan(); // Stop it if it was started and we deselect manual connect
             }

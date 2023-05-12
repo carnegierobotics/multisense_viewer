@@ -39,7 +39,7 @@
 
 
 #include <vulkan/vulkan_core.h>
-#include <glm/glm/detail/type_quat.hpp>
+#include <glm/detail/type_quat.hpp>
 #include <glm/glm.hpp>
 
 #include "Viewer/Tools/Macros.h"

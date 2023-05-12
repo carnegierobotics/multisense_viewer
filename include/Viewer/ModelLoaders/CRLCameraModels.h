@@ -38,7 +38,7 @@
 #define MULTISENSE_CRLCAMERAMODELS_H
 
 
-#include <glm/glm/glm.hpp>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 #include <string>
 #include <vector>

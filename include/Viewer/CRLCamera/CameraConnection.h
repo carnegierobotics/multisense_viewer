@@ -38,7 +38,7 @@
 #define MULTISENSE_CAMERACONNECTION_H
 
 #include <memory>
-#include <simpleini/SimpleIni.h>
+#include <SimpleIni.h>
 
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/Core/Definitions.h"

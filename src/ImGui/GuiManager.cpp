@@ -77,7 +77,7 @@ namespace VkRender {
         }
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.info->deviceName = device->m_Properties.deviceName;
-        handles.info->title = "GuiManager";
+        handles.info->title = "MultiSense Viewer";
         ImGui::GetIO().GetClipboardTextFn = ImGuiGlfwGetClipboardText;
         ImGui::GetIO().SetClipboardTextFn = ImGuiGlfwSetClipboardText;
 

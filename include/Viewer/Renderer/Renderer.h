@@ -69,7 +69,8 @@ public:
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         pLogger = Log::Logger::getInstance();
         // Start up usage monitor
-        usageMonitor = std::make_unique<UsageMonitor>();
+        usageMonitor = std::make_shared<UsageMonitor>();
+        usageMonitor->loadSettingsFromFile();
 
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
@@ -79,6 +80,8 @@ public:
 
         guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
         guiManager->handles.mouse = &mouseButtons;
+        guiManager->handles.usageMonitor = usageMonitor;
+
         prepareRenderer();
         pLogger->info("Prepared Renderer");
 
@@ -108,7 +111,7 @@ private:
     std::unique_ptr<VkRender::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
-    std::unique_ptr<UsageMonitor> usageMonitor;
+    std::shared_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
     bool renderSelectionPass = true;

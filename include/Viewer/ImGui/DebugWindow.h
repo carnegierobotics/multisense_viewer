@@ -351,10 +351,13 @@ public:
 
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
+            /*
             static bool showDemo = false;
             ImGui::Checkbox("ShowDemo", &showDemo);
             if (showDemo)
                 ImGui::ShowDemoWindow();
+
+            */
 
             static bool addTestDevice = false;
             addTestDevice = ImGui::Button("Add test device");

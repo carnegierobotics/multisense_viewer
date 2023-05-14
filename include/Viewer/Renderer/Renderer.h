@@ -146,6 +146,8 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
+
+    void buildScript(const std::string &scriptName);
 };
 
 

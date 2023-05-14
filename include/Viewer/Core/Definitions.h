@@ -101,6 +101,8 @@ typedef enum ScriptType {
     CRL_SCRIPT_TYPE_DEFAULT,
     /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup. No particular order */
     CRL_SCRIPT_TYPE_RENDER,
+    /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (destroy and create) next frame */
+    CRL_SCRIPT_TYPE_RELOAD,
     /**
      * Create this script before default and always render this type first. No internal ordering amongst scripts
      */

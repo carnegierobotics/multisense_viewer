@@ -66,7 +66,7 @@ public:
     void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
-    /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
+    /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     ScriptType getType() override {return type;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;

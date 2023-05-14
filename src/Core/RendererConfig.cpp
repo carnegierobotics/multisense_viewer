@@ -185,16 +185,16 @@ namespace VkRender {
         m_GPUDevice = properties.deviceName;
     }
 
-    const std::string &RendererConfig::getAnonIdentifierString() const {
-        return m_Identifier;
-    }
-
     const RendererConfig::ApplicationUserSetting &RendererConfig::getUserSetting() const {
         return m_UserSetting;
     }
 
     RendererConfig::ApplicationUserSetting* RendererConfig::getUserSettingRef() {
         return &m_UserSetting;
+    }
+
+    const std::string &RendererConfig::getAnonymousIdentifier() const {
+        return m_Identifier;
     }
 
 };

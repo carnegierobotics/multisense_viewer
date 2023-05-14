@@ -142,7 +142,6 @@ void Renderer::buildScripts() {
         auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
         if (it != builtScriptNames.end())
             return;
-        builtScriptNames.emplace_back(scriptName);
         scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
 
         if (scripts[scriptName].get() == nullptr) {
@@ -151,6 +150,7 @@ void Renderer::buildScripts() {
             return;
         }
         pLogger->info("Registered script: {} in factory", scriptName.c_str());
+        builtScriptNames.emplace_back(scriptName);
     }
 
     // Run Once
@@ -178,6 +178,54 @@ void Renderer::buildScripts() {
             script.second->createUniformBuffers(vars, renderData);
         }
     }
+
+    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
+    conf.scripts.names = builtScriptNames;
+    VkRender::RendererConfig::getInstance().setUserSetting(conf);
+}
+
+void Renderer::buildScript(const std::string &scriptName) {
+    bool exists = Utils::isInVector(builtScriptNames, scriptName);
+    if (exists) {
+        Log::Logger::getInstance()->warning("Script {} Already exists, not pushing to render queue", scriptName);
+        return;
+    }
+
+    scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
+    if (scripts[scriptName].get() == nullptr) {
+        pLogger->error("Failed to register script {}.", scriptName);
+        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+        return;
+    }
+    pLogger->info("Registered script: {} in factory", scriptName.c_str());
+    builtScriptNames.emplace_back(scriptName);
+
+    // Run Once
+    VkRender::RenderUtils vars{};
+    vars.device = vulkanDevice.get();
+    vars.renderPass = &renderPass;
+    vars.UBCount = swapchain->imageCount;
+    vars.picking = &selection;
+    vars.queueSubmitMutex = &queueSubmitMutex;
+    // create first set of scripts for TOP OF PIPE
+    if (scripts[scriptName]->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
+        scripts[scriptName]->createUniformBuffers(vars, renderData);
+    }
+
+    // Copy data generated from TOP OF PIPE scripts
+    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
+    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
+    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
+    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
+
+
+    if (scripts[scriptName]->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
+        scripts[scriptName]->createUniformBuffers(vars, renderData);
+    }
+
+    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
+    conf.scripts.names = builtScriptNames;
+    VkRender::RendererConfig::getInstance().setUserSetting(conf);
 }
 
 void Renderer::deleteScript(const std::string &scriptName) {
@@ -192,6 +240,10 @@ void Renderer::deleteScript(const std::string &scriptName) {
     scripts[scriptName].get()->onDestroyScript();
     scripts[scriptName].reset();
     scripts.erase(scriptName);
+
+    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
+    conf.scripts.names = builtScriptNames;
+    VkRender::RendererConfig::getInstance().setUserSetting(conf);
 }
 
 
@@ -226,6 +278,7 @@ void Renderer::render() {
     // Update GUI
     guiManager->handles.info->frameID = frameID;
     guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
+
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
 
@@ -358,6 +411,29 @@ void Renderer::render() {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
             script.second->updateUniformBufferData(&renderData);
         }
+    }
+
+    // Update renderer with application settings
+    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
+    for (auto & script : conf.scripts.rebuildMap){
+        if (script.second){ // if rebuild
+            scripts.at(script.first)->setDrawMethod(CRL_SCRIPT_TYPE_RELOAD);
+            script.second = false;
+        }
+    }
+    VkRender::RendererConfig::getInstance().setUserSetting(conf);
+
+    // Reload scripts if requested
+    std::vector<std::string> scriptsToReload;
+    for (const auto &script: scripts) {
+        if (script.second->getType() == CRL_SCRIPT_TYPE_RELOAD) {
+            scriptsToReload.push_back(script.first);
+        }
+    }
+
+    for (const auto &scriptName : scriptsToReload) {
+        deleteScript(scriptName);
+        buildScript(scriptName);
     }
 
     /** Generate Draw Commands **/

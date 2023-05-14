@@ -67,7 +67,7 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
 
-    /** @brief Get the type of script. This will determine how it interacts with a gameobject **/
+    /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     ScriptType getType() override { return type; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;

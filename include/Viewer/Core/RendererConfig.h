@@ -51,6 +51,11 @@ namespace VkRender {
             bool userConsentToSendLogs = true;
             /** @brief If there is no prior registered consent from the user */
             bool askForUsageLoggingPermissions = false;
+
+            struct {
+                std::vector<std::string> names;
+                std::unordered_map<std::string, bool> rebuildMap;
+            }scripts;
         };
 
         static RendererConfig &getInstance() {
@@ -69,6 +74,8 @@ namespace VkRender {
         [[nodiscard]] const std::string &getOS() const;
 
         [[nodiscard]] const std::string &getGpuDevice() const;
+
+        [[nodiscard]] const std::string &getAnonymousIdentifier() const;
 
         void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 

@@ -3,7 +3,6 @@
 //
 
 #include <iostream>
-#include <httplib.h>
 
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Tools/Logger.h"
@@ -22,7 +21,7 @@ UsageMonitor::UsageMonitor() {
     VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
 
     // Connect to CRL server
-    server = std::make_unique<VkRender::ServerConnection>(config.getAnonIdentifierString(), config.getServerInfo());
+    server = std::make_unique<VkRender::ServerConnection>(config.getAnonymousIdentifier(), config.getServerInfo());
 }
 
 

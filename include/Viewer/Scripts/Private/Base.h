@@ -113,7 +113,6 @@ namespace VkRender {
         virtual ScriptType getType() {
             return CRL_SCRIPT_TYPE_DISABLED;
         }
-
         /**@brief Record draw command into a VkCommandBuffer */
         virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
@@ -154,6 +153,14 @@ namespace VkRender {
 
         }
 
+
+        /**
+         * Reloads script. Calls destructors and such
+         * @param data
+         */
+        void reload(VkRender::RenderData *data) {
+
+        }
 
         void updateUniformBufferData(VkRender::RenderData *data) {
             updateRenderData(data);

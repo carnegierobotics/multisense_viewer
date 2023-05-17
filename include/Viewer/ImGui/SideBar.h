@@ -180,7 +180,7 @@ public:
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
         ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x/2), (handle->info->height / 2) - (anonymousWindowSize.y/2) - 50.0f));
         if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/v1.1.0/main/Assets/Generated/PrivacyPolicy.md";
+            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
             static bool isLinkHovered = false;
             ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f, 1.0f);
 

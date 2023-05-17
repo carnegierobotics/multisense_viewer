@@ -14,7 +14,10 @@
 ## Background
 Quickly test your MultiSense device by using this application. The application will automatically find the camera and configure your network adapter. Additionally, the app provides a rich 2D/3D viewer and options to control sensor parameters.
 
-![Alt Text](https://github.com/M-Gjerde/MultiSense/blob/master/docs/usage_3.gif)
+<video width="960" height="540" controls>
+  <source src="docs/viewer_may23.webm" type="video/webm">
+  Your browser does not support the video tag.
+</video>
 
 
 ## Installation

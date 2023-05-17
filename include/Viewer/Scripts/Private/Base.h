@@ -154,14 +154,6 @@ namespace VkRender {
         }
 
 
-        /**
-         * Reloads script. Calls destructors and such
-         * @param data
-         */
-        void reload(VkRender::RenderData *data) {
-
-        }
-
         void updateUniformBufferData(VkRender::RenderData *data) {
             updateRenderData(data);
 

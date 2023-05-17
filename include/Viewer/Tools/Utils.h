@@ -43,6 +43,8 @@
 #include <cassert>
 #include <iostream>
 #include <vulkan/vulkan_core.h>
+#include <regex>
+#include <algorithm>
 
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -727,6 +729,13 @@ static inline std::filesystem::path getSystemCachePath() {
         }
     }
     return multiSenseCachePath;
+}
+
+static inline bool checkRegexMatch(const std::string& str, const std::string& expression){
+    std::string lowered_str = str;
+    std::transform(lowered_str.begin(), lowered_str.end(), lowered_str.begin(), ::tolower);
+    std::regex pattern(expression);
+    return std::regex_search(lowered_str, pattern);
 }
 
 }

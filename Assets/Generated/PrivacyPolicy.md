@@ -24,10 +24,10 @@ To improve the overall user experience of the application.
 
 We do not disclose or sell any information we collect to third parties for any commercial purpose. We may disclose anonymous information to our service providers, contractors, or agents who assist us in providing and improving our application. These service providers are required to keep the information confidential and are not authorized to use or disclose the information for any purpose other than providing services to us.
 <h2>Security</h2>
-We take reasonable measures to protect the anonymous information that we collect from unauthorized access, use, and disclosure. However, no security measures are perfect or impenetrable, and we cannot guarantee the security of your information.
+We take reasonable measures to protect the anonymous information that we collect from unauthorized access, use, and disclosure. However, no security measures are perfect or impenetrable, and we cannot guarantee the security of usage data or debug data.
 
 <h2>Changes to this Privacy Policy</h2>
 We may update this privacy policy from time to time. If we make material changes to this privacy policy, we will provide you with notice of the changes by posting a notice on our website or within our application.
 <h3>Contact Information</h3>
 
-If you have any questions or concerns about this Privacy Policy or our privacy practices, please contact us at mgjerde@carnegierobotics.com.
+If you have any questions or concerns about this Privacy Policy or our privacy practices, or you want your data to be removed, send an inquiry to mgjerde@carnegierobotics.com.

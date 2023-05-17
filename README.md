@@ -16,7 +16,7 @@ Quickly test your MultiSense device by using this application. The application w
 configure your network adapter. Additionally, the app provides a rich 2D/3D viewer and options to control sensor
 parameters.
 
-[![Video thumbnail](https://img.youtube.com/vi/xzlKH7Ss5LI/maxresdefault.jpg)](https://www.youtube.com/watch?v=xzlKH7Ss5LI)
+[![Video thumbnail](docs/viewer_image.png)](https://www.youtube.com/watch?v=xzlKH7Ss5LI)
 
 ## Installation
 

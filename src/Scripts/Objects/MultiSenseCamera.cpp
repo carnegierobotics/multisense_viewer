@@ -77,11 +77,11 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
         loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
         return;
     if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
-        if (selectedModel == "Multisense-S30")
+        if (Utils::checkRegexMatch(selectedModel, "s30"))
             S30->draw(commandBuffer, i);
-        else if (selectedModel == "Multisense-S27")
+        else if (Utils::checkRegexMatch(selectedModel, "s27"))
             S27->draw(commandBuffer, i);
-        else if (selectedModel == "Multisense-KS21")
+        else if (Utils::checkRegexMatch(selectedModel, "ks21"))
             KS21->draw(commandBuffer, i);
             /*
             if (selection == 0)
@@ -92,7 +92,7 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
                 KS21->draw(commandBuffer, i);
             */
         else {
-            Log::Logger::getInstance()->warning("No 3D model corresponding to {}. Not drawing anything", selectedModel);
+            Log::Logger::getInstance()->warningWithFrequency("no 3d model tag", 120, "No 3D model corresponding to {}. Not drawing anything", selectedModel);
             stopDraw = true;
         }
     }
@@ -182,6 +182,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         stopDraw = false;
         frameRate = renderData.crlCamera->getCameraInfo(0).imgConf.fps();
     }
+
     if (noActiveDevice)
         stopDraw = true;
 }

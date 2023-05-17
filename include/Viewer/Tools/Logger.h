@@ -224,6 +224,32 @@ namespace Log {
                 vTrace(tag, format, fmt::make_format_args(args...));
             }
         }
+        /**
+         * log trace messages with a specific frequency. frequency == 1 means every frame otherwise every nth frame.
+         * @tparam Args
+         * @param tag Tag used to count the frequency (should be unique across all log levels)
+         * @param frequency ever nth frame this line should be logged (Usually the application runs at 60 fps - so value of 60 --> ca. once every second)
+         * @param format format string
+         * @param args args for formatted string
+         */
+        template<typename... Args>
+        void
+        warningWithFrequency(const std::string &tag, uint32_t frequency, const FormatString &format, Args &&... args) {
+            if (frequencies.find(tag) != frequencies.end() && counter.find(tag) != counter.end()) {
+                counter[tag]++;
+            } else {
+                counter.insert_or_assign(tag, static_cast<uint32_t>(1));
+                frequencies.insert_or_assign(tag, frequency);
+            }
+            // I would like to use % == 0, but at least on windows if I do
+            // counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the counter map get initialized with NULL.
+            // which makes the next line crash when I reference value in counter[tag].
+            // Does not happen if I use any other value such as 1. No functional difference but just weird
+            // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
+            if (counter[tag] % frequencies[tag]  == 1) {
+                vWarning(tag, format, fmt::make_format_args(args...));
+            }
+        }
 
         void vTrace(const FormatString &format, fmt::format_args args) {
             traceInternal(prepareMessage(format, args, frameNumber).c_str());
@@ -231,6 +257,9 @@ namespace Log {
 
         void vTrace(const std::string &tag, const FormatString &format, fmt::format_args args) {
             traceInternal(prepareMessage(format, args, frameNumber, tag).c_str());
+        }
+        void vWarning(const std::string &tag, const FormatString &format, fmt::format_args args) {
+            warningInternal(prepareMessage(format, args, frameNumber, tag).c_str());
         }
 
 

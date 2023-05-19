@@ -748,9 +748,19 @@ namespace VkRender::MultiSense {
                                                 bool shouldConfigNetwork, bool delayConnection) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
 
-        if (delayConnection){
+        if (delayConnection) {
+            auto startTime = std::chrono::steady_clock::now();
+            auto time = std::chrono::steady_clock::now();
+            std::chrono::duration<float> timeSpan =
+                    std::chrono::duration_cast<std::chrono::duration<float >>(time - startTime);
+
             Log::Logger::getInstance()->info("Delay connection with 10 seconds on Windows to propagate IP changes");
-            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+            while (timeSpan.count() < 10.0 && !dev->interruptConnection) {
+                time = std::chrono::steady_clock::now();
+                timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(time - startTime);
+                std::this_thread::sleep_for(std::chrono::duration(std::chrono::milliseconds(50)));
+            }
         }
 
         app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);

@@ -106,6 +106,7 @@ public:
     bool shutdownReady(){
         Log::Logger::getInstance()->trace("Locking adapterUtils Mutex: shutdownready");
         std::scoped_lock<std::mutex> lock(mut);
+        runThread = false;
         Log::Logger::getInstance()->trace("Freeing adapterUtils Mutex: shutdownready");
         return !isThreadAlive;
     }

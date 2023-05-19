@@ -105,7 +105,8 @@ namespace VkRender::MultiSense {
         }
 
         if (dev->parameters.stereo.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
-            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->stereo.fps, p->stereo.gain, p->stereo.gamma,
+            pool->Push(CameraConnection::setAdditionalParametersTask, this, p->stereo.fps, p->stereo.gain,
+                       p->stereo.gamma,
                        p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, dev, dev->configRemoteHead);
 
         if (dev->parameters.stereo.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE)
@@ -311,10 +312,12 @@ namespace VkRender::MultiSense {
                 // Find percentile should not run on main render thread as it slows down the application considerably.
                 // Maybe just update the percentiles around once a second or so in a threaded operation
                 minVal =
-                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), static_cast<size_t>(tex.m_Len / 2.0f), 10.0f) /
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data),
+                                            static_cast<size_t>(tex.m_Len / 2.0f), 10.0f) /
                         (16.0f * 255.0f);
                 maxVal =
-                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data), static_cast<size_t>(tex.m_Len / 2.0f), 90.0f) /
+                        app->findPercentile(reinterpret_cast<uint16_t *>(tex.data),
+                                            static_cast<size_t>(tex.m_Len / 2.0f), 90.0f) /
                         (16.0f * 255.0f);
             }
         }
@@ -346,7 +349,9 @@ namespace VkRender::MultiSense {
             if (disparityNormFuture.valid() &&
                 disparityNormFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
                 auto result = disparityNormFuture.get();
-                Log::Logger::getInstance()->traceWithFrequency("normalize future result", 50, "Calculated new norm {} to {}", result.first, result.second);
+                Log::Logger::getInstance()->traceWithFrequency("normalize future result", 50,
+                                                               "Calculated new norm {} to {}", result.first,
+                                                               result.second);
                 for (auto &window: dev.win) {
                     window.second.effects.data.minDisparityValue = result.first;
                     window.second.effects.data.maxDisparityValue = result.second;
@@ -358,7 +363,8 @@ namespace VkRender::MultiSense {
                 (!disparityNormFuture.valid() ||
                  disparityNormFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) &&
                 pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-                Log::Logger::getInstance()->traceWithFrequency("new normalize future", 50, "Pushing new disparity normalizer calculation to pool");
+                Log::Logger::getInstance()->traceWithFrequency("new normalize future", 50,
+                                                               "Pushing new disparity normalizer calculation to pool");
                 disparityNormFuture = pool->Push(CameraConnection::findUpperAndLowerDisparityBounds, this, &dev);
                 calcDisparityNormValuesTimer = std::chrono::steady_clock::now();
 
@@ -404,7 +410,8 @@ namespace VkRender::MultiSense {
                 return;
             }
             // Connect if we click a m_Device in the sidebar or if it is just added by add m_Device btn
-            if ((dev.clicked && dev.state != CRL_STATE_ACTIVE) || dev.state == CRL_STATE_JUST_ADDED) {
+            if ((dev.clicked && dev.state != CRL_STATE_ACTIVE) || dev.state == CRL_STATE_JUST_ADDED ||
+                dev.state == CRL_STATE_JUST_ADDED_WINDOWS) {
                 // reset other active m_Device if present. So loop over all devices again.
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_ACTIVE | CRL_STATE_JUST_ADDED",
                                                  dev.name);
@@ -425,6 +432,9 @@ namespace VkRender::MultiSense {
 
                     saveProfileAndDisconnect(otherDev);
                 }
+
+                bool delayConnection = (dev.state == CRL_STATE_JUST_ADDED_WINDOWS);
+
                 dev.state = CRL_STATE_CONNECTING;
                 Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_CONNECTING ", dev.name);
 
@@ -432,7 +442,7 @@ namespace VkRender::MultiSense {
                 pool = std::make_unique<VkRender::ThreadPool>(2);
                 // Perform connection by pushing a connect task.
                 pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, dev.isRemoteHead,
-                           shouldConfigNetwork);
+                           shouldConfigNetwork, delayConnection);
                 break;
             }
 
@@ -735,8 +745,14 @@ namespace VkRender::MultiSense {
 
 
     void CameraConnection::connectCRLCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead,
-                                                bool shouldConfigNetwork) {
+                                                bool shouldConfigNetwork, bool delayConnection) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
+
+        if (delayConnection){
+            Log::Logger::getInstance()->info("Delay connection with 10 seconds on Windows to propagate IP changes");
+            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        }
+
         app->setNetworkAdapterParameters(*dev, shouldConfigNetwork);
         // Connect to camera
         Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP,
@@ -1002,7 +1018,7 @@ namespace VkRender::MultiSense {
             auto *p = &dev->parameters;
             p->stereo.ep.currentExposure = conf.exposure();
 
-            if (dev->hasColorCamera){
+            if (dev->hasColorCamera) {
                 const auto &auxConf = app->camPtr.getCameraInfo(index).auxImgConf;
                 p->aux.ep.currentExposure = auxConf.exposure();
             }

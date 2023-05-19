@@ -138,7 +138,8 @@ typedef enum ArConnectionState {
     CRL_STATE_DISCONNECT_AND_FORGET = 8,    /// Device is removed and the profile in crl.ini is deleted
     CRL_STATE_REMOVE_FROM_LIST = 9,         /// Device is removed from sidebar list on next frame
     CRL_STATE_INTERRUPT_CONNECTION = 10,    /// Stop attempting to connect (For closing application quickly and gracefully)
-    CRL_STATE_JUST_ADDED = 11               /// Skip to connection flow, just added into sidebar list
+    CRL_STATE_JUST_ADDED = 11,               /// Skip to connection flow, just added into sidebar list
+    CRL_STATE_JUST_ADDED_WINDOWS = 12        /// Windows autoconnect needs some extra time to propogate
 } ArConnectionState;
 
 /**

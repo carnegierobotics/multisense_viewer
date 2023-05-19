@@ -333,7 +333,6 @@ private:
                                                                entry.description};
 
                                 entryConnectDeviceList.push_back(e);
-                                resultsComboIndex = entryConnectDeviceList.size() - 1;
                             }
                         }
                     }
@@ -360,8 +359,8 @@ private:
             shellInfo.lpDirectory = ".\\";
             shellInfo.nShow = SW_HIDE;
             shellInfo.hInstApp = nullptr;
-
             bool instance = ShellExecuteExA(&shellInfo);
+
             if (!instance) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %zu", GetLastError());
                 reader.reset();
@@ -374,13 +373,13 @@ private:
         }
     }
 
-    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {
+    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry, bool fromWindowsAutoConnect = false) {
         VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
-        el.state = CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED ", el.name);
+        el.state = fromWindowsAutoConnect ? CRL_STATE_JUST_ADDED_WINDOWS : CRL_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name, fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
         el.clicked = true;
@@ -440,7 +439,13 @@ private:
                     btnColor = VkRender::Colors::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
-                case CRL_STATE_JUST_ADDED:
+                case CRL_STATE_JUST_ADDED :
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+                    buttonIdentifier = "Added...";
+                    break;
+                case CRL_STATE_JUST_ADDED_WINDOWS:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -720,9 +725,13 @@ private:
                     Log::Logger::getInstance()->info("User clicked {}", btnLabel);
                     if (btnLabel == "Start") {
                         reader = std::make_unique<AutoConnectReader>();
-                        btnLabel = "Stop";
+                        btnLabel = "Reset";
                     } else {
                         reader->sendStopSignal();
+                        entryConnectDeviceList.clear();
+                        m_Entry.IP.clear();
+                        m_Entry.cameraName.clear();
+                        resultsComboIndex = -1;
 #ifdef __linux__
                         if (autoConnectProcess != nullptr) {
                             int err = pclose(autoConnectProcess);
@@ -1097,12 +1106,24 @@ private:
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
-                reader->setIpConfig(resultsComboIndex);
-                reader->sendStopSignal();
-                // Stop autoConnect and set IP the found MultiSense device
 
+                if (reader) {
+                    reader->setIpConfig(resultsComboIndex);
+                    reader->sendStopSignal();
+                }
+                // Stop autoConnect and set IP the found MultiSense device
+                // Next: Create default element, but if this happens on windows we can to connect for ~~8 seconds to allow added ip address to finish configuring
+#ifdef WIN32
+                createDefaultElement(handles, m_Entry,  connectMethodSelector == AUTO_CONNECT);
+                ImGui::CloseCurrentPopup();
+#else
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
+#endif
+
+                entryConnectDeviceList.clear();
+                m_Entry.IP.clear();
+                resultsComboIndex = -1;
             }
 
             ImGui::EndPopup();

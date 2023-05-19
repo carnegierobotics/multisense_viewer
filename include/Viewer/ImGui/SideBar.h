@@ -296,6 +296,11 @@ private:
                         addLogLine(LOG_COLOR_GRAY, "%s", str.c_str());
                     if (reader->stopRequested) {
                         reader->sendStopSignal();
+
+                        m_Entry.IP.clear();
+                        resultsComboIndex = -1;
+                        entryConnectDeviceList.clear();
+
 #ifdef __linux__
                         if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
                             startedAutoConnect = false;
@@ -1110,6 +1115,7 @@ private:
                 if (reader) {
                     reader->setIpConfig(resultsComboIndex);
                     reader->sendStopSignal();
+                    m_Entry.IP.clear();
                 }
                 // Stop autoConnect and set IP the found MultiSense device
                 // Next: Create default element, but if this happens on windows we can to connect for ~~8 seconds to allow added ip address to finish configuring
@@ -1122,7 +1128,6 @@ private:
 #endif
 
                 entryConnectDeviceList.clear();
-                m_Entry.IP.clear();
                 resultsComboIndex = -1;
             }
 

@@ -85,9 +85,9 @@ public:
             ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f,
                                                                                                 1.0f);
 
-            ImGui::Text("Hooray! A shiny new version of this viewer is ready for you! \n");
+            ImGui::Text("Dear User, a shiny new version of this viewer is ready for you! \n");
             ImGui::Text("Upgrade now and enjoy new features and improvements.\n");
-            ImGui::Text("New version can be found here: \n");
+            ImGui::Text("New version can be found by clicking the button or here: \n");
 
             ImGui::PushStyleColor(ImGuiCol_Text, blueLinkColor);
             ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // Transparent button background

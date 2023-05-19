@@ -18,13 +18,10 @@ public:
  * @param protocol http or https
  * @param destination destination in the server that requests should go to by default
  */
-    ServerConnection(std::string identifier, VkRender::RendererConfig::CRLServerInfo serverInfo){
+    ServerConnection(const std::string& identifier, const VkRender::RendererConfig::CRLServerInfo& serverInfo){
         // Create the HTTP client
-        m_IP = serverInfo.server;
-        m_Protocol = serverInfo.protocol;
-        m_Destination = serverInfo.destination;
         m_Identifier = identifier;
-
+        m_ServerInfo = serverInfo;
         m_Client = std::make_unique<httplib::Client>(serverInfo.protocol + "://" + serverInfo.server);
 
         m_Client->set_connection_timeout(3, 0); // 3 seconds
@@ -32,19 +29,15 @@ public:
         m_Client->set_write_timeout(5, 0); // 5 seconds
     }
 
-    ~ServerConnection(){
-
-    }
+    ~ServerConnection()= default;
 
     void sendUsageStatistics(const std::filesystem::path& usageFilePath, std::filesystem::path logFilePath);
+    bool getLatestApplicationVersionRemote();
 
 private:
     std::unique_ptr<httplib::Client> m_Client;
     std::string m_Identifier;
-
-    std::string m_Protocol;
-    std::string m_IP;
-    std::string m_Destination;
+    VkRender::RendererConfig::CRLServerInfo m_ServerInfo;
 };
 }
 

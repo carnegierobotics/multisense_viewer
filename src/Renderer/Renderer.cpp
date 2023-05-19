@@ -51,6 +51,32 @@
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"
 
+
+Renderer::Renderer(const std::string &title) : VulkanRenderer(title, true) {
+    VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+    this->m_Title = title;
+    // Create Log C++ Interface
+    Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
+    pLogger = Log::Logger::getInstance();
+    // Start up usage monitor
+    usageMonitor = std::make_shared<UsageMonitor>();
+    usageMonitor->loadSettingsFromFile();
+
+    VulkanRenderer::initVulkan();
+    VulkanRenderer::prepare();
+    backendInitialized = true;
+    pLogger->info("Initialized Backend");
+    config.setGpuDevice(physicalDevice);
+
+    guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
+    guiManager->handles.mouse = &mouseButtons;
+    guiManager->handles.usageMonitor = usageMonitor;
+
+    prepareRenderer();
+    pLogger->info("Prepared Renderer");
+}
+
+
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::arcball;
     camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1024.0f);
@@ -248,6 +274,15 @@ void Renderer::deleteScript(const std::string &scriptName) {
 
 
 void Renderer::render() {
+
+    // New version available?
+    std::string versionRemote;
+    if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)){
+        std::string localAppVersion = VkRender::RendererConfig::getInstance().getAppVersion();
+        Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}", localAppVersion, versionRemote);
+        guiManager->handles.newVersionAvailable =  localAppVersion != versionRemote;
+    }
+
     pLogger->frameNumber = frameID;
     if (keyPress == GLFW_KEY_SPACE) {
         camera.setPosition(defaultCameraPosition);

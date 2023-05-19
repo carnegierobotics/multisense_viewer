@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <future>
 
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Tools/Logger.h"
@@ -22,6 +23,11 @@ UsageMonitor::UsageMonitor() {
 
     // Connect to CRL server
     server = std::make_unique<VkRender::ServerConnection>(config.getAnonymousIdentifier(), config.getServerInfo());
+
+    getAppVersionRemoteFuture = std::async(std::launch::async, [&]() {
+        return server->getLatestApplicationVersionRemote();
+    });
+
 }
 
 
@@ -34,7 +40,7 @@ void UsageMonitor::loadSettingsFromFile() {
         jsonObj["settings"] = settingsJson;
     }
 
-    auto& setting = jsonObj["settings"];
+    auto &setting = jsonObj["settings"];
     auto user = config.getUserSetting();
 
     if (setting.contains("log_level"))
@@ -53,9 +59,9 @@ void UsageMonitor::loadSettingsFromFile() {
 }
 
 
-void UsageMonitor::setSetting(const std::string& key, const std::string& value){
+void UsageMonitor::setSetting(const std::string &key, const std::string &value) {
     nlohmann::json jsonObj = openUsageFile();
-    if (jsonObj.contains("settings")){
+    if (jsonObj.contains("settings")) {
         // Update the specific key in the "settings" object
         jsonObj["settings"][key] = value;
     } else {
@@ -70,11 +76,14 @@ void UsageMonitor::setSetting(const std::string& key, const std::string& value){
     std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
     output_file << jsonObj.dump(4);
 }
-std::string UsageMonitor::getSetting(const std::string& key, bool createKeyIfNotExists, const std::string& defaultValue){
+
+std::string
+UsageMonitor::getSetting(const std::string &key, bool createKeyIfNotExists, const std::string &defaultValue) {
     nlohmann::json jsonObj = openUsageFile();
-    if (jsonObj.contains("settings")){
-        if (jsonObj["settings"].contains(key)){
-            Log::Logger::getInstance()->info("Get setting: {}, value: {}", key, nlohmann::to_string(jsonObj["settings"][key]).c_str());
+    if (jsonObj.contains("settings")) {
+        if (jsonObj["settings"].contains(key)) {
+            Log::Logger::getInstance()->info("Get setting: {}, value: {}", key,
+                                             nlohmann::to_string(jsonObj["settings"][key]).c_str());
             return jsonObj["settings"][key];
         }
     } else {
@@ -95,7 +104,7 @@ std::string UsageMonitor::getSetting(const std::string& key, bool createKeyIfNot
     return "";
 }
 
-void UsageMonitor::addEvent(){
+void UsageMonitor::addEvent() {
     std::ifstream input_file(usageFilePath);
     // Create a string stream and copy the file's contents into it
     std::stringstream buffer;
@@ -112,6 +121,7 @@ nlohmann::json UsageMonitor::openUsageFile() {
     nlohmann::json jsonObj = parseJSON(buffer);
     return jsonObj;
 }
+
 nlohmann::json UsageMonitor::parseJSON(const std::stringstream &buffer) {
     try {
         return nlohmann::json::parse(buffer.str());
@@ -140,8 +150,8 @@ void UsageMonitor::initializeJSONFile() {
     std::ofstream output_file(usageFilePath);
     std::string jsonBoilerPlate = "{\n"
                                   "    \"log_version\": \"" + logVersion + "\",\n"
-                                                                        "    \"os\": {\n"
-                                                                        "         \"name\": \"" + config.getOS() +
+                                                                           "    \"os\": {\n"
+                                                                           "         \"name\": \"" + config.getOS() +
                                   "\",\n"
                                   "         \"version\": \"" + config.getOsVersion() + "\",\n"
                                                                                        "         \"architecture\": \"" +
@@ -161,6 +171,16 @@ void UsageMonitor::initializeJSONFile() {
 
 void UsageMonitor::sendUsageLog() {
     server->sendUsageStatistics(usageFilePath, logFilePath);
+}
+
+bool UsageMonitor::getLatestAppVersionRemote(std::string *version) {
+    bool success = false;
+    if (getAppVersionRemoteFuture.valid() && getAppVersionRemoteFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        *version = VkRender::RendererConfig::getInstance().getAppVersionRemote();
+        success = getAppVersionRemoteFuture.get();
+    }
+
+    return success;
 }
 
 bool UsageMonitor::hasUserLogCollectionConsent() {

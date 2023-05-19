@@ -342,8 +342,8 @@ private:
         } else {
 #ifdef __linux__
             std::string fileName = "./AutoConnectLauncher.sh";
-            autoConnectProcess = popen((fileName).c_str(), "r");
-            if (autoConnectProcess == nullptr) {
+            //autoConnectProcess = popen((fileName).c_str(), "r");
+            if (autoConnectProcess != nullptr) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %s", strerror(errno));
             } else {
                 startedAutoConnect = true;
@@ -1097,6 +1097,10 @@ private:
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
+                reader->setIpConfig(resultsComboIndex);
+                reader->sendStopSignal();
+                // Stop autoConnect and set IP the found MultiSense device
+
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
             }

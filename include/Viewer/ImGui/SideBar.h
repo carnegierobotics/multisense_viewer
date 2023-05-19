@@ -346,8 +346,8 @@ private:
         } else {
 #ifdef __linux__
             std::string fileName = "./AutoConnectLauncher.sh";
-            //autoConnectProcess = popen((fileName).c_str(), "r");
-            if (autoConnectProcess != nullptr) {
+            autoConnectProcess = popen((fileName).c_str(), "r");
+            if (autoConnectProcess == nullptr) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %s", strerror(errno));
             } else {
                 startedAutoConnect = true;
@@ -457,7 +457,7 @@ private:
                     buttonIdentifier = "Added...";
                     break;
                 case CRL_STATE_DISCONNECT_AND_FORGET:
-                    buttonIdentifier = "Disconnecting...";
+                    buttonIdentifier = "Disconnecting...cmake";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;

@@ -157,7 +157,7 @@ public:
         }
     }
 
-    void open_url(const std::string &url) {
+    void openURL(const std::string &url) {
 #ifdef _WIN32
         ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __linux__
@@ -196,7 +196,7 @@ public:
             ImGui::SameLine();
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
             if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
-                open_url(url);
+                openURL(url);
             }
             isLinkHovered = ImGui::IsItemHovered();
             ImGui::PopStyleColor(4);

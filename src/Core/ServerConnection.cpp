@@ -40,7 +40,7 @@ namespace VkRender {
 
         Log::Logger::getInstance()->info("Sending usage statistics");
 
-        auto res = m_Client->Post(m_Destination, items);
+        auto res = m_Client->Post(m_ServerInfo.destination, items);
         if (res) {
             switch (res->status) {
                 case 200:
@@ -56,5 +56,36 @@ namespace VkRender {
             auto err = res.error();
             Log::Logger::getInstance()->warning("Unable to service HTTP post: {} ", httplib::to_string(err));
         }
+    }
+
+    bool ServerConnection::getLatestApplicationVersionRemote() {
+        bool success = false;
+        Log::Logger::getInstance()->info("Checking remote version info");
+        auto res = m_Client->Get(m_ServerInfo.versionInfoDestination);
+        std::string latestVersion;
+        if (res) {
+            switch (res->status) {
+                case 200:
+                    Log::Logger::getInstance()->info("Status code 200. The server replied with: '{}'", res->body);
+                    if (res->body.find("VERSION=") != std::string::npos) {
+                        latestVersion = res->body.substr(res->body.find('=') + 1);
+                    }
+                    break;
+                case 500:
+                    Log::Logger::getInstance()->info("Status code 500. Server error: {}", res->body);
+                    break;
+                case 404:
+                    Log::Logger::getInstance()->info("Error 404.Not found {}", res->body);
+            }
+        } else {
+            auto err = res.error();
+            Log::Logger::getInstance()->warning("Unable to service HTTP post: {} ", httplib::to_string(err));
+        }
+
+        if (!latestVersion.empty()) {
+            VkRender::RendererConfig::getInstance().setAppVersionRemote(latestVersion);
+            success = true;
+        }
+        return success;
     }
 };

@@ -19,6 +19,12 @@ public:
     void loadSettingsFromFile();
     bool hasUserLogCollectionConsent();
     bool shouldAskForUserConsent();
+    /**
+     * Get the latest version retrieved from crl server
+     * @param version parameter to be filled if the app successfully fetched app version. No change if it didnt
+     * @return If the app has fetched the version info successfully from crl server
+     */
+    bool getLatestAppVersionRemote(std::string *version);
 
 private:
     std::filesystem::path usageFilePath;
@@ -33,6 +39,9 @@ private:
     void addEvent();
 
     nlohmann::json openUsageFile();
+
+    std::future<bool> getAppVersionRemoteFuture;
+
 };
 
 

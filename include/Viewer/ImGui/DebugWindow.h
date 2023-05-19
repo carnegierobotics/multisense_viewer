@@ -410,7 +410,7 @@ public:
                 sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
 
-            if (ImGui::Button("Set permissions")) {
+            if (ImGui::Button("Reset statistics consent")) {
                 usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
                 user.askForUsageLoggingPermissions = true;
                 update = true;

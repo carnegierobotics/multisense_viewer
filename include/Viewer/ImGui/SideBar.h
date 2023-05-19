@@ -873,6 +873,7 @@ private:
 
                 if (!selected) {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4());
+                    m_Entry.interfaceName.clear();
                 } else {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_Header]);
                 }
@@ -1057,6 +1058,11 @@ private:
             } else
                 enableConnectButton = true;
 
+
+            if (connectMethodSelector == AUTO_CONNECT && !reader) {
+                enableConnectButton = false;
+            }
+
             /** CANCEL/CONNECT FIELD BEGINS HERE*/
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
             ImGui::SetCursorPos(ImVec2(0.0f, handles->info->popupHeight - 50.0f));
@@ -1081,7 +1087,11 @@ private:
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
                 if (connectMethodSelector == AUTO_CONNECT) {
-                    errors.insert(errors.begin(), "No device selected");
+                    if (reader)
+                        errors.insert(errors.begin(), "No device selected");
+                    else
+                        errors.insert(errors.begin(), "Please Start AutoConnect");
+
                     Utils::removeFromVector(&errors, "No selected network adapter");
                 }
                 if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork) {
@@ -1115,7 +1125,6 @@ private:
                 if (reader) {
                     reader->setIpConfig(resultsComboIndex);
                     reader->sendStopSignal();
-                    m_Entry.IP.clear();
                 }
                 // Stop autoConnect and set IP the found MultiSense device
                 // Next: Create default element, but if this happens on windows we can to connect for ~~8 seconds to allow added ip address to finish configuring
@@ -1126,7 +1135,6 @@ private:
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
 #endif
-
                 entryConnectDeviceList.clear();
                 resultsComboIndex = -1;
             }

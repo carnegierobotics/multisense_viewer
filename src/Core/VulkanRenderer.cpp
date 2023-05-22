@@ -550,7 +550,7 @@ namespace VkRender {
 
         pLogger->info("Initialized Renderer backend");
 
-        startTime = std::chrono::system_clock::now();
+        rendererStartTime = std::chrono::system_clock::now();
 
 
     }
@@ -635,7 +635,7 @@ namespace VkRender {
             frameID++; // First frame will have id 1.
             glfwPollEvents();
             auto end = std::chrono::system_clock::now();
-            std::chrono::duration<float> elapsed_seconds = end - startTime;
+            std::chrono::duration<float> elapsed_seconds = end - rendererStartTime;
             runTime = elapsed_seconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();

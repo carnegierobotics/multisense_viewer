@@ -26,6 +26,10 @@ public:
      */
     bool getLatestAppVersionRemote(std::string *version);
 
+    void userStartSession(std::chrono::system_clock::time_point startTime);
+    void userEndSession();
+    void userClickAction(const std::string &label, const std::string& type, const std::string &window);
+
 private:
     std::filesystem::path usageFilePath;
     std::filesystem::path logFilePath;
@@ -41,7 +45,13 @@ private:
     nlohmann::json openUsageFile();
 
     std::future<bool> getAppVersionRemoteFuture;
+    std::chrono::system_clock::time_point m_StartTime;
+    uint32_t sessionIndex = 0;
 
+
+    void saveJsonToUsageFile(nlohmann::json jsonObj);
+
+    std::string getCurrentTimeString(std::chrono::system_clock::time_point time = std::chrono::system_clock::now());
 };
 
 

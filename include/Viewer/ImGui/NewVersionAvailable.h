@@ -85,9 +85,9 @@ public:
             ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f,
                                                                                                 1.0f);
 
-            ImGui::Text("Hooray! A shiny new version of this viewer is ready for you! \n");
+            ImGui::Text("Dear User, a shiny new version of this viewer is ready for you! \n");
             ImGui::Text("Upgrade now and enjoy new features and improvements.\n");
-            ImGui::Text("New version can be found here: \n");
+            ImGui::Text("New version can be found by clicking the button or here: \n");
 
             ImGui::PushStyleColor(ImGuiCol_Text, blueLinkColor);
             ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // Transparent button background
@@ -99,6 +99,8 @@ public:
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("GitHub Releases").x);
             if (ImGui::Selectable("GitHub Releases", false, ImGuiSelectableFlags_DontClosePopups)) {
                 openURL(url);
+                uiHandle->usageMonitor->userClickAction("GitHub Releases", "Selectable", ImGui::GetCurrentWindow()->Name);
+
             }
 
             isLinkHovered = ImGui::IsItemHovered();
@@ -109,6 +111,7 @@ public:
             if (ImGui::Button("Awesome, Let's go!")) {
                 openURL(url);
                 uiHandle->askUserForNewVersion = false;
+                uiHandle->usageMonitor->userClickAction("Awesome, Let's go!", "Button", ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SetItemDefaultFocus();
@@ -116,6 +119,8 @@ public:
             ImGui::SameLine();
 
             if (ImGui::Button("Remind me later")) {
+                uiHandle->usageMonitor->userClickAction("Remind me later", "Button", ImGui::GetCurrentWindow()->Name);
+
                 uiHandle->askUserForNewVersion = false;
                 ImGui::CloseCurrentPopup();
             }

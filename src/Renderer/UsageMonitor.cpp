@@ -122,6 +122,13 @@ nlohmann::json UsageMonitor::openUsageFile() {
     return jsonObj;
 }
 
+void UsageMonitor::saveJsonToUsageFile(nlohmann::json jsonObj) {
+    // Save the modified JSON to the file
+    std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
+    output_file << jsonObj.dump(4);
+
+}
+
 nlohmann::json UsageMonitor::parseJSON(const std::stringstream &buffer) {
     try {
         return nlohmann::json::parse(buffer.str());
@@ -175,7 +182,8 @@ void UsageMonitor::sendUsageLog() {
 
 bool UsageMonitor::getLatestAppVersionRemote(std::string *version) {
     bool success = false;
-    if (getAppVersionRemoteFuture.valid() && getAppVersionRemoteFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+    if (getAppVersionRemoteFuture.valid() &&
+        getAppVersionRemoteFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
         *version = VkRender::RendererConfig::getInstance().getAppVersionRemote();
         success = getAppVersionRemoteFuture.get();
     }
@@ -189,4 +197,78 @@ bool UsageMonitor::hasUserLogCollectionConsent() {
 
 bool UsageMonitor::shouldAskForUserConsent() {
     return getSetting("ask_user_consent_to_collect_statistics", true, "true") == "true";
+}
+
+std::string UsageMonitor::getCurrentTimeString(std::chrono::system_clock::time_point timePoint) {
+    // Convert time_point to time_t
+    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
+    // Convert time_t to local time
+    std::tm *localTime = std::localtime(&time);
+    // Format the local time as a string timestamp
+    std::stringstream ss;
+    ss << std::put_time(localTime, "%Y-%m-%d %H:%M:%S");
+    std::string timestamp = ss.str();
+    return timestamp;
+}
+
+
+void UsageMonitor::userClickAction(const std::string &label, const std::string& type, const std::string &window) {
+    try {
+        nlohmann::json obj;
+        obj["element"] = type;
+        obj["element_id"] = label;
+        obj["parent_window"] = window;
+        obj["timestamp"] = getCurrentTimeString();
+
+        auto usageLog = openUsageFile();
+        if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
+            usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
+        }
+
+        usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
+        saveJsonToUsageFile(usageLog);
+    }catch (nlohmann::json::exception &e){
+        Log::Logger::getInstance()->warning("Failed to record userClickAction: {}", e.what());
+    }
+}
+
+void UsageMonitor::userEndSession() {
+    try {
+        nlohmann::json generalData;
+        nlohmann::json settingsChanged;
+        auto time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_StartTime).count();
+        generalData["time_spent_seconds"] = std::to_string(time);
+        generalData["settings_changed"] = settingsChanged;
+        auto usageLog = openUsageFile();
+        usageLog["stats"][sessionIndex]["general"] = generalData;
+        saveJsonToUsageFile(usageLog);
+
+    }catch (nlohmann::json::exception &e){
+        Log::Logger::getInstance()->warning("Failed to save usage log in userEndSession: {}", e.what());
+    }
+
+
+}
+
+void UsageMonitor::userStartSession(
+        std::chrono::system_clock::time_point startTime) {
+    m_StartTime = startTime;
+    nlohmann::json obj;
+    auto gpuDevice = VkRender::RendererConfig::getInstance().getGpuDevice();
+
+
+    obj["event"] = "start application";
+    obj["start_time"] = getCurrentTimeString(m_StartTime);
+    obj["graphics_device"] = gpuDevice;
+
+    auto usageLog = openUsageFile();
+    // Check if usageLog["stats"] is an array; if not, initialize it as an empty array
+    if (!usageLog["stats"].is_array()) {
+        usageLog["stats"] = nlohmann::json::array();
+    }
+
+    sessionIndex = usageLog["stats"].size();
+    usageLog["stats"].push_back(obj);
+    saveJsonToUsageFile(usageLog);
+
 }

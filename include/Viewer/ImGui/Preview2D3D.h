@@ -316,6 +316,8 @@ private:
             handles->clearColor[1] = VkRender::Colors::CRLCoolGray.y;
             handles->clearColor[2] = VkRender::Colors::CRLCoolGray.z;
             handles->clearColor[3] = VkRender::Colors::CRLCoolGray.w;
+            handles->usageMonitor->userClickAction("2D", "Button", ImGui::GetCurrentWindow()->Name);
+
         }
         ImGui::PopStyleColor(); // Btn Color
 
@@ -335,6 +337,8 @@ private:
             handles->clearColor[1] = VkRender::Colors::CRL3DBackground.y;
             handles->clearColor[2] = VkRender::Colors::CRL3DBackground.z;
             handles->clearColor[3] = VkRender::Colors::CRL3DBackground.w;
+            handles->usageMonitor->userClickAction("3D", "Button", ImGui::GetCurrentWindow()->Name);
+
         }
         if (dev.isRemoteHead) {
             ImGui::PopItemFlag();
@@ -356,6 +360,8 @@ private:
                                    (handles->info->viewingAreaWidth / 2)) - 260.0f);
             std::string btnLabel = dev.extend3DArea ? "Show Control Tab" : "Hide Control Tab";
             if (ImGui::Button(btnLabel.c_str(), ImVec2(150.0f, 20.0f))) {
+                handles->usageMonitor->userClickAction(btnLabel, "Button", ImGui::GetCurrentWindow()->Name);
+
                 dev.extend3DArea = dev.extend3DArea ? false : true;
             }
 
@@ -581,7 +587,10 @@ private:
                 ImGui::Text("Lock zoom (Right click): ");
                 ImGui::SameLine();
                 bool lock = !window.enableZoom;
-                ImGui::Checkbox(("##enableZoom" + std::to_string(index)).c_str(), &lock);
+                if (ImGui::Checkbox(("##enableZoom" + std::to_string(index)).c_str(), &lock)) {
+                    handles->usageMonitor->userClickAction("enableZoom", "Checkbox", ImGui::GetCurrentWindow()->Name);
+
+                }
                 ImGui::SameLine();
 
                 std::string btnText = "Image Effects";
@@ -592,6 +601,8 @@ private:
                 float btnWidth = rightBarMin.x - ImGui::GetCursorScreenPos().x;
                 if (ImGui::Button(btnText.c_str(), ImVec2(btnWidth, btnHeight))) {
                     ImGui::OpenPopup(("image effect " + std::to_string(index)).c_str());
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
                 }
                 ImGui::PopStyleVar(); // FramePadding
 
@@ -652,7 +663,11 @@ private:
                     ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(), &window.effects.interpolation);
+                    if (ImGui::Checkbox(("##interpolate" + std::to_string(index)).c_str(),
+                                        &window.effects.interpolation)) {
+                        handles->usageMonitor->userClickAction("interpolate", "Checkbox",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
 
                     ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
                     ImGui::SameLine();
@@ -662,7 +677,11 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::Checkbox(("##zoom mode" + std::to_string(index)).c_str(), &window.effects.magnifyZoomMode);
+                    if (ImGui::Checkbox(("##zoom mode" + std::to_string(index)).c_str(),
+                                        &window.effects.magnifyZoomMode)) {
+                        handles->usageMonitor->userClickAction("zoom mode", "Checkbox",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
 
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
@@ -678,8 +697,11 @@ private:
                             txtSize = ImGui::CalcTextSize(txt.c_str());
                             ImGui::Text("%s", txt.c_str());
                             ImGui::SameLine(0, textSpacing - txtSize.x);
-                            ImGui::Checkbox(("##useDepthColorMap" + std::to_string(index)).c_str(),
-                                            &window.effects.depthColorMap);
+                            if (ImGui::Checkbox(("##useDepthColorMap" + std::to_string(index)).c_str(),
+                                                &window.effects.depthColorMap)) {
+                                handles->usageMonitor->userClickAction("useDepthColorMap", "Checkbox",
+                                                                       ImGui::GetCurrentWindow()->Name);
+                            }
                         }
 
                         // normalize
@@ -692,7 +714,11 @@ private:
                             txtSize = ImGui::CalcTextSize(txt.c_str());
                             ImGui::Text("%s", txt.c_str());
                             ImGui::SameLine(0, textSpacing - txtSize.x);
-                            ImGui::Checkbox(("##normalize" + std::to_string(index)).c_str(), &window.effects.normalize);
+                            if (ImGui::Checkbox(("##normalize" + std::to_string(index)).c_str(),
+                                                &window.effects.normalize)) {
+                                handles->usageMonitor->userClickAction("normalize", "Checkbox",
+                                                                       ImGui::GetCurrentWindow()->Name);
+                            }
                         }
                     }
 
@@ -786,6 +812,7 @@ private:
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
+                            handles->usageMonitor->userClickAction(srcLabel, "combo", ImGui::GetCurrentWindow()->Name);
 
                             if (window.selectedSource != "Idle") {
                                 bool inUse = false;
@@ -896,18 +923,23 @@ private:
                     if (handles->input->getButtonDown(GLFW_KEY_I)) {
                         window.effects.interpolation = !window.effects.interpolation;
                         Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
+                        handles->usageMonitor->userClickAction("I", "keyboard_press", ImGui::GetCurrentWindow()->Name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_Z)) {
                         window.effects.magnifyZoomMode = !window.effects.magnifyZoomMode;
                         Log::Logger::getInstance()->info("User pressed key Z for: {}", window.name);
+                        handles->usageMonitor->userClickAction("Z", "keyboard_press", ImGui::GetCurrentWindow()->Name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_M)) {
                         window.effects.depthColorMap = !window.effects.depthColorMap;
                         Log::Logger::getInstance()->info("User pressed key M for: {}", window.name);
+                        handles->usageMonitor->userClickAction("M", "keyboard_press", ImGui::GetCurrentWindow()->Name);
                     }
                     if (handles->input->getButtonDown(GLFW_KEY_N)) {
                         window.effects.normalize = !window.effects.normalize;
                         Log::Logger::getInstance()->info("User pressed key N for: {}", window.name);
+                        handles->usageMonitor->userClickAction("N", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+
                     }
 
                     if (window.enableZoom) {
@@ -978,6 +1010,8 @@ private:
                 if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
                     if (ImGui::BeginTabItem((std::string("Preview Control")).c_str())) {
+
+
                         dev.controlTabActive = CRL_TAB_PREVIEW_CONTROL;
                         if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
                             buildConfigurationTab3D(handles, dev);
@@ -985,13 +1019,21 @@ private:
                             buildPreviewControlTab(handles, dev);
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
+                        handles->usageMonitor->userClickAction("Preview Control", "tab",
+                                                               ImGui::GetCurrentWindow()->Name);
+
                     ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
 
                     if (ImGui::BeginTabItem("Sensor Config")) {
+
                         dev.controlTabActive = CRL_TAB_SENSOR_CONFIG;
                         buildConfigurationTab(handles, dev);
                         ImGui::EndTabItem();
                     }
+                    if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
+                        handles->usageMonitor->userClickAction("Sensor Config", "tab",
+                                                               ImGui::GetCurrentWindow()->Name);
                     ImGui::EndTabBar();
                 }
             }
@@ -1034,18 +1076,25 @@ private:
                                bg_col, tint_col)) {
             Log::Logger::getInstance()->info("Single Layout pressed.");
             dev.layout = CRL_PREVIEW_LAYOUT_SINGLE;
+            handles->usageMonitor->userClickAction("Single", "ImageButton", ImGui::GetCurrentWindow()->Name);
+
         }
         ImGui::SameLine(0, 20.0f);
         if (ImGui::ImageButton("Double", handles->info->imageButtonTextureDescriptor[7], size, uv0,
                                uv1,
                                bg_col, tint_col)) {
             dev.layout = CRL_PREVIEW_LAYOUT_DOUBLE;
+            handles->usageMonitor->userClickAction("Double", "ImageButton", ImGui::GetCurrentWindow()->Name);
+
         }
         ImGui::SameLine(0, 20.0f);
         if (ImGui::ImageButton("Quad", handles->info->imageButtonTextureDescriptor[8], size, uv0,
                                uv1,
-                               bg_col, tint_col))
+                               bg_col, tint_col)) {
             dev.layout = CRL_PREVIEW_LAYOUT_QUAD;
+            handles->usageMonitor->userClickAction("Quad", "ImageButton", ImGui::GetCurrentWindow()->Name);
+        }
+
         /*
         ImGui::SameLine(0, 20.0f);
 
@@ -1094,6 +1143,7 @@ private:
                         chInfo.selectedResolutionMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
                         chInfo.updateResolutionMode = true;
+                        handles->usageMonitor->userClickAction("Resolution", "combo", ImGui::GetCurrentWindow()->Name);
 
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -1134,6 +1184,8 @@ private:
             std::string btnText = dev.isRecording ? "Stop" : "Start";
             if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolder != "/Path/To/Folder/") {
                 dev.isRecording = !dev.isRecording;
+                handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
             }
             ImGui::SameLine();
 
@@ -1148,6 +1200,8 @@ private:
                     if (ImGui::Selectable(saveFormat[n].c_str(), is_selected)) {
                         selector = n;
                         dev.saveImageCompressionMethod = saveFormat[selector];
+                        handles->usageMonitor->userClickAction("Compression", "combo", ImGui::GetCurrentWindow()->Name);
+
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -1170,6 +1224,9 @@ private:
                 if (ImGui::Button("Choose Location", btnSize)) {
                     ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
                                                             ".");
+                    handles->usageMonitor->userClickAction("Choose Location", "Button",
+                                                           ImGui::GetCurrentWindow()->Name);
+
                 }
             }
 
@@ -1295,7 +1352,11 @@ private:
             ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
             ImGui::Text("%s", txt.c_str());
             ImGui::SameLine(0, textSpacing - txtSize.x);
-            ImGui::Checkbox("##Enable Auto Exposure", &d.parameters.stereo.ep.autoExposure);
+            if (ImGui::Checkbox("##Enable Auto Exposure", &d.parameters.stereo.ep.autoExposure)) {
+                handles->usageMonitor->userClickAction("Enable Auto Exposure", "Checkbox",
+                                                       ImGui::GetCurrentWindow()->Name);
+
+            }
             d.parameters.stereo.ep.update = ImGui::IsItemDeactivatedAfterEdit();
             // Draw Manual eposure controls or auto exposure control
             if (!d.parameters.stereo.ep.autoExposure) {
@@ -1311,8 +1372,12 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.stereo.ep.exposure),
-                                 20, 30000);
+                if (ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.stereo.ep.exposure),
+                                     20, 30000) && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("Exposure value", "SliderInt",
+                                                           ImGui::GetCurrentWindow()->Name);
+
+                }
                 d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1324,9 +1389,13 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Gain",
-                                   &d.parameters.stereo.gain, 1.68f,
-                                   14.2f, "%.1f");
+                if (ImGui::SliderFloat("##Gain",
+                                       &d.parameters.stereo.gain, 1.68f,
+                                       14.2f, "%.1f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("Stereo camera Gain", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+
+                }
                 d.parameters.stereo.update = ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1352,9 +1421,13 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderInt("##Max",
-                                 reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureMax), 10,
-                                 35000);
+                if (ImGui::SliderInt("##Max",
+                                     reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureMax), 10,
+                                     35000) && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("Max exposure", "SliderInt",
+                                                           ImGui::GetCurrentWindow()->Name);
+
+                }
                 d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1366,8 +1439,13 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderInt("##Decay",
-                                 reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureDecay), 0, 20);
+                if (ImGui::SliderInt("##Decay",
+                                     reinterpret_cast<int *>(&d.parameters.stereo.ep.autoExposureDecay), 0, 20) &&
+                    ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("Exposure Decay", "SliderInt",
+                                                           ImGui::GetCurrentWindow()->Name);
+
+                }
                 d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1379,8 +1457,13 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##TargetIntensity",
-                                   &d.parameters.stereo.ep.autoExposureTargetIntensity, 0, 1);
+                if (ImGui::SliderFloat("##TargetIntensity",
+                                       &d.parameters.stereo.ep.autoExposureTargetIntensity, 0, 1) &&
+                    ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("TargetIntensity", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+
+                }
                 d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1392,8 +1475,10 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Threshold", &d.parameters.stereo.ep.autoExposureThresh,
-                                   0, 1);
+                if (ImGui::SliderFloat("##Threshold", &d.parameters.stereo.ep.autoExposureThresh,
+                                       0, 1) && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("Threshold", "SliderFloat", ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.stereo.ep.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1410,11 +1495,15 @@ private:
                 ImGui::SameLine(0.0f, 5.0f);
 
                 if (ImGui::Button("Set ROI", ImVec2(80.0f, 20.0f))) {
+                    handles->usageMonitor->userClickAction("Set ROI", "Button", ImGui::GetCurrentWindow()->Name);
+
                     try {
                         d.parameters.stereo.ep.autoExposureRoiX = std::stoi(buf1);
                         d.parameters.stereo.ep.autoExposureRoiY = std::stoi(buf2);
-                        d.parameters.stereo.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.stereo.ep.autoExposureRoiX;
-                        d.parameters.stereo.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.stereo.ep.autoExposureRoiY;
+                        d.parameters.stereo.ep.autoExposureRoiWidth =
+                                std::stoi(buf3) - d.parameters.stereo.ep.autoExposureRoiX;
+                        d.parameters.stereo.ep.autoExposureRoiHeight =
+                                std::stoi(buf4) - d.parameters.stereo.ep.autoExposureRoiY;
                         d.parameters.stereo.ep.update |= true;
                     } catch (...) {
                         Log::Logger::getInstance()->error(
@@ -1459,9 +1548,12 @@ private:
             ImGui::Text("%s", txt.c_str());
             ImGui::SameLine(0, textSpacing - txtSize.x);
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-            ImGui::SliderFloat("##Gamma stereo",
-                               &d.parameters.stereo.gamma, 1.1f,
-                               2.2f, "%.2f");
+            if (ImGui::SliderFloat("##Gamma stereo",
+                                   &d.parameters.stereo.gamma, 1.1f,
+                                   2.2f, "%.2f") && ImGui::IsItemActivated()) {
+                handles->usageMonitor->userClickAction("Gamma stereo", "SliderFloat", ImGui::GetCurrentWindow()->Name);
+
+            }
             // Correct update sequence. This is because gamma and gain was part of general parameters. This will probably be redone in the future once established categories are in place
             if (d.parameters.stereo.ep.autoExposure)
                 d.parameters.stereo.update = ImGui::IsItemDeactivatedAfterEdit();
@@ -1486,7 +1578,10 @@ private:
                 ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::Checkbox("##Enable AUX Auto Exposure", &d.parameters.aux.ep.autoExposure);
+                if (ImGui::Checkbox("##Enable AUX Auto Exposure", &d.parameters.aux.ep.autoExposure)) {
+                    handles->usageMonitor->userClickAction("Aux Auto Exposure", "Checkbox",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.aux.update = ImGui::IsItemDeactivatedAfterEdit();
                 // Draw Manual eposure controls or auto exposure control
                 if (!d.parameters.aux.ep.autoExposure) {
@@ -1502,8 +1597,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderInt("##Exposure Value aux: ", reinterpret_cast<int *>(&d.parameters.aux.ep.exposure),
-                                     20, 30000);
+                    if (ImGui::SliderInt("##Exposure Value aux: ",
+                                         reinterpret_cast<int *>(&d.parameters.aux.ep.exposure),
+                                         20, 30000) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("Aux Exposure value", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1515,9 +1614,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##Gain aux",
-                                       &d.parameters.aux.gain, 1.68f,
-                                       14.2f, "%.1f");
+                    if (ImGui::SliderFloat("##Gain aux",
+                                           &d.parameters.aux.gain, 1.68f,
+                                           14.2f, "%.1f") && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("gain aux", "SliderFloat",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1543,9 +1645,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderInt("##MaxAux",
-                                     reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureMax), 10,
-                                     35000);
+                    if (ImGui::SliderInt("##MaxAux",
+                                         reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureMax), 10,
+                                         35000) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("Max Aux Exposure value", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1557,8 +1662,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderInt("##DecayAux",
-                                     reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureDecay), 0, 20);
+                    if (ImGui::SliderInt("##DecayAux",
+                                         reinterpret_cast<int *>(&d.parameters.aux.ep.autoExposureDecay), 0, 20) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("DecayAux", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1570,8 +1679,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##TargetIntensityAux",
-                                       &d.parameters.aux.ep.autoExposureTargetIntensity, 0, 1);
+                    if (ImGui::SliderFloat("##TargetIntensityAux",
+                                           &d.parameters.aux.ep.autoExposureTargetIntensity, 0, 1) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("TargetIntensityAux", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1583,8 +1696,11 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##ThresholdAux", &d.parameters.aux.ep.autoExposureThresh,
-                                       0, 1);
+                    if (ImGui::SliderFloat("##ThresholdAux", &d.parameters.aux.ep.autoExposureThresh,
+                                           0, 1) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("ThresholdAux", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1601,11 +1717,17 @@ private:
                     ImGui::SameLine(0.0f, 5.0f);
 
                     if (ImGui::Button("Set ROI##aux", ImVec2(80.0f, 20.0f))) {
+
+                        handles->usageMonitor->userClickAction("Set ROI##aux", "Button",
+                                                               ImGui::GetCurrentWindow()->Name);
+
                         try {
                             d.parameters.aux.ep.autoExposureRoiX = std::stoi(buf1);
                             d.parameters.aux.ep.autoExposureRoiY = std::stoi(buf2);
-                            d.parameters.aux.ep.autoExposureRoiWidth = std::stoi(buf3) - d.parameters.aux.ep.autoExposureRoiX;
-                            d.parameters.aux.ep.autoExposureRoiHeight = std::stoi(buf4) - d.parameters.aux.ep.autoExposureRoiY;
+                            d.parameters.aux.ep.autoExposureRoiWidth =
+                                    std::stoi(buf3) - d.parameters.aux.ep.autoExposureRoiX;
+                            d.parameters.aux.ep.autoExposureRoiHeight =
+                                    std::stoi(buf4) - d.parameters.aux.ep.autoExposureRoiY;
                             d.parameters.aux.update |= true;
                         } catch (...) {
                             Log::Logger::getInstance()->error(
@@ -1651,9 +1773,12 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Gamma aux",
-                                   &d.parameters.aux.gamma, 1.1f,
-                                   2.2f, "%.2f");
+                if (ImGui::SliderFloat("##Gamma aux",
+                                       &d.parameters.aux.gamma, 1.1f,
+                                       2.2f, "%.2f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Gamma aux", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
 
                 ImGui::PopStyleColor();
@@ -1665,7 +1790,10 @@ private:
                 txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
-                ImGui::Checkbox("##Enable AUX auto white balance", &d.parameters.aux.whiteBalanceAuto);
+                if (ImGui::Checkbox("##Enable AUX auto white balance", &d.parameters.aux.whiteBalanceAuto)) {
+                    handles->usageMonitor->userClickAction("##Enable AUX auto white balance", "Checkbox",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
@@ -1677,9 +1805,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##WBRed",
-                                       &d.parameters.aux.whiteBalanceRed, 0.25f,
-                                       4.0f);
+                    if (ImGui::SliderFloat("##WBRed",
+                                           &d.parameters.aux.whiteBalanceRed, 0.25f,
+                                           4.0f) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("##WBRed", "SliderFloat",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1691,9 +1822,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##WBBlue",
-                                       &d.parameters.aux.whiteBalanceBlue, 0.25f,
-                                       4.0f);
+                    if (ImGui::SliderFloat("##WBBlue",
+                                           &d.parameters.aux.whiteBalanceBlue, 0.25f,
+                                           4.0f) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("##WBBlue", "SliderFloat",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
                 } else {
@@ -1703,9 +1837,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat("##WBTreshold",
-                                       &d.parameters.aux.whiteBalanceThreshold, 0.0,
-                                       1.0f);
+                    if (ImGui::SliderFloat("##WBTreshold",
+                                           &d.parameters.aux.whiteBalanceThreshold, 0.0,
+                                           1.0f) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("##WBTreshold", "SliderFloat",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
 
@@ -1717,9 +1854,12 @@ private:
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderInt("##DecayRateWB",
-                                     reinterpret_cast<int *>(&d.parameters.aux.whiteBalanceDecay), 0,
-                                     20);
+                    if (ImGui::SliderInt("##DecayRateWB",
+                                         reinterpret_cast<int *>(&d.parameters.aux.whiteBalanceDecay), 0,
+                                         20) && ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction("##DecayRateWB", "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                     ImGui::PopStyleColor();
                 }
@@ -1733,10 +1873,13 @@ private:
                     txtSize = ImGui::CalcTextSize(txt.c_str());
                     ImGui::Text("%s", txt.c_str());
                     ImGui::SameLine(0, textSpacing - txtSize.x);
-                    ImGui::Checkbox("##Enable AUX sharpening", &d.parameters.aux.sharpening);
+                    if (ImGui::Checkbox("##Enable AUX sharpening", &d.parameters.aux.sharpening)) {
+                        handles->usageMonitor->userClickAction("##Enable AUX sharpening", "Checkbox",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
 
-                    if (d.parameters.aux.sharpening){
+                    if (d.parameters.aux.sharpening) {
                         ImGui::Dummy(ImVec2(0.0f, 5.0f));
                         ImGui::Dummy(ImVec2(25.0f, 0.0f));
                         ImGui::SameLine();
@@ -1745,9 +1888,12 @@ private:
                         ImGui::Text("%s", txt.c_str());
                         ImGui::SameLine(0, textSpacing - txtSize.x);
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                        ImGui::SliderFloat("##sharpeningPercentage",
-                                           &d.parameters.aux.sharpeningPercentage, 0.0,
-                                           100.0f);
+                        if (ImGui::SliderFloat("##sharpeningPercentage",
+                                               &d.parameters.aux.sharpeningPercentage, 0.0,
+                                               100.0f) && ImGui::IsItemActivated()) {
+                            handles->usageMonitor->userClickAction("##sharpeningPercentage", "SliderFloat",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
                         d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                         ImGui::PopStyleColor();
 
@@ -1759,9 +1905,12 @@ private:
                         ImGui::Text("%s", txt.c_str());
                         ImGui::SameLine(0, textSpacing - txtSize.x);
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                        ImGui::SliderInt("##sharpeningLimit",
-                                         reinterpret_cast<int *>(&d.parameters.aux.sharpeningLimit), 0,
-                                         100);
+                        if (ImGui::SliderInt("##sharpeningLimit",
+                                             reinterpret_cast<int *>(&d.parameters.aux.sharpeningLimit), 0,
+                                             100) && ImGui::IsItemActivated()) {
+                            handles->usageMonitor->userClickAction("##sharpeningLimit", "SliderInt",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
                         d.parameters.aux.update |= ImGui::IsItemDeactivatedAfterEdit();
                         ImGui::PopStyleColor();
                     }
@@ -1790,7 +1939,10 @@ private:
                 ImVec2 txtSizeEnableFlash = ImGui::CalcTextSize(txtEnableFlash.c_str());
                 ImGui::Text("%s", txtEnableFlash.c_str());
                 ImGui::SameLine(0, textSpacing - txtSizeEnableFlash.x);
-                ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing);
+                if (ImGui::Checkbox("##Enable Lights", &d.parameters.light.flashing)) {
+                    handles->usageMonitor->userClickAction("##Enable Lights", "Checkbox",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.light.update = ImGui::IsItemDeactivatedAfterEdit();
 
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -1801,10 +1953,13 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Duty_Cycle",
-                                   &d.parameters.light.dutyCycle, 0,
-                                   100,
-                                   "%.0f"); // showing 0 float precision not using int cause underlying libmultisense is a float
+                if (ImGui::SliderFloat("##Duty_Cycle",
+                                       &d.parameters.light.dutyCycle, 0,
+                                       100,
+                                       "%.0f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Duty_Cycle", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+                } // showing 0 float precision not using int cause underlying libmultisense is a float
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1835,9 +1990,11 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Pulses",
-                                   reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
-                                   60, "%.1f");
+                if (ImGui::SliderFloat("##Pulses",
+                                       reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
+                                       60, "%.1f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Pulses", "SliderFloat", ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1854,9 +2011,12 @@ private:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::SetNextItemWidth(handles->info->controlAreaWidth - 72.0f - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Startup Time",
-                                   reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
-                                   60, "%.1f");
+                if (ImGui::SliderFloat("##Startup Time",
+                                       reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
+                                       60, "%.1f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Startup Time", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.light.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }
@@ -1893,9 +2053,12 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Framerate",
-                                   &d.parameters.stereo.fps, 1,
-                                   30, "%.1f");
+                if (ImGui::SliderFloat("##Framerate",
+                                       &d.parameters.stereo.fps, 1,
+                                       30, "%.1f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Framerate", "SliderFloat",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
 
@@ -1907,9 +2070,11 @@ private:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SliderFloat("##Stereo",
-                                   &d.parameters.stereo.stereoPostFilterStrength, 0.0f,
-                                   1.0f, "%.1f");
+                if (ImGui::SliderFloat("##Stereo",
+                                       &d.parameters.stereo.stereoPostFilterStrength, 0.0f,
+                                       1.0f, "%.1f") && ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction("##Stereo", "SliderFloat", ImGui::GetCurrentWindow()->Name);
+                }
                 d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
                 ImGui::PopStyleColor();
             }
@@ -1956,9 +2121,12 @@ private:
                 ImGui::SameLine();
 
 
-                if (ImGui::Button("Choose Dir", btnSize))
+                if (ImGui::Button("Choose Dir", btnSize)) {
                     saveCalibrationDialog.OpenDialog("ChooseDirDlgKey", "Choose save location", nullptr,
                                                      ".");
+                    handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
@@ -1995,6 +2163,9 @@ private:
 
                 if (d.parameters.calib.save) {
                     showSavedTimer = std::chrono::steady_clock::now();
+                    handles->usageMonitor->userClickAction("Get Current Calibration", "Button",
+                                                           ImGui::GetCurrentWindow()->Name);
+
                 }
                 auto time = std::chrono::steady_clock::now();
                 float threeSeconds = 3.0f;
@@ -2040,9 +2211,12 @@ private:
                 ImGui::SameLine();
 
 
-                if (ImGui::Button("Choose File##1", btnSize))
+                if (ImGui::Button("Choose File##1", btnSize)) {
                     chooseIntrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose intrinsics .yml file", ".yml",
                                                       ".");
+                    handles->usageMonitor->userClickAction("Choose File##1", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
@@ -2082,9 +2256,12 @@ private:
                                                ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::PopStyleColor();
                 ImGui::SameLine();
-                if (ImGui::Button("Choose File##2", btnSize))
+                if (ImGui::Button("Choose File##2", btnSize)) {
                     chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",
                                                       ".");
+                    handles->usageMonitor->userClickAction("Choose File##2", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
                 // display
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
@@ -2115,6 +2292,8 @@ private:
                 }
 
                 if (ImGui::Button("Set New Calibration")) {
+                    handles->usageMonitor->userClickAction("Set New Calibration", "Button",
+                                                           ImGui::GetCurrentWindow()->Name);
                     // Check if file exist before opening popup
                     bool extrinsicsExists = std::filesystem::exists(d.parameters.calib.extrinsicsFilePath);
                     bool intrinsicsExists = std::filesystem::exists(d.parameters.calib.intrinsicsFilePath);
@@ -2134,6 +2313,7 @@ private:
                     ImGui::Separator();
 
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
+                        handles->usageMonitor->userClickAction("OK", "Button", ImGui::GetCurrentWindow()->Name);
                         d.parameters.calib.update = true;
                         ImGui::CloseCurrentPopup();
                     }
@@ -2142,7 +2322,10 @@ private:
 
 
                     ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetCursorPosX() + 8.0f);
-                    if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+                        handles->usageMonitor->userClickAction("Cancel", "Button", ImGui::GetCurrentWindow()->Name);
+                        ImGui::CloseCurrentPopup();
+                    }
                     ImGui::EndPopup();
                 }
                 ImGui::PopStyleVar(2);
@@ -2202,6 +2385,8 @@ private:
                         chInfo.selectedResolutionMode = Utils::stringToCameraResolution(
                                 chInfo.modes[chInfo.selectedModeIndex]);
                         chInfo.updateResolutionMode = true;
+                        handles->usageMonitor->userClickAction("Resolution", "combo", ImGui::GetCurrentWindow()->Name);
+
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -2228,14 +2413,22 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::RadioButton("Arcball", &dev.cameraType, 0);
+            if (ImGui::RadioButton("Arcball", &dev.cameraType, 0)) {
+                handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
+            }
             ImGui::SameLine();
-            ImGui::RadioButton("Flycam", &dev.cameraType, 1);
+            if (ImGui::RadioButton("Flycam", &dev.cameraType, 1)) {
+                handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
+            }
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             dev.resetCamera = ImGui::Button("Reset camera position");
+            if (dev.resetCamera) {
+                handles->usageMonitor->userClickAction("Reset camera position", "Button",
+                                                       ImGui::GetCurrentWindow()->Name);
+            }
             ImGui::PopStyleColor(2);
         }
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -2258,7 +2451,9 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Checkbox("Enable IMU", &dev.useIMU);
+            if (ImGui::Checkbox("Enable IMU", &dev.useIMU)) {
+                handles->usageMonitor->userClickAction("Enable IMU", "Checkbox", ImGui::GetCurrentWindow()->Name);
+            }
             ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(0.0f, 3.0));
@@ -2269,11 +2464,15 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            ImGui::RadioButton("Grayscale", &dev.useAuxForPointCloudColor, 0);
+            if (ImGui::RadioButton("Grayscale", &dev.useAuxForPointCloudColor, 0)) {
+                handles->usageMonitor->userClickAction("Grayscale", "RadioButton", ImGui::GetCurrentWindow()->Name);
+            }
             if (!dev.hasColorCamera)
                 ImGui::BeginDisabled();
             ImGui::SameLine();
-            ImGui::RadioButton("Color", &dev.useAuxForPointCloudColor, 1);
+            if (ImGui::RadioButton("Color", &dev.useAuxForPointCloudColor, 1)) {
+                handles->usageMonitor->userClickAction("Color", "RadioButton", ImGui::GetCurrentWindow()->Name);
+            }
             if (!dev.hasColorCamera) {
                 ImGui::SameLine();
                 ImGui::EndDisabled();
@@ -2298,12 +2497,20 @@ private:
             switch (elem.type) {
                 case WIDGET_FLOAT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue);
+                    if (ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction(elem.label, "SliderFloat",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_INT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax);
+                    if (ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction(elem.label, "SliderInt",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_TEXT:
@@ -2312,8 +2519,11 @@ private:
             }
 
         }
+
         ImGui::PopStyleColor(); // ImGuiCol_Text
-        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::Dummy(ImVec2(
+
+                0.0f, 5.0f));
 
         ImGui::Separator();
         // Section 4
@@ -2340,12 +2550,16 @@ private:
             std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
             if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
                 dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
+                handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
             }
             ImGui::SameLine();
 
             if (ImGui::Button("Choose Dir", btnSize)) {
                 savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
                                                 ".");
+                handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
             }
 
             // display

@@ -740,6 +740,8 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
+    usageMonitor->userEndSession();
+
     if (usageMonitor->hasUserLogCollectionConsent() &&
         VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
         usageMonitor->sendUsageLog();

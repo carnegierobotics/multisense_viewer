@@ -142,6 +142,12 @@ namespace VkRender {
                         std::remove(m_ServerInfo.destination.begin(), m_ServerInfo.destination.end(), '"'),
                         m_ServerInfo.destination.end());
             }
+            if (line.find("VERSION_DESTINATION=") != std::string::npos) {
+                m_ServerInfo.versionInfoDestination = line.substr(line.find("=") + 1);
+                m_ServerInfo.versionInfoDestination.erase(
+                        std::remove(m_ServerInfo.versionInfoDestination.begin(), m_ServerInfo.versionInfoDestination.end(), '"'),
+                        m_ServerInfo.versionInfoDestination.end());
+            }
             if (line.find("LOG_LEVEL=") != std::string::npos) {
                 std::string logLevelStr = line.substr(line.find("=") + 1);
                 logLevelStr.erase(
@@ -152,6 +158,7 @@ namespace VkRender {
 
         }
         Log::Logger::getInstance()->info("Found Application version: {}", applicationVersion);
+        m_AppVersionRemote = applicationVersion;
         return applicationVersion;
     }
 
@@ -185,16 +192,24 @@ namespace VkRender {
         m_GPUDevice = properties.deviceName;
     }
 
-    const std::string &RendererConfig::getAnonIdentifierString() const {
-        return m_Identifier;
-    }
-
     const RendererConfig::ApplicationUserSetting &RendererConfig::getUserSetting() const {
         return m_UserSetting;
     }
 
     RendererConfig::ApplicationUserSetting* RendererConfig::getUserSettingRef() {
         return &m_UserSetting;
+    }
+
+    const std::string &RendererConfig::getAnonymousIdentifier() const {
+        return m_Identifier;
+    }
+
+    const std::string &RendererConfig::getAppVersionRemote() const {
+        return m_AppVersionRemote;
+    }
+
+    void RendererConfig::setAppVersionRemote(const std::string &mAppVersionRemote) {
+        m_AppVersionRemote = mAppVersionRemote;
     }
 
 };

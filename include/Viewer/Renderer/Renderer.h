@@ -62,30 +62,7 @@ public:
      * @brief Default constructor for renderer
      * @param title Title of application
      */
-    explicit Renderer(const std::string &title) : VulkanRenderer(title, true) {
-        VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
-        this->m_Title = title;
-        // Create Log C++ Interface
-        Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
-        pLogger = Log::Logger::getInstance();
-        // Start up usage monitor
-        usageMonitor = std::make_shared<UsageMonitor>();
-        usageMonitor->loadSettingsFromFile();
-
-        VulkanRenderer::initVulkan();
-        VulkanRenderer::prepare();
-        backendInitialized = true;
-        pLogger->info("Initialized Backend");
-        config.setGpuDevice(physicalDevice);
-
-        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
-        guiManager->handles.mouse = &mouseButtons;
-        guiManager->handles.usageMonitor = usageMonitor;
-
-        prepareRenderer();
-        pLogger->info("Prepared Renderer");
-
-    };
+    explicit Renderer(const std::string &title);
 
     ~Renderer()= default;
 
@@ -146,6 +123,8 @@ private:
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
+
+    void buildScript(const std::string &scriptName);
 };
 
 

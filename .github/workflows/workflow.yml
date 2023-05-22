@@ -54,12 +54,25 @@ jobs:
           tag_name: ${{ github.ref_name }}
           release_name: ${{ github.ref_name }}
           body: |
-            MultiSense Viewer Release
-            - Windows users:
-            1a. (Optional) Install WinPcap_driver.exe to let the viewer configure network settings automatically
-            1b. Run the setup: MultiSenseSetup.exe
+            # MultiSense Viewer 1.1.0
 
-            - Ubuntu users:
+            ### New features:
+            - Visualize IMU data with corresponding 3D model (MultiSense: KS-21, S27, S30)
+            - Image enhancements (Normalize disparity, apply colormaps, interpolate)
+            - Zoom controls in 2D view
+            - Colorize Point Cloud if the AUX camera is present
+            - Record point clouds as .ply files
+            - AUX camera exposure control with LibMultiSense 6.0.0
+            - Reloadable spirv-shaders (useful for testing various gpu-applied filters)
+            - Various optimizations and more reliable AutoConnect
+            - Opt-in for anonymous usage statistics
+
+            ### Windows users:
+
+            1.  Install WinPcap_driver.exe to let the viewer configure network settings automatically
+            2.  Download and run the Windows installer: MultiSenseSetup.exe
+
+            ### Ubuntu users:
             1. Make sure you have updated graphics drivers, ffmpeg and policykit installed. Can be installed via apt pacakge manager:
             $ apt install ffmpeg libvulkan1 policykit-1
             2. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
@@ -173,7 +186,7 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build -- -j10
+      run: cmake --build ${{github.workspace}}/build
 
     - name: Install
       working-directory: ${{github.workspace}}/build

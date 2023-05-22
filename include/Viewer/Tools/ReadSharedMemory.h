@@ -203,13 +203,27 @@ public:
 
         return false;
     }
-
+    nlohmann::json send;
     void sendStopSignal() {
         if (!isOpen)
             return;
-        nlohmann::json send = {
-                {"Command", "Stop"}
-        };
+
+        send["Command"] = "Stop";
+
+        if (semPtr == (void *) -1)
+            logError("sem_open");
+        strcpy(memPtr + (ByteSize / 2), to_string(send).c_str());
+        if (sem_post(semPtr) < 0)
+            logError("sem_post");
+    }
+    void setIpConfig(int index) {
+        if (!isOpen || index < 0)
+            return;
+
+        send["SetIP"] = "SetIP";
+        send["index"] = std::to_string(index);
+
+
         if (semPtr == (void *) -1)
             logError("sem_open");
         strcpy(memPtr + (ByteSize / 2), to_string(send).c_str());
@@ -370,16 +384,28 @@ public:
         return false;
     }
 
+    nlohmann::json send;
     void sendStopSignal() {
         if (!isOpen)
             return;
-        nlohmann::json send = {
-                {"Command", "Stop"}
-        };
+
+        send["Command"] = "Stop";
 
         strcpy_s(pBuf + (SharedBufferSize / 2), (SharedBufferSize / 2), nlohmann::to_string(send).c_str());
         Log::Logger::getInstance()->info("Sent stop signal to AutoConnect");
     }
+    void setIpConfig(int index) {
+        if (!isOpen || index < 0)
+            return;
+
+        send["SetIP"] = "SetIP";
+        send["index"] = std::to_string(index);
+
+
+        strcpy_s(pBuf + (SharedBufferSize / 2), (SharedBufferSize / 2), nlohmann::to_string(send).c_str());
+        Log::Logger::getInstance()->info("Sent stop signal to AutoConnect");
+    }
+
 
     void logError(const std::string &msg) {
         Log::Logger::getInstance()->error("{}: GetLastError: {}", msg.c_str(), GetLastError());

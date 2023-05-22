@@ -50,6 +50,7 @@
 #include "Viewer/ImGui/SideBar.h"
 #include "Viewer/ImGui/DebugWindow.h"
 #include "Viewer/ImGui/Preview2D3D.h"
+#include "Viewer/ImGui/NewVersionAvailable.h"
 
 
 namespace VkRender {
@@ -87,6 +88,7 @@ namespace VkRender {
         pushLayer<Preview2D3D>();
         pushLayer<LayerExample>();
         pushLayer<DebugWindow>();
+        pushLayer<NewVersionAvailable>();
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.

@@ -157,7 +157,7 @@ public:
         }
     }
 
-    void open_url(const std::string &url) {
+    void openURL(const std::string &url) {
 #ifdef _WIN32
         ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __linux__
@@ -180,7 +180,7 @@ public:
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
         ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x/2), (handle->info->height / 2) - (anonymousWindowSize.y/2) - 50.0f));
         if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/v1.1.0/main/Assets/Generated/PrivacyPolicy.md";
+            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
             static bool isLinkHovered = false;
             ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f, 1.0f);
 
@@ -196,7 +196,7 @@ public:
             ImGui::SameLine();
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
             if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
-                open_url(url);
+                openURL(url);
             }
             isLinkHovered = ImGui::IsItemHovered();
             ImGui::PopStyleColor(4);
@@ -296,6 +296,11 @@ private:
                         addLogLine(LOG_COLOR_GRAY, "%s", str.c_str());
                     if (reader->stopRequested) {
                         reader->sendStopSignal();
+
+                        m_Entry.IP.clear();
+                        resultsComboIndex = -1;
+                        entryConnectDeviceList.clear();
+
 #ifdef __linux__
                         if (autoConnectProcess != nullptr && pclose(autoConnectProcess) == 0) {
                             startedAutoConnect = false;
@@ -333,7 +338,6 @@ private:
                                                                entry.description};
 
                                 entryConnectDeviceList.push_back(e);
-                                resultsComboIndex = entryConnectDeviceList.size() - 1;
                             }
                         }
                     }
@@ -360,8 +364,8 @@ private:
             shellInfo.lpDirectory = ".\\";
             shellInfo.nShow = SW_HIDE;
             shellInfo.hInstApp = nullptr;
-
             bool instance = ShellExecuteExA(&shellInfo);
+
             if (!instance) {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %zu", GetLastError());
                 reader.reset();
@@ -374,13 +378,13 @@ private:
         }
     }
 
-    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry) {
+    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry, bool fromWindowsAutoConnect = false) {
         VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
-        el.state = CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED ", el.name);
+        el.state = fromWindowsAutoConnect ? CRL_STATE_JUST_ADDED_WINDOWS : CRL_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name, fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
         el.clicked = true;
@@ -440,14 +444,20 @@ private:
                     btnColor = VkRender::Colors::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
-                case CRL_STATE_JUST_ADDED:
+                case CRL_STATE_JUST_ADDED :
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                    btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+                    buttonIdentifier = "Added...";
+                    break;
+                case CRL_STATE_JUST_ADDED_WINDOWS:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
                 case CRL_STATE_DISCONNECT_AND_FORGET:
-                    buttonIdentifier = "Disconnecting...";
+                    buttonIdentifier = "Disconnecting...cmake";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
@@ -720,9 +730,13 @@ private:
                     Log::Logger::getInstance()->info("User clicked {}", btnLabel);
                     if (btnLabel == "Start") {
                         reader = std::make_unique<AutoConnectReader>();
-                        btnLabel = "Stop";
+                        btnLabel = "Reset";
                     } else {
                         reader->sendStopSignal();
+                        entryConnectDeviceList.clear();
+                        m_Entry.IP.clear();
+                        m_Entry.cameraName.clear();
+                        resultsComboIndex = -1;
 #ifdef __linux__
                         if (autoConnectProcess != nullptr) {
                             int err = pclose(autoConnectProcess);
@@ -859,6 +873,7 @@ private:
 
                 if (!selected) {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4());
+                    m_Entry.interfaceName.clear();
                 } else {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_Header]);
                 }
@@ -1043,6 +1058,11 @@ private:
             } else
                 enableConnectButton = true;
 
+
+            if (connectMethodSelector == AUTO_CONNECT && !reader) {
+                enableConnectButton = false;
+            }
+
             /** CANCEL/CONNECT FIELD BEGINS HERE*/
             ImGui::Dummy(ImVec2(0.0f, 40.0f));
             ImGui::SetCursorPos(ImVec2(0.0f, handles->info->popupHeight - 50.0f));
@@ -1067,7 +1087,11 @@ private:
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
                 if (connectMethodSelector == AUTO_CONNECT) {
-                    errors.insert(errors.begin(), "No device selected");
+                    if (reader)
+                        errors.insert(errors.begin(), "No device selected");
+                    else
+                        errors.insert(errors.begin(), "Please Start AutoConnect");
+
                     Utils::removeFromVector(&errors, "No selected network adapter");
                 }
                 if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork) {
@@ -1097,8 +1121,22 @@ private:
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
+
+                if (reader) {
+                    reader->setIpConfig(resultsComboIndex);
+                    reader->sendStopSignal();
+                }
+                // Stop autoConnect and set IP the found MultiSense device
+                // Next: Create default element, but if this happens on windows we can to connect for ~~8 seconds to allow added ip address to finish configuring
+#ifdef WIN32
+                createDefaultElement(handles, m_Entry,  connectMethodSelector == AUTO_CONNECT);
+                ImGui::CloseCurrentPopup();
+#else
                 createDefaultElement(handles, m_Entry);
                 ImGui::CloseCurrentPopup();
+#endif
+                entryConnectDeviceList.clear();
+                resultsComboIndex = -1;
             }
 
             ImGui::EndPopup();

@@ -202,7 +202,7 @@ namespace VkRender::MultiSense {
 		 * @param[in] remoteHead boolean to connect to remote head
 		 * @param[in] config boolean to determine if application should set network settings
 		 */
-		static void connectCRLCameraTask(void* context, VkRender::Device* dev, bool remoteHead, bool config);
+		static void connectCRLCameraTask(void* context, VkRender::Device* dev, bool remoteHead, bool config, bool delayConnection = false);
 
 		/**@brief Request to start a stream
 		 * @param[in] context pointer to the callers context

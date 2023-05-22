@@ -350,6 +350,15 @@ public:
                                                        ImGui::GetCurrentWindow()->Name);
             }
 
+
+            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
+                update = true;
+                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+                handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
+                                                       ImGui::GetCurrentWindow()->Name);
+            }
+
+
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
             /*
@@ -360,12 +369,11 @@ public:
 
             */
 
+
             static bool addTestDevice = false;
             addTestDevice = ImGui::Button("Add test device");
             if (addTestDevice) {
-
                 handles->usageMonitor->userClickAction("Add test device", "Button", ImGui::GetCurrentWindow()->Name);
-
                 // Add test device to renderer if not present
                 bool exists = false;
                 for (const auto &device: handles->devices) {
@@ -379,6 +387,23 @@ public:
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
             }
+
+            static bool sendUserLog = false;
+            sendUserLog = ImGui::Button("Send user log");
+            if (sendUserLog) {
+                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
+                handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
+            }
+
+            if (ImGui::Button("Reset consent")) {
+                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+                handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
+                                                       ImGui::GetCurrentWindow()->Name);
+                user.askForUsageLoggingPermissions = true;
+                update = true;
+            }
+            if (!user.userConsentToSendLogs)
+                user.sendUsageLogOnExit = false;
 
             // Set log level
             const char *items[] = {"LOG_TRACE", "LOG_INFO"};
@@ -410,31 +435,6 @@ public:
                 ImGui::EndCombo();
             }
 
-
-            static bool sendUserLog = false;
-            sendUserLog = ImGui::Button("Send user log");
-            if (sendUserLog) {
-                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
-                handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
-            }
-
-            if (ImGui::Button("Reset statistics consent")) {
-                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
-                handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
-                                                       ImGui::GetCurrentWindow()->Name);
-                user.askForUsageLoggingPermissions = true;
-                update = true;
-            }
-            if (!user.userConsentToSendLogs)
-                user.sendUsageLogOnExit = false;
-
-            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
-                update = true;
-                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
-                handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
-                                                       ImGui::GetCurrentWindow()->Name);
-
-            }
 
             static int scriptSelectionIndex = 0; // Here we store our selection data as an index.
             std::string scriptPreviewValue = user.scripts.names.empty() ? ""

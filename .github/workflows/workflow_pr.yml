@@ -115,7 +115,7 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build -- -j10
+      run: cmake --build ${{github.workspace}}/build -- -3
 
     - name: Install
       working-directory: ${{github.workspace}}/build

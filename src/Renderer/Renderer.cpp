@@ -917,7 +917,13 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     mouseButtons.dx = dx;
     mouseButtons.dy = dy;
 
-    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered) { // && !mouseButtons.middle) {
+    bool is3DViewSelected = false;
+    for (const auto& dev : guiManager->handles.devices){
+        if (dev.state != CRL_STATE_ACTIVE)
+            continue;
+        is3DViewSelected = dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD;
+    }
+    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered && is3DViewSelected) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {

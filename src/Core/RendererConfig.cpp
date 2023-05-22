@@ -142,7 +142,7 @@ namespace VkRender {
                         std::remove(m_ServerInfo.destination.begin(), m_ServerInfo.destination.end(), '"'),
                         m_ServerInfo.destination.end());
             }
-            if (line.find("VERSION_DESTINATION=") != std::string::npos) {
+            if (line.find("DESTINATION_VERSIONINFO=") != std::string::npos) {
                 m_ServerInfo.versionInfoDestination = line.substr(line.find("=") + 1);
                 m_ServerInfo.versionInfoDestination.erase(
                         std::remove(m_ServerInfo.versionInfoDestination.begin(), m_ServerInfo.versionInfoDestination.end(), '"'),

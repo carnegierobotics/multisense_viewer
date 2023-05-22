@@ -58,15 +58,18 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title, true) {
     // Create Log C++ Interface
     Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
     pLogger = Log::Logger::getInstance();
-    // Start up usage monitor
-    usageMonitor = std::make_shared<UsageMonitor>();
-    usageMonitor->loadSettingsFromFile();
+
 
     VulkanRenderer::initVulkan();
     VulkanRenderer::prepare();
     backendInitialized = true;
     pLogger->info("Initialized Backend");
     config.setGpuDevice(physicalDevice);
+
+    // Start up usage monitor
+    usageMonitor = std::make_shared<UsageMonitor>();
+    usageMonitor->loadSettingsFromFile();
+    usageMonitor->userStartSession(rendererStartTime);
 
     guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
     guiManager->handles.mouse = &mouseButtons;
@@ -737,6 +740,8 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
+    usageMonitor->userEndSession();
+
     if (usageMonitor->hasUserLogCollectionConsent() &&
         VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
         usageMonitor->sendUsageLog();
@@ -912,7 +917,13 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     mouseButtons.dx = dx;
     mouseButtons.dy = dy;
 
-    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered) { // && !mouseButtons.middle) {
+    bool is3DViewSelected = false;
+    for (const auto& dev : guiManager->handles.devices){
+        if (dev.state != CRL_STATE_ACTIVE)
+            continue;
+        is3DViewSelected = dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD;
+    }
+    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered && is3DViewSelected) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {

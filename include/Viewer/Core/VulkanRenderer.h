@@ -103,7 +103,7 @@ namespace VkRender {
 
         /** @brief Last frame time measured using a high performance timer (if available) */
         float frameTimer = 1.0f;
-        std::chrono::time_point<std::chrono::system_clock, std::chrono::duration<double>> startTime;
+        std::chrono::system_clock::time_point rendererStartTime;
         float runTime = 0.0f;
 
         Camera camera;

@@ -70,9 +70,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-                    va_start(args, fmt);
+            va_start(args, fmt);
             Buf.appendfv(fmt, args);
-                    va_end(args);
+            va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -265,75 +265,73 @@ public:
 
             if (met->device.dev != nullptr) {
                 const VkRender::ChannelInfo *info;
-                try {
+                // Check if channelInfo contains key 0
+                if (!met->device.dev->channelInfo.empty()) {
                     info = &met->device.dev->channelInfo.at(0);
-                } catch (...) {
-                    ImGui::Separator();
-                    ImGui::EndChild();
-                    ImGui::End();
-                    return;
-                }
 
-                ImGui::PushFont(handles->info->font15);
-                ImGui::Text("MultiSense Info:");
-                ImGui::PopFont();
+                    ImGui::PushFont(handles->info->font15);
+                    ImGui::Text("MultiSense Info:");
+                    ImGui::PopFont();
 
-                std::stringstream stream;
-                std::string res;
+                    std::stringstream stream;
+                    std::string res;
 
-                ImGui::Text("Device: %s", met->device.dev->cameraName.c_str());
-                ImGui::Text("API build date: %s", met->device.info.apiBuildDate.c_str());
+                    ImGui::Text("Device: %s", met->device.dev->cameraName.c_str());
+                    ImGui::Text("API build date: %s", met->device.info.apiBuildDate.c_str());
 
-                ImGui::Text("API version: 0x%s", fmt::format("{:x}", met->device.info.apiVersion).c_str());
-                ImGui::Text("Firmware build date: %s", met->device.info.firmwareBuildDate.c_str());
-                stream << std::hex << met->device.info.firmwareVersion;
-                ImGui::Text("Firmware version: 0x%s", fmt::format("{:x}", met->device.info.firmwareVersion).c_str());
-                stream << std::hex << met->device.info.hardwareVersion;
-                ImGui::Text("Hardware version: 0x%s", fmt::format("{:x}", met->device.info.hardwareVersion).c_str());
-                stream << std::hex << met->device.info.hardwareMagic;
-                ImGui::Text("Hardware magic: 0x%s", fmt::format("{:x}", met->device.info.hardwareMagic).c_str());
-                stream << std::hex << met->device.info.sensorFpgaDna;
-                ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
+                    ImGui::Text("API version: 0x%s", fmt::format("{:x}", met->device.info.apiVersion).c_str());
+                    ImGui::Text("Firmware build date: %s", met->device.info.firmwareBuildDate.c_str());
+                    stream << std::hex << met->device.info.firmwareVersion;
+                    ImGui::Text("Firmware version: 0x%s",
+                                fmt::format("{:x}", met->device.info.firmwareVersion).c_str());
+                    stream << std::hex << met->device.info.hardwareVersion;
+                    ImGui::Text("Hardware version: 0x%s",
+                                fmt::format("{:x}", met->device.info.hardwareVersion).c_str());
+                    stream << std::hex << met->device.info.hardwareMagic;
+                    ImGui::Text("Hardware magic: 0x%s", fmt::format("{:x}", met->device.info.hardwareMagic).c_str());
+                    stream << std::hex << met->device.info.sensorFpgaDna;
+                    ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
 
-                ImGui::Dummy(ImVec2(5.0f, 5.0f));
-                ImGui::Dummy(ImVec2(2.0f, 0.0f));
-                ImGui::SameLine();
-                ImGui::Text("Application Enabled Sources:");
-                for (const auto &enabled: info->enabledStreams) {
-                    ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(5.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(2.0f, 0.0f));
                     ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
-                    ImGui::Text("%s", enabled.c_str());
-                    ImGui::PopStyleColor();
-                }
-                ImGui::Dummy(ImVec2(2.0f, 0.0f));
-                ImGui::SameLine();
-                ImGui::Text("UI Requested Sources:");
-                ImVec2 posMax = ImGui::GetItemRectMax();
-                for (const auto &req: info->requestedStreams) {
-
-                    ImGui::Dummy(ImVec2(10.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
-                    ImGui::Text("%s", req.c_str());
-                    ImGui::PopStyleColor();
-
-                    ImVec2 posMaxTmp = ImGui::GetItemRectMax();
-                    if (posMaxTmp.x > posMax.x)
-                        posMax = posMaxTmp;
-                }
-
-
-                for (const auto &id: met->device.sourceReceiveMapCounter) {
-                    for (const auto &src: id.second) {
-                        ImGui::Text("%hd :", id.first);
+                    ImGui::Text("Application Enabled Sources:");
+                    for (const auto &enabled: info->enabledStreams) {
+                        ImGui::Dummy(ImVec2(10.0f, 0.0f));
                         ImGui::SameLine();
-                        ImGui::Text("%s ", src.first.c_str());
-                        ImGui::SameLine();
-                        ImGui::Text("%d", src.second);
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
+                        ImGui::Text("%s", enabled.c_str());
+                        ImGui::PopStyleColor();
                     }
+                    ImGui::Dummy(ImVec2(2.0f, 0.0f));
+                    ImGui::SameLine();
+                    ImGui::Text("UI Requested Sources:");
+                    ImVec2 posMax = ImGui::GetItemRectMax();
+                    for (const auto &req: info->requestedStreams) {
+
+                        ImGui::Dummy(ImVec2(10.0f, 0.0f));
+                        ImGui::SameLine();
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
+                        ImGui::Text("%s", req.c_str());
+                        ImGui::PopStyleColor();
+
+                        ImVec2 posMaxTmp = ImGui::GetItemRectMax();
+                        if (posMaxTmp.x > posMax.x)
+                            posMax = posMaxTmp;
+                    }
+
+
+                    for (const auto &id: met->device.sourceReceiveMapCounter) {
+                        for (const auto &src: id.second) {
+                            ImGui::Text("%hd :", id.first);
+                            ImGui::SameLine();
+                            ImGui::Text("%s ", src.first.c_str());
+                            ImGui::SameLine();
+                            ImGui::Text("%d", src.second);
+                        }
+                    }
+                    ImGui::Text("Uptime: %.2f", met->device.upTime);
                 }
-                ImGui::Text("Uptime: %.2f", met->device.upTime);
             }
             /*
             ImGui::Text("Camera: ");
@@ -347,7 +345,19 @@ public:
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 8.0f));
             ImGui::PopFont();
             ImGui::Spacing();
-            ImGui::Checkbox("Ignore MultiSense missing status update", &met->device.ignoreMissingStatusUpdate);
+            if (ImGui::Checkbox("Ignore MultiSense missing status update", &met->device.ignoreMissingStatusUpdate)) {
+                handles->usageMonitor->userClickAction("Ignore MultiSense missing status update", "Checkbox",
+                                                       ImGui::GetCurrentWindow()->Name);
+            }
+
+
+            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
+                update = true;
+                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+                handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
+                                                       ImGui::GetCurrentWindow()->Name);
+            }
+
 
             //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
 
@@ -359,9 +369,11 @@ public:
 
             */
 
+
             static bool addTestDevice = false;
             addTestDevice = ImGui::Button("Add test device");
             if (addTestDevice) {
+                handles->usageMonitor->userClickAction("Add test device", "Button", ImGui::GetCurrentWindow()->Name);
                 // Add test device to renderer if not present
                 bool exists = false;
                 for (const auto &device: handles->devices) {
@@ -375,6 +387,23 @@ public:
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
             }
+
+            static bool sendUserLog = false;
+            sendUserLog = ImGui::Button("Send user log");
+            if (sendUserLog) {
+                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
+                handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
+            }
+
+            if (ImGui::Button("Reset consent")) {
+                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+                handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
+                                                       ImGui::GetCurrentWindow()->Name);
+                user.askForUsageLoggingPermissions = true;
+                update = true;
+            }
+            if (!user.userConsentToSendLogs)
+                user.sendUsageLogOnExit = false;
 
             // Set log level
             const char *items[] = {"LOG_TRACE", "LOG_INFO"};
@@ -395,6 +424,9 @@ public:
                         user.logLevel = level;
                         usageMonitor.setSetting("log_level", items[n]);
                         update |= true;
+                        handles->usageMonitor->userClickAction("Set Log level", "combo",
+                                                               ImGui::GetCurrentWindow()->Name);
+
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
@@ -404,29 +436,13 @@ public:
             }
 
 
-            static bool sendUserLog = false;
-            sendUserLog = ImGui::Button("Send user log");
-            if (sendUserLog) {
-                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
-            }
-
-            if (ImGui::Button("Reset statistics consent")) {
-                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
-                user.askForUsageLoggingPermissions = true;
-                update = true;
-            }
-            if (!user.userConsentToSendLogs)
-                user.sendUsageLogOnExit = false;
-
-            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
-                update = true;
-                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
-            }
-
             static int scriptSelectionIndex = 0; // Here we store our selection data as an index.
-            std::string scriptPreviewValue = user.scripts.names.empty() ? "" : user.scripts.names[scriptSelectionIndex].c_str();
+            std::string scriptPreviewValue = user.scripts.names.empty() ? ""
+                                                                        : user.scripts.names[scriptSelectionIndex].c_str();
 
             if (ImGui::Button("Rebuild script: ")) {
+                handles->usageMonitor->userClickAction("Rebuild script: ", "Button", ImGui::GetCurrentWindow()->Name);
+
                 if (!scriptPreviewValue.empty())
                     user.scripts.rebuildMap[user.scripts.names[scriptSelectionIndex]] = true;
                 update |= true;
@@ -440,6 +456,9 @@ public:
                     if (ImGui::Selectable(user.scripts.names[n].c_str(), is_selected)) {
                         scriptSelectionIndex = n;
                         update |= true;
+                        handles->usageMonitor->userClickAction("RebuildScripts", "Combo",
+                                                               ImGui::GetCurrentWindow()->Name);
+
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)

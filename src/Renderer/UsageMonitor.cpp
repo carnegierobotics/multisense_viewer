@@ -233,12 +233,20 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string& 
 }
 
 void UsageMonitor::userEndSession() {
+    try {
+        nlohmann::json generalData;
+        nlohmann::json settingsChanged;
+        auto time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_StartTime).count();
+        generalData["time_spent_seconds"] = std::to_string(time);
+        generalData["settings_changed"] = settingsChanged;
+        auto usageLog = openUsageFile();
+        usageLog["stats"][sessionIndex]["general"] = generalData;
+        saveJsonToUsageFile(usageLog);
 
-    nlohmann::json generalData;
-    nlohmann::json settingsChanged;
+    }catch (nlohmann::json::exception &e){
+        Log::Logger::getInstance()->warning("Failed to save usage log in userEndSession: {}", e.what());
+    }
 
-    generalData["time_spent"] = 0;
-    generalData["settings_changed"] = settingsChanged;
 
 }
 

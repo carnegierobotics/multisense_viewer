@@ -99,6 +99,8 @@ public:
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("GitHub Releases").x);
             if (ImGui::Selectable("GitHub Releases", false, ImGuiSelectableFlags_DontClosePopups)) {
                 openURL(url);
+                uiHandle->usageMonitor->userClickAction("GitHub Releases", "Selectable", ImGui::GetCurrentWindow()->Name);
+
             }
 
             isLinkHovered = ImGui::IsItemHovered();
@@ -109,6 +111,7 @@ public:
             if (ImGui::Button("Awesome, Let's go!")) {
                 openURL(url);
                 uiHandle->askUserForNewVersion = false;
+                uiHandle->usageMonitor->userClickAction("Awesome, Let's go!", "Button", ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SetItemDefaultFocus();
@@ -116,6 +119,8 @@ public:
             ImGui::SameLine();
 
             if (ImGui::Button("Remind me later")) {
+                uiHandle->usageMonitor->userClickAction("Remind me later", "Button", ImGui::GetCurrentWindow()->Name);
+
                 uiHandle->askUserForNewVersion = false;
                 ImGui::CloseCurrentPopup();
             }

@@ -29,6 +29,7 @@ layout(binding = 1, set = 0) uniform Info {
 
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
+
 // https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
 vec4 cubic(float v)
 {
@@ -73,6 +74,90 @@ vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
     , sy);
 }
 
+const mat3 sobelX = mat3(
+vec3(-1, 0, 1),
+vec3(-2, 0, 2),
+vec3(-1, 0, 1)
+);
+
+const mat3 sobelY = mat3(
+vec3(-1, -2, -1),
+vec3(0, 0, 0),
+vec3(1, 2, 1)
+);
+
+
+vec2 sobel3x3(sampler2D tex, vec2 uv, vec2 texSize) {
+    vec2 texelSize = 1.0 / texSize;
+    vec2 gradient = vec2(0.0);
+
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            vec2 offset = vec2(x - 1, y - 1);
+            vec2 texelUV = uv + offset * texelSize;
+            float grayscale = texture(tex, texelUV).r;
+            gradient.x += grayscale * sobelX[y][x];
+            gradient.y += grayscale * sobelY[y][x];
+        }
+    }
+
+    return gradient;
+}
+
+
+const int octaves = 8;
+const float lacunarity = 2.0;
+const float persistence = 0.5;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float fractalNoise(vec2 st) {
+    float amplitude = 1.0;
+    float frequency = 1.0;
+    float noiseValue = 0.0;
+
+    for (int i = 0; i < octaves; ++i) {
+        noiseValue += amplitude * noise(st * frequency);
+        amplitude *= persistence;
+        frequency *= lacunarity;
+    }
+
+    return noiseValue;
+}
+
+const int kernelSize = 1;
+const float blurAmount = 0.3; // Adjust the blur intensity
+
+vec4 blurKernel(sampler2D textureSampler, vec2 texCoord) {
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+    vec4 blurColor = vec4(0.0);
+
+    for (int i = -kernelSize; i <= kernelSize; ++i) {
+        for (int j = -kernelSize; j <= kernelSize; ++j) {
+            vec2 offset = vec2(i, j) * texelSize;
+            blurColor.r += texture(textureSampler, texCoord + offset).r;
+        }
+    }
+
+    return vec4(blurColor.r / float((2 * kernelSize + 1) * (2 * kernelSize + 1)),
+    0.0, 0.0, 1.0); // Only modify the red channel
+}
 
 void main()
 {
@@ -89,8 +174,18 @@ void main()
 
     vec4 color;
     bool useInterpolation = info.normalize.w == 1.0f;
+
+    vec2 gradient = sobel3x3(samplerColorMap, vec2(uvSampleX, uvSampleY), textureSize(samplerColorMap, 0));
+    float gradientMagnitude = length(gradient) / 4.0;
+
+
     if (useInterpolation){
         color = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
+
+        //vec4 sobelColor = vec4(vec3(gradientMagnitude), 1.0);
+        //color = mix(texture(samplerColorMap, vec2(uvSampleX, uvSampleY)), sobelColor, 0.7);
+        //color = blurKernel(samplerColorMap, vec2(uvSampleX, uvSampleY));
+
     } else {
         color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }

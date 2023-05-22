@@ -70,9 +70,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-            va_start(args, fmt);
+                    va_start(args, fmt);
             Buf.appendfv(fmt, args);
-            va_end(args);
+                    va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -410,7 +410,7 @@ public:
                 sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
             }
 
-            if ( ImGui::Button("Set permissions")) {
+            if (ImGui::Button("Reset statistics consent")) {
                 usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
                 user.askForUsageLoggingPermissions = true;
                 update = true;
@@ -423,8 +423,35 @@ public:
                 usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
             }
 
+            static int scriptSelectionIndex = 0; // Here we store our selection data as an index.
+            std::string scriptPreviewValue = user.scripts.names.empty() ? "" : user.scripts.names[scriptSelectionIndex].c_str();
+
+            if (ImGui::Button("Rebuild script: ")) {
+                if (!scriptPreviewValue.empty())
+                    user.scripts.rebuildMap[user.scripts.names[scriptSelectionIndex]] = true;
+                update |= true;
+            }
+            ImGui::SameLine();
+            // Set log level
+
+            if (ImGui::BeginCombo("##rebuildScripts", scriptPreviewValue.c_str(), 0)) {
+                for (int n = 0; n < user.scripts.names.size(); n++) {
+                    const bool is_selected = (scriptSelectionIndex == n);
+                    if (ImGui::Selectable(user.scripts.names[n].c_str(), is_selected)) {
+                        scriptSelectionIndex = n;
+                        update |= true;
+                    }
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
 
             ImGui::PopStyleVar(); //Item spacing
+
+
+            ImGui::Text("Anonymous ID: %s", VkRender::RendererConfig::getInstance().getAnonymousIdentifier().c_str());
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -432,7 +459,6 @@ public:
 
             ImGui::Text("About: ");
             ImGui::Text("Icons from https://icons8.com");
-
 
         }
         ImGui::EndChild();

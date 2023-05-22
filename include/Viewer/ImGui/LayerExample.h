@@ -39,6 +39,7 @@
 
 #include "Viewer/ImGui/Layer.h"
 
+// Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 

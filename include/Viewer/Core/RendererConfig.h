@@ -39,6 +39,7 @@ namespace VkRender {
             std::string server; // Including prot
             std::string protocol;
             std::string destination;
+            std::string versionInfoDestination;
         };
 
         /**
@@ -50,7 +51,13 @@ namespace VkRender {
             /** @brief Set by user in pop up modal */
             bool userConsentToSendLogs = true;
             /** @brief If there is no prior registered consent from the user */
-            bool askForUsageLoggingPermissions = false;
+            bool askForUsageLoggingPermissions = true;
+
+            struct {
+                std::vector<std::string> names;
+                std::unordered_map<std::string, bool> rebuildMap;
+            }scripts;
+
         };
 
         static RendererConfig &getInstance() {
@@ -69,6 +76,8 @@ namespace VkRender {
         [[nodiscard]] const std::string &getOS() const;
 
         [[nodiscard]] const std::string &getGpuDevice() const;
+
+        [[nodiscard]] const std::string &getAnonymousIdentifier() const;
 
         void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 
@@ -126,7 +135,7 @@ namespace VkRender {
                     if (dwRetVal == NO_ERROR) {
                         for (DWORD i = 0; i < pIfTable->dwNumEntries; i++) {
                             if (pIfTable->table[i].dwType == IF_TYPE_ETHERNET_CSMACD) {
-                                for (int j = 0; j < pIfTable->table[i].dwPhysAddrLen; j++) {
+                                for (DWORD j = 0; j < pIfTable->table[i].dwPhysAddrLen; j++) {
                                     macAddressStream << std::hex << std::setw(2) << std::setfill('0')
                                                      << static_cast<int>(pIfTable->table[i].bPhysAddr[j]);
                                     if (j < pIfTable->table[i].dwPhysAddrLen - 1) {
@@ -200,11 +209,18 @@ namespace VkRender {
         std::string m_OSVersion;
         std::string m_OS;
         std::string m_AppVersion;
+        std::string m_AppVersionRemote;
         std::string m_TimeStamp;
         std::string m_GPUDevice;
 
         std::string m_Identifier;
 
+    public:
+        const std::string &getAppVersionRemote() const;
+
+        void setAppVersionRemote(const std::string &mAppVersionRemote);
+
+    private:
 
         void getOSVersion();
 

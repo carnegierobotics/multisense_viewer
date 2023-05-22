@@ -240,7 +240,7 @@ void DoubleTop::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
         VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,
-                                                false);
+                                                preview.enableZoom);
 
     }
 }

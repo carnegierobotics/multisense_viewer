@@ -181,6 +181,9 @@ namespace VkRender {
 
 
         std::shared_ptr<UsageMonitor> usageMonitor;
+        /** @brief if a new version has been launched by crl*/
+        bool newVersionAvailable = false;
+        bool askUserForNewVersion = true;
 
         const VkRender::MouseButtons *mouse;
 
@@ -200,6 +203,7 @@ namespace VkRender {
 
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
+
     };
 
     /**

@@ -197,6 +197,8 @@ public:
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
             if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
                 openURL(url);
+                handle->usageMonitor->userClickAction("Privacy policy", "Selectable",
+                                                       ImGui::GetCurrentWindow()->Name);
             }
             isLinkHovered = ImGui::IsItemHovered();
             ImGui::PopStyleColor(4);
@@ -213,6 +215,8 @@ public:
                 user.userConsentToSendLogs = radio_value;
                 VkRender::RendererConfig::getInstance().setUserSetting(user);
                 handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+                handle->usageMonitor->userClickAction("Yes|No", "RadioButton",
+                                                      ImGui::GetCurrentWindow()->Name);
             }
 
             ImVec2 btnSize(120.0f, 0.0f);
@@ -222,6 +226,9 @@ public:
                 user.userConsentToSendLogs = radio_value;
                 VkRender::RendererConfig::getInstance().setUserSetting(user);
                 handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
+
+                handle->usageMonitor->userClickAction("OK", "button",
+                                                      ImGui::GetCurrentWindow()->Name);
 
                 ImGui::CloseCurrentPopup();
             }
@@ -248,8 +255,11 @@ public:
         askUsageLoggingPermissionPopUp(handles);
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f)))
+        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f))) {
             handles->showDebugWindow = !handles->showDebugWindow;
+            handles->usageMonitor->userClickAction("Settings", "button",ImGui::GetCurrentWindow()->Name);
+
+        }
         ImGui::PopStyleVar();
 
 
@@ -603,13 +613,11 @@ private:
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
         ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
-        btnAdd = ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight));
-
-        ImGui::PopStyleColor();
-        if (btnAdd) {
+        if (ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight))) {
             ImGui::OpenPopup("add_device_modal");
+            handles->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
         }
-
+        ImGui::PopStyleColor();
     }
 
     void addPopup(VkRender::GuiObjectHandles *handles) {
@@ -691,17 +699,22 @@ private:
             ImGui::PushFont(handles->info->font15);
             if (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
                                        handles->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
-                                       tint_col))
+                                       tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                        connectMethodSelector);;
+                        connectMethodSelector);
+                handles->usageMonitor->userClickAction("Automatic", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
+
+            }
             ImGui::SameLine(0, 30.0f);
             if (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
                                        handles->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
-                                       tint_col))
+                                       tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                        connectMethodSelector);;
+                        connectMethodSelector);
+                handles->usageMonitor->userClickAction("Manual", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
+            }
             ImGui::PopFont();
             /*
                          ImGui::SameLine(0, 30.0f);
@@ -729,9 +742,11 @@ private:
                 if (ImGui::Button(btnLabel.c_str(), ImVec2(80.0f, 20.0f))) {
                     Log::Logger::getInstance()->info("User clicked {}", btnLabel);
                     if (btnLabel == "Start") {
+                        handles->usageMonitor->userClickAction("Start", "button", ImGui::GetCurrentWindow()->Name);
                         reader = std::make_unique<AutoConnectReader>();
                         btnLabel = "Reset";
                     } else {
+                        handles->usageMonitor->userClickAction("Reset", "button", ImGui::GetCurrentWindow()->Name);
                         reader->sendStopSignal();
                         entryConnectDeviceList.clear();
                         m_Entry.IP.clear();
@@ -892,6 +907,7 @@ private:
                                           resultsComboIndex == n,
                                           ImGuiSelectableFlags_DontClosePopups,
                                           ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
+                        handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable", ImGui::GetCurrentWindow()->Name);
 
                         resultsComboIndex = n;
                         entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished
@@ -1009,9 +1025,12 @@ private:
                 if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags)) {
                     for (size_t n = 0; n < interfaceNameList.size(); n++) {
                         const bool is_selected = (ethernetComboIndex == n);
-                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected))
+                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected)) {
                             ethernetComboIndex = static_cast<uint32_t>(n);
+                            handles->usageMonitor->userClickAction("SelectAdapter", "combo",
+                                                                   ImGui::GetCurrentWindow()->Name);
 
+                        }
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
                             ImGui::SetItemDefaultFocus();
@@ -1117,11 +1136,14 @@ private:
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
             if (btnCancel) {
+                handles->usageMonitor->userClickAction("Cancel", "button",
+                                                       ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
 
             if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
-
+                handles->usageMonitor->userClickAction("Connect", "button",
+                                                       ImGui::GetCurrentWindow()->Name);
                 if (reader) {
                     reader->setIpConfig(resultsComboIndex);
                     reader->sendStopSignal();

@@ -61,6 +61,7 @@ private:
     ImGuiFileDialog chooseExtrinsicsDialog;
     ImGuiFileDialog saveCalibrationDialog;
     ImGuiFileDialog savePointCloudDialog;
+    ImGuiFileDialog saveIMUDataDialog;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSavedTimer;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
     std::string setCalibrationFeedbackText;
@@ -1176,6 +1177,13 @@ private:
             ImGui::HelpMarker(
                     " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n\n Color images are saved as either ppm/png files   ");
             // if start then show gif spinner
+            ImGui::PopStyleColor();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Dummy(ImVec2(40.0f, 0.0f));
+            ImGui::SameLine();
+            ImGui::Text("Save active streams as images to file");
+            ImGui::Spacing();
             ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(40.0f, 0.0f));
@@ -2536,62 +2544,131 @@ private:
             ImGui::Text("4. Recording");
             ImGui::PopFont();
 
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImGui::Text("Save Point cloud as .ply file");
-            ImGui::PopStyleColor(); // Text Color grey
+            { // Save point cloud
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::Text("Save IMU data to file");
+                ImGui::PopStyleColor(); // Text Color grey
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::HelpMarker(
+                        "Record the IMU data to file. The gyro data is saved to gyro.txt as (time (s), dx, dy, dz\nThe accelerometer data is saved to accel.txt as (time (s), x, y, z)");
+                // if start then show gif spinner
+                ImGui::PopStyleColor();
 
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImVec2 btnSize(70.0f, 30.0f);
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImVec2 btnSize(70.0f, 30.0f);
 
-            std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
-            if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
-                dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
-                handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+                std::string btnText = dev.isRecordingIMUdata ? "Stop" : "Start";
+                if (ImGui::Button((btnText + "##imu").c_str(), btnSize) && dev.outputSaveFolderIMUData != "/Path/To/Folder/") {
+                    dev.isRecordingIMUdata = !dev.isRecordingIMUdata;
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
-            }
-            ImGui::SameLine();
-
-            if (ImGui::Button("Choose Dir", btnSize)) {
-                savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                ".");
-                handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
-
-            }
-
-            // display
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-            if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                             ImVec2(1200.0f, 1000.0f))) {
-                // action if OK
-                if (savePointCloudDialog.IsOk()) {
-                    std::string filePathName = savePointCloudDialog.GetFilePathName();
-                    dev.outputSaveFolderPointCloud = filePathName;
-                    // action
                 }
-                // close
-                savePointCloudDialog.Close();
+                ImGui::SameLine();
+
+                if (ImGui::Button("Choose Dir##imu", btnSize)) {
+                    saveIMUDataDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
+                                                    ".");
+                    handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (saveIMUDataDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                 ImVec2(1200.0f, 1000.0f))) {
+                    // action if OK
+                    if (saveIMUDataDialog.IsOk()) {
+                        std::string filePathName = saveIMUDataDialog.GetFilePathName();
+                        dev.outputSaveFolderIMUData = filePathName;
+                        // action
+                    }
+                    // close
+                    saveIMUDataDialog.Close();
+                }
+                ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
+                ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+
+                std::string hint = "/Path/To/Dir";
+                ImGui::CustomInputTextWithHint("##SaveFolderLocationIMU", hint.c_str(),
+                                               &dev.outputSaveFolderIMUData,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
             }
-            ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
-            ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 
-            ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
-            ImGui::SetNextItemWidth(
-                    handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
 
-            ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+            { // Save point cloud
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+                ImGui::Text("Save Point cloud as .ply file");
+                ImGui::PopStyleColor(); // Text Color grey
 
-            std::string hint = "/Path/To/Dir";
-            ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
-                                           &dev.outputSaveFolderPointCloud,
-                                           ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImVec2 btnSize(70.0f, 30.0f);
+
+                std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
+                if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) && dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
+                    dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+                ImGui::SameLine();
+
+                if (ImGui::Button("Choose Dir##pointcloud", btnSize)) {
+                    savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
+                                                    ".");
+                    handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                 ImVec2(1200.0f, 1000.0f))) {
+                    // action if OK
+                    if (savePointCloudDialog.IsOk()) {
+                        std::string filePathName = savePointCloudDialog.GetFilePathName();
+                        dev.outputSaveFolderPointCloud = filePathName;
+                        // action
+                    }
+                    // close
+                    savePointCloudDialog.Close();
+                }
+                ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
+                ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+
+                std::string hint = "/Path/To/Dir";
+                ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
+                                               &dev.outputSaveFolderPointCloud,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
+            }
         }
 
     }

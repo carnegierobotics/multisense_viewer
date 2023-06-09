@@ -173,7 +173,8 @@ namespace VkRender::MultiSense {
         if (it != infoMap.end())
             return it->second;
         else {
-            Log::Logger::getInstance()->traceWithFrequency("getCameraInfoTag", 1000, "Camera info for channel {} does not exist", idx);
+            Log::Logger::getInstance()->traceWithFrequency("getCameraInfoTag", 1000,
+                                                           "Camera info for channel {} does not exist", idx);
             return {};
         }
     }
@@ -1017,38 +1018,30 @@ namespace VkRender::MultiSense {
         return true;
     }
 
-    bool
-    CRLPhysicalCamera::getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const {
+    bool CRLPhysicalCamera::getIMUData(crl::multisense::RemoteHeadChannel channelID,
+                                       std::vector<CRLPhysicalCamera::ImuData>* gyro,
+                                       std::vector<CRLPhysicalCamera::ImuData>* accel) const {
         auto it = channelMap.find(channelID);
-
         if (it == channelMap.end()) {
             return false;
         }
-
+        if (gyro == nullptr || accel == nullptr){
+            Log::Logger::getInstance()->trace("gyro or accel vectors cannot be nullptrs");
+            return false;
+        }
         auto header = it->second->imuBuffer->getIMUBuffer(channelID);
-
         if (header == nullptr) {
             return false;
         }
-        std::vector<crl::multisense::imu::Info> info;
-        uint32_t msgs;
-        it->second->ptr()->getImuInfo(msgs, info);
-        double time = 0, prevTime = 0;
-        struct ImuData {
-            float x, y, z;
-            double time;
-            double dTime;
-        };
-        std::vector<ImuData> gyro;
-        std::vector<ImuData> accel;
 
+        double time = 0, prevTime = 0;
         for (auto iterator = header->data().samples.begin();
              iterator != header->data().samples.end(); ++iterator) {
             const crl::multisense::imu::Sample &s = *iterator;
 
             switch (s.type) {
                 case crl::multisense::imu::Sample::Type_Accelerometer:
-                    accel.push_back({s.x, s.y, s.z, s.time(), 0});
+                    accel->push_back({s.x, s.y, s.z, s.time(), 0});
                     break;
                 case crl::multisense::imu::Sample::Type_Gyroscope: {
                     time = s.time();
@@ -1057,7 +1050,7 @@ namespace VkRender::MultiSense {
                     if (prevTime == 0)
                         dt = 0;
 
-                    gyro.push_back({s.x, s.y, s.z, s.time(), dt});
+                    gyro->push_back({s.x, s.y, s.z, s.time(), dt});
                     prevTime = time;
                 }
                     break;
@@ -1066,6 +1059,19 @@ namespace VkRender::MultiSense {
             }
 
         }
+        return true;
+    }
+
+    bool
+    CRLPhysicalCamera::calculateIMURotation(VkRender::IMUData *data,
+                                            crl::multisense::RemoteHeadChannel channelID) const {
+
+        std::vector<ImuData> gyro;
+        std::vector<ImuData> accel;
+
+        if (!getIMUData(channelID, &gyro, &accel))
+            return false;
+
         double rollAcc = 0, pitchAcc = 0;
         double alpha = 0.97;
         for (int i = 0; i < accel.size(); ++i) {

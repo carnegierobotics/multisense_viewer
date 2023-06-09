@@ -429,10 +429,14 @@ namespace VkRender {
         std::string outputSaveFolder;
         /**@brief location for which this m_Device should save recorded point clouds **/
         std::string outputSaveFolderPointCloud;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string outputSaveFolderIMUData;
         /**@brief Flag to decide if user is currently recording frames */
         bool isRecording = false;
         /**@brief Flag to decide if user is currently recording point cloud */
         bool isRecordingPointCloud = false;
+        /**@brief Flag to decide if user is currently recording IMU data */
+        bool isRecordingIMUdata = false;
         /** @brief 3D view camera type for this device. Arcball or first person view controls) */
         int cameraType = 0;
         /** @brief Reset 3D view camera position and rotation */

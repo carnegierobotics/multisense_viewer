@@ -264,10 +264,13 @@ namespace VkRender::MultiSense {
      */
     class CRLPhysicalCamera {
     public:
+        struct ImuData {
+            float x, y, z;
+            double time;
+            double dTime;
+        };
         CRLPhysicalCamera() = default;
-
         ~CRLPhysicalCamera() = default;
-
         /**
          * @brief container to keep \refitem crl::multisense::Channel information. This block is closely related to the \refitem Parameters UI block
          */
@@ -326,13 +329,24 @@ namespace VkRender::MultiSense {
         getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
                         crl::multisense::RemoteHeadChannel idx) const;
 
+
+        /**
+         *
+         * @param[in] channelID Which channel to get IMU data for
+         * @param[in] gyro vector to fill with measurements
+         * @param[in] accel vector to fill with measurements
+         * @return true fetched successfully otherwise false
+         */
+        bool getIMUData(crl::multisense::RemoteHeadChannel channelID, std::vector<ImuData> *gyro,
+                        std::vector<ImuData> *accel) const;
+
         /**
          * Get the IMU rotation from the MultiSense camera and put it into a VkRender:: object
          * @param tex
-         * @param idx
+         * @param[in] channelID Which channel to get IMU data for
          * @return
          */
-        bool getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel idx) const;
+        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const;
 
         /**
          * @brief get a status update from the MultiSense m_Device

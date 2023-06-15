@@ -115,11 +115,11 @@ typedef enum ScriptType {
  */
 typedef enum CRLCameraDataType {
     CRL_DATA_NONE,
-    CRL_GRAYSCALE_IMAGE,
-    CRL_COLOR_IMAGE_RGBA,
-    CRL_COLOR_IMAGE_YUV420,
+    CRL_GRAYSCALE_IMAGE,  /** @brief Single channel 8-bit grayscale image from MultiSense */
+    CRL_COLOR_IMAGE_RGBA, /** @brief Data type for typical png texture files */
+    CRL_COLOR_IMAGE_YUV420, /** @brief Data type for MultiSense color stream */
     CRL_CAMERA_IMAGE_NONE,
-    CRL_DISPARITY_IMAGE,
+    CRL_DISPARITY_IMAGE,  /** @brief Single channel 16-bit disparity image from MultiSense */
     CRL_POINT_CLOUD
 } CRLCameraDataType;
 

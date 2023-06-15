@@ -414,7 +414,7 @@ void Renderer::render() {
     // Scripts that share dataa
     for (auto &script: scripts) {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
-            if (!script.second->sharedData->destination.empty()) {
+            if (script.second->sharedData && !script.second->sharedData->destination.empty()) {
                 // Send to destination script
                 if (script.second->sharedData->destination == "All") {
                     // Copy shared data to all

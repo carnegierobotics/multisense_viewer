@@ -30,6 +30,14 @@ endif ()
 # Find Vulkan
 find_package(Vulkan REQUIRED)
 
+# Set OpenCV DNN module
+find_package(Eigen3 REQUIRED)
+
+set(OpenCV_STATIC ON)
+find_package(OpenCV REQUIRED dnn highgui)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
 
@@ -73,6 +81,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/SceneGizmos/Gizmos.cpp
         src/Scripts/Objects/SceneGizmos/Helmet.cpp
         src/Scripts/Objects/Video/RecordFrames.cpp
+        src/Scripts/Objects/Video/ObjectDetection.cpp
         src/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
         src/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp
         src/Scripts/Objects/Video/Previews/Double/DoubleBot.cpp
@@ -83,7 +92,7 @@ set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/SceneGizmos/Skybox.cpp
         include/Viewer/Scripts/Private/ScriptUtils.h)
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;${OpenCV_LIBS};")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

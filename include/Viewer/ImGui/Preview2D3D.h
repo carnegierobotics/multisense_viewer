@@ -799,6 +799,11 @@ private:
                                                   std::to_string(window.selectedRemoteHeadIndex + 1))]) -
                                                           1].availableSources;
 
+                Log::Logger::getInstance()->traceWithFrequency("Displayed_Available_Sources", 60 * 10, "Presented sources to user: ");
+                for (const auto& src : window.availableSources){
+                    Log::Logger::getInstance()->traceWithFrequency("Tag:"+src, 60 * 10, "{}", src);
+                }
+
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
@@ -813,7 +818,6 @@ private:
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
-                            handles->usageMonitor->userClickAction(srcLabel, "combo", ImGui::GetCurrentWindow()->Name);
 
                             if (window.selectedSource != "Idle") {
                                 bool inUse = false;
@@ -876,8 +880,8 @@ private:
 
                             window.selectedSourceIndex = static_cast<uint32_t>(n);
                             window.selectedSource = window.availableSources[window.selectedSourceIndex];
-                            Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
-                                                             window.selectedSource, index);
+                            Log::Logger::getInstance()->info("Selected source '{}' for preview {},", window.selectedSource, index);
+                            handles->usageMonitor->userClickAction(window.selectedSource, srcLabel, ImGui::GetCurrentWindow()->Name);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
                                                    window.selectedSource) && window.selectedSource != "Idle") {
@@ -1131,6 +1135,12 @@ private:
             // Resolution selection box
             ImGui::SetNextItemWidth(250);
             std::string resLabel = "##Resolution" + std::to_string(i);
+
+            Log::Logger::getInstance()->traceWithFrequency("Display available modes", 60 * 10, "Presented modes to user: ");
+            for (const auto& src : dev.channelInfo[i].modes){
+                Log::Logger::getInstance()->traceWithFrequency("Tag:"+src, 60 * 10, "{}", src);
+            }
+
             auto &chInfo = dev.channelInfo[i];
             if (chInfo.state != CRL_STATE_ACTIVE)
                 continue;

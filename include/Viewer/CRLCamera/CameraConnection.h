@@ -134,7 +134,7 @@ namespace VkRender::MultiSense {
 
 		/**@brief Create a user readable list of the possible camera modes*/
 		static void
-			initCameraModes(std::vector<std::string>* modes, std::vector<crl::multisense::system::DeviceMode> vector);
+			initCameraModes(std::vector<std::string>* modes, const std::vector<crl::multisense::system::DeviceMode>& vector);
 
 		// Add ini m_Entry with log lines
 		/**@brief Add a .ini m_Entry and log it*/

@@ -486,11 +486,14 @@ namespace VkRender::MultiSense {
             chInfo.index = ch;
             chInfo.state = CRL_STATE_ACTIVE;
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch, camPtr);
+
             const auto &supportedModes = camPtr.getCameraInfo(ch).supportedDeviceModes;
             initCameraModes(&chInfo.modes, supportedModes);
             const auto &imgConf = camPtr.getCameraInfo(ch).imgConf;
             chInfo.selectedResolutionMode = Utils::valueToCameraResolution(imgConf.width(), imgConf.height(),
                                                                            imgConf.disparities());
+
+
             for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
                 dev.win[(StreamWindowIndex) i].availableRemoteHeads.push_back(std::to_string(ch + 1));
                 if (!chInfo.availableSources.empty())
@@ -576,13 +579,15 @@ namespace VkRender::MultiSense {
     }
 
     void CameraConnection::initCameraModes(std::vector<std::string> *modes,
-                                           std::vector<crl::multisense::system::DeviceMode> deviceModes) {
+                                           const std::vector<crl::multisense::system::DeviceMode>& deviceModes) {
         for (const auto &mode: deviceModes) {
             std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
                                    std::to_string(mode.disparities) + "x";
             modes->emplace_back(modeName);
+            Log::Logger::getInstance()->info("Found supported mode: {}", modeName);
         }
-
+        if (modes->empty())
+            Log::Logger::getInstance()->warning("No supported modes were found. This may be an error");
     }
 
     void
@@ -595,8 +600,11 @@ namespace VkRender::MultiSense {
             bool enabled = (bits & mask);
             if (enabled) {
                 sources->emplace_back(Utils::dataSourceToString(mask));
+                Log::Logger::getInstance()->info("Found supported source: {}", Utils::dataSourceToString(mask));
             }
         }
+        if (sources->empty())
+            Log::Logger::getInstance()->warning("No supported sources were found. This may be an error");
     }
 
 
@@ -784,9 +792,10 @@ namespace VkRender::MultiSense {
                 }
             }
 
-            //app->getProfileFromIni(*dev);
+
             app->updateUIDataBlock(*dev, app->camPtr);
-            if (!isRemoteHead) app->getProfileFromIni(*dev);
+            if (!isRemoteHead)
+                app->getProfileFromIni(*dev);
             // Set the resolution read from config file
             const auto &info = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo;
             dev->cameraName = info.name;
@@ -806,6 +815,9 @@ namespace VkRender::MultiSense {
 
             dev->hasColorCamera ? dev->useAuxForPointCloudColor = 1 : dev->useAuxForPointCloudColor = 0;
 
+            const auto &cInfo = app->camPtr.getCameraInfo(0).versionInfo;
+            Log::Logger::getInstance()->info("Connected to {}, FW version: {}, FW Build date: {}, LibMultiSense API: {} LibMultiSense API Date: {}",
+                                             dev->name, cInfo.sensorFirmwareVersion, cInfo.sensorFirmwareBuildDate, cInfo.apiVersion, cInfo.apiBuildDate);
 
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {

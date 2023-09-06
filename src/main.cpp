@@ -41,6 +41,7 @@
     #endif
 #endif
 
+
 int main() {
     Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
 

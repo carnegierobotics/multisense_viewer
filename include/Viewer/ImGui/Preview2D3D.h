@@ -669,7 +669,7 @@ private:
                         handles->usageMonitor->userClickAction("interpolate", "Checkbox",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
-
+                    // Cursor zoom
                     ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
                     ImGui::SameLine();
                     ImGui::Text("z");
@@ -684,9 +684,81 @@ private:
                                                                ImGui::GetCurrentWindow()->Name);
                     }
 
+                    bool isColorImageSelected =
+                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            CRL_COLOR_IMAGE_YUV420;
+
+
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
+
+                    if (isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(
+                            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) || isDisparitySelected) {
+
+                    } else {
+
+                        // Edge detection
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("1");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("1").x);
+                        txt = "Edge:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##edge filter" + std::to_string(index)).c_str(),
+                                            &window.effects.edgeDetection)) {
+                            handles->usageMonitor->userClickAction("Edge filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+                        // Blurring
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("2");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("2").x);
+                        txt = "Blur:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##blur filter" + std::to_string(index)).c_str(),
+                                            &window.effects.blur)) {
+                            handles->usageMonitor->userClickAction("Blur filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("3");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("3").x);
+                        txt = "Emboss:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##Emboss filter" + std::to_string(index)).c_str(),
+                                            &window.effects.emboss)) {
+                            handles->usageMonitor->userClickAction("Emboss filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("4");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("4").x);
+                        txt = "Sharpen:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##Sharpen filter" + std::to_string(index)).c_str(),
+                                            &window.effects.sharpening)) {
+                            handles->usageMonitor->userClickAction("Sharpen filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+                    }
+
                     if (isDisparitySelected) {
                         // Color map
                         {
@@ -799,9 +871,10 @@ private:
                                                   std::to_string(window.selectedRemoteHeadIndex + 1))]) -
                                                           1].availableSources;
 
-                Log::Logger::getInstance()->traceWithFrequency("Displayed_Available_Sources", 60 * 10, "Presented sources to user: ");
-                for (const auto& src : window.availableSources){
-                    Log::Logger::getInstance()->traceWithFrequency("Tag:"+src, 60 * 10, "{}", src);
+                Log::Logger::getInstance()->traceWithFrequency("Displayed_Available_Sources", 60 * 10,
+                                                               "Presented sources to user: ");
+                for (const auto &src: window.availableSources) {
+                    Log::Logger::getInstance()->traceWithFrequency("Tag:" + src, 60 * 10, "{}", src);
                 }
 
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
@@ -880,8 +953,10 @@ private:
 
                             window.selectedSourceIndex = static_cast<uint32_t>(n);
                             window.selectedSource = window.availableSources[window.selectedSourceIndex];
-                            Log::Logger::getInstance()->info("Selected source '{}' for preview {},", window.selectedSource, index);
-                            handles->usageMonitor->userClickAction(window.selectedSource, srcLabel, ImGui::GetCurrentWindow()->Name);
+                            Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
+                                                             window.selectedSource, index);
+                            handles->usageMonitor->userClickAction(window.selectedSource, srcLabel,
+                                                                   ImGui::GetCurrentWindow()->Name);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
                                                    window.selectedSource) && window.selectedSource != "Idle") {
@@ -930,6 +1005,31 @@ private:
                         Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
                         handles->usageMonitor->userClickAction("I", "keyboard_press", ImGui::GetCurrentWindow()->Name);
                     }
+
+                    if (handles->input->getButtonDown(GLFW_KEY_1)) {
+                        window.effects.edgeDetection = !window.effects.edgeDetection;
+                        Log::Logger::getInstance()->info("User pressed key 1 for: {}", window.name);
+                        handles->usageMonitor->userClickAction("1", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                    }
+
+                    if (handles->input->getButtonDown(GLFW_KEY_2)) {
+                        window.effects.blur = !window.effects.blur;
+                        Log::Logger::getInstance()->info("User pressed key 2 for: {}", window.name);
+                        handles->usageMonitor->userClickAction("2", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                    }
+
+                    if (handles->input->getButtonDown(GLFW_KEY_3)) {
+                        window.effects.emboss = !window.effects.emboss;
+                        Log::Logger::getInstance()->info("User pressed key 3 for: {}", window.name);
+                        handles->usageMonitor->userClickAction("3", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                    }
+
+                    if (handles->input->getButtonDown(GLFW_KEY_4)) {
+                        window.effects.sharpening = !window.effects.sharpening;
+                        Log::Logger::getInstance()->info("User pressed key 4 for: {}", window.name);
+                        handles->usageMonitor->userClickAction("4", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                    }
+
                     if (handles->input->getButtonDown(GLFW_KEY_Z)) {
                         window.effects.magnifyZoomMode = !window.effects.magnifyZoomMode;
                         Log::Logger::getInstance()->info("User pressed key Z for: {}", window.name);
@@ -1136,9 +1236,10 @@ private:
             ImGui::SetNextItemWidth(250);
             std::string resLabel = "##Resolution" + std::to_string(i);
 
-            Log::Logger::getInstance()->traceWithFrequency("Display available modes", 60 * 10, "Presented modes to user: ");
-            for (const auto& src : dev.channelInfo[i].modes){
-                Log::Logger::getInstance()->traceWithFrequency("Tag:"+src, 60 * 10, "{}", src);
+            Log::Logger::getInstance()->traceWithFrequency("Display available modes", 60 * 10,
+                                                           "Presented modes to user: ");
+            for (const auto &src: dev.channelInfo[i].modes) {
+                Log::Logger::getInstance()->traceWithFrequency("Tag:" + src, 60 * 10, "{}", src);
             }
 
             auto &chInfo = dev.channelInfo[i];
@@ -2573,7 +2674,8 @@ private:
                 ImVec2 btnSize(70.0f, 30.0f);
 
                 std::string btnText = dev.isRecordingIMUdata ? "Stop" : "Start";
-                if (ImGui::Button((btnText + "##imu").c_str(), btnSize) && dev.outputSaveFolderIMUData != "/Path/To/Folder/") {
+                if (ImGui::Button((btnText + "##imu").c_str(), btnSize) &&
+                    dev.outputSaveFolderIMUData != "/Path/To/Folder/") {
                     dev.isRecordingIMUdata = !dev.isRecordingIMUdata;
                     handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
@@ -2582,7 +2684,7 @@ private:
 
                 if (ImGui::Button("Choose Dir##imu", btnSize)) {
                     saveIMUDataDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                    ".");
+                                                 ".");
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
@@ -2591,7 +2693,7 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                 if (saveIMUDataDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                 ImVec2(1200.0f, 1000.0f))) {
+                                              ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
                     if (saveIMUDataDialog.IsOk()) {
                         std::string filePathName = saveIMUDataDialog.GetFilePathName();
@@ -2634,7 +2736,8 @@ private:
                 ImVec2 btnSize(70.0f, 30.0f);
 
                 std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
-                if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) && dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
+                if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) &&
+                    dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
                     dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
                     handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 

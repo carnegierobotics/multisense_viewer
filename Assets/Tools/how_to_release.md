@@ -1,10 +1,10 @@
 ## Create new git branch
 
+0. Remember to set Production/Debug macro in /include/Viewer/Core/Definitions.h
 1.  Create new version main branch. Example = v1.2.0/main
 2. Add features to this new version in separate branches if required, such as v1.2.0/feature/record_imu. 
 Otherwise just make changes to v1.2.0/main
 3. Once finished merge v1.2.0/main to master by completing the steps below
-
 
 ## Create new release
 1. Bump version number in CMakeLists.txt line (10-ish) using format: v*.*-*

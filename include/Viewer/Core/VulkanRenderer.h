@@ -65,7 +65,7 @@ namespace VkRender {
     class VulkanRenderer {
 
     public:
-        explicit VulkanRenderer(const std::string &title, bool enableValidation = false);
+        explicit VulkanRenderer(const std::string &title);
 
         virtual ~VulkanRenderer();
 

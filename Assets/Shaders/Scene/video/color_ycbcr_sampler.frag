@@ -20,6 +20,7 @@ layout(binding = 1, set = 0) uniform Info {
     float lod;
     vec2 pad;
     vec4 normalize;
+    vec4 kernelFilters;
 } info;
 
 layout (set = 0, binding = 2) uniform sampler2D luma;
@@ -73,6 +74,119 @@ vec4 textureBicubic(sampler2D samplerMap, vec2 texCoords){
     , sy);
 }
 
+vec4 blurKernel(sampler2D textureSampler, vec2 texCoord) {
+    int kernelSize = 2;
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+    vec4 blurColor = vec4(0.0);
+
+    for (int i = -kernelSize; i <= kernelSize; ++i) {
+        for (int j = -kernelSize; j <= kernelSize; ++j) {
+            vec2 offset = vec2(i, j) * texelSize;
+            blurColor.rgb += texture(textureSampler, texCoord + offset).rgb;
+        }
+    }
+    blurColor =  blurColor / float((2 * kernelSize + 1) * (2 * kernelSize + 1));
+    return blurColor;// Only modify the red channel
+}
+vec4 edgeDetect(sampler2D textureSampler, vec2 texCoord) {
+    // Texel size calculation
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+    int kernelSize = 1;
+
+    // Sobel kernel for edge detection in the x and y directions
+    float kernelX[3][3];
+    kernelX[0][0] = -1.0; kernelX[0][1] = 0.0; kernelX[0][2] = 1.0;
+    kernelX[1][0] = -2.0; kernelX[1][1] = 0.0; kernelX[1][2] = 2.0;
+    kernelX[2][0] = -1.0; kernelX[2][1] = 0.0; kernelX[2][2] = 1.0;
+
+    float kernelY[3][3];
+    kernelY[0][0] = -1.0; kernelY[0][1] = -2.0; kernelY[0][2] = -1.0;
+    kernelY[1][0] = 0.0;  kernelY[1][1] = 0.0;  kernelY[1][2] = 0.0;
+    kernelY[2][0] = 1.0;  kernelY[2][1] = 2.0;  kernelY[2][2] = 1.0;
+
+    // Initialize edge colors for x and y directions for each channel
+    vec3 edgeX = vec3(0.0);
+    vec3 edgeY = vec3(0.0);
+
+    // Apply the Sobel kernels
+    for (int i = -kernelSize; i <= kernelSize; ++i) {
+        for (int j = -kernelSize; j <= kernelSize; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec3 pixelValue = texture(textureSampler, texCoord + offset).rgb;
+
+            edgeX += kernelX[i + 1][j + 1] * pixelValue;
+            edgeY += kernelY[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Calculate the magnitude of the edge for each channel
+    vec3 edgeMagnitude = sqrt(edgeX * edgeX + edgeY * edgeY);
+
+    // Return as a vec4
+    return vec4(edgeMagnitude, 1.0);
+}
+
+vec4 emboss(sampler2D textureSampler, vec2 texCoord) {
+    // Texel size calculation
+    int kernelSize = 1;
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+
+    // Embossing kernel
+    float kernel[3][3];
+    kernel[0][0] = -2.0; kernel[0][1] = -1.0; kernel[0][2] = 0.0;
+    kernel[1][0] = -1.0; kernel[1][1] = 1.0;  kernel[1][2] = 1.0;
+    kernel[2][0] = 0.0;  kernel[2][1] = 1.0;  kernel[2][2] = 2.0;
+    // Initialize color
+    vec3 embossedColor = vec3(0.0);
+
+    // Apply the embossing kernel
+    for (int i = -kernelSize; i <= kernelSize; ++i) {
+        for (int j = -kernelSize; j <= kernelSize; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec3 pixelValue = texture(textureSampler, texCoord + offset).rgb;
+
+            embossedColor += kernel[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Add 0.5 to shift the color range from [-1, 1] to [0, 1]
+    embossedColor = embossedColor + 0.5;
+
+    // Return as a vec4
+    return vec4(embossedColor, 1.0);
+}
+vec4 sharpening(sampler2D textureSampler, vec2 texCoord) {
+    int kernelSize = 1;
+    // Texel size calculation
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+
+    // Sharpening kernel
+    float kernel[3][3];
+    kernel[0][0] = -1.0; kernel[0][1] = -1.0; kernel[0][2] = -1.0;
+    kernel[1][0] = -1.0; kernel[1][1] = 9.0;  kernel[1][2] = -1.0;
+    kernel[2][0] = -1.0; kernel[2][1] = -1.0; kernel[2][2] = -1.0;
+
+    // Initialize color
+    vec3 sharpenedColor = vec3(0.0);
+
+    // Apply the sharpening kernel
+    for (int i = -kernelSize; i <= kernelSize; ++i) {
+        for (int j = -kernelSize; j <= kernelSize; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec3 pixelValue = texture(textureSampler, texCoord + offset).rgb;
+
+            sharpenedColor += kernel[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Clip the color values to be within [0, 1]
+    sharpenedColor = clamp(sharpenedColor, 0.0, 1.0);
+
+    // Return as a vec4
+    return vec4(sharpenedColor, 1.0);
+}
+
+
 void main()
 {
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
@@ -104,4 +218,5 @@ void main()
 
     vec3 yuv = vec3(y, u, v);
     outColor = vec4(colorMatrix * yuv, 1.0f);
+
 }

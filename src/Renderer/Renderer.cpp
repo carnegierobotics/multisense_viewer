@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Populate.h"
 
 
-Renderer::Renderer(const std::string &title) : VulkanRenderer(title, true) {
+Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
     VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
     this->m_Title = title;
     // Create Log C++ Interface

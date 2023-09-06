@@ -37,6 +37,8 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
+#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
+
 
 #include <unordered_map>
 #include <memory>
@@ -61,6 +63,8 @@
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
 #define MAX_IMAGES_IN_QUEUE 5
+
+
 
 
 // Predeclare to speed up compile times
@@ -346,6 +350,10 @@ namespace VkRender {
         bool interpolation = false;
         bool depthColorMap = false;
         bool magnifyZoomMode = false;
+        bool edgeDetection = false;
+        bool blur = false;
+        bool emboss = false;
+        bool sharpening = false;
         VkRender::ImageEffectData data;
     };
 
@@ -533,6 +541,7 @@ namespace VkRender {
         float lod = 0.0f;
         glm::vec2 pad{};
         glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
+        glm::vec4 kernelFilters; // 0 Sobel/Edge kernel, Blur kernel,
     };
 
     struct SkyboxTextures {

@@ -25,6 +25,7 @@ layout(binding = 1, set = 0) uniform Info {
     float lod;
     vec2 pad;
     vec4 normalize;
+    vec4 kernelFilters;
 } info;
 
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
@@ -105,45 +106,7 @@ vec2 sobel3x3(sampler2D tex, vec2 uv, vec2 texSize) {
 }
 
 
-const int octaves = 8;
-const float lacunarity = 2.0;
-const float persistence = 0.5;
-
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-float noise(vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-
-    float a = random(i);
-    float b = random(i + vec2(1.0, 0.0));
-    float c = random(i + vec2(0.0, 1.0));
-    float d = random(i + vec2(1.0, 1.0));
-
-    vec2 u = f * f * (3.0 - 2.0 * f);
-
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-}
-
-float fractalNoise(vec2 st) {
-    float amplitude = 1.0;
-    float frequency = 1.0;
-    float noiseValue = 0.0;
-
-    for (int i = 0; i < octaves; ++i) {
-        noiseValue += amplitude * noise(st * frequency);
-        amplitude *= persistence;
-        frequency *= lacunarity;
-    }
-
-    return noiseValue;
-}
-
-const int kernelSize = 1;
-const float blurAmount = 0.3; // Adjust the blur intensity
-
+const int kernelSize = 2;
 vec4 blurKernel(sampler2D textureSampler, vec2 texCoord) {
     vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
     vec4 blurColor = vec4(0.0);
@@ -156,12 +119,109 @@ vec4 blurKernel(sampler2D textureSampler, vec2 texCoord) {
     }
 
     return vec4(blurColor.r / float((2 * kernelSize + 1) * (2 * kernelSize + 1)),
-    0.0, 0.0, 1.0); // Only modify the red channel
+    0.0, 0.0, 1.0);// Only modify the red channel
 }
+
+vec4 edgeDetect(sampler2D textureSampler, vec2 texCoord) {
+    // Texel size calculation
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+
+    // Sobel kernel for edge detection in the x and y directions
+    float kernelX[3][3];
+    kernelX[0][0] = -1.0; kernelX[0][1] = 0.0; kernelX[0][2] = 1.0;
+    kernelX[1][0] = -2.0; kernelX[1][1] = 0.0; kernelX[1][2] = 2.0;
+    kernelX[2][0] = -1.0; kernelX[2][1] = 0.0; kernelX[2][2] = 1.0;
+
+    float kernelY[3][3];
+    kernelY[0][0] = -1.0; kernelY[0][1] = -2.0; kernelY[0][2] = -1.0;
+    kernelY[1][0] = 0.0;  kernelY[1][1] = 0.0;  kernelY[1][2] = 0.0;
+    kernelY[2][0] = 1.0;  kernelY[2][1] = 2.0;  kernelY[2][2] = 1.0;
+
+    // Initialize edge colors for x and y directions
+    float edgeX = 0.0;
+    float edgeY = 0.0;
+
+    // Apply the Sobel kernels
+    for (int i = -kernelSize / 2; i <= kernelSize / 2; ++i) {
+        for (int j = -kernelSize / 2; j <= kernelSize / 2; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            float pixelValue = texture(textureSampler, texCoord + offset).r;
+
+            edgeX += kernelX[i + 1][j + 1] * pixelValue;
+            edgeY += kernelY[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Calculate the magnitude of the edge
+    float edgeMagnitude = sqrt(edgeX * edgeX + edgeY * edgeY);
+
+    // Return as a vec4
+    return vec4(vec3(edgeMagnitude), 1.0);
+}
+
+vec4 emboss(sampler2D textureSampler, vec2 texCoord) {
+    // Texel size calculation
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+
+    // Embossing kernel
+    float kernel[3][3];
+    kernel[0][0] = -2.0; kernel[0][1] = -1.0; kernel[0][2] = 0.0;
+    kernel[1][0] = -1.0; kernel[1][1] = 1.0;  kernel[1][2] = 1.0;
+    kernel[2][0] = 0.0;  kernel[2][1] = 1.0;  kernel[2][2] = 2.0;
+
+    // Initialize color
+    vec3 embossedColor = vec3(0.0);
+
+    // Apply the embossing kernel
+    for (int i = -kernelSize / 2; i <= kernelSize / 2; ++i) {
+        for (int j = -kernelSize / 2; j <= kernelSize / 2; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec3 pixelValue = texture(textureSampler, texCoord + offset).rgb;
+
+            embossedColor += kernel[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Add 0.5 to shift the color range from [-1, 1] to [0, 1]
+    embossedColor = embossedColor + 0.5;
+
+    // Return as a vec4
+    return vec4(embossedColor, 1.0);
+}
+vec4 sharpening(sampler2D textureSampler, vec2 texCoord) {
+    // Texel size calculation
+    vec2 texelSize = 1.0 / textureSize(textureSampler, 0);
+
+    // Sharpening kernel
+    float kernel[3][3];
+    kernel[0][0] = -1.0; kernel[0][1] = -1.0; kernel[0][2] = -1.0;
+    kernel[1][0] = -1.0; kernel[1][1] = 9.0;  kernel[1][2] = -1.0;
+    kernel[2][0] = -1.0; kernel[2][1] = -1.0; kernel[2][2] = -1.0;
+
+    // Initialize color
+    vec3 sharpenedColor = vec3(0.0);
+
+    // Apply the sharpening kernel
+    for (int i = -kernelSize / 2; i <= kernelSize / 2; ++i) {
+        for (int j = -kernelSize / 2; j <= kernelSize / 2; ++j) {
+            vec2 offset = vec2(float(i), float(j)) * texelSize;
+            vec3 pixelValue = texture(textureSampler, texCoord + offset).rgb;
+
+            sharpenedColor += kernel[i + 1][j + 1] * pixelValue;
+        }
+    }
+
+    // Clip the color values to be within [0, 1]
+    sharpenedColor = clamp(sharpenedColor, 0.0, 1.0);
+
+    // Return as a vec4
+    return vec4(sharpenedColor, 1.0);
+}
+
 
 void main()
 {
-    float scaleFactor = 4.0; // Adjust this value to control the smoothness of the bicubic sampling
+    float scaleFactor = 4.0;// Adjust this value to control the smoothness of the bicubic sampling
     float val = info.zoom.z;
     vec2 zoom = vec2(info.zoom.x, info.zoom.y);
 
@@ -175,20 +235,32 @@ void main()
     vec4 color;
     bool useInterpolation = info.normalize.w == 1.0f;
 
-    vec2 gradient = sobel3x3(samplerColorMap, vec2(uvSampleX, uvSampleY), textureSize(samplerColorMap, 0));
-    float gradientMagnitude = length(gradient) / 4.0;
-
 
     if (useInterpolation){
         color = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
 
         //vec4 sobelColor = vec4(vec3(gradientMagnitude), 1.0);
         //color = mix(texture(samplerColorMap, vec2(uvSampleX, uvSampleY)), sobelColor, 0.7);
-        //color = blurKernel(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        //
 
     } else {
         color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }
+
+    if (info.kernelFilters.x == 1.0f){
+        color = edgeDetect(samplerColorMap, vec2(uvSampleX, uvSampleY));
+    }
+    if (info.kernelFilters.y == 1.0f){
+        color = blurKernel(samplerColorMap, vec2(uvSampleX, uvSampleY));
+    }
+    if (info.kernelFilters.z == 1.0f){
+        color = emboss(samplerColorMap, vec2(uvSampleX, uvSampleY));
+    }
+    if (info.kernelFilters.w == 1.0f){
+        color = sharpening(samplerColorMap, vec2(uvSampleX, uvSampleY));
+    }
+
     outColor = vec4(color.r, color.r, color.r, 1.0);
+
 
 }

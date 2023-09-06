@@ -817,7 +817,7 @@ namespace VkRender::MultiSense {
 
             const auto &cInfo = app->camPtr.getCameraInfo(0).versionInfo;
             Log::Logger::getInstance()->info("Connected to {}, FW version: {}, FW Build date: {}, LibMultiSense API: {} LibMultiSense API Date: {}",
-                                             dev->name, cInfo.sensorFirmwareVersion, cInfo.sensorFirmwareBuildDate, cInfo.apiVersion, cInfo.apiBuildDate);
+                                             dev->cameraName, cInfo.sensorFirmwareVersion, cInfo.sensorFirmwareBuildDate, cInfo.apiVersion, cInfo.apiBuildDate);
 
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {

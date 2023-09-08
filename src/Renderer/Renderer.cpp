@@ -283,7 +283,7 @@ void Renderer::render() {
     if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)){
         std::string localAppVersion = VkRender::RendererConfig::getInstance().getAppVersion();
         Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}", localAppVersion, versionRemote);
-        guiManager->handles.newVersionAvailable =  localAppVersion != versionRemote;
+        guiManager->handles.newVersionAvailable =  Utils::isLocalVersionLess(localAppVersion, versionRemote);
     }
 
     pLogger->frameNumber = frameID;

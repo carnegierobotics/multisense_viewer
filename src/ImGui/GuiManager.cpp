@@ -426,7 +426,7 @@ namespace VkRender {
                                             &descriptorSetLayout));
 
 
-        uint32_t fontCount = 4, iconCount = 10, gifImageCount = 20;
+        uint32_t fontCount = 5, iconCount = 10, gifImageCount = 20;
         uint32_t setCount = fontCount + iconCount + gifImageCount;
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
@@ -435,13 +435,14 @@ namespace VkRender {
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
         CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
-        fontTexture.reserve(4);
-        fontDescriptors.reserve(4);
+        fontTexture.reserve(fontCount);
+        fontDescriptors.reserve(fontCount);
         handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
+        handles.info->font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8);
         handles.info->font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15);
         handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
-        io->Fonts->SetTexID(reinterpret_cast<ImTextureID>(fontDescriptors[3]));
+        io->Fonts->SetTexID(reinterpret_cast<ImTextureID>(fontDescriptors[fontCount - 1]));
 
         imageIconDescriptors.resize(10);
         handles.info->imageButtonTextureDescriptor.resize(10);

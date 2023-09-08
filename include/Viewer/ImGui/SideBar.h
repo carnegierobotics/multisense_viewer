@@ -266,6 +266,13 @@ public:
         if (!handles->devices.empty())
             sidebarElements(handles);
         addDeviceButton(handles);
+
+        // Add version number
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
+                                   handles->info->height - (handles->info->addDeviceBottomPadding) + 35.0f));
+        ImGui::PushFont(handles->info->font8);
+        ImGui::Text("%s", (std::string("Ver: ") + VkRender::RendererConfig::getInstance().getAppVersion()).c_str());
+        ImGui::PopFont();
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
         ImGui::PopStyleVar(2);

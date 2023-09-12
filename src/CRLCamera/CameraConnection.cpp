@@ -476,7 +476,7 @@ namespace VkRender::MultiSense {
     }
 
     void CameraConnection::updateUIDataBlock(VkRender::Device &dev, CRLPhysicalCamera &camPtr) {
-        dev.channelInfo.resize(MAX_NUM_REMOTEHEADS); // max number of remote heads
+        dev.channelInfo.resize(1); // max number of remote heads
         dev.win.clear();
         for (crl::multisense::RemoteHeadChannel ch: dev.channelConnections) {
             VkRender::ChannelInfo chInfo;

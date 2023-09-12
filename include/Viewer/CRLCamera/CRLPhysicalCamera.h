@@ -206,7 +206,7 @@ namespace VkRender::MultiSense {
 #ifdef __linux__
             channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel, ifName);
 #else
-            channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
+            channelPtr_ = crl::multisense::Channel::Create(ipAddress);
 #endif
 
             bool skipLogging = false;

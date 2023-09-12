@@ -56,22 +56,23 @@ namespace VkRender::MultiSense {
         std::vector<crl::multisense::RemoteHeadChannel> indices;
         // If RemoteHead then attempt to connect 4 LibMultiSense channels
         // else create only one and place it at 0th index.
-        for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
-            if (dev->interruptConnection) {
-                indices.clear();
-                return indices;
-            }
-            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(dev->IP, i, ifName)
-                                         : std::make_unique<ChannelWrapper>(dev->IP, crl::multisense::Remote_Head_VPB,
-                                                                            ifName);
+        if (dev->interruptConnection) {
+            indices.clear();
+            return indices;
+        }
 
-            if (channelMap[i].get()->ptr() != nullptr) {
-                updateCameraInfo(i);
-                addCallbacks(i);
-                indices.emplace_back(i);
-            }
-            if (!isRemoteHead)
-                break;
+        Log::Logger::getInstance()->trace("Attempting to connect to ip: {}. Adapter is: {}", dev->IP, ifName);
+
+        channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)] = std::make_unique<ChannelWrapper>(dev->IP);
+
+        if (channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr() != nullptr) {
+            indices.emplace_back(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            crl::multisense::system::DeviceInfo devInfo;
+            channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
+            Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name, devInfo.buildDate);
+            updateCameraInfo(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
         }
 
         if (dev->interruptConnection) {
@@ -79,17 +80,6 @@ namespace VkRender::MultiSense {
             return indices;
         }
 
-        if (isRemoteHead) {
-            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(dev->IP,
-                                                                                            crl::multisense::Remote_Head_VPB,
-                                                                                            ifName);
-            if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
-                setMtu(7200, crl::multisense::Remote_Head_VPB);
-        } else {
-            if (channelMap[0].get()->ptr() != nullptr)
-                setMtu(7200, 0);
-
-        }
         return indices;
     }
 
@@ -1019,13 +1009,13 @@ namespace VkRender::MultiSense {
     }
 
     bool CRLPhysicalCamera::getIMUData(crl::multisense::RemoteHeadChannel channelID,
-                                       std::vector<CRLPhysicalCamera::ImuData>* gyro,
-                                       std::vector<CRLPhysicalCamera::ImuData>* accel) const {
+                                       std::vector<CRLPhysicalCamera::ImuData> *gyro,
+                                       std::vector<CRLPhysicalCamera::ImuData> *accel) const {
         auto it = channelMap.find(channelID);
         if (it == channelMap.end()) {
             return false;
         }
-        if (gyro == nullptr || accel == nullptr){
+        if (gyro == nullptr || accel == nullptr) {
             Log::Logger::getInstance()->trace("gyro or accel vectors cannot be nullptrs");
             return false;
         }

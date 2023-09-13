@@ -490,6 +490,18 @@ namespace VkRender::MultiSense {
         // For pointclouds
         void updateQMatrix(crl::multisense::RemoteHeadChannel channelID);
 
+        // Helper function to update and log status
+        template <typename Func, typename Data>
+        bool updateAndLog(crl::multisense::RemoteHeadChannel channelID, Func f, Data& data, const std::string& field) {
+            crl::multisense::Status status = f(data);
+            if (status != crl::multisense::Status_Ok) {
+                Log::Logger::getInstance()->error("Failed to update '{}'. error {}", field, crl::multisense::Channel::statusString(status));
+                return false;
+            }
+            return true;
+        }
+
+
     };
 
 

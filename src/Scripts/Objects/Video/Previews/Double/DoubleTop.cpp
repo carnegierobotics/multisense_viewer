@@ -120,7 +120,7 @@ void DoubleTop::update() {
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
                                         options->data.maxDisparityValue, options->interpolation);
-    d2->pad.x = options->depthColorMap;
+    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);    d2->pad.x = options->depthColorMap;
 }
 
 void DoubleTop::updateTransform(){

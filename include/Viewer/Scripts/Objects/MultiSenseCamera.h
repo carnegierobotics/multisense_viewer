@@ -106,4 +106,6 @@ public:
 
     void loadModelsAsync();
     std::future<void> loadModelFuture;
+
+    void handleIMUUpdate();
 };

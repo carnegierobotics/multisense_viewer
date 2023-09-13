@@ -61,6 +61,7 @@ private:
     ImGuiFileDialog chooseExtrinsicsDialog;
     ImGuiFileDialog saveCalibrationDialog;
     ImGuiFileDialog savePointCloudDialog;
+    ImGuiFileDialog saveIMUDataDialog;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSavedTimer;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
     std::string setCalibrationFeedbackText;
@@ -668,7 +669,7 @@ private:
                         handles->usageMonitor->userClickAction("interpolate", "Checkbox",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
-
+                    // Cursor zoom
                     ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
                     ImGui::SameLine();
                     ImGui::Text("z");
@@ -683,9 +684,81 @@ private:
                                                                ImGui::GetCurrentWindow()->Name);
                     }
 
+                    bool isColorImageSelected =
+                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            CRL_COLOR_IMAGE_YUV420;
+
+
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
+
+                    if (isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(
+                            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) || isDisparitySelected) {
+
+                    } else {
+
+                        // Edge detection
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("1");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("1").x);
+                        txt = "Edge:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##edge filter" + std::to_string(index)).c_str(),
+                                            &window.effects.edgeDetection)) {
+                            handles->usageMonitor->userClickAction("Edge filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+                        // Blurring
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("2");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("2").x);
+                        txt = "Blur:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##blur filter" + std::to_string(index)).c_str(),
+                                            &window.effects.blur)) {
+                            handles->usageMonitor->userClickAction("Blur filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("3");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("3").x);
+                        txt = "Emboss:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##Emboss filter" + std::to_string(index)).c_str(),
+                                            &window.effects.emboss)) {
+                            handles->usageMonitor->userClickAction("Emboss filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+
+
+                        ImGui::Dummy(ImVec2((ImGui::CalcTextSize("(?)Shortcut").x / 2.0f), 0.0f));
+                        ImGui::SameLine();
+                        ImGui::Text("4");
+                        ImGui::SameLine(0, 40.0f - ImGui::CalcTextSize("4").x);
+                        txt = "Sharpen:";
+                        txtSize = ImGui::CalcTextSize(txt.c_str());
+                        ImGui::Text("%s", txt.c_str());
+                        ImGui::SameLine(0, textSpacing - txtSize.x);
+                        if (ImGui::Checkbox(("##Sharpen filter" + std::to_string(index)).c_str(),
+                                            &window.effects.sharpening)) {
+                            handles->usageMonitor->userClickAction("Sharpen filter", "Checkbox",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+                    }
+
                     if (isDisparitySelected) {
                         // Color map
                         {
@@ -798,6 +871,12 @@ private:
                                                   std::to_string(window.selectedRemoteHeadIndex + 1))]) -
                                                           1].availableSources;
 
+                Log::Logger::getInstance()->traceWithFrequency("Displayed_Available_Sources", 60 * 10,
+                                                               "Presented sources to user: ");
+                for (const auto &src: window.availableSources) {
+                    Log::Logger::getInstance()->traceWithFrequency("Tag:" + src, 60 * 10, "{}", src);
+                }
+
                 ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
                 ImGui::SetNextItemWidth(150.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
@@ -812,7 +891,6 @@ private:
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
                         const bool is_selected = (window.selectedSourceIndex == n);
                         if (ImGui::Selectable(window.availableSources[n].c_str(), is_selected)) {
-                            handles->usageMonitor->userClickAction(srcLabel, "combo", ImGui::GetCurrentWindow()->Name);
 
                             if (window.selectedSource != "Idle") {
                                 bool inUse = false;
@@ -877,6 +955,8 @@ private:
                             window.selectedSource = window.availableSources[window.selectedSourceIndex];
                             Log::Logger::getInstance()->info("Selected source '{}' for preview {},",
                                                              window.selectedSource, index);
+                            handles->usageMonitor->userClickAction(window.selectedSource, srcLabel,
+                                                                   ImGui::GetCurrentWindow()->Name);
 
                             if (!Utils::isInVector(dev.channelInfo[window.selectedRemoteHeadIndex].enabledStreams,
                                                    window.selectedSource) && window.selectedSource != "Idle") {
@@ -920,11 +1000,61 @@ private:
                     if (handles->mouse->right && handles->mouse->action == GLFW_PRESS)
                         window.enableZoom = !window.enableZoom;
 
-                    if (handles->input->getButtonDown(GLFW_KEY_I)) {
-                        window.effects.interpolation = !window.effects.interpolation;
-                        Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
-                        handles->usageMonitor->userClickAction("I", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                        if (handles->input->getButtonDown(GLFW_KEY_I)) {
+                            window.effects.interpolation = !window.effects.interpolation;
+                            Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
+                            handles->usageMonitor->userClickAction("I", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+
+                        }
+                    if (window.selectedSource != "Disparity Left") {
+                        if (handles->input->getButtonDown(GLFW_KEY_1)) {
+                            window.effects.edgeDetection = !window.effects.edgeDetection;
+                            Log::Logger::getInstance()->info("User pressed key 1 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("1", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+
+                            window.effects.blur = false;
+                            window.effects.emboss = false;
+                            window.effects.sharpening =false;
+                        }
+
+                        if (handles->input->getButtonDown(GLFW_KEY_2)) {
+                            window.effects.blur = !window.effects.blur;
+                            Log::Logger::getInstance()->info("User pressed key 2 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("2", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.emboss = false;
+                            window.effects.sharpening =false;
+                            window.effects.edgeDetection =false;
+                        }
+
+                        if (handles->input->getButtonDown(GLFW_KEY_3)) {
+                            window.effects.emboss = !window.effects.emboss;
+                            Log::Logger::getInstance()->info("User pressed key 3 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("3", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.blur = false;
+                            window.effects.sharpening =false;
+                            window.effects.edgeDetection =false;
+                        }
+
+                        if (handles->input->getButtonDown(GLFW_KEY_4)) {
+                            window.effects.sharpening = !window.effects.sharpening;
+                            Log::Logger::getInstance()->info("User pressed key 4 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("4", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.blur = false;
+                            window.effects.emboss = false;
+                            window.effects.edgeDetection =false;
+                        }
+                    } else {
+                        window.effects.blur = false;
+                        window.effects.emboss = false;
+                        window.effects.sharpening =false;
+                        window.effects.edgeDetection =false;
                     }
+
                     if (handles->input->getButtonDown(GLFW_KEY_Z)) {
                         window.effects.magnifyZoomMode = !window.effects.magnifyZoomMode;
                         Log::Logger::getInstance()->info("User pressed key Z for: {}", window.name);
@@ -1130,6 +1260,13 @@ private:
             // Resolution selection box
             ImGui::SetNextItemWidth(250);
             std::string resLabel = "##Resolution" + std::to_string(i);
+
+            Log::Logger::getInstance()->traceWithFrequency("Display available modes", 60 * 10,
+                                                           "Presented modes to user: ");
+            for (const auto &src: dev.channelInfo[i].modes) {
+                Log::Logger::getInstance()->traceWithFrequency("Tag:" + src, 60 * 10, "{}", src);
+            }
+
             auto &chInfo = dev.channelInfo[i];
             if (chInfo.state != CRL_STATE_ACTIVE)
                 continue;
@@ -1176,6 +1313,13 @@ private:
             ImGui::HelpMarker(
                     " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n\n Color images are saved as either ppm/png files   ");
             // if start then show gif spinner
+            ImGui::PopStyleColor();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            ImGui::Dummy(ImVec2(40.0f, 0.0f));
+            ImGui::SameLine();
+            ImGui::Text("Save active streams as images to file");
+            ImGui::Spacing();
             ImGui::PopStyleColor();
 
             ImGui::Dummy(ImVec2(40.0f, 0.0f));
@@ -1322,6 +1466,7 @@ private:
                                        crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
+
 
                 if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_2))
@@ -2536,62 +2681,133 @@ private:
             ImGui::Text("4. Recording");
             ImGui::PopFont();
 
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImGui::Text("Save Point cloud as .ply file");
-            ImGui::PopStyleColor(); // Text Color grey
+            { // Save point cloud
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::Text("Save IMU data to file");
+                ImGui::PopStyleColor(); // Text Color grey
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::HelpMarker(
+                        "Record the IMU data to file. The gyro data is saved to gyro.txt as (time (s), dx, dy, dz\nThe accelerometer data is saved to accel.txt as (time (s), x, y, z)");
+                // if start then show gif spinner
+                ImGui::PopStyleColor();
 
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImVec2 btnSize(70.0f, 30.0f);
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImVec2 btnSize(70.0f, 30.0f);
 
-            std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
-            if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
-                dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
-                handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+                std::string btnText = dev.isRecordingIMUdata ? "Stop" : "Start";
+                if (ImGui::Button((btnText + "##imu").c_str(), btnSize) &&
+                    dev.outputSaveFolderIMUData != "/Path/To/Folder/") {
+                    dev.isRecordingIMUdata = !dev.isRecordingIMUdata;
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
-            }
-            ImGui::SameLine();
-
-            if (ImGui::Button("Choose Dir", btnSize)) {
-                savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                ".");
-                handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
-
-            }
-
-            // display
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-            if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                             ImVec2(1200.0f, 1000.0f))) {
-                // action if OK
-                if (savePointCloudDialog.IsOk()) {
-                    std::string filePathName = savePointCloudDialog.GetFilePathName();
-                    dev.outputSaveFolderPointCloud = filePathName;
-                    // action
                 }
-                // close
-                savePointCloudDialog.Close();
+                ImGui::SameLine();
+
+                if (ImGui::Button("Choose Dir##imu", btnSize)) {
+                    saveIMUDataDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
+                                                 ".");
+                    handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (saveIMUDataDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                              ImVec2(1200.0f, 1000.0f))) {
+                    // action if OK
+                    if (saveIMUDataDialog.IsOk()) {
+                        std::string filePathName = saveIMUDataDialog.GetFilePathName();
+                        dev.outputSaveFolderIMUData = filePathName;
+                        // action
+                    }
+                    // close
+                    saveIMUDataDialog.Close();
+                }
+                ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
+                ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+
+                std::string hint = "/Path/To/Dir";
+                ImGui::CustomInputTextWithHint("##SaveFolderLocationIMU", hint.c_str(),
+                                               &dev.outputSaveFolderIMUData,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
             }
-            ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
-            ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 
-            ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
-            ImGui::SetNextItemWidth(
-                    handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
 
-            ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+            { // Save point cloud
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+                ImGui::Text("Save Point cloud as .ply file");
+                ImGui::PopStyleColor(); // Text Color grey
 
-            std::string hint = "/Path/To/Dir";
-            ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
-                                           &dev.outputSaveFolderPointCloud,
-                                           ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::SameLine();
+                ImVec2 btnSize(70.0f, 30.0f);
+
+                std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
+                if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) &&
+                    dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
+                    dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+                ImGui::SameLine();
+
+                if (ImGui::Button("Choose Dir##pointcloud", btnSize)) {
+                    savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
+                                                    ".");
+                    handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+
+                // display
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                 ImVec2(1200.0f, 1000.0f))) {
+                    // action if OK
+                    if (savePointCloudDialog.IsOk()) {
+                        std::string filePathName = savePointCloudDialog.GetFilePathName();
+                        dev.outputSaveFolderPointCloud = filePathName;
+                        // action
+                    }
+                    // close
+                    savePointCloudDialog.Close();
+                }
+                ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
+                ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+
+                ImGui::SameLine();
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
+                ImGui::SetNextItemWidth(
+                        handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
+
+                ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+
+                std::string hint = "/Path/To/Dir";
+                ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
+                                               &dev.outputSaveFolderPointCloud,
+                                               ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
+            }
         }
 
     }

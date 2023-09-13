@@ -34,17 +34,22 @@
  *   2021-8-28, mgjerde@carnegierobotics.com, Created file.
  **/
 
+
 #include <stb_image.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Core/Validation.h"
 #include "Viewer/Tools/Populate.h"
 
+
+#ifndef MULTISENSE_VIEWER_PRODUCTION
+    #define MULTISENSE_VIEWER_DEBUG
+    #include "Viewer/Core/Validation.h"
+#endif
+
+
 #ifdef WIN32
-
 #include <strsafe.h>
-
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -53,8 +58,12 @@
 
 #endif
 namespace VkRender {
-    VulkanRenderer::VulkanRenderer(const std::string &title, bool enableValidation) {
-        settings.validation = enableValidation;
+    VulkanRenderer::VulkanRenderer(const std::string &title) {
+#ifdef MULTISENSE_VIEWER_PRODUCTION
+        settings.validation = false;
+#else
+        settings.validation = true;
+#endif
         // Create window instance
         // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class
         glfwInit();
@@ -62,7 +71,7 @@ namespace VkRender {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         m_Width = 1280;
         m_Height = 720;
-        window = glfwCreateWindow(m_Width, m_Height, title.c_str(), nullptr, nullptr);
+        window = glfwCreateWindow(static_cast<int>(m_Width), static_cast<int>(m_Height), title.c_str(), nullptr, nullptr);
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
         glfwSetKeyCallback(window, VulkanRenderer::keyCallback);
@@ -101,7 +110,7 @@ namespace VkRender {
             throw std::runtime_error("Instance Extensions not supported");
         VkInstanceCreateInfo instanceCreateInfo = {};
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        instanceCreateInfo.pNext = NULL;
+        instanceCreateInfo.pNext = nullptr;
         instanceCreateInfo.pApplicationInfo = &appInfo;
         if (!enabledInstanceExtensions.empty()) {
             if (settings.validation) {
@@ -183,9 +192,9 @@ namespace VkRender {
         // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {
             enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-            pLogger->info("Enabling YCBCR Sampler Extension");
+            VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         } else {
-            pLogger->error("YCBCR Sampler support not found!");
+            pLogger->error("YCBCR Sampler Extension support not found!");
         }
 
         // Vulkan m_Device creation
@@ -585,8 +594,8 @@ namespace VkRender {
         vkDestroyImage(device, depthStencil.image, nullptr);
         vkFreeMemory(device, depthStencil.mem, nullptr);
         setupDepthStencil();
-        for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-            vkDestroyFramebuffer(device, frameBuffers[i], nullptr);
+        for (auto & frameBuffer : frameBuffers) {
+            vkDestroyFramebuffer(device, frameBuffer, nullptr);
         }
 
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
@@ -612,7 +621,7 @@ namespace VkRender {
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
 
-        if ((m_Width > 0.0f) && (m_Height > 0.0f)) {
+        if ((m_Width > 0.0) && (m_Height > 0.0)) {
             camera.updateAspectRatio((float) m_Width / (float) m_Height);
         }
         pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
@@ -861,6 +870,8 @@ namespace VkRender {
                 case GLFW_MOUSE_BUTTON_LEFT:
                     myApp->mouseButtons.left = true;
                     break;
+                default:
+                    break;
             }
             myApp->mouseButtons.action = GLFW_PRESS;
         }
@@ -874,6 +885,8 @@ namespace VkRender {
                     break;
                 case GLFW_MOUSE_BUTTON_LEFT:
                     myApp->mouseButtons.left = false;
+                    break;
+                default:
                     break;
             }
             myApp->mouseButtons.action = GLFW_RELEASE;
@@ -1191,4 +1204,4 @@ namespace VkRender {
     }
 
 #endif
-};
+}

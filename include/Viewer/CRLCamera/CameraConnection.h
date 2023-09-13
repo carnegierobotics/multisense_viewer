@@ -103,6 +103,7 @@ namespace VkRender::MultiSense {
 		/** @brief get status timer */
 		std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryStatusTimer;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryExposureTimer;
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> queryDeviceConfigTimer;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcDisparityNormValuesTimer;
         std::future<std::pair<float, float>> disparityNormFuture;
 
@@ -134,7 +135,7 @@ namespace VkRender::MultiSense {
 
 		/**@brief Create a user readable list of the possible camera modes*/
 		static void
-			initCameraModes(std::vector<std::string>* modes, std::vector<crl::multisense::system::DeviceMode> vector);
+			initCameraModes(std::vector<std::string>* modes, const std::vector<crl::multisense::system::DeviceMode>& vector);
 
 		// Add ini m_Entry with log lines
 		/**@brief Add a .ini m_Entry and log it*/
@@ -225,7 +226,17 @@ namespace VkRender::MultiSense {
 		 * @param[in] remoteHeadIndex id of remote head to select
 		 * @param[out] msg if a status was received. This object is filled with the latest information
 		 */
-		static void getStatusTask(void* context, crl::multisense::RemoteHeadChannel remoteHeadIndex);
+		static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
+                                  VkRender::Device *dev);
+
+
+        /**@brief Request to stop a stream
+         * @param[in] context pointer to the callers context
+         * @param[in] remoteHeadIndex id of remote head to select
+         * @param[out] msg if a status was received. This object is filled with the latest information
+         */
+        static void getCameraConfigsTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
+                                         VkRender::Device *dev);
 
         /**@brief Get the current exposure setting (If AutoExposure is enabled)
 		 * @param[in] context pointer to the callers context
@@ -277,6 +288,10 @@ namespace VkRender::MultiSense {
         float findPercentile(uint16_t *image, size_t len, double percentile);
 
         static std::pair<float, float> findUpperAndLowerDisparityBounds(void* ctx, VkRender::Device* dev);
+
+        void queryDevice(std::function<void(void *, int, VkRender::Device *)> taskFunction, VkRender::Device *dev,
+                         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
+                         float updateFreqSec);
     };
 
 }

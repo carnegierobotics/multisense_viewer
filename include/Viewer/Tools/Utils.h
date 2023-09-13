@@ -577,167 +577,202 @@ namespace Utils {
     inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *
 
     module) {
-    std::ifstream is(fileName, std::ios::binary
+        std::ifstream is(fileName, std::ios::binary
 
-    | std::ios::ate);
+                                   | std::ios::ate);
 
-    if (is.
+        if (is.
 
-    is_open()
+                is_open()
 
-    ) {
-    std::streamsize size = is.tellg();
-    is.seekg(0, std::ios::beg);
-    std::vector<char> shaderCode(size);
-    is.
-    read(shaderCode
-    .
+                ) {
+            std::streamsize size = is.tellg();
+            is.seekg(0, std::ios::beg);
+            std::vector<char> shaderCode(size);
+            is.
+                    read(shaderCode
+                                 .
 
-    data(), size
+                                         data(), size
 
-    );
-    is.
+            );
+            is.
 
-    close();
+                    close();
 
-    assert(size > 0);
-    VkShaderModuleCreateInfo moduleCreateInfo{};
-    moduleCreateInfo.
-    sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    moduleCreateInfo.
-    codeSize = size;
-    moduleCreateInfo.
-    pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
-    VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr,
-    module);
-    if (res != VK_SUCCESS)
-    throw std::runtime_error("Failed to create shader module");
-}
-else {
-Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
-}
-}
-
-
-template<typename T>
-size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
-    // Find given element in vector
-    auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
-    if (it != vecOfElements.end())
-        return std::distance(vecOfElements.begin(), it);
-    else
-        return 0;
-}
+            assert(size > 0);
+            VkShaderModuleCreateInfo moduleCreateInfo{};
+            moduleCreateInfo.
+                    sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            moduleCreateInfo.
+                    codeSize = size;
+            moduleCreateInfo.
+                    pCode = reinterpret_cast<const uint32_t *>(shaderCode.data());
+            VkResult res = vkCreateShaderModule(device, &moduleCreateInfo, nullptr,
+                                                module);
+            if (res != VK_SUCCESS)
+                throw std::runtime_error("Failed to create shader module");
+        } else {
+            Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
+        }
+    }
 
 
-static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-    dev.state = CRL_STATE_ACTIVE;
-    dev.cameraName = "Multisense-KS21";
-    dev.notRealDevice = true;
-    dev.channelInfo.resize(4); // max number of remote heads
-    dev.win.clear();
-    for (crl::multisense::RemoteHeadChannel ch: {0}) {
-        VkRender::ChannelInfo chInfo;
-        chInfo.availableSources.clear();
-        chInfo.modes.clear();
-        chInfo.availableSources.emplace_back("Idle");
-        chInfo.index = ch;
-        chInfo.state = CRL_STATE_ACTIVE;
-        chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
-        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
-        supportedDeviceModes.emplace_back();
-        //initCameraModes(&chInfo.modes, supportedModes);
-        chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
-        for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-            dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
-            if (!chInfo.availableSources.empty())
-                dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
+    template<typename T>
+    size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {
+        // Find given element in vector
+        auto it = std::find(vecOfElements.begin(), vecOfElements.end(), element);
+        if (it != vecOfElements.end())
+            return std::distance(vecOfElements.begin(), it);
+        else
+            return 0;
+    }
+
+
+    static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
+        dev.state = CRL_STATE_ACTIVE;
+        dev.cameraName = "Multisense-KS21";
+        dev.notRealDevice = true;
+        dev.channelInfo.resize(4); // max number of remote heads
+        dev.win.clear();
+        for (crl::multisense::RemoteHeadChannel ch: {0}) {
+            VkRender::ChannelInfo chInfo;
+            chInfo.availableSources.clear();
+            chInfo.modes.clear();
+            chInfo.availableSources.emplace_back("Idle");
+            chInfo.index = ch;
+            chInfo.state = CRL_STATE_ACTIVE;
+            chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
+            std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+            supportedDeviceModes.emplace_back();
+            //initCameraModes(&chInfo.modes, supportedModes);
+            chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
+            for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
+                dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+                if (!chInfo.availableSources.empty())
+                    dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
+            }
+
+            // stop streams if there were any enabled, just so we can start with a clean slate
+            //stopStreamTask(this, "All", ch);
+
+            dev.channelInfo.at(ch) = chInfo;
         }
 
-        // stop streams if there were any enabled, just so we can start with a clean slate
-        //stopStreamTask(this, "All", ch);
+        // Update Debug Window
+        auto &info = Log::Logger::getLogMetrics()->device.info;
 
-        dev.channelInfo.at(ch) = chInfo;
+        info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
+        info.firmwareVersion = 12;
+        info.apiBuildDate = "cInfo.apiBuildDate";
+        info.apiVersion = 13;
+        info.hardwareMagic = 14;
+        info.hardwareVersion = 16;
+        info.sensorFpgaDna = 17;
+
     }
 
-    // Update Debug Window
-    auto &info = Log::Logger::getLogMetrics()->device.info;
-
-    info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
-    info.firmwareVersion = 12;
-    info.apiBuildDate = "cInfo.apiBuildDate";
-    info.apiVersion = 13;
-    info.hardwareMagic = 14;
-    info.hardwareVersion = 16;
-    info.sensorFpgaDna = 17;
-
-}
-
-static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
-    if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-    else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
-    else if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
-    return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-}
-
-static inline bool stringToBool(const std::string& str) {
-    std::string lowerStr;
-    std::transform(str.begin(), str.end(), std::back_inserter(lowerStr), [](unsigned char c) { return std::tolower(c); });
-
-    if (lowerStr == "true") {
-        return true;
-    } else if (lowerStr == "false") {
-        return false;
-    } else {
-        // Handle invalid input string, e.g., throw an exception or return a default value
-        throw std::invalid_argument("Invalid input string for boolean conversion");
+    static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
+        if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
+        else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
+        else if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
+        return Log::LOG_LEVEL::LOG_LEVEL_INFO;
     }
-}
-static inline std::string boolToString(bool value) {
-    return value ? "true" : "false";
-}
+
+    static inline bool stringToBool(const std::string &str) {
+        std::string lowerStr;
+        std::transform(str.begin(), str.end(), std::back_inserter(lowerStr),
+                       [](unsigned char c) { return std::tolower(c); });
+
+        if (lowerStr == "true") {
+            return true;
+        } else if (lowerStr == "false") {
+            return false;
+        } else {
+            // Handle invalid input string, e.g., throw an exception or return a default value
+            throw std::invalid_argument("Invalid input string for boolean conversion");
+        }
+    }
+
+    static inline std::string boolToString(bool value) {
+        return value ? "true" : "false";
+    }
 
 
 /**
  * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
  * @return path to cache folder
  */
-static inline std::filesystem::path getSystemCachePath() {
-    // ON windows this file should be places in the user cache folder //
+    static inline std::filesystem::path getSystemCachePath() {
+        // ON windows this file should be places in the user cache folder //
 #ifdef WIN32
-    const char *envVarName = "APPDATA";
-    char *envVarValue = nullptr;
-    size_t envVarValueSize = 0;
-    _dupenv_s(&envVarValue, &envVarValueSize, envVarName);
+        const char *envVarName = "APPDATA";
+        char *envVarValue = nullptr;
+        size_t envVarValueSize = 0;
+        _dupenv_s(&envVarValue, &envVarValueSize, envVarName);
 
-    std::filesystem::path cachePath = envVarValue;
-    std::filesystem::path multiSenseCachePath = cachePath / "multisense";
+        std::filesystem::path cachePath = envVarValue;
+        std::filesystem::path multiSenseCachePath = cachePath / "multisense";
 #else
-    std::filesystem::path cachePath = std::getenv("HOME");
-    cachePath /= ".cache";
-    std::filesystem::path multiSenseCachePath = cachePath / "multisense";
+        std::filesystem::path cachePath = std::getenv("HOME");
+        cachePath /= ".cache";
+        std::filesystem::path multiSenseCachePath = cachePath / "multisense";
 #endif
 
-    if (!std::filesystem::exists(multiSenseCachePath)) {
-        std::error_code ec;
-        if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
-            Log::Logger::getInstance((multiSenseCachePath / "logger.log").string())->info(
-                    "Created cache directory {}", multiSenseCachePath.string());
-        } else {
-            Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}",
-                                              multiSenseCachePath.string(), ec.value());
+        if (!std::filesystem::exists(multiSenseCachePath)) {
+            std::error_code ec;
+            if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
+                Log::Logger::getInstance((multiSenseCachePath / "logger.log").string())->info(
+                        "Created cache directory {}", multiSenseCachePath.string());
+            } else {
+                Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}",
+                                                  multiSenseCachePath.string(), ec.value());
+            }
         }
+        return multiSenseCachePath;
     }
-    return multiSenseCachePath;
-}
 
-static inline bool checkRegexMatch(const std::string& str, const std::string& expression){
-    std::string lowered_str = str;
-    std::transform(lowered_str.begin(), lowered_str.end(), lowered_str.begin(), ::tolower);
-    std::regex pattern(expression);
-    return std::regex_search(lowered_str, pattern);
-}
+    static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
+        std::string lowered_str = str;
+        std::transform(lowered_str.begin(), lowered_str.end(), lowered_str.begin(), ::tolower);
+        std::regex pattern(expression);
+        return std::regex_search(lowered_str, pattern);
+    }
 
+
+    static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {
+        int localMajor, localMinor, localPatch;
+        int remoteMajor, remoteMinor, remotePatch;
+
+        // Parse local version
+        std::istringstream localStream(localVersion);
+        localStream >> localMajor;
+        localStream.ignore(1, '.'); // Skip the dot
+        localStream >> localMinor;
+        localStream.ignore(1, '-'); // Skip the dot
+        localStream >> localPatch;
+
+        // Parse remote version
+        std::istringstream remoteStream(remoteVersion);
+        remoteStream >> remoteMajor;
+        remoteStream.ignore(1, '.'); // Skip the dot
+        remoteStream >> remoteMinor;
+        remoteStream.ignore(1, '-'); // Skip the dot
+        remoteStream >> remotePatch;
+
+
+        // Compare
+        if (localMajor < remoteMajor) {
+            return true;
+        }
+        if (localMajor == remoteMajor && localMinor < remoteMinor) {
+            return true;
+        }
+        if (localMajor == remoteMajor && localMinor == remoteMinor && localPatch < remotePatch) {
+            return true;
+        }
+        return false;
+    }
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

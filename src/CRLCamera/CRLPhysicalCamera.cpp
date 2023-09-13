@@ -56,22 +56,25 @@ namespace VkRender::MultiSense {
         std::vector<crl::multisense::RemoteHeadChannel> indices;
         // If RemoteHead then attempt to connect 4 LibMultiSense channels
         // else create only one and place it at 0th index.
-        for (crl::multisense::RemoteHeadChannel i = 0; i <= (crl::multisense::Remote_Head_3); ++i) {
-            if (dev->interruptConnection) {
-                indices.clear();
-                return indices;
-            }
-            channelMap[i] = isRemoteHead ? std::make_unique<ChannelWrapper>(dev->IP, i, ifName)
-                                         : std::make_unique<ChannelWrapper>(dev->IP, crl::multisense::Remote_Head_VPB,
-                                                                            ifName);
+        if (dev->interruptConnection) {
+            indices.clear();
+            return indices;
+        }
 
-            if (channelMap[i].get()->ptr() != nullptr) {
-                updateCameraInfo(i);
-                addCallbacks(i);
-                indices.emplace_back(i);
-            }
-            if (!isRemoteHead)
-                break;
+        Log::Logger::getInstance()->trace("Attempting to connect to ip: {}. Adapter is: {}", dev->IP, ifName);
+
+        channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)] = std::make_unique<ChannelWrapper>(dev->IP);
+
+        if (channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr() != nullptr) {
+            indices.emplace_back(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            crl::multisense::system::DeviceInfo devInfo;
+            channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
+            Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name, devInfo.buildDate);
+            if (!updateCameraInfo(static_cast<crl::multisense::RemoteHeadChannel>(0))) {
+                Log::Logger::getInstance()->error("Failed to fetch camera info. Viewer will not present the full set of options");
+            } // TODO if this one fails we have to recheck our sources we present to the screen.
+            addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
         }
 
         if (dev->interruptConnection) {
@@ -79,17 +82,6 @@ namespace VkRender::MultiSense {
             return indices;
         }
 
-        if (isRemoteHead) {
-            channelMap[crl::multisense::Remote_Head_VPB] = std::make_unique<ChannelWrapper>(dev->IP,
-                                                                                            crl::multisense::Remote_Head_VPB,
-                                                                                            ifName);
-            if (channelMap[crl::multisense::Remote_Head_VPB].get()->ptr() != nullptr)
-                setMtu(7200, crl::multisense::Remote_Head_VPB);
-        } else {
-            if (channelMap[0].get()->ptr() != nullptr)
-                setMtu(7200, 0);
-
-        }
         return indices;
     }
 
@@ -173,7 +165,8 @@ namespace VkRender::MultiSense {
         if (it != infoMap.end())
             return it->second;
         else {
-            Log::Logger::getInstance()->traceWithFrequency("getCameraInfoTag", 1000, "Camera info for channel {} does not exist", idx);
+            Log::Logger::getInstance()->traceWithFrequency("getCameraInfoTag", 1000,
+                                                           "Camera info for channel {} does not exist", idx);
             return {};
         }
     }
@@ -297,96 +290,43 @@ namespace VkRender::MultiSense {
     }
 
 
-    void CRLPhysicalCamera::preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) const {
-        /*
-        auto it = infoMap.find(channelID);
-        auto channelIt = channelMap.find(channelID);
 
-        const float xScale = 1.0f / ((static_cast<float>(it->second.devInfo.imagerWidth) /
-                                      static_cast<float>(width)));
-        // From LibMultisenseUtility
+    bool CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel channelID) {
+        // The calling function will repeat this loop until everything succeeds.
+        bool allSucceeded = true;
+        Log::Logger::getInstance()->trace("Updating Camera info for channel {}", channelID);
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        channelIt->second->ptr()->getImageConfig(it->second.imgConf);
-
-        crl::multisense::image::Config c = it->second.imgConf;
-        const float &fx = c.fx();
-        const float &fy = c.fy();
-        const float &cx = c.cx();
-        const float &cy = c.cy();
-        const float &tx = c.tx();
-        const float cxRight = (float) it->second.calibration.right.P[0][2] * xScale;
-
-        // glm::mat4 indexing
-        // [column][row]
-        // Inserted values col by col
-        glm::mat4 Q(0.0f);
-        Q[0][0] = fy * tx;
-        Q[1][1] = fx * tx;
-        Q[2][3] = -fy;
-        Q[3][0] = -fy * cx * tx;
-        Q[3][1] = -fx * cy * tx;
-        Q[3][2] = fx * fy * tx;
-        Q[3][3] = fy * (cx - cxRight);
-        // keep as is
-        it->second.QMat = Q;
-         */
-    }
 
 
-    void CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel channelID) {
-        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->error("Failed to getImageConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
-            Log::Logger::getInstance()->error("Failed to getAuxImageConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getNetworkConfig(infoMap[channelID].netConfig)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "netConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getVersionInfo(infoMap[channelID].versionInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "versionInfo");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "devInfo");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "supportedDeviceModes");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "supportedSources");
-            return;
-        }
-        if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "sensorMTU");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "lightConf");
-            return;
-        }
+        auto channelPtr = channelMap[channelID]->ptr();
+        auto& info = infoMap[channelID];
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "calibration");
-            return;
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageConfig(data); }, info.imgConf, "imgConf");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceModes(data); }, info.supportedDeviceModes, "supportedDeviceModes");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getEnabledStreams(data); }, info.supportedSources, "supportedSources");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getNetworkConfig(data); }, info.netConfig, "netConfig");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getVersionInfo(data); }, info.versionInfo, "versionInfo");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceInfo(data); }, info.devInfo, "devInfo");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getMtu(data); }, info.sensorMTU, "sensorMTU");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getLightingConfig(data); }, info.lightConf, "lightConf");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageCalibration(data); }, info.calibration, "calibration");
+
+
+        // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
+        //  This also assumes that getDeviceInfo above also succeeded
+        if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 ){
+            allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getAuxImageConfig(data); }, info.auxImgConf, "auxImageConfig");
         }
 
         updateQMatrix(channelID);
+
+        if (!allSucceeded){
+            Log::Logger::getInstance()->error("Querying the camera for config did not succeed, viewer may not work correctly");
+        } else {
+            Log::Logger::getInstance()->info("Querying the camera for config did succeeded");
+        }
+
+        return allSucceeded;
     }
 
 
@@ -597,7 +537,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set exposure on channel {}", channelID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -1017,38 +957,30 @@ namespace VkRender::MultiSense {
         return true;
     }
 
-    bool
-    CRLPhysicalCamera::getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const {
+    bool CRLPhysicalCamera::getIMUData(crl::multisense::RemoteHeadChannel channelID,
+                                       std::vector<CRLPhysicalCamera::ImuData> *gyro,
+                                       std::vector<CRLPhysicalCamera::ImuData> *accel) const {
         auto it = channelMap.find(channelID);
-
         if (it == channelMap.end()) {
             return false;
         }
-
+        if (gyro == nullptr || accel == nullptr) {
+            Log::Logger::getInstance()->trace("gyro or accel vectors cannot be nullptrs");
+            return false;
+        }
         auto header = it->second->imuBuffer->getIMUBuffer(channelID);
-
         if (header == nullptr) {
             return false;
         }
-        std::vector<crl::multisense::imu::Info> info;
-        uint32_t msgs;
-        it->second->ptr()->getImuInfo(msgs, info);
-        double time = 0, prevTime = 0;
-        struct ImuData {
-            float x, y, z;
-            double time;
-            double dTime;
-        };
-        std::vector<ImuData> gyro;
-        std::vector<ImuData> accel;
 
+        double time = 0, prevTime = 0;
         for (auto iterator = header->data().samples.begin();
              iterator != header->data().samples.end(); ++iterator) {
             const crl::multisense::imu::Sample &s = *iterator;
 
             switch (s.type) {
                 case crl::multisense::imu::Sample::Type_Accelerometer:
-                    accel.push_back({s.x, s.y, s.z, s.time(), 0});
+                    accel->push_back({s.x, s.y, s.z, s.time(), 0});
                     break;
                 case crl::multisense::imu::Sample::Type_Gyroscope: {
                     time = s.time();
@@ -1057,7 +989,7 @@ namespace VkRender::MultiSense {
                     if (prevTime == 0)
                         dt = 0;
 
-                    gyro.push_back({s.x, s.y, s.z, s.time(), dt});
+                    gyro->push_back({s.x, s.y, s.z, s.time(), dt});
                     prevTime = time;
                 }
                     break;
@@ -1066,6 +998,19 @@ namespace VkRender::MultiSense {
             }
 
         }
+        return true;
+    }
+
+    bool
+    CRLPhysicalCamera::calculateIMURotation(VkRender::IMUData *data,
+                                            crl::multisense::RemoteHeadChannel channelID) const {
+
+        std::vector<ImuData> gyro;
+        std::vector<ImuData> accel;
+
+        if (!getIMUData(channelID, &gyro, &accel))
+            return false;
+
         double rollAcc = 0, pitchAcc = 0;
         double alpha = 0.97;
         for (int i = 0; i < accel.size(); ++i) {
@@ -1170,13 +1115,16 @@ namespace VkRender::MultiSense {
         if (hasAuxCamera) {
             status = channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf);
             if (crl::multisense::Status_Ok != status) {
-                Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure");
-                return false;
+                std::string errString = crl::multisense::Channel::statusString(status);
+                Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure. Error: {}", errString);
+
+                if (status == crl::multisense::Status_Unsupported) {
+                    Log::Logger::getInstance()->error("Viewer thinks this camera has aux camera but LibMultiSense says it is unsupported");
+                } else {
+                    return false;
+                }
             }
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
         return true;
     }
 

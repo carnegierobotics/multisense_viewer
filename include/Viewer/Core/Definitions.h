@@ -37,6 +37,8 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
+#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
+//#define MULTISENSE_VIEWER_DEBUG
 
 #include <unordered_map>
 #include <memory>
@@ -60,7 +62,11 @@
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
+#define INTERVAL_2_SECONDS 2
+#define INTERVAL_5_SECONDS 5
 #define MAX_IMAGES_IN_QUEUE 5
+
+
 
 
 // Predeclare to speed up compile times
@@ -245,17 +251,17 @@ struct ExposureParams {
 };
 
 struct AUXConfig {
-    float    gain = 1.7f;
-    float    whiteBalanceBlue = 1.0f;
-    float    whiteBalanceRed = 1.0f;
-    bool     whiteBalanceAuto = true;
+    float gain = 1.7f;
+    float whiteBalanceBlue = 1.0f;
+    float whiteBalanceRed = 1.0f;
+    bool whiteBalanceAuto = true;
     uint32_t whiteBalanceDecay = 3;
-    float    whiteBalanceThreshold = 0.5f;
-    bool     hdr = false;
-    float    gamma = 2.0f;
-    bool     sharpening = false;
-    float    sharpeningPercentage = 50.0f;
-    int  sharpeningLimit = 50;
+    float whiteBalanceThreshold = 0.5f;
+    bool hdr = false;
+    float gamma = 2.0f;
+    bool sharpening = false;
+    float sharpeningPercentage = 50.0f;
+    int sharpeningLimit = 50;
 
     ExposureParams ep{};
     bool update = false;
@@ -346,6 +352,10 @@ namespace VkRender {
         bool interpolation = false;
         bool depthColorMap = false;
         bool magnifyZoomMode = false;
+        bool edgeDetection = false;
+        bool blur = false;
+        bool emboss = false;
+        bool sharpening = false;
         VkRender::ImageEffectData data;
     };
 
@@ -429,10 +439,14 @@ namespace VkRender {
         std::string outputSaveFolder;
         /**@brief location for which this m_Device should save recorded point clouds **/
         std::string outputSaveFolderPointCloud;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string outputSaveFolderIMUData;
         /**@brief Flag to decide if user is currently recording frames */
         bool isRecording = false;
         /**@brief Flag to decide if user is currently recording point cloud */
         bool isRecordingPointCloud = false;
+        /**@brief Flag to decide if user is currently recording IMU data */
+        bool isRecordingIMUdata = false;
         /** @brief 3D view camera type for this device. Arcball or first person view controls) */
         int cameraType = 0;
         /** @brief Reset 3D view camera position and rotation */
@@ -455,10 +469,11 @@ namespace VkRender {
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
         bool useIMU = true;
-        bool enablePBR = false;
-        int useAuxForPointCloudColor = 1; // 0 : luma // 1 : Color
-        Page controlTabActive = CRL_TAB_PREVIEW_CONTROL;
+        /** @brief 0 : luma // 1 : Color  */
+        int useAuxForPointCloudColor = 1;
+
         /** @brief Following is UI elements settings for the active device **/
+        Page controlTabActive = CRL_TAB_PREVIEW_CONTROL;
         /** @brief Which TAB this preview has selected. 2D or 3D view. */
         Page selectedPreviewTab = CRL_TAB_2D_PREVIEW;
         /** @brief What type of layout is selected for this device*/
@@ -467,7 +482,8 @@ namespace VkRender {
         bool extend3DArea = true;
         /** @brief If the connected device has a color camera */
         bool hasColorCamera = false;
-
+        /** @brief If we managed to update all the device configs */
+        bool updateDeviceConfigsSucceeded = false;
         Device() {
             outputSaveFolder.resize(255);
             outputSaveFolderPointCloud.resize(255);
@@ -529,6 +545,7 @@ namespace VkRender {
         float lod = 0.0f;
         glm::vec2 pad{};
         glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
+        glm::vec4 kernelFilters; // 0 Sobel/Edge kernel, Blur kernel,
     };
 
     struct SkyboxTextures {
@@ -622,7 +639,7 @@ namespace VkRender {
             Texture2D *lutBrdf;
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
-        std::mutex* queueSubmitMutex;
+        std::mutex *queueSubmitMutex;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/

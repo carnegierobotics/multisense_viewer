@@ -206,7 +206,7 @@ namespace VkRender::MultiSense {
 #ifdef __linux__
             channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel, ifName);
 #else
-            channelPtr_ = crl::multisense::Channel::Create(ipAddress, remoteHeadChannel);
+            channelPtr_ = crl::multisense::Channel::Create(ipAddress);
 #endif
 
             bool skipLogging = false;
@@ -264,10 +264,13 @@ namespace VkRender::MultiSense {
      */
     class CRLPhysicalCamera {
     public:
+        struct ImuData {
+            float x, y, z;
+            double time;
+            double dTime;
+        };
         CRLPhysicalCamera() = default;
-
         ~CRLPhysicalCamera() = default;
-
         /**
          * @brief container to keep \refitem crl::multisense::Channel information. This block is closely related to the \refitem Parameters UI block
          */
@@ -326,13 +329,24 @@ namespace VkRender::MultiSense {
         getCameraStream(const std::string &stringSrc, VkRender::TextureData *tex,
                         crl::multisense::RemoteHeadChannel idx) const;
 
+
+        /**
+         *
+         * @param[in] channelID Which channel to get IMU data for
+         * @param[in] gyro vector to fill with measurements
+         * @param[in] accel vector to fill with measurements
+         * @return true fetched successfully otherwise false
+         */
+        bool getIMUData(crl::multisense::RemoteHeadChannel channelID, std::vector<ImuData> *gyro,
+                        std::vector<ImuData> *accel) const;
+
         /**
          * Get the IMU rotation from the MultiSense camera and put it into a VkRender:: object
          * @param tex
-         * @param idx
+         * @param[in] channelID Which channel to get IMU data for
          * @return
          */
-        bool getImuRotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel idx) const;
+        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const;
 
         /**
          * @brief get a status update from the MultiSense m_Device
@@ -341,13 +355,6 @@ namespace VkRender::MultiSense {
          * @return
          */
         bool getStatus(crl::multisense::RemoteHeadChannel channelID, crl::multisense::system::StatusMessage *msg);
-
-        /**@brief Constructs the Q matrix from the calibration data and stores it in \ref infoMap
-        *
-        * @param[in] width Width of desired m_Image to construct Q matrix for. Used to obtain correct scaling
-        * @param[in] channelID which remote head to select
-        */
-        void preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) const;
 
         /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
          *
@@ -450,6 +457,13 @@ namespace VkRender::MultiSense {
 
         bool setAuxImageConfig(AUXConfig, crl::multisense::RemoteHeadChannel channelID);
 
+        /**@brief Updates the \ref CameraInfo struct for the chosen remote head. Usually only called once on first connection
+         *
+         * @param[in] idx Which remote head to select
+         *
+         */
+        bool updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
         std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
@@ -463,12 +477,7 @@ namespace VkRender::MultiSense {
 
         static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
 
-        /**@brief Updates the \ref CameraInfo struct for the chosen remote head. Usually only called once on first connection
-         *
-         * @param[in] idx Which remote head to select
-         *
-         */
-        void updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+
 
         std::ostream &
         writeImageIntrinics(std::ostream &stream, const crl::multisense::image::Calibration &calibration,
@@ -480,6 +489,18 @@ namespace VkRender::MultiSense {
 
         // For pointclouds
         void updateQMatrix(crl::multisense::RemoteHeadChannel channelID);
+
+        // Helper function to update and log status
+        template <typename Func, typename Data>
+        bool updateAndLog(crl::multisense::RemoteHeadChannel channelID, Func f, Data& data, const std::string& field) {
+            crl::multisense::Status status = f(data);
+            if (status != crl::multisense::Status_Ok) {
+                Log::Logger::getInstance()->error("Failed to update '{}'. error {}", field, crl::multisense::Channel::statusString(status));
+                return false;
+            }
+            return true;
+        }
+
 
     };
 

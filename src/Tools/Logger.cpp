@@ -79,7 +79,7 @@ namespace Log {
         }
 
         m_File.open(logFileName.c_str(), ios::out | ios::app);
-        m_LogLevel = LOG_LEVEL_INFO;
+        m_LogLevel = LOG_LEVEL_TRACE;
         m_LogType = FILE_LOG;
 
         this->info("<=============================== START OF PROGRAM ===============================>");
@@ -104,7 +104,7 @@ namespace Log {
             m_Metrics = new Metrics();
             m_ThreadPool = new VkRender::ThreadPool(1);
             m_Instance = new Logger(fileName);
-            m_Instance->info("Initialized logger instance, fileName: {}", fileName);
+            m_Instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, getLogStringFromEnum(m_Instance->m_LogLevel));
         }
         return m_Instance;
     }

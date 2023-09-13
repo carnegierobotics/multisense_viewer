@@ -79,6 +79,12 @@ namespace VkRender {
 
         [[nodiscard]] const std::string &getAnonymousIdentifier() const;
 
+        [[nodiscard]] const std::vector<std::string> &getEnabledExtensions() const;
+
+        [[nodiscard]] bool hasEnabledExtension(const std::string& extensionName) const;
+
+        void addEnabledExtension(const std::string& extensionName);
+
         void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 
         [[nodiscard]]const std::string &getAnonIdentifierString() const;
@@ -212,8 +218,11 @@ namespace VkRender {
         std::string m_AppVersionRemote;
         std::string m_TimeStamp;
         std::string m_GPUDevice;
-
         std::string m_Identifier;
+
+        /**@brief holds which extensions are available in this renderer */
+        std::vector<std::string> m_EnabledExtensions;
+
 
     public:
         const std::string &getAppVersionRemote() const;

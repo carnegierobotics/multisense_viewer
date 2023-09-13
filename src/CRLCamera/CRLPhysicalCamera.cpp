@@ -288,96 +288,78 @@ namespace VkRender::MultiSense {
     }
 
 
-    void CRLPhysicalCamera::preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) const {
-        /*
-        auto it = infoMap.find(channelID);
-        auto channelIt = channelMap.find(channelID);
 
-        const float xScale = 1.0f / ((static_cast<float>(it->second.devInfo.imagerWidth) /
-                                      static_cast<float>(width)));
-        // From LibMultisenseUtility
-        std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        channelIt->second->ptr()->getImageConfig(it->second.imgConf);
-
-        crl::multisense::image::Config c = it->second.imgConf;
-        const float &fx = c.fx();
-        const float &fy = c.fy();
-        const float &cx = c.cx();
-        const float &cy = c.cy();
-        const float &tx = c.tx();
-        const float cxRight = (float) it->second.calibration.right.P[0][2] * xScale;
-
-        // glm::mat4 indexing
-        // [column][row]
-        // Inserted values col by col
-        glm::mat4 Q(0.0f);
-        Q[0][0] = fy * tx;
-        Q[1][1] = fx * tx;
-        Q[2][3] = -fy;
-        Q[3][0] = -fy * cx * tx;
-        Q[3][1] = -fx * cy * tx;
-        Q[3][2] = fx * fy * tx;
-        Q[3][3] = fy * (cx - cxRight);
-        // keep as is
-        it->second.QMat = Q;
-         */
-    }
-
-
-    void CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel channelID) {
+    bool CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel channelID) {
+        // The calling function will repeat this loop until everything succeeds.
+        bool allSucceeded = true;
+        Log::Logger::getInstance()->trace("Updating Camera info for channel {}", channelID);
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
             Log::Logger::getInstance()->error("Failed to getImageConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
-            Log::Logger::getInstance()->error("Failed to getAuxImageConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getNetworkConfig(infoMap[channelID].netConfig)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "netConfig");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getVersionInfo(infoMap[channelID].versionInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "versionInfo");
-            return;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "devInfo");
-            return;
+            allSucceeded = false;
         }
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "supportedDeviceModes");
-            return;
+            allSucceeded = false;
         }
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "supportedSources");
-            return;
+            allSucceeded = false;
         }
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getNetworkConfig(infoMap[channelID].netConfig)) {
+            Log::Logger::getInstance()->error("Failed to update '{}'", "netConfig");
+            allSucceeded = false;
+        }
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getVersionInfo(infoMap[channelID].versionInfo)) {
+            Log::Logger::getInstance()->error("Failed to update '{}'", "versionInfo");
+            allSucceeded = false;
+        }
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
+            Log::Logger::getInstance()->error("Failed to update '{}'", "devInfo");
+            allSucceeded = false;
+        }
+
         if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "sensorMTU");
-            return;
+            allSucceeded = false;
         }
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "lightConf");
-            return;
+            allSucceeded = false;
         }
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
             Log::Logger::getInstance()->error("Failed to update '{}'", "calibration");
-            return;
+            allSucceeded = false;
+        }
+
+        // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
+        //  This also assumes that getDeviceInfo above also succeeded
+        if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 &&
+        crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
+            Log::Logger::getInstance()->error("Failed to getAuxImageConfig");
+            allSucceeded = false;
         }
 
         updateQMatrix(channelID);
+
+        if (!allSucceeded){
+            Log::Logger::getInstance()->error("Querying the camera for config did not succeed, viewer may not work correctly");
+        } else {
+            Log::Logger::getInstance()->info("Querying the camera for config did succeeded");
+        }
+
+        return allSucceeded;
     }
 
 

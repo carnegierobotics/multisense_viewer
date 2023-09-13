@@ -356,13 +356,6 @@ namespace VkRender::MultiSense {
          */
         bool getStatus(crl::multisense::RemoteHeadChannel channelID, crl::multisense::system::StatusMessage *msg);
 
-        /**@brief Constructs the Q matrix from the calibration data and stores it in \ref infoMap
-        *
-        * @param[in] width Width of desired m_Image to construct Q matrix for. Used to obtain correct scaling
-        * @param[in] channelID which remote head to select
-        */
-        void preparePointCloud(uint32_t width, crl::multisense::RemoteHeadChannel channelID) const;
-
         /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
          *
          * @param[in] resolution Resolution enum
@@ -464,6 +457,13 @@ namespace VkRender::MultiSense {
 
         bool setAuxImageConfig(AUXConfig, crl::multisense::RemoteHeadChannel channelID);
 
+        /**@brief Updates the \ref CameraInfo struct for the chosen remote head. Usually only called once on first connection
+         *
+         * @param[in] idx Which remote head to select
+         *
+         */
+        bool updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
         std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
@@ -477,12 +477,7 @@ namespace VkRender::MultiSense {
 
         static void imuCallback(const crl::multisense::imu::Header &header, void *userDataP);
 
-        /**@brief Updates the \ref CameraInfo struct for the chosen remote head. Usually only called once on first connection
-         *
-         * @param[in] idx Which remote head to select
-         *
-         */
-        void updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+
 
         std::ostream &
         writeImageIntrinics(std::ostream &stream, const crl::multisense::image::Calibration &calibration,

@@ -308,6 +308,8 @@ public:
                     ImGui::Text("UI Requested Sources:");
                     ImVec2 posMax = ImGui::GetItemRectMax();
                     for (const auto &req: info->requestedStreams) {
+                        if (req == "Idle")
+                            continue;
 
                         ImGui::Dummy(ImVec2(10.0f, 0.0f));
                         ImGui::SameLine();
@@ -359,16 +361,11 @@ public:
             }
 
 
-            //ImGui::Checkbox("Display cursor info", &dev.pixelInfoEnable);
-
-            /*
+#ifdef MULTISENSE_VIEWER_DEBUG
             static bool showDemo = false;
             ImGui::Checkbox("ShowDemo", &showDemo);
             if (showDemo)
                 ImGui::ShowDemoWindow();
-
-            */
-
 
             static bool addTestDevice = false;
             addTestDevice = ImGui::Button("Add test device");
@@ -387,6 +384,7 @@ public:
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
             }
+#endif
 
             static bool sendUserLog = false;
             sendUserLog = ImGui::Button("Send user log");

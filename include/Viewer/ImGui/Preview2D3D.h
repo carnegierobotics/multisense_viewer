@@ -1000,34 +1000,59 @@ private:
                     if (handles->mouse->right && handles->mouse->action == GLFW_PRESS)
                         window.enableZoom = !window.enableZoom;
 
-                    if (handles->input->getButtonDown(GLFW_KEY_I)) {
-                        window.effects.interpolation = !window.effects.interpolation;
-                        Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
-                        handles->usageMonitor->userClickAction("I", "keyboard_press", ImGui::GetCurrentWindow()->Name);
-                    }
+                        if (handles->input->getButtonDown(GLFW_KEY_I)) {
+                            window.effects.interpolation = !window.effects.interpolation;
+                            Log::Logger::getInstance()->info("User pressed key I for: {}", window.name);
+                            handles->usageMonitor->userClickAction("I", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
 
-                    if (handles->input->getButtonDown(GLFW_KEY_1)) {
-                        window.effects.edgeDetection = !window.effects.edgeDetection;
-                        Log::Logger::getInstance()->info("User pressed key 1 for: {}", window.name);
-                        handles->usageMonitor->userClickAction("1", "keyboard_press", ImGui::GetCurrentWindow()->Name);
-                    }
+                        }
+                    if (window.selectedSource != "Disparity Left") {
+                        if (handles->input->getButtonDown(GLFW_KEY_1)) {
+                            window.effects.edgeDetection = !window.effects.edgeDetection;
+                            Log::Logger::getInstance()->info("User pressed key 1 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("1", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
 
-                    if (handles->input->getButtonDown(GLFW_KEY_2)) {
-                        window.effects.blur = !window.effects.blur;
-                        Log::Logger::getInstance()->info("User pressed key 2 for: {}", window.name);
-                        handles->usageMonitor->userClickAction("2", "keyboard_press", ImGui::GetCurrentWindow()->Name);
-                    }
+                            window.effects.blur = false;
+                            window.effects.emboss = false;
+                            window.effects.sharpening =false;
+                        }
 
-                    if (handles->input->getButtonDown(GLFW_KEY_3)) {
-                        window.effects.emboss = !window.effects.emboss;
-                        Log::Logger::getInstance()->info("User pressed key 3 for: {}", window.name);
-                        handles->usageMonitor->userClickAction("3", "keyboard_press", ImGui::GetCurrentWindow()->Name);
-                    }
+                        if (handles->input->getButtonDown(GLFW_KEY_2)) {
+                            window.effects.blur = !window.effects.blur;
+                            Log::Logger::getInstance()->info("User pressed key 2 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("2", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.emboss = false;
+                            window.effects.sharpening =false;
+                            window.effects.edgeDetection =false;
+                        }
 
-                    if (handles->input->getButtonDown(GLFW_KEY_4)) {
-                        window.effects.sharpening = !window.effects.sharpening;
-                        Log::Logger::getInstance()->info("User pressed key 4 for: {}", window.name);
-                        handles->usageMonitor->userClickAction("4", "keyboard_press", ImGui::GetCurrentWindow()->Name);
+                        if (handles->input->getButtonDown(GLFW_KEY_3)) {
+                            window.effects.emboss = !window.effects.emboss;
+                            Log::Logger::getInstance()->info("User pressed key 3 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("3", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.blur = false;
+                            window.effects.sharpening =false;
+                            window.effects.edgeDetection =false;
+                        }
+
+                        if (handles->input->getButtonDown(GLFW_KEY_4)) {
+                            window.effects.sharpening = !window.effects.sharpening;
+                            Log::Logger::getInstance()->info("User pressed key 4 for: {}", window.name);
+                            handles->usageMonitor->userClickAction("4", "keyboard_press",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            window.effects.blur = false;
+                            window.effects.emboss = false;
+                            window.effects.edgeDetection =false;
+                        }
+                    } else {
+                        window.effects.blur = false;
+                        window.effects.emboss = false;
+                        window.effects.sharpening =false;
+                        window.effects.edgeDetection =false;
                     }
 
                     if (handles->input->getButtonDown(GLFW_KEY_Z)) {
@@ -1441,6 +1466,7 @@ private:
                                        crl::multisense::Remote_Head_1))
                     d.parameters.updateGuiParams = true;
                 ImGui::SameLine(0, 10.0f);
+
 
                 if (ImGui::RadioButton("Head 3", reinterpret_cast<int *>(&d.configRemoteHead),
                                        crl::multisense::Remote_Head_2))

@@ -3,9 +3,10 @@
 1. Remember to set Production/Debug macro in /include/Viewer/Core/Definitions.h
 2. Change version number in top of CMakeLists file 
 3. Create new version main branch. Example = v1.2.0/main
-4. Add features to this new version in separate branches if required, such as v1.2.0/feature/record_imu. 
+4. (Optional) Update release description in workflow.yml or remember to do that before releasing draft
+5. Add features to this new version in separate branches if required, such as v1.2.0/feature/record_imu. 
 Otherwise just make changes to v1.2.0/main
-5. Once finished merge v1.2.0/main to master by completing the steps below
+6. Once finished merge v1.2.0/main to master by completing the steps below
 
 ## Create new release
 1. Bump version number in CMakeLists.txt line (10-ish) using format: v*.*-*

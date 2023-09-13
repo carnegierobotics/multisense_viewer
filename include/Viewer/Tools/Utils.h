@@ -741,26 +741,34 @@ namespace Utils {
 
 
     static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {
-        int localMajor, localMinor;
-        int remoteMajor, remoteMinor;
+        int localMajor, localMinor, localPatch;
+        int remoteMajor, remoteMinor, remotePatch;
 
         // Parse local version
         std::istringstream localStream(localVersion);
         localStream >> localMajor;
         localStream.ignore(1, '.'); // Skip the dot
         localStream >> localMinor;
+        localStream.ignore(1, '-'); // Skip the dot
+        localStream >> localPatch;
 
         // Parse remote version
         std::istringstream remoteStream(remoteVersion);
         remoteStream >> remoteMajor;
         remoteStream.ignore(1, '.'); // Skip the dot
         remoteStream >> remoteMinor;
+        remoteStream.ignore(1, '-'); // Skip the dot
+        remoteStream >> remotePatch;
+
 
         // Compare
         if (localMajor < remoteMajor) {
             return true;
         }
-        if (localMajor == remoteMajor && localMinor <= remoteMinor) {
+        if (localMajor == remoteMajor && localMinor < remoteMinor) {
+            return true;
+        }
+        if (localMajor == remoteMajor && localMinor == remoteMinor && localPatch < remotePatch) {
             return true;
         }
         return false;

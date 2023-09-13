@@ -37,8 +37,8 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
-//#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
-#define MULTISENSE_VIEWER_DEBUG
+#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
+//#define MULTISENSE_VIEWER_DEBUG
 
 #include <unordered_map>
 #include <memory>

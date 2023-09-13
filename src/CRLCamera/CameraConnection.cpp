@@ -47,7 +47,7 @@
 #include "Viewer/CRLCamera/CameraConnection.h"
 #include "Viewer/Tools/Utils.h"
 
-#define MAX_TASK_STACK_SIZE 6
+#define MAX_TASK_STACK_SIZE 4
 #define MAX_NUM_REMOTEHEADS 4
 
 namespace VkRender::MultiSense {
@@ -137,19 +137,6 @@ namespace VkRender::MultiSense {
             dev->parameters.calib.update = false;
         }
 
-        // Read exposure setting around once a second if auto exposure is enabled Also put it into GUI structure
-        auto time = std::chrono::steady_clock::now();
-        auto elapsedTime =
-                std::chrono::duration_cast<std::chrono::duration<float >>(time - queryExposureTimer);
-        if (dev->parameters.stereo.ep.autoExposure && elapsedTime.count() > INTERVAL_1_SECOND &&
-            pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
-            queryExposureTimer = std::chrono::steady_clock::now();
-            // We also want to make sure that we can query all the device info. Otherwise pinging the camera for updates especially auxImageConfig may not results in any usefull information
-            if (dev->updateDeviceConfigsSucceeded){
-                Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getExposureTask");
-                pool->Push(CameraConnection::getExposureTask, this, dev, dev->configRemoteHead);
-            }
-        }
 
         if (dev->parameters.calib.save && pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getCalibrationTask");
@@ -206,12 +193,27 @@ namespace VkRender::MultiSense {
             queryDevice(CameraConnection::getCameraConfigsTask, dev, &queryDeviceConfigTimer, INTERVAL_5_SECONDS);
 
 
+
+        // Read exposure setting around once a second if auto exposure is enabled Also put it into GUI structure
+        auto time = std::chrono::steady_clock::now();
+        auto elapsedTime =
+                std::chrono::duration_cast<std::chrono::duration<float >>(time - queryExposureTimer);
+        if (dev->parameters.stereo.ep.autoExposure && elapsedTime.count() > INTERVAL_1_SECOND &&
+            pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
+            queryExposureTimer = std::chrono::steady_clock::now();
+            // We also want to make sure that we can query all the device info. Otherwise pinging the camera for updates especially auxImageConfig may not results in any usefull information
+            Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getExposureTask");
+            pool->Push(CameraConnection::getExposureTask, this, dev, dev->configRemoteHead);
+
+        }
+
         Log::Logger::getLogMetrics()->device.dev = dev;
     }
 
 
     // Existing queryDevice function
-    void CameraConnection::queryDevice(std::function<void(void *, int, VkRender::Device *)> taskFunction, VkRender::Device *dev,
+    void CameraConnection::queryDevice(std::function<void(void *, int, VkRender::Device *)> taskFunction,
+                                       VkRender::Device *dev,
                                        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
                                        float updateFreqSec) {
         for (auto &ch: dev->channelInfo) {
@@ -224,7 +226,9 @@ namespace VkRender::MultiSense {
 
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && timeSpan.count() > updateFreqSec) {
                 *queryTimer = std::chrono::steady_clock::now();
-                Log::Logger::getInstance()->trace("Pushing {} to threadpool", (updateFreqSec == INTERVAL_1_SECOND ? "getStatusTask" : "getCameraConfigsTask"));
+                Log::Logger::getInstance()->trace("Pushing {} to threadpool",
+                                                  (updateFreqSec == INTERVAL_1_SECOND ? "getStatusTask"
+                                                                                      : "getCameraConfigsTask"));
                 pool->Push(taskFunction, this, dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : 0, dev);
             }
         }
@@ -631,7 +635,6 @@ namespace VkRender::MultiSense {
                                              const std::vector<uint32_t> &maskVec,
                                              crl::multisense::RemoteHeadChannel idx,
                                              CRLPhysicalCamera &camPtr) {
-
 
 
         uint32_t bits = camPtr.getCameraInfo(idx).supportedSources;

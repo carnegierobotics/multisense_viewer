@@ -315,7 +315,7 @@ namespace VkRender::MultiSense {
         // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
         //  This also assumes that getDeviceInfo above also succeeded
         if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 ){
-            allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getAuxImageConfig(data); }, info.auxImgConf, "calibration");
+            allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getAuxImageConfig(data); }, info.auxImgConf, "auxImageConfig");
         }
 
         updateQMatrix(channelID);
@@ -537,7 +537,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Set exposure on channel {}", channelID);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
@@ -1120,12 +1120,11 @@ namespace VkRender::MultiSense {
 
                 if (status == crl::multisense::Status_Unsupported) {
                     Log::Logger::getInstance()->error("Viewer thinks this camera has aux camera but LibMultiSense says it is unsupported");
+                } else {
+                    return false;
                 }
             }
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
         return true;
     }
 

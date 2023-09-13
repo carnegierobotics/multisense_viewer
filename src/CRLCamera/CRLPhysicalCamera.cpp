@@ -70,7 +70,9 @@ namespace VkRender::MultiSense {
             crl::multisense::system::DeviceInfo devInfo;
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name, devInfo.buildDate);
-            updateCameraInfo(static_cast<crl::multisense::RemoteHeadChannel>(0));
+            if (!updateCameraInfo(static_cast<crl::multisense::RemoteHeadChannel>(0))) {
+                Log::Logger::getInstance()->error("Failed to fetch camera info. Viewer will not present the full set of options");
+            } // TODO if this one fails we have to recheck our sources we present to the screen.
             addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
             setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
         }

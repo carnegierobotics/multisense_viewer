@@ -227,6 +227,7 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string& 
 
         usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
         saveJsonToUsageFile(usageLog);
+        Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window, getCurrentTimeString());
     }catch (nlohmann::json::exception &e){
         Log::Logger::getInstance()->warning("Failed to record userClickAction: {}", e.what());
     }

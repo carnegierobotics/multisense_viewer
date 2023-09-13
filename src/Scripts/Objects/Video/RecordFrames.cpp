@@ -49,84 +49,107 @@ void RecordFrames::setup() {
 }
 
 void RecordFrames::update() {
-    if (saveImage) {
-        // For each enabled source in all windows
-        for (auto &src: sources) {
-            if (src == "Idle")
-                continue;
+    if (saveImage)
+        saveImageToFile();
+    if (savePointCloud)
+        savePointCloudToFile();
+    if (saveIMUData)
+        saveIMUDataToFile();
+}
 
-            // Check if we saved a lot more images of this type than others. So skip it
-            bool skipThisFrame = false;
-            auto count = savedImageSourceCount.find(src);
-            std::string otherSrc;
-            for (const auto &i: savedImageSourceCount) {
-                if (src == i.first)
-                    continue;
-                if (count->second > i.second + 3) {
-                    skipThisFrame = true;
-                    otherSrc = i.first;
-                    break;
+void RecordFrames::saveImageToFile() {
+    // For each enabled source in all windows
+    for (auto &src: sources) {
+        if (src == "Idle")
+            continue;
+
+        // Check if we saved a lot more images of this type than others. So skip it
+        bool skipThisFrame = false;
+        auto count = savedImageSourceCount.find(src);
+        std::string otherSrc;
+        for (const auto &i: savedImageSourceCount) {
+            if (src == i.first)
+                continue;
+            if (count->second > i.second + 3) {
+                skipThisFrame = true;
+                otherSrc = i.first;
+                break;
+            }
+        }
+        if (skipThisFrame) {
+            Log::Logger::getInstance()->trace(
+                    "Skipping saving frame {} of source {} since we have to many compared to {} which has {}",
+                    savedImageSourceCount[src] + 1, src, otherSrc, savedImageSourceCount[otherSrc]);
+            continue;
+        }
+
+        // For each remote head index
+        for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
+             remoteIdx <=
+             (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
+            const auto &conf = renderData.crlCamera->getCameraInfo(remoteIdx).imgConf;
+            auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
+                                                               conf.height(), false, true);
+
+            if (renderData.crlCamera->getCameraStream(src, tex.get(), remoteIdx)) {
+                if (src == "Color Aux" || src == "Color Rectified Aux") {
+                    if (tex->m_Id != tex->m_Id2)
+                        continue;
                 }
-            }
-            if (skipThisFrame) {
-                Log::Logger::getInstance()->trace(
-                        "Skipping saving frame {} of source {} since we have to many compared to {} which has {}",
-                        savedImageSourceCount[src] + 1, src, otherSrc, savedImageSourceCount[otherSrc]);
-                continue;
-            }
+                if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
+                    threadPool->Push(saveImageToFileAsync, Utils::CRLSourceToTextureType(src), saveFolderImage, src,
+                                     remoteIdx, tex, isRemoteHead, compression);
+                    savedImageSourceCount[src]++;
+                } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
+                    Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
 
-            // For each remote head index
-            for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
-                 remoteIdx <=
-                 (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
-                const auto &conf = renderData.crlCamera->getCameraInfo(remoteIdx).imgConf;
-                auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
-                                                                   conf.height(), false, true);
-
-                if (renderData.crlCamera->getCameraStream(src, tex.get(), remoteIdx)) {
-                    if (src == "Color Aux" || src == "Color Rectified Aux") {
-                        if (tex->m_Id != tex->m_Id2)
-                            continue;
-                    }
-                    if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
-                        threadPool->Push(saveImageToFile, Utils::CRLSourceToTextureType(src), saveImagePath, src,
-                                         remoteIdx, tex, isRemoteHead, compression);
-                        savedImageSourceCount[src]++;
-                    } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
-                        Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
-
-                    }
                 }
             }
         }
     }
-    if (savePointCloud) {
+}
 
-        const auto &conf = renderData.crlCamera->getCameraInfo(0).imgConf;
-        auto disparityTex = std::make_shared<VkRender::TextureData>(CRL_DISPARITY_IMAGE, conf.width(), conf.height(),
-                                                                    false, true);
+void RecordFrames::saveIMUDataToFile() {
+    std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> gyro;
+    std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> accel;
 
-        std::shared_ptr<VkRender::TextureData> colorTex;
-        CRLCameraDataType texType = CRL_GRAYSCALE_IMAGE;
-        std::string source = "Luma Rectified Left";
-        if (useAuxColor) {
-            source = "Color Rectified Aux";
-            texType = CRL_COLOR_IMAGE_YUV420;
-        }
-        colorTex = std::make_shared<VkRender::TextureData>(texType, conf.width(), conf.height(), false, true);
-
+    if (renderData.crlCamera->getIMUData(0, &gyro, &accel)) {
         // If we successfully fetch both image streams into a texture
-        if (renderData.crlCamera->getCameraStream(source, colorTex.get(), 0) &&
-            renderData.crlCamera->getCameraStream("Disparity Left", disparityTex.get(), 0)) {
-            // Calculate pointcloud then save to file
-            if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
-                threadPool->Push(savePointCloudToPlyFile, saveImagePathPointCloud, disparityTex,
-                                 colorTex, useAuxColor,
-                                 renderData.crlCamera->getCameraInfo(0).QMat,
-                                 renderData.crlCamera->getCameraInfo(0).pointCloudScale,
-                                 renderData.crlCamera->getCameraInfo(0).focalLength
-                );
-            }
+        // Calculate pointcloud then save to file
+        if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
+            threadPool->Push(saveIMUDataToFileAsync, saveFolderIMUData, gyro, accel);
+        } else {
+            Log::Logger::getInstance()->trace("Skipping saving imu data to file. Too many tasks in taskList {}",
+                                              threadPool->getTaskListSize());
+        }
+    }
+}
+
+void RecordFrames::savePointCloudToFile() {
+    const auto &conf = renderData.crlCamera->getCameraInfo(0).imgConf;
+    auto disparityTex = std::make_shared<VkRender::TextureData>(CRL_DISPARITY_IMAGE, conf.width(), conf.height(),
+                                                                false, true);
+
+    std::shared_ptr<VkRender::TextureData> colorTex;
+    CRLCameraDataType texType = CRL_GRAYSCALE_IMAGE;
+    std::string source = "Luma Rectified Left";
+    if (useAuxColor) {
+        source = "Color Rectified Aux";
+        texType = CRL_COLOR_IMAGE_YUV420;
+    }
+    colorTex = std::make_shared<VkRender::TextureData>(texType, conf.width(), conf.height(), false, true);
+
+    // If we successfully fetch both image streams into a texture
+    if (renderData.crlCamera->getCameraStream(source, colorTex.get(), 0) &&
+        renderData.crlCamera->getCameraStream("Disparity Left", disparityTex.get(), 0)) {
+        // Calculate pointcloud then save to file
+        if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
+            threadPool->Push(savePointCloudToPlyFile, saveFolderPointCloud, disparityTex,
+                             colorTex, useAuxColor,
+                             renderData.crlCamera->getCameraInfo(0).QMat,
+                             renderData.crlCamera->getCameraInfo(0).pointCloudScale,
+                             renderData.crlCamera->getCameraInfo(0).focalLength
+            );
         }
     }
 }
@@ -166,21 +189,57 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         }
 
-        if (hashVector(sources) != hashVector(prevSources)){
+        if (hashVector(sources) != hashVector(prevSources)) {
             savedImageSourceCount.clear();
 
         }
 
         prevSources = sources;
 
-        saveImagePath = dev.outputSaveFolder;
-        saveImagePathPointCloud = dev.outputSaveFolderPointCloud;
+        saveFolderImage = dev.outputSaveFolder;
+        saveFolderPointCloud = dev.outputSaveFolderPointCloud;
+        saveFolderIMUData = dev.outputSaveFolderIMUData;
         saveImage = dev.isRecording;
         compression = dev.saveImageCompressionMethod;
         isRemoteHead = dev.isRemoteHead;
         savePointCloud = dev.isRecordingPointCloud;
+        saveIMUData = dev.isRecordingIMUdata;
         useAuxColor = dev.useAuxForPointCloudColor == 1;
     }
+}
+
+
+void RecordFrames::saveIMUDataToFileAsync(const std::filesystem::path &saveDirectory,
+                                          const std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> &gyro,
+                                          const std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> &accel) {
+
+    Log::Logger::getInstance()->trace("Saving accel and gyro data to file at: {}", saveDirectory.string());
+    // Create folders if no exists
+    if (!std::filesystem::is_directory(saveDirectory) ||
+        !std::filesystem::exists(saveDirectory)) { // Check if src folder exists
+        std::filesystem::create_directories(saveDirectory); // create src folder
+    }
+
+    std::filesystem::path accelLocation = saveDirectory;
+    accelLocation /= "accel.txt";
+    std::filesystem::path gyroLocation = saveDirectory;
+    gyroLocation /= "gyro.txt";
+
+    std::ofstream accelFile(accelLocation, std::ios::app);
+    if (accelFile.is_open()) { // Check if the file was successfully opened
+        for (const auto &a: accel) {
+            accelFile << std::fixed << std::setprecision(6) << a.time << " "
+                      << a.x << " " << a.y << " " << a.z << std::endl;
+        }
+    }
+    std::ofstream gyroFile(gyroLocation, std::ios::app);
+    if (gyroFile.is_open()) { // Check if the file was successfully opened
+        for (const auto &g: gyro) {
+            gyroFile << std::fixed << std::setprecision(6) << g.time << " "
+                      << g.x << " " << g.y << " " << g.z << std::endl;
+        }
+    }
+
 }
 
 void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDirectory,
@@ -282,10 +341,10 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
     ply << ss.str();
 }
 
-void RecordFrames::saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
-                                   crl::multisense::RemoteHeadChannel remoteHead,
-                                   std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead,
-                                   std::string &compression) {
+void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
+                                        crl::multisense::RemoteHeadChannel remoteHead,
+                                        std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead,
+                                        std::string &compression) {
     // Create folders. One for each Source
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');

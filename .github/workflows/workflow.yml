@@ -54,18 +54,20 @@ jobs:
           tag_name: ${{ github.ref_name }}
           release_name: ${{ github.ref_name }}
           body: |
-            # MultiSense Viewer 1.1.0
-
+            # MultiSense Viewer 1.1.1
+            - Not compatible with remote head systems. Revert to 1.0.0 for that purpose.
             ### New features:
             - Visualize IMU data with corresponding 3D model (MultiSense: KS-21, S27, S30)
             - Image enhancements (Normalize disparity, apply colormaps, interpolate)
             - Zoom controls in 2D view
             - Colorize Point Cloud if the AUX camera is present
             - Record point clouds as .ply files
+            - Record IMU data
             - AUX camera exposure control with LibMultiSense 6.0.0
             - Reloadable spirv-shaders (useful for testing various gpu-applied filters)
             - Various optimizations and more reliable AutoConnect
             - Opt-in for anonymous usage statistics
+            - Image effects (Edge detection, blurring, embossing, sharpening)
 
             ### Windows users:
 

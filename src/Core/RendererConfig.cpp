@@ -212,4 +212,16 @@ namespace VkRender {
         m_AppVersionRemote = mAppVersionRemote;
     }
 
+    const std::vector<std::string> &RendererConfig::getEnabledExtensions() const {
+        return m_EnabledExtensions;
+    }
+
+    void RendererConfig::addEnabledExtension(const std::string& extensionName) {
+        m_EnabledExtensions.emplace_back(extensionName);
+    }
+
+    bool RendererConfig::hasEnabledExtension(const std::string &extensionName) const {
+        return Utils::isInVector(m_EnabledExtensions, extensionName);
+    }
+
 };

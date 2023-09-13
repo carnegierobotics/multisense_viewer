@@ -266,6 +266,13 @@ public:
         if (!handles->devices.empty())
             sidebarElements(handles);
         addDeviceButton(handles);
+
+        // Add version number
+        ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
+                                   handles->info->height - (handles->info->addDeviceBottomPadding) + 35.0f));
+        ImGui::PushFont(handles->info->font8);
+        ImGui::Text("%s", (std::string("Ver: ") + VkRender::RendererConfig::getInstance().getAppVersion()).c_str());
+        ImGui::PopFont();
         ImGui::End();
         ImGui::PopStyleColor(); // bg color
         ImGui::PopStyleVar(2);
@@ -1088,7 +1095,7 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::PushFont(handles->info->font15);
-            bool btnCancel = ImGui::Button("Cancel", ImVec2(190.0f, 30.0f));
+            bool btnCancel = ImGui::Button("Close", ImVec2(190.0f, 30.0f));
             ImGui::SameLine(0, 130.0f);
             if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);

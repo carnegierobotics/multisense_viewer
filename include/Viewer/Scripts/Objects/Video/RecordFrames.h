@@ -87,10 +87,12 @@ public:
 
     bool useAuxColor = false; // 0 luma, 1 color
     bool savePointCloud = false;
+    bool saveIMUData = false;
     bool saveImage = false;
     bool isRemoteHead = false;
-    std::string saveImagePath;
-    std::filesystem::path saveImagePathPointCloud;
+    std::string saveFolderImage;
+    std::filesystem::path saveFolderPointCloud;
+    std::filesystem::path saveFolderIMUData;
     std::string compression;
     std::vector<std::string> sources;
     std::vector<std::string> prevSources;
@@ -138,7 +140,7 @@ public:
                const uint32_t &height, uint8_t *output);
 
     static void
-    saveImageToFile(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
+    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
                     std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
 
     void
@@ -150,6 +152,16 @@ public:
     );
 
     size_t hashVector(const std::vector<std::string> &v);
+
+    void saveImageToFile();
+
+    void savePointCloudToFile();
+
+    void saveIMUDataToFile();
+
+    static void saveIMUDataToFileAsync(const std::filesystem::path &saveDirectory,
+                                const std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> &gyro,
+                                const std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> &accel);
 };
 
 

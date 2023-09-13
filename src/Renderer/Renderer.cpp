@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Populate.h"
 
 
-Renderer::Renderer(const std::string &title) : VulkanRenderer(title, true) {
+Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
     VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
     this->m_Title = title;
     // Create Log C++ Interface
@@ -283,7 +283,7 @@ void Renderer::render() {
     if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)){
         std::string localAppVersion = VkRender::RendererConfig::getInstance().getAppVersion();
         Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}", localAppVersion, versionRemote);
-        guiManager->handles.newVersionAvailable =  localAppVersion != versionRemote;
+        guiManager->handles.newVersionAvailable =  Utils::isLocalVersionLess(localAppVersion, versionRemote);
     }
 
     pLogger->frameNumber = frameID;

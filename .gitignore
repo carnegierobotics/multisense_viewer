@@ -16,3 +16,4 @@ experimental_features
 /venv/
 /shaderc
 /$
+/cmake-build-release/

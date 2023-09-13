@@ -114,7 +114,7 @@ namespace VkRender {
         /** @brief Current frame*/
         uint64_t frameID = 0;
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
-        ImFont *font13{}, *font15, *font18{}, *font24{};
+        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{};
 
         /** @brief Containing descriptor handles for each image button texture */
         std::vector<ImTextureID> imageButtonTextureDescriptor;

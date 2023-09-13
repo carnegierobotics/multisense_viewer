@@ -9,11 +9,12 @@ set(CRL_SERVER_IP 35.211.65.110:80)
 set(CRL_SERVER_PROTOCOL http)
 set(CRL_SERVER_DESTINATION /api.php)
 set(CRL_SERVER_VERSIONINFO_DESTINATION /version.php)
+set(VIEWER_LOG_LEVEL LOG_INFO)
 
 find_package(Git QUIET)
 if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     # Update submodules as needed
-    option(GIT_SUBMODULE "Check submodules during build" ON)
+    option(GIT_SUBMODULE "Check submodules during build" OFF)
     if (GIT_SUBMODULE)
         message(STATUS "Submodule update")
         execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
@@ -193,7 +194,7 @@ function(ExportScriptIncludes)
 endfunction()
 
 function(GenerateVersionFile)
-    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=LOG_INFO")
+    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")
 endfunction()
 
 if (UNIX)

@@ -294,61 +294,26 @@ namespace VkRender::MultiSense {
         bool allSucceeded = true;
         Log::Logger::getInstance()->trace("Updating Camera info for channel {}", channelID);
         std::scoped_lock<std::mutex> lock(setCameraDataMutex);
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->error("Failed to getImageConfig");
-            allSucceeded = false;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getDeviceModes(infoMap[channelID].supportedDeviceModes)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "supportedDeviceModes");
-            allSucceeded = false;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getEnabledStreams(infoMap[channelID].supportedSources)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "supportedSources");
-            allSucceeded = false;
-        }
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getNetworkConfig(infoMap[channelID].netConfig)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "netConfig");
-            allSucceeded = false;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getVersionInfo(infoMap[channelID].versionInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "versionInfo");
-            allSucceeded = false;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getDeviceInfo(infoMap[channelID].devInfo)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "devInfo");
-            allSucceeded = false;
-        }
 
-        if (crl::multisense::Status_Ok != channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "sensorMTU");
-            allSucceeded = false;
-        }
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getLightingConfig(infoMap[channelID].lightConf)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "lightConf");
-            allSucceeded = false;
-        }
+        auto channelPtr = channelMap[channelID]->ptr();
+        auto& info = infoMap[channelID];
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getImageCalibration(infoMap[channelID].calibration)) {
-            Log::Logger::getInstance()->error("Failed to update '{}'", "calibration");
-            allSucceeded = false;
-        }
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageConfig(data); }, info.imgConf, "imgConf");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceModes(data); }, info.supportedDeviceModes, "supportedDeviceModes");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getEnabledStreams(data); }, info.supportedSources, "supportedSources");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getNetworkConfig(data); }, info.netConfig, "netConfig");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getVersionInfo(data); }, info.versionInfo, "versionInfo");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceInfo(data); }, info.devInfo, "devInfo");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getMtu(data); }, info.sensorMTU, "sensorMTU");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getLightingConfig(data); }, info.lightConf, "lightConf");
+        allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageCalibration(data); }, info.calibration, "calibration");
+
 
         // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
         //  This also assumes that getDeviceInfo above also succeeded
-        if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 &&
-        crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf)) {
-            Log::Logger::getInstance()->error("Failed to getAuxImageConfig");
-            allSucceeded = false;
+        if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 ){
+            allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getAuxImageConfig(data); }, info.auxImgConf, "calibration");
         }
 
         updateQMatrix(channelID);
@@ -1148,8 +1113,12 @@ namespace VkRender::MultiSense {
         if (hasAuxCamera) {
             status = channelMap[channelID]->ptr()->getAuxImageConfig(infoMap[channelID].auxImgConf);
             if (crl::multisense::Status_Ok != status) {
-                Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure");
-                return false;
+                std::string errString = crl::multisense::Channel::statusString(status);
+                Log::Logger::getInstance()->error("Unable to query getAuxImageConfig in getExposure. Error: {}", errString);
+
+                if (status == crl::multisense::Status_Unsupported) {
+                    Log::Logger::getInstance()->error("Viewer thinks this camera has aux camera but LibMultiSense says it is unsupported");
+                }
             }
         }
 

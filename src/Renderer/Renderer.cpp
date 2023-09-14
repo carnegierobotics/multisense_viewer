@@ -740,11 +740,17 @@ void Renderer::windowResized() {
 
 
 void Renderer::cleanUp() {
+    auto startTime = std::chrono::steady_clock::now();
+
     usageMonitor->userEndSession();
 
     if (usageMonitor->hasUserLogCollectionConsent() &&
         VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
         usageMonitor->sendUsageLog();
+
+    auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+            std::chrono::steady_clock::now() - startTime);
+    Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
 
     for (auto &dev: guiManager->handles.devices) {
         dev.interruptConnection = true; // Disable all current connections if user wants to exit early
@@ -761,9 +767,14 @@ void Renderer::cleanUp() {
     }
 
 #endif
+    startTime = std::chrono::steady_clock::now();
     // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
     guiManager.reset();
+    timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+            std::chrono::steady_clock::now() - startTime);
+    Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
 
+    startTime = std::chrono::steady_clock::now();
     // Clear script and scriptnames
     for (const auto &scriptName: builtScriptNames) {
         pLogger->info("Deleting Script: {}", scriptName.c_str());
@@ -773,6 +784,9 @@ void Renderer::cleanUp() {
     }
     builtScriptNames.clear();
     destroySelectionBuffer();
+    timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+            std::chrono::steady_clock::now() - startTime);
+    Log::Logger::getInstance()->trace("Deleting scripts on exit took {}s", timeSpan.count());
 
 }
 

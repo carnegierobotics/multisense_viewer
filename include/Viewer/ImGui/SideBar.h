@@ -147,7 +147,7 @@ public:
                     Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
 #endif
         }
-
+        auto startTime = std::chrono::steady_clock::now();
         // Make sure adapter utils scanning thread is shut down correctly
         while (true) {
             Log::Logger::getInstance()->traceWithFrequency("shutdown adapterutils: ", 1000,
@@ -155,6 +155,10 @@ public:
             if (adapterUtils.shutdownReady())
                 break;
         }
+
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+                std::chrono::steady_clock::now() - startTime);
+        Log::Logger::getInstance()->trace("Adapter utils took {}s to shut down", timeSpan.count());
     }
 
     void openURL(const std::string &url) {
@@ -244,7 +248,7 @@ public:
         ImGuiWindowFlags window_flags = 0;
         window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                ImGuiWindowFlags_NoDecoration;
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLGray424Main);

@@ -70,7 +70,7 @@ namespace VkRender::MultiSense {
             crl::multisense::system::DeviceInfo devInfo;
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name, devInfo.buildDate);
-            if (!updateCameraInfo(static_cast<crl::multisense::RemoteHeadChannel>(0))) {
+            if (!updateCameraInfo(const_cast<Device *>(dev), static_cast<crl::multisense::RemoteHeadChannel>(0))) {
                 Log::Logger::getInstance()->error("Failed to fetch camera info. Viewer will not present the full set of options");
             } // TODO if this one fails we have to recheck our sources we present to the screen.
             addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
@@ -291,7 +291,7 @@ namespace VkRender::MultiSense {
 
 
 
-    bool CRLPhysicalCamera::updateCameraInfo(crl::multisense::RemoteHeadChannel channelID) {
+    bool CRLPhysicalCamera::updateCameraInfo(VkRender::Device* dev, crl::multisense::RemoteHeadChannel channelID) {
         // The calling function will repeat this loop until everything succeeds.
         bool allSucceeded = true;
         Log::Logger::getInstance()->trace("Updating Camera info for channel {}", channelID);
@@ -302,15 +302,23 @@ namespace VkRender::MultiSense {
         auto& info = infoMap[channelID];
 
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageConfig(data); }, info.imgConf, "imgConf");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceModes(data); }, info.supportedDeviceModes, "supportedDeviceModes");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getEnabledStreams(data); }, info.supportedSources, "supportedSources");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getNetworkConfig(data); }, info.netConfig, "netConfig");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getVersionInfo(data); }, info.versionInfo, "versionInfo");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getDeviceInfo(data); }, info.devInfo, "devInfo");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getMtu(data); }, info.sensorMTU, "sensorMTU");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getLightingConfig(data); }, info.lightConf, "lightConf");
+        if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog(channelID, [&](auto& data) { return channelPtr->getImageCalibration(data); }, info.calibration, "calibration");
-
+        if (dev->interruptConnection) return false;
 
         // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
         //  This also assumes that getDeviceInfo above also succeeded

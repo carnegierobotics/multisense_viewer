@@ -61,6 +61,7 @@ namespace VkRender {
      */
     class ThreadPool {
         using task_type = std::function<void()>;
+        std::atomic<bool> stopFlag{false}; // Flag to signal threads to stop
 
     public:
         /**
@@ -72,9 +73,17 @@ namespace VkRender {
                 workers_.emplace_back(std::thread([this] {
                     while (true) {
                         task_type task;
+                        // If the stop flag is set, return from the thread i.e. skip execution
+                        if (stopFlag.load()) {
+                            pushStopTask();
+                            return;
+                        }
+
                         {
                             std::unique_lock<std::mutex> lock(task_mutex_);
                             task_cond_.wait(lock, [this] { return !tasks_.empty(); });
+
+
                             task = std::move(tasks_.front());
                             tasks_.pop();
                         }
@@ -93,7 +102,12 @@ namespace VkRender {
             Stop();
         }
 
+        void signalStop(){
+            stopFlag.store(false);
+        }
+
         void Stop() {
+            stopFlag.store(true); // Set the stop flag to true
             pushStopTask();
             for (auto &worker: workers_) {
                 if (worker.joinable()) {
@@ -104,6 +118,7 @@ namespace VkRender {
             // clear all pending tasks
             std::queue<task_type> empty{};
             std::swap(tasks_, empty);
+
         }
 
         /**

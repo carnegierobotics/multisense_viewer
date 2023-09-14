@@ -48,7 +48,13 @@ int main() {
     Renderer app("MultiSense Viewer");
     try{
         app.run();
+        // Time cleanup
+        auto startTime = std::chrono::steady_clock::now();
         app.cleanUp();
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+                std::chrono::steady_clock::now() - startTime);
+        Log::Logger::getInstance()->trace("Cleanup took {}s", timeSpan.count());
+
     } catch (std::runtime_error& e){
         Log::Logger::getInstance()->error("Caught exception! RuntimeError: {}", e.what());
         app.cleanUp();

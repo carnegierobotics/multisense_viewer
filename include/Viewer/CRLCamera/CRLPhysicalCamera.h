@@ -462,7 +462,7 @@ namespace VkRender::MultiSense {
          * @param[in] idx Which remote head to select
          *
          */
-        bool updateCameraInfo(crl::multisense::RemoteHeadChannel idx);
+        bool updateCameraInfo(VkRender::Device* dev, crl::multisense::RemoteHeadChannel idx);
 
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};

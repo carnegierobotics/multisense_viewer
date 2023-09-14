@@ -45,16 +45,26 @@ extern "C" {
 }
 
 void RecordFrames::setup() {
-    threadPool = std::make_unique<VkRender::ThreadPool>(3);
 }
 
 void RecordFrames::update() {
+
+    bool shouldCreateThreadPool = saveImage || savePointCloud || saveIMUData;
+    bool shouldResetThreadPool = !(saveImage && savePointCloud && saveIMUData);
+
+    if (shouldCreateThreadPool && threadPool == nullptr){
+        threadPool = std::make_unique<VkRender::ThreadPool>(3);
+    }
     if (saveImage)
         saveImageToFile();
     if (savePointCloud)
         savePointCloudToFile();
     if (saveIMUData)
         saveIMUDataToFile();
+
+    if (threadPool != nullptr && shouldResetThreadPool){
+        threadPool.reset();
+    }
 }
 
 void RecordFrames::saveImageToFile() {

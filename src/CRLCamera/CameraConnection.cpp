@@ -42,6 +42,7 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
 #endif
 
 #include "Viewer/CRLCamera/CameraConnection.h"
@@ -429,7 +430,7 @@ namespace VkRender::MultiSense {
                 dev.isRecording = false;
                 dev.interruptConnection = true;
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "pushStopTask");
-                pool->pushStopTask();
+                pool->signalStop();
                 saveProfileAndDisconnect(&dev);
                 return;
             }
@@ -442,8 +443,7 @@ namespace VkRender::MultiSense {
                 dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
                 dev.isRecording = false;
                 saveProfileAndDisconnect(&dev);
-                pool->pushStopTask();
-                pool->Stop();
+                pool->signalStop();
                 return;
             }
             // Connect if we click a m_Device in the sidebar or if it is just added by add m_Device btn
@@ -476,7 +476,13 @@ namespace VkRender::MultiSense {
                 Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_CONNECTING ", dev.name);
 
                 // Re-create thread pool for a new connection in case we have old tasks from another connection in queue
+                auto startTime = std::chrono::steady_clock::now();
                 pool = std::make_unique<VkRender::ThreadPool>(3);
+                std::chrono::duration<float> timeSpan =
+                        std::chrono::duration_cast<std::chrono::duration<float >>(
+                                std::chrono::steady_clock::now() - startTime);
+                Log::Logger::getInstance()->trace("Creating cameraconnection threadpool took {}ms",
+                                                  timeSpan.count() * 1000);
                 // Perform connection by pushing a connect task.
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "connectCRLCameraTask");
                 pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, dev.isRemoteHead,
@@ -783,16 +789,22 @@ namespace VkRender::MultiSense {
     }
 
     CameraConnection::~CameraConnection() {
-        // Make sure delete the camPtr for physical cameras so we run destructor on the physical camera class which
+        auto startTime = std::chrono::steady_clock::now();
+
+        // Make sure delete the camPtr for physical
+        // cameras so we run destructor on the physical camera class which
         // stops all streams on the camera
         if (pool) {
-            pool->pushStopTask();
             pool->Stop();
         }
 #ifndef WIN32
         if (m_FD != -1)
             close(m_FD);
 #endif // !WIN32
+
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+                std::chrono::steady_clock::now() - startTime);
+        Log::Logger::getInstance()->trace("Cameraconnection destructor stopping threadpool took {}s", timeSpan.count());
     }
 
 
@@ -1082,7 +1094,7 @@ namespace VkRender::MultiSense {
                                                 VkRender::Device *dev) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        dev->updateDeviceConfigsSucceeded = app->camPtr.updateCameraInfo(remoteHeadIndex);
+        dev->updateDeviceConfigsSucceeded = app->camPtr.updateCameraInfo(dev, remoteHeadIndex);
     }
 
     void CameraConnection::getExposureTask(void *context, VkRender::Device *dev,

@@ -135,6 +135,23 @@ namespace VkRender::ScriptUtils {
 
         zoom->prevZoomValue = zoom->zoomValue;
     }
+
+
+    static inline bool setZoomValue(VkRender::ScriptUtils::ZoomParameters& zoom, std::unordered_map<StreamWindowIndex, float> * map, StreamWindowIndex windowIndex) {
+        if (map->empty()) {
+            // Handle the case where uiHandle is nullptr
+            return false;
+        }
+
+        auto it = map->find(windowIndex);
+        if (it == map->end()) {
+            // Handle the case where CRL_PREVIEW_TWO is not in the map
+            return false;
+        }
+
+        zoom.zoomValue = it->second;
+        return true;
+    }
 }
 
 #endif //MULTISENSE_VIEWER_SCRIPTUTILS_H

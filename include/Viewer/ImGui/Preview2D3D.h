@@ -2558,18 +2558,25 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            dev.resetCamera = false;
             if (ImGui::RadioButton("Arcball", &dev.cameraType, 0)) {
                 handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
+                dev.resetCamera = true;
             }
             ImGui::SameLine();
             if (ImGui::RadioButton("Flycam", &dev.cameraType, 1)) {
                 handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
+                dev.resetCamera = true;
             }
+            ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
+            ImGui::HelpMarker("Select between arcball or flycam type. Flycam uses Arrow/WASD keys to move camera and mouse + click to rotate");
+            ImGui::PopStyleVar();
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            dev.resetCamera = ImGui::Button("Reset camera position");
+            dev.resetCamera |= ImGui::Button("Reset camera position"); // OR true due to resetCamera may be set by clicking radio buttons above
             if (dev.resetCamera) {
                 handles->usageMonitor->userClickAction("Reset camera position", "Button",
                                                        ImGui::GetCurrentWindow()->Name);
@@ -2640,11 +2647,21 @@ private:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             switch (elem.type) {
+                case WIDGET_CHECKBOX:
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    if (ImGui::Checkbox(elem.label, elem.checkbox) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
+                    ImGui::PopStyleColor();
+                    break;
+
                 case WIDGET_FLOAT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     if (ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "SliderFloat",
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
                     ImGui::PopStyleColor();
@@ -2653,7 +2670,7 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     if (ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax) &&
                         ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "SliderInt",
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
                     ImGui::PopStyleColor();

@@ -82,14 +82,16 @@ public:
     std::vector<std::string> startedSources{};
     Page selectedPreviewTab = CRL_TAB_NONE;
     CRLCameraResolution res = CRL_RESOLUTION_NONE;
+    std::future<bool> prepareTexFuture;
 
     int lumaOrColor = false; // 0 : luma // 1 : Color
     float pointSize = 1.8f;
+    bool flipPointCloud = true;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     int point = 0;
 
-    void prepareTexture();
+    bool prepareTexture(VkRender::Device &dev);
 };
 
 

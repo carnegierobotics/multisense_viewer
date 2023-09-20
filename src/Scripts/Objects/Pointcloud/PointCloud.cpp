@@ -51,10 +51,17 @@ void PointCloud::setup() {
 
     Widgets::make()->text("Set Point Size:");
     Widgets::make()->slider("##Set Point size", &pointSize, 0, 10);
+    // Widgets::make()->text("Flip pointcloud: ");
+    //Widgets::make()->checkbox("##Flip pc", &flipPointCloud);
 
 }
 
 void PointCloud::update() {
+    if (prepareTexFuture.valid() && prepareTexFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        if (prepareTexFuture.get())
+            model->draw = true;
+    }
+
     if (model->draw) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(),
@@ -74,7 +81,8 @@ void PointCloud::update() {
         VkRender::UBOMatrix mat{};
         mat.model = glm::mat4(1.0f);
         mat.model = glm::translate(mat.model, glm::vec3(0.1f, 0.0f, 0.0f));
-
+        if (flipPointCloud)
+            mat.model[2][2] *= -1;
         // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
         //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -120,8 +128,9 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             lumaOrColor = dev.useAuxForPointCloudColor;
-
-            prepareTexture();
+            model->draw = false;
+            auto& device = const_cast<VkRender::Device &>(dev);
+            prepareTexFuture = std::async(std::launch::async, &PointCloud::prepareTexture, this, std::ref(device));
         }
     }
 }
@@ -133,7 +142,7 @@ void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 }
 
 
-void PointCloud::prepareTexture() {
+bool PointCloud::prepareTexture(VkRender::Device &dev) {
     uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(res, &width, &height, &depth);
 
@@ -156,14 +165,24 @@ void PointCloud::prepareTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
-    auto *buf = bufferThreeData.get();
-    buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
-    buf->height = static_cast<float>(height);
-    buf->width = static_cast<float>(width);
-    buf->disparity = static_cast<float>(depth);
-    buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
-    buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
-    buf->pointSize = pointSize;
 
-    model->draw = true;
+
+    if (renderData.crlCamera->updateCameraInfo(&dev, 0)){
+
+        auto *buf = bufferThreeData.get();
+        buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
+        buf->height = static_cast<float>(height);
+        buf->width = static_cast<float>(width);
+        buf->disparity = static_cast<float>(depth);
+        buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
+        buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
+        buf->pointSize = pointSize;
+        Log::Logger::getInstance()->info(
+                "Transforming depth image to point cloud with focal length {} and point cloud scale {}. Image size is ({}, {})",
+                renderData.crlCamera->getCameraInfo(0).focalLength, renderData.crlCamera->getCameraInfo(0).pointCloudScale, renderData.crlCamera->getCameraInfo(0).imgConf.width(), renderData.crlCamera->getCameraInfo(0).imgConf.height());
+        return true;
+    } else {
+        Log::Logger::getInstance()->error("Failed to update camera info for pointcloud!");
+    }
+    return false;
 }

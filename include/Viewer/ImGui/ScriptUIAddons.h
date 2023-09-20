@@ -33,6 +33,11 @@ private:
         Element(const char *labelVal) : label(labelVal) {
             type = WIDGET_TEXT;
         }
+
+        bool* checkbox = nullptr;
+        Element(const char *labelVal, bool *check) : label(labelVal), checkbox(check) {
+            type = WIDGET_CHECKBOX;
+        }
     };
     static Widgets* m_Instance;
 
@@ -51,6 +56,13 @@ public:
 
     void text(const char* label){
         elements.emplace_back(label);
+    }
+
+    void checkbox(const char* label, bool* val){
+        /**
+         * Label names must not overlap
+         */
+        elements.emplace_back(label, val);
     }
 
     static Widgets* make();

@@ -480,7 +480,6 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Resolution already set to {}x{}x{}", width, height, depth);
             return false;
         }
-
         infoMap[channelID].imgConf.setResolution(width, height);
         infoMap[channelID].imgConf.setDisparities(depth);
 

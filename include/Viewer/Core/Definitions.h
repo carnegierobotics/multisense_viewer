@@ -216,7 +216,8 @@ typedef enum ScriptWidgetType {
     WIDGET_FLOAT_SLIDER = 0,
     WIDGET_INT_SLIDER = 1,
     WIDGET_INPUT_NUMBER = 2,
-    WIDGET_TEXT = 3
+    WIDGET_TEXT = 3,
+    WIDGET_CHECKBOX = 4
 } ScriptWidgetType;
 
 /**
@@ -655,7 +656,7 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        const MultiSense::CRLPhysicalCamera *crlCamera{};
+        MultiSense::CRLPhysicalCamera *crlCamera{};
         ScriptType type{};
         uint32_t height = 0;
         uint32_t width = 0;

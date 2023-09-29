@@ -51,6 +51,7 @@
 #include "Viewer/ImGui/DebugWindow.h"
 #include "Viewer/ImGui/Preview2D3D.h"
 #include "Viewer/ImGui/NewVersionAvailable.h"
+#include "Viewer/ImGui/ControlAreaExtension.h"
 
 
 namespace VkRender {

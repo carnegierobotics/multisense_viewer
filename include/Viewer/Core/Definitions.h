@@ -176,10 +176,6 @@ typedef enum StreamWindowIndex {
  * @brief Identifier for different pages in the GUI.
  */
 typedef enum page {
-    CRL_PAGE_PREVIEW_DEVICES = 0,
-    CRL_PAGE_DEVICE_INFORMATION = 1,
-    CRL_PAGE_CONFIGURE_DEVICE = 2,
-    CRL_PAGE_TOTAL_PAGES = 3,
     CRL_TAB_NONE = 10,
     CRL_TAB_2D_PREVIEW = 11,
     CRL_TAB_3D_POINT_CLOUD = 12,

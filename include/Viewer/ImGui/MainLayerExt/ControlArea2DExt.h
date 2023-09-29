@@ -48,7 +48,7 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
  * @brief A UI Layer drawn by \refitem GuiManager.
  * To add an additional UI layer see \refitem LayerExample.
  */
-class ControlAreaExtension : public VkRender::Layer {
+class ControlArea2DExt : public VkRender::Layer {
 
 public:
 

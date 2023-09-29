@@ -151,6 +151,8 @@ namespace VkRender {
         int numControlTabs = 2;
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
+
+        ImVec2 viewingAreaWindowPos;
         bool hoverState = false;
         bool isViewingAreaHovered = false;
 

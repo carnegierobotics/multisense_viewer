@@ -212,7 +212,6 @@ private:
         ImGui::End();
         ImGui::PopStyleColor(); // Bg color
         handles->info->viewingAreaWindowPos = windowPos;
-        //TODO add call to draw2D
         previewWindows2DExt->onUIRender(handles);
     }
 

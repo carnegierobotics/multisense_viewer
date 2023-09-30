@@ -427,7 +427,7 @@ namespace VkRender::MultiSense {
 
             if (dev.state == CRL_STATE_INTERRUPT_CONNECTION) {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_INTERRUPT_CONNECTION", dev.name);
-                dev.isRecording = false;
+                dev.record.frame = false;
                 dev.interruptConnection = true;
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "pushStopTask");
                 pool->signalStop();
@@ -441,7 +441,7 @@ namespace VkRender::MultiSense {
                         "Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET",
                         dev.name);
                 dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
-                dev.isRecording = false;
+                dev.record.frame = false;
                 saveProfileAndDisconnect(&dev);
                 pool->signalStop();
                 return;

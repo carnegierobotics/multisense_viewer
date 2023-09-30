@@ -820,5 +820,5 @@ public:
 
 };
 
-
+DISABLE_WARNING_POP
 #endif //ControlAreaExtension

@@ -37,8 +37,10 @@
 #ifndef MULTISENSE_VIEWER_CONTROL_AREA_EXTENSION_H
 #define MULTISENSE_VIEWER_CONTROL_AREA_EXTENSION_H
 
+#include <ImGuiFileDialog.h>
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/Tools/Macros.h"
+#include "Viewer/ImGui/Custom/imgui_user.h"
 
 // Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH
@@ -49,7 +51,11 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
  * To add an additional UI layer see \refitem LayerExample.
  */
 class ControlArea2DExt : public VkRender::Layer {
-
+private:
+    enum Compression {
+        custom_metadata = 0,
+        auto_metadata = 1
+    };
 public:
 
 
@@ -65,137 +71,23 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        float headerPadding = 20.0f;
+        ImGui::Dummy(ImVec2(0.0f, 30.0f));
+        ImVec2 pos = ImGui::GetCursorPos();
+        pos.x += headerPadding;
+        ImGui::SetCursorPos(pos);
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 5.0f));
 
+        ImGui::BeginChild("Configuration2DExtension", ImVec2(handles->info->controlAreaWidth -
+                                                             (2.0f * headerPadding + handles->info->scrollbarSize),
+                                                             0.0f), false);
         for (auto &dev: handles->devices) {
             if (dev.state != CRL_STATE_ACTIVE)
                 continue;
 
+            createRecordingHeader(handles, dev);
 
-            // Draw Recording options
-            {
-                if (ImGui::CollapsingHeader("Recording", 0)) {
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
-                    ImGui::BeginChild("Recording_child");
-                    ImGui::PopStyleColor();
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::PushFont(handles->info->font18);
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                    ImGui::Text("Recording");
-                    ImGui::PopFont();
-                    ImGui::SameLine();
-                    ImGui::PopStyleColor();
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::HelpMarker(
-                            " \n Saves the frames shown in the viewing are to the right to files.  \n Each type of stream is saved in separate folders \n Depending on hardware, active streams, and if you chose \n a compressed method (png)    \n you may not be able to save all frames \n\n Color images are saved as either ppm/png files   ");
-                    // if start then show gif spinner
-                    ImGui::PopStyleColor();
-
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::Text("Save active streams as images to file");
-                    ImGui::Spacing();
-                    ImGui::PopStyleColor();
-
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImVec2 btnSize(120.0f, 30.0f);
-                    std::string btnText = dev.isRecording ? "Stop" : "Start";
-                    if (ImGui::Button(btnText.c_str(), btnSize) && dev.outputSaveFolder != "/Path/To/Folder/") {
-                        dev.isRecording = !dev.isRecording;
-                        handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
-
-                    }
-                    ImGui::SameLine();
-
-                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
-                    static size_t selector = 0;
-
-                    ImGui::SetNextItemWidth(
-                            handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
-                    if (ImGui::BeginCombo("##Compression", saveFormat[selector].c_str(), ImGuiComboFlags_HeightSmall)) {
-                        for (size_t n = 0; n < saveFormat.size(); n++) {
-                            const bool is_selected = (selector == n);
-                            if (ImGui::Selectable(saveFormat[n].c_str(), is_selected)) {
-                                selector = n;
-                                dev.saveImageCompressionMethod = saveFormat[selector];
-                                handles->usageMonitor->userClickAction("Compression", "combo",
-                                                                       ImGui::GetCurrentWindow()->Name);
-
-                            }
-                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                            if (is_selected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                    ImGui::SameLine();
-                    // open Dialog Simple
-                    if (dev.isRecording) {
-                        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-                        ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::TextColorGray);
-                        ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::Colors::TextColorGray);
-
-                    }
-                    {
-                        if (ImGui::Button("Choose Location", btnSize)) {
-                            ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                                    ".");
-                            handles->usageMonitor->userClickAction("Choose Location", "Button",
-                                                                   ImGui::GetCurrentWindow()->Name);
-
-                        }
-                    }
-
-                    ImGui::SameLine();
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
-                    ImGui::SetNextItemWidth(
-                            handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
-
-                    ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
-#ifdef WIN32
-                    std::string hint = "C:\\Path\\To\\Dir";
-#else
-                    std::string hint = "/Path/To/Dir";
-#endif
-                    ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.outputSaveFolder,
-                                                   ImGuiInputTextFlags_AutoSelectAll);
-                    ImGui::PopStyleColor();
-                    ImGui::PopStyleVar();
-
-                    if (dev.isRecording) {
-                        ImGui::PopStyleColor(2);
-                        ImGui::PopItemFlag();
-                    }
-
-                    // display
-                    //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
-                    //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
-                    ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                             ImVec2(1200.0f, 1000.0f))) {
-                        // action if OK
-                        if (ImGuiFileDialog::Instance()->IsOk()) {
-                            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                            dev.outputSaveFolder = filePathName;
-                            // action
-                        }
-
-                        // close
-                        ImGuiFileDialog::Instance()->Close();
-                    }
-                    ImGui::PopStyleColor();
-                    ImGui::PopStyleVar();
-
-                    ImGui::EndChild();
-                }
-            }
-
+            /*
             bool anyStreamActive = false;
             for (const auto &ch: dev.channelInfo) {
                 if (!ch.requestedStreams.empty())
@@ -227,15 +119,168 @@ public:
                 }
                 ImGui::PopStyleColor(2);
             }
+            */
+
         }
 
+        ImGui::EndChild();
+        //ImGui::PopStyleVar();
+
+    }
+
+
+    void createRecordingHeader(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
+
+        // Draw Recording options
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
+        float windowPaddingLeft = 25.0f;
+        {
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 1.0f);
+            if (ImGui::CollapsingHeader("Recording", 0)) {
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
+                ImGui::BeginChild("Recording_child", ImVec2(0.0f, 175.0f));
+                ImGui::Dummy(ImVec2(5.0f, 10.0f));
+                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::SameLine();
+
+                ImGui::HelpMarker(
+                        "Record the frames active in the preview window as format. A metadata file is generated into the record location.",
+                        true);
+                ImGui::SameLine();
+                ImGui::PushFont(handles->info->font13);
+                ImGui::Text("Export Video Frames as:");
+                ImGui::PopFont();
+                ImGui::SameLine();
+
+                ImVec2 btnSize(ImGui::CalcTextSize("Export Video Frames as:").x, 25.0f);
+
+                if (dev.record.frame) {
+                    ImGui::BeginDisabled();
+                }
+
+                /** @brief Drop down for compression selection */
+                {
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag 2.0"};
+                    static size_t selector = 0;
+
+                    ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
+                    if (ImGui::BeginCombo("##Compression", saveFormat[selector].c_str(),
+                                          ImGuiComboFlags_HeightSmall)) {
+                        for (size_t n = 0; n < saveFormat.size(); n++) {
+                            const bool is_selected = (selector == n);
+                            if (ImGui::Selectable(saveFormat[n].c_str(), is_selected)) {
+                                selector = n;
+                                dev.saveImageCompressionMethod = saveFormat[selector];
+                                handles->usageMonitor->userClickAction("Compression", "combo",
+                                                                       ImGui::GetCurrentWindow()->Name);
+
+                            }
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                }
+
+                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                /// Record Location Button and file dialog
+                {
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
+
+                    if (ImGui::Button("Record Location", btnSize)) {
+                        ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory",
+                                                                nullptr,
+                                                                ".");
+                        handles->usageMonitor->userClickAction("Choose Location", "Button",
+                                                               ImGui::GetCurrentWindow()->Name);
+
+                    }
+
+
+                    ImGui::SameLine();
+
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, (btnSize.y / 2) - (ImGui::CalcTextSize("size").y) + 6));
+                    ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
+                    ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
+                    ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.record.frameSaveFolder, ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar();
+
+                    // display
+                    //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
+                    //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
+                                                             ImVec2(1200.0f, 1000.0f))) {
+                        // action if OK
+                        if (ImGuiFileDialog::Instance()->IsOk()) {
+                            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                            dev.record.frameSaveFolder = filePathName;
+                            // action
+                        }
+
+                        // close
+                        ImGuiFileDialog::Instance()->Close();
+                    }
+                    ImGui::PopStyleColor();
+                }
+                /// RADIOBUTTONS
+                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+
+                {
+
+                    if (ImGui::RadioButton("Custom metadata", &dev.record.metadata.custom, 1)) {
+                    };
+                    ImGui::SameLine(0.0f, 25.0f);
+                    if (ImGui::RadioButton("Auto gen. metadata", &dev.record.metadata.custom, 0)) {
+
+                    };
+                }
+
+                if (dev.record.metadata.custom) {
+                    ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                    if (ImGui::Button("Set custom metadata", btnSize)) {
+                        dev.record.showCustomMetaDataWindow = true;
+                    }
+                }
+
+                if (dev.record.frame) {
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                std::string btnText = dev.record.frame ? "Stop" : "Start";
+                if (ImGui::Button(btnText.c_str(), btnSize) && dev.record.frameSaveFolder != "/Path/To/Folder/") {
+                    dev.record.frame = !dev.record.frame;
+                    handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
+
+                }
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
+
+                ImGui::EndChild();
+            }
+        }
+
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
     }
 
     /** Called once upon this object destruction **/
     void onDetach() override {
 
     }
+
+private:
+#ifdef WIN32
+    std::string hint = "C:\\Path\\To\\Dir";
+#else
+    std::string hint = "/Path/To/Dir";
+#endif
 };
 
-
+DISABLE_WARNING_POP
 #endif //ControlAreaExtension

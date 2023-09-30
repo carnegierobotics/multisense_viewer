@@ -257,7 +257,17 @@ public:
 
                 ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
                 ImGui::Text("Frame: %lu", handles->info->frameID);
+/*
+#ifdef MULTISENSE_VIEWER_DEBUG
+            // SHwo ImGui Cursor pos screen pos and window pos
+            ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
+            ImVec2 cursorWinPos = ImGui::GetCursorPos();
+            ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
+            ImGui::Text("Cursor screen pos: (%.1f, %.1f)", cursorScreenPos.x, cursorScreenPos.y);
+            ImGui::Text("Cursor window pos: (%.1f, %.1f)", cursorWinPos.y, cursorWinPos.y);
+#endif
+*/
             }
             ImGui::Separator();
 

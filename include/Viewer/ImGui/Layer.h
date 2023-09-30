@@ -77,7 +77,7 @@ namespace VkRender {
         static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
         static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
         static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
-        static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 CRLTextGray(0.2f, 0.2f, 0.2f, 1.0f);
         static const ImVec4 CRLTextLightGray(0.4f, 0.4f, 0.4f, 1.0f);
         static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
         static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
@@ -143,6 +143,10 @@ namespace VkRender {
         float popupHeight = 600.0f;
         /** @brief Width of popupModal*/
         float popupWidth = 550.0f;
+        /** @brief Width of popupModal*/
+        float metadataWidth = 700.0f;
+        /** @brief Width of popupModal*/
+        float metadataHeight = 600.0f;
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/
@@ -152,6 +156,8 @@ namespace VkRender {
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
 
         ImVec2 viewingAreaWindowPos;
+        /** @brief Horizontal size of scrollbar */
+        float scrollbarSize = 10.0f;
         bool hoverState = false;
         bool isViewingAreaHovered = false;
 

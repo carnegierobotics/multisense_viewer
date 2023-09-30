@@ -403,6 +403,35 @@ namespace VkRender {
         bool updateResolutionMode = true;
     };
 
+
+    struct Metadata {
+        int custom = 1; // 1 True, 0 False
+        std::string field1;
+        std::string field2;
+    };
+
+    struct RecordDataInfo{
+        Metadata metadata;
+
+        bool showCustomMetaDataWindow = false;
+        /**@brief location for which this m_Device should save recorded frames **/
+        std::string frameSaveFolder;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string pointCloudSaveFolder;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string imuSaveFolder;
+        /**@brief Flag to decide if user is currently recording frames */
+        bool frame = false;
+        /**@brief Flag to decide if user is currently recording point cloud */
+        bool pointCloud = false;
+        /**@brief Flag to decide if user is currently recording IMU data */
+        bool imu = false;
+
+        RecordDataInfo(){
+            frameSaveFolder.resize(255);
+            pointCloudSaveFolder.resize(255);
+        }
+    };
     /**
      * @brief UI Block for a MultiSense Device connection. Contains connection information and user configuration such as selected previews, recording info and more..
      */
@@ -435,18 +464,7 @@ namespace VkRender {
         std::vector<ChannelInfo> channelInfo{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
-        /**@brief location for which this m_Device should save recorded frames **/
-        std::string outputSaveFolder;
-        /**@brief location for which this m_Device should save recorded point clouds **/
-        std::string outputSaveFolderPointCloud;
-        /**@brief location for which this m_Device should save recorded point clouds **/
-        std::string outputSaveFolderIMUData;
-        /**@brief Flag to decide if user is currently recording frames */
-        bool isRecording = false;
-        /**@brief Flag to decide if user is currently recording point cloud */
-        bool isRecordingPointCloud = false;
-        /**@brief Flag to decide if user is currently recording IMU data */
-        bool isRecordingIMUdata = false;
+
         /** @brief 3D view camera type for this device. Arcball or first person view controls) */
         int cameraType = 0;
         /** @brief Reset 3D view camera position and rotation */
@@ -484,10 +502,8 @@ namespace VkRender {
         bool hasColorCamera = false;
         /** @brief If we managed to update all the device configs */
         bool updateDeviceConfigsSucceeded = false;
-        Device() {
-            outputSaveFolder.resize(255);
-            outputSaveFolderPointCloud.resize(255);
-        }
+
+        RecordDataInfo record;
     };
 
     /**

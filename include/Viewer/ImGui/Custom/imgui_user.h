@@ -46,7 +46,9 @@
 namespace ImGui {
     // Helper to display a little (?) mark which shows a tooltip when hovered.
 // In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
-    static void HelpMarker(const char *desc) {
+    static void HelpMarker(const char *desc, bool textIsWhite = false) {
+        if (textIsWhite)
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
         ImGui::TextDisabled("(?)");
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
             ImGui::BeginTooltip();
@@ -55,6 +57,9 @@ namespace ImGui {
             ImGui::PopTextWrapPos();
             ImGui::EndTooltip();
         }
+        if (textIsWhite)
+            ImGui::PopStyleColor();
+
     }
 
 

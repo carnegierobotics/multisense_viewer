@@ -114,7 +114,8 @@ public:
             ImGui::EndGroup();
 
 
-        }    }
+        }
+    }
 
 private:
 
@@ -216,8 +217,6 @@ private:
     }
 
 
-
-
     void createControlArea(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
 
         bool pOpen = true;
@@ -225,52 +224,84 @@ private:
         window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(3.0f, 5.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, handles->info->scrollbarSize);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
+        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.0f);
 
         ImGui::SetNextWindowPos(ImVec2(handles->info->sidebarWidth, 0), ImGuiCond_Always);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->controlAreaWidth, handles->info->controlAreaHeight - 20.0f));
         ImGui::Begin("ControlArea", &pOpen, window_flags | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-
+        /// DRAW EITHER 2D or 3D Control TAB. ALSO TOP TAB BARS FOR CONTROLS OR SENSOR PARAM
         for (auto &d: handles->devices) {
             // Create dropdown
             if (d.state == CRL_STATE_ACTIVE) {
 
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
-                if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
-                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
-                    if (ImGui::BeginTabItem((std::string("Preview Control")).c_str())) {
+                ImVec2 framePadding = ImGui::GetStyle().FramePadding;
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 5.0f));
+                ImGui::PushFont(handles->info->font15);
 
+                if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
+
+                    /// Calculate spaces for centering tab bar text
+                    float tabBarWidth = handles->info->controlAreaWidth / handles->info->numControlTabs;
+                    ImGui::SetNextItemWidth(tabBarWidth);
+                    std::string tabLabel = "Preview Control";
+                    float labelSize = ImGui::CalcTextSize(tabLabel.c_str()).x;
+                    float startPos = (tabBarWidth / 2) - (labelSize / 2);
+                    float spaceSize = ImGui::CalcTextSize(std::string(" ").c_str()).x;
+                    std::string spaces(int(startPos / spaceSize), ' ');
+
+                    if (ImGui::BeginTabItem((std::string(spaces + tabLabel)).c_str())) {
+                        ImGui::PushFont(handles->info->font13);
+
+                        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
 
                         dev.controlTabActive = CRL_TAB_PREVIEW_CONTROL;
                         if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
                             preview3DExt->onUIRender(handles);
                         else
                             buildPreviewControlTab(handles, dev);
+
+                        ImGui::PopStyleVar();//Framepadding
+                        ImGui::PopFont();
                         ImGui::EndTabItem();
                     }
                     if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
                         handles->usageMonitor->userClickAction("Preview Control", "tab",
                                                                ImGui::GetCurrentWindow()->Name);
+                    /// Calculate spaces for centering tab bar text
+                    ImGui::SetNextItemWidth(tabBarWidth);
+                    tabLabel = "Sensor Config";
+                    labelSize = ImGui::CalcTextSize(tabLabel.c_str()).x;
+                    startPos = (tabBarWidth / 2) - (labelSize / 2);
+                    spaces = std::string(int(startPos / spaceSize), ' ');
 
-                    ImGui::SetNextItemWidth(handles->info->controlAreaWidth / handles->info->numControlTabs);
+                    if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
+                        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
+                        ImGui::PushFont(handles->info->font13);
 
-                    if (ImGui::BeginTabItem("Sensor Config")) {
                         dev.controlTabActive = CRL_TAB_SENSOR_CONFIG;
                         sensorConfigurationExt->onUIRender(handles);
+                        ImGui::PopStyleVar();//Framepadding
+                        ImGui::PopFont();
                         ImGui::EndTabItem();
                     }
                     if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
                         handles->usageMonitor->userClickAction("Sensor Config", "tab",
                                                                ImGui::GetCurrentWindow()->Name);
+
                     ImGui::EndTabBar();
                 }
+                ImGui::PopFont();
+
+                ImGui::PopStyleVar(); // Framepadding
             }
         }
-        ImGui::PopStyleColor();
 
         // Draw border between control and viewing area
         ImVec2 lineMin(handles->info->sidebarWidth + handles->info->controlAreaWidth - 3.0f, 0.0f);
@@ -279,7 +310,9 @@ private:
                                                   0);
         ImGui::Dummy(ImVec2(0.0f, handles->info->height - ImGui::GetCursorPosY()));
         ImGui::End();
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(5);
+        ImGui::PopStyleColor();
+
     }
 
     void buildPreviewControlTab(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
@@ -296,7 +329,7 @@ private:
         ImGui::SameLine();
         ImGui::PushFont(handles->info->font18);
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-        ImGui::Text("1. Choose Layout");
+        ImGui::Text("Set layout");
         ImGui::PopStyleColor();
 
         // Image buttons
@@ -340,7 +373,7 @@ private:
         ImGui::Dummy(ImVec2(40.0f, 0.0));
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-        ImGui::Text("2. Choose Sensor Resolution");
+        ImGui::Text("Set sensor resolution");
         ImGui::PopStyleColor();
         ImGui::PopFont();
         ImGui::Dummy(ImVec2(00.0f, 7.0));
@@ -394,12 +427,10 @@ private:
         posMax.y += 2.0f;
         ImGui::GetWindowDrawList()->AddRectFilled(posMin, posMax,
                                                   ImColor(VkRender::Colors::CRLGray421)); // Separator
-        ImGui::Dummy(ImVec2(0.0f, 30.0f));
 
-
+        ImGui::Separator();
 
         controlExt->onUIRender(handles);
-
 
     }
 

@@ -51,6 +51,7 @@
 #include "Viewer/ImGui/MainLayer.h"
 #include "Viewer/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
+#include "Viewer/ImGui/AdditionalWindows/CustomMetadata.h"
 
 namespace VkRender {
 
@@ -88,6 +89,7 @@ namespace VkRender {
         pushLayer<LayerExample>();
         pushLayer<DebugWindow>();
         pushLayer<NewVersionAvailable>();
+        pushLayer<CustomMetadata>();
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
@@ -278,6 +280,7 @@ namespace VkRender {
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
         style.Colors[ImGuiCol_PopupBg] = VkRender::Colors::CRLDarkGray425;
         style.Colors[ImGuiCol_WindowBg] = VkRender::Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_FrameBg] = VkRender::Colors::CRLDarkGray425;
         style.Colors[ImGuiCol_Tab] = VkRender::Colors::CRLRed;
         style.Colors[ImGuiCol_TabActive] = VkRender::Colors::CRLRedActive;
         style.Colors[ImGuiCol_TabHovered] = VkRender::Colors::CRLRedHover;

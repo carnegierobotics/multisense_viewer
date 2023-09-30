@@ -258,10 +258,10 @@ public:
                 ImGui::SameLine();
                 ImVec2 btnSize(70.0f, 30.0f);
 
-                std::string btnText = dev.isRecordingIMUdata ? "Stop" : "Start";
+                std::string btnText = dev.record.imu ? "Stop" : "Start";
                 if (ImGui::Button((btnText + "##imu").c_str(), btnSize) &&
-                    dev.outputSaveFolderIMUData != "/Path/To/Folder/") {
-                    dev.isRecordingIMUdata = !dev.isRecordingIMUdata;
+                    dev.record.imuSaveFolder != "/Path/To/Folder/") {
+                    dev.record.imu = !dev.record.imu;
                     handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
@@ -282,7 +282,7 @@ public:
                     // action if OK
                     if (saveIMUDataDialog.IsOk()) {
                         std::string filePathName = saveIMUDataDialog.GetFilePathName();
-                        dev.outputSaveFolderIMUData = filePathName;
+                        dev.record.imuSaveFolder = filePathName;
                         // action
                     }
                     // close
@@ -300,7 +300,7 @@ public:
 
                 std::string hint = "/Path/To/Dir";
                 ImGui::CustomInputTextWithHint("##SaveFolderLocationIMU", hint.c_str(),
-                                               &dev.outputSaveFolderIMUData,
+                                               &dev.record.imuSaveFolder,
                                                ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
@@ -320,10 +320,10 @@ public:
                 ImGui::SameLine();
                 ImVec2 btnSize(70.0f, 30.0f);
 
-                std::string btnText = dev.isRecordingPointCloud ? "Stop" : "Start";
+                std::string btnText = dev.record.pointCloud ? "Stop" : "Start";
                 if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) &&
-                    dev.outputSaveFolderPointCloud != "/Path/To/Folder/") {
-                    dev.isRecordingPointCloud = !dev.isRecordingPointCloud;
+                    dev.record.pointCloudSaveFolder != "/Path/To/Folder/") {
+                    dev.record.pointCloud = !dev.record.pointCloud;
                     handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
@@ -344,7 +344,7 @@ public:
                     // action if OK
                     if (savePointCloudDialog.IsOk()) {
                         std::string filePathName = savePointCloudDialog.GetFilePathName();
-                        dev.outputSaveFolderPointCloud = filePathName;
+                        dev.record.pointCloudSaveFolder = filePathName;
                         // action
                     }
                     // close
@@ -362,7 +362,7 @@ public:
 
                 std::string hint = "/Path/To/Dir";
                 ImGui::CustomInputTextWithHint("##SaveFolderLocationPointCloud", hint.c_str(),
-                                               &dev.outputSaveFolderPointCloud,
+                                               &dev.record.pointCloudSaveFolder,
                                                ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
@@ -372,5 +372,5 @@ public:
     }
 
 };
-
+DISABLE_WARNING_POP
 #endif //MULTISENSE_VIEWER_PREVIEW3DEXT_H

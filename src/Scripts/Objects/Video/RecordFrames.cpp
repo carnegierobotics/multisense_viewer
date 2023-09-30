@@ -50,9 +50,10 @@ void RecordFrames::setup() {
 void RecordFrames::update() {
 
     bool shouldCreateThreadPool = saveImage || savePointCloud || saveIMUData;
-    bool shouldResetThreadPool = !(saveImage && savePointCloud && saveIMUData);
+    bool shouldResetThreadPool = !(saveImage || savePointCloud || saveIMUData);
 
     if (shouldCreateThreadPool && threadPool == nullptr){
+        Log::Logger::getInstance()->trace("Creating RecordFrames ThreadPool");
         threadPool = std::make_unique<VkRender::ThreadPool>(3);
     }
     if (saveImage)
@@ -62,7 +63,8 @@ void RecordFrames::update() {
     if (saveIMUData)
         saveIMUDataToFile();
 
-    if (threadPool != nullptr && shouldResetThreadPool){
+    if (threadPool != nullptr && threadPool->getTaskListSize() == 0 && shouldResetThreadPool){
+        Log::Logger::getInstance()->trace("Resetting RecordFrames ThreadPool");
         threadPool.reset();
     }
 }
@@ -97,16 +99,21 @@ void RecordFrames::saveImageToFile() {
         for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
              remoteIdx <=
              (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
+
             const auto &conf = renderData.crlCamera->getCameraInfo(remoteIdx).imgConf;
             auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
                                                                conf.height(), false, true);
 
+
             if (renderData.crlCamera->getCameraStream(src, tex.get(), remoteIdx)) {
+
                 if (src == "Color Aux" || src == "Color Rectified Aux") {
                     if (tex->m_Id != tex->m_Id2)
                         continue;
                 }
+
                 if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
+                    Log::Logger::getInstance()->trace("Pushing task: saveImageToFile. ID: {}, Comp: {}", tex->m_Id, compression.c_str());
                     threadPool->Push(saveImageToFileAsync, Utils::CRLSourceToTextureType(src), saveFolderImage, src,
                                      remoteIdx, tex, isRemoteHead, compression);
                     savedImageSourceCount[src]++;
@@ -114,6 +121,7 @@ void RecordFrames::saveImageToFile() {
                     Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
 
                 }
+
             }
         }
     }
@@ -206,14 +214,14 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         prevSources = sources;
 
-        saveFolderImage = dev.outputSaveFolder;
-        saveFolderPointCloud = dev.outputSaveFolderPointCloud;
-        saveFolderIMUData = dev.outputSaveFolderIMUData;
-        saveImage = dev.isRecording;
+        saveFolderImage = dev.record.frameSaveFolder;
+        saveFolderPointCloud = dev.record.pointCloudSaveFolder;
+        saveFolderIMUData = dev.record.imuSaveFolder;
+        saveImage = dev.record.frame;
         compression = dev.saveImageCompressionMethod;
         isRemoteHead = dev.isRemoteHead;
-        savePointCloud = dev.isRecordingPointCloud;
-        saveIMUData = dev.isRecordingIMUdata;
+        savePointCloud = dev.record.pointCloud;
+        saveIMUData = dev.record.imu;
         useAuxColor = dev.useAuxForPointCloudColor == 1;
     }
 }

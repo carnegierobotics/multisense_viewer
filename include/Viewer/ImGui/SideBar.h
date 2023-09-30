@@ -646,12 +646,14 @@ private:
 
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
-
             ImVec2 headerPosMax = popupDrawPos;
             headerPosMax.x += handles->info->popupWidth;
             headerPosMax.y += 50.0f;
             ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
-                                                      ImColor(VkRender::Colors::CRLRed), 10.0f, 0);
+                                                      ImColor(VkRender::Colors::CRLRed), 9.0f, 0);
+            popupDrawPos.y += 40.0f;
+            ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
+                                                      ImColor(VkRender::Colors::CRLRed), 0.0f, 0);
 
             ImGui::PushFont(handles->info->font24);
             std::string title = "Connect to MultiSense";
@@ -661,12 +663,11 @@ private:
 
 
             ImGui::Dummy(ImVec2(0.0f, size.y));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 10.0f);
 
             ImGui::SetCursorPosX(anchorPoint);
             ImGui::Text("%s", title.c_str());
             ImGui::PopFont();
-            //ImGui::Separator();
-            //ImGui::InputText("Profile m_Name##1", inputName.data(),inputFieldNameLength);
 
             ImGui::Dummy(ImVec2(0.0f, 25.0f));
 

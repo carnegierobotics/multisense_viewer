@@ -182,11 +182,13 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
-        ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x/2), (handle->info->height / 2) - (anonymousWindowSize.y/2) - 50.0f));
+        ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x / 2),
+                                       (handle->info->height / 2) - (anonymousWindowSize.y / 2) - 50.0f));
         if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
             static bool isLinkHovered = false;
-            ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f, 1.0f);
+            ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f,
+                                                                                                1.0f);
 
             ImGui::Text("We would like to collect anonymous usage statistics to help improve our product.");
             ImGui::Text("Data collected will only be used for product improvement purposes");
@@ -202,7 +204,7 @@ public:
             if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
                 openURL(url);
                 handle->usageMonitor->userClickAction("Privacy policy", "Selectable",
-                                                       ImGui::GetCurrentWindow()->Name);
+                                                      ImGui::GetCurrentWindow()->Name);
             }
             isLinkHovered = ImGui::IsItemHovered();
             ImGui::PopStyleColor(4);
@@ -211,11 +213,11 @@ public:
             ImGui::Text("Do you grant us permission to log and collect anonymous usage statistics?");
             ImGui::Text("This option can always be changed in the settings tab");
             auto user = VkRender::RendererConfig::getInstance().getUserSetting();
-            static int radio_value =  user.userConsentToSendLogs;
-            bool update =  ImGui::RadioButton("Yes", &radio_value, 1);
+            static int radio_value = user.userConsentToSendLogs;
+            bool update = ImGui::RadioButton("Yes", &radio_value, 1);
             ImGui::SameLine();
             update |= ImGui::RadioButton("No", &radio_value, 0);
-            if (update){
+            if (update) {
                 user.userConsentToSendLogs = radio_value;
                 VkRender::RendererConfig::getInstance().setUserSetting(user);
                 handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
@@ -244,6 +246,11 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
+            if (handles->renderer3D){
+
+                return;
+            }
+
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags =
@@ -261,8 +268,7 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
         if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f))) {
             handles->showDebugWindow = !handles->showDebugWindow;
-            handles->usageMonitor->userClickAction("Settings", "button",ImGui::GetCurrentWindow()->Name);
-
+            handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
         }
         ImGui::PopStyleVar();
 
@@ -399,13 +405,15 @@ private:
         }
     }
 
-    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry, bool fromWindowsAutoConnect = false) {
+    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry,
+                              bool fromWindowsAutoConnect = false) {
         VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
         el.state = fromWindowsAutoConnect ? CRL_STATE_JUST_ADDED_WINDOWS : CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name, fromWindowsAutoConnect);
+        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
+                                         fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
         el.clicked = true;
@@ -624,9 +632,11 @@ private:
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
         ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
-        if (ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight))) {
+        if (ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight)) ||
+            handles->openAddDevicePopup) {
             ImGui::OpenPopup("add_device_modal");
             handles->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
+            handles->openAddDevicePopup = false;
         }
         ImGui::PopStyleColor();
     }
@@ -919,7 +929,8 @@ private:
                                           resultsComboIndex == n,
                                           ImGuiSelectableFlags_DontClosePopups,
                                           ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
-                        handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable", ImGui::GetCurrentWindow()->Name);
+                        handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable",
+                                                               ImGui::GetCurrentWindow()->Name);
 
                         resultsComboIndex = n;
                         entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished

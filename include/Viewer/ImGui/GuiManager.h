@@ -54,7 +54,8 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
-#include "ScriptUIAddons.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/LayerFactory.h"
 
 namespace VkRender {
     class GuiManager {
@@ -98,6 +99,15 @@ namespace VkRender {
         void pushLayer() {
             static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
             m_LayerStack.emplace_back(std::make_shared<T>())->onAttach();
+        }
+
+        void pushLayer(const std::string& layerName) {
+            auto layer = LayerFactory::createLayer(layerName);
+            if(layer) {
+                m_LayerStack.emplace_back(layer)->onAttach();
+            } else {
+                // Handle unknown layer case, e.g., throw an exception or log an error
+            }
         }
 
     private:

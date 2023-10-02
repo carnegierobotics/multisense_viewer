@@ -151,7 +151,7 @@ public:
 
                 ImGui::HelpMarker(
                         "Record the frames active in the preview window as format. A metadata file is generated into the record location.",
-                        true);
+                        VkRender::Colors::CRLTextWhite);
                 ImGui::SameLine();
                 ImGui::PushFont(handles->info->font13);
                 ImGui::Text("Export Video Frames as:");

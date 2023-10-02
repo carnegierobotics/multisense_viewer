@@ -188,6 +188,10 @@ namespace VkRender {
         /** @brief Display the debug window */
         bool showDebugWindow = false;
 
+        /** @brief Open the popup window */
+        bool openAddDevicePopup = false;
+        bool renderer3D = false;
+
 
         std::shared_ptr<UsageMonitor> usageMonitor;
         /** @brief if a new version has been launched by crl*/

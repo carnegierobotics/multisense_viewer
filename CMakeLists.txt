@@ -63,8 +63,10 @@ set(ENGINE_SRC
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/ScriptUIAddons.cpp
+        src/ImGui/LayerFactory.cpp
         src/Renderer/UsageMonitor.cpp
-        src/Core/RendererConfig.cpp src/Core/ServerConnection.cpp)
+        src/Core/RendererConfig.cpp
+        src/Core/ServerConnection.cpp)
 
 set(SCRIPTS_LIB_SRC
         src/Scripts/Objects/MultiSenseCamera.cpp

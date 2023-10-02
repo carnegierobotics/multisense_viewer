@@ -28,7 +28,13 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        /*
+        bool shouldDraw = true;
+        for (const auto& dev: handles->devices){
+            if (dev.state == CRL_STATE_ACTIVE)
+                shouldDraw = false;
+        }
+        if (!shouldDraw || handles->renderer3D)
+            return;
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags =
@@ -47,16 +53,24 @@ public:
         // So I should start drawing at winSize / 2 - 160.0f
         ImGui::SetCursorPos(ImVec2(winSize.x / 2.0f - 160.0f, winSize.y / 2.0f - 25.0f));
         ImGui::PushFont(handles->info->font15);
-        ImGui::Button("ADD DEVICE", btnSize);
+        if(ImGui::Button("ADD DEVICE", btnSize)){
+            handles->openAddDevicePopup = true;
+            handles->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
+        }
         ImGui::SameLine(0.0f, 20.0f);
-        ImGui::Button("3D RENDERER", btnSize);
+        if(ImGui::Button("3D RENDERER", btnSize)){
+            // Open 3D Renderer with a basic scene.
+            // Get rid of sidebar
+            //
+            handles->renderer3D = true;
+        }
         ImGui::PopFont();
         ImGui::End();
-
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
-        */
+
     }
+
 
     /** Called once upon this object destruction **/
     void onDetach() override {

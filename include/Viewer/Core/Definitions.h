@@ -411,7 +411,7 @@ namespace VkRender {
         char location[1024] = "Test site X";
         char recordDescription[1024] = "Offroad navigation";
         char equipmentDescription[1024] = "MultiSense mounted on X";
-        char camera[1024] = "MultiSense S30"; // TODO Fetch from con
+        char camera[1024] = "MultiSense S30";
         char collector[1024] = "John Doe";
         char tags[1024] = "self driving, test site x, multisense";
 

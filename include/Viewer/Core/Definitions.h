@@ -55,6 +55,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui.h>
+#include <json.hpp>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"
@@ -405,9 +406,22 @@ namespace VkRender {
 
 
     struct Metadata {
-        int custom = 1; // 1 True, 0 False
-        std::string field1;
-        std::string field2;
+        int custom = 0; // 1 True, 0 False
+        char logName[1024]  = "Log no. 1";
+        char location[1024] = "Test site X";
+        char recordDescription[1024] = "Offroad navigation";
+        char equipmentDescription[1024] = "MultiSense mounted on X";
+        char camera[1024] = "MultiSense S30"; // TODO Fetch from con
+        char collector[1024] = "John Doe";
+        char tags[1024] = "self driving, test site x, multisense";
+
+        char customField[1024 * 32] =
+                "road_type = Mountain Road\n"
+                "weather_conditions = Clear sky in the beginning, started to raind around midday followed by harsh winds\n"
+                "project_code = IRAD-2023\n\n\n\n";
+        /**@brief JSON object containing the above fields in JSON format if the custom metadata has been set */
+        nlohmann::json JSON = nullptr;
+        bool parsed = false;
     };
 
     struct RecordDataInfo{
@@ -428,8 +442,8 @@ namespace VkRender {
         bool imu = false;
 
         RecordDataInfo(){
-            frameSaveFolder.resize(255);
-            pointCloudSaveFolder.resize(255);
+            frameSaveFolder.resize(1024);
+            pointCloudSaveFolder.resize(1024);
         }
     };
     /**

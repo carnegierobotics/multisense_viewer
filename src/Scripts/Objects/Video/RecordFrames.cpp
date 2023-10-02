@@ -52,7 +52,7 @@ void RecordFrames::update() {
     bool shouldCreateThreadPool = saveImage || savePointCloud || saveIMUData;
     bool shouldResetThreadPool = !(saveImage || savePointCloud || saveIMUData);
 
-    if (shouldCreateThreadPool && threadPool == nullptr){
+    if (shouldCreateThreadPool && threadPool == nullptr) {
         Log::Logger::getInstance()->trace("Creating RecordFrames ThreadPool");
         threadPool = std::make_unique<VkRender::ThreadPool>(3);
     }
@@ -63,7 +63,7 @@ void RecordFrames::update() {
     if (saveIMUData)
         saveIMUDataToFile();
 
-    if (threadPool != nullptr && threadPool->getTaskListSize() == 0 && shouldResetThreadPool){
+    if (threadPool != nullptr && threadPool->getTaskListSize() == 0 && shouldResetThreadPool) {
         Log::Logger::getInstance()->trace("Resetting RecordFrames ThreadPool");
         threadPool.reset();
     }
@@ -95,33 +95,34 @@ void RecordFrames::saveImageToFile() {
             continue;
         }
 
-        // For each remote head index
-        for (crl::multisense::RemoteHeadChannel remoteIdx = crl::multisense::Remote_Head_0;
-             remoteIdx <=
-             (isRemoteHead ? crl::multisense::Remote_Head_3 : crl::multisense::Remote_Head_0); ++remoteIdx) {
-
-            const auto &conf = renderData.crlCamera->getCameraInfo(remoteIdx).imgConf;
+        {
+            const auto &conf = renderData.crlCamera->getCameraInfo(0).imgConf;
             auto tex = std::make_shared<VkRender::TextureData>(Utils::CRLSourceToTextureType(src), conf.width(),
                                                                conf.height(), false, true);
-
-
-            if (renderData.crlCamera->getCameraStream(src, tex.get(), remoteIdx)) {
-
+            if (renderData.crlCamera->getCameraStream(src, tex.get(), 0)) {
                 if (src == "Color Aux" || src == "Color Rectified Aux") {
                     if (tex->m_Id != tex->m_Id2)
                         continue;
                 }
-
                 if (threadPool->getTaskListSize() < MAX_IMAGES_IN_QUEUE) {
-                    Log::Logger::getInstance()->trace("Pushing task: saveImageToFile. ID: {}, Comp: {}", tex->m_Id, compression.c_str());
-                    threadPool->Push(saveImageToFileAsync, Utils::CRLSourceToTextureType(src), saveFolderImage, src,
-                                     remoteIdx, tex, isRemoteHead, compression);
+                    // Dont overwrite already saved images
+                    if (lastSavedImagesID[src] == tex->m_Id)
+                        continue;
+                    Log::Logger::getInstance()->trace("Pushing task: saveImageToFile. ID: {}, Comp: {}. Count: {}",
+                                                      tex->m_Id, compression.c_str(), saveImageCount[src]);
+                    threadPool->Push(saveImageToFileAsync,
+                                     Utils::CRLSourceToTextureType(src),
+                                     saveFolderImage,
+                                     src,
+                                     tex,
+                                     compression
+                    );
+                    lastSavedImagesID[src] = tex->m_Id;
+                    saveImageCount[src]++;
                     savedImageSourceCount[src]++;
                 } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
-                    Log::Logger::getInstance()->info("Record image queue is full. Starting to drop frames");
-
+                    Log::Logger::getInstance()->warning("Record image queue is full. Starting to drop frames");
                 }
-
             }
         }
     }
@@ -202,6 +203,8 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                     Log::Logger::getInstance()->trace("Added source {} to saved image counter in record frames",
                                                       window.second.selectedSource);
                     savedImageSourceCount[window.second.selectedSource] = 0;
+
+                    saveImageCount[window.second.selectedSource] = 0;
                 }
             }
 
@@ -223,6 +226,59 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         savePointCloud = dev.record.pointCloud;
         saveIMUData = dev.record.imu;
         useAuxColor = dev.useAuxForPointCloudColor == 1;
+
+        // If we stopped a saveImage process
+        if (!saveImage && prevSaveState) {
+            auto &json = dev.record.metadata.JSON;
+
+            std::string activeSources;
+            for (const auto &[key, value]: saveImageCount) {
+                activeSources += key + ",";
+                json["data_info"][key]["number_of_images"] = std::to_string(value);
+
+                std::string comp = compression;
+                if (compression == "tiff" && key.find("Color") != std::string::npos) {
+                    json["data_info"][key]["compression"] = "ppm";
+                    comp = "ppm";
+                } else {
+                    json["data_info"][key]["compression"] = dev.saveImageCompressionMethod;
+                }
+                json["paths"][key] =
+                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + comp + "/";
+                json["paths"]["timestamp_file"][key] =
+                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + "timestamps.csv";
+            }
+
+            // Find the latest occurrence of ","
+            size_t pos = activeSources.rfind(',');
+            // Check if "," was found
+            if (pos != std::string::npos) {
+                // Erase the ","
+                activeSources.erase(pos, 1);
+            }
+
+            json["data_info"]["sources"] = activeSources;
+            json["data_info"]["frames_per_second"] = dev.parameters.stereo.fps;
+
+
+            // Get todays date:
+            auto t = std::time(nullptr);
+            auto tm = *std::localtime(&t);
+            std::ostringstream oss;
+            oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+
+            json["data_info"]["session_end"] = oss.str();
+
+
+            std::filesystem::path saveFolder = dev.record.frameSaveFolder;
+            saveFolder.append("metadata.json");
+            std::ofstream file(saveFolder);
+            file << json.dump(4);  // 4 spaces as indentation
+            saveImageCount.clear();
+
+        }
+
+        prevSaveState = saveImage;
     }
 }
 
@@ -254,7 +310,7 @@ void RecordFrames::saveIMUDataToFileAsync(const std::filesystem::path &saveDirec
     if (gyroFile.is_open()) { // Check if the file was successfully opened
         for (const auto &g: gyro) {
             gyroFile << std::fixed << std::setprecision(6) << g.time << " "
-                      << g.x << " " << g.y << " " << g.z << std::endl;
+                     << g.x << " " << g.y << " " << g.z << std::endl;
         }
     }
 
@@ -360,34 +416,27 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
 }
 
 void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
-                                        crl::multisense::RemoteHeadChannel remoteHead,
-                                        std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead,
-                                        std::string &compression) {
+                                        std::shared_ptr<VkRender::TextureData> &ptr,
+                                        std::string &fileCompression) {
+
+
     // Create folders. One for each Source
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');
-    if (type == CRL_COLOR_IMAGE_YUV420 && compression != "png") {
-        compression = "ppm";
+    if (type == CRL_COLOR_IMAGE_YUV420 && fileCompression != "png") {
+        fileCompression = "ppm";
     }
 
-    if (isRemoteHead) {
-        saveDirectory = path + "/Head_" + std::to_string(remoteHead + 1) + "/" + stringSrc + "/" + compression + "/";
-    } else {
-        saveDirectory = path + "/" + stringSrc + "/" + compression + "/";
-    }
+    saveDirectory = path + "/" + stringSrc + "/" + fileCompression + "/";
+    std::filesystem::path fileLocation = saveDirectory.string() + std::to_string(ptr->m_Id) + "." + fileCompression;
 
-
-    std::filesystem::path fileLocation = saveDirectory.string() + std::to_string(ptr->m_Id) + "." + compression;
-    // Dont overwrite already saved images
-    if (std::filesystem::exists(fileLocation))
-        return;
     // Create folders if no exists
     if (!std::filesystem::is_directory(saveDirectory) ||
         !std::filesystem::exists(saveDirectory)) { // Check if src folder exists
         std::filesystem::create_directories(saveDirectory); // create src folder
     }
     // Create file
-    if (compression == "tiff" || compression == "ppm") {
+    if (fileCompression == "tiff" || fileCompression == "ppm") {
         switch (type) {
             case CRL_POINT_CLOUD:
                 break;
@@ -465,7 +514,7 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
                 Log::Logger::getInstance()->info("Recording not specified for this format");
                 break;
         }
-    } else if (compression == "png") {
+    } else if (fileCompression == "png") {
         switch (type) {
             case CRL_POINT_CLOUD:
                 break;
@@ -562,7 +611,18 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
                 break;
         }
     }
-
+    // Open the CSV file in append mode
+    auto timestampFile = fileLocation.parent_path().parent_path() / "timestamps.csv";
+    std::ofstream csvFile(timestampFile, std::ios_base::app);
+    // Check if the file opened successfully
+    if (!csvFile.is_open()) {
+        std::cerr << "Failed to open timestamps.csv for writing." << std::endl;
+        return;
+    }
+    // Write the filename and timestamps to the CSV file
+    csvFile << fileLocation.filename() << "," << ptr->m_TimeSeconds << "." << ptr->m_TimeMicroSeconds << std::endl;
+    // Close the file (optional, as the destructor would do this)
+    csvFile.close();
 }
 
 

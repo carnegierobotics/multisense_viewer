@@ -143,6 +143,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getCalibrationTask");
             pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath,
                        dev->configRemoteHead, &dev->parameters.calib.saveFailed);
+            dev->parameters.calib.save = false;
         }
         // Set the correct resolution. Will only update if changed.
 
@@ -556,9 +557,11 @@ namespace VkRender::MultiSense {
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;
         const auto &cInfo = camPtr.getCameraInfo(0).versionInfo;
+        const auto &dInfo = camPtr.getCameraInfo(0).devInfo;
 
         info.firmwareBuildDate = cInfo.sensorFirmwareBuildDate;
         info.firmwareVersion = cInfo.sensorFirmwareVersion;
+        info.serialNumber = dInfo.serialNumber;
         info.apiBuildDate = cInfo.apiBuildDate;
         info.apiVersion = cInfo.apiVersion;
         info.hardwareMagic = cInfo.sensorHardwareMagic;

@@ -209,6 +209,8 @@ namespace VkRender::MultiSense {
             return false;
         }
 
+        tex->m_TimeSeconds = header->data().timeSeconds;
+        tex->m_TimeMicroSeconds = header->data().timeMicroSeconds;
         switch (tex->m_Type) {
             case CRL_COLOR_IMAGE_YUV420: {
                 if (headerTwo->data().source != src ||
@@ -275,7 +277,7 @@ namespace VkRender::MultiSense {
                 }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
                 std::memcpy(tex->data, header->data().imageDataP, header->data().imageLength);
-// Copy extra zeros (black pixels) to the bottom row if heights does not match
+                // Copy extra zeros (black pixels) to the bottom row if heights does not match
                 if (tex->m_Height != header->data().height) {
                     uint32_t diff = tex->m_Height - header->data().height;
                     std::memset(tex->data + header->data().imageLength, 0x00, diff * tex->m_Width);

@@ -95,61 +95,56 @@ public:
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
             ImGui::PopStyleColor();
 
-            static char logName[1024] = "Log no. 1";
-            addInputLine("Log name: ", textPadding, textInputPadding, centerWidth, logName);
+            addInputLine("Log name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.logName);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-
-            static char location[1024] = "Test site X";
-            addInputLine("Location: ", textPadding, textInputPadding, centerWidth, location);
+            addInputLine("Location: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.location);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-
-            static char description[1024] = "Offroad navigation";
-            addInputLine("Description: ", textPadding, textInputPadding, centerWidth, description);
+            addInputLine("Description: ", textPadding, textInputPadding, centerWidth,
+                         dev->record.metadata.recordDescription);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-
-            static char equipment[1024] = "MultiSense mounted on X";
-            addInputLine("Equipment Description: ", textPadding, textInputPadding, equipment);
+            addInputLine("Equipment Description: ", textPadding, textInputPadding, centerWidth,
+                         dev->record.metadata.equipmentDescription);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-
-            static char camera[1024] = "MultiSense S30"; // TODO Fetch from connection profile
-            addInputLine("Camera name: ", textPadding, textInputPadding, centerWidth, camera);
+            addInputLine("Camera name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.camera);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-
-            static char collector[1024] = "John Doe";
-            addInputLine("Collector name: ", textPadding, textInputPadding, centerWidth, collector);
+            addInputLine("Collector name: ", textPadding, textInputPadding, centerWidth,
+                         dev->record.metadata.collector);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
+            addInputLine("Tags: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.tags);
 
-            static char tags[1024] = "self driving, test site x, multisense";
-            addInputLine("Tags: ", textPadding, textInputPadding, centerWidth, tags);
-
+            ImGui::Dummy(ImVec2(0.0f, 25.0f));
 
             std::string txtLabel = "Custom input field";
             ImGui::Dummy(ImVec2(centerWidth - ImGui::CalcTextSize(txtLabel.c_str()).x / 2.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::Text(txtLabel.c_str());
+            ImGui::Text("%s", txtLabel.c_str());
             ImGui::SameLine();
             ImGui::HelpMarker(
                     "Custom input field in JSON format. Use Key=Value such as in the examples below. The '=' symbol is reserved as separator Put each new entry on a newline");
-            static char text[1024 * 16] =
-                    "road_type = Mountain Road\n"
-                    "weather_conditions = Clear sky in the beginning, started to raind around midday followed by harsh winds\n"
-                    "project_code = IRAD-2023\n\n\n\n";
+
+            ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
             static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
             ImGui::Dummy(ImVec2(textPadding / 2.0f, 0.0f));
             ImGui::SameLine();
 
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-            ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text),
+            ImGui::InputTextMultiline("##source", dev->record.metadata.customField,
+                                      IM_ARRAYSIZE(dev->record.metadata.customField),
                                       ImVec2(handles->info->metadataWidth - textPadding,
                                              ImGui::GetTextLineHeight() * 10), flags);
-            ImGui::PopStyleColor();
 
             ImGui::PopStyleVar();
-            ImGui::SetCursorPos(ImVec2(handles->info->metadataWidth / 2.0f, handles->info->metadataHeight - 50.0f));
-            if (ImGui::Button("Set"))
-                ImGui::CloseCurrentPopup();
+            ImVec2 btnSize(150.0f, 30.0f);
+            ImGui::SetCursorPos(ImVec2((handles->info->metadataWidth / 2.0f) - (btnSize.x / 2),
+                                       handles->info->metadataHeight - 50.0f));
 
+            if (ImGui::Button("Set", btnSize)) {
+                if(Utils::parseMetadataToJSON(dev));
+                    ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::PopStyleColor();
             ImGui::EndPopup();
         }
         ImGui::PopFont();
@@ -157,11 +152,13 @@ public:
         ImGui::PopStyleVar(5); // popup style vars
     }
 
-    void addInputLine(std::string description, const float& textPadding, const float& textInputPadding, const float& centerWidth, char* buffer){
+
+    void addInputLine(std::string description, const float &textPadding, const float &textInputPadding,
+                      const float &centerWidth, char *buffer) {
         ImGui::Dummy(ImVec2(textPadding, 0.0f));
         ImGui::SameLine();
         std::string label = description;
-        ImGui::Text(label.c_str());
+        ImGui::Text("%s", label.c_str());
         ImGui::SameLine(0.0f, textInputPadding - ImGui::CalcTextSize(label.c_str()).x);
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
         ImGui::SetNextItemWidth(centerWidth - (textPadding / 2.0f));
@@ -171,6 +168,7 @@ public:
 
 
     }
+
     /** Called once upon this object destruction **/
     void onDetach() override {
 

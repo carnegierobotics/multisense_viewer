@@ -133,11 +133,16 @@ public:
 
         // Draw Recording options
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
+        ImGui::PushStyleColor(ImGuiCol_Header, VkRender::Colors::CRLRedTransparent);
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, VkRender::Colors::CRLRedActive);
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, VkRender::Colors::CRLRedHover);
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
         float windowPaddingLeft = 25.0f;
         {
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 1.0f);
+            //ImGui::PushFont(handles->info->font15);
             if (ImGui::CollapsingHeader("Recording", 0)) {
+                ImGui::PushFont(handles->info->font13);
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
                 ImGui::BeginChild("Recording_child", ImVec2(0.0f, 175.0f));
                 ImGui::Dummy(ImVec2(5.0f, 10.0f));
@@ -304,12 +309,25 @@ public:
                 }
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
+                ImGui::PopFont();
 
                 ImGui::EndChild();
             }
+            //ImGui::PopFont();
+
+            /** Next feature header here... **/
+            /*
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 1.0f);
+            if (ImGui::CollapsingHeader("Other", 0)){
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
+                ImGui::BeginChild("Other_child", ImVec2(0.0f, 150.0f));
+
+                ImGui::EndChild();
+            }
+             */
         }
 
-        ImGui::PopStyleColor();
+        ImGui::PopStyleColor(4);
         ImGui::PopStyleVar();
     }
 

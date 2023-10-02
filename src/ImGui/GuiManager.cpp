@@ -49,6 +49,7 @@
 #include "Viewer/ImGui/LayerExample.h"
 #include "Viewer/ImGui/SideBar.h"
 #include "Viewer/ImGui/MainLayer.h"
+#include "Viewer/ImGui/WelcomeScreen.h"
 #include "Viewer/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/ImGui/AdditionalWindows/CustomMetadata.h"
@@ -85,6 +86,7 @@ namespace VkRender {
         initializeFonts();
 
         pushLayer<SideBar>();
+        pushLayer<WelcomeScreen>();
         pushLayer<MainLayer>();
         pushLayer<LayerExample>();
         pushLayer<DebugWindow>();

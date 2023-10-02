@@ -287,6 +287,7 @@ public:
                     std::string res;
 
                     ImGui::Text("Device: %s", met->device.dev->cameraName.c_str());
+                    ImGui::Text("Serial Number: %s", met->device.info.serialNumber.c_str());
                     ImGui::Text("API build date: %s", met->device.info.apiBuildDate.c_str());
 
                     ImGui::Text("API version: 0x%s", fmt::format("{:x}", met->device.info.apiVersion).c_str());

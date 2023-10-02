@@ -113,6 +113,7 @@ namespace Log {
                 std::string apiBuildDate;
                 uint32_t apiVersion;
                 std::string firmwareBuildDate;
+                std::string serialNumber;
                 uint32_t firmwareVersion;
                 uint64_t hardwareVersion;
                 uint64_t hardwareMagic;
@@ -157,6 +158,7 @@ namespace Log {
         static Metrics *getLogMetrics() noexcept;
 
         void errorInternal(const char *text) noexcept;
+        void fatalInternal(const char *text) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
      * @refitem @FormatString Is used to obtain m_Name of calling func, file and line number as default parameter */
@@ -168,6 +170,16 @@ namespace Log {
         void verror(const FormatString &format, fmt::format_args args) {
             errorInternal(prepareMessage(format, args, frameNumber).c_str());
         }
+
+        template<typename... Args>
+        void fatal(const FormatString &format, Args &&... args) {
+            vfatal(format, fmt::make_format_args(args...));
+        }
+
+        void vfatal(const FormatString &format, fmt::format_args args) {
+            fatalInternal(prepareMessage(format, args, frameNumber).c_str());
+        }
+
 
         void warningInternal(const char *text) noexcept;
 

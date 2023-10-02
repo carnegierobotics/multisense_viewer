@@ -89,7 +89,9 @@ public:
     bool savePointCloud = false;
     bool saveIMUData = false;
     bool saveImage = false;
+    bool prevSaveState = false;
     bool isRemoteHead = false;
+
     std::string saveFolderImage;
     std::filesystem::path saveFolderPointCloud;
     std::filesystem::path saveFolderIMUData;
@@ -103,6 +105,8 @@ public:
 
     std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
     std::unordered_map<std::string, uint32_t> savedImageSourceCount;
+    std::unordered_map<std::string, uint32_t> saveImageCount;
+    std::unordered_map<std::string, uint32_t> lastSavedImagesID;
 
 
     template<typename T>
@@ -140,8 +144,9 @@ public:
                const uint32_t &height, uint8_t *output);
 
     static void
-    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
-                    std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
+    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
+                         std::shared_ptr<VkRender::TextureData> &ptr,
+                         std::string &compression);
 
     void
     static savePointCloudToPlyFile(const std::filesystem::path& saveDirectory,

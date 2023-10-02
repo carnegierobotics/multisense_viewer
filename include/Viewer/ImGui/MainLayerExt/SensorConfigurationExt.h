@@ -64,7 +64,7 @@ public:
             ImGui::PopFont();
 
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLBlueIsh);
-            ImGui::SameLine(0, 135.0f);
+            ImGui::SameLine(0, 60.0f);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
             ImGui::Text("Hold left ctrl to type in values");
             ImGui::PopStyleColor();

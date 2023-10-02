@@ -141,7 +141,8 @@ public:
                 ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
                 ImGui::BeginChild("Recording_child", ImVec2(0.0f, 175.0f));
                 ImGui::Dummy(ImVec2(5.0f, 10.0f));
-                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                ImGui::SameLine();
 
                 ImGui::HelpMarker(
                         "Record the frames active in the preview window as format. A metadata file is generated into the record location.",
@@ -160,10 +161,10 @@ public:
 
                 /** @brief Drop down for compression selection */
                 {
-                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag 2.0"};
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
                     static size_t selector = 0;
 
-                    ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
+                    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
                     if (ImGui::BeginCombo("##Compression", saveFormat[selector].c_str(),
                                           ImGuiComboFlags_HeightSmall)) {
                         for (size_t n = 0; n < saveFormat.size(); n++) {
@@ -184,7 +185,9 @@ public:
                     }
                 }
 
-                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f));
+                ImGui::SameLine();
                 /// Record Location Button and file dialog
                 {
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
@@ -201,10 +204,12 @@ public:
 
                     ImGui::SameLine();
 
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, (btnSize.y / 2) - (ImGui::CalcTextSize("size").y) + 6));
-                    ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+                                        ImVec2(4.0f, (btnSize.y / 2) - (ImGui::CalcTextSize("size").y) + 6));
+                    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);
                     ImGui::PushStyleColor(ImGuiCol_TextDisabled, VkRender::Colors::CRLTextWhiteDisabled);
-                    ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.record.frameSaveFolder, ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::CustomInputTextWithHint("##SaveFolderLocation", hint.c_str(), &dev.record.frameSaveFolder,
+                                                   ImGuiInputTextFlags_AutoSelectAll);
                     ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
 
@@ -228,7 +233,9 @@ public:
                     ImGui::PopStyleColor();
                 }
                 /// RADIOBUTTONS
-                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f));
+                ImGui::SameLine();
 
                 {
 
@@ -240,8 +247,11 @@ public:
                     };
                 }
 
+
                 if (dev.record.metadata.custom) {
-                    ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                    ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f));
+                    ImGui::SameLine();
                     if (ImGui::Button("Set custom metadata", btnSize)) {
                         dev.record.showCustomMetaDataWindow = true;
                     }
@@ -251,12 +261,46 @@ public:
                     ImGui::EndDisabled();
                 }
 
-                ImGui::Dummy(ImVec2(0.0f, 0.0f)); ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f)); ImGui::SameLine();
+                // Check if the user has set a filepath
+                if (strlen(dev.record.frameSaveFolder.c_str()) <= 0) {
+                    ImGui::BeginDisabled();
+                }
+
+
+                ImGui::Dummy(ImVec2(0.0f, 0.0f));
+                ImGui::Dummy(ImVec2(windowPaddingLeft, 0.0f));
+                ImGui::SameLine();
                 std::string btnText = dev.record.frame ? "Stop" : "Start";
                 if (ImGui::Button(btnText.c_str(), btnSize) && dev.record.frameSaveFolder != "/Path/To/Folder/") {
                     dev.record.frame = !dev.record.frame;
                     handles->usageMonitor->userClickAction(btnText, "Button", ImGui::GetCurrentWindow()->Name);
 
+                    // If start write the metadata contents to file and push save calibration task
+                    if (btnText == "Start") {
+                        dev.record.metadata.JSON.clear();
+                        if (dev.record.metadata.custom)
+                            Utils::parseCustomMetadataToJSON(&dev);
+                        else
+                            Utils::parseMetadataToJSON(&dev);
+
+                        dev.parameters.calib.save = true;
+                        dev.parameters.calib.saveCalibrationPath = dev.record.frameSaveFolder;
+                        writeJSON(dev);
+                    }
+                }
+
+                // Check if the user has set a filepath
+                if (strlen(dev.record.frameSaveFolder.c_str()) > 0 && !dev.record.frame) {
+                    if (!std::filesystem::is_empty(dev.record.frameSaveFolder)) {
+                        ImGui::SameLine();
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::TextRedColor);
+                        ImGui::Text("Record folder is not empty");
+                        ImGui::PopStyleColor();
+                    }
+                }
+                // Check if the user has input something
+                if (strlen(dev.record.frameSaveFolder.c_str()) <= 0) {
+                    ImGui::EndDisabled();
                 }
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
@@ -267,6 +311,17 @@ public:
 
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
+    }
+
+    void writeJSON(VkRender::Device &dev) {
+        // Write JSON to file (using nlohmann/json)
+        if (dev.record.metadata.parsed) {
+            std::filesystem::path saveFolder = dev.record.frameSaveFolder;
+            saveFolder.append("metadata.json");
+            std::ofstream file(saveFolder);
+            file << dev.record.metadata.JSON.dump(4);  // 4 spaces as indentation
+            Log::Logger::getInstance()->info("Wrote metadata JSON to file {}", saveFolder.c_str());
+        }
     }
 
     /** Called once upon this object destruction **/

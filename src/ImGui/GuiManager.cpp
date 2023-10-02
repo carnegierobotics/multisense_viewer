@@ -280,7 +280,7 @@ namespace VkRender {
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
         style.Colors[ImGuiCol_PopupBg] = VkRender::Colors::CRLDarkGray425;
         style.Colors[ImGuiCol_WindowBg] = VkRender::Colors::CRLDarkGray425;
-        style.Colors[ImGuiCol_FrameBg] = VkRender::Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_FrameBg] = VkRender::Colors::CRLFrameBG;
         style.Colors[ImGuiCol_Tab] = VkRender::Colors::CRLRed;
         style.Colors[ImGuiCol_TabActive] = VkRender::Colors::CRLRedActive;
         style.Colors[ImGuiCol_TabHovered] = VkRender::Colors::CRLRedHover;

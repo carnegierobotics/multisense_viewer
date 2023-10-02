@@ -56,7 +56,7 @@ int main() {
         Log::Logger::getInstance()->trace("Cleanup took {}s", timeSpan.count());
 
     } catch (std::runtime_error& e){
-        Log::Logger::getInstance()->error("Caught exception! RuntimeError: {}", e.what());
+        Log::Logger::getInstance()->fatal("RuntimeError: {}", e.what());
         app.cleanUp();
     }
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");

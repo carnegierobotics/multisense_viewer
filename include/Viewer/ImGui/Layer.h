@@ -73,6 +73,7 @@ namespace VkRender {
         static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
         static const ImVec4 CRLFrameBG(0.196f, 0.2392f, 0.2588f, 1.0f);
         static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+        static const ImVec4 CRLRedTransparent(0.768f, 0.125f, 0.203f, 0.85f);
         static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
         static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
         static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
@@ -147,7 +148,7 @@ namespace VkRender {
         /** @brief Width of popupModal*/
         float metadataWidth = 700.0f;
         /** @brief Width of popupModal*/
-        float metadataHeight = 550.0f;
+        float metadataHeight = 600.0f;
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/

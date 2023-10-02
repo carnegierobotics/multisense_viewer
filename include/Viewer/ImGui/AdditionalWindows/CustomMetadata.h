@@ -66,7 +66,7 @@ public:
             float width = handles->info->metadataWidth;
             float centerWidth = handles->info->metadataWidth / 2.0f;
             float textPadding = 50.0f;
-            float textInputPadding = centerWidth - textPadding;
+            float textInputPadding = centerWidth - textPadding - 110.0f;
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
             ImVec2 headerPosMax = popupDrawPos;
@@ -95,23 +95,24 @@ public:
             ImGui::Dummy(ImVec2(0.0f, 30.0f));
             ImGui::PopStyleColor();
 
-            addInputLine("Log name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.logName);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 6.0f));
+            addInputLine(handles, "Log name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.logName);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Location: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.location);
+            addInputLine(handles, "Location: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.location);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Description: ", textPadding, textInputPadding, centerWidth,
+            addInputLine(handles, "Description: ", textPadding, textInputPadding, centerWidth,
                          dev->record.metadata.recordDescription);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Equipment Description: ", textPadding, textInputPadding, centerWidth,
+            addInputLine(handles, "Equipment Description: ", textPadding, textInputPadding, centerWidth,
                          dev->record.metadata.equipmentDescription);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Camera name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.camera);
+            addInputLine(handles, "Camera name: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.camera);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Collector name: ", textPadding, textInputPadding, centerWidth,
+            addInputLine(handles, "Collector name: ", textPadding, textInputPadding, centerWidth,
                          dev->record.metadata.collector);
             ImGui::Dummy(ImVec2(0.0f, 15.0f));
-            addInputLine("Tags: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.tags);
-
+            addInputLine(handles, "Tags: ", textPadding, textInputPadding, centerWidth, dev->record.metadata.tags);
+            ImGui::PopStyleVar();
             ImGui::Dummy(ImVec2(0.0f, 25.0f));
 
             std::string txtLabel = "Custom input field";
@@ -121,7 +122,6 @@ public:
             ImGui::SameLine();
             ImGui::HelpMarker(
                     "Custom input field in JSON format. Use Key=Value such as in the examples below. The '=' symbol is reserved as separator Put each new entry on a newline");
-
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
             static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
@@ -153,7 +153,7 @@ public:
     }
 
 
-    void addInputLine(std::string description, const float &textPadding, const float &textInputPadding,
+    void addInputLine(VkRender::GuiObjectHandles *handles, std::string description, const float &textPadding, const float &textInputPadding,
                       const float &centerWidth, char *buffer) {
         ImGui::Dummy(ImVec2(textPadding, 0.0f));
         ImGui::SameLine();
@@ -161,10 +161,12 @@ public:
         ImGui::Text("%s", label.c_str());
         ImGui::SameLine(0.0f, textInputPadding - ImGui::CalcTextSize(label.c_str()).x);
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-        ImGui::SetNextItemWidth(centerWidth - (textPadding / 2.0f));
+        ImGui::SetNextItemWidth(centerWidth - (textPadding / 2.0f) + 110.0f);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.0f);
+        ImGui::PushFont(handles->info->font13);
         ImGui::InputText(("##" + description).c_str(), buffer, 1024, 0);
         ImGui::PopStyleColor();
+        ImGui::PopFont();
 
 
     }

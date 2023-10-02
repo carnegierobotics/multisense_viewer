@@ -176,7 +176,7 @@ public:
         if (type != arcball)
             return;
 
-        m_Position = m_Position * std::abs((f));
+        m_Position.z *= std::abs((f));
         // reset angles to we dont accidently rotate around our last angle
         xAngle = 0.0f;
         yAngle = 0.0f;

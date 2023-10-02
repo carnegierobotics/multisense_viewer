@@ -941,6 +941,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.right) {
+        camera.translate(glm::vec3((float) -dx * 0.0025f, (float) -dy * 0.0025f, 0.0f));
     }
     if (mouseButtons.middle && camera.type == Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));

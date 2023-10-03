@@ -164,8 +164,6 @@ namespace VkRender {
 
             if (renderData.crlCamera != nullptr)
                 update();
-            if (renderData.type == CRL_SCRIPT_TYPE_RENDERER3D)
-                update();
 
             VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
             if (renderData.type != CRL_SCRIPT_TYPE_DISABLED) {

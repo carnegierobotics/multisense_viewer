@@ -223,7 +223,9 @@ typedef enum ScriptWidgetType {
     WIDGET_INT_SLIDER = 1,
     WIDGET_INPUT_NUMBER = 2,
     WIDGET_TEXT = 3,
-    WIDGET_CHECKBOX = 4
+    WIDGET_CHECKBOX = 4,
+    WIDGET_INPUT_TEXT = 5,
+    WIDGET_BUTTON = 6,
 } ScriptWidgetType;
 
 /**

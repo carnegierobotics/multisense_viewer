@@ -7,6 +7,7 @@
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
+#include "Viewer/ModelLoaders/CustomModels.h"
 
 
 class Main3D: public VkRender::Base, public VkRender::RegisteredInFactory<Main3D>
@@ -49,10 +50,47 @@ public:
     DrawMethod drawMethod = CRL_SCRIPT_DRAW;
 
     std::unique_ptr<GLTFModel::Model> KS21;
+    std::unique_ptr<CustomModels> Grid;
+
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
     } lightSource;
+
+    char buf[1024] = "/home/magnus/crl/disparity_quality/processed_data/positions_df.csv";
+    bool play = false;
+    bool stop = false;
+    bool restart = false;
+
+    struct Data {
+        std::chrono::system_clock::time_point timePoint;
+        std::chrono::duration<double> duration;
+        std::string timestamp;
+        float x, y, z;
+    };
+
+    std::vector<Data> entries;
+    std::chrono::steady_clock::time_point lastPrintedTime;
+    size_t entryIdx = 0;
+
+    std::chrono::system_clock::time_point convertToTimePoint(const std::string& timestamp) {
+        std::tm tm = {};
+        int nanoseconds;
+
+        // Parse the main timestamp without milliseconds
+        std::istringstream ss(timestamp);
+        ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+        // Skip the dot and parse milliseconds
+        ss.ignore();
+        ss >> nanoseconds;
+
+        // Convert to time_point and add the nanoseconds
+        auto timePointWithoutMs = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+        return timePointWithoutMs + std::chrono::nanoseconds(nanoseconds);
+    }
+
+
 };
 
 

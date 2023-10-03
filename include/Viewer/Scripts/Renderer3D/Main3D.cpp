@@ -3,7 +3,8 @@
 //
 
 #include "Viewer/Scripts/Renderer3D/Main3D.h"
-
+#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 void Main3D::setup() {
 
@@ -17,6 +18,16 @@ void Main3D::setup() {
                        renderUtils.device->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
 
+    Grid = std::make_unique<CustomModels>(&renderUtils);
+    VkRender::ScriptUtils::ImageData imgData{};
+    Grid->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+
+    Widgets::make()->inputText("Renderer3D", "##File: ", buf);
+    Widgets::make()->button("Renderer3D", "Play", &play);
+    Widgets::make()->button("Renderer3D", "Stop", &stop);
+    Widgets::make()->button("Renderer3D", "Restart", &restart);
+
+    lastPrintedTime = std::chrono::steady_clock::now();
 
 }
 
@@ -24,11 +35,41 @@ void Main3D::setup() {
 void Main3D::update() {
     auto &d = bufferOneData;
 
+    if (stop)
+        entries.clear();
 
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+    if (play){
+        std::filesystem::path path(buf);
+        std::ifstream file(path);
+        std::string line;
+
+        // Skip header
+        std::getline(file, line);
+
+
+        while (std::getline(file, line)) {
+            std::istringstream ss(line);
+            Data entry;
+
+            std::getline(ss, entry.timestamp, ',');
+            entry.timePoint = convertToTimePoint(entry.timestamp);
+            ss >> entry.x;
+            ss.ignore();  // ignore comma
+            ss >> entry.y;
+            ss.ignore();  // ignore comma
+            ss >> entry.z;
+
+            entries.push_back(entry);
+        }
+
+        for (size_t i = 1; i < entries.size(); ++i) {
+            entries[i].duration = entries[i].timePoint - entries[i-1].timePoint;
+        }
+        entries[0].duration = std::chrono::nanoseconds (0);  // First entry has no prior timestamp
+    }
+
+
+
 
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -59,6 +100,34 @@ void Main3D::update() {
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
+
+
+    if (!entries.empty() && entryIdx < entries.size()){
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsedSinceLastPrint = now - lastPrintedTime;
+
+        if (elapsedSinceLastPrint >= entries[entryIdx].duration) {
+            // Print the entry
+            std::cout << "Timestamp: " << entries[entryIdx].timePoint.time_since_epoch().count()
+                      << ", x: " << entries[entryIdx].x
+                      << ", y: " << entries[entryIdx].y
+                      << ", z: " << entries[entryIdx].z << std::endl;
+            float x = entries[entryIdx].x / 10.0f;
+            float y = entries[entryIdx].z / 10.0f;
+            float z = entries[entryIdx].y / 10.0f;
+
+            d->model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
+            d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+
+            lastPrintedTime = now;
+            entryIdx++;
+        }
+
+    }
+
+
 
 }
 

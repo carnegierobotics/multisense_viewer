@@ -57,6 +57,7 @@ set(ENGINE_SRC
         src/CRLCamera/CRLPhysicalCamera.cpp
         src/ImGui/GuiManager.cpp
         src/ModelLoaders/CRLCameraModels.cpp
+        src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp

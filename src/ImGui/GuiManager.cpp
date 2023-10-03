@@ -79,9 +79,9 @@ namespace VkRender {
 
         initializeFonts();
 
-        pushLayer("WelcomeScreen");
-        pushLayer("SideBar");
-        pushLayer("Renderer3D");
+        pushLayer("WelcomeScreenLayer");
+        pushLayer("SideBarLayer");
+        pushLayer("Renderer3DLayer");
         pushLayer("MainLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");

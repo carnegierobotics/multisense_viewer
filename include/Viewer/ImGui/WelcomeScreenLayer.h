@@ -2,8 +2,8 @@
 // Created by magnus on 10/2/23.
 //
 
-#ifndef MULTISENSE_VIEWER_WELCOMESCREEN_H
-#define MULTISENSE_VIEWER_WELCOMESCREEN_H
+#ifndef MULTISENSE_VIEWER_WELCOMESCREENLAYER_H
+#define MULTISENSE_VIEWER_WELCOMESCREENLAYER_H
 
 
 #include "Viewer/ImGui/Layer.h"
@@ -12,7 +12,7 @@
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-class WelcomeScreen : public VkRender::Layer {
+class WelcomeScreenLayer : public VkRender::Layer {
 public:
 
 
@@ -81,4 +81,4 @@ public:
 DISABLE_WARNING_POP
 
 
-#endif //MULTISENSE_VIEWER_WELCOMESCREEN_H
+#endif //MULTISENSE_VIEWER_WELCOMESCREENLAYER_H

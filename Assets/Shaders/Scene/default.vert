@@ -29,7 +29,7 @@ vec3 UnprojectPoint(float x, float y, float z, mat4 view, mat4 projection) {
 // normal vertice projection
 void main() {
     near = 0.01;
-    far = 1000;
+    far = 100;
     fragProj = view.projection;
     fragView = view.view;
     vec3 p = inPos;

@@ -79,9 +79,9 @@ namespace VkRender {
 
         initializeFonts();
 
-        pushLayer("WelcomeScreen");
-        pushLayer("SideBar");
-        pushLayer("Renderer3D");
+        pushLayer("WelcomeScreenLayer");
+        pushLayer("SideBarLayer");
+        pushLayer("Renderer3DLayer");
         pushLayer("MainLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");
@@ -351,7 +351,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleState =
                 Populate
-                ::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+                ::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_8_BIT);
 
         std::vector<VkDynamicState> dynamicStateEnables = {
                 VK_DYNAMIC_STATE_VIEWPORT,

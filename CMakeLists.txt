@@ -57,6 +57,7 @@ set(ENGINE_SRC
         src/CRLCamera/CRLPhysicalCamera.cpp
         src/ImGui/GuiManager.cpp
         src/ModelLoaders/CRLCameraModels.cpp
+        src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp
@@ -85,7 +86,8 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Objects/Video/Previews/Quad/Three.cpp
         include/Viewer/Scripts/Objects/Video/Previews/Quad/Four.cpp
         include/Viewer/Scripts/Objects/SceneGizmos/Skybox.cpp
-        include/Viewer/Scripts/Private/ScriptUtils.h)
+        include/Viewer/Scripts/Private/ScriptUtils.h
+        include/Viewer/Scripts/Renderer3D/Grid.cpp)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;")
 

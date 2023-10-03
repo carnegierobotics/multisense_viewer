@@ -177,6 +177,7 @@ namespace VkRender {
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
+        msaaSamples = getMaxUsableSampleCount();
         VkPhysicalDeviceSamplerYcbcrConversionFeatures features;
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
         features.pNext = nullptr;
@@ -252,6 +253,9 @@ namespace VkRender {
         vkDestroyImage(device, depthStencil.image, nullptr);
         vkDestroyImageView(device, depthStencil.view, nullptr);
         vkFreeMemory(device, depthStencil.mem, nullptr);
+        vkDestroyImage(device, colorImage.image, nullptr);
+        vkDestroyImageView(device, colorImage.view, nullptr);
+        vkFreeMemory(device, colorImage.mem, nullptr);
         vkDestroyCommandPool(device, cmdPool, nullptr);
         for (auto &fence: waitFences) {
             vkDestroyFence(device, fence, nullptr);
@@ -301,7 +305,7 @@ namespace VkRender {
         imageCI.extent = {m_Width, m_Height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.samples = msaaSamples;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -339,7 +343,8 @@ namespace VkRender {
 
     void VulkanRenderer::setupMainFramebuffer() {
         // Depth/Stencil attachment is the same for all frame buffers
-        std::array<VkImageView, 2> attachments{};
+        std::array<VkImageView, 3> attachments{};
+        attachments[0] = colorImage.view;
         attachments[1] = depthStencil.view;
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
                                                                                         attachments.data(),
@@ -347,7 +352,7 @@ namespace VkRender {
                                                                                         renderPass);
         frameBuffers.resize(swapchain->imageCount);
         for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-            attachments[0] = swapchain->buffers[i].view;
+            attachments[2] = swapchain->buffers[i].view;
             VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
         }
@@ -355,25 +360,42 @@ namespace VkRender {
 
     void VulkanRenderer::setupRenderPass() {
         {
-            std::array<VkAttachmentDescription, 2> attachments{};
+            VkAttachmentDescription colorAttachment{};
             // Color attachment
-            attachments[0].format = swapchain->colorFormat;
-            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            colorAttachment.format = swapchain->colorFormat;
+            colorAttachment.samples = msaaSamples;
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             // Depth attachment
-            attachments[1].format = depthFormat;
-            attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            VkAttachmentDescription depthAttachment{};
+            depthAttachment.format = depthFormat;
+            depthAttachment.samples = msaaSamples;
+            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+            VkAttachmentDescription colorAttachmentResolve{};
+            colorAttachmentResolve.format = swapchain->colorFormat;
+            colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+            colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+            VkAttachmentReference colorAttachmentResolveRef{};
+            colorAttachmentResolveRef.attachment = 2;
+            colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+            std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
 
             VkAttachmentReference colorReference{};
             colorReference.attachment = 0;
@@ -392,7 +414,7 @@ namespace VkRender {
             subpassDescription.pInputAttachments = nullptr;
             subpassDescription.preserveAttachmentCount = 0;
             subpassDescription.pPreserveAttachments = nullptr;
-            subpassDescription.pResolveAttachments = nullptr;
+            subpassDescription.pResolveAttachments = &colorAttachmentResolveRef;
 
             // Subpass dependencies for layout transitions
             std::array<VkSubpassDependency, 2> dependencies{};
@@ -552,6 +574,7 @@ namespace VkRender {
         createCommandPool();
         createCommandBuffers();
         createSynchronizationPrimitives();
+        createColorResources();
         setupDepthStencil();
         setupRenderPass();
         createPipelineCache();
@@ -593,6 +616,11 @@ namespace VkRender {
         vkDestroyImageView(device, depthStencil.view, nullptr);
         vkDestroyImage(device, depthStencil.image, nullptr);
         vkFreeMemory(device, depthStencil.mem, nullptr);
+        vkDestroyImageView(device, colorImage.view, nullptr);
+        vkDestroyImage(device, colorImage.image, nullptr);
+        vkFreeMemory(device, colorImage.mem, nullptr);
+
+        createColorResources();
         setupDepthStencil();
         for (auto & frameBuffer : frameBuffers) {
             vkDestroyFramebuffer(device, frameBuffer, nullptr);
@@ -924,6 +952,21 @@ namespace VkRender {
         return devices[0];
     }
 
+    VkSampleCountFlagBits VulkanRenderer::getMaxUsableSampleCount() {
+        VkPhysicalDeviceProperties physicalDeviceProperties;
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+        VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+        return VK_SAMPLE_COUNT_1_BIT;
+    }
+
     int VulkanRenderer::ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode) {
 #if GLFW_HAS_GET_KEY_NAME && !defined(__EMSCRIPTEN__)
         // GLFW 3.1+ attempts to "untranslate" keys, which goes the opposite of what every other framework does, making using lettered shortcuts difficult.
@@ -1175,6 +1218,52 @@ namespace VkRender {
         if (mouseButtons.wheel > 10.0f) {
             mouseButtons.wheel = 10.0f;
         }
+    }
+
+    void VulkanRenderer::createColorResources() {
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = swapchain->colorFormat;
+            imageCI.extent = {m_Width, m_Height, 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = msaaSamples;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VkResult result = vkCreateImage(device, &imageCI, nullptr, &colorImage.image);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
+
+            VkMemoryRequirements memReqs{};
+            vkGetImageMemoryRequirements(device, colorImage.image, &memReqs);
+
+            VkMemoryAllocateInfo memAllloc = Populate::memoryAllocateInfo();
+            memAllloc.allocationSize = memReqs.size;
+            memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
+                                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            result = vkAllocateMemory(device, &memAllloc, nullptr, &colorImage.mem);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+            result = vkBindImageMemory(device, colorImage.image, colorImage.mem, 0);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.image = colorImage.image;
+            imageViewCI.format = swapchain->colorFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+            if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+                imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+            result = vkCreateImageView(device, &imageViewCI, nullptr, &colorImage.view);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+
+
     }
 
 

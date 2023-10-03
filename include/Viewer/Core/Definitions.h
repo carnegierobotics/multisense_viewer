@@ -668,8 +668,9 @@ namespace VkRender {
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
-        uint32_t UBCount = 0;
+        uint32_t UBCount = 0; // TODO rename to swapchain iamges
         VkRenderPass *renderPass{};
+        VkSampleCountFlagBits msaaSamples;
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
         struct {

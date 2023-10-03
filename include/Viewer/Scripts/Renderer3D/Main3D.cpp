@@ -4,7 +4,6 @@
 
 #include "Viewer/Scripts/Renderer3D/Main3D.h"
 #include "Viewer/ImGui/ScriptUIAddons.h"
-#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 void Main3D::setup() {
 
@@ -18,9 +17,6 @@ void Main3D::setup() {
                        renderUtils.device->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
 
-    Grid = std::make_unique<CustomModels>(&renderUtils);
-    VkRender::ScriptUtils::ImageData imgData{};
-    Grid->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     Widgets::make()->inputText("Renderer3D", "##File: ", buf);
     Widgets::make()->button("Renderer3D", "Play", &play);
@@ -132,6 +128,7 @@ void Main3D::update() {
 }
 
 void Main3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (b)
+    if (b) {
         KS21->draw(commandBuffer, i);
+    }
 }

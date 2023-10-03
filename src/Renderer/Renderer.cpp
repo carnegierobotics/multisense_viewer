@@ -82,7 +82,7 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
 
 void Renderer::prepareRenderer() {
     camera.type = Camera::CameraType::arcball;
-    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1024.0f);
+    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1000.0f);
     camera.setPosition(defaultCameraPosition);
     camera.setRotation(yaw, pitch);
     createSelectionImages();
@@ -186,6 +186,7 @@ void Renderer::buildScripts() {
     VkRender::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
+    vars.msaaSamples = msaaSamples;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     vars.queueSubmitMutex = &queueSubmitMutex;
@@ -973,6 +974,7 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             guiManager->handles.info->isViewingAreaHovered) {
+            camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }
     if (guiManager->handles.renderer3D){

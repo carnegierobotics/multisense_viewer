@@ -186,7 +186,7 @@ protected:
      * @param pLayoutT additional pipeline layout
      */
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
-                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel);
+                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel, VkSampleCountFlagBits bits);
 
     /**
      * Create descriptors for this m_Model

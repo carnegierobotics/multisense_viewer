@@ -205,11 +205,11 @@ namespace VkRender::ScriptUtils {
             vP[3] = vertex[3];
             // indices
             iP[0] = 0;
-            iP[1] = 1;
-            iP[2] = 2;
+            iP[1] = 2;
+            iP[2] = 1;
             iP[3] = 2;
-            iP[4] = 3;
-            iP[5] = 0;
+            iP[4] = 0;
+            iP[5] = 3;
         }
     };
 }

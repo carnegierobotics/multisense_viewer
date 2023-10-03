@@ -52,23 +52,40 @@ private:
                                    const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
     };
+
     std::vector<VkDescriptorSet> descriptors;
     VkDescriptorSetLayout descriptorSetLayout{};
     VkDescriptorPool descriptorPool{};
     VkPipeline pipeline{};
     bool initializedPipeline = false;
     VkPipelineLayout pipelineLayout{};
-
+    const VulkanDevice *vulkanDevice = nullptr;
+    const VkRender::RenderUtils *renderer;
 public:
     std::unique_ptr<Model> model;
 
     explicit CustomModels(const VkRender::RenderUtils *renderUtils) {
+        renderer = renderUtils;
+        vulkanDevice = renderUtils->device;
         model = std::make_unique<Model>(renderUtils);
     }
 
-    void createDescriptorSetLayout();
-    void createDescriptors();
+    ~CustomModels(){
+        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+    }
 
+    void createDescriptorSetLayout();
+
+    void createDescriptorPool();
+
+    void createDescriptorSets();
+
+    void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
+
+    void draw(VkCommandBuffer commandBuffer, uint32_t cbIndex);
 };
 
 

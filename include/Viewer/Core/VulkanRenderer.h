@@ -101,6 +101,13 @@ namespace VkRender {
             VkImageView view;
         } depthStencil{};
 
+
+        struct {
+            VkImage image;
+            VkDeviceMemory mem;
+            VkImageView view;
+        } colorImage{};
+
         /** @brief Last frame time measured using a high performance timer (if available) */
         float frameTimer = 1.0f;
         std::chrono::system_clock::time_point rendererStartTime;
@@ -108,6 +115,7 @@ namespace VkRender {
 
         Camera camera;
         glm::vec2 mousePos{};
+        VkSampleCountFlagBits msaaSamples;
 
         VkRender::MouseButtons mouseButtons{};
         float mouseScrollSpeed = 0.1f;
@@ -233,6 +241,9 @@ namespace VkRender {
         uint32_t destHeight{};
         float lastFPS{};
 
+
+        VkSampleCountFlagBits getMaxUsableSampleCount();
+
         void windowResize();
 
         static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -271,6 +282,8 @@ namespace VkRender {
 #ifdef WIN32
         void clipboard();
 #endif
+
+        void createColorResources();
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

@@ -463,7 +463,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
     std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicStateCI{};
@@ -866,7 +866,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
         std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         VkPipelineDynamicStateCreateInfo dynamicStateCI{};
@@ -2103,7 +2103,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {
@@ -2299,6 +2299,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {
@@ -2357,7 +2358,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(shaders.size());
     pipelineCI.pStages = shaders.data();
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
     CHECK_RESULT(
             vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,

@@ -40,7 +40,7 @@
 //#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
-    #define MULTISENSE_VIEWER_DEBUG
+#define MULTISENSE_VIEWER_DEBUG
 #endif
 
 #include <unordered_map>
@@ -109,16 +109,22 @@ typedef enum ScriptType {
     CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
     /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
     CRL_SCRIPT_TYPE_DEFAULT,
-    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup. No particular order */
-    CRL_SCRIPT_TYPE_RENDER,
-    /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (destroy and create) next frame */
-    CRL_SCRIPT_TYPE_RELOAD,
+    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup in the Renderer3D. No particular order */
+    CRL_SCRIPT_TYPE_RENDERER3D,
     /**
      * Create this script before default and always render this type first. No internal ordering amongst scripts
      */
     CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
     CRL_SCRIPT_TYPE_RENDER_PBR,
 } ScriptType;
+
+typedef enum DrawMethod {
+
+    CRL_SCRIPT_DONT_DRAW,
+    CRL_SCRIPT_DRAW,
+    /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (run onDestroy and Create funcs) next frame after this is set*/
+    CRL_SCRIPT_RELOAD
+} DrawMethod;
 
 /**
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
@@ -407,7 +413,7 @@ namespace VkRender {
 
     struct Metadata {
         int custom = 0; // 1 True, 0 False
-        char logName[1024]  = "Log no. 1";
+        char logName[1024] = "Log no. 1";
         char location[1024] = "Test site X";
         char recordDescription[1024] = "Offroad navigation";
         char equipmentDescription[1024] = "MultiSense mounted on X";
@@ -424,7 +430,7 @@ namespace VkRender {
         bool parsed = false;
     };
 
-    struct RecordDataInfo{
+    struct RecordDataInfo {
         Metadata metadata;
 
         bool showCustomMetaDataWindow = false;
@@ -441,11 +447,12 @@ namespace VkRender {
         /**@brief Flag to decide if user is currently recording IMU data */
         bool imu = false;
 
-        RecordDataInfo(){
+        RecordDataInfo() {
             frameSaveFolder.resize(1024);
             pointCloudSaveFolder.resize(1024);
         }
     };
+
     /**
      * @brief UI Block for a MultiSense Device connection. Contains connection information and user configuration such as selected previews, recording info and more..
      */

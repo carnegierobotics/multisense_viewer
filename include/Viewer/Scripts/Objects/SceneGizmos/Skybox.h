@@ -53,14 +53,17 @@ public:
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     ScriptType getType() override { return type; }
+    DrawMethod getDrawMethod() override {return drawMethod;}
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
-    /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(ScriptType _type) override{ this->type = _type; }
+
+    /** @brief set if this script should be drawn or not. */
+    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType type = CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE;
+    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
     std::unique_ptr<GLTFModel::Model> skybox;
     float exposure = 8.1f;
     float gamma = 2.2f;

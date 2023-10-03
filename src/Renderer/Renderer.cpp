@@ -53,7 +53,7 @@
 
 
 Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
-    VkRender::RendererConfig& config = VkRender::RendererConfig::getInstance();
+    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
     this->m_Title = title;
     // Create Log C++ Interface
     Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
@@ -280,10 +280,11 @@ void Renderer::render() {
 
     // New version available?
     std::string versionRemote;
-    if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)){
+    if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
         std::string localAppVersion = VkRender::RendererConfig::getInstance().getAppVersion();
-        Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}", localAppVersion, versionRemote);
-        guiManager->handles.newVersionAvailable =  Utils::isLocalVersionLess(localAppVersion, versionRemote);
+        Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}",
+                                         localAppVersion, versionRemote);
+        guiManager->handles.newVersionAvailable = Utils::isLocalVersionLess(localAppVersion, versionRemote);
     }
 
     pLogger->frameNumber = frameID;
@@ -319,6 +320,18 @@ void Renderer::render() {
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
+    // Enable/disable Renderer3D scripts
+    for (auto &script: scripts) {
+        if (!guiManager->handles.renderer3D) {
+            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDERER3D) {
+                script.second->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+            }
+        } else {
+            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDERER3D) {
+                script.second->setDrawMethod(CRL_SCRIPT_DRAW);
+            }
+        }
+    }
 
     // Enable scripts depending on gui layout chosen
     bool noActivePreview = true;
@@ -327,57 +340,57 @@ void Renderer::render() {
             noActivePreview = false;
             switch (dev.layout) {
                 case CRL_PREVIEW_LAYOUT_SINGLE:
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
                 case CRL_PREVIEW_LAYOUT_DOUBLE:
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DRAW);
 
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
                 case CRL_PREVIEW_LAYOUT_QUAD:
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DRAW);
 
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
                 default:
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
             }
 
             switch (dev.selectedPreviewTab) {
                 case CRL_TAB_3D_POINT_CLOUD:
-                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
-                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE);
-                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DEFAULT);
+                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DRAW);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DRAW);
                     break;
                 default:
-                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
             }
 
@@ -392,17 +405,16 @@ void Renderer::render() {
         }
     }
     if (noActivePreview) {
-        scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("One")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Two")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Three")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Four")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
-        scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_TYPE_DISABLED);
+        scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+        scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
 
     }
     // Run update function on active camera Scripts and build them if not built
@@ -453,9 +465,9 @@ void Renderer::render() {
 
     // Update renderer with application settings
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-    for (auto & script : conf.scripts.rebuildMap){
-        if (script.second){ // if rebuild
-            scripts.at(script.first)->setDrawMethod(CRL_SCRIPT_TYPE_RELOAD);
+    for (auto &script: conf.scripts.rebuildMap) {
+        if (script.second) { // if rebuild
+            scripts.at(script.first)->setDrawMethod(CRL_SCRIPT_RELOAD);
             script.second = false;
         }
     }
@@ -464,12 +476,12 @@ void Renderer::render() {
     // Reload scripts if requested
     std::vector<std::string> scriptsToReload;
     for (const auto &script: scripts) {
-        if (script.second->getType() == CRL_SCRIPT_TYPE_RELOAD) {
+        if (script.second->getDrawMethod() == CRL_SCRIPT_RELOAD) {
             scriptsToReload.push_back(script.first);
         }
     }
 
-    for (const auto &scriptName : scriptsToReload) {
+    for (const auto &scriptName: scriptsToReload) {
         deleteScript(scriptName);
         buildScript(scriptName);
     }
@@ -932,14 +944,18 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
     mouseButtons.dy = dy;
 
     bool is3DViewSelected = false;
-    for (const auto& dev : guiManager->handles.devices){
+    for (const auto &dev: guiManager->handles.devices) {
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
         is3DViewSelected = dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD;
     }
-    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered && is3DViewSelected) { // && !mouseButtons.middle) {
+    if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
+        is3DViewSelected) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
+    if (mouseButtons.left && guiManager->handles.renderer3D)
+        camera.rotate(dx, dy);
+
     if (mouseButtons.right) {
         camera.translate(glm::vec3((float) -dx * 0.0025f, (float) -dy * 0.0025f, 0.0f));
     }
@@ -957,8 +973,10 @@ void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
         if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
             guiManager->handles.info->isViewingAreaHovered) {
-            camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
+    }
+    if (guiManager->handles.renderer3D){
+        camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
 
 }

@@ -70,17 +70,18 @@ public:
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     ScriptType getType() override {return m_Type;}
+    DrawMethod getDrawMethod() override {return drawMethod;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(ScriptType type) override{ m_Type = type; }
+    void setDrawMethod(DrawMethod _drawMethod) override{ drawMethod = _drawMethod; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptType m_Type = CRL_SCRIPT_TYPE_DEFAULT;
-
+    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
     std::unique_ptr<CRLCameraModels::Model> m_Model;
     std::unique_ptr<CRLCameraModels::Model> m_ModelTestDevice; // For use with test device i.e. not a MultiSense camera debug version
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;

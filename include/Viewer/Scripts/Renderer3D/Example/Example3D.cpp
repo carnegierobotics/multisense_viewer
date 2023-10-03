@@ -2,10 +2,10 @@
 // Created by magnus on 10/2/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/Main3D.h"
+#include "Viewer/Scripts/Renderer3D/Example/Example3D.h"
 
 
-void Main3D::setup() {
+void Example3D::setup() {
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
@@ -21,7 +21,7 @@ void Main3D::setup() {
 }
 
 
-void Main3D::update() {
+void Example3D::update() {
     auto &d = bufferOneData;
 
 
@@ -62,7 +62,7 @@ void Main3D::update() {
 
 }
 
-void Main3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Example3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (b)
         KS21->draw(commandBuffer, i);
 }

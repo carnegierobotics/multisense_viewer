@@ -49,10 +49,10 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/CRLCamera/CameraConnection.h"
-#include "Generated/ScriptHeader.h"
-#include "Viewer/Core/Skybox.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RendererConfig.h"
+
+#include "Generated/ScriptHeader.h"
 
 class Renderer : VkRender::VulkanRenderer {
 

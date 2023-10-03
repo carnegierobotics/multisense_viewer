@@ -45,7 +45,7 @@ void Two::setup() {
     m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
 
     // Create quad and store it locally on the GPU
-    ImageData imgData{};
+    VkRender::ScriptUtils::ImageData imgData{};
     m_Model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
     m_NoDataModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
     m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);

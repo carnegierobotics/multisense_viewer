@@ -223,7 +223,9 @@ typedef enum ScriptWidgetType {
     WIDGET_INT_SLIDER = 1,
     WIDGET_INPUT_NUMBER = 2,
     WIDGET_TEXT = 3,
-    WIDGET_CHECKBOX = 4
+    WIDGET_CHECKBOX = 4,
+    WIDGET_INPUT_TEXT = 5,
+    WIDGET_BUTTON = 6,
 } ScriptWidgetType;
 
 /**
@@ -666,8 +668,9 @@ namespace VkRender {
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
-        uint32_t UBCount = 0;
+        uint32_t UBCount = 0; // TODO rename to swapchain iamges
         VkRenderPass *renderPass{};
+        VkSampleCountFlagBits msaaSamples;
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
         struct {

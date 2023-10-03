@@ -73,7 +73,7 @@
 
 #define ONE_SECOND 1
 
-class SideBar : public VkRender::Layer {
+class SideBarLayer : public VkRender::Layer {
 public:
 
     typedef enum LOG_COLOR {

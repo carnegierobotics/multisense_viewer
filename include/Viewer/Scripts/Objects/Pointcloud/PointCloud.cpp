@@ -49,8 +49,8 @@ void PointCloud::setup() {
                                      &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
     model->colorPointCloudBuffer.map();
 
-    Widgets::make()->text("Set Point Size:");
-    Widgets::make()->slider("##Set Point size", &pointSize, 0, 10);
+    Widgets::make()->text("default", "Set Point Size:");
+    Widgets::make()->slider("default", "##Set Point size", &pointSize, 0, 10);
     // Widgets::make()->text("Flip pointcloud: ");
     //Widgets::make()->checkbox("##Flip pc", &flipPointCloud);
 

@@ -22,13 +22,13 @@ vec4 grid(vec3 fragPos3D, float scale) {
     if (intensity > 0.3) { // Close to grid lines
         baseColor = vec3(0.4); // Grid line color
     } else { // Far from grid lines
-        baseColor = vec3(0.15); // Black color
+        baseColor = vec3(0.10); // Black color
     }
 
     vec4 color = vec4(vec3(intensity) * 0.5, 1.0);
     color = vec4(baseColor, 1.0);
 
-    float axisThickness = 1;
+    float axisThickness = 0.8;
     if(fragPos3D.x > -axisThickness * minimumx && fragPos3D.x < axisThickness * minimumx){
         if (fragPos3D.y > 0)
         color.y = 1.0;
@@ -42,6 +42,10 @@ vec4 grid(vec3 fragPos3D, float scale) {
         else
         color.x = 0.5;
     }
+
+    // Transparency when viewed from below
+    float transparencyFactor = fragPos3D.z < 0.0 ? 0.5 : 1.0; // Adjust 0.5 as needed
+    color.a *= transparencyFactor; // Adjust the alpha component based on the transparency factor
 
     return color;
 }
@@ -64,9 +68,11 @@ void main() {
 
     outColor = grid(fragPos3D, 2) * float(t > 0);;
 
+    gl_FragDepth = computeDepth(fragPos3D);
+
 
     float linearDepth = computeLinearDepth(fragPos3D);
-    float maxFadeDistance = 0.1; // Adjust as needed
+    float maxFadeDistance = 0.2; // Adjust as needed
     float fading = clamp((maxFadeDistance - linearDepth) / maxFadeDistance, 0.0, 1.0);
 
     outColor.rgba *= fading;

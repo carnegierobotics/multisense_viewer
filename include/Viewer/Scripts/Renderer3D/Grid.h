@@ -29,6 +29,7 @@ public:
     void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
         model.reset();
@@ -49,7 +50,8 @@ public:
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CustomModels> model;
-    bool enable = false;
+    bool enable = true;
+    bool hide = false;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

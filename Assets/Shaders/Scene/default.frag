@@ -17,18 +17,26 @@ vec4 grid(vec3 fragPos3D, float scale) {
 
     float minimumy = min(derivative.y, 1);
     float minimumx = min(derivative.x, 1);
-    vec4 color = vec4(vec3(intensity) * 0.3, 1.0);
 
-    if(fragPos3D.x > -0.1 * minimumx && fragPos3D.x < 0.1 * minimumx){
+    vec3 baseColor;
+    if (intensity > 0.3) { // Close to grid lines
+        baseColor = vec3(0.4); // Grid line color
+    } else { // Far from grid lines
+        baseColor = vec3(0.15); // Black color
+    }
+
+    vec4 color = vec4(vec3(intensity) * 0.5, 1.0);
+    color = vec4(baseColor, 1.0);
+
+    float axisThickness = 1;
+    if(fragPos3D.x > -axisThickness * minimumx && fragPos3D.x < axisThickness * minimumx){
         if (fragPos3D.y > 0)
         color.y = 1.0;
         else
         color.y = 0.5;
     }
-    //if(fragPos3D.x < 0.1 * minimumx)
-    //color.z = 0.5;
 
-    if(fragPos3D.y > -0.1 * minimumy && fragPos3D.y < 0.1 * minimumy){
+    if(fragPos3D.y > -axisThickness * minimumy && fragPos3D.y < axisThickness * minimumy){
         if (fragPos3D.x > 0)
         color.x = 1.0;
         else
@@ -54,7 +62,7 @@ void main() {
     float t = -nearPoint.z / (farPoint.z - nearPoint.z);
     vec3 fragPos3D = nearPoint + t * (farPoint - nearPoint);
 
-    outColor = grid(fragPos3D, 10) * float(t > 0);;
+    outColor = grid(fragPos3D, 2) * float(t > 0);;
 
 
     float linearDepth = computeLinearDepth(fragPos3D);

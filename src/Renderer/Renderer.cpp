@@ -114,10 +114,18 @@ void Renderer::buildCommandBuffers() {
     cmdBufInfo.pInheritanceInfo = nullptr;
 
     std::array<VkClearValue, 3> clearValues{};
-    clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                       guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
-    clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                       guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+
+    if (guiManager->handles.renderer3D) {
+        clearValues[0] = {{0.0f, 0.0f,
+                           0.0f, 1.0f}};
+        clearValues[2] = {{0.0f, 0.0f,
+                           0.0f, 1.0f}};
+    } else {
+        clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+        clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+    }
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -290,7 +298,7 @@ void Renderer::render() {
     }
 
     for (const auto &scriptName: scriptsToReload) {
-        if (scriptName == "Skybox"){
+        if (scriptName == "Skybox") {
             // Clear script and scriptnames before rebuilding
             for (const auto &scriptName: builtScriptNames) {
                 pLogger->info("Deleting Script: {}", scriptName.c_str());
@@ -301,7 +309,7 @@ void Renderer::render() {
             builtScriptNames.clear();
             buildScripts();
 
-        }else {
+        } else {
             deleteScript(scriptName);
             buildScript(scriptName);
         }
@@ -970,9 +978,9 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
     if (mouseButtons.right) {
         if (camera.type == VkRender::Camera::arcball)
-            camera.translate(glm::vec3((float) -dx * 0.0025f,  (float) -dy * 0.0025f, 0.0f));
+            camera.translate(glm::vec3((float) -dx * 0.0025f, (float) -dy * 0.0025f, 0.0f));
         else
-            camera.translate((float) -dx * 0.0025f,(float) -dy * 0.0025f);
+            camera.translate((float) -dx * 0.0025f, (float) -dy * 0.0025f);
     }
     if (mouseButtons.middle && camera.type == VkRender::Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));

@@ -280,6 +280,33 @@ void Renderer::deleteScript(const std::string &scriptName) {
 
 void Renderer::render() {
 
+
+    // Reload scripts if requested
+    std::vector<std::string> scriptsToReload;
+    for (const auto &script: scripts) {
+        if (script.second->getDrawMethod() == CRL_SCRIPT_RELOAD) {
+            scriptsToReload.push_back(script.first);
+        }
+    }
+
+    for (const auto &scriptName: scriptsToReload) {
+        if (scriptName == "Skybox"){
+            // Clear script and scriptnames before rebuilding
+            for (const auto &scriptName: builtScriptNames) {
+                pLogger->info("Deleting Script: {}", scriptName.c_str());
+                scripts[scriptName].get()->onDestroyScript();
+                scripts[scriptName].reset();
+                scripts.erase(scriptName);
+            }
+            builtScriptNames.clear();
+            buildScripts();
+
+        }else {
+            deleteScript(scriptName);
+            buildScript(scriptName);
+        }
+    }
+
     // New version available?
     std::string versionRemote;
     if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
@@ -467,19 +494,6 @@ void Renderer::render() {
         }
     }
     VkRender::RendererConfig::getInstance().setUserSetting(conf);
-
-    // Reload scripts if requested
-    std::vector<std::string> scriptsToReload;
-    for (const auto &script: scripts) {
-        if (script.second->getDrawMethod() == CRL_SCRIPT_RELOAD) {
-            scriptsToReload.push_back(script.first);
-        }
-    }
-
-    for (const auto &scriptName: scriptsToReload) {
-        deleteScript(scriptName);
-        buildScript(scriptName);
-    }
 
     /** Generate Draw Commands **/
     guiManager->updateBuffers();
@@ -701,6 +715,7 @@ void Renderer::render() {
             }
         }
     }
+
 }
 
 void Renderer::windowResized() {

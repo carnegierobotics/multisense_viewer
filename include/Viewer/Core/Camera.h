@@ -102,7 +102,7 @@ namespace VkRender {
         glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
         float m_RotationSpeed = 0.20f;
         float m_MovementSpeed = 1.0f;
-        float m_SpeedModifier = 50.0f;
+        float m_SpeedModifier = 4 * 50.0f;
         glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
         float zoomVal = 1.0f;
@@ -140,6 +140,7 @@ namespace VkRender {
 
         void updateAspectRatio(float aspect) {
             matrices.perspective = glm::perspective(glm::radians(m_Fov), aspect, m_Znear, m_Zfar);
+            matrices.perspective[1][1] *= -1;
         }
 
         void resetPosition() {

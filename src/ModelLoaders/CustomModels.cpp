@@ -176,7 +176,7 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
 
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
     depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilStateCI.depthTestEnable = VK_FALSE;
+    depthStencilStateCI.depthTestEnable = VK_TRUE;
     depthStencilStateCI.depthWriteEnable = VK_TRUE;
     depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;

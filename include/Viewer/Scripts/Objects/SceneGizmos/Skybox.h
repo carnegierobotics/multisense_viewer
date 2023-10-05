@@ -67,7 +67,7 @@ public:
     std::unique_ptr<GLTFModel::Model> skybox;
     float exposure = 8.1f;
     float gamma = 2.2f;
-    float ibl = 1.0f;
+    float ibl = 1.5f;
     int debugViewInputs = 0;
     float lod = 0.8f;
 

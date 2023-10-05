@@ -8,9 +8,9 @@
 
 void Grid::setup() {
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/default.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/grid.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/default.frag",
+                                                            {loadShader("Scene/spv/grid.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
     model = std::make_unique<CustomModels>(&renderUtils);
     VkRender::ScriptUtils::ImageData imgData{};

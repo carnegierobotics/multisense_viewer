@@ -37,7 +37,7 @@
 #include "Viewer/Scripts/Objects/SceneGizmos/Gizmos.h"
 
 void Gizmos::setup() {
-    m_Model = std::make_unique<GLTFModel::Model>(&renderUtils);
+    m_Model = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
     m_Model->loadFromFile(Utils::getAssetsPath().append( "Models/coordinates.gltf").string(), renderUtils.device,
                           renderUtils.device->m_TransferQueue, 1.0f);
 
@@ -55,20 +55,30 @@ void Gizmos::setup() {
 }
 
 void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && primaryDraw)
+    if (primaryDraw)
         m_Model->draw(commandBuffer, i);
 }
 
 void Gizmos::update() {
-    VkRender::UBOMatrix mat{};
-    mat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    mat.model = glm::scale(mat.model, glm::vec3(0.002f, 0.002f, 0.002f));
-
     auto &d = bufferOneData;
-    d->model = mat.model;
+
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    d->model = glm::scale(d->model, glm::vec3(0.02f, 0.02f, 0.02f));
+
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
+    d->camPos = glm::vec3(
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(-renderData.camera->m_Position.z) * sin(
+                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+            static_cast<double>(renderData.camera->m_Position.z) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
+    );
+
     auto &d2 = bufferTwoData;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
@@ -78,17 +88,13 @@ void Gizmos::update() {
                     static_cast<double>(glm::radians(lightSource.rotation.y))),
             0.0f);
 
-    //shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
-    d->camPos = glm::vec3(
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(renderData.camera->m_Position.z) * cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
-    );
 
+    auto *ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data);
+    d2->gamma = ptr->gamma;
+    d2->exposure = ptr->exposure;
+    d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
+    d2->debugViewInputs = ptr->debugViewInputs;
+    d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
 
 }
@@ -96,10 +102,4 @@ void Gizmos::update() {
 
 void Gizmos::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
-    for (const auto &d: uiHandle->devices) {
-        if (d.state != CRL_STATE_ACTIVE)
-            continue;
-        selectedPreviewTab = d.selectedPreviewTab;
-
-    }
 }

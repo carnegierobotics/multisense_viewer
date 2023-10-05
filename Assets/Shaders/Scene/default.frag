@@ -9,21 +9,31 @@ layout(location = 0) out vec4 outColor;
 
 
 vec4 grid(vec3 fragPos3D, float scale) {
-    vec2 coord = fragPos3D.xz * scale;
+    vec2 coord = fragPos3D.xy * scale;
     vec2 derivative = fwidth(coord);
 
     vec2 grid = abs(fract(coord) - 0.5) / derivative;
     float intensity = 1.0 - min(grid.x, grid.y); // Closer to grid lines, intensity is higher
 
-    float minimumz = min(derivative.y, 1);
+    float minimumy = min(derivative.y, 1);
     float minimumx = min(derivative.x, 1);
     vec4 color = vec4(vec3(intensity) * 0.3, 1.0);
 
-    if(fragPos3D.x > -0.1 * minimumx && fragPos3D.x < 0.1 * minimumx)
-    color.z = 1.0;
+    if(fragPos3D.x > -0.1 * minimumx && fragPos3D.x < 0.1 * minimumx){
+        if (fragPos3D.y > 0)
+        color.y = 1.0;
+        else
+        color.y = 0.5;
+    }
+    //if(fragPos3D.x < 0.1 * minimumx)
+    //color.z = 0.5;
 
-    if(fragPos3D.z > -0.1 * minimumz && fragPos3D.z < 0.1 * minimumz)
-    color.x = 1.0;
+    if(fragPos3D.y > -0.1 * minimumy && fragPos3D.y < 0.1 * minimumy){
+        if (fragPos3D.x > 0)
+        color.x = 1.0;
+        else
+        color.x = 0.5;
+    }
 
     return color;
 }
@@ -35,15 +45,21 @@ float computeLinearDepth(vec3 pos) {
     return linearDepth / far; // normalize
 }
 
+float computeDepth(vec3 pos) {
+    vec4 clip_space_pos = fragProj * fragView * vec4(pos.xyz, 1.0);
+    return (clip_space_pos.z / clip_space_pos.w);
+}
+
 void main() {
-    float t = -nearPoint.y / (farPoint.y - nearPoint.y);
+    float t = -nearPoint.z / (farPoint.z - nearPoint.z);
     vec3 fragPos3D = nearPoint + t * (farPoint - nearPoint);
 
     outColor = grid(fragPos3D, 10) * float(t > 0);;
+
 
     float linearDepth = computeLinearDepth(fragPos3D);
     float maxFadeDistance = 0.1; // Adjust as needed
     float fading = clamp((maxFadeDistance - linearDepth) / maxFadeDistance, 0.0, 1.0);
 
-    outColor.rgb *= fading;
+    outColor.rgba *= fading;
 }

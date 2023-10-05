@@ -91,16 +91,13 @@ private:
     std::shared_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
-    bool renderSelectionPass = false;
+    bool renderSelectionPass = true;
 
     // Create a host-visible staging buffer that contains the raw m_Image data
     VkBuffer selectionBuffer{};
     VkDeviceMemory selectionMemory{};
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
-
-    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, 1.0f);
-    float yaw = -90.0f, pitch = 0.0f;
 
     void windowResized() override;
     void addDeviceFeatures() override;

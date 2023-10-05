@@ -40,15 +40,16 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
-    ScriptType getType() override { return type; }
+    ScriptTypeFlags getType() override { return type; }
     DrawMethod getDrawMethod() override {return drawMethod;}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_RENDERER3D;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE;
     DrawMethod drawMethod = CRL_SCRIPT_DRAW;
 
     std::unique_ptr<CustomModels> model;
+    bool enable = true;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

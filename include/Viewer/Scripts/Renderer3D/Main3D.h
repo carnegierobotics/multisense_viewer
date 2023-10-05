@@ -41,12 +41,12 @@ public:
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
-    ScriptType getType() override { return type; }
+    ScriptTypeFlags getType() override { return type; }
     DrawMethod getDrawMethod() override {return drawMethod;}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_RENDERER3D;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<GLTFModel::Model> KS21;
@@ -56,20 +56,26 @@ public:
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
     } lightSource;
 
-    char buf[1024] = "/home/magnus/crl/disparity_quality/processed_data/positions_df.csv";
+    char buf[1024] = "/home/magnus/crl/disparity_quality/processed_data/merged_data.csv";
     bool play = false;
-    bool stop = false;
+    bool pause = false;
+    bool paused = false;
     bool restart = false;
+    std::string simTimeText = "1";
+    int val = 1;
 
     struct Data {
         std::chrono::system_clock::time_point timePoint;
-        std::chrono::duration<double> duration;
+        std::chrono::duration<double> timeDelta;
+        std::chrono::duration<double> dt;
         std::string timestamp;
         float x, y, z;
+        float q0, q1, q2, q3;
     };
 
     std::vector<Data> entries;
     std::chrono::steady_clock::time_point lastPrintedTime;
+    std::chrono::steady_clock::time_point startPlay;
     size_t entryIdx = 0;
 
     std::chrono::system_clock::time_point convertToTimePoint(const std::string& timestamp) {

@@ -162,6 +162,19 @@ namespace VkRender {
         float scrollbarSize = 10.0f;
         bool hoverState = false;
         bool isViewingAreaHovered = false;
+        bool is3DTopBarHovered = false;
+
+    };
+
+    struct CameraUIBlock {
+        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
+        int type = 0;
+        /** @brief Reset 3D view camera position and rotation */
+        bool reset = false;
+
+        glm::vec3 pos;
+        glm::vec3 rot;
+        glm::vec3 cameraFront;
 
     };
 
@@ -217,6 +230,7 @@ namespace VkRender {
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
 
+        CameraUIBlock camera;
     };
 
     /**

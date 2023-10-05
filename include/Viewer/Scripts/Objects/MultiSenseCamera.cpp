@@ -97,9 +97,10 @@ void MultiSenseCamera::handleIMUUpdate(){
         imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
         if (imuRotationFuture.get()) {
             d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+            //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            // d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+            //d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
 
             d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(1.0f, 0.0f, 0.0f));
             d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -130,9 +131,10 @@ void MultiSenseCamera::update() {
        handleIMUUpdate();
     } else {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+        //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::rotate(d->model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
     }
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;

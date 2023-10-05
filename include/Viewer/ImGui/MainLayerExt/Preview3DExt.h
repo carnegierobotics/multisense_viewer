@@ -98,15 +98,15 @@ public:
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            dev.resetCamera = false;
-            if (ImGui::RadioButton("Arcball", &dev.cameraType, 0)) {
+            handles->camera.reset = false;
+            if (ImGui::RadioButton("Arcball", &handles->camera.type, 0)) {
                 handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                dev.resetCamera = true;
+                handles->camera.reset = true;
             }
             ImGui::SameLine();
-            if (ImGui::RadioButton("Flycam", &dev.cameraType, 1)) {
+            if (ImGui::RadioButton("Flycam", &handles->camera.type, 1)) {
                 handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                dev.resetCamera = true;
+                handles->camera.reset = true;
             }
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
@@ -117,9 +117,9 @@ public:
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(40.0f, 0.0));
             ImGui::SameLine();
-            dev.resetCamera |= ImGui::Button(
+            handles->camera.reset |= ImGui::Button(
                     "Reset camera position"); // OR true due to resetCamera may be set by clicking radio buttons above
-            if (dev.resetCamera) {
+            if (handles->camera.reset) {
                 handles->usageMonitor->userClickAction("Reset camera position", "Button",
                                                        ImGui::GetCurrentWindow()->Name);
             }
@@ -191,7 +191,7 @@ public:
             switch (elem.type) {
                 case WIDGET_CHECKBOX:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    if (ImGui::Checkbox(elem.label, elem.checkbox) &&
+                    if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
                         ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
                                                                ImGui::GetCurrentWindow()->Name);
@@ -201,7 +201,7 @@ public:
 
                 case WIDGET_FLOAT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    if (ImGui::SliderFloat(elem.label, elem.value, elem.minValue, elem.maxValue) &&
+                    if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
@@ -210,7 +210,7 @@ public:
                     break;
                 case WIDGET_INT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    if (ImGui::SliderInt(elem.label, elem.intValue, elem.intMin, elem.intMax) &&
+                    if (ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax) &&
                         ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
@@ -218,7 +218,7 @@ public:
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_TEXT:
-                    ImGui::Text("%s", elem.label);
+                    ImGui::Text("%s", elem.label.c_str());
                     break;
             }
 

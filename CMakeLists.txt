@@ -71,6 +71,7 @@ set(ENGINE_SRC
 
 set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Main3D.cpp
+        include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
         include/Viewer/Scripts/Objects/MultiSenseCamera.cpp
         include/Viewer/Scripts/Objects/Example.cpp

@@ -4,14 +4,14 @@
 
 #include "Viewer/Scripts/Renderer3D/Grid.h"
 #include "Viewer/Scripts/Private/ScriptUtils.h"
-
+#include "Viewer/ImGui/ScriptUIAddons.h"
 
 void Grid::setup() {
 
-    std::vector<VkPipelineShaderStageCreateInfo>     shaders = {{loadShader("Scene/spv/default.vert",
-                                                                            VK_SHADER_STAGE_VERTEX_BIT)},
-                                                                {loadShader("Scene/spv/default.frag",
-                                                                            VK_SHADER_STAGE_FRAGMENT_BIT)}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/default.vert",
+                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
+                                                            {loadShader("Scene/spv/default.frag",
+                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
     model = std::make_unique<CustomModels>(&renderUtils);
     VkRender::ScriptUtils::ImageData imgData{};
     model->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
@@ -20,6 +20,8 @@ void Grid::setup() {
     model->createDescriptorSets();
     model->createGraphicsPipeline(shaders);
 
+    Widgets::make()->checkbox("Renderer3D", "Grid", &enable);
+
 
 }
 
@@ -27,7 +29,10 @@ void Grid::setup() {
 void Grid::update() {
     auto &d = bufferOneData;
 
-
+    if (enable)
+        drawMethod = CRL_SCRIPT_DRAW;
+    else
+        drawMethod = CRL_SCRIPT_DONT_DRAW;
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));

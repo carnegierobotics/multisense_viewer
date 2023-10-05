@@ -13,15 +13,18 @@ void Main3D::setup() {
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), renderUtils.device,
+    KS21->loadFromFile(Utils::getAssetsPath().append("Models/humvee.gltf").string(), renderUtils.device,
                        renderUtils.device->m_TransferQueue, 1.0f);
     KS21->createRenderPipeline(renderUtils, shaders);
 
 
     Widgets::make()->inputText("Renderer3D", "##File: ", buf);
-    Widgets::make()->button("Renderer3D", "Play", &play);
-    Widgets::make()->button("Renderer3D", "Stop", &stop);
-    Widgets::make()->button("Renderer3D", "Restart", &restart);
+    Widgets::make()->button("Renderer3D", "Start", &play);
+    Widgets::make()->button("Renderer3D", "Pause", &pause);
+    Widgets::make()->button("Renderer3D", "Stop", &restart);
+    Widgets::make()->slider("Renderer3D", "skip n", &val, 1, 50);
+    Widgets::make()->text("Renderer3D", "Sim time:");
+    Widgets::make()->text("Renderer3D", simTimeText.c_str(), "id1");
 
     lastPrintedTime = std::chrono::steady_clock::now();
 
@@ -31,10 +34,17 @@ void Main3D::setup() {
 void Main3D::update() {
     auto &d = bufferOneData;
 
-    if (stop)
-        entries.clear();
+    if (pause)
+        paused = !paused;
 
-    if (play){
+    if (restart) {
+        entryIdx = 0;
+        entries.clear();
+    }
+
+    if (play) {
+        paused = false;
+
         std::filesystem::path path(buf);
         std::ifstream file(path);
         std::string line;
@@ -54,17 +64,25 @@ void Main3D::update() {
             ss >> entry.y;
             ss.ignore();  // ignore comma
             ss >> entry.z;
+            ss.ignore();  // ignore comma
+            ss >> entry.q0;
+            ss.ignore();  // ignore comma
+            ss >> entry.q1;
+            ss.ignore();  // ignore comma
+            ss >> entry.q2;
+            ss.ignore();  // ignore comma
+            ss >> entry.q3;
 
             entries.push_back(entry);
+
+            startPlay = std::chrono::steady_clock::now();
         }
 
         for (size_t i = 1; i < entries.size(); ++i) {
-            entries[i].duration = entries[i].timePoint - entries[i-1].timePoint;
+            entries[i].timeDelta = entries[i].timePoint - entries[0].timePoint;
         }
-        entries[0].duration = std::chrono::nanoseconds (0);  // First entry has no prior timestamp
+        entries[0].timeDelta = std::chrono::nanoseconds(0);  // First entry has no prior timestamp
     }
-
-
 
 
     d->projection = renderData.camera->matrices.perspective;
@@ -98,31 +116,52 @@ void Main3D::update() {
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
 
-    if (!entries.empty() && entryIdx < entries.size()){
+    if (!entries.empty() && entryIdx < entries.size() && !paused) {
         auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsedSinceLastPrint = now - lastPrintedTime;
+        std::chrono::duration<double> rendererTimeDelta = now - startPlay;
 
-        if (elapsedSinceLastPrint >= entries[entryIdx].duration) {
-            // Print the entry
-            std::cout << "Timestamp: " << entries[entryIdx].timePoint.time_since_epoch().count()
-                      << ", x: " << entries[entryIdx].x
-                      << ", y: " << entries[entryIdx].y
-                      << ", z: " << entries[entryIdx].z << std::endl;
-            float x = entries[entryIdx].x / 10.0f;
-            float y = entries[entryIdx].z / 10.0f;
-            float z = entries[entryIdx].y / 10.0f;
+        if (entryIdx > static_cast<size_t>(val))
+            entries[entryIdx].dt = entries[entryIdx].timePoint - entries[entryIdx - val].timePoint;
 
-            d->model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
-            d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
+        double rate = entries[entryIdx].dt.count() / static_cast<double>(renderData.deltaT);
 
-            lastPrintedTime = now;
-            entryIdx++;
-        }
+        printf("Rate %f, Renderer timeDelta: %f, simulation timeDelta %f\n ", rate, rendererTimeDelta.count(),
+               entries[entryIdx].timeDelta.count());
+        std::string rateStr = std::to_string(rate);
+        Widgets::make()->updateText("id1", rateStr);
+        // Print the entry
+        float x = entries[entryIdx].x / 10.0f;
+        float y = entries[entryIdx].y / 10.0f; // Switch z as up vector with y
+        float z = entries[entryIdx].z / 10.0f;
 
+        float q0 = entries[entryIdx].q0;
+        float q1 = entries[entryIdx].q1;
+        float q2 = entries[entryIdx].q2;
+        float q3 = entries[entryIdx].q3;
+
+        glm::quat rot(q0, q1, q2, q3);
+
+        d->model = glm::mat4(1.0f);
+        // Transform the original quaternion by the rotation.
+        d->model = glm::translate(d->model, glm::vec3(x, y, z));
+
+        d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // y-up to z-up 3D model.
+
+        d->model = d->model * glm::mat4_cast(rot);
+
+        //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
+
+
+        entryIdx += val;
+
+
+    } else if (entries.empty()) {
+        d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+        d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
     }
-
 
 
 }

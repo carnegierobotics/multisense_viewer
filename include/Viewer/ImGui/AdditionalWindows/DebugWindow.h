@@ -257,17 +257,13 @@ public:
 
                 ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
                 ImGui::Text("Frame: %lu", handles->info->frameID);
-/*
-#ifdef MULTISENSE_VIEWER_DEBUG
-            // SHwo ImGui Cursor pos screen pos and window pos
-            ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
-            ImVec2 cursorWinPos = ImGui::GetCursorPos();
-            ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
-            ImGui::Text("Cursor screen pos: (%.1f, %.1f)", cursorScreenPos.x, cursorScreenPos.y);
-            ImGui::Text("Cursor window pos: (%.1f, %.1f)", cursorWinPos.y, cursorWinPos.y);
-#endif
-*/
+            #ifdef MULTISENSE_VIEWER_DEBUG
+                    ImGui::Text("Camera: ");
+                    ImGui::Text("Position: (%.3f, %.3f, %.3f)", handles->camera.pos.x, handles->camera.pos.y, handles->camera.pos.z);
+                    ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",  handles->camera.rot.x,  handles->camera.rot.y,  handles->camera.rot.z);
+            #endif
+
             }
             ImGui::Separator();
 
@@ -346,12 +342,7 @@ public:
                     ImGui::Text("Uptime: %.2f", met->device.upTime);
                 }
             }
-            /*
-            ImGui::Text("Camera: ");
 
-            ImGui::Text("Position: (%f, %f, %f)", met->camera.pos.x, met->camera.pos.y, met->camera.pos.z);
-            ImGui::Text("Rotation: (%f, %f, %f)", met->camera.rot.x, met->camera.rot.y, met->camera.rot.z);
-*/
             ImGui::Separator();
             ImGui::PushFont(handles->info->font15);
             ImGui::Text("Application Options:");

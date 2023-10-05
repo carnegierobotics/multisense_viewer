@@ -32,6 +32,7 @@ layout(location = 2) out vec3 fragPos;
 layout(location = 3) out vec3 outCoords;
 layout(location = 4) out vec2 imageDimmensions;
 
+
 void main()
 {
 

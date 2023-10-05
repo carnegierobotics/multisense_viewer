@@ -81,8 +81,8 @@ void PointCloud::update() {
         VkRender::UBOMatrix mat{};
         mat.model = glm::mat4(1.0f);
         mat.model = glm::translate(mat.model, glm::vec3(0.1f, 0.0f, 0.0f));
-        if (flipPointCloud)
-            mat.model[2][2] *= -1;
+        mat.model = glm::rotate(mat.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
         // 24 degree m_Rotation to compensate for VkRender S27 24 degree camera slant.
         //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 

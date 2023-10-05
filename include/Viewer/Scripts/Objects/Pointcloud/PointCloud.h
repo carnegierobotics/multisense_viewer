@@ -66,7 +66,7 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptType getType() override { return type; }
+    ScriptTypeFlags getType() override { return type; }
     DrawMethod getDrawMethod() override {return drawMethod;}    /** @brief UI update function called once per frame **/
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
@@ -75,7 +75,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DEFAULT;
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CRLCameraModels::Model> model;
@@ -88,7 +88,7 @@ public:
 
     int lumaOrColor = false; // 0 : luma // 1 : Color
     float pointSize = 1.8f;
-    bool flipPointCloud = true;
+    bool flipPointCloud = false;
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
 
     int point = 0;

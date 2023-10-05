@@ -12,7 +12,7 @@ class Widgets {
 
 private:
     struct Element {
-        const char *label;
+        std::string label;
         float *value = nullptr;
         float minValue = 0.0f;
         float maxValue = 1.0f;
@@ -22,7 +22,7 @@ private:
         int intMin = 0;
         int intMax = 1;
         char *buf = nullptr;
-
+        std::string id;
         ScriptWidgetType type{};
 
         Element(const char *labelVal, float *valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
@@ -35,7 +35,7 @@ private:
             type = WIDGET_INT_SLIDER;
         }
 
-        Element(const char *labelVal) : label(labelVal) {
+        Element(const char *labelVal, std::string _id = "") : label(labelVal), id(_id) {
             type = WIDGET_TEXT;
         }
 
@@ -55,14 +55,14 @@ private:
 
     static Widgets *m_Instance;
 
-    bool labelExists(const char *label, const std::string& window) {
+    bool labelExists(const char *label, const std::string &window) {
         std::vector<Element> vec;
         if (window.compare("default") == 0)
             vec = elements;
         else if (window.compare("Renderer3D") == 0)
             vec = elements3D;
 
-        for(const auto& elem : vec){
+        for (const auto &elem: vec) {
             if (elem.label == label) {
                 Log::Logger::getInstance()->info("Label {} already exists in window {} Widget maker", label, window);
                 return true;
@@ -70,6 +70,7 @@ private:
         }
         return false;
     }
+
 public:
 
 
@@ -86,7 +87,7 @@ public:
 
     }
 
-    void slider(std::string window, const char *label, int *value,  int min = 0, int max = 10) {
+    void slider(std::string window, const char *label, int *value, int min = 0, int max = 10) {
         if (labelExists(label, window))
             return;
         if (window == "default")
@@ -95,13 +96,22 @@ public:
             elements3D.emplace_back(label, value, min, max);
     }
 
-    void text(std::string window, const char *label) {
+    void text(std::string window, const char *label, std::string id = "") {
         if (labelExists(label, window))
             return;
         if (window == "default")
             elements.emplace_back(label);
         else if (window == "Renderer3D")
-            elements3D.emplace_back(label);
+            elements3D.emplace_back(label, id);
+    }
+
+    void updateText(std::string id, std::string newLabel) {
+        // TODO implement for other than renderer3D
+        for (auto &el: elements3D) {
+            if(el.id == id){
+                el.label = newLabel;
+            }
+        }
     }
 
     void checkbox(std::string window, const char *label, bool *val) {
@@ -112,6 +122,7 @@ public:
         else if (window == "Renderer3D")
             elements3D.emplace_back(label, val);
     }
+
     void button(std::string window, const char *label, bool *val) {
         if (labelExists(label, window))
             return;
@@ -121,7 +132,7 @@ public:
             elements3D.emplace_back(label, val, WIDGET_BUTTON);
     }
 
-    void inputText( std::string window, const char *label, char *buf) {
+    void inputText(std::string window, const char *label, char *buf) {
         if (labelExists(label, window))
             return;
         /**

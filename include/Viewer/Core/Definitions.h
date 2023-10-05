@@ -51,6 +51,9 @@
 #include <MultiSense/MultiSenseTypes.hh>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -60,7 +63,6 @@
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Core/Camera.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/ThreadPool.h"
 
@@ -71,13 +73,16 @@
 #define MAX_IMAGES_IN_QUEUE 5
 
 
+typedef uint32_t VkRenderFlags;
 
 
 // Predeclare to speed up compile times
-namespace VkRender::MultiSense {
-    class CRLPhysicalCamera;
+namespace VkRender {
+    class Camera;
+    namespace MultiSense {
+        class CRLPhysicalCamera;
+    }
 }
-
 
 namespace Log {
     // enum for LOG_LEVEL
@@ -104,19 +109,18 @@ namespace Log {
  */
 typedef enum ScriptType {
     /** CRL_SCRIPT_TYPE_DISABLED Do not draw script at all */
-    CRL_SCRIPT_TYPE_DISABLED,
+    CRL_SCRIPT_TYPE_DISABLED             = 0x00,
     /** CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
-    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
+    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS   = 0x01,
     /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
-    CRL_SCRIPT_TYPE_DEFAULT,
+    CRL_SCRIPT_TYPE_DEFAULT              = 0x02,
     /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup in the Renderer3D. No particular order */
-    CRL_SCRIPT_TYPE_RENDERER3D,
-    /**
-     * Create this script before default and always render this type first. No internal ordering amongst scripts
-     */
-    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
-    CRL_SCRIPT_TYPE_RENDER_PBR,
+    CRL_SCRIPT_TYPE_RENDERER3D           = 0x04,
+    /** Create this script before default and always render this type first. No internal ordering amongst scripts */
+    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE   = 0x08,
+    CRL_SCRIPT_TYPE_RENDER_PBR           = 0x10
 } ScriptType;
+typedef VkRenderFlags ScriptTypeFlags;
 
 typedef enum DrawMethod {
 
@@ -487,11 +491,6 @@ namespace VkRender {
         std::vector<ChannelInfo> channelInfo{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
-
-        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
-        int cameraType = 0;
-        /** @brief Reset 3D view camera position and rotation */
-        bool resetCamera = false;
         /** @brief Pixel information from renderer, on mouse hover for textures */
         std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfo{};
         /** @brief Pixel information scaled after zoom */
@@ -696,7 +695,7 @@ namespace VkRender {
         int scriptDrawCount = 0;
         std::string scriptName;
         MultiSense::CRLPhysicalCamera *crlCamera{};
-        ScriptType type{};
+        ScriptTypeFlags type{};
         uint32_t height = 0;
         uint32_t width = 0;
         const Input *input = nullptr;

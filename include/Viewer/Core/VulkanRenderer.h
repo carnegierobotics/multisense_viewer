@@ -113,7 +113,7 @@ namespace VkRender {
         std::chrono::system_clock::time_point rendererStartTime;
         float runTime = 0.0f;
 
-        Camera camera;
+        VkRender::Camera camera;
         glm::vec2 mousePos{};
         VkSampleCountFlagBits msaaSamples;
 

@@ -55,6 +55,7 @@
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000
 
+// forward declarations
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
 
 namespace VkRender {
@@ -109,7 +110,7 @@ namespace VkRender {
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-        virtual ScriptType getType() {
+        virtual ScriptTypeFlags getType() {
             return CRL_SCRIPT_TYPE_DISABLED;
         }
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */

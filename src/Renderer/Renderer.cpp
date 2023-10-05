@@ -81,10 +81,10 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
 
 
 void Renderer::prepareRenderer() {
-    camera.type = Camera::CameraType::arcball;
-    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 1000.0f);
-    camera.setPosition(defaultCameraPosition);
-    camera.setRotation(yaw, pitch);
+    camera.type = VkRender::Camera::arcball;
+    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 100.0f);
+    camera.resetPosition();
+    camera.resetRotation();
     createSelectionImages();
     createSelectionFramebuffer();
     createSelectionBuffer();
@@ -113,12 +113,12 @@ void Renderer::buildCommandBuffers() {
     cmdBufInfo.flags = 0;
     cmdBufInfo.pInheritanceInfo = nullptr;
 
-    std::vector<VkClearValue> clearValues{};
-    clearValues.resize(2);
-
+    std::array<VkClearValue, 3> clearValues{};
     clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
                        guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
-    clearValues[1] = {{1.0f, 0.0f}};
+    clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                       guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;
@@ -176,6 +176,7 @@ void Renderer::buildScripts() {
         if (scripts[scriptName].get() == nullptr) {
             pLogger->error("Failed to register script {}.", scriptName);
             builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+            scripts.erase(scriptName);
             return;
         }
         pLogger->info("Registered script: {} in factory", scriptName.c_str());
@@ -290,20 +291,14 @@ void Renderer::render() {
 
     pLogger->frameNumber = frameID;
     if (keyPress == GLFW_KEY_SPACE) {
-        camera.setPosition(defaultCameraPosition);
-        camera.setRotation(yaw, pitch);
+        camera.resetPosition();
+        camera.resetRotation();
     }
 
-    if (guiManager->handles.showDebugWindow) {
-        auto &cam = Log::Logger::getLogMetrics()->camera;
-        cam.pitch = camera.yAngle;
-        cam.pos = camera.m_Position;
-        cam.rot = camera.m_Rotation;
-        cam.cameraFront = camera.cameraFront;
-    }
+    guiManager->handles.camera.pos = camera.m_Position;
+    guiManager->handles.camera.rot = camera.m_Rotation;
+    guiManager->handles.camera.cameraFront = camera.cameraFront;
 
-    camera.viewportHeight = static_cast<float>(m_Height);
-    camera.viewportWidth = static_cast<float>(m_Width);
 
     // RenderData
     submitInfo.commandBufferCount = 1;
@@ -324,14 +319,24 @@ void Renderer::render() {
     // Enable/disable Renderer3D scripts
     for (auto &script: scripts) {
         if (!guiManager->handles.renderer3D) {
-            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDERER3D) {
+            if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D) {
                 script.second->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
             }
         } else {
-            if (script.second->getType() == CRL_SCRIPT_TYPE_RENDERER3D) {
+            if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D) {
                 script.second->setDrawMethod(CRL_SCRIPT_DRAW);
             }
         }
+    }
+
+
+    if (guiManager->handles.camera.type == 0)
+        camera.type = VkRender::Camera::arcball;
+    if (guiManager->handles.camera.type == 1)
+        camera.type = VkRender::Camera::flycam;
+    if (guiManager->handles.camera.reset) {
+        camera.resetPosition();
+        camera.resetRotation();
     }
 
     // Enable scripts depending on gui layout chosen
@@ -383,26 +388,16 @@ void Renderer::render() {
             switch (dev.selectedPreviewTab) {
                 case CRL_TAB_3D_POINT_CLOUD:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    //scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DRAW);
                     scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DRAW);
                     scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DRAW);
                     break;
                 default:
                     scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
                     break;
             }
 
-            if (dev.cameraType == 0)
-                camera.type = Camera::arcball;
-            if (dev.cameraType == 1)
-                camera.type = Camera::flycam;
-            if (dev.resetCamera) {
-                camera.setPosition(defaultCameraPosition);
-                camera.setRotation(yaw, pitch);
-            }
         }
     }
     if (noActivePreview) {
@@ -414,7 +409,6 @@ void Renderer::render() {
         scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
         scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
         scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Gizmos")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
         scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
 
     }
@@ -493,8 +487,10 @@ void Renderer::render() {
     /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        std::array<VkClearValue, 2> clearValues{};
+        std::array<VkClearValue, 3> clearValues{};
         clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+        clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
         clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
@@ -954,15 +950,18 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
         is3DViewSelected) { // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
-    if (mouseButtons.left && guiManager->handles.renderer3D)
+    if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
         camera.rotate(dx, dy);
 
     if (mouseButtons.right) {
-        camera.translate(glm::vec3((float) -dx * 0.0025f, (float) -dy * 0.0025f, 0.0f));
+        if (camera.type == VkRender::Camera::arcball)
+            camera.translate(glm::vec3((float) -dx * 0.0025f,  (float) -dy * 0.0025f, 0.0f));
+        else
+            camera.translate((float) -dx * 0.0025f,(float) -dy * 0.0025f);
     }
-    if (mouseButtons.middle && camera.type == Camera::flycam) {
+    if (mouseButtons.middle && camera.type == VkRender::Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
-    } else if (mouseButtons.middle && camera.type == Camera::arcball) {
+    } else if (mouseButtons.middle && camera.type == VkRender::Camera::arcball) {
         //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
     mousePos = glm::vec2((float) x, (float) y);
@@ -977,7 +976,7 @@ void Renderer::mouseScroll(float change) {
             camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }
-    if (guiManager->handles.renderer3D){
+    if (guiManager->handles.renderer3D) {
         camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
 

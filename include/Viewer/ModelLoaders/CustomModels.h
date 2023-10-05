@@ -18,7 +18,6 @@ private:
 
         /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
         bool draw = true;
-        CRLCameraDataType cameraDataType{};
 
         struct Mesh {
             VulkanDevice *device = nullptr;

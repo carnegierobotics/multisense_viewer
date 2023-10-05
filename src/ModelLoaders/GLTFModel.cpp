@@ -463,7 +463,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicStateCI{};
@@ -866,7 +866,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+        multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
         std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         VkPipelineDynamicStateCreateInfo dynamicStateCI{};
@@ -2205,7 +2205,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
                                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
                                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers,
-                                            ScriptType flags) {
+                                            ScriptTypeFlags flags) {
     this->vulkanDevice = utils.device;
     if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();

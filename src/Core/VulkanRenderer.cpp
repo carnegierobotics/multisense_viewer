@@ -384,7 +384,7 @@ namespace VkRender {
             VkAttachmentDescription colorAttachmentResolve{};
             colorAttachmentResolve.format = swapchain->colorFormat;
             colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-            colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

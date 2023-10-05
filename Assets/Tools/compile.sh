@@ -59,9 +59,9 @@ $glslc ${sceneDir}/pbr/irradiancecube.frag -o ${sceneOutDir}irradiancecube.frag.
 $glslc ${sceneDir}/pbr/prefilterenvmap.frag -o ${sceneOutDir}prefilterenvmap.frag.spv
 echo "Compiled PBR shaders"
 
-$glslc ${sceneDir}/default.vert -o ${sceneOutDir}default.vert.spv
-$glslc ${sceneDir}/default.frag -o ${sceneOutDir}default.frag.spv
-echo "Compiled default shaders"
+$glslc ${sceneDir}/grid.vert -o ${sceneOutDir}grid.vert.spv
+$glslc ${sceneDir}/grid.frag -o ${sceneOutDir}grid.frag.spv
+echo "Compiled grid shaders"
 
 
 echo "Copying to debug build location: ${sceneOutDir}*.spv | to | ${outDir}"

@@ -2274,7 +2274,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCI = Populate::pipelineRasterizationStateCreateInfo(
-            VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+            VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
             VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
     rasterizationStateCI.lineWidth = 1.0f;
 
@@ -2358,7 +2358,6 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(shaders.size());
     pipelineCI.pStages = shaders.data();
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
 
     CHECK_RESULT(
             vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,

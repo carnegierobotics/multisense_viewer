@@ -47,7 +47,6 @@ void Skybox::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
 void Skybox::update() {
     auto &d = bufferOneData;
     d->model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
-    d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 

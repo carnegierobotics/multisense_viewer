@@ -25,13 +25,13 @@ void Skybox::setup() {
 
 
 
-/*
-    Widgets::make()->slider("Exposure", &exposure, 0.0f, 25.0f);
-    Widgets::make()->slider("Gamma", &gamma, 0.0f, 8.0f);
-    Widgets::make()->slider("IBL", &ibl, 0.0f, 8.0f);
-    Widgets::make()->slider("debugView", &debugViewInputs, 0, 6);
-    Widgets::make()->slider("Skybox - LOD", &lod, 0, 10.0f);
-    */
+
+    Widgets::make()->slider("default", "Exposure", &exposure, 0.0f, 25.0f);
+    Widgets::make()->slider("default", "Gamma", &gamma, 0.0f, 8.0f);
+    Widgets::make()->slider("default", "IBL", &ibl, 0.0f, 8.0f);
+    Widgets::make()->slider("default", "debugView", &debugViewInputs, 0, 6);
+    Widgets::make()->slider("default", "Skybox - LOD", &lod, 0, 10.0f);
+
 
     skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"), renderUtils.device);
 

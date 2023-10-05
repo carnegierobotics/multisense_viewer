@@ -65,13 +65,13 @@ void Main3D::update() {
             ss.ignore();  // ignore comma
             ss >> entry.z;
             ss.ignore();  // ignore comma
-            ss >> entry.q0;
+            ss >> entry.qw;
             ss.ignore();  // ignore comma
-            ss >> entry.q1;
+            ss >> entry.qx;
             ss.ignore();  // ignore comma
-            ss >> entry.q2;
+            ss >> entry.qy;
             ss.ignore();  // ignore comma
-            ss >> entry.q3;
+            ss >> entry.qz;
 
             entries.push_back(entry);
 
@@ -125,8 +125,7 @@ void Main3D::update() {
 
         double rate = entries[entryIdx].dt.count() / static_cast<double>(renderData.deltaT);
 
-        printf("Rate %f, Renderer timeDelta: %f, simulation timeDelta %f\n ", rate, rendererTimeDelta.count(),
-               entries[entryIdx].timeDelta.count());
+        //printf("Rate %f, Renderer timeDelta: %f, simulation timeDelta %f\n ", rate, rendererTimeDelta.count(), entries[entryIdx].timeDelta.count());
         std::string rateStr = std::to_string(rate);
         Widgets::make()->updateText("id1", rateStr);
         // Print the entry
@@ -134,20 +133,20 @@ void Main3D::update() {
         float y = entries[entryIdx].y / 10.0f; // Switch z as up vector with y
         float z = entries[entryIdx].z / 10.0f;
 
-        float q0 = entries[entryIdx].q0;
-        float q1 = entries[entryIdx].q1;
-        float q2 = entries[entryIdx].q2;
-        float q3 = entries[entryIdx].q3;
+        float q0 = entries[entryIdx].qw;
+        float q1 = -entries[entryIdx].qx;
+        float q2 = -entries[entryIdx].qy;
+        float q3 = -entries[entryIdx].qz;
 
         glm::quat rot(q0, q1, q2, q3);
 
         d->model = glm::mat4(1.0f);
         // Transform the original quaternion by the rotation.
         d->model = glm::translate(d->model, glm::vec3(x, y, z));
+        d->model = d->model * glm::mat4_cast(rot);
+        d->model = d->model * glm::mat4_cast(glm::quat(cosf(glm::pi<float>() / 4.0f), 0.0f, 0.0f, -sinf(glm::pi<float>()/4.0f)));
 
         d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // y-up to z-up 3D model.
-
-        d->model = d->model * glm::mat4_cast(rot);
 
         //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));

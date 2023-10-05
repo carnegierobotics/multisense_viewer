@@ -29,7 +29,7 @@ void Grid::setup() {
 void Grid::update() {
     auto &d = bufferOneData;
 
-    if (enable)
+    if (enable && !hide)
         drawMethod = CRL_SCRIPT_DRAW;
     else
         drawMethod = CRL_SCRIPT_DONT_DRAW;
@@ -57,4 +57,13 @@ void Grid::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (b) {
         model->draw(commandBuffer, i);
     }
+}
+
+
+
+void Grid::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+    if (uiHandle->devices.empty()){
+        hide = false;
+    } else
+        hide = true;
 }

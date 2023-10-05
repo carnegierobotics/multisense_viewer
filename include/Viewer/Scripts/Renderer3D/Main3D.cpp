@@ -125,8 +125,9 @@ void Main3D::update() {
 
         double rate = entries[entryIdx].dt.count() / static_cast<double>(renderData.deltaT);
 
-        //printf("Rate %f, Renderer timeDelta: %f, simulation timeDelta %f\n ", rate, rendererTimeDelta.count(), entries[entryIdx].timeDelta.count());
-        std::string rateStr = std::to_string(rate);
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << rate;
+        std::string rateStr = ss.str();
         Widgets::make()->updateText("id1", rateStr);
         // Print the entry
         float x = entries[entryIdx].x / 10.0f;

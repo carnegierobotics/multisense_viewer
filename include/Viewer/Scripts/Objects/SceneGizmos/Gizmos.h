@@ -70,8 +70,6 @@ public:
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     ScriptTypeFlags getType() override { return type; }
     DrawMethod getDrawMethod() override {return drawMethod;}
-
-    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief set if this script should be drawn or not. */
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 

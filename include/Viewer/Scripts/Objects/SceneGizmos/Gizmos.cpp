@@ -64,7 +64,6 @@ void Gizmos::update() {
 
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.01f, 0.01f, 0.01f));
 
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -96,10 +95,5 @@ void Gizmos::update() {
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
-
-}
-
-
-void Gizmos::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 }

@@ -27,6 +27,7 @@ else
     outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
     sceneOutDir="../Shaders/Scene/spv/"
     sceneDir="../Shaders/Scene"
+    renderer3DDir="../Shaders/Renderer3D"
 fi
 
 
@@ -59,9 +60,11 @@ $glslc ${sceneDir}/pbr/irradiancecube.frag -o ${sceneOutDir}irradiancecube.frag.
 $glslc ${sceneDir}/pbr/prefilterenvmap.frag -o ${sceneOutDir}prefilterenvmap.frag.spv
 echo "Compiled PBR shaders"
 
-$glslc ${sceneDir}/grid.vert -o ${sceneOutDir}grid.vert.spv
-$glslc ${sceneDir}/grid.frag -o ${sceneOutDir}grid.frag.spv
-echo "Compiled grid shaders"
+$glslc ${renderer3DDir}/grid.vert -o ${sceneOutDir}grid.vert.spv
+$glslc ${renderer3DDir}/grid.frag -o ${sceneOutDir}grid.frag.spv
+$glslc ${renderer3DDir}/pc3D.vert -o ${sceneOutDir}pc3D.vert.spv
+$glslc ${renderer3DDir}/pc3D.frag -o ${sceneOutDir}pc3D.frag.spv
+echo "Compiled Renderer3D shaders"
 
 
 echo "Copying to debug build location: ${sceneOutDir}*.spv | to | ${outDir}"

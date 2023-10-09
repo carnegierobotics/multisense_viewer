@@ -59,6 +59,7 @@ set(ENGINE_SRC
         src/ModelLoaders/CRLCameraModels.cpp
         src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
+        src/ModelLoaders/PointCloudLoader.cpp
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
@@ -67,7 +68,8 @@ set(ENGINE_SRC
         src/ImGui/LayerFactory.cpp
         src/Renderer/UsageMonitor.cpp
         src/Core/RendererConfig.cpp
-        src/Core/ServerConnection.cpp)
+        src/Core/ServerConnection.cpp
+)
 
 set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Main3D.cpp

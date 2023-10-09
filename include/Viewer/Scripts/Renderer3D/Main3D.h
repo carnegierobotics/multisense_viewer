@@ -8,6 +8,7 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/ModelLoaders/PointCloudLoader.h"
 
 
 class Main3D: public VkRender::Base, public VkRender::RegisteredInFactory<Main3D>
@@ -51,12 +52,14 @@ public:
 
     std::unique_ptr<GLTFModel::Model> KS21;
 
+    std::unique_ptr<PointCloudLoader> pc;
+
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
     } lightSource;
 
-    char buf[1024] = "/home/magnus/crl/disparity_quality/processed_data/pose.csv";
+    char buf[1024] = "/home/magnus/crl/disparity_quality/processing/images_and_pose.csv";
     bool play = false;
     bool pause = false;
     bool paused = false;
@@ -74,7 +77,7 @@ public:
     };
 
     std::vector<Data> entries;
-    std::chrono::steady_clock::time_point lastPrintedTime;
+    std::chrono::steady_clock::time_point lastEntryTime;
     std::chrono::steady_clock::time_point startPlay;
     size_t entryIdx = 0;
 
@@ -96,6 +99,9 @@ public:
     }
 
 
+    bool forceRealTime = true;
+
+    glm::mat4 setQMat();
 };
 
 

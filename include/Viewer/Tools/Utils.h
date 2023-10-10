@@ -811,10 +811,10 @@ namespace Utils {
             metadataJSON["metadata"]["location"] = std::string(dev->record.metadata.location);
             metadataJSON["metadata"]["description"] = std::string(dev->record.metadata.recordDescription);
             metadataJSON["metadata"]["equipment_description"] = std::string(dev->record.metadata.equipmentDescription);
-            metadataJSON["metadata"]["camera_extrinsics"] = std::string(
-                    (saveFolder / (serialNumber + "_extrinsics.yml")).string());
-            metadataJSON["metadata"]["camera_intrinsics"] = std::string(
-                    (saveFolder / (serialNumber + "_intrinsics.yml")).string());
+            metadataJSON["metadata"]["camera_extrinsics"] =
+                    (saveFolder / (serialNumber + "_extrinsics.yml")).string();
+            metadataJSON["metadata"]["camera_intrinsics"] =
+                    (saveFolder / (serialNumber + "_intrinsics.yml")).string();
             metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
             metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
             metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;
@@ -896,10 +896,9 @@ namespace Utils {
         try {
             // Populate JSON object with metadata
             metadataJSON["metadata"]["date"] = date;
-            metadataJSON["metadata"]["camera_extrinsics"] = std::string((
-                    saveFolder / (serialNumber + "_extrinsics.yml")).string());
-            metadataJSON["metadata"]["camera_intrinsics"] = std::string((
-                    saveFolder / (serialNumber + "_intrinsics.yml")).string());
+            metadataJSON["metadata"]["camera_extrinsics"] = (saveFolder / (serialNumber + "_extrinsics.yml")).string();
+            metadataJSON["metadata"]["camera_intrinsics"] = (
+                    saveFolder / (serialNumber + "_intrinsics.yml")).string();
             metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
             metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
             metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;

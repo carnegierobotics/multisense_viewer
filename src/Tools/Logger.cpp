@@ -155,6 +155,19 @@ namespace Log {
             m_ThreadPool->Push(Logger::logOnConsole, data);
         }
     }
+    // Interface for Error Log
+    void Logger::fatalInternal(const char *text) noexcept {
+        string data;
+        data.append("[FATAL ERROR]: ");
+        data.append(text);
+
+        // ERROR must be capture
+        if (m_LogType == FILE_LOG) {
+            m_ThreadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_LogType == CONSOLE) {
+            m_ThreadPool->Push(Logger::logOnConsole, data);
+        }
+    }
 
     void Logger::warningInternal(const char *text) noexcept {
         string data;

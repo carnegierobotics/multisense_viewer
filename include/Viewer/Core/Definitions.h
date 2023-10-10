@@ -38,7 +38,10 @@
 #define MULTISENSE_DEFINITIONS_H
 
 #define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
-//#define MULTISENSE_VIEWER_DEBUG
+
+#ifndef MULTISENSE_VIEWER_PRODUCTION
+#define MULTISENSE_VIEWER_DEBUG
+#endif
 
 #include <unordered_map>
 #include <memory>
@@ -48,15 +51,18 @@
 #include <MultiSense/MultiSenseTypes.hh>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui.h>
+#include <json.hpp>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Core/Camera.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/ThreadPool.h"
 
@@ -67,13 +73,16 @@
 #define MAX_IMAGES_IN_QUEUE 5
 
 
+typedef uint32_t VkRenderFlags;
 
 
 // Predeclare to speed up compile times
-namespace VkRender::MultiSense {
-    class CRLPhysicalCamera;
+namespace VkRender {
+    class Camera;
+    namespace MultiSense {
+        class CRLPhysicalCamera;
+    }
 }
-
 
 namespace Log {
     // enum for LOG_LEVEL
@@ -100,21 +109,26 @@ namespace Log {
  */
 typedef enum ScriptType {
     /** CRL_SCRIPT_TYPE_DISABLED Do not draw script at all */
-    CRL_SCRIPT_TYPE_DISABLED,
+    CRL_SCRIPT_TYPE_DISABLED             = 0x00,
     /** CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
-    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS,
+    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS   = 0x01,
     /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
-    CRL_SCRIPT_TYPE_DEFAULT,
-    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup. No particular order */
-    CRL_SCRIPT_TYPE_RENDER,
-    /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (destroy and create) next frame */
-    CRL_SCRIPT_TYPE_RELOAD,
-    /**
-     * Create this script before default and always render this type first. No internal ordering amongst scripts
-     */
-    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE,
-    CRL_SCRIPT_TYPE_RENDER_PBR,
+    CRL_SCRIPT_TYPE_DEFAULT              = 0x02,
+    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup in the Renderer3D. No particular order */
+    CRL_SCRIPT_TYPE_RENDERER3D           = 0x04,
+    /** Create this script before default and always render this type first. No internal ordering amongst scripts */
+    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE   = 0x08,
+    CRL_SCRIPT_TYPE_RENDER_PBR           = 0x10
 } ScriptType;
+typedef VkRenderFlags ScriptTypeFlags;
+
+typedef enum DrawMethod {
+
+    CRL_SCRIPT_DONT_DRAW,
+    CRL_SCRIPT_DRAW,
+    /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (run onDestroy and Create funcs) next frame after this is set*/
+    CRL_SCRIPT_RELOAD
+} DrawMethod;
 
 /**
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
@@ -173,10 +187,6 @@ typedef enum StreamWindowIndex {
  * @brief Identifier for different pages in the GUI.
  */
 typedef enum page {
-    CRL_PAGE_PREVIEW_DEVICES = 0,
-    CRL_PAGE_DEVICE_INFORMATION = 1,
-    CRL_PAGE_CONFIGURE_DEVICE = 2,
-    CRL_PAGE_TOTAL_PAGES = 3,
     CRL_TAB_NONE = 10,
     CRL_TAB_2D_PREVIEW = 11,
     CRL_TAB_3D_POINT_CLOUD = 12,
@@ -216,7 +226,10 @@ typedef enum ScriptWidgetType {
     WIDGET_FLOAT_SLIDER = 0,
     WIDGET_INT_SLIDER = 1,
     WIDGET_INPUT_NUMBER = 2,
-    WIDGET_TEXT = 3
+    WIDGET_TEXT = 3,
+    WIDGET_CHECKBOX = 4,
+    WIDGET_INPUT_TEXT = 5,
+    WIDGET_BUTTON = 6,
 } ScriptWidgetType;
 
 /**
@@ -403,6 +416,49 @@ namespace VkRender {
         bool updateResolutionMode = true;
     };
 
+
+    struct Metadata {
+        int custom = 0; // 1 True, 0 False
+        char logName[1024] = "Log no. 1";
+        char location[1024] = "Test site X";
+        char recordDescription[1024] = "Offroad navigation";
+        char equipmentDescription[1024] = "MultiSense mounted on X";
+        char camera[1024] = "MultiSense S30";
+        char collector[1024] = "John Doe";
+        char tags[1024] = "self driving, test site x, multisense";
+
+        char customField[1024 * 32] =
+                "road_type = Mountain Road\n"
+                "weather_conditions = Clear sky in the beginning, started to raind around midday followed by harsh winds\n"
+                "project_code = IRAD-2023\n\n\n\n";
+        /**@brief JSON object containing the above fields in JSON format if the custom metadata has been set */
+        nlohmann::json JSON = nullptr;
+        bool parsed = false;
+    };
+
+    struct RecordDataInfo {
+        Metadata metadata;
+
+        bool showCustomMetaDataWindow = false;
+        /**@brief location for which this m_Device should save recorded frames **/
+        std::string frameSaveFolder;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string pointCloudSaveFolder;
+        /**@brief location for which this m_Device should save recorded point clouds **/
+        std::string imuSaveFolder;
+        /**@brief Flag to decide if user is currently recording frames */
+        bool frame = false;
+        /**@brief Flag to decide if user is currently recording point cloud */
+        bool pointCloud = false;
+        /**@brief Flag to decide if user is currently recording IMU data */
+        bool imu = false;
+
+        RecordDataInfo() {
+            frameSaveFolder.resize(1024);
+            pointCloudSaveFolder.resize(1024);
+        }
+    };
+
     /**
      * @brief UI Block for a MultiSense Device connection. Contains connection information and user configuration such as selected previews, recording info and more..
      */
@@ -435,22 +491,6 @@ namespace VkRender {
         std::vector<ChannelInfo> channelInfo{};
         /** @brief object containing all adjustable parameters to the camera */
         Parameters parameters{};
-        /**@brief location for which this m_Device should save recorded frames **/
-        std::string outputSaveFolder;
-        /**@brief location for which this m_Device should save recorded point clouds **/
-        std::string outputSaveFolderPointCloud;
-        /**@brief location for which this m_Device should save recorded point clouds **/
-        std::string outputSaveFolderIMUData;
-        /**@brief Flag to decide if user is currently recording frames */
-        bool isRecording = false;
-        /**@brief Flag to decide if user is currently recording point cloud */
-        bool isRecordingPointCloud = false;
-        /**@brief Flag to decide if user is currently recording IMU data */
-        bool isRecordingIMUdata = false;
-        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
-        int cameraType = 0;
-        /** @brief Reset 3D view camera position and rotation */
-        bool resetCamera = false;
         /** @brief Pixel information from renderer, on mouse hover for textures */
         std::unordered_map<StreamWindowIndex, CursorPixelInformation> pixelInfo{};
         /** @brief Pixel information scaled after zoom */
@@ -484,10 +524,8 @@ namespace VkRender {
         bool hasColorCamera = false;
         /** @brief If we managed to update all the device configs */
         bool updateDeviceConfigsSucceeded = false;
-        Device() {
-            outputSaveFolder.resize(255);
-            outputSaveFolderPointCloud.resize(255);
-        }
+
+        RecordDataInfo record;
     };
 
     /**
@@ -629,8 +667,9 @@ namespace VkRender {
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
-        uint32_t UBCount = 0;
+        uint32_t UBCount = 0; // TODO rename to swapchain iamges
         VkRenderPass *renderPass{};
+        VkSampleCountFlagBits msaaSamples;
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
         struct {
@@ -655,8 +694,8 @@ namespace VkRender {
         float scriptRuntime = 0.0f;
         int scriptDrawCount = 0;
         std::string scriptName;
-        const MultiSense::CRLPhysicalCamera *crlCamera{};
-        ScriptType type{};
+        MultiSense::CRLPhysicalCamera *crlCamera{};
+        ScriptTypeFlags type{};
         uint32_t height = 0;
         uint32_t width = 0;
         const Input *input = nullptr;

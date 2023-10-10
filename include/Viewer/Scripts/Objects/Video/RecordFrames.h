@@ -72,16 +72,18 @@ public:
     void update() override;
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptType getType() override { return type; }
+    ScriptTypeFlags getType() override { return type; }
+    DrawMethod getDrawMethod() override {return drawMethod;}
 
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(ScriptType _type) override { this->type = _type; }
+    void setDrawMethod(DrawMethod _drawMethod) override { this->drawMethod = _drawMethod; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptType type = CRL_SCRIPT_TYPE_DEFAULT;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DEFAULT;
+    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -89,7 +91,9 @@ public:
     bool savePointCloud = false;
     bool saveIMUData = false;
     bool saveImage = false;
+    bool prevSaveState = false;
     bool isRemoteHead = false;
+
     std::string saveFolderImage;
     std::filesystem::path saveFolderPointCloud;
     std::filesystem::path saveFolderIMUData;
@@ -103,10 +107,12 @@ public:
 
     std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
     std::unordered_map<std::string, uint32_t> savedImageSourceCount;
+    std::unordered_map<std::string, uint32_t> saveImageCount;
+    std::unordered_map<std::string, uint32_t> lastSavedImagesID;
 
 
     template<typename T>
-    static std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
+    static inline std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
                                              uint8_t *chroma,
                                              const uint32_t &imageWidth,
                                              size_t u,
@@ -135,13 +141,14 @@ public:
         return {{static_cast<uint8_t>(px_r), static_cast<uint8_t>(px_g), static_cast<uint8_t>(px_b)}};
     }
 
-    static void
+    static inline void
     ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
                const uint32_t &height, uint8_t *output);
 
     static void
-    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc, short remoteHead,
-                    std::shared_ptr<VkRender::TextureData> &ptr, bool isRemoteHead, std::string &compression);
+    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
+                         std::shared_ptr<VkRender::TextureData> &ptr,
+                         std::string &compression);
 
     void
     static savePointCloudToPlyFile(const std::filesystem::path& saveDirectory,

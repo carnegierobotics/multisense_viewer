@@ -129,6 +129,7 @@ else ()
     set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
     include_directories(SYSTEM ${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
     include_directories(SYSTEM ${IMGUI_FILEDIALOG_DIR})
+    include_directories(${PROJECT_SOURCE_DIR}/include/Viewer/ImGui/Custom) # Custom IMGUI application
     set(IMGUI_SRC
             ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
             ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
@@ -179,7 +180,8 @@ endif ()
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.
 function(ExportScriptIncludes)
     string(TIMESTAMP Today)
-    file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/include/Viewer/Scripts/Objects/*.h")
+    file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/include/Viewer/Scripts/*.h")
+    list(FILTER SCRIPT_HEADERS EXCLUDE REGEX "/Private/")
     file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "// Generated from Cmake ${Today} \n")
     file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt "# Generated from Cmake ${Today} \n")
     foreach (Src ${SCRIPT_HEADERS})

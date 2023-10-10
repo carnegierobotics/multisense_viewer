@@ -54,7 +54,8 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
-#include "ScriptUIAddons.h"
+#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/LayerFactory.h"
 
 namespace VkRender {
     class GuiManager {
@@ -62,7 +63,7 @@ namespace VkRender {
         GuiObjectHandles handles{};
 
         GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                   const uint32_t &height);
+                   const uint32_t &height,VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         ~GuiManager() {
             Log::Logger::getInstance()->info("Saving ImGui file: {}",
@@ -85,7 +86,7 @@ namespace VkRender {
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
 
         /**@brief setup function called once vulkan renderer is setup. Function calls each layer in order to generate buffers for draw commands*/
-        void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass);
+        void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer);
@@ -98,6 +99,15 @@ namespace VkRender {
         void pushLayer() {
             static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
             m_LayerStack.emplace_back(std::make_shared<T>())->onAttach();
+        }
+
+        void pushLayer(const std::string& layerName) {
+            auto layer = LayerFactory::createLayer(layerName);
+            if(layer) {
+                m_LayerStack.emplace_back(layer)->onAttach();
+            } else {
+                // Handle unknown layer case, e.g., throw an exception or log an error
+            }
         }
 
     private:

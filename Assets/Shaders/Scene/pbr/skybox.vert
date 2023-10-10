@@ -17,6 +17,20 @@ layout (binding = 0) uniform UBO
 
 layout (location = 1) out vec3 outUVW;
 
+// returns a 90 degree x-axis rotation matrix
+mat4 get_z_correction_matrix()
+{
+	float s = sin(radians(90.0));
+	float c = cos(radians(90.0));
+	return mat4(
+	1, 0, 0, 0,
+	0, c, s, 0,
+	0, -s, c, 0,
+	0, 0, 0, 1
+	);
+}
+
+
 out gl_PerVertex
 {
 	vec4 gl_Position;
@@ -24,7 +38,11 @@ out gl_PerVertex
 
 void main()
 {
-	outUVW = inPos;
+	vec3 pos = inPos;
+	mat4 ZUP_CORRECTION = get_z_correction_matrix(); // used to correct for my z-up view
+	mat4 no_translation_view = ubo.view;
+	no_translation_view[3] = vec4(0.0, 0.0, 0.0, 1.0); // so skybox doesn't move with camera;
 
-	gl_Position = ubo.projection * ubo.model * vec4(inPos, 1.0);
+	outUVW = pos;
+	gl_Position = ubo.projection * no_translation_view * ZUP_CORRECTION * vec4(pos, 1.0);
 }

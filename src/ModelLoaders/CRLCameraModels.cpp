@@ -542,8 +542,9 @@ void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, const VkDescrip
 void
 CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector,
                                 CRLCameraDataType type,
-                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *model) {
-    createPipelineLayout(pLayoutT, model->descriptorSetLayout);
+                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel,
+                                VkSampleCountFlagBits samples) {
+    createPipelineLayout(pLayoutT, pModel->descriptorSetLayout);
 
     // Vertex bindings an attributes
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -588,7 +589,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-
+    multisampleStateCI.rasterizationSamples = samples;
 
     std::vector<VkDynamicState> dynamicStateEnables = {
             VK_DYNAMIC_STATE_VIEWPORT,
@@ -617,7 +618,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     // Pipelines
     VkGraphicsPipelineCreateInfo pipelineCI{};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineCI.layout = model->pipelineLayout;
+    pipelineCI.layout = pModel->pipelineLayout;
     pipelineCI.renderPass = pT;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pVertexInputState = &vertexInputStateCI;
@@ -629,7 +630,6 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     pipelineCI.pDynamicState = &dynamicStateCI;
     pipelineCI.stageCount = static_cast<uint32_t>(vector.size());
     pipelineCI.pStages = vector.data();
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                              pPipelineT);
@@ -659,11 +659,11 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
     createDescriptorSetLayout(model);
     createDescriptors(renderUtils->UBCount, renderUtils->uniformBuffers, model);
     createPipeline(*renderUtils->renderPass, vector, model->cameraDataType, &model->pipeline, &model->pipelineLayout,
-                   model);
+                   model, renderUtils->msaaSamples);
 
     // Create selection pipeline as well
     createPipeline(renderUtils->picking->renderPass, vector, model->cameraDataType, &model->selectionPipeline,
-                   &model->selectionPipelineLayout, model);
+                   &model->selectionPipelineLayout, model, VK_SAMPLE_COUNT_1_BIT);
     model->initializedPipeline = true;
 }
 

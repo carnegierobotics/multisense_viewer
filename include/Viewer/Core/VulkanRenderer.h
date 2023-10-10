@@ -236,6 +236,8 @@ namespace VkRender {
         int frameCounter = 0;
         int frameID = 0;
 
+        void setMultiSampling(VkSampleCountFlagBits samples);
+
     private:
         uint32_t destWidth{};
         uint32_t destHeight{};
@@ -284,6 +286,7 @@ namespace VkRender {
 #endif
 
         void createColorResources();
+
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

@@ -60,7 +60,7 @@ namespace VkRender {
     }
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                           const uint32_t &height) {
+                           const uint32_t &height, VkSampleCountFlagBits msaaSamples) {
         device = vulkanDevice;
         ImGui::CreateContext();
         if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
@@ -92,7 +92,7 @@ namespace VkRender {
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
         handles.pool = pool;
         // setup graphics pipeline
-        setup(width, height, renderPass);
+        setup(width, height, renderPass, msaaSamples);
     }
 
     void
@@ -243,7 +243,7 @@ namespace VkRender {
     }
 
 
-    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
+    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples) {
         VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
                           device->m_LogicalDevice, &vtxModule);
@@ -351,7 +351,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleState =
                 Populate
-                ::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_8_BIT);
+                ::pipelineMultisampleStateCreateInfo(msaaSamples);
 
         std::vector<VkDynamicState> dynamicStateEnables = {
                 VK_DYNAMIC_STATE_VIEWPORT,

@@ -74,7 +74,7 @@ void Main3D::setup() {
 }
 
 glm::mat4 Main3D::setQMat(){
-    float scale = 2.0f;
+    //float scale = 2.0f;
 
     float dcx = 0.0f;
 

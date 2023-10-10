@@ -242,17 +242,6 @@ namespace VkRender {
 
                     updateViewMatrix();
                 }
-            } else {
-                if (keys.up)
-                    m_Translate.y += 0.1f;
-                if (keys.down)
-                    m_Translate.y -= 0.1f;
-                if (keys.left)
-                    m_Translate.x -= 0.1f;
-                if (keys.right)
-                    m_Translate.x += 0.1f;
-
-                updateViewMatrix();
             }
         };
     };

@@ -29,10 +29,6 @@ void Grid::setup() {
 void Grid::update() {
     auto &d = bufferOneData;
 
-    if (enable && !hide)
-        drawMethod = CRL_SCRIPT_DRAW;
-    else
-        drawMethod = CRL_SCRIPT_DONT_DRAW;
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));

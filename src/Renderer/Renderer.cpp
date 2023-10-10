@@ -978,9 +978,9 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
     if (mouseButtons.right) {
         if (camera.type == VkRender::Camera::arcball)
-            camera.translate(glm::vec3((float) -dx * 0.0025f, (float) -dy * 0.0025f, 0.0f));
+            camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
         else
-            camera.translate((float) -dx * 0.0025f, (float) -dy * 0.0025f);
+            camera.translate((float) -dx * 0.01f, (float) -dy * 0.01f);
     }
     if (mouseButtons.middle && camera.type == VkRender::Camera::flycam) {
         camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));

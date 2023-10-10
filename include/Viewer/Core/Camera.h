@@ -37,6 +37,8 @@
 #ifndef MULTISENSE_CAMERA_H
 #define MULTISENSE_CAMERA_H
 
+#include <glm/gtx/string_cast.hpp>
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
@@ -61,29 +63,21 @@ namespace VkRender {
                 // matrices.view = glm::rotate(matrices.view, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                 // m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
             } else if (type == CameraType::arcball) {
-                /*
-                glm::mat4 rotM = glm::mat4(1.0f);
-                glm::mat4 transM;
 
-                rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-                //rotM = glm::rotate(rotM, glm::radians(m_Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-                rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-                transM = glm::translate(glm::mat4(1.0f), m_Position * glm::vec3(1.0f, 1.0f, 1.0f));
-                matrices.view = transM * rotM;
-                */
 
-                glm::mat4 transM;
-
+                // 1. Translate the scene so that the camera's position becomes the origin
                 // 2. Apply rotations
                 glm::mat4 rotM = glm::mat4(1.0f);
                 rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
                 rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
 
-                // 3. Translate the camera
-                transM = glm::translate(glm::mat4(1.0f), zoomVal * m_Position);
+                // 4. Translate the camera based on the zoom value
 
-                matrices.view = transM * rotM;
+                glm::mat4 transM = glm::translate(glm::mat4(1.0f), zoomVal * m_Position);
+                glm::mat4 transMat = glm::translate(glm::mat4(1.0f), m_Translate);
+
+                matrices.view = transM * rotM * transMat;
 
             }
 
@@ -95,14 +89,19 @@ namespace VkRender {
         CameraType type = CameraType::flycam;
 
         glm::vec3 m_Rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 m_Position = glm::vec3(-3.0f, 0.0f, 5.0f);
-        float arcballDistance = -1.5f;
+        glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        glm::vec3 m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
+
         glm::vec3 cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
         glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
+
+        glm::vec3 arcBallTranslate = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 arcballFront = glm::vec3(1.0f, 0.0f, 0.0f);
+
         float m_RotationSpeed = 0.20f;
-        float m_MovementSpeed = 1.0f;
-        float m_SpeedModifier = 4 * 50.0f;
+        float m_MovementSpeed = 3.0f;
         glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
         float zoomVal = 1.0f;
@@ -145,6 +144,7 @@ namespace VkRender {
 
         void resetPosition() {
             glm::vec3 pos(-3.0f, 0.0f, 1.50f);
+            m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
 
             if (type == arcball) {
                 this->m_Position = pos * glm::vec3(0.0f, 0.0f, -1.0f); // Setting for arcball we just want a Z value
@@ -173,6 +173,7 @@ namespace VkRender {
         void rotate(float dx, float dy) {
             dx *= m_RotationSpeed;
             dy *= m_RotationSpeed;
+
             if (type == flycam) {
                 // On mouse move:
                 // Calculate yaw rotation
@@ -191,23 +192,28 @@ namespace VkRender {
                 orientation = pitchRotation * orientation;
                 orientation = glm::normalize(orientation);  // Ensure it stays normalized
 
-                Log::Logger::getInstance()->info("Orientation {},{},{},{}", orientation.x, orientation.y, orientation.z, orientation.w);
+                Log::Logger::getInstance()->info("Orientation {},{},{},{}", orientation.x, orientation.y, orientation.z,
+                                                 orientation.w);
 
                 // Extract the camera's front direction
                 glm::vec3 dir = glm::mat3_cast(orientation) * glm::vec3(1.0f, 0.0f, 0.0f);
                 cameraFront = dir;
-
             } else {
-                // float deltaAngleX = (2.0f * PI / viewportWidth); // a movement from left to right = 2*PI = 360 deg
-                // float deltaAngleY = (PI / viewportHeight);  // a movement from top to bottom = PI = 180 deg
-
-                m_Rotation += glm::vec3(-dy, 0.0f, -dx);
+                m_Rotation.x += dy;
+                m_Rotation.z += dx;
             }
             updateViewMatrix();
+            translate(glm::vec3(0.0f));
         }
 
         void translate(glm::vec3 delta) {
-            this->m_Position += (delta * orientation);
+            delta.y *= -1;
+            glm::mat4 rotM = glm::mat4(1.0f);
+            rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
+            rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
+            glm::vec4 rot = glm::vec4(delta, 1.0f) * rotM;
+            m_Translate -= glm::vec3(rot);
+
             updateViewMatrix();
         }
 
@@ -216,17 +222,9 @@ namespace VkRender {
             glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
 
             m_Position += right * dx;  // Pan right/left based on mouse x-delta
-            m_Position += up * dy;     // Pan up/down based on mouse y-delta
+            m_Position += up * (-dy);     // Pan up/down based on mouse y-delta
 
             updateViewMatrix();
-        }
-
-        void setRotationSpeed(float rotationSpeed) {
-            this->m_RotationSpeed = rotationSpeed * m_SpeedModifier;
-        }
-
-        void setMovementSpeed(float movementSpeed) {
-            this->m_MovementSpeed = movementSpeed * m_SpeedModifier;
         }
 
         void update(float deltaTime) {
@@ -244,6 +242,17 @@ namespace VkRender {
 
                     updateViewMatrix();
                 }
+            } else {
+                if (keys.up)
+                    m_Translate.y += 0.1f;
+                if (keys.down)
+                    m_Translate.y -= 0.1f;
+                if (keys.left)
+                    m_Translate.x -= 0.1f;
+                if (keys.right)
+                    m_Translate.x += 0.1f;
+
+                updateViewMatrix();
             }
         };
     };

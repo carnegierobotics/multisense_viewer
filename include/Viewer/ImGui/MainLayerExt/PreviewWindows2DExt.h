@@ -236,7 +236,7 @@ public:
 
                 ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
                 //ImGui::Begin(windowName.c_str(), &open, window_flags);
-                ImGui::BeginChild(windowName.c_str(), windowSize, false, ImGuiWindowFlags_NoBringToFrontOnFocus);
+                ImGui::BeginChild(windowName.c_str(), windowSize, false, window_flags);
 
                 window.isHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
 
@@ -245,6 +245,7 @@ public:
                 ImVec2 topBarRectMin(viewAreaElementPosX, viewAreaElementPosY);
                 ImVec2 topBarRectMax(viewAreaElementPosX + handles->info->viewAreaElementSizeX,
                                      viewAreaElementPosY + (handles->info->previewBorderPadding / 2));
+
                 ImGui::GetWindowDrawList()->AddRectFilled(topBarRectMin, topBarRectMax,
                                                           ImColor(VkRender::Colors::CRLBlueIsh),
                                                           0.0f,
@@ -607,8 +608,8 @@ public:
                     Log::Logger::getInstance()->traceWithFrequency("Tag:" + src, 60 * 10, "{}", src);
                 }
 
-                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 150.0f, topBarRectMin.y));
-                ImGui::SetNextItemWidth(150.0f);
+                ImGui::SetCursorScreenPos(ImVec2(topBarRectMax.x - 175.0f, topBarRectMin.y));
+                ImGui::SetNextItemWidth(175.0f);
                 std::string srcLabel = "##Source" + std::to_string(index);
                 std::string previewValue;
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
@@ -616,6 +617,10 @@ public:
                 std::string auxLumaSources = "Luma Aux";
                 std::string colorRectifiedSources = "Color Rectified Aux";
                 std::string auxLumaRectifiedSources = "Luma Rectified Aux";
+                float heightFactor = topBarRectMax.y - topBarRectMin.y;
+                float frameHeight = 0.47 * heightFactor - 6.0f; // linear map to fit the top bar
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, frameHeight));
+
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),
                                       ImGuiComboFlags_HeightLarge)) {
                     for (size_t n = 0; n < window.availableSources.size(); n++) {
@@ -719,7 +724,7 @@ public:
                     }
                     ImGui::EndCombo();
                 }
-
+                ImGui::PopStyleVar();
                 handles->info->hoverState |= ImGui::IsWindowHovered(
                         ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
                 ImGui::PopStyleColor();

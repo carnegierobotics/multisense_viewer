@@ -337,6 +337,12 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
         float y = 0.0f;
         float z = 0.0f;
         float r = 0.0f, g = 0.0f, b = 0.0f;
+
+        WorldPoint(float xx, float yy, float zz, float rr, float gg, float bb) : x(xx), y(yy), z(zz), r(rr), g(gg),
+                                                                                 b(bb) {
+        }
+
+        WorldPoint() = default;
     };
 
 
@@ -369,7 +375,7 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
             // MultiSense 16 bit disparity images are stored in 1/16 of a pixel. This allows us to send subpixel
             // resolutions with integer values
 
-           d = static_cast<float>(disparityP[index]) / 16.0f;
+            d = static_cast<float>(disparityP[index]) / 16.0f;
 
             if (d < minDisparity) {
                 continue;
@@ -390,11 +396,11 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
 
             } else {
                 points[index] = WorldPoint(worldCoords.x,
-                                               worldCoords.y,
-                                               worldCoords.z,
-                                               static_cast<float>(leftRectifiedP[index]),
-                                               static_cast<float>(leftRectifiedP[index]),
-                                               static_cast<float>(leftRectifiedP[index]));
+                                           worldCoords.y,
+                                           worldCoords.z,
+                                           static_cast<float>(leftRectifiedP[index]),
+                                           static_cast<float>(leftRectifiedP[index]),
+                                           static_cast<float>(leftRectifiedP[index]));
             }
         }
     }

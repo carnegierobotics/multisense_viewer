@@ -112,7 +112,7 @@ public:
 
 
     template<typename T>
-    static std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
+    static inline std::array<uint8_t, 3> ycbcrToRGB(uint8_t *luma,
                                              uint8_t *chroma,
                                              const uint32_t &imageWidth,
                                              size_t u,
@@ -141,7 +141,7 @@ public:
         return {{static_cast<uint8_t>(px_r), static_cast<uint8_t>(px_g), static_cast<uint8_t>(px_b)}};
     }
 
-    static void
+    static inline void
     ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
                const uint32_t &height, uint8_t *output);
 

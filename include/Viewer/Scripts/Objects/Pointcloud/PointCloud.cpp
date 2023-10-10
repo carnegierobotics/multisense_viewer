@@ -62,7 +62,7 @@ void PointCloud::update() {
             model->draw = true;
     }
 
-    if (model->draw) {
+    if (model->draw  && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(),
                                          conf.height(), true);

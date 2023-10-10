@@ -788,12 +788,20 @@ namespace Utils {
 
         std::filesystem::path saveFolder = dev->record.frameSaveFolder;
 
-        // Get todays date:
+#ifdef WIN32
+        auto t = std::time(nullptr);
+        std::tm tm;
+        localtime_s(&tm, &t);  // Use localtime_s instead of std::localtime
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+        auto date = oss.str();
+#else
         auto t = std::time(nullptr);
         auto tm = *std::localtime(&t);
         std::ostringstream oss;
         oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
         auto date = oss.str();
+#endif
 
         try {
 
@@ -804,9 +812,9 @@ namespace Utils {
             metadataJSON["metadata"]["description"] = std::string(dev->record.metadata.recordDescription);
             metadataJSON["metadata"]["equipment_description"] = std::string(dev->record.metadata.equipmentDescription);
             metadataJSON["metadata"]["camera_extrinsics"] = std::string(
-                    saveFolder / (serialNumber + "_extrinsics.yml"));
+                    (saveFolder / (serialNumber + "_extrinsics.yml")).string());
             metadataJSON["metadata"]["camera_intrinsics"] = std::string(
-                    saveFolder / (serialNumber + "_intrinsics.yml"));
+                    (saveFolder / (serialNumber + "_intrinsics.yml")).string());
             metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
             metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
             metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;
@@ -817,7 +825,8 @@ namespace Utils {
 
             // Check if the user has set a camera name
             if (strlen(dev->record.metadata.camera) <= 0) {
-                metadataJSON["metadata"]["camera_name"] = std::string(Log::Logger::getLogMetrics()->device.dev->cameraName);
+                metadataJSON["metadata"]["camera_name"] = std::string(
+                        Log::Logger::getLogMetrics()->device.dev->cameraName);
             } else {
                 metadataJSON["metadata"]["camera_name"] = std::string(dev->record.metadata.camera);
             }
@@ -853,11 +862,12 @@ namespace Utils {
             dev->record.metadata.JSON = metadataJSON;
             dev->record.metadata.parsed = true;
         } catch (nlohmann::json::exception &e) {
-            Log::Logger::getInstance()->error("Failed to parse metadata to JSON");
+            Log::Logger::getInstance()->error("Failed to parse metadata to JSON: {}", e.what());
             dev->record.metadata.parsed = false;
         }
         return dev->record.metadata.parsed;
     }
+
     static inline bool parseMetadataToJSON(VkRender::Device *dev) {
         std::string serialNumber = Log::Logger::getLogMetrics()->device.info.serialNumber;
         nlohmann::json metadataJSON;
@@ -869,18 +879,27 @@ namespace Utils {
         std::string apiBuildDate = Log::Logger::getLogMetrics()->device.info.apiBuildDate;
         std::filesystem::path saveFolder = dev->record.frameSaveFolder;
         // Get todays date:
+#ifdef WIN32
+        auto t = std::time(nullptr);
+        std::tm tm;
+        localtime_s(&tm, &t);  // Use localtime_s instead of std::localtime
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+        auto date = oss.str();
+#else
         auto t = std::time(nullptr);
         auto tm = *std::localtime(&t);
         std::ostringstream oss;
         oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
         auto date = oss.str();
+#endif
         try {
             // Populate JSON object with metadata
             metadataJSON["metadata"]["date"] = date;
-            metadataJSON["metadata"]["camera_extrinsics"] = std::string(
-                    saveFolder / (serialNumber + "_extrinsics.yml"));
-            metadataJSON["metadata"]["camera_intrinsics"] = std::string(
-                    saveFolder / (serialNumber + "_intrinsics.yml"));
+            metadataJSON["metadata"]["camera_extrinsics"] = std::string((
+                    saveFolder / (serialNumber + "_extrinsics.yml")).string());
+            metadataJSON["metadata"]["camera_intrinsics"] = std::string((
+                    saveFolder / (serialNumber + "_intrinsics.yml")).string());
             metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
             metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
             metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;
@@ -892,7 +911,7 @@ namespace Utils {
             dev->record.metadata.JSON = metadataJSON;
             dev->record.metadata.parsed = true;
         } catch (nlohmann::json::exception &e) {
-            Log::Logger::getInstance()->error("Failed to parse metadata to JSON");
+            Log::Logger::getInstance()->error("Failed to parse metadata to JSON: {}", e.what());
             dev->record.metadata.parsed = false;
         }
         return dev->record.metadata.parsed;

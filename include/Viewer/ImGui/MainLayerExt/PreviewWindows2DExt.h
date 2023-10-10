@@ -618,7 +618,7 @@ public:
                 std::string colorRectifiedSources = "Color Rectified Aux";
                 std::string auxLumaRectifiedSources = "Luma Rectified Aux";
                 float heightFactor = topBarRectMax.y - topBarRectMin.y;
-                float frameHeight = 0.47 * heightFactor - 6.0f; // linear map to fit the top bar
+                float frameHeight = 0.47f * heightFactor - 6.0f; // linear map to fit the top bar
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, frameHeight));
 
                 if (ImGui::BeginCombo(srcLabel.c_str(), window.selectedSource.c_str(),

@@ -94,8 +94,10 @@ public:
         ss >> nanoseconds;
 
         // Convert to time_point and add the nanoseconds
-        auto timePointWithoutMs = std::chrono::system_clock::from_time_t(std::mktime(&tm));
-        return timePointWithoutMs + std::chrono::nanoseconds(nanoseconds);
+        std::chrono::system_clock::time_point timePointWithoutMs = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+        auto nanoDuration = std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::nanoseconds(nanoseconds));
+        std::chrono::system_clock::time_point pt = timePointWithoutMs + nanoDuration;
+        return pt;
     }
 
 

@@ -49,10 +49,10 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/CRLCamera/CameraConnection.h"
-#include "Generated/ScriptHeader.h"
-#include "Viewer/Core/Skybox.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RendererConfig.h"
+
+#include "Generated/ScriptHeader.h"
 
 class Renderer : VkRender::VulkanRenderer {
 
@@ -98,9 +98,6 @@ private:
     VkDeviceMemory selectionMemory{};
     VkBufferImageCopy bufferCopyRegion{};
     VkMemoryRequirements m_MemReqs{};
-
-    glm::vec3 defaultCameraPosition = glm::vec3(0.0f, 0.0f, 1.0f);
-    float yaw = -270.0f, pitch = 0.0f;
 
     void windowResized() override;
     void addDeviceFeatures() override;

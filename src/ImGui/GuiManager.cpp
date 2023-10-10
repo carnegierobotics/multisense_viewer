@@ -46,11 +46,6 @@
 #include <stb_image.h>
 
 #include "Viewer/ImGui/GuiManager.h"
-#include "Viewer/ImGui/LayerExample.h"
-#include "Viewer/ImGui/SideBar.h"
-#include "Viewer/ImGui/DebugWindow.h"
-#include "Viewer/ImGui/Preview2D3D.h"
-#include "Viewer/ImGui/NewVersionAvailable.h"
 
 
 namespace VkRender {
@@ -65,7 +60,7 @@ namespace VkRender {
     }
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                           const uint32_t &height) {
+                           const uint32_t &height, VkSampleCountFlagBits msaaSamples) {
         device = vulkanDevice;
         ImGui::CreateContext();
         if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
@@ -84,17 +79,20 @@ namespace VkRender {
 
         initializeFonts();
 
-        pushLayer<SideBar>();
-        pushLayer<Preview2D3D>();
-        pushLayer<LayerExample>();
-        pushLayer<DebugWindow>();
-        pushLayer<NewVersionAvailable>();
+        pushLayer("WelcomeScreenLayer");
+        pushLayer("SideBarLayer");
+        pushLayer("Renderer3DLayer");
+        pushLayer("MainLayer");
+        pushLayer("LayerExample");
+        pushLayer("DebugWindow");
+        pushLayer("NewVersionAvailable");
+        pushLayer("CustomMetadata");
 
         std::vector<VkPipelineShaderStageCreateInfo> shaders;
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
         handles.pool = pool;
         // setup graphics pipeline
-        setup(width, height, renderPass);
+        setup(width, height, renderPass, msaaSamples);
     }
 
     void
@@ -245,7 +243,7 @@ namespace VkRender {
     }
 
 
-    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass) {
+    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples) {
         VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
                           device->m_LogicalDevice, &vtxModule);
@@ -279,6 +277,7 @@ namespace VkRender {
         style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
         style.Colors[ImGuiCol_PopupBg] = VkRender::Colors::CRLDarkGray425;
         style.Colors[ImGuiCol_WindowBg] = VkRender::Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_FrameBg] = VkRender::Colors::CRLFrameBG;
         style.Colors[ImGuiCol_Tab] = VkRender::Colors::CRLRed;
         style.Colors[ImGuiCol_TabActive] = VkRender::Colors::CRLRedActive;
         style.Colors[ImGuiCol_TabHovered] = VkRender::Colors::CRLRedHover;
@@ -352,7 +351,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleState =
                 Populate
-                ::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+                ::pipelineMultisampleStateCreateInfo(msaaSamples);
 
         std::vector<VkDynamicState> dynamicStateEnables = {
                 VK_DYNAMIC_STATE_VIEWPORT,

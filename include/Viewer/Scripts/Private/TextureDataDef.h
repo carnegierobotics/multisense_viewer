@@ -102,6 +102,8 @@ namespace VkRender {
         uint8_t* data2{};
         uint8_t* data3 = nullptr;
         uint32_t m_Len = 0, m_Len2 = 0, m_Id{}, m_Id2{};
+        uint32_t m_TimeSeconds = 0;
+        uint32_t m_TimeMicroSeconds = 0;
         bool m_ForPointCloud = false;
 
     private:

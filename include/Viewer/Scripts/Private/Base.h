@@ -55,6 +55,7 @@
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000
 
+// forward declarations
 class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
 
 namespace VkRender {
@@ -98,8 +99,7 @@ namespace VkRender {
         }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
-        virtual void setDrawMethod(ScriptType type) {
-        }
+        virtual void setDrawMethod(DrawMethod drawMethod) = 0;
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
@@ -110,8 +110,12 @@ namespace VkRender {
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-        virtual ScriptType getType() {
+        virtual ScriptTypeFlags getType() {
             return CRL_SCRIPT_TYPE_DISABLED;
+        }
+        /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
+        virtual DrawMethod getDrawMethod() {
+            return CRL_SCRIPT_DONT_DRAW;
         }
         /**@brief Record draw command into a VkCommandBuffer */
         virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
@@ -135,7 +139,7 @@ namespace VkRender {
 
         void drawScript(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
 
-            if (!renderData.drawThisScript)
+            if (!renderData.drawThisScript || getDrawMethod() == CRL_SCRIPT_DONT_DRAW)
                 return;
 
             /*
@@ -160,8 +164,6 @@ namespace VkRender {
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
             if (renderData.crlCamera != nullptr)
-                update();
-            if (renderData.type == CRL_SCRIPT_TYPE_RENDER)
                 update();
 
             VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];

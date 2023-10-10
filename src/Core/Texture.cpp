@@ -802,7 +802,6 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     viewCreateInfo.image = m_Image;
 
     CHECK_RESULT(vkCreateImageView(device->m_LogicalDevice, &viewCreateInfo, nullptr, &m_View));
-
     // Use a separate command buffer for texture loading
     VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 

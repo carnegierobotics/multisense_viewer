@@ -56,7 +56,6 @@ namespace VkRender {
 
     /** @brief Set of Default colors */
     namespace Colors {
-        static const ImVec4 yellow(0.98f, 0.65f, 0.00f, 1.0f);
         static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
         static const ImVec4 TextGreenColor(0.16f, 0.95f, 0.11f, 1.0f);
         static const ImVec4 TextRedColor(0.95f, 0.345f, 0.341f, 1.0f);
@@ -72,13 +71,15 @@ namespace VkRender {
         static const ImVec4 CRLCoolGrayTransparent(0.870f, 0.878f, 0.862f, 0.5f);
         static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
         static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
+        static const ImVec4 CRLFrameBG(0.196f, 0.2392f, 0.2588f, 1.0f);
         static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
+        static const ImVec4 CRLRedTransparent(0.768f, 0.125f, 0.203f, 0.85f);
         static const ImVec4 CRLRedHover(0.86f, 0.378f, 0.407f, 1.0f);
         static const ImVec4 CRLRedActive(0.96f, 0.478f, 0.537f, 1.0f);
         static const ImVec4 CRLBlueIsh(0.313f, 0.415f, 0.474f, 1.0f);
         static const ImVec4 CRLBlueIshTransparent(0.313f, 0.415f, 0.474f, 0.3f);
         static const ImVec4 CRLBlueIshTransparent2(0.313f, 0.415f, 0.474f, 0.1f);
-        static const ImVec4 CRLTextGray(0.1f, 0.1f, 0.1f, 1.0f);
+        static const ImVec4 CRLTextGray(0.2f, 0.2f, 0.2f, 1.0f);
         static const ImVec4 CRLTextLightGray(0.4f, 0.4f, 0.4f, 1.0f);
         static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
         static const ImVec4 CRLTextWhiteDisabled(0.75f, 0.75f, 0.75f, 1.0f);
@@ -144,6 +145,10 @@ namespace VkRender {
         float popupHeight = 600.0f;
         /** @brief Width of popupModal*/
         float popupWidth = 550.0f;
+        /** @brief Width of popupModal*/
+        float metadataWidth = 700.0f;
+        /** @brief Width of popupModal*/
+        float metadataHeight = 600.0f;
         /**@brief size of control area tabs*/
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/
@@ -151,8 +156,25 @@ namespace VkRender {
         int numControlTabs = 2;
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
+
+        ImVec2 viewingAreaWindowPos;
+        /** @brief Horizontal size of scrollbar */
+        float scrollbarSize = 10.0f;
         bool hoverState = false;
         bool isViewingAreaHovered = false;
+        bool is3DTopBarHovered = false;
+
+    };
+
+    struct CameraUIBlock {
+        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
+        int type = 0;
+        /** @brief Reset 3D view camera position and rotation */
+        bool reset = false;
+
+        glm::vec3 pos;
+        glm::vec3 rot;
+        glm::vec3 cameraFront;
 
     };
 
@@ -179,6 +201,10 @@ namespace VkRender {
         /** @brief Display the debug window */
         bool showDebugWindow = false;
 
+        /** @brief Open the popup window */
+        bool openAddDevicePopup = false;
+        bool renderer3D = false;
+
 
         std::shared_ptr<UsageMonitor> usageMonitor;
         /** @brief if a new version has been launched by crl*/
@@ -204,6 +230,7 @@ namespace VkRender {
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
 
+        CameraUIBlock camera;
     };
 
     /**

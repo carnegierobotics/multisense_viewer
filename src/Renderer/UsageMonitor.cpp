@@ -203,11 +203,19 @@ std::string UsageMonitor::getCurrentTimeString(std::chrono::system_clock::time_p
     // Convert time_point to time_t
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
     // Convert time_t to local time
-    std::tm *localTime = std::localtime(&time);
-    // Format the local time as a string timestamp
-    std::stringstream ss;
-    ss << std::put_time(localTime, "%Y-%m-%d %H:%M:%S");
-    std::string timestamp = ss.str();
+#ifdef WIN32
+    std::tm tm;
+    localtime_s(&tm, &time);  // Use localtime_s instead of std::localtime
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    auto timestamp = oss.str();
+#else
+    auto t = std::time(nullptr);
+        auto tm = *std::localtime(&t);
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+        auto timestamp = oss.str();
+#endif
     return timestamp;
 }
 
@@ -268,7 +276,7 @@ void UsageMonitor::userStartSession(
         usageLog["stats"] = nlohmann::json::array();
     }
 
-    sessionIndex = usageLog["stats"].size();
+    sessionIndex = static_cast<uint32_t>(usageLog["stats"].size());
     usageLog["stats"].push_back(obj);
     saveJsonToUsageFile(usageLog);
 

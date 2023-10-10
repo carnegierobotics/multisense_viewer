@@ -292,7 +292,8 @@ public:
 
         void setupNodeDescriptorSet(Node *node);
 
-        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
+        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+                            VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
 
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
@@ -309,7 +310,7 @@ public:
         void
         createRenderPipeline(const VkRender::RenderUtils &utils,
                              const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
-                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptType flags);
+                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptTypeFlags flags);
 
         void createDescriptorSetLayoutAdditionalBuffers();
 
@@ -319,7 +320,7 @@ public:
                               VkRender::SkyboxTextures *skyboxTextures);
         void createSkybox(const std::vector<VkPipelineShaderStageCreateInfo> &envShaders,
                           const std::vector<VkRender::UniformBufferSet> &uboVec,
-                          VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures);
+                          VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         void drawSkybox(VkCommandBuffer commandBuffer, uint32_t i);
 
@@ -327,7 +328,7 @@ public:
         getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount, size_t &indexCount);
 
         void
-        createOpaqueGraphicsPipeline(VkRenderPass const *renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaders);
+        createOpaqueGraphicsPipeline(VkRenderPass const *renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaders, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         void drawNode(Node *node, VkCommandBuffer commandBuffer);
     };

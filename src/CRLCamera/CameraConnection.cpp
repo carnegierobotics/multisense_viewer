@@ -143,6 +143,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getCalibrationTask");
             pool->Push(CameraConnection::getCalibrationTask, this, dev->parameters.calib.saveCalibrationPath,
                        dev->configRemoteHead, &dev->parameters.calib.saveFailed);
+            dev->parameters.calib.save = false;
         }
         // Set the correct resolution. Will only update if changed.
 
@@ -427,7 +428,7 @@ namespace VkRender::MultiSense {
 
             if (dev.state == CRL_STATE_INTERRUPT_CONNECTION) {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_INTERRUPT_CONNECTION", dev.name);
-                dev.isRecording = false;
+                dev.record.frame = false;
                 dev.interruptConnection = true;
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "pushStopTask");
                 pool->signalStop();
@@ -441,7 +442,7 @@ namespace VkRender::MultiSense {
                         "Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET",
                         dev.name);
                 dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
-                dev.isRecording = false;
+                dev.record.frame = false;
                 saveProfileAndDisconnect(&dev);
                 pool->signalStop();
                 return;
@@ -556,9 +557,11 @@ namespace VkRender::MultiSense {
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;
         const auto &cInfo = camPtr.getCameraInfo(0).versionInfo;
+        const auto &dInfo = camPtr.getCameraInfo(0).devInfo;
 
         info.firmwareBuildDate = cInfo.sensorFirmwareBuildDate;
         info.firmwareVersion = cInfo.sensorFirmwareVersion;
+        info.serialNumber = dInfo.serialNumber;
         info.apiBuildDate = cInfo.apiBuildDate;
         info.apiVersion = cInfo.apiVersion;
         info.hardwareMagic = cInfo.sensorHardwareMagic;
@@ -1007,8 +1010,10 @@ namespace VkRender::MultiSense {
                                              crl::multisense::RemoteHeadChannel idx) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        if (app->camPtr.setResolution(arg1, idx))
+        if (app->camPtr.setResolution(arg1, idx)) {
             app->updateFromCameraParameters(dev, idx);
+        }
+
     }
 
     void CameraConnection::startStreamTask(void *context, std::string src,

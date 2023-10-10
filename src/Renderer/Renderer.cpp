@@ -71,7 +71,7 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
     usageMonitor->loadSettingsFromFile();
     usageMonitor->userStartSession(rendererStartTime);
 
-    guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height);
+    guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height, msaaSamples);
     guiManager->handles.mouse = &mouseButtons;
     guiManager->handles.usageMonitor = usageMonitor;
 
@@ -978,7 +978,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
     if (mouseButtons.right) {
         if (camera.type == VkRender::Camera::arcball)
-            camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
+            camera.translate(glm::vec3((float) -dx * 0.005f, (float) -dy * 0.005f, 0.0f));
         else
             camera.translate((float) -dx * 0.01f, (float) -dy * 0.01f);
     }

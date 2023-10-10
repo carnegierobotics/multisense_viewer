@@ -63,7 +63,7 @@ namespace VkRender {
         GuiObjectHandles handles{};
 
         GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                   const uint32_t &height);
+                   const uint32_t &height,VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         ~GuiManager() {
             Log::Logger::getInstance()->info("Saving ImGui file: {}",
@@ -86,7 +86,7 @@ namespace VkRender {
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
 
         /**@brief setup function called once vulkan renderer is setup. Function calls each layer in order to generate buffers for draw commands*/
-        void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass);
+        void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer);

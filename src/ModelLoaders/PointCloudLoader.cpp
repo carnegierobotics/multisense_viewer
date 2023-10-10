@@ -256,7 +256,7 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+    multisampleStateCI.rasterizationSamples = renderer->msaaSamples;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {

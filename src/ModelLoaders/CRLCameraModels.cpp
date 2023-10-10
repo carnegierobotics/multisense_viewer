@@ -659,7 +659,7 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
     createDescriptorSetLayout(model);
     createDescriptors(renderUtils->UBCount, renderUtils->uniformBuffers, model);
     createPipeline(*renderUtils->renderPass, vector, model->cameraDataType, &model->pipeline, &model->pipelineLayout,
-                   model, VK_SAMPLE_COUNT_8_BIT);
+                   model, renderUtils->msaaSamples);
 
     // Create selection pipeline as well
     createPipeline(renderUtils->picking->renderPass, vector, model->cameraDataType, &model->selectionPipeline,

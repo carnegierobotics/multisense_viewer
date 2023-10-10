@@ -35,7 +35,7 @@ void Skybox::setup() {
 
     skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"), renderUtils.device);
 
-    skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures);
+    skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures, renderUtils.msaaSamples);
     sharedData->destination = "All";
 }
 

@@ -2073,7 +2073,8 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
 
 
 void
-GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages) {
+GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+                                 VkSampleCountFlagBits msaaSamples) {
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -2103,7 +2104,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+    multisampleStateCI.rasterizationSamples = msaaSamples;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {
@@ -2195,7 +2196,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     auto tStart = std::chrono::high_resolution_clock::now();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};
-    createPipeline(*utils.renderPass, shaders2);
+    createPipeline(*utils.renderPass, shaders2, utils.msaaSamples);
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
     Log::Logger::getInstance()->info("Created render pipeline for {} took {} ms", m_FileName, tDiff);
@@ -2210,7 +2211,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
-        createPipeline(*utils.renderPass, shaders);
+        createPipeline(*utils.renderPass, shaders, utils.msaaSamples);
     }
 
 }
@@ -2258,18 +2259,18 @@ GLTFModel::Model::~Model() {
 void
 GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo> &envShaders,
                                const std::vector<VkRender::UniformBufferSet> &uboVec,
-                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures) {
+                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures, VkSampleCountFlagBits msaaSamples) {
 
     loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);
     generateBRDFLUT(envShaders, skyboxTextures);
     setupSkyboxDescriptors(uboVec, skyboxTextures);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {envShaders[5], envShaders[6]};
-    createOpaqueGraphicsPipeline(renderPass, shaders);
+    createOpaqueGraphicsPipeline(renderPass, shaders, msaaSamples);
 }
 
 void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPass,
-                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders) {
+                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders, VkSampleCountFlagBits msaaSamples) {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 
@@ -2299,7 +2300,7 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
 
     VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
     multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_8_BIT;
+    multisampleStateCI.rasterizationSamples = msaaSamples;
 
 
     std::vector<VkDynamicState> dynamicStateEnables = {

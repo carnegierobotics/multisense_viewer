@@ -338,7 +338,7 @@ public:
             saveFolder.append("metadata.json");
             std::ofstream file(saveFolder);
             file << dev.record.metadata.JSON.dump(4);  // 4 spaces as indentation
-            Log::Logger::getInstance()->info("Wrote metadata JSON to file {}", saveFolder.c_str());
+            Log::Logger::getInstance()->info("Wrote metadata JSON to file {}", saveFolder.string());
         }
     }
 

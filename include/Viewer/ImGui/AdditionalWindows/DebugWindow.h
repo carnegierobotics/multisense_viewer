@@ -299,6 +299,7 @@ public:
                     stream << std::hex << met->device.info.sensorFpgaDna;
                     ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
 
+#ifdef MULTISENSE_DEBUG
                     ImGui::Dummy(ImVec2(5.0f, 5.0f));
                     ImGui::Dummy(ImVec2(2.0f, 0.0f));
                     ImGui::SameLine();
@@ -339,7 +340,8 @@ public:
                             ImGui::Text("%d", src.second);
                         }
                     }
-                    ImGui::Text("Uptime: %.2f", met->device.upTime);
+#endif
+                    ImGui::Text("MultiSense uptime: %.1f s", met->device.upTime);
                 }
             }
 

@@ -347,7 +347,7 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
     uint32_t minDisparity = 5;
 
     std::vector<WorldPoint> points;
-    points.reserve(height * width);
+    points.resize(height * width);
 
     std::vector<uint8_t> colorRGB(colorTex->m_Width * colorTex->m_Height * 3);
     if (useAuxColor) {
@@ -355,41 +355,46 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
                                  colorRGB.data());
     }
 
+    size_t index = 0;
+    float d = 0;
+    float invB = 0;
+    size_t colorIndex = 0;
+    glm::vec4 imgCoords(0.0f), worldCoords(0.0f);
     for (size_t h = 0; h < height; ++h) {
         for (size_t w = 0; w < width; ++w) {
 
-            const size_t index = h * width + w;
+            index = h * width + w;
 
             //
             // MultiSense 16 bit disparity images are stored in 1/16 of a pixel. This allows us to send subpixel
             // resolutions with integer values
 
-            const float d = static_cast<float>(disparityP[index]) / 16.0f;
+           d = static_cast<float>(disparityP[index]) / 16.0f;
 
             if (d < minDisparity) {
                 continue;
             }
-            float invB = focalLength / d;
-            glm::vec4 imgCoords(w, h, d, 1);
-            glm::vec4 worldCoords = Q * imgCoords * (1 / invB);
+            invB = focalLength / d;
+            imgCoords = glm::vec4(w, h, d, 1);
+            worldCoords = Q * imgCoords * (1 / invB);
             worldCoords = worldCoords / worldCoords.w * scale;
 
             if (useAuxColor) {
-                const size_t colorIndex = (h * width + w) * 3;
-                points.emplace_back(WorldPoint{worldCoords.x,
-                                               worldCoords.y,
-                                               worldCoords.z,
-                                               static_cast<float>(colorRGB[colorIndex]),
-                                               static_cast<float>(colorRGB[colorIndex + 1]),
-                                               static_cast<float>(colorRGB[colorIndex + 2])});
+                colorIndex = (h * width + w) * 3;
+                points[index] = WorldPoint(worldCoords.x,
+                                           worldCoords.y,
+                                           worldCoords.z,
+                                           static_cast<float>(colorRGB[colorIndex]),
+                                           static_cast<float>(colorRGB[colorIndex + 1]),
+                                           static_cast<float>(colorRGB[colorIndex + 2]));
 
             } else {
-                points.emplace_back(WorldPoint{worldCoords.x,
+                points[index] = WorldPoint(worldCoords.x,
                                                worldCoords.y,
                                                worldCoords.z,
                                                static_cast<float>(leftRectifiedP[index]),
                                                static_cast<float>(leftRectifiedP[index]),
-                                               static_cast<float>(leftRectifiedP[index])});
+                                               static_cast<float>(leftRectifiedP[index]));
             }
         }
     }

@@ -140,7 +140,7 @@ public:
                                        handles->info->metadataHeight - 50.0f));
 
             if (ImGui::Button("Set", btnSize)) {
-                if(Utils::parseMetadataToJSON(dev));
+                if(Utils::parseMetadataToJSON(dev))
                     ImGui::CloseCurrentPopup();
             }
 

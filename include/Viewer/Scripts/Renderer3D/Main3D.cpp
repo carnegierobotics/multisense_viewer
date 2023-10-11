@@ -204,9 +204,9 @@ void Main3D::update() {
 
 
             // Print the entry
-            float x = entries[entryIdx].x / 10.0f;
-            float y = entries[entryIdx].y / 10.0f;
-            float z = entries[entryIdx].z / 10.0f;
+            float x = entries[entryIdx].x / 2.0f;
+            float y = entries[entryIdx].y / 2.0f;
+            float z = entries[entryIdx].z / 2.0f;
 
             float q0 = entries[entryIdx].qw;
             float q1 = entries[entryIdx].qx;
@@ -228,7 +228,7 @@ void Main3D::update() {
 
             //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
+            d->model = glm::scale(d->model, glm::vec3(0.5f, 0.5f, 0.5f));
 
 
             double rate = entries[entryIdx].dt.count() / rendererTimeDelta.count();
@@ -243,7 +243,7 @@ void Main3D::update() {
     } else if (entries.empty()) {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
         d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
+        d->model = glm::scale(d->model, glm::vec3(0.5f, 0.5f, 0.5f));
     }
 
 

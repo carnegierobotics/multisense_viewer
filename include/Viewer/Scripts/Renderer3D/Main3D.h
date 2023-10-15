@@ -8,7 +8,6 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
-#include "Viewer/ModelLoaders/PointCloudLoader.h"
 
 
 class Main3D: public VkRender::Base, public VkRender::RegisteredInFactory<Main3D>
@@ -33,7 +32,7 @@ public:
     void update() override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
-        KS21.reset();
+        humvee.reset();
     }
     /** @brief set if this script should be drawn or not. */
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
@@ -47,12 +46,11 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DISABLED;
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
-    std::unique_ptr<GLTFModel::Model> KS21;
+    std::unique_ptr<GLTFModel::Model> humvee;
 
-    std::unique_ptr<PointCloudLoader> pc;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
@@ -102,8 +100,6 @@ public:
 
 
     bool forceRealTime = true;
-
-    glm::mat4 setQMat();
 };
 
 

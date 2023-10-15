@@ -13,10 +13,10 @@ void Main3D::setup() {
                                                             {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/humvee.gltf").string(), renderUtils.device,
-                       renderUtils.device->m_TransferQueue, 1.0f);
-    KS21->createRenderPipeline(renderUtils, shaders);
+    humvee = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
+    humvee->loadFromFile(Utils::getAssetsPath().append("Models/humvee.gltf").string(), renderUtils.device,
+                         renderUtils.device->m_TransferQueue, 1.0f);
+    humvee->createRenderPipeline(renderUtils, shaders);
 
 
     Widgets::make()->inputText("Renderer3D", "##File: ", buf);
@@ -31,72 +31,11 @@ void Main3D::setup() {
 
 
     lastEntryTime = std::chrono::steady_clock::now();
-    uint32_t width = 960, height = 600, depth = 255;
 
-    pc = std::make_unique<PointCloudLoader>(&renderUtils);
-    VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pc3D.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pc3D.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
-    shaders = {{vs},
-               {fs}};
-
-
-    VkRender::ScriptUtils::ImageData imgData{};
-    std::vector<VkRender::Vertex> meshData{};
-    meshData.resize(width * height);
-    int v = 0;
-    // first few rows and cols (20) are discarded in the shader anyway
-    for (uint32_t i = 20; i < width - 20; ++i) {
-        for (uint32_t j = 20; j < height - 20; ++j) {
-            meshData[v].pos = glm::vec3(static_cast<float>(i), static_cast<float>(j), 0.0f);
-            meshData[v].uv0 = glm::vec2(1.0f - (static_cast<float>(i) / static_cast<float>(width)),
-                                        1.0f - (static_cast<float>(j) / static_cast<float>(height)));
-            v++;
-        }
-    }
-    pc->model->createMeshDeviceLocal(meshData);
-    pc->model->createTexture(width, height);
-
-    pc->createDescriptorSetLayout();
-    pc->createDescriptorPool();
-    pc->createDescriptorSets();
-    pc->createGraphicsPipeline(shaders);
-
-
-    auto *pcInfo = bufferThreeData.get();
-    pcInfo->Q = setQMat();
-    pcInfo->height = static_cast<float>(height);
-    pcInfo->width = static_cast<float>(width);
-    pcInfo->disparity = static_cast<float>(depth);
-    pcInfo->focalLength = 650.0f;
-    pcInfo->scale = 2.0f;
-    pcInfo->pointSize = 1.8f;
 
 }
 
-glm::mat4 Main3D::setQMat(){
-    //float scale = 2.0f;
 
-    float dcx = 0.0f;
-
-    const float &fx = 650.0f;
-    const float &fy = 650.0f;
-    const float &cx = 480.0f;
-    const float &cy = 300.0f;
-    const float &tx = -0.299978f;
-    // glm::mat4 indexing
-    // [column][row]
-    // Inserted values col by col
-    glm::mat4 Q(0.0f);
-
-    Q[0][0] = fy * tx;
-    Q[1][1] = fx * tx;
-    Q[2][3] = -fy;
-    Q[3][0] = -fy * cx * tx;
-    Q[3][1] = -fx * cy * tx;
-    Q[3][2] = fx * fy * tx;
-    Q[3][3] = fy * dcx;
-    return Q;
-}
 
 
 void Main3D::update() {
@@ -204,9 +143,9 @@ void Main3D::update() {
 
 
             // Print the entry
-            float x = entries[entryIdx].x / 2.0f;
-            float y = entries[entryIdx].y / 2.0f;
-            float z = entries[entryIdx].z / 2.0f;
+            float x = entries[entryIdx].x / 10.0f;
+            float y = entries[entryIdx].y / 10.0f;
+            float z = entries[entryIdx].z / 10.0f;
 
             float q0 = entries[entryIdx].qw;
             float q1 = entries[entryIdx].qx;
@@ -228,7 +167,7 @@ void Main3D::update() {
 
             //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            d->model = glm::scale(d->model, glm::vec3(0.5f, 0.5f, 0.5f));
+            d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
 
 
             double rate = entries[entryIdx].dt.count() / rendererTimeDelta.count();
@@ -243,7 +182,7 @@ void Main3D::update() {
     } else if (entries.empty()) {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
         d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        d->model = glm::scale(d->model, glm::vec3(0.5f, 0.5f, 0.5f));
+        d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
     }
 
 
@@ -251,7 +190,6 @@ void Main3D::update() {
 
 void Main3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (b) {
-        KS21->draw(commandBuffer, i);
-        //pc->draw(commandBuffer, i);
+        humvee->draw(commandBuffer, i);
     }
 }

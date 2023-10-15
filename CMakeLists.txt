@@ -91,7 +91,9 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Objects/Video/Previews/Quad/Four.cpp
         include/Viewer/Scripts/Objects/SceneGizmos/Skybox.cpp
         include/Viewer/Scripts/Private/ScriptUtils.h
-        include/Viewer/Scripts/Renderer3D/Grid.cpp)
+        include/Viewer/Scripts/Renderer3D/Grid.cpp
+        include/Viewer/Scripts/Renderer3D/PointCloud3D.cpp
+)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;")
 

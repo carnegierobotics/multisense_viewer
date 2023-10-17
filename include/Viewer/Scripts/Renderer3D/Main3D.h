@@ -46,7 +46,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DISABLED;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<GLTFModel::Model> humvee;

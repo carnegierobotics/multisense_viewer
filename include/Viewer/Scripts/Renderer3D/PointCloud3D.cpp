@@ -40,7 +40,7 @@ void PointCloud3D::setup() {
     pc->createGraphicsPipeline(shaders);
 
 
-    Widgets::make()->inputText("Renderer3D", "Draw pc", &buf);
+    Widgets::make()->inputText("Renderer3D", "Draw pc", buf);
 
 }
 

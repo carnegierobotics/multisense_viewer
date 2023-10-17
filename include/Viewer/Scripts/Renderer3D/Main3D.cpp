@@ -67,7 +67,8 @@ void Main3D::update() {
             std::getline(ss, entry.timestamp, ',');  // timestamp
             std::getline(ss, dummy, ',');  // left_rect
             std::getline(ss, dummy, ',');  // disparity
-            std::getline(ss, dummy, ',');  // lidar
+            std::getline(ss, dummy, ',');  // lidar tilted
+            std::getline(ss, dummy, ',');  // lidar horiz
 
             entry.timePoint = convertToTimePoint(entry.timestamp);
 

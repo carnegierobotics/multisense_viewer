@@ -264,7 +264,7 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
                 Log::Logger::getInstance()->info("Enabled device extension: '{}'", enabledExtension);
             }
         }
-        deviceCreateInfo.enabledExtensionCount = (uint32_t) deviceExtensions.size();
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     }
     this->m_EnabledFeatures = enabled;
@@ -328,7 +328,7 @@ VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkComma
 */
 VkResult
 VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size,
-                           VkBuffer *buffer, VkDeviceMemory *memory, void *data) {
+                           VkBuffer *buffer, VkDeviceMemory *memory, const void *data) {
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = Populate::bufferCreateInfo(usageFlags, size);
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;

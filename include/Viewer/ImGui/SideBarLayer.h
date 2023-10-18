@@ -500,6 +500,8 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
+                default:
+                    break;
             }
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -610,7 +612,7 @@ private:
             auto time_span =
                     std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
 
-            if (time_span.count() > ((float) *handles->info->gif.delay) / 1000.0f) {
+            if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f) {
                 gifFrameTimer2 = std::chrono::steady_clock::now();
                 gifFrameIndex2++;
             }
@@ -1206,7 +1208,7 @@ private:
         std::chrono::duration<float> time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer);
 
-        if (time_span.count() > ((float) *handles->info->gif.delay) / 1000.0f) {
+        if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f) {
             gifFrameTimer = std::chrono::steady_clock::now();
             gifFrameIndex++;
         }

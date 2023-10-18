@@ -82,7 +82,7 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
 
 void Renderer::prepareRenderer() {
     camera.type = VkRender::Camera::arcball;
-    camera.setPerspective(60.0f, (float) m_Width / (float) m_Height, 0.01f, 100.0f);
+    camera.setPerspective(60.0f, static_cast<float> (m_Width) / static_cast<float> (m_Height), 0.01f, 100.0f);
     camera.resetPosition();
     camera.resetRotation();
     createSelectionImages();
@@ -116,15 +116,15 @@ void Renderer::buildCommandBuffers() {
     std::array<VkClearValue, 3> clearValues{};
 
     if (guiManager->handles.renderer3D) {
-        clearValues[0] = {{0.0f, 0.0f,
-                           0.0f, 1.0f}};
-        clearValues[2] = {{0.0f, 0.0f,
-                           0.0f, 1.0f}};
+        clearValues[0] = {{{0.0f, 0.0f,
+                            0.0f, 1.0f}}};
+        clearValues[2] = {{{0.0f, 0.0f,
+                            0.0f, 1.0f}}};
     } else {
-        clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
-        clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+        clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
+        clearValues[2] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
     }
     clearValues[1].depthStencil = {1.0f, 0};
 
@@ -137,8 +137,9 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassBeginInfo.pClearValues = clearValues.data();
 
-    const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
-    const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
+    const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
+                                                   1.0f);
+    const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
 
     for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i) {
         renderPassBeginInfo.framebuffer = frameBuffers[i];
@@ -300,11 +301,11 @@ void Renderer::render() {
     for (const auto &scriptName: scriptsToReload) {
         if (scriptName == "Skybox") {
             // Clear script and scriptnames before rebuilding
-            for (const auto &scriptName: builtScriptNames) {
-                pLogger->info("Deleting Script: {}", scriptName.c_str());
-                scripts[scriptName].get()->onDestroyScript();
-                scripts[scriptName].reset();
-                scripts.erase(scriptName);
+            for (const auto &name: builtScriptNames) {
+                pLogger->info("Deleting Script: {}", name.c_str());
+                scripts[name].get()->onDestroyScript();
+                scripts[name].reset();
+                scripts.erase(name);
             }
             builtScriptNames.clear();
             buildScripts();
@@ -510,13 +511,15 @@ void Renderer::render() {
     if (renderSelectionPass) {
         VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         std::array<VkClearValue, 3> clearValues{};
-        clearValues[0] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
-        clearValues[2] = {{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                           guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}};
+        clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
+        clearValues[2] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
         clearValues[1].depthStencil = {1.0f, 0};
-        const VkViewport viewport = Populate::viewport((float) m_Width, (float) m_Height, 0.0f, 1.0f);
-        const VkRect2D scissor = Populate::rect2D((int32_t) m_Width, (int32_t) m_Height, 0, 0);
+        const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
+                                                       1.0f);
+        const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>( m_Width), static_cast<int32_t>( m_Height), 0,
+                                                  0);
 
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
@@ -567,7 +570,8 @@ void Renderer::render() {
         // Copy texture data into staging buffer
         uint8_t *data = nullptr;
         CHECK_RESULT(
-                vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0, (void **) &data));
+                vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0,
+                            reinterpret_cast<void **>(&data)));
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
             if (dev.state != CRL_STATE_ACTIVE)
@@ -583,9 +587,9 @@ void Renderer::render() {
                     auto windowIndex = win.first;
                     float viewAreaElementPosX = win.second.xPixelStartPos;
                     float viewAreaElementPosY = win.second.yPixelStartPos;
-                    float imGuiPosX = (float) mousePos.x - viewAreaElementPosX -
+                    float imGuiPosX = mousePos.x - viewAreaElementPosX -
                                       (guiManager->handles.info->previewBorderPadding / 2.0f);
-                    float imGuiPosY = (float) mousePos.y - viewAreaElementPosY -
+                    float imGuiPosY = mousePos.y - viewAreaElementPosY -
                                       (guiManager->handles.info->previewBorderPadding / 2.0f);
                     float maxInRangeX = guiManager->handles.info->viewAreaElementSizeX -
                                         guiManager->handles.info->previewBorderPadding;
@@ -594,8 +598,8 @@ void Renderer::render() {
                     if (imGuiPosX > 0 && imGuiPosX < maxInRangeX
                         && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
 
-                        auto x = (uint32_t) ((float) 1920 * (imGuiPosX) / maxInRangeX);
-                        auto y = (uint32_t) ((float) 1080 * (imGuiPosY) / maxInRangeY);
+                        auto x = static_cast<uint32_t>(static_cast<float>(1920) * (imGuiPosX) / maxInRangeX);
+                        auto y = static_cast<uint32_t>(static_cast<float>(1080) * (imGuiPosY) / maxInRangeY);
                         // Add one since we are not counting from zero anymore :)
                         dev.pixelInfo[windowIndex].x = x + 1;
                         dev.pixelInfo[windowIndex].y = y + 1;
@@ -609,7 +613,7 @@ void Renderer::render() {
                 }
                 continue;
             }
-            uint32_t idx = uint32_t((mousePos.x + (m_Width * mousePos.y)) * 4);
+            auto idx = static_cast<uint32_t>((mousePos.x + (m_Width * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
 
@@ -634,9 +638,9 @@ void Renderer::render() {
 
                         float viewAreaElementPosX = win.second.xPixelStartPos;
                         float viewAreaElementPosY = win.second.yPixelStartPos;
-                        float imGuiPosX = (float) mousePos.x - viewAreaElementPosX -
+                        float imGuiPosX = mousePos.x - viewAreaElementPosX -
                                           (guiManager->handles.info->previewBorderPadding / 2.0f);
-                        float imGuiPosY = (float) mousePos.y - viewAreaElementPosY -
+                        float imGuiPosY = mousePos.y - viewAreaElementPosY -
                                           (guiManager->handles.info->previewBorderPadding / 2.0f);
                         float maxInRangeX = guiManager->handles.info->viewAreaElementSizeX -
                                             guiManager->handles.info->previewBorderPadding;
@@ -650,8 +654,8 @@ void Renderer::render() {
                                     &h,
                                     &d);
 
-                            auto x = (uint32_t) ((float) w * (imGuiPosX) / maxInRangeX);
-                            auto y = (uint32_t) ((float) h * (imGuiPosY) / maxInRangeY);
+                            auto x = static_cast<uint32_t>(static_cast<float>( w) * (imGuiPosX) / maxInRangeX);
+                            auto y = static_cast<uint32_t>(static_cast<float>( h) * (imGuiPosY) / maxInRangeY);
                             // Add one since we are not counting from zero anymore :)
                             dev.pixelInfo[windowIndex].x = x + 1;
                             dev.pixelInfo[windowIndex].y = y + 1;
@@ -682,8 +686,8 @@ void Renderer::render() {
                                     break;
                                 case CRL_DISPARITY_IMAGE: {
                                     float disparity = 0;
-                                    auto *p = (uint16_t *) tex.data;
-                                    disparity = (float) p[(w * y) + x] / 16.0f;
+                                    auto *p = reinterpret_cast<uint16_t *>(tex.data);
+                                    disparity = p[(w * y) + x] / 16.0f;
                                     Log::Logger::getInstance()->traceWithFrequency("Selection_disparity_tag", 10,
                                                                                    "Calculating hovered pixel distance, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
                                                                                    w, h, d,
@@ -696,16 +700,17 @@ void Renderer::render() {
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
                                     float tx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] /
-                                               (fx * (1920.0f / (float) w));
+                                               (fx * (1920.0f / static_cast<float>( w)));
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
                                         dev.pixelInfo[windowIndex].depth = dist;
                                     } else {
                                         dev.pixelInfo[windowIndex].depth = 0;
                                     }
-                                    float disparityDisplayed = (float) p[(w * dev.pixelInfoZoomed[windowIndex].y) +
-                                                                         dev.pixelInfoZoomed[windowIndex].x] /
-                                                               16.0f;
+                                    auto disparityDisplayed =
+                                            p[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                              dev.pixelInfoZoomed[windowIndex].x] /
+                                            16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
                                         dev.pixelInfoZoomed[windowIndex].depth = dist;
@@ -840,19 +845,19 @@ void Renderer::createSelectionImages() {
     // Create picking images
     {
         // Create optimal tiled target m_Image
-        VkImageCreateInfo colorImage = Populate::imageCreateInfo();
-        colorImage.imageType = VK_IMAGE_TYPE_2D;
-        colorImage.format = VK_FORMAT_R8G8B8A8_UNORM;
-        colorImage.mipLevels = 1;
-        colorImage.arrayLayers = 1;
-        colorImage.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorImage.tiling = VK_IMAGE_TILING_OPTIMAL;
-        colorImage.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        colorImage.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorImage.extent = {m_Width, m_Height, 1};
-        colorImage.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        VkImageCreateInfo colorImageCreateInfo = Populate::imageCreateInfo();
+        colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        colorImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorImageCreateInfo.mipLevels = 1;
+        colorImageCreateInfo.arrayLayers = 1;
+        colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorImageCreateInfo.extent = {m_Width, m_Height, 1};
+        colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        CHECK_RESULT(vkCreateImage(device, &colorImage, nullptr, &selection.colorImage));
+        CHECK_RESULT(vkCreateImage(device, &colorImageCreateInfo, nullptr, &selection.colorImage));
         VkMemoryRequirements memReqs;
         vkGetImageMemoryRequirements(device, selection.colorImage, &memReqs);
         VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
@@ -957,8 +962,8 @@ void Renderer::destroySelectionBuffer() {
 }
 
 void Renderer::mouseMoved(float x, float y, bool &handled) {
-    float dx = mousePos.x - (float) x;
-    float dy = mousePos.y - (float) y;
+    float dx = mousePos.x - x;
+    float dy = mousePos.y - y;
 
     mouseButtons.dx = dx;
     mouseButtons.dy = dy;
@@ -978,16 +983,16 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
     if (mouseButtons.right) {
         if (camera.type == VkRender::Camera::arcball)
-            camera.translate(glm::vec3((float) -dx * 0.005f, (float) -dy * 0.005f, 0.0f));
+            camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
         else
-            camera.translate((float) -dx * 0.01f, (float) -dy * 0.01f);
+            camera.translate(-dx * 0.01f, -dy * 0.01f);
     }
     if (mouseButtons.middle && camera.type == VkRender::Camera::flycam) {
-        camera.translate(glm::vec3((float) -dx * 0.01f, (float) -dy * 0.01f, 0.0f));
+        camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
     } else if (mouseButtons.middle && camera.type == VkRender::Camera::arcball) {
-        //camera.orbitPan((float) -dx * 0.01f, (float) -dy * 0.01f);
+        //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
     }
-    mousePos = glm::vec2((float) x, (float) y);
+    mousePos = glm::vec2(x, y);
 
     handled = true;
 }

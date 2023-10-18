@@ -119,7 +119,7 @@ namespace VkRender {
             if (settings.validation) {
                 enabledInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
             }
-            instanceCreateInfo.enabledExtensionCount = (uint32_t) enabledInstanceExtensions.size();
+            instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledInstanceExtensions.size());
             instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
         }
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
@@ -781,7 +781,7 @@ namespace VkRender {
         vkDeviceWaitIdle(device);
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
-            camera.updateAspectRatio((float) m_Width / (float) m_Height);
+            camera.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>( m_Height));
         }
         pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
 
@@ -807,7 +807,7 @@ namespace VkRender {
             runTime = elapsed_seconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2((float) m_Width, (float) m_Height);
+            io.DisplaySize = ImVec2(static_cast<float>( m_Width), static_cast<float>( m_Height));
             io.DeltaTime = frameTimer;
             io.WantCaptureMouse = true;
             io.MousePos = ImVec2(mousePos.x, mousePos.y);
@@ -831,13 +831,13 @@ namespace VkRender {
             frameCounter++;
             float fpsTimer = std::chrono::duration<float, std::milli>(tEnd - graphLastTimestamp).count();
             if (fpsTimer > 1000.0f) {
-                lastFPS = (float) frameCounter * (1000.0f / fpsTimer);
+                lastFPS = static_cast<float>(frameCounter) * (1000.0f / fpsTimer);
                 frameCounter = 0;
                 graphLastTimestamp = tEnd;
             }
             auto tDiff = std::chrono::duration<double, std::milli>(
                     std::chrono::high_resolution_clock::now() - tStart).count();
-            frameTimer = (float) tDiff / 1000.0f;
+            frameTimer = static_cast<float>(tDiff) / 1000.0f;
             camera.update(frameTimer);
         }
         // Flush m_Device to make sure all resources can be freed before we start cleanup
@@ -910,7 +910,7 @@ namespace VkRender {
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
-            if (myApp->destWidth != width && myApp->destHeight != height)
+            if (myApp->destWidth != static_cast<uint32_t>(width) && myApp->destHeight != static_cast<uint32_t>(height))
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
@@ -920,7 +920,7 @@ namespace VkRender {
         DISABLE_WARNING_UNREFERENCED_VARIABLE
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        io.AddInputCharacter((unsigned short) codepoint);
+        io.AddInputCharacter(static_cast<unsigned short>(codepoint));
         DISABLE_WARNING_POP
 
     }
@@ -1007,7 +1007,7 @@ namespace VkRender {
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        myApp->handleMouseMove((float) xPos, (float) yPos);
+        myApp->handleMouseMove(static_cast<float>( xPos), static_cast<float>( yPos));
         myApp->mouseButtons.pos.x = static_cast<float>(xPos);
         myApp->mouseButtons.pos.y = static_cast<float>(yPos);
     }
@@ -1055,8 +1055,8 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseScroll((float) yoffset);
-        io.MouseWheel += 0.5f * (float) yoffset;
+        myApp->mouseScroll(static_cast<float>( yoffset));
+        io.MouseWheel += 0.5f * static_cast<float>( yoffset);
     }
 
     DISABLE_WARNING_POP
@@ -1343,7 +1343,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::mouseScroll(float yOffset) {
-        mouseButtons.wheel += ((float) yOffset * mouseScrollSpeed);
+        mouseButtons.wheel += yOffset * mouseScrollSpeed;
         if (mouseButtons.wheel < -10.0f) {
             mouseButtons.wheel = -10.0f;
         }

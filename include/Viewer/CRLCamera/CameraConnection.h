@@ -226,8 +226,7 @@ namespace VkRender::MultiSense {
 		 * @param[in] remoteHeadIndex id of remote head to select
 		 * @param[out] msg if a status was received. This object is filled with the latest information
 		 */
-		static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
-                                  VkRender::Device *dev);
+		static void getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex, VkRender::Device *dev);
 
 
         /**@brief Request to stop a stream
@@ -285,7 +284,7 @@ namespace VkRender::MultiSense {
 				crl::multisense::Source_Compressed_Rectified_Left,
 		};
 
-        float findPercentile(uint16_t *image, size_t len, double percentile);
+        float findPercentile(uint16_t *image, size_t len, float percentile);
 
         static std::pair<float, float> findUpperAndLowerDisparityBounds(void* ctx, VkRender::Device* dev);
 

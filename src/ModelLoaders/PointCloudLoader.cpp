@@ -22,24 +22,14 @@ PointCloudLoader::Model::~Model() {
 
 void PointCloudLoader::Model::createTexture(uint32_t width, uint32_t height) {
 
-    disparityTexture = Texture2D();
+    Log::Logger::getInstance()->info("Creating new texture {}x{}", width, height);
+    //disparityTexture = Texture2D();
 
-    auto* data = (uint16_t*) malloc(width*height * 2);
-
-    for (size_t i = 0; i < width*height; i++){
-        data[i] = 127;
-    }
-
-    disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+    //disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
 
     // colorTexture = std::make_unique<TextureVideo>( TextureVideo(width, height, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM));
 
-
-    uint8_t* data2 = (uint8_t*) malloc(960 * 600);
-    for (size_t i = 0; i < width*height; i++){
-        data2[i] = 200;
-    }
-    colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+    //colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
 
 }
 
@@ -70,7 +60,7 @@ void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::
             vertexBufferSize,
             &vertexStaging.buffer,
             &vertexStaging.memory,
-            (void *) vertices.data()));
+            reinterpret_cast<const void *>(vertices.data())))
     // Index m_DataPtr
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
@@ -79,7 +69,7 @@ void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                (void *) indices.data()));
+                reinterpret_cast<const void *>(vertices.data())))
     }
     // Create m_Device local buffers
     // Vertex buffer
@@ -314,7 +304,6 @@ void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[cbIndex], 0, nullptr);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    const VkDeviceSize offsets[1] = {0};
 
     if (model->mesh.indexCount > 0) {
         vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);

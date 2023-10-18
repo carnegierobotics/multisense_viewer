@@ -299,7 +299,8 @@ public:
         void draw(VkCommandBuffer commandBuffer, uint32_t i);
         void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
-        void createRenderPipeline(const VkRender::RenderUtils& utils, const std::vector<VkPipelineShaderStageCreateInfo>& shaders, VkCommandPool cmdPool = VK_NULL_HANDLE);
+        void createRenderPipeline(const VkRender::RenderUtils &utils,
+                                  const std::vector<VkPipelineShaderStageCreateInfo> &shaders);
 
 
         void translate(const glm::vec3 &translation);

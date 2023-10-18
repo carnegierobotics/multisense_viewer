@@ -295,12 +295,12 @@ namespace VkRender::MultiSense {
 
         /**@brief Connects to a VkRender m_Device
          *
-         * @param[in] ip Which IP the camera is located on
+         * @param[in] dev Which IP the camera is located on
          * @param[in] isRemoteHead If the m_Device is a remote head or not
          * @return vector containing the list of successful connections. Numbered by crl::multisense::RemoteHeadChannel ids
          */
         std::vector<crl::multisense::RemoteHeadChannel>
-        connect(const VkRender::Device *ip, bool isRemoteHead, const std::string &ifName);
+        connect(const VkRender::Device *ip, const std::string &ifName);
 
         /**@brief Starts the desired stream if supported
          *
@@ -371,7 +371,6 @@ namespace VkRender::MultiSense {
          * @return if the value was successfully set
          * */
         bool setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
-        bool setSecondaryExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
 
         /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
          *
@@ -492,7 +491,7 @@ namespace VkRender::MultiSense {
 
         // Helper function to update and log status
         template <typename Func, typename Data>
-        bool updateAndLog(crl::multisense::RemoteHeadChannel channelID, Func f, Data& data, const std::string& field) {
+        bool updateAndLog(Func f, Data& data, const std::string& field) {
             crl::multisense::Status status = f(data);
             if (status != crl::multisense::Status_Ok) {
                 Log::Logger::getInstance()->error("Failed to update '{}'. error {}", field, crl::multisense::Channel::statusString(status));

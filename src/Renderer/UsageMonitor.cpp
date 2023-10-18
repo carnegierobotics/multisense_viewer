@@ -199,10 +199,7 @@ bool UsageMonitor::shouldAskForUserConsent() {
     return getSetting("ask_user_consent_to_collect_statistics", true, "true") == "true";
 }
 
-std::string UsageMonitor::getCurrentTimeString(std::chrono::system_clock::time_point timePoint) {
-    // Convert time_point to time_t
-    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
-    // Convert time_t to local time
+std::string UsageMonitor::getCurrentTimeString() {
 #ifdef WIN32
     std::tm tm;
     localtime_s(&tm, &time);  // Use localtime_s instead of std::localtime
@@ -229,7 +226,7 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string &
         obj["timestamp"] = getCurrentTimeString();
 
         // I do not want a return value here. otherwise it does nto make sense to make it a async operation.
-        std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
+        writeToUsageFileFuture = std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
 
         Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window,
                                          getCurrentTimeString());
@@ -275,7 +272,7 @@ void UsageMonitor::userStartSession(
 
 
     obj["event"] = "start application";
-    obj["start_time"] = getCurrentTimeString(m_StartTime);
+    obj["start_time"] = getCurrentTimeString();
     obj["graphics_device"] = gpuDevice;
 
     auto usageLog = openUsageFile();

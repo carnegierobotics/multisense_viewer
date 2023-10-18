@@ -103,6 +103,9 @@ public:
                     *elem.button = ImGui::Button(elem.label.c_str());
                     ImGui::PopStyleColor();
                     break;
+
+                default:
+                    break;
             }
 
         }
@@ -140,9 +143,15 @@ public:
         ImGui::PopStyleColor();
 
         ImGui::Text("Camera: ");
-        ImGui::Text("Position: (%.3f, %.3f, %.3f)", handles->camera.pos.x, handles->camera.pos.y, handles->camera.pos.z);
-        ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",  handles->camera.rot.x,  handles->camera.rot.y,  handles->camera.rot.z);
+        ImGui::Text("Position: (%.3f, %.3f, %.3f)",
+                    static_cast<double>(handles->camera.pos.x),
+                    static_cast<double>(handles->camera.pos.y),
+                    static_cast<double>(handles->camera.pos.z));
 
+        ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
+                    static_cast<double>(handles->camera.rot.x),
+                    static_cast<double>(handles->camera.rot.y),
+                    static_cast<double>(handles->camera.rot.z));
         ImGui::End();
         ImGui::PopStyleVar();
         //ImGui::PopStyleVar();

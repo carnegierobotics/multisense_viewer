@@ -23,13 +23,25 @@ PointCloudLoader::Model::~Model() {
 void PointCloudLoader::Model::createTexture(uint32_t width, uint32_t height) {
 
     Log::Logger::getInstance()->info("Creating new texture {}x{}", width, height);
-    //disparityTexture = Texture2D();
+    disparityTexture = Texture2D();
 
-    //disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+    auto* data = reinterpret_cast<uint16_t*>(malloc(width*height * 2));
+
+    for (size_t i = 0; i < width*height; i++){
+        data[i] = 127;
+    }
+
+    disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
 
     // colorTexture = std::make_unique<TextureVideo>( TextureVideo(width, height, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM));
 
-    //colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+
+    auto* data2 =  reinterpret_cast<uint8_t*>(malloc(960 * 600));
+    for (size_t i = 0; i < width*height; i++){
+        data2[i] = 200;
+    }
+    colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+
 
 }
 
@@ -69,7 +81,7 @@ void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                reinterpret_cast<const void *>(vertices.data())))
+                reinterpret_cast<const void *>(indices.data())))
     }
     // Create m_Device local buffers
     // Vertex buffer

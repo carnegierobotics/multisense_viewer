@@ -96,7 +96,7 @@ public:
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                if (ImGui::SliderInt("##Exposure Value: ", reinterpret_cast<int *>(&d.parameters.stereo.ep.exposure),
+                if (ImGui::SliderInt("##Exposure Value: ", &d.parameters.stereo.ep.exposure,
                                      20, 30000) && ImGui::IsItemActivated()) {
                     handles->usageMonitor->userClickAction("Exposure value", "SliderInt",
                                                            ImGui::GetCurrentWindow()->Name);
@@ -239,7 +239,7 @@ public:
 
                 ImGui::SameLine();
                 float posX = ImGui::GetCursorPosX();
-                float inputWidth = 15.0f * 2.8;
+                float inputWidth = 15.0f * 2.8f;
                 ImGui::Text("Upper left corner (x, y)");
 
                 ImGui::SameLine(0, 15.0f);
@@ -298,8 +298,8 @@ public:
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
-                std::string txt = "Auto Exp.:";
-                ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
+                txt = "Auto Exp.:";
+                txtSize = ImGui::CalcTextSize(txt.c_str());
                 ImGui::Text("%s", txt.c_str());
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 if (ImGui::Checkbox("##Enable AUX Auto Exposure", &d.parameters.aux.ep.autoExposure)) {
@@ -322,7 +322,7 @@ public:
                     ImGui::SameLine(0, textSpacing - txtSize.x);
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     if (ImGui::SliderInt("##Exposure Value aux: ",
-                                         reinterpret_cast<int *>(&d.parameters.aux.ep.exposure),
+                                         &d.parameters.aux.ep.exposure,
                                          20, 30000) && ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction("Aux Exposure value", "SliderInt",
                                                                ImGui::GetCurrentWindow()->Name);
@@ -463,7 +463,7 @@ public:
 
                     ImGui::SameLine();
                     float posX = ImGui::GetCursorPosX();
-                    float inputWidth = 15.0f * 2.8;
+                    float inputWidth = 15.0f * 2.8f;
                     ImGui::Text("Upper left corner (x, y)");
 
                     ImGui::SameLine(0, 15.0f);
@@ -630,7 +630,7 @@ public:
                         ImGui::SameLine(0, textSpacing - txtSize.x);
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                         if (ImGui::SliderInt("##sharpeningLimit",
-                                             reinterpret_cast<int *>(&d.parameters.aux.sharpeningLimit), 0,
+                                             &d.parameters.aux.sharpeningLimit, 0,
                                              100) && ImGui::IsItemActivated()) {
                             handles->usageMonitor->userClickAction("##sharpeningLimit", "SliderInt",
                                                                    ImGui::GetCurrentWindow()->Name);
@@ -715,7 +715,7 @@ public:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 if (ImGui::SliderFloat("##Pulses",
-                                       reinterpret_cast<float *>(&d.parameters.light.numLightPulses), 0,
+                                       &d.parameters.light.numLightPulses, 0,
                                        60, "%.1f") && ImGui::IsItemActivated()) {
                     handles->usageMonitor->userClickAction("##Pulses", "SliderFloat", ImGui::GetCurrentWindow()->Name);
                 }
@@ -736,7 +736,7 @@ public:
                 ImGui::SetNextItemWidth(handles->info->controlAreaWidth - 72.0f - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 if (ImGui::SliderFloat("##Startup Time",
-                                       reinterpret_cast<float *>(&d.parameters.light.startupTime), 0,
+                                      &d.parameters.light.startupTime, 0,
                                        60, "%.1f") && ImGui::IsItemActivated()) {
                     handles->usageMonitor->userClickAction("##Startup Time", "SliderFloat",
                                                            ImGui::GetCurrentWindow()->Name);

@@ -220,7 +220,7 @@ public:
 
         std::vector<Skin*> skins;
         std::vector<std::string> extensions;
-        std::vector<Texture2D> textures;
+        std::vector<Texture2D> m_Textures;
         Texture2D emptyTexture;
 
         TextureCubeMap *irradianceCube;

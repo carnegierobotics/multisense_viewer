@@ -91,7 +91,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                reinterpret_cast<const void *>(vertices.data())))
+                reinterpret_cast<const void *>(indices.data())))
     }
     // Create m_Device local buffers
     // Vertex buffer
@@ -502,6 +502,12 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
                         {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                         {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                 };
+            } else {
+                setLayoutBindings = {
+                        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                };
             }
             break;
 
@@ -517,7 +523,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
         default:
             std::cerr << "Model type not supported yet\n";
             break;
-    };
+    }
 
 
 // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED

@@ -98,7 +98,7 @@ struct VulkanDevice {
     bool extensionSupported(std::string extension) const;
 
     VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size,
-                          VkBuffer *buffer, VkDeviceMemory *memory, const void *data = nullptr);
+                          VkBuffer *buffer, VkDeviceMemory *memory, const void *data = nullptr) const;
 
     VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, Buffer *buffer,
                           VkDeviceSize size, void *data = nullptr);

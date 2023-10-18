@@ -220,6 +220,9 @@ public:
                 case WIDGET_TEXT:
                     ImGui::Text("%s", elem.label.c_str());
                     break;
+
+                default:
+                    break;
             }
 
         }

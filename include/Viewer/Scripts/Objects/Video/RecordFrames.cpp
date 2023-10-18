@@ -35,11 +35,14 @@
  **/
 
 #include <filesystem>
-#include <tiffio.h>
-#include <RosbagWriter/RosbagWriter.h>
 
 #include "Viewer/Scripts/Objects/Video/RecordFrames.h"
 #include "Viewer/Scripts/Private/RecordUtilities.h"
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_UNREFERENCED_FUNCTION
+#include <RosbagWriter/RosbagWriter.h>
+DISABLE_WARNING_POP
 
 void RecordFrames::setup() {
 }
@@ -530,7 +533,7 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
                 break;
         }
         Log::Logger::getInstance()->trace("Got rosbag connection {}, topic: {}, type: {}, encoding {}, size {}",
-                                          conn.id, conn.topic, conn.msgtype, encoding, data.size());
+                                          conn.id, conn.topic, conn.msgType, encoding, data.size());
 
         rosbagWriter->write(conn, timestamp, data);
     }
@@ -543,7 +546,7 @@ void RecordFrames::finishWritingRosbag(std::shared_ptr<CRLRosWriter::RosbagWrite
                                        std::mutex &rosbagWriterMut) {
     std::scoped_lock<std::mutex> lock(rosbagWriterMut);
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    Log::Logger::getInstance()->info("Releasing rosbagWriter");
+    Log::Logger::getInstance()->info("Releasing rosbagWriter: {}", rosbagWriter.use_count());
 
 }
 

@@ -211,16 +211,16 @@ std::string UsageMonitor::getCurrentTimeString(std::chrono::system_clock::time_p
     auto timestamp = oss.str();
 #else
     auto t = std::time(nullptr);
-        auto tm = *std::localtime(&t);
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-        auto timestamp = oss.str();
+    auto tm = *std::localtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    auto timestamp = oss.str();
 #endif
     return timestamp;
 }
 
 
-void UsageMonitor::userClickAction(const std::string &label, const std::string& type, const std::string &window) {
+void UsageMonitor::userClickAction(const std::string &label, const std::string &type, const std::string &window) {
     try {
         nlohmann::json obj;
         obj["element"] = type;
@@ -228,15 +228,17 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string& 
         obj["parent_window"] = window;
         obj["timestamp"] = getCurrentTimeString();
 
-        auto ret = std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
+        // I do not want a return value here. otherwise it does nto make sense to make it a async operation.
+        std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
 
-         Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window, getCurrentTimeString());
-    }catch (nlohmann::json::exception &e){
+        Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window,
+                                         getCurrentTimeString());
+    } catch (nlohmann::json::exception &e) {
         Log::Logger::getInstance()->warning("Failed to record userClickAction: {}", e.what());
     }
 }
 
-void UsageMonitor::writeToUsageFileAsync(const nlohmann::json& obj){
+void UsageMonitor::writeToUsageFileAsync(const nlohmann::json &obj) {
     auto usageLog = openUsageFile();
     if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
         usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
@@ -250,14 +252,15 @@ void UsageMonitor::userEndSession() {
     try {
         nlohmann::json generalData;
         nlohmann::json settingsChanged;
-        auto time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_StartTime).count();
+        auto time = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - m_StartTime).count();
         generalData["time_spent_seconds"] = std::to_string(time);
         generalData["settings_changed"] = settingsChanged;
         auto usageLog = openUsageFile();
         usageLog["stats"][sessionIndex]["general"] = generalData;
         saveJsonToUsageFile(usageLog);
 
-    }catch (nlohmann::json::exception &e){
+    } catch (nlohmann::json::exception &e) {
         Log::Logger::getInstance()->warning("Failed to save usage log in userEndSession: {}", e.what());
     }
 

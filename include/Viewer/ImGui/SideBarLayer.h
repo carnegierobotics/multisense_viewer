@@ -166,7 +166,10 @@ public:
         ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
 #elif __linux__
         std::string command = "xdg-open " + std::string(url);
-        std::system(command.c_str());
+        int result = std::system(command.c_str());
+        if(result != 0) {
+            Log::Logger::getInstance()->warning("Failed top open URL");
+        }
 #endif
     }
 

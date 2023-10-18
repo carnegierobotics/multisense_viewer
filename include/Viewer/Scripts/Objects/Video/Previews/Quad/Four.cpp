@@ -230,7 +230,8 @@ void Four::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         options = &preview.effects;
         zoomEnabled = preview.enableZoom;
-        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_FOUR)->second;
+        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, CRL_PREVIEW_FOUR);
+
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
         VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_FOUR, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,

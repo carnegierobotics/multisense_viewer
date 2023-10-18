@@ -41,7 +41,13 @@
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
+#ifdef WIN32
+    #ifdef APIENTRY
+        #undef APIENTRY
+    #endif
+#endif
 #include <GLFW/glfw3.h>
+
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>

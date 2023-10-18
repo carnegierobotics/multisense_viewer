@@ -635,29 +635,29 @@ namespace Utils {
         dev.notRealDevice = true;
         dev.channelInfo.resize(4); // max number of remote heads
         dev.win.clear();
-        for (crl::multisense::RemoteHeadChannel ch: {0}) {
-            VkRender::ChannelInfo chInfo;
-            chInfo.availableSources.clear();
-            chInfo.modes.clear();
-            chInfo.availableSources.emplace_back("Idle");
-            chInfo.index = ch;
-            chInfo.state = CRL_STATE_ACTIVE;
-            chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
-            std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
-            supportedDeviceModes.emplace_back();
-            //initCameraModes(&chInfo.modes, supportedModes);
-            chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
-            for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-                dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
-                if (!chInfo.availableSources.empty())
-                    dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
-            }
-
-            // stop streams if there were any enabled, just so we can start with a clean slate
-            //stopStreamTask(this, "All", ch);
-
-            dev.channelInfo.at(ch) = chInfo;
+        crl::multisense::RemoteHeadChannel ch = 0;
+        VkRender::ChannelInfo chInfo;
+        chInfo.availableSources.clear();
+        chInfo.modes.clear();
+        chInfo.availableSources.emplace_back("Idle");
+        chInfo.index = ch;
+        chInfo.state = CRL_STATE_ACTIVE;
+        chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+        supportedDeviceModes.emplace_back();
+        //initCameraModes(&chInfo.modes, supportedModes);
+        chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
+        for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
+            dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+            if (!chInfo.availableSources.empty())
+                dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
         }
+
+        // stop streams if there were any enabled, just so we can start with a clean slate
+        //stopStreamTask(this, "All", ch);
+
+        dev.channelInfo.at(ch) = chInfo;
+
 
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;
@@ -682,7 +682,7 @@ namespace Utils {
     static inline bool stringToBool(const std::string &str) {
         std::string lowerStr;
         std::transform(str.begin(), str.end(), std::back_inserter(lowerStr),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) {  return static_cast<char>(std::tolower(c)); });
 
         if (lowerStr == "true") {
             return true;
@@ -732,9 +732,11 @@ namespace Utils {
         return multiSenseCachePath;
     }
 
-    static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
+    static inline bool checkRegexMatch(std::string &str, const std::string &expression) {
         std::string lowered_str = str;
-        std::transform(lowered_str.begin(), lowered_str.end(), lowered_str.begin(), ::tolower);
+        std::transform(str.begin(), str.end(), str.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
         std::regex pattern(expression);
         return std::regex_search(lowered_str, pattern);
     }
@@ -915,6 +917,7 @@ namespace Utils {
         }
         return dev->record.metadata.parsed;
     }
+
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

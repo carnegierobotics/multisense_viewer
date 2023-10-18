@@ -124,7 +124,7 @@ nlohmann::json UsageMonitor::openUsageFile() {
 
 void UsageMonitor::saveJsonToUsageFile(nlohmann::json jsonObj) {
     // Save the modified JSON to the file
-    std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
+    std::ofstream output_file(usageFilePath);
     output_file << jsonObj.dump(4);
 
 }
@@ -228,17 +228,22 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string& 
         obj["parent_window"] = window;
         obj["timestamp"] = getCurrentTimeString();
 
-        auto usageLog = openUsageFile();
-        if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
-            usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
-        }
+        auto ret = std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
 
-        usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
-        saveJsonToUsageFile(usageLog);
-        Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window, getCurrentTimeString());
+         Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window, getCurrentTimeString());
     }catch (nlohmann::json::exception &e){
         Log::Logger::getInstance()->warning("Failed to record userClickAction: {}", e.what());
     }
+}
+
+void UsageMonitor::writeToUsageFileAsync(const nlohmann::json& obj){
+    auto usageLog = openUsageFile();
+    if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
+        usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
+    }
+
+    usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
+    saveJsonToUsageFile(usageLog);
 }
 
 void UsageMonitor::userEndSession() {

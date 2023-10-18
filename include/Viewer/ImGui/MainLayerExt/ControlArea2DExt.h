@@ -150,7 +150,7 @@ public:
                 ImGui::SameLine();
 
                 ImGui::HelpMarker(
-                        "Record the frames active in the preview window as format. A metadata file is generated into the record location.",
+                        "Capture frames displayed in the preview windows using the specified format. Note: Due to hardware constraints and the number of active streams, it's possible some frames might not be saved.",
                         VkRender::Colors::CRLTextWhite);
                 ImGui::SameLine();
                 ImGui::PushFont(handles->info->font13);
@@ -166,7 +166,7 @@ public:
 
                 /** @brief Drop down for compression selection */
                 {
-                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag"};
                     static size_t selector = 0;
 
                     ImGui::SetNextItemWidth(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);

@@ -43,13 +43,19 @@
 #define MULTISENSE_VIEWER_DEBUG
 #endif
 
+#ifdef WIN32
+    #ifdef APIENTRY
+        #undef APIENTRY
+    #endif
+#endif
+#include <GLFW/glfw3.h>
+
 #include <unordered_map>
 #include <memory>
 #include <utility>
 #include <array>
 #include <vulkan/vulkan_core.h>
 #include <MultiSense/MultiSenseTypes.hh>
-#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>

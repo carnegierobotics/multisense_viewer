@@ -120,7 +120,7 @@ void MultiSenseCamera::handleIMUUpdate(){
         Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 30,"Calculating new IMU information");
         imuRotationFuture = std::async(std::launch::async,
                                        &VkRender::MultiSense::CRLPhysicalCamera::calculateIMURotation,
-                                       renderData.crlCamera, &rot, 0);;
+                                       renderData.crlCamera, &rot, static_cast<crl::multisense::RemoteHeadChannel>(0));;
         calcImuRotationTimer = std::chrono::steady_clock::now();
     }
 }

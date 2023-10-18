@@ -36,10 +36,15 @@
 
 #ifndef MULTISENSE_BASE_H
 #define MULTISENSE_BASE_H
+#ifdef WIN32
+    #ifdef APIENTRY
+    #undef APIENTRY
+    #endif
+#endif
+#include <GLFW/glfw3.h>
 
 #include <filesystem>
 #include <utility>
-#include <GLFW/glfw3.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
 
@@ -113,15 +118,18 @@ namespace VkRender {
         virtual ScriptTypeFlags getType() {
             return CRL_SCRIPT_TYPE_DISABLED;
         }
+
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
         virtual DrawMethod getDrawMethod() {
             return CRL_SCRIPT_DONT_DRAW;
         }
+
         /**@brief Record draw command into a VkCommandBuffer */
         virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
         }
+
         DISABLE_WARNING_POP
 
         void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {

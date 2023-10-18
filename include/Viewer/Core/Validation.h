@@ -40,22 +40,17 @@
 
 
 #define GLFW_INCLUDE_VULKAN
-
+#ifdef WIN32
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#endif
 #include <GLFW/glfw3.h>
 #include <cstring>
 #include <iostream>
 #include <vector>
 
 #include "Viewer/Tools/Macros.h"
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-
-
 
 namespace Validation {
 

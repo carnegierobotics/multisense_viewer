@@ -423,10 +423,13 @@ Texture2D::Texture2D(void *buffer, VkDeviceSize bufferSize, VkFormat format, uin
 */
 void Texture2D::fromKtxFile(const std::string &filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
                             VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout, bool forceLinear) {
-    ktxTexture *kTex;
-    assert(ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                          &kTex) == KTX_SUCCESS);
-
+    ktxTexture *kTex = nullptr;
+    ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                          &kTex);
+    if (kTex == nullptr) {
+        throw std::runtime_error("Failed to load texture from ktx");
+        return;
+    }
     m_Device = device;
     m_Width = kTex->baseWidth;
     m_Height = kTex->baseHeight;
@@ -492,7 +495,7 @@ void Texture2D::fromKtxFile(const std::string &filename, VkFormat format, Vulkan
         std::vector<VkBufferImageCopy> bufferCopyRegions;
 
         for (uint32_t i = 0; i < m_MipLevels; i++) {
-            ktx_size_t offset;
+            ktx_size_t offset = 0;
             assert(ktxTexture_GetImageOffset(kTex, i, 0, 0, &offset) == KTX_SUCCESS);
 
             VkBufferImageCopy bufferCopyRegion = {};
@@ -1134,9 +1137,14 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     auto tStart = std::chrono::high_resolution_clock::now();
 
     m_Device = device;
-    ktxTexture *kTex;
+    ktxTexture *kTex = nullptr;
 
-    assert(ktxTexture_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &kTex) == KTX_SUCCESS);
+    ktxTexture_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &kTex);
+
+    if (kTex == nullptr) {
+        throw std::runtime_error("Failed to load texture from ktx");
+        return;
+    }
     m_Width = kTex->baseWidth;
     m_Height = kTex->baseHeight;
     m_MipLevels = kTex->numLevels;
@@ -1181,7 +1189,7 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
 
     for (uint32_t face = 0; face < 6; face++) {
         for (uint32_t level = 0; level < m_MipLevels; level++) {
-            ktx_size_t offset;
+            ktx_size_t offset = 0;
             assert(ktxTexture_GetImageOffset(kTex, level, 0, face, &offset) == KTX_SUCCESS);
 
             VkBufferImageCopy bufferCopyRegion = {};
@@ -1197,7 +1205,6 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
             bufferCopyRegions.push_back(bufferCopyRegion);
         }
     }
-
     // Create optimal tiled target image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;

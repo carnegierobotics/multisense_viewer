@@ -186,7 +186,7 @@ public:
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
-                auto &window = dev.win[(StreamWindowIndex) index];
+                auto &window = dev.win[static_cast<StreamWindowIndex>(index)];
                 window.name = windowName;
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
@@ -215,8 +215,8 @@ public:
                         windowSize,
                         ImGuiCond_Always);
 */
-                dev.win.at((StreamWindowIndex) index).row = float(row);
-                dev.win.at((StreamWindowIndex) index).col = float(col);
+                dev.win.at(static_cast<StreamWindowIndex>(index)).row = float(row);
+                dev.win.at(static_cast<StreamWindowIndex>(index)).col = float(col);
                 // Calculate window m_Position
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
@@ -224,8 +224,8 @@ public:
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-                dev.win.at((StreamWindowIndex) index).xPixelStartPos = viewAreaElementPosX;
-                dev.win.at((StreamWindowIndex) index).yPixelStartPos = viewAreaElementPosY;
+                dev.win.at(static_cast<StreamWindowIndex>(index)).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at(static_cast<StreamWindowIndex>(index)).yPixelStartPos = viewAreaElementPosY;
                 ImVec2 childPos = ImVec2(viewAreaElementPosX, viewAreaElementPosY);
                 //ImGui::SetNextWindowPos(childPos,ImGuiCond_Always);
                 ImGui::SetCursorScreenPos(childPos);
@@ -298,20 +298,20 @@ public:
 
                 if (window.isHovered) {
                     // Offsset cursor positions.
-                    switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
+                    switch (Utils::CRLSourceToTextureType(dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource)) {
                         case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].intensity);
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].intensity);
                             break;
                         case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
+                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].depth);
                             break;
                         default:
-                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y);
+                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y);
                     }
 
                 }
@@ -416,12 +416,12 @@ public:
                     }
 
                     bool isColorImageSelected =
-                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            Utils::CRLSourceToTextureType(dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
                             CRL_COLOR_IMAGE_YUV420;
 
 
                     bool isDisparitySelected =
-                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            Utils::CRLSourceToTextureType(dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
 
                     if (isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(

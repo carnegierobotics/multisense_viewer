@@ -94,7 +94,7 @@ public:
                                            MAP_SHARED, /* mapping visible to other processes */
                                            fd,         /* file descriptor */
                                            0));         /* offset: start at 1st byte */
-        if ((caddr_t) -1 == memPtr) {
+        if (reinterpret_cast<caddr_t>(-1) == memPtr) {
             logError("Can't access segment...");
             return;
         }
@@ -104,7 +104,7 @@ public:
                           O_CREAT,       /* create the semaphore */
                           AccessPerms,   /* protection perms */
                           0);            /* initial value */
-        if (semPtr == (void *) -1 || semPtr == nullptr) {
+        if (semPtr == reinterpret_cast<void *> (-1) || semPtr == nullptr) {
             logError("sem_open");
             return;
         }
@@ -210,7 +210,7 @@ public:
 
         send["Command"] = "Stop";
 
-        if (semPtr == (void *) -1)
+        if (semPtr == reinterpret_cast<void*>(-1))
             logError("sem_open");
         strcpy(memPtr + (ByteSize / 2), to_string(send).c_str());
         if (sem_post(semPtr) < 0)
@@ -224,7 +224,7 @@ public:
         send["index"] = std::to_string(index);
 
 
-        if (semPtr == (void *) -1)
+        if (semPtr == reinterpret_cast<void*>(-1))
             logError("sem_open");
         strcpy(memPtr + (ByteSize / 2), to_string(send).c_str());
         if (sem_post(semPtr) < 0)

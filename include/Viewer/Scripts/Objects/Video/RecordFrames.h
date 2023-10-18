@@ -37,13 +37,16 @@
 #ifndef MULTISENSE_VIEWER_RECORDFRAMES_H
 #define MULTISENSE_VIEWER_RECORDFRAMES_H
 
-#include <RosbagWriter/RosbagWriter.h>
-
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 #include "Viewer/Tools/ThreadPool.h"
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_UNREFERENCED_FUNCTION
+#include <RosbagWriter/RosbagWriter.h>
+DISABLE_WARNING_POP
 
 class RecordFrames : public VkRender::Base, public VkRender::RegisteredInFactory<RecordFrames>, CRLCameraModels {
 public:

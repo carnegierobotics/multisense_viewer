@@ -260,7 +260,7 @@ private:
                     float spaceSize = ImGui::CalcTextSize(std::string(" ").c_str()).x;
                     std::string spaces(int(startPos / spaceSize), ' ');
 
-                    if (ImGui::BeginTabItem((std::string(spaces + tabLabel)).c_str())) {
+                    if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
                         ImGui::PushFont(handles->info->font13);
 
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);

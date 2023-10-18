@@ -106,6 +106,7 @@ if (UNIX) ## Linux
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
                 CACHE PATH "default install path" FORCE)
     endif ()
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES})
@@ -146,6 +147,8 @@ if (WIN32)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
         target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+
     endif ()
 
     # Include directory for WinPcap

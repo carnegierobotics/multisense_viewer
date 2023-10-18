@@ -732,14 +732,15 @@ namespace Utils {
         return multiSenseCachePath;
     }
 
-    static inline bool checkRegexMatch(std::string &str, const std::string &expression) {
+    static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
         std::string lowered_str = str;
-        std::transform(str.begin(), str.end(), str.begin(),
+        std::transform(str.begin(), str.end(), lowered_str.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-        std::regex pattern(expression);
+        std::regex pattern(expression, std::regex_constants::icase);  // icase for case-insensitive matching
         return std::regex_search(lowered_str, pattern);
     }
+
 
 
     static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {

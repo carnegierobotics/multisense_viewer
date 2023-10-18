@@ -85,8 +85,7 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *device, 
     loadTextures(gltfModel, vulkanDevice, transferQueue);
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
-    emptyTexture.fromKtxFile(Utils::getAssetsPath().append("Textures/empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM,
-                             vulkanDevice, vulkanDevice->m_TransferQueue);
+    emptyTexture.fromKtxFile(Utils::getAssetsPath().append("Textures/empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,vulkanDevice->m_TransferQueue);
 
     const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
     // Get vertex and index buffer sizes up-front
@@ -202,7 +201,7 @@ void GLTFModel::Model::getNodeProps(const tinygltf::Node &node, const tinygltf::
 
 
 void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::UniformBufferSet> &uboVec,
-                                              VkRender::SkyboxTextures *skyTex) {
+                                              VkRender::SkyboxTextures *textures) {
     descriptors.resize(uboVec.size());
 
     {
@@ -265,7 +264,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
             writeDescriptorSets[2].descriptorCount = 1;
             writeDescriptorSets[2].dstSet = descriptors[i];
             writeDescriptorSets[2].dstBinding = 2;
-            writeDescriptorSets[2].pImageInfo = &skyTex->prefilterEnv.m_Descriptor;
+            writeDescriptorSets[2].pImageInfo = &textures->prefilterEnv.m_Descriptor;
 
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                    writeDescriptorSets.data(), 0, nullptr);
@@ -296,7 +295,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
     Generate a BRDF integration map storing roughness/NdotV as a look-up-table
 */
 void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCreateInfo> envShaders,
-                                       VkRender::SkyboxTextures *skyboxTextures) {
+                                       VkRender::SkyboxTextures *textures) {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     const VkFormat format = VK_FORMAT_R16G16_SFLOAT;
@@ -315,17 +314,16 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    (vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &skyboxTextures->lutBrdf.m_Image));
+    (vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &textures->lutBrdf.m_Image));
     VkMemoryRequirements memReqs;
-    vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, skyboxTextures->lutBrdf.m_Image, &memReqs);
+    vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, textures->lutBrdf.m_Image, &memReqs);
     VkMemoryAllocateInfo memAllocInfo{};
     memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &skyboxTextures->lutBrdf.m_DeviceMemory));
-    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, skyboxTextures->lutBrdf.m_Image,
-                       skyboxTextures->lutBrdf.m_DeviceMemory, 0));
+    (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &textures->lutBrdf.m_DeviceMemory));
+    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures->lutBrdf.m_Image, textures->lutBrdf.m_DeviceMemory, 0));
 
     // View
     VkImageViewCreateInfo viewCI{};
@@ -336,8 +334,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewCI.subresourceRange.levelCount = 1;
     viewCI.subresourceRange.layerCount = 1;
-    viewCI.image = skyboxTextures->lutBrdf.m_Image;
-    (vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &skyboxTextures->lutBrdf.m_View));
+    viewCI.image = textures->lutBrdf.m_Image;
+    (vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &textures->lutBrdf.m_View));
 
     // Sampler
     VkSamplerCreateInfo samplerCI{};
@@ -352,7 +350,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     samplerCI.maxLod = 1.0f;
     samplerCI.maxAnisotropy = 1.0f;
     samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    (vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &skyboxTextures->lutBrdf.m_Sampler));
+    (vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &textures->lutBrdf.m_Sampler));
 
     // FB, Att, RP, Pipe, etc.
     VkAttachmentDescription attDesc{};
@@ -406,7 +404,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     framebufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferCI.renderPass = renderpass;
     framebufferCI.attachmentCount = 1;
-    framebufferCI.pAttachments = &skyboxTextures->lutBrdf.m_View;
+    framebufferCI.pAttachments = &textures->lutBrdf.m_View;
     framebufferCI.width = dim;
     framebufferCI.height = dim;
     framebufferCI.layers = 1;
@@ -518,8 +516,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     vkCmdBeginRenderPass(cmdBuf, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport{};
-    viewport.width = static_cast<float> (dim);
-    viewport.height = static_cast<float> (dim);
+    viewport.width = static_cast<float>(dim);
+    viewport.height =static_cast<float>(dim);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -542,10 +540,10 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     vkDestroyFramebuffer(vulkanDevice->m_LogicalDevice, framebuffer, nullptr);
     vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorsetlayout, nullptr);
 
-    skyboxTextures->lutBrdf.m_Descriptor.imageView = skyboxTextures->lutBrdf.m_View;
-    skyboxTextures->lutBrdf.m_Descriptor.sampler = skyboxTextures->lutBrdf.m_Sampler;
-    skyboxTextures->lutBrdf.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    skyboxTextures->lutBrdf.m_Device = vulkanDevice;
+    textures->lutBrdf.m_Descriptor.imageView = textures->lutBrdf.m_View;
+    textures->lutBrdf.m_Descriptor.sampler = textures->lutBrdf.m_Sampler;
+    textures->lutBrdf.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    textures->lutBrdf.m_Device = vulkanDevice;
 
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -554,7 +552,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 
 
 void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageCreateInfo> envShaders,
-                                        VkRender::SkyboxTextures *skyboxTextures) {
+                                        VkRender::SkyboxTextures *textures) {
     enum Target {
         IRRADIANCE = 0, PREFILTEREDENV = 1
     };
@@ -793,7 +791,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         writeDescriptorSet.descriptorCount = 1;
         writeDescriptorSet.dstSet = descriptorset;
         writeDescriptorSet.dstBinding = 0;
-        writeDescriptorSet.pImageInfo = &skyboxTextures->environmentMap.m_Descriptor;
+        writeDescriptorSet.pImageInfo = &textures->environmentMap.m_Descriptor;
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
 
         struct PushBlockIrradiance {
@@ -946,7 +944,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         VkViewport viewport{};
         viewport.width = static_cast<float>(dim);
-        viewport.height = static_cast<float>(dim);
+        viewport.height =static_cast<float>(dim);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -993,15 +991,15 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 switch (target) {
                     case IRRADIANCE:
                         pushBlockIrradiance.mvp =
-                                glm::perspective(static_cast<float>((M_PI / 2.0)), 1.0f, 0.1f, 512.0f) * matrices[f];
+                                glm::perspective(static_cast<float>(M_PI) / 2.0f, 1.0f, 0.1f, 512.0f) * matrices[f];
                         vkCmdPushConstants(cmdBuf, pipelinelayout,
                                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                            sizeof(PushBlockIrradiance), &pushBlockIrradiance);
                         break;
                     case PREFILTEREDENV:
                         pushBlockPrefilterEnv.mvp =
-                                glm::perspective(static_cast<float>((M_PI / 2.0)), 1.0f, 0.1f, 512.0f) * matrices[f];
-                        pushBlockPrefilterEnv.roughness = static_cast<float>( m) / static_cast<float>((numMips - 1));
+                                glm::perspective(static_cast<float>(M_PI) / 2.0f, 1.0f, 0.1f, 512.0f) * matrices[f];
+                        pushBlockPrefilterEnv.roughness = static_cast<float>(m) / (numMips - 1.0f);
                         vkCmdPushConstants(cmdBuf, pipelinelayout,
                                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                            sizeof(PushBlockPrefilterEnv), &pushBlockPrefilterEnv);
@@ -1114,11 +1112,11 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         switch (target) {
             case IRRADIANCE:
-                skyboxTextures->irradianceCube = cubemap;
+                textures->irradianceCube = cubemap;
                 break;
             case PREFILTEREDENV:
-                skyboxTextures->prefilterEnv = cubemap;
-                skyboxTextures->prefilteredCubeMipLevels = static_cast<float>(numMips);
+                textures->prefilterEnv = cubemap;
+                textures->prefilteredCubeMipLevels = static_cast<float>(numMips);
                 break;
         };
 
@@ -1185,7 +1183,7 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                 pushConstBlock.emissiveTextureSet =
                         primitive->material.emissiveTexture != nullptr ? primitive->material.texCoordSets.emissive : -1;
                 pushConstBlock.alphaMask = static_cast<float>(primitive->material.alphaMode ==
-                                                              Material::ALPHAMODE_MASK);
+                                                                      Material::ALPHAMODE_MASK);
                 pushConstBlock.alphaMaskCutoff = primitive->material.alphaCutoff;
 
                 // TODO: glTF specs states that metallic roughness should be preferred, even if specular glosiness is present
@@ -1211,10 +1209,10 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                             primitive->material.extension.specularGlossinessTexture != nullptr
                             ? primitive->material.texCoordSets.specularGlossiness : -1;
                     pushConstBlock.colorTextureSet = primitive->material.extension.diffuseTexture != nullptr
-                                                     ? primitive->material.texCoordSets.baseColor : -1;
+                                                             ? primitive->material.texCoordSets.baseColor : -1;
                     pushConstBlock.diffuseFactor = primitive->material.extension.diffuseFactor;
                     pushConstBlock.specularFactor = glm::vec4(primitive->material.extension.specularFactor,
-                                                              1.0f);
+                                                                      1.0f);
                 }
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
@@ -1356,15 +1354,14 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
                 const void *bufferJoints = nullptr;
                 const float *bufferWeights = nullptr;
 
-                int posByteStride;
-                int normByteStride;
-                int uv0ByteStride;
-                int uv1ByteStride;
-                int color0ByteStride;
-                int jointByteStride;
-                int weightByteStride;
-
-                int jointComponentType;
+                int posByteStride = 0;
+                int normByteStride = 0;
+                int uv0ByteStride = 0;
+                int uv1ByteStride = 0;
+                int color0ByteStride = 0;
+                int jointByteStride = 0;
+                int weightByteStride = 0;
+                int jointComponentType = 0;
 
                 // Position attribute is required
                 assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
@@ -1468,12 +1465,12 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
                     if (hasSkin) {
                         switch (jointComponentType) {
                             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
-                                const uint16_t *buf = static_cast<const uint16_t *>(bufferJoints);
+                                const auto *buf = static_cast<const uint16_t *>(bufferJoints);
                                 vert.joint0 = glm::vec4(glm::make_vec4(&buf[v * jointByteStride]));
                                 break;
                             }
                             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
-                                const uint8_t *buf = static_cast<const uint8_t *>(bufferJoints);
+                                const auto *buf = static_cast<const uint8_t *>(bufferJoints);
                                 vert.joint0 = glm::vec4(glm::make_vec4(&buf[v * jointByteStride]));
                                 break;
                             }
@@ -1563,7 +1560,7 @@ void GLTFModel::Model::loadTextureSamplers(tinygltf::Model &gltfModel) {
 }
 
 void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *device, VkQueue transferQueue) {
-    textures.resize(gltfModel.textures.size());
+    m_Textures.resize(gltfModel.textures.size());
     for (size_t i = 0; tinygltf::Texture &tex: gltfModel.textures) {
         tinygltf::Image image = gltfModel.images[tex.source];
         Texture::TextureSampler textureSampler{};
@@ -1577,7 +1574,7 @@ void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             textureSampler = textureSamplers[tex.sampler];
         }
-        textures[i].fromglTfImage(image, textureSampler, device, transferQueue);
+        m_Textures[i].fromglTfImage(image, textureSampler, device, transferQueue);
         i++;
     }
 }
@@ -1587,11 +1584,11 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         GLTFModel::Material material{};
         material.doubleSided = mat.doubleSided;
         if (mat.values.find("baseColorTexture") != mat.values.end()) {
-            material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
+            material.baseColorTexture = &m_Textures[mat.values["baseColorTexture"].TextureIndex()];
             material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
         }
         if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-            material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+            material.metallicRoughnessTexture = &m_Textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
             material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
         }
         if (mat.values.find("roughnessFactor") != mat.values.end()) {
@@ -1604,15 +1601,15 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
         }
         if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-            material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
+            material.normalTexture = &m_Textures[mat.additionalValues["normalTexture"].TextureIndex()];
             material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
         }
         if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
-            material.emissiveTexture = &textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
+            material.emissiveTexture = &m_Textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
             material.texCoordSets.emissive = mat.additionalValues["emissiveTexture"].TextureTexCoord();
         }
         if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
-            material.occlusionTexture = &textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
+            material.occlusionTexture = &m_Textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
             material.texCoordSets.occlusion = mat.additionalValues["occlusionTexture"].TextureTexCoord();
         }
         if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
@@ -1629,8 +1626,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
         }
         if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end()) {
-            material.emissiveFactor = glm::vec4(
-                    glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
+            material.emissiveFactor = glm::vec4(glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
         }
 
         // Extensions
@@ -1639,29 +1635,27 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             auto ext = mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (ext->second.Has("specularGlossinessTexture")) {
                 auto index = ext->second.Get("specularGlossinessTexture").Get("index");
-                material.extension.specularGlossinessTexture = &textures[index.Get<int>()];
+                material.extension.specularGlossinessTexture = &m_Textures[index.Get<int>()];
                 auto texCoordSet = ext->second.Get("specularGlossinessTexture").Get("texCoord");
                 material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
                 material.pbrWorkflows.specularGlossiness = true;
             }
             if (ext->second.Has("diffuseTexture")) {
                 auto index = ext->second.Get("diffuseTexture").Get("index");
-                material.extension.diffuseTexture = &textures[index.Get<int>()];
+                material.extension.diffuseTexture = &m_Textures[index.Get<int>()];
             }
             if (ext->second.Has("diffuseFactor")) {
                 auto factor = ext->second.Get("diffuseFactor");
-                for (size_t i = 0; i < factor.ArrayLen(); i++) {
+                for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>())
-                                                                         : static_cast<float>(val.Get<int>());
+                    material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                 }
             }
             if (ext->second.Has("specularFactor")) {
                 auto factor = ext->second.Get("specularFactor");
-                for (size_t i = 0; i < factor.ArrayLen(); i++) {
+                for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>())
-                                                                          : static_cast<float>(val.Get<int>());
+                    material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                 }
             }
         }
@@ -1723,7 +1717,7 @@ void GLTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->m_TransferQueue);
     textureIndices.baseColor = 0;
-    textures.push_back(texture);
+    m_Textures.push_back(texture);
 
     Texture::TextureSampler sampler{};
     sampler.magFilter = VK_FILTER_LINEAR;
@@ -1754,7 +1748,7 @@ void GLTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->m_TransferQueue);
     textureIndices.normalMap = 1;
-    textures.push_back(texture);
+    m_Textures.push_back(texture);
 
     Texture::TextureSampler sampler{};
     sampler.magFilter = VK_FILTER_LINEAR;
@@ -1976,7 +1970,7 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(
     /**
      * Create Descriptor Pool
      */
-    uint32_t uniformDescriptorCount = static_cast<uint32_t> (2 * ubo.size() +  static_cast<uint32_t>(nodes.size()));
+    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + static_cast<uint32_t>(nodes.size()));
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };
@@ -2050,10 +2044,9 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
         VkResult res =
                 vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                          &node->mesh->uniformBuffer.descriptorSet);
-        if (res != VK_SUCCESS) {
+        if (res != VK_SUCCESS){
             // TODO No need to exit application but treat error accordingly
-            Log::Logger::getInstance()->error("VkResult Error in setting up node descriptor set {}",
-                                              static_cast<int>(res));
+            Log::Logger::getInstance()->error("VkResult Error in setting up node descriptor set {}", static_cast<int>(res));
         }
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2258,11 +2251,9 @@ GLTFModel::Model::~Model() {
 void
 GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo> &envShaders,
                                const std::vector<VkRender::UniformBufferSet> &uboVec,
-                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures,
-                               VkSampleCountFlagBits msaaSamples) {
+                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures, VkSampleCountFlagBits msaaSamples) {
 
-    loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice,
-                 vulkanDevice->m_TransferQueue, 1.0f);
+    loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);
     generateBRDFLUT(envShaders, skyboxTextures);
     setupSkyboxDescriptors(uboVec, skyboxTextures);
@@ -2271,8 +2262,7 @@ GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo
 }
 
 void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPass,
-                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders,
-                                                    VkSampleCountFlagBits msaaSamples) {
+                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders, VkSampleCountFlagBits msaaSamples) {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 

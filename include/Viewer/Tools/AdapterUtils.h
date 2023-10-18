@@ -54,6 +54,8 @@
 
 #endif
 
+#include "Viewer/Tools/Macros.h"
+
 #define LIST_ADAPTER_INTERVAL_MS 500
 
 class AdapterUtils {
@@ -91,6 +93,7 @@ public:
             Log::Logger::getInstance()->info("Started Manual Adapter Scan");
         }
 #endif
+        Log::Logger::getInstance()->info("Starting adapter scan with threadpool {}", pool->getTaskListSize());
     }
 
     void stopAdapterScan() {
@@ -241,7 +244,10 @@ public:
         auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         for (auto i = ifn; i->if_name; ++i) {
             struct {
+                DISABLE_WARNING_PUSH
+                DISABLE_WARNING_PEDANTIC
                 struct ethtool_link_settings req{};
+                DISABLE_WARNING_POP
                 __u32 link_mode_data[3 * 127]{};
             } ecmd{};
             Adapter adapter(i->if_name, i->if_index);

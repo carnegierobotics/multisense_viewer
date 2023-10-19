@@ -612,4 +612,4 @@ namespace VkRender {
         return font;
     }
 
-};
+}

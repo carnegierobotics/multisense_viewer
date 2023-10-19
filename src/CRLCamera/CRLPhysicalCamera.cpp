@@ -683,7 +683,7 @@ namespace VkRender::MultiSense {
         p.setAutoWhiteBalanceThresh(auxConfig.whiteBalanceThreshold);
         p.setGain(auxConfig.gain);
         p.setGamma(auxConfig.gamma);
-        p.setSharpeningLimit(auxConfig.sharpeningLimit);
+        p.setSharpeningLimit(static_cast<uint8_t>(auxConfig.sharpeningLimit));
         p.setSharpeningPercentage(auxConfig.sharpeningPercentage);
         p.enableSharpening(auxConfig.sharpening);
 

@@ -288,7 +288,7 @@ namespace VkRender::MultiSense {
 
         static std::pair<float, float> findUpperAndLowerDisparityBounds(void* ctx, VkRender::Device* dev);
 
-        void queryDevice(std::function<void(void *, int, VkRender::Device *)> taskFunction, VkRender::Device *dev,
+        void queryDevice(std::function<void(void *, crl::multisense::RemoteHeadChannel, VkRender::Device *)> taskFunction, VkRender::Device *dev,
                          std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
                          float updateFreqSec);
     };

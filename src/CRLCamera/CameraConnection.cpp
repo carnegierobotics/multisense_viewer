@@ -214,7 +214,7 @@ namespace VkRender::MultiSense {
 
 
     // Existing queryDevice function
-    void CameraConnection::queryDevice(std::function<void(void *, int, VkRender::Device *)> taskFunction,
+    void CameraConnection::queryDevice(std::function<void(void *, crl::multisense::RemoteHeadChannel, VkRender::Device *)> taskFunction,
                                        VkRender::Device *dev,
                                        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
                                        float updateFreqSec) {

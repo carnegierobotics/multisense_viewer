@@ -268,6 +268,13 @@ namespace VkRender::MultiSense {
             float x, y, z;
             double time;
             double dTime;
+
+            bool operator == (const ImuData& d){
+                if (d.x == x && d.y == y && d.z == z)
+                    return true;
+                else
+                    return false;
+            }
         };
         CRLPhysicalCamera() = default;
         ~CRLPhysicalCamera() = default;
@@ -346,7 +353,7 @@ namespace VkRender::MultiSense {
          * @param[in] channelID Which channel to get IMU data for
          * @return
          */
-        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const;
+        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID, double alpha = 0.95) const;
 
         /**
          * @brief get a status update from the MultiSense m_Device

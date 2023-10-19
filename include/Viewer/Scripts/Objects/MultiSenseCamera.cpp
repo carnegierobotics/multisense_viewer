@@ -46,6 +46,9 @@ void MultiSenseCamera::setup() {
     */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
+    Widgets::make()->text("default","Set IMU smoothing");
+    Widgets::make()->slider("default", "##IMU smoothing", &alpha, 0.5f, 0.999f);
+
 }
 
 void MultiSenseCamera::loadModelsAsync() {
@@ -99,12 +102,13 @@ void MultiSenseCamera::handleIMUUpdate(){
             d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
             //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             // d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             //d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
-
-            d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(0.0f, 1.0f, 0.0f));
             d->model = glm::rotate(d->model, static_cast<float>(rot.pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-            Log::Logger::getInstance()->traceWithFrequency("Calculate imu result", 30, "Got new IMU data: {}, {}", -rot.roll, rot.pitch);
+            d->model = glm::rotate(d->model, static_cast<float>(-rot.roll), glm::vec3(0.0f, 1.0f, 0.0f));
+
+            d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+            Log::Logger::getInstance()->traceWithFrequency("Calculate imu result", 2, "Got new IMU data: {}, {}", -rot.roll, rot.pitch);
         }
     }
 
@@ -114,13 +118,13 @@ void MultiSenseCamera::handleIMUUpdate(){
 
     // Only create new future if updateIntervalSeconds second has passed or we're currently not running our previous future
     float updateIntervalSeconds = 1.0f / 30.0f;
-    if (timeSpan.count() > updateIntervalSeconds &&
-        (!imuRotationFuture.valid() ||
-         imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)) {
-        Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 30,"Calculating new IMU information");
+    //if (timeSpan.count() > updateIntervalSeconds &&
+     if   (!imuRotationFuture.valid() ||
+         imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 2,"Calculating new IMU information");
         imuRotationFuture = std::async(std::launch::async,
                                        &VkRender::MultiSense::CRLPhysicalCamera::calculateIMURotation,
-                                       renderData.crlCamera, &rot, static_cast<crl::multisense::RemoteHeadChannel>(0));;
+                                       renderData.crlCamera, &rot, static_cast<crl::multisense::RemoteHeadChannel>(0), static_cast<double>(alpha));
         calcImuRotationTimer = std::chrono::steady_clock::now();
     }
 }

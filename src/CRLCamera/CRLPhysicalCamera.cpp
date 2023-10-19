@@ -961,7 +961,7 @@ namespace VkRender::MultiSense {
 
     bool
     CRLPhysicalCamera::calculateIMURotation(VkRender::IMUData *data,
-                                            crl::multisense::RemoteHeadChannel channelID) const {
+                                            crl::multisense::RemoteHeadChannel channelID, double alpha) const {
 
         std::vector<ImuData> gyro;
         std::vector<ImuData> accel;
@@ -970,7 +970,6 @@ namespace VkRender::MultiSense {
             return false;
 
         double rollAcc = 0, pitchAcc = 0;
-        double alpha = 0.97;
         for (size_t i = 0; i < accel.size(); ++i) {
             auto &a = accel[i];
             auto &g = gyro[i];

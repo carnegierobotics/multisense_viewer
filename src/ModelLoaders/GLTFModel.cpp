@@ -603,8 +603,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             memAllocInfo.allocationSize = memReqs.size;
             memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap.m_DeviceMemory);
-            vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap.m_Image, cubemap.m_DeviceMemory, 0);
+            CHECK_RESULT(vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap.m_DeviceMemory))
+            CHECK_RESULT(vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap.m_Image, cubemap.m_DeviceMemory, 0))
 
             // View
             VkImageViewCreateInfo viewCI{};
@@ -616,7 +616,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             viewCI.subresourceRange.levelCount = numMips;
             viewCI.subresourceRange.layerCount = 6;
             viewCI.image = cubemap.m_Image;
-            vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubemap.m_View);
+            CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubemap.m_View))
 
             // Sampler
             VkSamplerCreateInfo samplerCI{};
@@ -631,7 +631,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             samplerCI.maxLod = static_cast<float>(numMips);
             samplerCI.maxAnisotropy = 1.0f;
             samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-            vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubemap.m_Sampler);
+            CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubemap.m_Sampler));
         }
 
         // FB, Att, RP, Pipe, etc.
@@ -679,7 +679,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         renderPassCI.dependencyCount = 2;
         renderPassCI.pDependencies = dependencies.data();
         VkRenderPass renderpass;
-        vkCreateRenderPass(vulkanDevice->m_LogicalDevice, &renderPassCI, nullptr, &renderpass);
+        CHECK_RESULT(vkCreateRenderPass(vulkanDevice->m_LogicalDevice, &renderPassCI, nullptr, &renderpass))
 
         struct Offscreen {
             VkImage image;
@@ -713,8 +713,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             memAllocInfo.allocationSize = memReqs.size;
             memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &offscreen.memory));
-            (vkBindImageMemory(vulkanDevice->m_LogicalDevice, offscreen.image, offscreen.memory, 0));
+            CHECK_RESULT(vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &offscreen.memory))
+            CHECK_RESULT(vkBindImageMemory(vulkanDevice->m_LogicalDevice, offscreen.image, offscreen.memory, 0))
 
             // View
             VkImageViewCreateInfo viewCI{};
@@ -740,7 +740,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             framebufferCI.width = dim;
             framebufferCI.height = dim;
             framebufferCI.layers = 1;
-            vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr, &offscreen.framebuffer);
+            CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr, &offscreen.framebuffer));
 
             VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             VkImageMemoryBarrier imageMemoryBarrier{};
@@ -764,8 +764,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCI.pBindings = &setLayoutBinding;
         descriptorSetLayoutCI.bindingCount = 1;
-        (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                     &descriptorsetlayout));
+        CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                     &descriptorsetlayout))
 
         // Descriptor Pool
         VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1};
@@ -775,7 +775,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorPoolCI.pPoolSizes = &poolSize;
         descriptorPoolCI.maxSets = 2;
         VkDescriptorPool descriptorpool;
-        (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorpool));
+        CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorpool))
 
         // Descriptor sets
         VkDescriptorSet descriptorset;
@@ -784,7 +784,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorSetAllocInfo.descriptorPool = descriptorpool;
         descriptorSetAllocInfo.pSetLayouts = &descriptorsetlayout;
         descriptorSetAllocInfo.descriptorSetCount = 1;
-        (vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptorset));
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptorset))
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -801,8 +801,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         } pushBlockIrradiance;
 
         struct PushBlockPrefilterEnv {
-            glm::mat4 mvp;
-            float roughness;
+            glm::mat4 mvp = glm::mat4(1.0f);
+            float roughness = 0.5f;
             uint32_t numSamples = 32u;
         } pushBlockPrefilterEnv;
 
@@ -826,7 +826,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         pipelineLayoutCI.pSetLayouts = &descriptorsetlayout;
         pipelineLayoutCI.pushConstantRangeCount = 1;
         pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
-        (vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelinelayout));
+        CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelinelayout))
 
         // Pipeline
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -914,7 +914,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 break;
         };
         VkPipeline pipeline;
-        (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
+        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline))
 
         // Render cubemap
         VkClearValue clearValues[1];

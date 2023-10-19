@@ -201,8 +201,10 @@ bool UsageMonitor::shouldAskForUserConsent() {
 
 std::string UsageMonitor::getCurrentTimeString() {
 #ifdef WIN32
+    time_t currentTime;
+    time(&currentTime);  // Get the current time
     std::tm tm;
-    localtime_s(&tm, &time);  // Use localtime_s instead of std::localtime
+    localtime_s(&tm, &currentTime);  // Convert to local time
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
     auto timestamp = oss.str();

@@ -484,7 +484,7 @@ namespace VkRender::MultiSense {
 
         if (crl::multisense::Status_Ok !=
             channelMap[channelID]->ptr()->getImageConfig(infoMap[channelID].imgConf)) {
-            Log::Logger::getInstance()->info("Failed to verify resolution");
+            Log::Logger::getInstance()->info("Failed to query getImageConfig");
             return false;
         }
 

@@ -1190,7 +1190,7 @@ void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
     for (uint32_t face = 0; face < 6; face++) {
         for (uint32_t level = 0; level < m_MipLevels; level++) {
             ktx_size_t offset = 0;
-            assert(ktxTexture_GetImageOffset(kTex, level, 0, face, &offset) == KTX_SUCCESS);
+            ktxTexture_GetImageOffset(kTex, level, 0, face, &offset);
 
             VkBufferImageCopy bufferCopyRegion = {};
             bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

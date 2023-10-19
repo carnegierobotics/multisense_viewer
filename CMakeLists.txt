@@ -179,6 +179,7 @@ if (WIN32)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
+    target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)

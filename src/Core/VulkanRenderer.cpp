@@ -918,7 +918,6 @@ namespace VkRender {
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
         DISABLE_WARNING_PUSH
         DISABLE_WARNING_UNREFERENCED_VARIABLE
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
         DISABLE_WARNING_POP

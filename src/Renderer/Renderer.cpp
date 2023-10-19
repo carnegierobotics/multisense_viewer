@@ -794,16 +794,6 @@ void Renderer::cleanUp() {
         cameraConnection->saveProfileAndDisconnect(&dev);
     }
 
-/** REVERT NETWORK SETTINGS **/
-#ifdef WIN32
-    // Reset Windows registry from backup file
-    for (const auto &dev: guiManager->handles.devices) {
-        //WinRegEditor regEditor(dev.interfaceName, dev.interfaceDescription, dev.interfaceIndex);
-        //regEditor.resetJumbo();
-        //regEditor.restartNetAdapters(); // Make changes into effect
-    }
-
-#endif
     startTime = std::chrono::steady_clock::now();
     // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
     guiManager.reset();

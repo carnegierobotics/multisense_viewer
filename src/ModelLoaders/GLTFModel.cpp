@@ -563,8 +563,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         auto tStart = std::chrono::high_resolution_clock::now();
 
-        VkFormat format;
-        int32_t dim;
+        VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        int32_t dim = 64;
 
         switch (target) {
             case IRRADIANCE:
@@ -1585,11 +1585,11 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         material.doubleSided = mat.doubleSided;
         if (mat.values.find("baseColorTexture") != mat.values.end()) {
             material.baseColorTexture = &m_Textures[mat.values["baseColorTexture"].TextureIndex()];
-            material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+            material.texCoordSets.baseColor = static_cast<uint8_t>(mat.values["baseColorTexture"].TextureTexCoord());
         }
         if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
             material.metallicRoughnessTexture = &m_Textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
-            material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+            material.texCoordSets.metallicRoughness =  static_cast<uint8_t>(mat.values["metallicRoughnessTexture"].TextureTexCoord());
         }
         if (mat.values.find("roughnessFactor") != mat.values.end()) {
             material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
@@ -1602,15 +1602,15 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         }
         if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
             material.normalTexture = &m_Textures[mat.additionalValues["normalTexture"].TextureIndex()];
-            material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+            material.texCoordSets.normal =  static_cast<uint8_t>(mat.additionalValues["normalTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
             material.emissiveTexture = &m_Textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
-            material.texCoordSets.emissive = mat.additionalValues["emissiveTexture"].TextureTexCoord();
+            material.texCoordSets.emissive =  static_cast<uint8_t>(mat.additionalValues["emissiveTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
             material.occlusionTexture = &m_Textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
-            material.texCoordSets.occlusion = mat.additionalValues["occlusionTexture"].TextureTexCoord();
+            material.texCoordSets.occlusion =  static_cast<uint8_t>(mat.additionalValues["occlusionTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
             tinygltf::Parameter param = mat.additionalValues["alphaMode"];
@@ -1637,7 +1637,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
                 auto index = ext->second.Get("specularGlossinessTexture").Get("index");
                 material.extension.specularGlossinessTexture = &m_Textures[index.Get<int>()];
                 auto texCoordSet = ext->second.Get("specularGlossinessTexture").Get("texCoord");
-                material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
+                material.texCoordSets.specularGlossiness =  static_cast<uint8_t>(texCoordSet.Get<int>());
                 material.pbrWorkflows.specularGlossiness = true;
             }
             if (ext->second.Has("diffuseTexture")) {

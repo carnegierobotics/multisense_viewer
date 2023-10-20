@@ -48,7 +48,7 @@
 
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 #include "Viewer/ImGui/MainLayerExt/ControlArea2DExt.h"
 #include "Viewer/ImGui/MainLayerExt/PreviewWindows2DExt.h"
 #include "Viewer/ImGui/MainLayerExt/Preview3DExt.h"

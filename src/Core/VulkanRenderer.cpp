@@ -914,15 +914,13 @@ namespace VkRender {
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
-
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_UNREFERENCED_VARIABLE
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
-        DISABLE_WARNING_POP
-
     }
+    DISABLE_WARNING_POP
 
 
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {

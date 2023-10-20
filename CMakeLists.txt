@@ -65,7 +65,7 @@ set(ENGINE_SRC
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
-        src/ImGui/ScriptUIAddons.cpp
+        src/ImGui/Widgets.cpp
         src/ImGui/LayerFactory.cpp
         src/Renderer/UsageMonitor.cpp
         src/Core/RendererConfig.cpp

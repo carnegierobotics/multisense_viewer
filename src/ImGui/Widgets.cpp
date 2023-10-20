@@ -3,7 +3,7 @@
 //
 
 
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 Widgets *Widgets::m_Instance = nullptr;
 
 Widgets *Widgets::make() {

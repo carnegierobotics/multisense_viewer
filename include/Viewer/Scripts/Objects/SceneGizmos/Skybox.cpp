@@ -3,7 +3,7 @@
 //
 
 #include "Viewer/Scripts/Objects/SceneGizmos/Skybox.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void Skybox::setup() {
     // Create Skybox

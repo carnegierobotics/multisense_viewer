@@ -35,7 +35,7 @@
  **/
 
 #include "Viewer/Scripts/Objects/MultiSenseCamera.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void MultiSenseCamera::setup() {
 
@@ -46,8 +46,8 @@ void MultiSenseCamera::setup() {
     */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
-    Widgets::make()->text("default","Set IMU smoothing");
-    Widgets::make()->slider("default", "##IMU smoothing", &alpha, 0.5f, 0.999f);
+    Widgets::make()->text("IMU","Set IMU smoothing");
+    Widgets::make()->slider("IMU", "##IMU smoothing", &alpha, 0.5f, 0.999f);
 
 }
 

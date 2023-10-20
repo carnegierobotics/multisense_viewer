@@ -4,7 +4,7 @@
 
 #include "Viewer/Scripts/Renderer3D/Grid.h"
 #include "Viewer/Scripts/Private/ScriptUtils.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void Grid::setup() {
 

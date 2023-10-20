@@ -36,7 +36,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include "Viewer/Scripts/Objects/Pointcloud/PointCloud.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void PointCloud::setup() {
     model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
@@ -49,8 +49,8 @@ void PointCloud::setup() {
                                      &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
     model->colorPointCloudBuffer.map();
 
-    Widgets::make()->text("default", "Set Point Size:");
-    Widgets::make()->slider("default", "##Set Point size", &pointSize, 0, 10);
+    Widgets::make()->text("PointCloud", "Set Point Size:");
+    Widgets::make()->slider("PointCloud", "##Set Point size", &pointSize, 0, 10);
     // Widgets::make()->text("Flip pointcloud: ");
     //Widgets::make()->checkbox("##Flip pc", &flipPointCloud);
 

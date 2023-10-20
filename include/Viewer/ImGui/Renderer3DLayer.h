@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_RENDERER3DLAYER_H
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/Tools/Macros.h"
+#include "Viewer/ImGui/LayerUtils.h"
 // Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
@@ -42,8 +43,6 @@ public:
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::Begin("3DTopBar", &pOpen, window_flags);
 
-
-
         handles->info->is3DTopBarHovered = ImGui::IsWindowHovered(
                 ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AnyWindow);
 
@@ -56,59 +55,8 @@ public:
             handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
         }
 
-        for (const auto &elem: Widgets::make()->elements3D) {
-            // for each element type
-            ImGui::SameLine();
-            switch (elem.type) {
-                case WIDGET_CHECKBOX:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
-                        ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
+        VkRender::LayerUtils::createWidgets(handles, "Renderer3D");
 
-                case WIDGET_FLOAT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
-                        ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_INT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(200.0f);
-                    if (ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax) &&
-                        ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_TEXT:
-                    ImGui::Text("%s", elem.label.c_str());
-                    break;
-                case WIDGET_INPUT_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(200.0f);
-                    ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
-                    ImGui::PopStyleColor();
-                    break;
-                    case WIDGET_BUTTON:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    *elem.button = ImGui::Button(elem.label.c_str());
-                    ImGui::PopStyleColor();
-                    break;
-
-                default:
-                    break;
-            }
-
-        }
         ImGui::End();
 
         window_flags =

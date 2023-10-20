@@ -74,12 +74,12 @@ public:
         float headerPadding = 20.0f;
         ImGui::Dummy(ImVec2(0.0f, 30.0f));
         ImVec2 pos = ImGui::GetCursorPos();
-        pos.x += headerPadding;
+        //pos.x += headerPadding;
         ImGui::SetCursorPos(pos);
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 5.0f));
 
         ImGui::BeginChild("Configuration2DExtension", ImVec2(handles->info->controlAreaWidth -
-                                                             (2.0f * headerPadding + handles->info->scrollbarSize),
+                                                             handles->info->scrollbarSize,
                                                              0.0f), false);
         for (auto &dev: handles->devices) {
             if (dev.state != CRL_STATE_ACTIVE)

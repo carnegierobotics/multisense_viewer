@@ -3,7 +3,7 @@
 //
 
 #include "Viewer/Scripts/Renderer3D/Main3D.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Scripts/Private/ScriptUtils.h"
 
 void Main3D::setup() {

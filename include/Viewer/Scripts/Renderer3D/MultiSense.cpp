@@ -3,7 +3,7 @@
 //
 
 #include "Viewer/Scripts/Renderer3D/MultiSense.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void MultiSense::setup() {
 

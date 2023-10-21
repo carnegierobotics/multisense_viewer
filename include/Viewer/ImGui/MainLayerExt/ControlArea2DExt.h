@@ -71,7 +71,6 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        float headerPadding = 20.0f;
         ImGui::Dummy(ImVec2(0.0f, 30.0f));
         ImVec2 pos = ImGui::GetCursorPos();
         //pos.x += headerPadding;

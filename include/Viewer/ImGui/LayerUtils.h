@@ -11,15 +11,17 @@
 
 namespace VkRender::LayerUtils {
 
-    struct WidgetPosition{
+    struct WidgetPosition {
         float paddingX = -1.0f;
         ImVec4 textColor = VkRender::Colors::CRLTextWhite;
+        bool sameLine = false;
     };
 
-    static inline void createWidgets(VkRender::GuiObjectHandles *handles, const std::string &area, WidgetPosition pos = WidgetPosition()) {
+    static inline void
+    createWidgets(VkRender::GuiObjectHandles *handles, const std::string &area, WidgetPosition pos = WidgetPosition()) {
         for (const auto &elem: Widgets::make()->elements[area]) {
 
-            if (pos.paddingX != -1){
+            if (pos.paddingX != -1) {
                 ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
                 ImGui::SameLine();
             }
@@ -37,6 +39,7 @@ namespace VkRender::LayerUtils {
 
                 case WIDGET_FLOAT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SetNextItemWidth(300.0f);
                     if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
@@ -46,11 +49,13 @@ namespace VkRender::LayerUtils {
                     break;
                 case WIDGET_INT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(200.0f);
-                    if (ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax) &&
-                        ImGui::IsItemActivated()) {
+                    ImGui::SetNextItemWidth(300.0f);
+                    *elem.active = false;
+                    ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
+                        *elem.active = true;
                     }
                     ImGui::PopStyleColor();
                     break;
@@ -75,7 +80,8 @@ namespace VkRender::LayerUtils {
                 default:
                     break;
             }
-            ImGui::SameLine();
+            if (pos.sameLine)
+                ImGui::SameLine();
         }
         ImGui::Dummy(ImVec2());
     }

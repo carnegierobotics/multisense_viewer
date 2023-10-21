@@ -298,6 +298,12 @@ namespace VkRender::MultiSense {
             glm::mat4 KColorMatExtrinsic{};
             float focalLength = 0.0f;
             float pointCloudScale = 1.0f;
+
+            // IMU
+            std::vector<crl::multisense::imu::Info>   imuSensorInfos;
+            std::vector<crl::multisense::imu::Config> imuSensorConfigs;
+            uint32_t imuMaxTableIndex = 0;
+            bool hasIMUSensor = false;
         };
 
         /**@brief Connects to a VkRender m_Device
@@ -470,6 +476,8 @@ namespace VkRender::MultiSense {
          */
         bool updateCameraInfo(VkRender::Device* dev, crl::multisense::RemoteHeadChannel idx);
 
+        void setIMUConfig(uint32_t tableIndex, crl::multisense::RemoteHeadChannel channelID = 0);
+
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
         std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
@@ -508,6 +516,7 @@ namespace VkRender::MultiSense {
         }
 
 
+        void getIMUConfig(crl::multisense::RemoteHeadChannel channelID);
     };
 
 

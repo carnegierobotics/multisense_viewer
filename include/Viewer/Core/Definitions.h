@@ -514,7 +514,10 @@ namespace VkRender {
         /** @brief Not a physical device just testing the GUI */
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
-        bool useIMU = true;
+        bool enableIMU = true;
+        /** @brief If possible then use the IMU in the camera */
+        int rateTableIndex = 2;
+
         /** @brief 0 : luma // 1 : Color  */
         int useAuxForPointCloudColor = 1;
 
@@ -528,6 +531,8 @@ namespace VkRender {
         bool extend3DArea = true;
         /** @brief If the connected device has a color camera */
         bool hasColorCamera = false;
+        bool hasImuSensor = false;
+
         /** @brief If we managed to update all the device configs */
         bool updateDeviceConfigsSucceeded = false;
 

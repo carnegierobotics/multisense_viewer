@@ -22,6 +22,8 @@ private:
         int intMin = 0;
         int intMax = 1;
         char *buf = nullptr;
+        bool *active = nullptr;
+        bool activeVal = false;
         std::string id;
         ScriptWidgetType type{};
 
@@ -30,9 +32,15 @@ private:
             type = WIDGET_FLOAT_SLIDER;
         }
 
-        Element(const char *labelVal, int *valPtr, int minVal, int maxVal) : label(labelVal), intValue(valPtr),
-                                                                             intMin(minVal), intMax(maxVal) {
+        Element(const char *labelVal, int *valPtr, int minVal, int maxVal, bool *valueChanged) : label(labelVal),
+                                                                                                 intValue(valPtr),
+                                                                                                 intMin(minVal),
+                                                                                                 intMax(maxVal),
+                                                                                                 active(valueChanged) {
             type = WIDGET_INT_SLIDER;
+            if (valueChanged == nullptr) {
+                active = &activeVal;
+            }
         }
 
         Element(const char *labelVal, std::string _id = "") : label(labelVal), id(_id) {
@@ -56,7 +64,12 @@ private:
     static Widgets *m_Instance;
 
     bool labelExists(const char *label, const std::string &window) {
-
+        for (const auto& elem : elements[window]){
+            if (elem.label == label){
+                Log::Logger::getInstance()->warning("Label {} already exists in window {}", label, window.c_str());
+                return true;
+            }
+        }
 
         return false;
     }
@@ -70,20 +83,24 @@ public:
         elements[window].emplace_back(label, value, min, max);
     }
 
-    void slider(std::string window, const char *label, int *value, int min = 0, int max = 10) {
+    void
+    slider(std::string window, const char *label, int *value, int min = 0, int max = 10, bool *valueChanged = nullptr) {
         if (labelExists(label, window))
             return;
-        elements[window].emplace_back(label, value, min, max);
+        elements[window].emplace_back(label, value, min, max, valueChanged);
     }
 
-    void text(std::string window, const char *label, std::string id = "") {
+    void text(std::string window, const char *label) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label);
     }
 
-    void updateText(std::string id, std::string newLabel) {
-        for (auto &el: elements) {
+    void updateText(std::string id, std::string prevLabel, std::string newLabel) {
+        for (auto &el: elements[id]) {
+            if (el.label == prevLabel) {
+                el.label = newLabel;
+            }
         }
     }
 

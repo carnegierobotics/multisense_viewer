@@ -291,6 +291,10 @@ namespace VkRender::MultiSense {
         void queryDevice(std::function<void(void *, crl::multisense::RemoteHeadChannel, VkRender::Device *)> taskFunction, VkRender::Device *dev,
                          std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
                          float updateFreqSec);
+
+        static void
+        connectFakeCameraTask(void *context, Device *dev, bool isRemoteHead, bool shouldConfigNetwork,
+                              bool delayConnection);
     };
 
 }

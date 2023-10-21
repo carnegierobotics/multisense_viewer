@@ -46,8 +46,9 @@ void MultiSenseCamera::setup() {
     */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
-    Widgets::make()->text("IMU","Set IMU smoothing");
+    Widgets::make()->text("IMU", "Set IMU smoothing");
     Widgets::make()->slider("IMU", "##IMU smoothing", &alpha, 0.5f, 0.999f);
+
 
 }
 
@@ -87,13 +88,15 @@ void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
         else if (Utils::checkRegexMatch(selectedModel, "ks21"))
             KS21->draw(commandBuffer, i);
         else {
-            Log::Logger::getInstance()->warningWithFrequency("no 3d model tag", 120, "No 3D model corresponding to {}. Drawing KS21 as backup", selectedModel);
+            Log::Logger::getInstance()->warningWithFrequency("no 3d model tag", 120,
+                                                             "No 3D model corresponding to {}. Drawing KS21 as backup",
+                                                             selectedModel);
             KS21->draw(commandBuffer, i);
         }
     }
 }
 
-void MultiSenseCamera::handleIMUUpdate(){
+void MultiSenseCamera::handleIMUUpdate() {
     auto &d = bufferOneData;
 
     if (imuRotationFuture.valid() &&
@@ -108,7 +111,8 @@ void MultiSenseCamera::handleIMUUpdate(){
 
             d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-            Log::Logger::getInstance()->traceWithFrequency("Calculate imu result", 2, "Got new IMU data: {}, {}", -rot.roll, rot.pitch);
+            Log::Logger::getInstance()->traceWithFrequency("Calculate imu result", 2, "Got new IMU data: {}, {}",
+                                                           -rot.roll, rot.pitch);
         }
     }
 
@@ -117,28 +121,33 @@ void MultiSenseCamera::handleIMUUpdate(){
             std::chrono::duration_cast<std::chrono::duration<float >>(time - calcImuRotationTimer);
 
     // Only create new future if updateIntervalSeconds second has passed or we're currently not running our previous future
-    float updateIntervalSeconds = 1.0f / 30.0f;
     //if (timeSpan.count() > updateIntervalSeconds &&
-     if   (!imuRotationFuture.valid() ||
-         imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-        Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 2,"Calculating new IMU information");
+    if (!imuRotationFuture.valid() ||
+        imuRotationFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        Log::Logger::getInstance()->traceWithFrequency("init calculate imu result", 2,
+                                                       "Calculating new IMU information");
         imuRotationFuture = std::async(std::launch::async,
                                        &VkRender::MultiSense::CRLPhysicalCamera::calculateIMURotation,
-                                       renderData.crlCamera, &rot, static_cast<crl::multisense::RemoteHeadChannel>(0), static_cast<double>(alpha));
+                                       renderData.crlCamera, &rot, static_cast<crl::multisense::RemoteHeadChannel>(0),
+                                       static_cast<double>(alpha));
         calcImuRotationTimer = std::chrono::steady_clock::now();
     }
 }
+
 void MultiSenseCamera::update() {
     auto &d = bufferOneData;
 
+    if (!setImuConfigFuture.valid() ||
+        setImuConfigFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+        setImuConfigFuture = std::async(std::launch::async,
+                                        &MultiSenseCamera::setIMUSampleRate, this);
+    }
+
     if (imuEnabled && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
-       handleIMUUpdate();
+        handleIMUUpdate();
     } else {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        //d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        //d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        //d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
     }
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -173,6 +182,16 @@ void MultiSenseCamera::update() {
 
 }
 
+void MultiSenseCamera::setIMUSampleRate() {
+    std::string prevLabel = sampleRateLabel;
+    if (sampleRateChanged) {
+        renderData.crlCamera->setIMUConfig(static_cast<uint32_t>(rateTableIndex));
+        snprintf(sampleRateLabel, sizeof(sampleRateLabel), "Rate (Hz): %d", rates[rateTableIndex]);
+        Widgets::make()->updateText("IMU", prevLabel, sampleRateLabel);
+    }
+
+}
+
 
 void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
@@ -182,10 +201,24 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
         selectedModel = d.cameraName;
-        imuEnabled = d.useIMU;
+        imuEnabled = d.enableIMU;
         noActiveDevice = false;
         stopDraw = false;
         frameRate = renderData.crlCamera->getCameraInfo(0).imgConf.fps();
+
+        if (d.hasImuSensor && rateTableIndex == -1) {
+            rateTableIndex = d.rateTableIndex;
+            auto ratesInfo = renderData.crlCamera->getCameraInfo(0).imuSensorInfos.front();
+            for (const auto &rate: ratesInfo.rates)
+                rates.emplace_back(rate.sampleRate);
+
+            snprintf(sampleRateLabel, sizeof(sampleRateLabel), "Rate (Hz): %d", rates[rateTableIndex]);
+
+            Widgets::make()->text("IMU", "Set IMU sample rate");
+            Widgets::make()->slider("IMU", sampleRateLabel, &rateTableIndex, 0,
+                                    static_cast<int>(rates.empty() ? 0 : rates.size() - 1), &sampleRateChanged);
+        }
+
     }
 
     if (noActiveDevice)

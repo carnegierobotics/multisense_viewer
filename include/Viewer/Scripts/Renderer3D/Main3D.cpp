@@ -25,7 +25,7 @@ void Main3D::setup() {
     Widgets::make()->button("Renderer3D", "Stop", &restart);
     Widgets::make()->slider("Renderer3D", "skip n", &val, 1, 50);
     Widgets::make()->text("Renderer3D", "Sim time:");
-    Widgets::make()->text("Renderer3D", simTimeText.c_str(), "id1");
+    //Widgets::make()->text("Renderer3D", simTimeText.c_str(), "id1");
 
     Widgets::make()->checkbox("Renderer3D", "Realtime", &forceRealTime);
 
@@ -235,7 +235,7 @@ void Main3D::update() {
             std::stringstream ss;
             ss << std::fixed << std::setprecision(2) << rate;
             std::string rateStr = ss.str();
-            Widgets::make()->updateText("id1", rateStr);
+            //Widgets::make()->updateText("id1", rateStr);
 
             entryIdx += val;
         }

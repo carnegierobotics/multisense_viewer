@@ -630,7 +630,7 @@ namespace Utils {
 
 
     static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-        dev.state = CRL_STATE_ACTIVE;
+        dev.state = CRL_STATE_JUST_ADDED;
         dev.cameraName = "Multisense-KS21";
         dev.notRealDevice = true;
         dev.channelInfo.resize(4); // max number of remote heads
@@ -641,7 +641,7 @@ namespace Utils {
         chInfo.modes.clear();
         chInfo.availableSources.emplace_back("Idle");
         chInfo.index = ch;
-        chInfo.state = CRL_STATE_ACTIVE;
+        chInfo.state = CRL_STATE_JUST_ADDED;
         chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
         std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
         supportedDeviceModes.emplace_back();
@@ -658,6 +658,7 @@ namespace Utils {
 
         dev.channelInfo.at(ch) = chInfo;
 
+        Log::Logger::getLogMetrics()->device.dev = &dev;
 
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;

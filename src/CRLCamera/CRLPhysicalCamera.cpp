@@ -347,7 +347,51 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->info("Querying the camera for config did succeeded");
         }
 
+        // Also check for IMU information. This is not present on most devices.
+        if (dev->interruptConnection) return false;
+            getIMUConfig(channelID);
+
         return allSucceeded;
+    }
+
+
+    void CRLPhysicalCamera::getIMUConfig(crl::multisense::RemoteHeadChannel channelID){
+        crl::multisense::Status                   status;
+
+        std::vector<crl::multisense::imu::Info>   sensorInfos;
+        std::vector<crl::multisense::imu::Config> sensorConfigs;
+        uint32_t                 sensorSamplesPerMessage    = 0;
+        uint32_t                 sensorMaxSamplesPerMessage = 0;
+
+        auto* channel = channelMap.find(channelID)->second->ptr();
+
+        status = channel->getImuInfo(sensorMaxSamplesPerMessage,
+                                      sensorInfos);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->warning("Failed to query imu info: {}", crl::multisense::Channel::statusString(status));
+            return;
+        }
+        status = channel->getImuConfig(sensorSamplesPerMessage, sensorConfigs);
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->warning("Failed to query imu config: {}", crl::multisense::Channel::statusString(status));
+            return;
+        }
+
+        for (const auto& info : sensorInfos){
+            Log::Logger::getInstance()->info("Got IMU info: {}, device name: {}, units: {}", info.name, info.device, info.units);
+        }
+
+        infoMap[channelID].imuSensorInfos = sensorInfos;
+        infoMap[channelID].imuSensorConfigs = sensorConfigs;
+
+        size_t maxVal = 0;
+        for(const auto& conf : sensorInfos){
+            if (conf.rates.size() > maxVal){
+                maxVal = conf.rates.size();
+            }
+        }
+        infoMap[channelID].imuMaxTableIndex = static_cast<uint32_t>(maxVal);
+        infoMap[channelID].hasIMUSensor = true;
     }
 
 
@@ -1102,6 +1146,35 @@ namespace VkRender::MultiSense {
             }
         }
         return true;
+    }
+
+    void CRLPhysicalCamera::setIMUConfig(uint32_t tableIndex, crl::multisense::RemoteHeadChannel channelID) {
+        if (!infoMap[channelID].hasIMUSensor){
+            Log::Logger::getInstance()->trace("No IMU Sensor present on device");
+            return;
+        }
+        if (tableIndex > infoMap[channelID].imuMaxTableIndex){
+            Log::Logger::getInstance()->warning("Table index is higher than allowed {}. max allowed: {}", tableIndex, infoMap[channelID].imuMaxTableIndex);
+            return;
+        }
+
+        auto conf = infoMap[channelID].imuSensorConfigs;
+        for( auto& config : conf){
+            config.rateTableIndex = tableIndex;
+        }
+
+        // Set config
+        auto channelP = channelMap[channelID]->ptr();
+
+        crl::multisense::Status status = channelP->setImuConfig(false, 0, conf);
+
+        if (crl::multisense::Status_Ok != status) {
+            Log::Logger::getInstance()->warning("Failed to set imu config: {}", crl::multisense::Channel::statusString(status));
+            return;
+        } else {
+            Log::Logger::getInstance()->info("Set imu config table index {}", tableIndex);
+
+        }
     }
 
 }

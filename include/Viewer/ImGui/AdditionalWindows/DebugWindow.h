@@ -260,8 +260,15 @@ public:
 
             #ifdef MULTISENSE_VIEWER_DEBUG
                     ImGui::Text("Camera: ");
-                    ImGui::Text("Position: (%.3f, %.3f, %.3f)", handles->camera.pos.x, handles->camera.pos.y, handles->camera.pos.z);
-                    ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",  handles->camera.rot.x,  handles->camera.rot.y,  handles->camera.rot.z);
+                ImGui::Text("Position: (%.3f, %.3f, %.3f)",
+                            static_cast<double>(handles->camera.pos.x),
+                            static_cast<double>(handles->camera.pos.y),
+                            static_cast<double>(handles->camera.pos.z));
+
+                ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
+                            static_cast<double>(handles->camera.rot.x),
+                            static_cast<double>(handles->camera.rot.y),
+                            static_cast<double>(handles->camera.rot.z));
             #endif
 
             }
@@ -269,7 +276,7 @@ public:
 
             auto met = Log::Logger::getLogMetrics();
 
-            if (met->device.dev != nullptr) {
+            if (met->device.dev != nullptr && !met->device.dev->notRealDevice) {
                 // Check if channelInfo contains key 0
                 if (!met->device.dev->channelInfo.empty()) {
                     ImGui::PushFont(handles->info->font15);

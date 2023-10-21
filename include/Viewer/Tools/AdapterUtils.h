@@ -93,7 +93,7 @@ public:
             Log::Logger::getInstance()->info("Started Manual Adapter Scan");
         }
 #endif
-        Log::Logger::getInstance()->info("Starting adapter scan with threadpool {}", pool->getTaskListSize());
+        //Log::Logger::getInstance()->info("Starting adapter scan with threadpool {}", pool->getTaskListSize());
     }
 
     void stopAdapterScan() {

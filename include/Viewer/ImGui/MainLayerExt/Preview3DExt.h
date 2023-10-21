@@ -161,26 +161,47 @@ public:
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 1.0f);
         //ImGui::PushFont(handles->info->font15);
         if (ImGui::CollapsingHeader("IMU", 0)) {
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
-            ImGui::BeginChild("Imu 3D child", ImVec2(0.0f, 175.0f));
-
-            // IMU
-            ImGui::Dummy(ImVec2(0.0f, 5.0));
-            ImGui::Dummy(ImVec2(0.0f, 0.0));
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            if (ImGui::Checkbox("Enable IMU", &dev.useIMU)) {
-                handles->usageMonitor->userClickAction("Enable IMU", "Checkbox", ImGui::GetCurrentWindow()->Name);
-            }
 
             VkRender::LayerUtils::WidgetPosition pos;
             pos.paddingX = 10.0f;
             pos.textColor = VkRender::Colors::CRLTextGray;
+
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
+            ImGui::BeginChild("Imu 3D child", ImVec2(0.0f, 200.0f));
+
+            if (!dev.hasImuSensor) {
+                // IMU
+                ImGui::Dummy(ImVec2(0.0f, 15.0));
+                ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
+                ImGui::SameLine();
+
+                ImGui::Dummy(ImVec2(0.0f, 3.0));
+                ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::TextRedColor);
+                ImGui::Text("IMU sensor were not found on the device");
+                ImGui::PopStyleColor(); // ImGuiCol_Text
+
+                ImGui::BeginDisabled();
+            }
+
+            // IMU
+            ImGui::Dummy(ImVec2(0.0f, 15.0));
+            ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+            if (ImGui::Checkbox("Enable IMU", &dev.enableIMU)) {
+                handles->usageMonitor->userClickAction("Enable IMU", "Checkbox", ImGui::GetCurrentWindow()->Name);
+            }
+
+            ImGui::Dummy(ImVec2(0.0f, 5.0));
+
             VkRender::LayerUtils::createWidgets(handles, "IMU", pos);
 
             { // Save point cloud
                 ImGui::Dummy(ImVec2(0.0f, 3.0));
-                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
                 ImGui::SameLine();
                 ImGui::Text("Save IMU data to file");
                 ImGui::PopStyleColor(); // Text Color grey
@@ -190,9 +211,9 @@ public:
                 // if start then show gif spinner
 
                 ImGui::Dummy(ImVec2(0.0f, 3.0));
-                ImGui::Dummy(ImVec2(40.0f, 0.0));
+                ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
                 ImGui::SameLine();
-                ImVec2 btnSize(70.0f, 30.0f);
+                ImVec2 btnSize(70.0f, 20.0f);
 
                 std::string btnText = dev.record.imu ? "Stop" : "Start";
                 if (ImGui::Button((btnText + "##imu").c_str(), btnSize) &&
@@ -203,7 +224,11 @@ public:
                 }
                 ImGui::SameLine();
 
-                if (ImGui::Button("Choose Dir##imu", btnSize)) {
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+
+                if (ImGui::Button("Set Dir##imu", btnSize)) {
                     saveIMUDataDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
                                                  ".");
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
@@ -211,8 +236,7 @@ public:
                 }
 
                 // display
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+
                 if (saveIMUDataDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
                                               ImVec2(1200.0f, 1000.0f))) {
                     // action if OK
@@ -224,11 +248,10 @@ public:
                     // close
                     saveIMUDataDialog.Close();
                 }
-                ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
-                ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+                ImGui::PopStyleVar(); // ImGuiStyleVar_ChildPadding
+                ImGui::PopStyleColor(2); // ImGuiCol_WindowBg | ImGuiCol_ChildBg
 
                 ImGui::SameLine();
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
                 ImGui::SetNextItemWidth(
                         handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
 
@@ -239,12 +262,13 @@ public:
                                                &dev.record.imuSaveFolder,
                                                ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::PopStyleColor();
-                ImGui::PopStyleVar();
+
+                if (!dev.hasImuSensor)
+                    ImGui::EndDisabled();
 
                 ImGui::EndChild();
 
             }
-
         }
     }
 
@@ -253,17 +277,19 @@ public:
 
         if (ImGui::CollapsingHeader("Point Cloud ", 0)) {
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
-            ImGui::BeginChild("Point cloud 3D child", ImVec2(0.0f, 175.0f));
+            ImGui::BeginChild("Point cloud 3D child", ImVec2(0.0f, 200.0f));
 
+            VkRender::LayerUtils::WidgetPosition pos;
+            pos.paddingX = 10.0f;
+            pos.textColor = VkRender::Colors::CRLTextGray;
 
-
-            ImGui::Dummy(ImVec2(0.0f, 5.0));
-            ImGui::Dummy(ImVec2(0.0f, 0.0));
+            ImGui::Dummy(ImVec2(0.0f, 15.0));
+            ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Text("Color:");
-            ImGui::Dummy(ImVec2(40.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::Dummy(ImVec2(0.0f, 3.0));
+            ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             if (ImGui::RadioButton("Grayscale", &dev.useAuxForPointCloudColor, 0)) {
                 handles->usageMonitor->userClickAction("Grayscale", "RadioButton", ImGui::GetCurrentWindow()->Name);
@@ -283,21 +309,22 @@ public:
 
             }
             ImGui::PopStyleColor();
+            ImGui::Dummy(ImVec2(0.0f, 5.0));
 
-            VkRender::LayerUtils::createWidgets(handles, "PointCloud");
+            VkRender::LayerUtils::createWidgets(handles, "PointCloud", pos);
 
 
             ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Text("Save Point cloud as .ply file");
             ImGui::PopStyleColor(); // Text Color grey
 
             ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
+            ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
-            ImVec2 btnSize(70.0f, 30.0f);
+            ImVec2 btnSize(70.0f, 20.0f);
 
             std::string btnText = dev.record.pointCloud ? "Stop" : "Start";
             if (ImGui::Button((btnText + "##pointcloud").c_str(), btnSize) &&
@@ -316,8 +343,10 @@ public:
             }
 
             // display
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+
             if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
                                              ImVec2(1200.0f, 1000.0f))) {
                 // action if OK
@@ -329,11 +358,11 @@ public:
                 // close
                 savePointCloudDialog.Close();
             }
-            ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
-            ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+            ImGui::PopStyleVar(); // ImGuiStyleVar_ChildPadding
+            ImGui::PopStyleColor(2); // ImGuiCol_WindowBg | ImGuiCol_ChildBg
+
 
             ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 9.0f));
             ImGui::SetNextItemWidth(
                     handles->info->controlAreaWidth - ImGui::GetCursorPosX() - btnSize.x - 8.0f);
 
@@ -344,7 +373,6 @@ public:
                                            &dev.record.pointCloudSaveFolder,
                                            ImGuiInputTextFlags_AutoSelectAll);
             ImGui::PopStyleColor();
-            ImGui::PopStyleVar();
 
             ImGui::EndChild();
         }

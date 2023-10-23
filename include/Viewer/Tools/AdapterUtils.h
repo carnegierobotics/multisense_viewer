@@ -83,18 +83,18 @@ public:
         return listAdapters();
 #endif
     }
+#ifdef WIN32
 
     void startAdapterScan(VkRender::ThreadPool *pool) {
-#ifdef WIN32
         std::scoped_lock<std::mutex> lock(mut);
         if (!runThread && !isThreadAlive) {
             pool->Push(AdapterUtils::listAdapters, &adapters, this);
             runThread = true;
             Log::Logger::getInstance()->info("Started Manual Adapter Scan");
         }
-#endif
         //Log::Logger::getInstance()->info("Starting adapter scan with threadpool {}", pool->getTaskListSize());
     }
+#endif
 
     void stopAdapterScan() {
 #ifdef WIN32

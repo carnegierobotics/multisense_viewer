@@ -323,7 +323,7 @@ namespace VkRender {
             // Loop through devices and check that it doesn't exist already.
             for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    AdapterAndIPInTaken = true;
+                    //AdapterAndIPInTaken = true;
                     //Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
                 }
                 if (d.name == entry.profileName) {

@@ -254,7 +254,7 @@ public:
 
             auto ifr = ifreq{};
             std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
-
+            ifr.ifr_name[IF_NAMESIZE - 1] = '\0';
             ecmd.req.cmd = ETHTOOL_GLINKSETTINGS;
             ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
 

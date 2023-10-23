@@ -238,5 +238,5 @@ namespace VkRender {
         std::string fetchApplicationVersion();
     };
 
-};
+}
 #endif //MULTISENSE_VIEWER_RENDERCONFIG_H

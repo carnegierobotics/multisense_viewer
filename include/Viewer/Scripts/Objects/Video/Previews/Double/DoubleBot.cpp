@@ -237,7 +237,9 @@ void DoubleBot::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         options = &preview.effects;
         zoomEnabled = preview.enableZoom;
-        zoom.zoomValue = uiHandle->previewZoom.find(CRL_PREVIEW_TWO)->second;
+
+        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, CRL_PREVIEW_TWO);
+
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
         VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_TWO, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,

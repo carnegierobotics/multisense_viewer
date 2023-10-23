@@ -65,8 +65,9 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get present modes ");
 
     VkExtent2D swapchainExtent = {};
+
     // If m_Width (and m_Height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-    if (surfCaps.currentExtent.width == (uint32_t)-1)
+    if (surfCaps.currentExtent.width == static_cast<uint32_t>(-1))
     {
         // If the surface size is undefined, the size is set to
         // the size of the images requested.
@@ -149,7 +150,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     swapchainCI.imageColorSpace = colorSpace;
     swapchainCI.imageExtent = { swapchainExtent.width, swapchainExtent.height };
     swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+    swapchainCI.preTransform = static_cast<VkSurfaceTransformFlagBitsKHR>(preTransform);
     swapchainCI.imageArrayLayers = 1;
     swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchainCI.queueFamilyIndexCount = 0;
@@ -236,7 +237,7 @@ VkResult VulkanSwapchain::acquireNextImage(VkSemaphore presentCompleteSemaphore,
 {
     // By setting timeout to UINT64_MAX we will always wait until the next m_Image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
-    return vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, imageIndex);
+    return vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, presentCompleteSemaphore, nullptr, imageIndex);
 }
 
 

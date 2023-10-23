@@ -40,3 +40,6 @@
 [submodule "external/cpp-httplib"]
 	path = external/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib
+[submodule "internal/rosbag_writer_cpp"]
+	path = internal/rosbag_writer_cpp
+	url = https://github.com/M-Gjerde/rosbag_writer_cpp

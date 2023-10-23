@@ -124,7 +124,7 @@ nlohmann::json UsageMonitor::openUsageFile() {
 
 void UsageMonitor::saveJsonToUsageFile(nlohmann::json jsonObj) {
     // Save the modified JSON to the file
-    std::ofstream output_file(usageFilePath); // Replace this with your usageFilePath variable
+    std::ofstream output_file(usageFilePath);
     output_file << jsonObj.dump(4);
 
 }
@@ -199,28 +199,27 @@ bool UsageMonitor::shouldAskForUserConsent() {
     return getSetting("ask_user_consent_to_collect_statistics", true, "true") == "true";
 }
 
-std::string UsageMonitor::getCurrentTimeString(std::chrono::system_clock::time_point timePoint) {
-    // Convert time_point to time_t
-    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
-    // Convert time_t to local time
+std::string UsageMonitor::getCurrentTimeString() {
 #ifdef WIN32
+    time_t currentTime;
+    time(&currentTime);  // Get the current time
     std::tm tm;
-    localtime_s(&tm, &time);  // Use localtime_s instead of std::localtime
+    localtime_s(&tm, &currentTime);  // Convert to local time
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
     auto timestamp = oss.str();
 #else
     auto t = std::time(nullptr);
-        auto tm = *std::localtime(&t);
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-        auto timestamp = oss.str();
+    auto tm = *std::localtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+    auto timestamp = oss.str();
 #endif
     return timestamp;
 }
 
 
-void UsageMonitor::userClickAction(const std::string &label, const std::string& type, const std::string &window) {
+void UsageMonitor::userClickAction(const std::string &label, const std::string &type, const std::string &window) {
     try {
         nlohmann::json obj;
         obj["element"] = type;
@@ -228,31 +227,39 @@ void UsageMonitor::userClickAction(const std::string &label, const std::string& 
         obj["parent_window"] = window;
         obj["timestamp"] = getCurrentTimeString();
 
-        auto usageLog = openUsageFile();
-        if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
-            usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
-        }
+        // I do not want a return value here. otherwise it does nto make sense to make it a async operation.
+        writeToUsageFileFuture = std::async(std::launch::async, &UsageMonitor::writeToUsageFileAsync, this, obj);
 
-        usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
-        saveJsonToUsageFile(usageLog);
-        Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window, getCurrentTimeString());
-    }catch (nlohmann::json::exception &e){
+        Log::Logger::getInstance()->info("User click action: {}, Window: {}, Time: {}", label, window,
+                                         getCurrentTimeString());
+    } catch (nlohmann::json::exception &e) {
         Log::Logger::getInstance()->warning("Failed to record userClickAction: {}", e.what());
     }
+}
+
+void UsageMonitor::writeToUsageFileAsync(const nlohmann::json &obj) {
+    auto usageLog = openUsageFile();
+    if (!usageLog["stats"][sessionIndex]["interactions"].is_array()) {
+        usageLog["stats"][sessionIndex]["interactions"] = nlohmann::json::array();
+    }
+
+    usageLog["stats"][sessionIndex]["interactions"].push_back(obj);
+    saveJsonToUsageFile(usageLog);
 }
 
 void UsageMonitor::userEndSession() {
     try {
         nlohmann::json generalData;
         nlohmann::json settingsChanged;
-        auto time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_StartTime).count();
+        auto time = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - m_StartTime).count();
         generalData["time_spent_seconds"] = std::to_string(time);
         generalData["settings_changed"] = settingsChanged;
         auto usageLog = openUsageFile();
         usageLog["stats"][sessionIndex]["general"] = generalData;
         saveJsonToUsageFile(usageLog);
 
-    }catch (nlohmann::json::exception &e){
+    } catch (nlohmann::json::exception &e) {
         Log::Logger::getInstance()->warning("Failed to save usage log in userEndSession: {}", e.what());
     }
 
@@ -267,7 +274,7 @@ void UsageMonitor::userStartSession(
 
 
     obj["event"] = "start application";
-    obj["start_time"] = getCurrentTimeString(m_StartTime);
+    obj["start_time"] = getCurrentTimeString();
     obj["graphics_device"] = gpuDevice;
 
     auto usageLog = openUsageFile();

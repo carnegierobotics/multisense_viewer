@@ -37,11 +37,18 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
-#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
+//#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
 #define MULTISENSE_VIEWER_DEBUG
 #endif
+
+#ifdef WIN32
+    #ifdef APIENTRY
+        #undef APIENTRY
+    #endif
+#endif
+#include <GLFW/glfw3.h>
 
 #include <unordered_map>
 #include <memory>
@@ -49,7 +56,6 @@
 #include <array>
 #include <vulkan/vulkan_core.h>
 #include <MultiSense/MultiSenseTypes.hh>
-#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -508,7 +514,10 @@ namespace VkRender {
         /** @brief Not a physical device just testing the GUI */
         bool notRealDevice = false;
         /** @brief If possible then use the IMU in the camera */
-        bool useIMU = true;
+        bool enableIMU = true;
+        /** @brief If possible then use the IMU in the camera */
+        int rateTableIndex = 2;
+
         /** @brief 0 : luma // 1 : Color  */
         int useAuxForPointCloudColor = 1;
 
@@ -522,6 +531,8 @@ namespace VkRender {
         bool extend3DArea = true;
         /** @brief If the connected device has a color camera */
         bool hasColorCamera = false;
+        bool hasImuSensor = false;
+
         /** @brief If we managed to update all the device configs */
         bool updateDeviceConfigsSucceeded = false;
 

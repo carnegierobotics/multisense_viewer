@@ -630,34 +630,35 @@ namespace Utils {
 
 
     static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-        dev.state = CRL_STATE_ACTIVE;
+        dev.state = CRL_STATE_JUST_ADDED;
         dev.cameraName = "Multisense-KS21";
         dev.notRealDevice = true;
         dev.channelInfo.resize(4); // max number of remote heads
         dev.win.clear();
-        for (crl::multisense::RemoteHeadChannel ch: {0}) {
-            VkRender::ChannelInfo chInfo;
-            chInfo.availableSources.clear();
-            chInfo.modes.clear();
-            chInfo.availableSources.emplace_back("Idle");
-            chInfo.index = ch;
-            chInfo.state = CRL_STATE_ACTIVE;
-            chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
-            std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
-            supportedDeviceModes.emplace_back();
-            //initCameraModes(&chInfo.modes, supportedModes);
-            chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
-            for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-                dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
-                if (!chInfo.availableSources.empty())
-                    dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
-            }
-
-            // stop streams if there were any enabled, just so we can start with a clean slate
-            //stopStreamTask(this, "All", ch);
-
-            dev.channelInfo.at(ch) = chInfo;
+        crl::multisense::RemoteHeadChannel ch = 0;
+        VkRender::ChannelInfo chInfo;
+        chInfo.availableSources.clear();
+        chInfo.modes.clear();
+        chInfo.availableSources.emplace_back("Idle");
+        chInfo.index = ch;
+        chInfo.state = CRL_STATE_JUST_ADDED;
+        chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
+        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
+        supportedDeviceModes.emplace_back();
+        //initCameraModes(&chInfo.modes, supportedModes);
+        chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
+        for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
+            dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+            if (!chInfo.availableSources.empty())
+                dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
         }
+
+        // stop streams if there were any enabled, just so we can start with a clean slate
+        //stopStreamTask(this, "All", ch);
+
+        dev.channelInfo.at(ch) = chInfo;
+
+        Log::Logger::getLogMetrics()->device.dev = &dev;
 
         // Update Debug Window
         auto &info = Log::Logger::getLogMetrics()->device.info;
@@ -682,7 +683,7 @@ namespace Utils {
     static inline bool stringToBool(const std::string &str) {
         std::string lowerStr;
         std::transform(str.begin(), str.end(), std::back_inserter(lowerStr),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) {  return static_cast<char>(std::tolower(c)); });
 
         if (lowerStr == "true") {
             return true;
@@ -734,10 +735,13 @@ namespace Utils {
 
     static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
         std::string lowered_str = str;
-        std::transform(lowered_str.begin(), lowered_str.end(), lowered_str.begin(), ::tolower);
-        std::regex pattern(expression);
+        std::transform(str.begin(), str.end(), lowered_str.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+        std::regex pattern(expression, std::regex_constants::icase);  // icase for case-insensitive matching
         return std::regex_search(lowered_str, pattern);
     }
+
 
 
     static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {
@@ -915,6 +919,7 @@ namespace Utils {
         }
         return dev->record.metadata.parsed;
     }
+
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

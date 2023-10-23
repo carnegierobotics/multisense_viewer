@@ -35,7 +35,7 @@
  **/
 
 #include "Viewer/Scripts/Objects/SceneGizmos/Helmet.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 
 void Helmet::setup() {
     helmet = std::make_unique<GLTFModel::Model>(&renderUtils);

@@ -90,6 +90,12 @@ public:
     VulkanDevice* deviceCopy;
     std::string selectedModel = "Multisense-KS21";
     int selection = 0;
+    float alpha = 0.94f;
+    int rateTableIndex = -1;
+    bool sampleRateChanged = false;
+    char sampleRateLabel[25];
+    std::vector<uint32_t> rates;
+
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
@@ -102,6 +108,7 @@ public:
     glm::mat4 model;
 
     std::future<bool> imuRotationFuture;
+    std::future<void> setImuConfigFuture;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcImuRotationTimer;
 
 
@@ -111,4 +118,6 @@ public:
     std::future<void> loadModelFuture;
 
     void handleIMUUpdate();
+
+    void setIMUSampleRate();
 };

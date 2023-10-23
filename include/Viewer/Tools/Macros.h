@@ -47,7 +47,7 @@
 #define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER    DISABLE_WARNING(4100)
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION            DISABLE_WARNING(4505)
 #define DISABLE_WARNING_EMPTY_BODY
-#define DISABLE_WARNING_UNREFERENCED_VARIABLE                    
+#define DISABLE_WARNING_UNREFERENCED_VARIABLE            DISABLE_WARNING(4555)
 #define DISABLE_WARNING_UNUSED_VARIABLE                          
 #define DISABLE_WARNING_CAST_QUALIFIERS                          
 #define DISABLE_WARNING_DOUBLE_PROMOTION                         
@@ -72,6 +72,8 @@
 #define DISABLE_WARNING_TYPE_LIMITS                               DISABLE_WARNING(-Wtype-limits)
 #define DISABLE_WARNING_MISSING_INITIALIZERS                      DISABLE_WARNING(-Wmissing-field-initializers)
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION                     DISABLE_WARNING(-Wunused-function)
+#define DISABLE_WARNING_PEDANTIC                                  DISABLE_WARNING(-Wpedantic)
+#define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
 // other warnings you want to deactivate...
 
 #define DISABLE_WARNING_ALL

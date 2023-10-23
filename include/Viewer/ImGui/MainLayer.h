@@ -37,14 +37,18 @@
 
 #ifndef MULTISENSE_INTERACTIONMENU_H
 #define MULTISENSE_INTERACTIONMENU_H
-
-#include <filesystem>
+#ifdef WIN32
+    #ifdef APIENTRY
+        #undef APIENTRY
+    #endif
+#endif
 #include <GLFW/glfw3.h>
+#include <filesystem>
 #include <ImGuiFileDialog.h>
 
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 #include "Viewer/ImGui/MainLayerExt/ControlArea2DExt.h"
 #include "Viewer/ImGui/MainLayerExt/PreviewWindows2DExt.h"
 #include "Viewer/ImGui/MainLayerExt/Preview3DExt.h"
@@ -256,7 +260,7 @@ private:
                     float spaceSize = ImGui::CalcTextSize(std::string(" ").c_str()).x;
                     std::string spaces(int(startPos / spaceSize), ' ');
 
-                    if (ImGui::BeginTabItem((std::string(spaces + tabLabel)).c_str())) {
+                    if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
                         ImGui::PushFont(handles->info->font13);
 
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);

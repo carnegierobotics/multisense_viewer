@@ -85,7 +85,7 @@ namespace VkRender::LayerUtils {
         }
         ImGui::Dummy(ImVec2());
     }
-};
+}
 
 
 #endif //MULTISENSE_VIEWER_LAYERUTILS_H

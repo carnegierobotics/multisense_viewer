@@ -486,8 +486,7 @@ namespace VkRender::MultiSense {
                 // Perform connection by pushing a connect task.
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "connectCRLCameraTask");
                 if (dev.notRealDevice) {
-                    pool->Push(CameraConnection::connectFakeCameraTask, this, &dev, dev.isRemoteHead,
-                               shouldConfigNetwork, delayConnection);
+                    pool->Push(CameraConnection::connectFakeCameraTask, this, &dev, dev.isRemoteHead);
                 } else {
                     pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, dev.isRemoteHead,
                                shouldConfigNetwork, delayConnection);
@@ -731,7 +730,7 @@ namespace VkRender::MultiSense {
             /* Prepare the struct ifreq */
             bzero(ifr.ifr_name, IFNAMSIZ);
             strncpy(ifr.ifr_name, interface, IFNAMSIZ);
-
+            ifr.ifr_name[IF_NAMESIZE - 1] = '\0';
             /*** Call ioctl to get configure network interface ***/
 
             /// note: prepare the two struct sockaddr_in
@@ -760,6 +759,7 @@ namespace VkRender::MultiSense {
             }
 
             strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));//interface m_Name where you want to set the MTU
+            ifr.ifr_name[IF_NAMESIZE - 1] = '\0';
             ifr.ifr_mtu = 7200; //your MTU  here
             if (ioctl(m_FD, SIOCSIFMTU, reinterpret_cast<caddr_t>( &ifr)) < 0) {
                 Log::Logger::getInstance()->error("Failed to set mtu size {} on adapter {}", 7200,
@@ -903,8 +903,7 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead,
-                                                 bool shouldConfigNetwork, bool delayConnection) {
+    void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
 
         Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP,

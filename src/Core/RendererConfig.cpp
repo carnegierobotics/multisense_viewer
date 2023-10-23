@@ -224,4 +224,4 @@ namespace VkRender {
         return Utils::isInVector(m_EnabledExtensions, extensionName);
     }
 
-};
+}

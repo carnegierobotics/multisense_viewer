@@ -346,7 +346,7 @@ namespace VkRender {
             // Loop through devices and check that it doesn't exist already.
             for (auto &d: devices) {
                 if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    errors.emplace_back("The IP address on the selected adapter is in use");
+                    //errors.emplace_back("The IP address on the selected adapter is in use");
                 }
                 if (d.name == entry.profileName) {
                     errors.emplace_back("Profile name already in use");

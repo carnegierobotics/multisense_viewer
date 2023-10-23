@@ -93,7 +93,6 @@ public:
     AdapterUtils adapterUtils;
     std::string dots;
     bool btnConnect = false;
-    bool btnAdd = false;
     bool enableConnectButton = true;
     enum {
         MANUAL_CONNECT = 1,
@@ -965,7 +964,10 @@ private:
             else if (connectMethodSelector == MANUAL_CONNECT) {
                 // AdapterSearch Threaded operation
                 // Threaded adapter search for manual connect
+#ifdef WIN32
                 adapterUtils.startAdapterScan(handles->pool.get());
+#endif
+
                 {
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));

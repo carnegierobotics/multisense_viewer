@@ -54,7 +54,7 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/ImGui/Layer.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 #include "Viewer/ImGui/LayerFactory.h"
 
 namespace VkRender {

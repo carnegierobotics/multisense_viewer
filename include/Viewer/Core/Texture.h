@@ -132,7 +132,7 @@ public:
     void
     fromglTfImage(tinygltf::Image &gltfimage, TextureSampler textureSampler, VulkanDevice *device, VkQueue copyQueue);
 
-    void fromKtxFile(std::string filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
+    void fromKtxFile(const std::string& filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
                      VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
                      VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bool forceLinear = false);
 };

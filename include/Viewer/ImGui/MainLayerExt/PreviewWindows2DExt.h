@@ -83,7 +83,8 @@ public:
                                 ImVec2(0.0f, 0.0f)); // Set the window background color to transparent
             ImGui::Begin("View Area", &pOpen,
                          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
-                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
+                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoBringToFrontOnFocus);
             handles->info->isViewingAreaHovered = ImGui::IsWindowHovered(
                     ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
             ImGui::PopStyleColor();
@@ -92,12 +93,8 @@ public:
                 drawVideoPreviewGuiOverlay(handles, dev);
             ImGui::End(); // End the empty view area window
 
-            // The top left corner of the ImGui window that encapsulates the quad with the texture playing.
-            bool hoveringPreviewWindows = ImGui::IsWindowHoveredByName("View Area 0", ImGuiHoveredFlags_AnyWindow) ||
-                                          ImGui::IsWindowHoveredByName("View Area 1", ImGuiHoveredFlags_AnyWindow);
             handles->scroll = 0.0f;
-            bool hoveringPopupWindows = (dev.win[(StreamWindowIndex) 0].isHovered ||
-                                         dev.win[(StreamWindowIndex) 1].isHovered);
+
             if (handles->info->isViewingAreaHovered && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE &&
                 !handles->info->hoverState) {
                 handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
@@ -186,10 +183,11 @@ public:
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
-                auto &window = dev.win[(StreamWindowIndex) index];
+                auto &window = dev.win[static_cast<StreamWindowIndex>(index)];
                 window.name = windowName;
 
-                float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * (float) cols)))) / (float) cols;
+                float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * static_cast<float>(cols))))) /
+                                 static_cast<float>(cols);
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE)
                     newWidth -= 50.0f * (handles->info->width / 1280);
 
@@ -207,7 +205,7 @@ public:
                 } else
                     offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth + 5.0f);
 
-                float viewAreaElementPosX = offsetX + ((float) col * (newWidth + 10.0f));
+                float viewAreaElementPosX = offsetX + (static_cast<float> (col) * (newWidth + 10.0f));
 
                 ImVec2 windowSize = ImVec2(handles->info->viewAreaElementSizeX, handles->info->viewAreaElementSizeY);
 
@@ -215,21 +213,21 @@ public:
                         windowSize,
                         ImGuiCond_Always);
 */
-                dev.win.at((StreamWindowIndex) index).row = float(row);
-                dev.win.at((StreamWindowIndex) index).col = float(col);
+                dev.win.at(static_cast<StreamWindowIndex>(index)).row = float(row);
+                dev.win.at(static_cast<StreamWindowIndex>(index)).col = float(col);
                 // Calculate window m_Position
                 float viewAreaElementPosY =
-                        handles->info->tabAreaHeight + ((float) row * (handles->info->viewAreaElementSizeY + 10.0f));
+                        handles->info->tabAreaHeight +
+                        (static_cast<float>(row) * (handles->info->viewAreaElementSizeY + 10.0f));
 
                 if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-                dev.win.at((StreamWindowIndex) index).xPixelStartPos = viewAreaElementPosX;
-                dev.win.at((StreamWindowIndex) index).yPixelStartPos = viewAreaElementPosY;
+                dev.win.at(static_cast<StreamWindowIndex>(index)).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at(static_cast<StreamWindowIndex>(index)).yPixelStartPos = viewAreaElementPosY;
                 ImVec2 childPos = ImVec2(viewAreaElementPosX, viewAreaElementPosY);
                 //ImGui::SetNextWindowPos(childPos,ImGuiCond_Always);
                 ImGui::SetCursorScreenPos(childPos);
-                static bool open = true;
                 ImGuiWindowFlags window_flags =
                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                         ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus;
@@ -298,20 +296,21 @@ public:
 
                 if (window.isHovered) {
                     // Offsset cursor positions.
-                    switch (Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource)) {
+                    switch (Utils::CRLSourceToTextureType(
+                            dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource)) {
                         case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].intensity);
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].intensity);
                             break;
                         case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].depth);
+                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
+                                        static_cast<double>(dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].depth));
                             break;
                         default:
-                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[(StreamWindowIndex) index].x,
-                                        dev.pixelInfoZoomed[(StreamWindowIndex) index].y);
+                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y);
                     }
 
                 }
@@ -416,16 +415,18 @@ public:
                     }
 
                     bool isColorImageSelected =
-                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            Utils::CRLSourceToTextureType(
+                                    dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
                             CRL_COLOR_IMAGE_YUV420;
 
 
                     bool isDisparitySelected =
-                            Utils::CRLSourceToTextureType(dev.win.at((StreamWindowIndex) index).selectedSource) ==
+                            Utils::CRLSourceToTextureType(
+                                    dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
                             CRL_DISPARITY_IMAGE;
 
-                    if (isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(
-                            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) || isDisparitySelected) {
+                    if ((isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(
+                            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) )|| isDisparitySelected) {
 
                     } else {
 
@@ -547,7 +548,7 @@ public:
                                           ImGuiComboFlags_HeightLarge)) {
                         for (size_t n = 0; n < window.availableRemoteHeads.size(); n++) {
                             const bool is_selected = (window.selectedRemoteHeadIndex ==
-                                                      (crl::multisense::RemoteHeadChannel) n);
+                                                      static_cast<crl::multisense::RemoteHeadChannel>(n));
                             if (ImGui::Selectable(window.availableRemoteHeads[n].c_str(), is_selected)) {
 
 
@@ -557,7 +558,7 @@ public:
                                     std::string sourceInUse;
                                     for (const auto &win: dev.win) {
                                         if (win.second.selectedSource == window.selectedSource &&
-                                            (int) win.first != index &&
+                                            static_cast<int>(win.first) != index &&
                                             win.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                             inUse = true;
                                             sourceInUse = win.second.selectedSource;
@@ -580,8 +581,8 @@ public:
                                     }
                                 }
 
-                                window.selectedRemoteHeadIndex = (crl::multisense::RemoteHeadChannel) std::stoi(
-                                        window.availableRemoteHeads[n]) - (crl::multisense::RemoteHeadChannel) 1;
+                                window.selectedRemoteHeadIndex = static_cast<crl::multisense::RemoteHeadChannel>( std::stoi(
+                                        window.availableRemoteHeads[n])) - static_cast<crl::multisense::RemoteHeadChannel>(1);
                                 Log::Logger::getInstance()->info("Selected Remote head number '{}' for preview {}",
                                                                  window.selectedRemoteHeadIndex, index);
                             }
@@ -596,10 +597,10 @@ public:
                     ImGui::PopStyleColor();
                 }
                 // Set the avaiable sources according to the selected remote head We have "Select Head" in the list as well
-                window.availableSources = dev.channelInfo[(crl::multisense::RemoteHeadChannel) std::stoi(
+                window.availableSources = dev.channelInfo[static_cast<crl::multisense::RemoteHeadChannel> (std::stoi(
                         window.availableRemoteHeads[
                                 Utils::getIndexOf(window.availableRemoteHeads,
-                                                  std::to_string(window.selectedRemoteHeadIndex + 1))]) -
+                                                  std::to_string(window.selectedRemoteHeadIndex + 1))])) -
                                                           1].availableSources;
 
                 Log::Logger::getInstance()->traceWithFrequency("Displayed_Available_Sources", 60 * 10,
@@ -632,7 +633,7 @@ public:
                                 bool stopColor = false;
                                 for (const auto &otherWindow: dev.win) {
                                     if (otherWindow.second.selectedSource == window.selectedSource &&
-                                        (int) otherWindow.first != index &&
+                                        static_cast<int>( otherWindow.first) != index &&
                                         otherWindow.second.selectedRemoteHeadIndex == window.selectedRemoteHeadIndex) {
                                         inUse = true;
                                     }

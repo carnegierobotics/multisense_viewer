@@ -65,7 +65,7 @@ set(ENGINE_SRC
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
-        src/ImGui/ScriptUIAddons.cpp
+        src/ImGui/Widgets.cpp
         src/ImGui/LayerFactory.cpp
         src/Renderer/UsageMonitor.cpp
         src/Core/RendererConfig.cpp
@@ -93,9 +93,10 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Renderer3D/Grid.cpp
         include/Viewer/Scripts/Renderer3D/PointCloud3D.cpp
-)
+        include/Viewer/Scripts/Renderer3D/Grid.cpp
+        include/Viewer/Scripts/Private/RecordUtilities.h)
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -107,16 +108,18 @@ if (UNIX) ## Linux
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
                 CACHE PATH "default install path" FORCE)
     endif ()
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES})
+    add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale)
+    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
-    add_dependencies(MultiSense-Viewer AutoConnect)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary )
+    add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
@@ -145,6 +148,9 @@ if (WIN32)
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+        target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
+        set(CMAKE_CXX_FLAGS_RELEASE "/Ox /DNDEBUG")
+
     endif ()
 
     # Include directory for WinPcap
@@ -174,11 +180,16 @@ if (WIN32)
     target_link_libraries(VulkanRenderer ${LIBRARIES})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto)
+    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
+    target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
+
+    set_project_warnings(ScriptLibrary)
+    set_project_warnings(VulkanRenderer)
+    set_project_warnings(MultiSense-Viewer)
 
     #AutoConnect
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

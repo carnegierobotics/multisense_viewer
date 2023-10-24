@@ -230,7 +230,7 @@ void GLTFModel::Model::setupSkyboxDescriptors(const std::vector<VkRender::Unifor
 
 
         // Skybox (fixed set)
-        for (auto i = 0; i < uboVec.size(); i++) {
+        for (size_t i = 0; i < uboVec.size(); i++) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             descriptorSetAllocInfo.descriptorPool = descriptorPool;
@@ -516,8 +516,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     vkCmdBeginRenderPass(cmdBuf, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport{};
-    viewport.width = (float) dim;
-    viewport.height = (float) dim;
+    viewport.width = static_cast<float>(dim);
+    viewport.height =static_cast<float>(dim);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -563,8 +563,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         auto tStart = std::chrono::high_resolution_clock::now();
 
-        VkFormat format;
-        int32_t dim;
+        VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        int32_t dim = 64;
 
         switch (target) {
             case IRRADIANCE:
@@ -603,8 +603,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             memAllocInfo.allocationSize = memReqs.size;
             memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap.m_DeviceMemory);
-            vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap.m_Image, cubemap.m_DeviceMemory, 0);
+            CHECK_RESULT(vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap.m_DeviceMemory))
+            CHECK_RESULT(vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap.m_Image, cubemap.m_DeviceMemory, 0))
 
             // View
             VkImageViewCreateInfo viewCI{};
@@ -616,7 +616,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             viewCI.subresourceRange.levelCount = numMips;
             viewCI.subresourceRange.layerCount = 6;
             viewCI.image = cubemap.m_Image;
-            vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubemap.m_View);
+            CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubemap.m_View))
 
             // Sampler
             VkSamplerCreateInfo samplerCI{};
@@ -631,7 +631,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             samplerCI.maxLod = static_cast<float>(numMips);
             samplerCI.maxAnisotropy = 1.0f;
             samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-            vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubemap.m_Sampler);
+            CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubemap.m_Sampler));
         }
 
         // FB, Att, RP, Pipe, etc.
@@ -679,7 +679,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         renderPassCI.dependencyCount = 2;
         renderPassCI.pDependencies = dependencies.data();
         VkRenderPass renderpass;
-        vkCreateRenderPass(vulkanDevice->m_LogicalDevice, &renderPassCI, nullptr, &renderpass);
+        CHECK_RESULT(vkCreateRenderPass(vulkanDevice->m_LogicalDevice, &renderPassCI, nullptr, &renderpass))
 
         struct Offscreen {
             VkImage image;
@@ -713,8 +713,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             memAllocInfo.allocationSize = memReqs.size;
             memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &offscreen.memory));
-            (vkBindImageMemory(vulkanDevice->m_LogicalDevice, offscreen.image, offscreen.memory, 0));
+            CHECK_RESULT(vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &offscreen.memory))
+            CHECK_RESULT(vkBindImageMemory(vulkanDevice->m_LogicalDevice, offscreen.image, offscreen.memory, 0))
 
             // View
             VkImageViewCreateInfo viewCI{};
@@ -740,7 +740,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             framebufferCI.width = dim;
             framebufferCI.height = dim;
             framebufferCI.layers = 1;
-            vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr, &offscreen.framebuffer);
+            CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr, &offscreen.framebuffer));
 
             VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             VkImageMemoryBarrier imageMemoryBarrier{};
@@ -764,8 +764,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCI.pBindings = &setLayoutBinding;
         descriptorSetLayoutCI.bindingCount = 1;
-        (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                     &descriptorsetlayout));
+        CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                                     &descriptorsetlayout))
 
         // Descriptor Pool
         VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1};
@@ -775,7 +775,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorPoolCI.pPoolSizes = &poolSize;
         descriptorPoolCI.maxSets = 2;
         VkDescriptorPool descriptorpool;
-        (vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorpool));
+        CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorpool))
 
         // Descriptor sets
         VkDescriptorSet descriptorset;
@@ -784,7 +784,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorSetAllocInfo.descriptorPool = descriptorpool;
         descriptorSetAllocInfo.pSetLayouts = &descriptorsetlayout;
         descriptorSetAllocInfo.descriptorSetCount = 1;
-        (vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptorset));
+        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo, &descriptorset))
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -801,8 +801,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         } pushBlockIrradiance;
 
         struct PushBlockPrefilterEnv {
-            glm::mat4 mvp;
-            float roughness;
+            glm::mat4 mvp = glm::mat4(1.0f);
+            float roughness = 0.5f;
             uint32_t numSamples = 32u;
         } pushBlockPrefilterEnv;
 
@@ -826,7 +826,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         pipelineLayoutCI.pSetLayouts = &descriptorsetlayout;
         pipelineLayoutCI.pushConstantRangeCount = 1;
         pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
-        (vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelinelayout));
+        CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelinelayout))
 
         // Pipeline
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -914,7 +914,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 break;
         };
         VkPipeline pipeline;
-        (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline));
+        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline))
 
         // Render cubemap
         VkClearValue clearValues[1];
@@ -943,8 +943,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         VkCommandBuffer cmdBuf = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, false);
 
         VkViewport viewport{};
-        viewport.width = (float) dim;
-        viewport.height = (float) dim;
+        viewport.width = static_cast<float>(dim);
+        viewport.height =static_cast<float>(dim);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -991,15 +991,15 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 switch (target) {
                     case IRRADIANCE:
                         pushBlockIrradiance.mvp =
-                                glm::perspective((float) (M_PI / 2.0), 1.0f, 0.1f, 512.0f) * matrices[f];
+                                glm::perspective(static_cast<float>(M_PI) / 2.0f, 1.0f, 0.1f, 512.0f) * matrices[f];
                         vkCmdPushConstants(cmdBuf, pipelinelayout,
                                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                            sizeof(PushBlockIrradiance), &pushBlockIrradiance);
                         break;
                     case PREFILTEREDENV:
                         pushBlockPrefilterEnv.mvp =
-                                glm::perspective((float) (M_PI / 2.0), 1.0f, 0.1f, 512.0f) * matrices[f];
-                        pushBlockPrefilterEnv.roughness = (float) m / (float) (numMips - 1);
+                                glm::perspective(static_cast<float>(M_PI) / 2.0f, 1.0f, 0.1f, 512.0f) * matrices[f];
+                        pushBlockPrefilterEnv.roughness = static_cast<float>(m) / (numMips - 1.0f);
                         vkCmdPushConstants(cmdBuf, pipelinelayout,
                                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                            sizeof(PushBlockPrefilterEnv), &pushBlockPrefilterEnv);
@@ -1020,12 +1020,6 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 }
 
                 vkCmdEndRenderPass(cmdBuf);
-
-                VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-                subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                subresourceRange.baseMipLevel = 0;
-                subresourceRange.levelCount = numMips;
-                subresourceRange.layerCount = 6;
 
                 {
                     VkImageMemoryBarrier imageMemoryBarrier{};
@@ -1174,55 +1168,55 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                                         static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, NULL);
 
                 // Pass material parameters as push constants
-                PushConstBlockMaterial pushConstBlockMaterial{};
-                pushConstBlockMaterial.emissiveFactor = primitive->material.emissiveFactor;
+                PushConstBlockMaterial pushConstBlock{};
+                pushConstBlock.emissiveFactor = primitive->material.emissiveFactor;
                 // To save push constant space, availabilty and texture coordiante set are combined
                 // -1 = texture not used for this material, >= 0 texture used and index of texture coordinate set
-                pushConstBlockMaterial.colorTextureSet =
+                pushConstBlock.colorTextureSet =
                         primitive->material.baseColorTexture != nullptr ? primitive->material.texCoordSets.baseColor
                                                                         : -1;
-                pushConstBlockMaterial.normalTextureSet =
+                pushConstBlock.normalTextureSet =
                         primitive->material.normalTexture != nullptr ? primitive->material.texCoordSets.normal : -1;
-                pushConstBlockMaterial.occlusionTextureSet =
+                pushConstBlock.occlusionTextureSet =
                         primitive->material.occlusionTexture != nullptr ? primitive->material.texCoordSets.occlusion
                                                                         : -1;
-                pushConstBlockMaterial.emissiveTextureSet =
+                pushConstBlock.emissiveTextureSet =
                         primitive->material.emissiveTexture != nullptr ? primitive->material.texCoordSets.emissive : -1;
-                pushConstBlockMaterial.alphaMask = static_cast<float>(primitive->material.alphaMode ==
+                pushConstBlock.alphaMask = static_cast<float>(primitive->material.alphaMode ==
                                                                       Material::ALPHAMODE_MASK);
-                pushConstBlockMaterial.alphaMaskCutoff = primitive->material.alphaCutoff;
+                pushConstBlock.alphaMaskCutoff = primitive->material.alphaCutoff;
 
                 // TODO: glTF specs states that metallic roughness should be preferred, even if specular glosiness is present
 
                 if (primitive->material.pbrWorkflows.metallicRoughness) {
                     // Metallic roughness workflow
-                    pushConstBlockMaterial.workflow = static_cast<float>(PBR_WORKFLOW_METALLIC_ROUGHNESS);
-                    pushConstBlockMaterial.baseColorFactor = primitive->material.baseColorFactor;
-                    pushConstBlockMaterial.metallicFactor = primitive->material.metallicFactor;
-                    pushConstBlockMaterial.roughnessFactor = primitive->material.roughnessFactor;
-                    pushConstBlockMaterial.PhysicalDescriptorTextureSet =
+                    pushConstBlock.workflow = static_cast<float>(PBR_WORKFLOW_METALLIC_ROUGHNESS);
+                    pushConstBlock.baseColorFactor = primitive->material.baseColorFactor;
+                    pushConstBlock.metallicFactor = primitive->material.metallicFactor;
+                    pushConstBlock.roughnessFactor = primitive->material.roughnessFactor;
+                    pushConstBlock.PhysicalDescriptorTextureSet =
                             primitive->material.metallicRoughnessTexture != nullptr
                             ? primitive->material.texCoordSets.metallicRoughness : -1;
-                    pushConstBlockMaterial.colorTextureSet =
+                    pushConstBlock.colorTextureSet =
                             primitive->material.baseColorTexture != nullptr ? primitive->material.texCoordSets.baseColor
                                                                             : -1;
                 }
 
                 if (primitive->material.pbrWorkflows.specularGlossiness) {
                     // Specular glossiness workflow
-                    pushConstBlockMaterial.workflow = static_cast<float>(PBR_WORKFLOW_SPECULAR_GLOSINESS);
-                    pushConstBlockMaterial.PhysicalDescriptorTextureSet =
+                    pushConstBlock.workflow = static_cast<float>(PBR_WORKFLOW_SPECULAR_GLOSINESS);
+                    pushConstBlock.PhysicalDescriptorTextureSet =
                             primitive->material.extension.specularGlossinessTexture != nullptr
                             ? primitive->material.texCoordSets.specularGlossiness : -1;
-                    pushConstBlockMaterial.colorTextureSet = primitive->material.extension.diffuseTexture != nullptr
+                    pushConstBlock.colorTextureSet = primitive->material.extension.diffuseTexture != nullptr
                                                              ? primitive->material.texCoordSets.baseColor : -1;
-                    pushConstBlockMaterial.diffuseFactor = primitive->material.extension.diffuseFactor;
-                    pushConstBlockMaterial.specularFactor = glm::vec4(primitive->material.extension.specularFactor,
+                    pushConstBlock.diffuseFactor = primitive->material.extension.diffuseFactor;
+                    pushConstBlock.specularFactor = glm::vec4(primitive->material.extension.specularFactor,
                                                                       1.0f);
                 }
 
                 vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                   sizeof(PushConstBlockMaterial), &pushConstBlockMaterial);
+                                   sizeof(PushConstBlockMaterial), &pushConstBlock);
 
                 if (primitive->hasIndices) {
                     vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
@@ -1316,7 +1310,6 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
         newNode->translation = nodeTranslation;
 
     if (node.rotation.size() == 4) {
-        glm::quat q = glm::make_quat(node.rotation.data());
         newNode->rotation = glm::mat4(1.0f);
     }
     glm::vec3 scale = glm::vec3(1.0f);
@@ -1361,15 +1354,14 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
                 const void *bufferJoints = nullptr;
                 const float *bufferWeights = nullptr;
 
-                int posByteStride;
-                int normByteStride;
-                int uv0ByteStride;
-                int uv1ByteStride;
-                int color0ByteStride;
-                int jointByteStride;
-                int weightByteStride;
-
-                int jointComponentType;
+                int posByteStride = 0;
+                int normByteStride = 0;
+                int uv0ByteStride = 0;
+                int uv1ByteStride = 0;
+                int color0ByteStride = 0;
+                int jointByteStride = 0;
+                int weightByteStride = 0;
+                int jointComponentType = 0;
 
                 // Position attribute is required
                 assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
@@ -1461,8 +1453,8 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
                 for (size_t v = 0; v < posAccessor.count; v++) {
                     VkRender::Vertex &vert = loaderInfo.vertexBuffer[loaderInfo.vertexPos];
                     vert.pos = glm::vec4(glm::make_vec3(&bufferPos[v * posByteStride]), 1.0f);
-                    vert.normal = glm::normalize(glm::vec3(
-                            bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(0.0f)));
+                    vert.normal = glm::normalize(
+                            bufferNormals ? glm::make_vec3(&bufferNormals[v * normByteStride]) : glm::vec3(0.0f));
                     vert.uv0 = bufferTexCoordSet0 ? glm::make_vec2(&bufferTexCoordSet0[v * uv0ByteStride]) : glm::vec3(
                             0.0f);
                     vert.uv1 = bufferTexCoordSet1 ? glm::make_vec2(&bufferTexCoordSet1[v * uv1ByteStride]) : glm::vec3(
@@ -1473,12 +1465,12 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
                     if (hasSkin) {
                         switch (jointComponentType) {
                             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
-                                const uint16_t *buf = static_cast<const uint16_t *>(bufferJoints);
+                                const auto *buf = static_cast<const uint16_t *>(bufferJoints);
                                 vert.joint0 = glm::vec4(glm::make_vec4(&buf[v * jointByteStride]));
                                 break;
                             }
                             case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
-                                const uint8_t *buf = static_cast<const uint8_t *>(bufferJoints);
+                                const auto *buf = static_cast<const uint8_t *>(bufferJoints);
                                 vert.joint0 = glm::vec4(glm::make_vec4(&buf[v * jointByteStride]));
                                 break;
                             }
@@ -1568,7 +1560,7 @@ void GLTFModel::Model::loadTextureSamplers(tinygltf::Model &gltfModel) {
 }
 
 void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *device, VkQueue transferQueue) {
-    textures.resize(gltfModel.textures.size());
+    m_Textures.resize(gltfModel.textures.size());
     for (size_t i = 0; tinygltf::Texture &tex: gltfModel.textures) {
         tinygltf::Image image = gltfModel.images[tex.source];
         Texture::TextureSampler textureSampler{};
@@ -1582,7 +1574,7 @@ void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
         } else {
             textureSampler = textureSamplers[tex.sampler];
         }
-        textures[i].fromglTfImage(image, textureSampler, device, transferQueue);
+        m_Textures[i].fromglTfImage(image, textureSampler, device, transferQueue);
         i++;
     }
 }
@@ -1592,12 +1584,12 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         GLTFModel::Material material{};
         material.doubleSided = mat.doubleSided;
         if (mat.values.find("baseColorTexture") != mat.values.end()) {
-            material.baseColorTexture = &textures[mat.values["baseColorTexture"].TextureIndex()];
-            material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+            material.baseColorTexture = &m_Textures[mat.values["baseColorTexture"].TextureIndex()];
+            material.texCoordSets.baseColor = static_cast<uint8_t>(mat.values["baseColorTexture"].TextureTexCoord());
         }
         if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-            material.metallicRoughnessTexture = &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
-            material.texCoordSets.metallicRoughness = mat.values["metallicRoughnessTexture"].TextureTexCoord();
+            material.metallicRoughnessTexture = &m_Textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+            material.texCoordSets.metallicRoughness =  static_cast<uint8_t>(mat.values["metallicRoughnessTexture"].TextureTexCoord());
         }
         if (mat.values.find("roughnessFactor") != mat.values.end()) {
             material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
@@ -1609,16 +1601,16 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
         }
         if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-            material.normalTexture = &textures[mat.additionalValues["normalTexture"].TextureIndex()];
-            material.texCoordSets.normal = mat.additionalValues["normalTexture"].TextureTexCoord();
+            material.normalTexture = &m_Textures[mat.additionalValues["normalTexture"].TextureIndex()];
+            material.texCoordSets.normal =  static_cast<uint8_t>(mat.additionalValues["normalTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
-            material.emissiveTexture = &textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
-            material.texCoordSets.emissive = mat.additionalValues["emissiveTexture"].TextureTexCoord();
+            material.emissiveTexture = &m_Textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
+            material.texCoordSets.emissive =  static_cast<uint8_t>(mat.additionalValues["emissiveTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
-            material.occlusionTexture = &textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
-            material.texCoordSets.occlusion = mat.additionalValues["occlusionTexture"].TextureTexCoord();
+            material.occlusionTexture = &m_Textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
+            material.texCoordSets.occlusion =  static_cast<uint8_t>(mat.additionalValues["occlusionTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
             tinygltf::Parameter param = mat.additionalValues["alphaMode"];
@@ -1643,27 +1635,27 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             auto ext = mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (ext->second.Has("specularGlossinessTexture")) {
                 auto index = ext->second.Get("specularGlossinessTexture").Get("index");
-                material.extension.specularGlossinessTexture = &textures[index.Get<int>()];
+                material.extension.specularGlossinessTexture = &m_Textures[index.Get<int>()];
                 auto texCoordSet = ext->second.Get("specularGlossinessTexture").Get("texCoord");
-                material.texCoordSets.specularGlossiness = texCoordSet.Get<int>();
+                material.texCoordSets.specularGlossiness =  static_cast<uint8_t>(texCoordSet.Get<int>());
                 material.pbrWorkflows.specularGlossiness = true;
             }
             if (ext->second.Has("diffuseTexture")) {
                 auto index = ext->second.Get("diffuseTexture").Get("index");
-                material.extension.diffuseTexture = &textures[index.Get<int>()];
+                material.extension.diffuseTexture = &m_Textures[index.Get<int>()];
             }
             if (ext->second.Has("diffuseFactor")) {
                 auto factor = ext->second.Get("diffuseFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.diffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                    material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                 }
             }
             if (ext->second.Has("specularFactor")) {
                 auto factor = ext->second.Get("specularFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.specularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                    material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                 }
             }
         }
@@ -1725,7 +1717,7 @@ void GLTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->m_TransferQueue);
     textureIndices.baseColor = 0;
-    textures.push_back(texture);
+    m_Textures.push_back(texture);
 
     Texture::TextureSampler sampler{};
     sampler.magFilter = VK_FILTER_LINEAR;
@@ -1747,7 +1739,7 @@ void GLTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
 
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * 4;
+    auto imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
     if (!pixels) {
         throw std::runtime_error("failed to load texture m_Image!");
     }
@@ -1756,7 +1748,7 @@ void GLTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<cha
     texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
                        vulkanDevice->m_TransferQueue);
     textureIndices.normalMap = 1;
-    textures.push_back(texture);
+    m_Textures.push_back(texture);
 
     Texture::TextureSampler sampler{};
     sampler.magFilter = VK_FILTER_LINEAR;
@@ -1978,7 +1970,7 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(
     /**
      * Create Descriptor Pool
      */
-    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + (uint32_t) nodes.size());
+    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + static_cast<uint32_t>(nodes.size()));
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };
@@ -2192,7 +2184,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
 }
 
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
-                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders, VkCommandPool cmdPool) {
+                                            const std::vector<VkPipelineShaderStageCreateInfo> &shaders) {
     auto tStart = std::chrono::high_resolution_clock::now();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};

@@ -33,16 +33,16 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/Scripts/Objects/Video/RecordFrames.h"
 
 #include <filesystem>
-#include <tiffio.h>
 
-extern "C" {
-#include<libavutil/avutil.h>
-#include<libavutil/imgutils.h>
-#include <libswscale/swscale.h>
-}
+#include "Viewer/Scripts/Objects/Video/RecordFrames.h"
+#include "Viewer/Scripts/Private/RecordUtilities.h"
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_UNREFERENCED_FUNCTION
+#include <RosbagWriter/RosbagWriter.h>
+DISABLE_WARNING_POP
 
 void RecordFrames::setup() {
 }
@@ -50,7 +50,6 @@ void RecordFrames::setup() {
 void RecordFrames::update() {
 
     bool shouldCreateThreadPool = saveImage || savePointCloud || saveIMUData;
-    bool shouldResetThreadPool = !(saveImage || savePointCloud || saveIMUData);
 
     if (shouldCreateThreadPool && threadPool == nullptr) {
         Log::Logger::getInstance()->trace("Creating RecordFrames ThreadPool");
@@ -63,10 +62,6 @@ void RecordFrames::update() {
     if (saveIMUData)
         saveIMUDataToFile();
 
-    if (threadPool != nullptr && threadPool->getTaskListSize() == 0 && shouldResetThreadPool) {
-        Log::Logger::getInstance()->trace("Resetting RecordFrames ThreadPool");
-        threadPool.reset();
-    }
 }
 
 void RecordFrames::saveImageToFile() {
@@ -109,22 +104,140 @@ void RecordFrames::saveImageToFile() {
                     if (lastSavedImagesID[src] == tex->m_Id)
                         continue;
                     Log::Logger::getInstance()->trace("Pushing task: saveImageToFile. ID: {}, Comp: {}. Count: {}",
-                                                      tex->m_Id, compression.c_str(), saveImageCount[src]);
+                                                      tex->m_Id, fileFormat.c_str(), saveImageCount[src]);
                     threadPool->Push(saveImageToFileAsync,
                                      Utils::CRLSourceToTextureType(src),
                                      saveFolderImage,
                                      src,
                                      tex,
-                                     compression
+                                     fileFormat, writer, std::ref(rosbagWriterMutex)
                     );
                     lastSavedImagesID[src] = tex->m_Id;
                     saveImageCount[src]++;
                     savedImageSourceCount[src]++;
-                } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE && compression == "tiff") {
-                    Log::Logger::getInstance()->warning("Record image queue is full. Starting to drop frames");
+                } else if (threadPool->getTaskListSize() >= MAX_IMAGES_IN_QUEUE &&
+                           (fileFormat == "tiff" || fileFormat == "rosbag")) {
+                    Log::Logger::getInstance()->warning("Record image queue is full. Dropping frame: {}, source: {}",
+                                                        tex->m_Id, src);
                 }
             }
         }
+    }
+}
+
+
+void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    for (VkRender::Device &dev: uiHandle->devices) {
+
+
+        if (dev.state != CRL_STATE_ACTIVE)
+            continue;
+
+        sources.clear();
+        for (const auto &window: dev.win) {
+            if (!Utils::isInVector(sources, window.second.selectedSource)) {
+                sources.emplace_back(window.second.selectedSource);
+
+                // Check if "foo" exists in the map
+                if (savedImageSourceCount.find(window.second.selectedSource) == savedImageSourceCount.end() &&
+                    window.second.selectedSource != "Idle") {
+                    Log::Logger::getInstance()->trace("Added source {} to saved image counter in record frames",
+                                                      window.second.selectedSource);
+                    savedImageSourceCount[window.second.selectedSource] = 0;
+
+                    saveImageCount[window.second.selectedSource] = 0;
+                }
+            }
+        }
+        if (hashVector(sources) != hashVector(prevSources)) {
+            savedImageSourceCount.clear();
+        }
+        prevSources = sources;
+        saveFolderImage = dev.record.frameSaveFolder;
+        saveFolderPointCloud = dev.record.pointCloudSaveFolder;
+        saveFolderIMUData = dev.record.imuSaveFolder;
+        saveImage = dev.record.frame;
+        fileFormat = dev.saveImageCompressionMethod;
+        isRemoteHead = dev.isRemoteHead;
+        savePointCloud = dev.record.pointCloud;
+        saveIMUData = dev.record.imu;
+        useAuxColor = dev.useAuxForPointCloudColor == 1;
+        // IF we started a saveImage process
+        if (saveImage && !prevSaveState) {
+            writer = std::make_shared<CRLRosWriter::RosbagWriter>();
+        }
+        // If we stopped a saveImage process
+        if (!saveImage && prevSaveState) {
+
+            {
+                // Shared pointer gymnastics. Make sure a thread is the last remaining user of the rosbagwriter so we dont block the UI
+                threadPool->Push(finishWritingRosbag,
+                                 writer, std::ref(rosbagWriterMutex)
+                );
+                writer.reset(); // This must happen from a thread}
+            }
+
+
+            auto &json = dev.record.metadata.JSON;
+
+            std::string activeSources;
+            for (const auto &[key, value]: saveImageCount) {
+                activeSources += key + ",";
+                json["data_info"][key]["number_of_images"] = std::to_string(value);
+
+                std::string comp = fileFormat;
+                if (fileFormat == "tiff" && key.find("Color") != std::string::npos) {
+                    json["data_info"][key]["fileFormat"] = "ppm";
+                    comp = "ppm";
+                } else {
+                    json["data_info"][key]["fileFormat"] = dev.saveImageCompressionMethod;
+                }
+                json["paths"][key] =
+                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + comp + "/";
+                json["paths"]["timestamp_file"][key] =
+                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + "timestamps.csv";
+            }
+
+            // Find the latest occurrence of ","
+            size_t pos = activeSources.rfind(',');
+            // Check if "," was found
+            if (pos != std::string::npos) {
+                // Erase the ","
+                activeSources.erase(pos, 1);
+            }
+
+            json["data_info"]["sources"] = activeSources;
+            json["data_info"]["frames_per_second"] = dev.parameters.stereo.fps;
+
+            // Get todays date:
+            auto t = std::time(nullptr);
+            std::tm tm;
+
+#if defined(WIN32) // MSVC compiler
+            localtime_s(&tm, &t);
+#elif defined(__GNUC__) || defined(__clang__) // GCC or Clang compiler
+            localtime_r(&t, &tm);
+#else
+            auto tmp = std::localtime(&t);
+            if (tmp) tm = *tmp; // Fallback for other compilers, but be aware it's not thread-safe
+#endif
+
+            std::ostringstream oss;
+            oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
+
+            json["data_info"]["session_end"] = oss.str();
+
+
+            std::filesystem::path saveFolder = dev.record.frameSaveFolder;
+            saveFolder.append("metadata.json");
+            std::ofstream file(saveFolder);
+            file << json.dump(4);  // 4 spaces as indentation
+            saveImageCount.clear();
+
+        }
+
+        prevSaveState = saveImage;
     }
 }
 
@@ -181,105 +294,6 @@ size_t RecordFrames::hashVector(const std::vector<std::string> &v) {
         seed ^= hasher(str) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
     return seed;
-}
-
-
-void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
-
-    for (VkRender::Device &dev: uiHandle->devices) {
-
-
-        if (dev.state != CRL_STATE_ACTIVE)
-            continue;
-
-        sources.clear();
-        for (const auto &window: dev.win) {
-            if (!Utils::isInVector(sources, window.second.selectedSource)) {
-                sources.emplace_back(window.second.selectedSource);
-
-                // Check if "foo" exists in the map
-                if (savedImageSourceCount.find(window.second.selectedSource) == savedImageSourceCount.end() &&
-                    window.second.selectedSource != "Idle") {
-                    Log::Logger::getInstance()->trace("Added source {} to saved image counter in record frames",
-                                                      window.second.selectedSource);
-                    savedImageSourceCount[window.second.selectedSource] = 0;
-
-                    saveImageCount[window.second.selectedSource] = 0;
-                }
-            }
-
-        }
-
-        if (hashVector(sources) != hashVector(prevSources)) {
-            savedImageSourceCount.clear();
-
-        }
-
-        prevSources = sources;
-
-        saveFolderImage = dev.record.frameSaveFolder;
-        saveFolderPointCloud = dev.record.pointCloudSaveFolder;
-        saveFolderIMUData = dev.record.imuSaveFolder;
-        saveImage = dev.record.frame;
-        compression = dev.saveImageCompressionMethod;
-        isRemoteHead = dev.isRemoteHead;
-        savePointCloud = dev.record.pointCloud;
-        saveIMUData = dev.record.imu;
-        useAuxColor = dev.useAuxForPointCloudColor == 1;
-
-        // If we stopped a saveImage process
-        if (!saveImage && prevSaveState) {
-            auto &json = dev.record.metadata.JSON;
-
-            std::string activeSources;
-            for (const auto &[key, value]: saveImageCount) {
-                activeSources += key + ",";
-                json["data_info"][key]["number_of_images"] = std::to_string(value);
-
-                std::string comp = compression;
-                if (compression == "tiff" && key.find("Color") != std::string::npos) {
-                    json["data_info"][key]["compression"] = "ppm";
-                    comp = "ppm";
-                } else {
-                    json["data_info"][key]["compression"] = dev.saveImageCompressionMethod;
-                }
-                json["paths"][key] =
-                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + comp + "/";
-                json["paths"]["timestamp_file"][key] =
-                        saveFolderImage + std::string("/") + std::string(key) + std::string("/") + "timestamps.csv";
-            }
-
-            // Find the latest occurrence of ","
-            size_t pos = activeSources.rfind(',');
-            // Check if "," was found
-            if (pos != std::string::npos) {
-                // Erase the ","
-                activeSources.erase(pos, 1);
-            }
-
-            json["data_info"]["sources"] = activeSources;
-            json["data_info"]["frames_per_second"] = dev.parameters.stereo.fps;
-
-
-            // Get todays date:
-            auto t = std::time(nullptr);
-            auto tm = *std::localtime(&t);
-            std::ostringstream oss;
-            oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
-
-            json["data_info"]["session_end"] = oss.str();
-
-
-            std::filesystem::path saveFolder = dev.record.frameSaveFolder;
-            saveFolder.append("metadata.json");
-            std::ofstream file(saveFolder);
-            file << json.dump(4);  // 4 spaces as indentation
-            saveImageCount.clear();
-
-        }
-
-        prevSaveState = saveImage;
-    }
 }
 
 
@@ -345,7 +359,6 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
         WorldPoint() = default;
     };
 
-
     const auto *disparityP = reinterpret_cast<const uint16_t *>(depthTex->data);
     const auto *leftRectifiedP = reinterpret_cast<const uint8_t *>(colorTex->data);
     uint32_t width = depthTex->m_Width;
@@ -357,8 +370,8 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
 
     std::vector<uint8_t> colorRGB(colorTex->m_Width * colorTex->m_Height * 3);
     if (useAuxColor) {
-        RecordFrames::ycbcrToRGB(colorTex->data, colorTex->data2, colorTex->m_Width, colorTex->m_Height,
-                                 colorRGB.data());
+        RecordUtility::ycbcrToRGB(colorTex->data, colorTex->data2, colorTex->m_Width, colorTex->m_Height,
+                                  colorRGB.data());
     }
 
     size_t index = 0;
@@ -368,15 +381,9 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
     glm::vec4 imgCoords(0.0f), worldCoords(0.0f);
     for (size_t h = 0; h < height; ++h) {
         for (size_t w = 0; w < width; ++w) {
-
             index = h * width + w;
-
-            //
-            // MultiSense 16 bit disparity images are stored in 1/16 of a pixel. This allows us to send subpixel
-            // resolutions with integer values
-
+            // MultiSense 16 bit disparity images are stored in 1/16 of a pixel.
             d = static_cast<float>(disparityP[index]) / 16.0f;
-
             if (d < minDisparity) {
                 continue;
             }
@@ -393,7 +400,6 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
                                            static_cast<float>(colorRGB[colorIndex]),
                                            static_cast<float>(colorRGB[colorIndex + 1]),
                                            static_cast<float>(colorRGB[colorIndex + 2]));
-
             } else {
                 points[index] = WorldPoint(worldCoords.x,
                                            worldCoords.y,
@@ -404,9 +410,7 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
             }
         }
     }
-
     std::stringstream ss;
-
     ss << "ply\n";
     ss << "format ascii 1.0\n";
     ss << "element vertex " << points.size() << "\n";
@@ -417,107 +421,48 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
     ss << "property uchar green\n";
     ss << "property uchar blue\n";
     ss << "end_header\n";
-
     for (const auto &point: points) {
         ss << point.x << " " << point.y << " " << point.z << " " << point.r << " " << point.g << " " << point.b << "\n";
     }
-
     std::ofstream ply(fileLocation.string());
     ply << ss.str();
 }
 
 void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
                                         std::shared_ptr<VkRender::TextureData> &ptr,
-                                        std::string &fileCompression) {
-
-
+                                        std::string &fileFormat,
+                                        std::shared_ptr<CRLRosWriter::RosbagWriter> rosbagWriter,
+                                        std::mutex &rosbagWriterMut) {
     // Create folders. One for each Source
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');
-    if (type == CRL_COLOR_IMAGE_YUV420 && fileCompression != "png") {
-        fileCompression = "ppm";
+    if (type == CRL_COLOR_IMAGE_YUV420 && fileFormat == "tiff") {
+        fileFormat = "ppm";
     }
-
-    saveDirectory = path + "/" + stringSrc + "/" + fileCompression + "/";
-    std::filesystem::path fileLocation = saveDirectory.string() + std::to_string(ptr->m_Id) + "." + fileCompression;
-
+    saveDirectory = path + "/" + stringSrc + "/" + fileFormat + "/";
+    std::filesystem::path fileLocation = saveDirectory.string() + std::to_string(ptr->m_Id) + "." + fileFormat;
     // Create folders if no exists
-    if (!std::filesystem::is_directory(saveDirectory) ||
-        !std::filesystem::exists(saveDirectory)) { // Check if src folder exists
-        std::filesystem::create_directories(saveDirectory); // create src folder
+    if (fileFormat != "rosbag") {
+        if (!std::filesystem::is_directory(saveDirectory) ||
+            !std::filesystem::exists(saveDirectory)) { // Check if src folder exists
+            std::filesystem::create_directories(saveDirectory); // create src folder
+        }
     }
+
     // Create file
-    if (fileCompression == "tiff" || fileCompression == "ppm") {
+    if (fileFormat == "tiff" || fileFormat == "ppm") {
         switch (type) {
             case CRL_POINT_CLOUD:
                 break;
-            case CRL_GRAYSCALE_IMAGE: {
-                int samplesPerPixel = 1;
-                TIFF *out = TIFFOpen(fileLocation.string().c_str(), "w");
-                TIFFSetField(out, TIFFTAG_IMAGEWIDTH, ptr->m_Width);  // set the width of the image
-                TIFFSetField(out, TIFFTAG_IMAGELENGTH, ptr->m_Height);    // set the height of the image
-                TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
-                TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 8);    // set the size of the channels
-                TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
-                //   Some other essential fields to set that you do not have to understand for now.
-                TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-                TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
-                TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
-
-                // We set the strip size of the file to be size of one row of pixels
-                TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
-                //Now writing image to the file one strip at a time
-                for (uint32_t row = 0; row < ptr->m_Height; row++) {
-                    if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width]), row, 0) < 0)
-                        break;
-                }
-                TIFFClose(out);
-            }
+            case CRL_GRAYSCALE_IMAGE:
+                RecordUtility::writeTIFFImage(fileLocation, ptr, 8);
                 break;
-            case CRL_DISPARITY_IMAGE: {
-                int samplesPerPixel = 1;
-                TIFF *out = TIFFOpen(fileLocation.string().c_str(), "w");
-                TIFFSetField(out, TIFFTAG_IMAGEWIDTH, ptr->m_Width);  // set the width of the image
-                TIFFSetField(out, TIFFTAG_IMAGELENGTH, ptr->m_Height);    // set the height of the image
-                TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
-                TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 16);    // set the size of the channels
-                TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
-                //   Some other essential fields to set that you do not have to understand for now.
-                TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-                TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-                TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
-                // We set the strip size of the file to be size of one row of pixels
-                TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
-                //Now writing image to the file one strip at a time
-                for (uint32_t row = 0; row < ptr->m_Height; row++) {
-                    if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width * sizeof(uint16_t)]), row, 0) < 0)
-                        break;
-                }
-                TIFFClose(out);
-            }
+            case CRL_DISPARITY_IMAGE:
+                RecordUtility::writeTIFFImage(fileLocation, ptr, 16);
                 break;
             case CRL_COLOR_IMAGE_YUV420:
-                // Normalize ycbcr
-            {
-                std::vector<uint8_t> output(ptr->m_Width * ptr->m_Height * 3);
-                RecordFrames::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
-                // something like this
-
-                std::ofstream outputStream(fileLocation.string(),
-                                           std::ios::out | std::ios::binary);
-                if (!outputStream.good()) {
-                    Log::Logger::getInstance()->error("Failed top open file {} for writing", fileLocation.string());
-                    break;
-                }
-                const uint32_t imageSize = ptr->m_Height * ptr->m_Width * 3;
-                outputStream << "P6\n"
-                             << ptr->m_Width << " " << ptr->m_Height << "\n"
-                             << 0xFF << "\n";
-                outputStream.write(reinterpret_cast<const char *>(output.data()), imageSize);
-                outputStream.close();
+                RecordUtility::writePPMImage(fileLocation, ptr);
                 break;
-            }
             case CRL_CAMERA_IMAGE_NONE:
             case CRL_COLOR_IMAGE_RGBA:
                 break;
@@ -525,128 +470,83 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
                 Log::Logger::getInstance()->info("Recording not specified for this format");
                 break;
         }
-    } else if (fileCompression == "png") {
+    } else if (fileFormat == "png") {
         switch (type) {
             case CRL_POINT_CLOUD:
                 break;
-            case CRL_GRAYSCALE_IMAGE: {
-
-                stbi_write_png((fileLocation.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, ptr->data,
-                               ptr->m_Width);
-            }
+            case CRL_GRAYSCALE_IMAGE:
+                RecordUtility::writePNGImageGrayscale(fileLocation, ptr);
                 break;
-            case CRL_DISPARITY_IMAGE: {
-                auto *d = reinterpret_cast<uint16_t *>( ptr->data);
-                std::vector<uint8_t> buf;
-                buf.reserve(ptr->m_Width * ptr->m_Height);
-                for (size_t i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
-                    d[i] /= 16;
-                    uint8_t lsb = d[i] & 0x000000FF;
-                    buf.emplace_back(lsb);
-                }
-                stbi_write_png((fileLocation.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, buf.data(),
-                               ptr->m_Width);
-            }
+            case CRL_DISPARITY_IMAGE:
+                RecordUtility::writePNGImageGrayscale(fileLocation, ptr, true);
                 break;
             case CRL_COLOR_IMAGE_YUV420:
-                // Normalize ycbcr
-
-            {
-                Log::Logger::getInstance()->info("Saving Frame: {} from source: {}", ptr->m_Id, stringSrc);
-
-                int width = ptr->m_Width;
-                int height = ptr->m_Height;
-
-                AVFrame *src;
-                src = av_frame_alloc();
-                if (!src) {
-                    Log::Logger::getInstance()->error("Could not allocate video frame");
-                    break;
-                }
-                src->format = AV_PIX_FMT_YUV420P;
-                src->width = width;
-                src->height = height;
-                int ret = av_image_alloc(src->data, src->linesize, src->width, src->height,
-                                         static_cast<AVPixelFormat>(src->format), 32);
-                if (ret < 0) {
-                    Log::Logger::getInstance()->error("Could not allocate raw picture buffer");
-                    break;
-                }
-
-                std::memcpy(src->data[0], ptr->data, ptr->m_Len);
-                auto *d = reinterpret_cast<uint16_t *>( ptr->data2);
-                for (size_t i = 0; i < ptr->m_Height / 2 * ptr->m_Width / 2; ++i) {
-                    src->data[1][i] = d[i] & 0xff;
-                    src->data[2][i] = (d[i] >> (8)) & 0xff;
-                }
-
-                AVFrame *dst;
-                dst = av_frame_alloc();
-                if (!dst) {
-                    Log::Logger::getInstance()->error("Could not allocate video frame");
-                    break;
-                }
-                dst->format = AV_PIX_FMT_RGB24;
-                dst->width = width;
-                dst->height = height;
-                ret = av_image_alloc(dst->data, dst->linesize, dst->width, dst->height,
-                                     static_cast<AVPixelFormat>(dst->format), 8);
-                if (ret < 0) {
-                    Log::Logger::getInstance()->error("Could not allocate raw picture buffer");
-                    break;
-                }
-                SwsContext *conversion = sws_getContext(width,
-                                                        height,
-                                                        AV_PIX_FMT_YUV420P,
-                                                        width,
-                                                        height,
-                                                        AV_PIX_FMT_RGB24,
-                                                        SWS_FAST_BILINEAR,
-                                                        nullptr,
-                                                        nullptr,
-                                                        nullptr);
-                sws_scale(conversion, src->data, src->linesize, 0, height, dst->data, dst->linesize);
-                sws_freeContext(conversion);
-                stbi_write_png((fileLocation.string()).c_str(), width, height, 3, dst->data[0], dst->linesize[0]);
-
-                av_freep(&src->data[0]);
-                av_frame_free(&src);
-                av_freep(&dst->data[0]);
-                av_frame_free(&dst);
-
-            }
-
+                RecordUtility::writePNGImageColor(fileLocation, ptr);
                 break;
             default:
                 Log::Logger::getInstance()->info("Recording not specified for this format");
                 break;
         }
-    }
-    // Open the CSV file in append mode
-    auto timestampFile = fileLocation.parent_path().parent_path() / "timestamps.csv";
-    std::ofstream csvFile(timestampFile, std::ios_base::app);
-    // Check if the file opened successfully
-    if (!csvFile.is_open()) {
-        std::cerr << "Failed to open timestamps.csv for writing." << std::endl;
-        return;
-    }
-    // Write the filename and timestamps to the CSV file
-    csvFile << fileLocation.filename() << "," << ptr->m_TimeSeconds << "." << ptr->m_TimeMicroSeconds << std::endl;
-    // Close the file (optional, as the destructor would do this)
-    csvFile.close();
-}
-
-
-void RecordFrames::ycbcrToRGB(uint8_t *luma, uint8_t *chroma, const uint32_t &width,
-                              const uint32_t &height, uint8_t *output) {
-    const size_t rgb_stride = width * 3;
-
-    for (uint32_t y = 0; y < height; ++y) {
-        const size_t row_offset = y * rgb_stride;
-
-        for (uint32_t x = 0; x < width; ++x) {
-            memcpy(output + row_offset + (3 * x), RecordFrames::ycbcrToRGB<uint8_t>(luma, chroma, width, x, y).data(),
-                   3);
+    } else if (fileFormat == "rosbag") {
+        // Topic is stream type
+        std::string topic = "/" + stringSrc;
+        // Replacing all spaces with underscores
+        for (size_t pos = topic.find(" "); pos != std::string::npos; pos = topic.find(" ", pos)) {
+            topic.replace(pos, 1, "_");
         }
+        // Synchronize writing to bag.
+        std::scoped_lock<std::mutex> lock(rosbagWriterMut);
+        // Open bag if not opened
+        rosbagWriter->open(std::filesystem::path(path) / "MultiSense.bag");
+        // Add connection if not added
+        auto conn = rosbagWriter->getConnection(topic, "sensor_msgs/Image");
+        int64_t timestamp;
+        timestamp = (static_cast<int64_t>(ptr->m_TimeSeconds) * 1000000000LL)
+                    + (static_cast<int64_t>(ptr->m_TimeMicroSeconds) * 1000LL);
+
+        std::string encoding = CRLSourceToRosImageEncodingString(type);
+        std::vector<uint8_t> data;
+        uint32_t step = ptr->m_Width;
+        uint32_t imageSize = ptr->m_Width * ptr->m_Height;
+        // convert color to rgb
+        switch (type) {
+            case CRL_GRAYSCALE_IMAGE:
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
+                                                    imageSize,
+                                                    encoding, step);
+                break;
+            case CRL_DISPARITY_IMAGE:
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
+                                                    imageSize * 2,
+                                                    encoding, step * 2);
+                break;
+            case CRL_COLOR_IMAGE_YUV420: {
+                std::vector<uint8_t> output(imageSize * 3);
+                RecordUtility::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, output.data(),
+                                                    imageSize * 3,
+                                                    encoding, step * 3);
+            }
+                break;
+            default:
+                Log::Logger::getInstance()->warning("Format not supported for Rosbag");
+                break;
+        }
+        Log::Logger::getInstance()->trace("Got rosbag connection {}, topic: {}, type: {}, encoding {}, size {}",
+                                          conn.id, conn.topic, conn.msgType, encoding, data.size());
+
+        rosbagWriter->write(conn, timestamp, data);
     }
+    // Write to the timestamp file
+    if (fileFormat != "rosbag")
+        RecordUtility::writeTimestamps(fileLocation, ptr);
 }
+
+void RecordFrames::finishWritingRosbag(std::shared_ptr<CRLRosWriter::RosbagWriter> rosbagWriter,
+                                       std::mutex &rosbagWriterMut) {
+    std::scoped_lock<std::mutex> lock(rosbagWriterMut);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    Log::Logger::getInstance()->info("Releasing rosbagWriter: {}", rosbagWriter.use_count());
+
+}
+

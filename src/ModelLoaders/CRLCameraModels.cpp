@@ -82,7 +82,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
             vertexBufferSize,
             &vertexStaging.buffer,
             &vertexStaging.memory,
-            (void *) vertices.data()));
+            reinterpret_cast<const void *>(vertices.data())))
     // Index m_DataPtr
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
@@ -91,7 +91,7 @@ CRLCameraModels::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                (void *) indices.data()));
+                reinterpret_cast<const void *>(indices.data())))
     }
     // Create m_Device local buffers
     // Vertex buffer
@@ -156,6 +156,10 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type) {
             break;
         case CRL_CAMERA_IMAGE_NONE:
             break;
+        case CRL_DATA_NONE:
+            break;
+        case CRL_POINT_CLOUD:
+            break;
     }
 
     return true;
@@ -180,6 +184,10 @@ bool CRLCameraModels::Model::updateTexture(VkRender::TextureData *tex) {
             }
             break;
         case CRL_CAMERA_IMAGE_NONE:
+            break;
+        case CRL_DATA_NONE:
+            break;
+        case CRL_POINT_CLOUD:
             break;
     }
 
@@ -216,7 +224,7 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex) 
 
 void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType,
                                                 bool forPointCloud, int isColorOrLuma) {
-    Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height, (int) texType);
+    Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height, static_cast<int>(texType));
     VkFormat format{};
 
     switch (texType) {
@@ -244,7 +252,7 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
             format = VK_FORMAT_R8G8B8A8_UNORM;
             break;
         default:
-            Log::Logger::getInstance()->warning("Texture type not supported yet: {}", (int) texType);
+            Log::Logger::getInstance()->warning("Texture type not supported yet: {}", static_cast<int>( texType));
             break;
     }
 
@@ -494,8 +502,15 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
                         {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                         {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                 };
-                break;
+            } else {
+                setLayoutBindings = {
+                        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                };
             }
+            break;
+
         case CRL_GRAYSCALE_IMAGE:
         case CRL_COLOR_IMAGE_RGBA:
             setLayoutBindings = {
@@ -508,7 +523,7 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
         default:
             std::cerr << "Model type not supported yet\n";
             break;
-    };
+    }
 
 
 // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED

@@ -54,6 +54,8 @@
 
 #endif
 
+#include "Viewer/Tools/Macros.h"
+
 #define LIST_ADAPTER_INTERVAL_MS 500
 
 class AdapterUtils {
@@ -81,17 +83,18 @@ public:
         return listAdapters();
 #endif
     }
+#ifdef WIN32
 
     void startAdapterScan(VkRender::ThreadPool *pool) {
-#ifdef WIN32
         std::scoped_lock<std::mutex> lock(mut);
         if (!runThread && !isThreadAlive) {
             pool->Push(AdapterUtils::listAdapters, &adapters, this);
             runThread = true;
             Log::Logger::getInstance()->info("Started Manual Adapter Scan");
         }
-#endif
+        //Log::Logger::getInstance()->info("Starting adapter scan with threadpool {}", pool->getTaskListSize());
     }
+#endif
 
     void stopAdapterScan() {
 #ifdef WIN32
@@ -241,14 +244,17 @@ public:
         auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         for (auto i = ifn; i->if_name; ++i) {
             struct {
+                DISABLE_WARNING_PUSH
+                DISABLE_WARNING_PEDANTIC
                 struct ethtool_link_settings req{};
+                DISABLE_WARNING_POP
                 __u32 link_mode_data[3 * 127]{};
             } ecmd{};
             Adapter adapter(i->if_name, i->if_index);
 
             auto ifr = ifreq{};
             std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
-
+            ifr.ifr_name[IF_NAMESIZE - 1] = '\0';
             ecmd.req.cmd = ETHTOOL_GLINKSETTINGS;
             ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
 

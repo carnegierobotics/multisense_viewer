@@ -5,7 +5,7 @@ Description: A MultiSense interface tool
  Visit releases page for latest versions of this tool at the CarnegieRobotics's github page: https://github.com/carnegierobotics
 Author: Magnus mgjerde@carnegierobotics.com
 Maintainer: Carnegie Robotics LLC mgjerde@carnegierobotics.com
-Version: 1.1-0
+Version: 1.1-1
 Homepage: https://carnegierobotics.com
 Website: https://github.com/carnegierobotics
 Architecture: amd64

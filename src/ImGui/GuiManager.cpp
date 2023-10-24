@@ -50,13 +50,13 @@
 
 namespace VkRender {
 
-    const char *ImGuiGlfwGetClipboardText(void *user_data) {
-        const char *str = glfwGetClipboardString((GLFWwindow *) user_data);
+    const char *ImGuiGlfwGetClipboardText(void *userData) {
+        const char *str = glfwGetClipboardString(reinterpret_cast<GLFWwindow *>(userData));
         return str;
     }
 
-    void ImGuiGlfwSetClipboardText(void *user_data, const char *text) {
-        glfwSetClipboardString((GLFWwindow *) user_data, text);
+    void ImGuiGlfwSetClipboardText(void *userData, const char *text) {
+        glfwSetClipboardString(reinterpret_cast<GLFWwindow *>(userData), text);
     }
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
@@ -168,8 +168,8 @@ namespace VkRender {
         }
 
         // Upload data
-        ImDrawVert *vtxDst = (ImDrawVert *) vertexBuffer.mapped;
-        ImDrawIdx *idxDst = (ImDrawIdx *) indexBuffer.mapped;
+        auto *vtxDst = reinterpret_cast<ImDrawVert *>(vertexBuffer.mapped);
+        auto *idxDst = reinterpret_cast<ImDrawIdx *>(indexBuffer.mapped);
 
         for (int n = 0; n < imDrawData->CmdListsCount; n++) {
             const ImDrawList *cmd_list = imDrawData->CmdLists[n];
@@ -223,15 +223,15 @@ namespace VkRender {
                 for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
 
-                    auto texture = (VkDescriptorSet) pcmd->GetTexID();
+                    auto texture = static_cast<VkDescriptorSet>(pcmd->GetTexID());
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                                             &texture, 0, nullptr);
 
                     VkRect2D scissorRect{};
-                    scissorRect.offset.x = std::max((int32_t) (pcmd->ClipRect.x), 0);
-                    scissorRect.offset.y = std::max((int32_t) (pcmd->ClipRect.y), 0);
-                    scissorRect.extent.width = (uint32_t) (pcmd->ClipRect.z - pcmd->ClipRect.x);
-                    scissorRect.extent.height = (uint32_t) (pcmd->ClipRect.w - pcmd->ClipRect.y);
+                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0);
+                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0);
+                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x);
+                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y);
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset,
                                      pcmd->VtxOffset + vertexOffset, 0);
@@ -243,7 +243,8 @@ namespace VkRender {
     }
 
 
-    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples) {
+    void GuiManager::setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass,
+                           VkSampleCountFlagBits msaaSamples) {
         VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
                           device->m_LogicalDevice, &vtxModule);
@@ -288,7 +289,7 @@ namespace VkRender {
 
         // Dimensions
         ImGuiIO *io = &ImGui::GetIO();
-        io->DisplaySize = ImVec2((float) width, (float) height);
+        io->DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
         io->DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
         // Initialize all Vulkan resources used by the ui
@@ -419,7 +420,7 @@ namespace VkRender {
 
         VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),
-                (uint32_t) setLayoutBindings.size());
+                static_cast<uint32_t>(setLayoutBindings.size()));
         CHECK_RESULT(
                 vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
                                             &descriptorSetLayout));
@@ -486,8 +487,8 @@ namespace VkRender {
         handles.info->gif.height = height;
         handles.info->gif.totalFrames = depth;
         handles.info->gif.imageSize = imageSize;
-        handles.info->gif.delay = (uint32_t *) delays;
-        gifImageDescriptors.reserve((size_t) depth + 1);
+        handles.info->gif.delay = reinterpret_cast<uint32_t *>( delays);
+        gifImageDescriptors.reserve(static_cast<size_t>(depth) + 1);
 
         auto *pixelPointer = pixels; // Store original position in pixels
 
@@ -531,7 +532,7 @@ namespace VkRender {
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = (VkDeviceSize) texWidth * texHeight * texChannels;
+        VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
         if (!pixels) {
             throw std::runtime_error("failed to load texture m_Image: " + file);
         }
@@ -576,7 +577,7 @@ namespace VkRender {
         unsigned char *pixels;
         int width, height;
         io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        VkDeviceSize uploadSize = (VkDeviceSize) width * height * 4 * sizeof(char);
+        auto uploadSize = width * height * 4 * sizeof(char);
 
         fontTexture.emplace_back(pixels, uploadSize,
                                  VK_FORMAT_R8G8B8A8_UNORM,
@@ -611,4 +612,4 @@ namespace VkRender {
         return font;
     }
 
-};
+}

@@ -63,7 +63,6 @@ public:
         if (ImGui::BeginPopupModal("set_custom_metadata_modal", nullptr,
                                    ImGuiWindowFlags_NoDecoration)) {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            float width = handles->info->metadataWidth;
             float centerWidth = handles->info->metadataWidth / 2.0f;
             float textPadding = 50.0f;
             float textInputPadding = centerWidth - textPadding - 110.0f;

@@ -268,6 +268,13 @@ namespace VkRender::MultiSense {
             float x, y, z;
             double time;
             double dTime;
+
+            bool operator == (const ImuData& d){
+                if (d.x == x && d.y == y && d.z == z)
+                    return true;
+                else
+                    return false;
+            }
         };
         CRLPhysicalCamera() = default;
         ~CRLPhysicalCamera() = default;
@@ -291,16 +298,22 @@ namespace VkRender::MultiSense {
             glm::mat4 KColorMatExtrinsic{};
             float focalLength = 0.0f;
             float pointCloudScale = 1.0f;
+
+            // IMU
+            std::vector<crl::multisense::imu::Info>   imuSensorInfos;
+            std::vector<crl::multisense::imu::Config> imuSensorConfigs;
+            uint32_t imuMaxTableIndex = 0;
+            bool hasIMUSensor = false;
         };
 
         /**@brief Connects to a VkRender m_Device
          *
-         * @param[in] ip Which IP the camera is located on
+         * @param[in] dev Which IP the camera is located on
          * @param[in] isRemoteHead If the m_Device is a remote head or not
          * @return vector containing the list of successful connections. Numbered by crl::multisense::RemoteHeadChannel ids
          */
         std::vector<crl::multisense::RemoteHeadChannel>
-        connect(const VkRender::Device *ip, bool isRemoteHead, const std::string &ifName);
+        connect(const VkRender::Device *ip, const std::string &ifName);
 
         /**@brief Starts the desired stream if supported
          *
@@ -346,7 +359,7 @@ namespace VkRender::MultiSense {
          * @param[in] channelID Which channel to get IMU data for
          * @return
          */
-        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID) const;
+        bool calculateIMURotation(VkRender::IMUData *data, crl::multisense::RemoteHeadChannel channelID, double alpha = 0.95) const;
 
         /**
          * @brief get a status update from the MultiSense m_Device
@@ -371,7 +384,6 @@ namespace VkRender::MultiSense {
          * @return if the value was successfully set
          * */
         bool setExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
-        bool setSecondaryExposureParams(ExposureParams p, crl::multisense::RemoteHeadChannel channelID);
 
         /** @brief Sets the desired resolution of the camera. Must be one of supported resolutions of the sensor
          *
@@ -464,6 +476,8 @@ namespace VkRender::MultiSense {
          */
         bool updateCameraInfo(VkRender::Device* dev, crl::multisense::RemoteHeadChannel idx);
 
+        void setIMUConfig(uint32_t tableIndex, crl::multisense::RemoteHeadChannel channelID = 0);
+
     private:
         std::unordered_map<crl::multisense::RemoteHeadChannel, std::unique_ptr<ChannelWrapper>> channelMap{};
         std::unordered_map<crl::multisense::RemoteHeadChannel, CRLCameraResolution> currentResolutionMap{};
@@ -492,7 +506,7 @@ namespace VkRender::MultiSense {
 
         // Helper function to update and log status
         template <typename Func, typename Data>
-        bool updateAndLog(crl::multisense::RemoteHeadChannel channelID, Func f, Data& data, const std::string& field) {
+        bool updateAndLog(Func f, Data& data, const std::string& field) {
             crl::multisense::Status status = f(data);
             if (status != crl::multisense::Status_Ok) {
                 Log::Logger::getInstance()->error("Failed to update '{}'. error {}", field, crl::multisense::Channel::statusString(status));
@@ -502,6 +516,7 @@ namespace VkRender::MultiSense {
         }
 
 
+        void getIMUConfig(crl::multisense::RemoteHeadChannel channelID);
     };
 
 

@@ -255,13 +255,20 @@ public:
 
                 ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
-                ImGui::Text("Frame time: %.5f", handles->info->frameTimer);
+                ImGui::Text("Frame time: %.5f",static_cast<double>( handles->info->frameTimer));
                 ImGui::Text("Frame: %lu", handles->info->frameID);
 
             #ifdef MULTISENSE_VIEWER_DEBUG
                     ImGui::Text("Camera: ");
-                    ImGui::Text("Position: (%.3f, %.3f, %.3f)", handles->camera.pos.x, handles->camera.pos.y, handles->camera.pos.z);
-                    ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",  handles->camera.rot.x,  handles->camera.rot.y,  handles->camera.rot.z);
+                ImGui::Text("Position: (%.3f, %.3f, %.3f)",
+                            static_cast<double>(handles->camera.pos.x),
+                            static_cast<double>(handles->camera.pos.y),
+                            static_cast<double>(handles->camera.pos.z));
+
+                ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
+                            static_cast<double>(handles->camera.rot.x),
+                            static_cast<double>(handles->camera.rot.y),
+                            static_cast<double>(handles->camera.rot.z));
             #endif
 
             }
@@ -269,12 +276,9 @@ public:
 
             auto met = Log::Logger::getLogMetrics();
 
-            if (met->device.dev != nullptr) {
-                const VkRender::ChannelInfo *info;
+            if (met->device.dev != nullptr && !met->device.dev->notRealDevice) {
                 // Check if channelInfo contains key 0
                 if (!met->device.dev->channelInfo.empty()) {
-                    info = &met->device.dev->channelInfo.at(0);
-
                     ImGui::PushFont(handles->info->font15);
                     ImGui::Text("MultiSense Info:");
                     ImGui::PopFont();
@@ -438,7 +442,7 @@ public:
             }
 
 
-            static int scriptSelectionIndex = 0; // Here we store our selection data as an index.
+            static size_t scriptSelectionIndex = 0; // Here we store our selection data as an index.
             std::string scriptPreviewValue = user.scripts.names.empty() ? ""
                                                                         : user.scripts.names[scriptSelectionIndex].c_str();
 
@@ -453,7 +457,7 @@ public:
             // Set log level
 
             if (ImGui::BeginCombo("##rebuildScripts", scriptPreviewValue.c_str(), 0)) {
-                for (int n = 0; n < user.scripts.names.size(); n++) {
+                for (size_t n = 0; n < user.scripts.names.size(); n++) {
                     const bool is_selected = (scriptSelectionIndex == n);
                     if (ImGui::Selectable(user.scripts.names[n].c_str(), is_selected)) {
                         scriptSelectionIndex = n;

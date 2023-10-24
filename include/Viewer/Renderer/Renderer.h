@@ -35,10 +35,15 @@
  **/
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
+#ifdef WIN32
+    #ifdef APIENTRY
+    #undef APIENTRY
+    #endif
+#endif
+#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <thread>
 #include <fstream>

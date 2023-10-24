@@ -40,7 +40,7 @@ void CustomModels::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vert
             vertexBufferSize,
             &vertexStaging.buffer,
             &vertexStaging.memory,
-            (void *) vertices.data()));
+            reinterpret_cast<const void *>(vertices.data())))
     // Index m_DataPtr
     if (indexBufferSize > 0) {
         CHECK_RESULT(vulkanDevice->createBuffer(
@@ -49,7 +49,7 @@ void CustomModels::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vert
                 indexBufferSize,
                 &indexStaging.buffer,
                 &indexStaging.memory,
-                (void *) indices.data()));
+                reinterpret_cast<const void *>(indices.data())))
     }
     // Create m_Device local buffers
     // Vertex buffer

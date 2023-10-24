@@ -71,15 +71,14 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        float headerPadding = 20.0f;
         ImGui::Dummy(ImVec2(0.0f, 30.0f));
         ImVec2 pos = ImGui::GetCursorPos();
-        pos.x += headerPadding;
+        //pos.x += headerPadding;
         ImGui::SetCursorPos(pos);
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 5.0f));
 
         ImGui::BeginChild("Configuration2DExtension", ImVec2(handles->info->controlAreaWidth -
-                                                             (2.0f * headerPadding + handles->info->scrollbarSize),
+                                                             handles->info->scrollbarSize,
                                                              0.0f), false);
         for (auto &dev: handles->devices) {
             if (dev.state != CRL_STATE_ACTIVE)
@@ -150,7 +149,7 @@ public:
                 ImGui::SameLine();
 
                 ImGui::HelpMarker(
-                        "Record the frames active in the preview window as format. A metadata file is generated into the record location.",
+                        "Capture frames displayed in the preview windows using the specified format. Note: Due to hardware constraints and the number of active streams, it's possible some frames might not be saved.",
                         VkRender::Colors::CRLTextWhite);
                 ImGui::SameLine();
                 ImGui::PushFont(handles->info->font13);
@@ -166,7 +165,7 @@ public:
 
                 /** @brief Drop down for compression selection */
                 {
-                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag"};
                     static size_t selector = 0;
 
                     ImGui::SetNextItemWidth(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);

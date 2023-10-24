@@ -33,9 +33,9 @@ public:
 private:
     std::filesystem::path usageFilePath;
     std::filesystem::path logFilePath;
+    std::future<void> writeToUsageFileFuture;
     nlohmann::json jsonFile;
     std::unique_ptr<VkRender::ServerConnection> server;
-
     nlohmann::json parseJSON(const std::stringstream &buffer);
 
     void initializeJSONFile();
@@ -51,7 +51,9 @@ private:
 
     void saveJsonToUsageFile(nlohmann::json jsonObj);
 
-    std::string getCurrentTimeString(std::chrono::system_clock::time_point time = std::chrono::system_clock::now());
+    std::string getCurrentTimeString();
+
+    void writeToUsageFileAsync(const nlohmann::json& obj);
 };
 
 

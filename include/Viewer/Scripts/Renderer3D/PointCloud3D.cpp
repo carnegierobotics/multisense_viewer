@@ -4,7 +4,7 @@
 
 
 #include "Viewer/Scripts/Renderer3D/PointCloud3D.h"
-#include "Viewer/ImGui/ScriptUIAddons.h"
+#include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Scripts/Private/ScriptUtils.h"
 
 void PointCloud3D::setup() {

@@ -19,12 +19,13 @@ void Main3D::setup() {
     humvee->createRenderPipeline(renderUtils, shaders);
 
 
-    Widgets::make()->inputText("Renderer3D", "##File: ", buf);
+    Widgets::make()->fileDialog("Renderer3D", "Set file", filePathDialog, &openDialog);
+
     Widgets::make()->button("Renderer3D", "Start", &play);
     Widgets::make()->button("Renderer3D", "Pause", &pause);
     Widgets::make()->button("Renderer3D", "Stop", &restart);
-    Widgets::make()->slider("Renderer3D", "skip n", &val, 1, 50);
-    Widgets::make()->text("Renderer3D", "Sim time:");
+    //Widgets::make()->slider("Renderer3D", "skip n", &val, 1, 50);
+    //Widgets::make()->text("Renderer3D", "Sim time:");
     //Widgets::make()->text("Renderer3D", simTimeText.c_str(), "id1");
 
     Widgets::make()->checkbox("Renderer3D", "Realtime", &forceRealTime);
@@ -52,7 +53,7 @@ void Main3D::update() {
     if (play) {
         paused = false;
 
-        std::filesystem::path path(buf);
+        std::filesystem::path path(filePathDialog);
         std::ifstream file(path);
         std::string line, dummy; // 'dummy' is used to skip unwanted fields
 
@@ -64,11 +65,7 @@ void Main3D::update() {
             Data entry;
 
             // Skip timestamp, left_rect, disparity, lidar
-            std::getline(ss, entry.timestamp, ',');  // timestamp
-            std::getline(ss, dummy, ',');  // left_rect
-            std::getline(ss, dummy, ',');  // disparity
-            std::getline(ss, dummy, ',');  // lidar tilted
-            std::getline(ss, dummy, ',');  // lidar horiz
+            std::getline(ss, entry.timestamp, ',');  // index
 
             entry.timePoint = convertToTimePoint(entry.timestamp);
 
@@ -91,12 +88,12 @@ void Main3D::update() {
             startPlay = std::chrono::steady_clock::now();
         }
 
-        for (size_t i = 1; i < entries.size(); ++i) {
-            entries[i].timeDelta = entries[i].timePoint - entries[0].timePoint;
-            entries[i].dt = entries[i].timePoint - entries[i - 1].timePoint;
-        }
-        entries[0].timeDelta = std::chrono::nanoseconds(0);  // First entry has no prior timestamp
-        lastEntryTime = std::chrono::steady_clock::now();
+        //for (size_t i = 1; i < entries.size(); ++i) {
+        //    entries[i].timeDelta = entries[i].timePoint - entries[0].timePoint;
+        //    entries[i].dt = entries[i].timePoint - entries[i - 1].timePoint;
+        //}
+        //entries[0].timeDelta = std::chrono::nanoseconds(0);  // First entry has no prior timestamp
+        //lastEntryTime = std::chrono::steady_clock::now();
 
     }
 

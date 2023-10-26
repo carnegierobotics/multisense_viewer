@@ -58,6 +58,9 @@ public:
     } lightSource;
 
     char buf[1024] = "/home/magnus/crl/disparity_quality/processing/images_and_pose.csv";
+    char filePathDialog[1024] = "/home/magnus/crl/disparity_quality/processing/images_and_pose.csv";
+    bool openDialog = false;
+
     bool play = false;
     bool pause = false;
     bool paused = false;

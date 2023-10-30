@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "1")
+set(VERSION_PATCH "2")
 set(ARCHITECTURE "amd64")
 
 # Set install directory. Used to generate installers for both Windows and Ubuntu using their native approaches
@@ -108,8 +108,21 @@ if (UNIX) ## Linux
     endif ()
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
+    # GTK for native file dialog
+    # Locate pkg-config
+    find_package(PkgConfig REQUIRED)
+    # Check for GTK+ using pkg-config
+    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+    # Add GTK+ include directories
+    include_directories(${GTK3_INCLUDE_DIRS})
+    # Add GTK+ linking directories
+    link_directories(${GTK3_LIBRARY_DIRS})
+    # Add GTK+ compiler flags
+    add_definitions(${GTK3_CFLAGS_OTHER})
+
+
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} ${GTK3_LIBRARIES})
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})

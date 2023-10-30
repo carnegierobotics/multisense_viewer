@@ -37,10 +37,10 @@
 #ifndef MULTISENSE_VIEWER_CONTROL_AREA_EXTENSION_H
 #define MULTISENSE_VIEWER_CONTROL_AREA_EXTENSION_H
 
-#include <ImGuiFileDialog.h>
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/ImGui/Custom/imgui_user.h"
+#include "Viewer/ImGui/LayerUtils.h"
 
 // Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH
@@ -57,6 +57,8 @@ private:
         auto_metadata = 1
     };
 public:
+
+    std::future<std::string> folderFuture;
 
 
     /** Called once upon this object creation**/
@@ -86,39 +88,6 @@ public:
 
             createRecordingHeader(handles, dev);
 
-            /*
-            bool anyStreamActive = false;
-            for (const auto &ch: dev.channelInfo) {
-                if (!ch.requestedStreams.empty())
-                    anyStreamActive = true;
-            }
-            if (anyStreamActive) {
-                ImGui::Dummy(ImVec2(40.0f, 0.0f));
-                ImGui::SameLine();
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-                ImGui::Text("Currently Active Streams:");
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextLightGray);
-                for (const auto &ch: dev.channelInfo) {
-                    if (dev.isRemoteHead) {
-                        for (const auto &src: ch.requestedStreams) {
-                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
-                            ImGui::SameLine();
-                            ImGui::Text("Head: %d, Source: %s", ch.index + 1, src.c_str());
-                        }
-                    } else {
-                        for (const auto &src: ch.requestedStreams) {
-                            if (src == "Idle")
-                                continue;
-
-                            ImGui::Dummy(ImVec2(60.0f, 0.0f));
-                            ImGui::SameLine();
-                            ImGui::Text("%s", src.c_str());
-                        }
-                    }
-                }
-                ImGui::PopStyleColor(2);
-            }
-            */
 
         }
 
@@ -197,12 +166,20 @@ public:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
 
                     if (ImGui::Button("Record Location", btnSize)) {
-                        ImGuiFileDialog::Instance()->OpenDialog("ChooseDirDlgKey", "Choose a Directory",
-                                                                nullptr,
-                                                                ".");
+                        if (!folderFuture.valid())
+                            folderFuture = std::async(VkRender::LayerUtils::selectFolder);
                         handles->usageMonitor->userClickAction("Choose Location", "Button",
                                                                ImGui::GetCurrentWindow()->Name);
+                    }
 
+                    if (folderFuture.valid()) {
+                        if (folderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                            std::string selectedFolder = folderFuture.get(); // This will also make the future invalid
+                            if (!selectedFolder.empty()) {
+                                // Do something with the selected folder
+                                dev.record.frameSaveFolder = selectedFolder;
+                            }
+                        }
                     }
 
 
@@ -217,24 +194,8 @@ public:
                     ImGui::PopStyleColor();
                     ImGui::PopStyleVar();
 
-                    // display
-                    //ImGui::SetNextWindowPos(ImGui::GetCursorScreenPos());
-                    //ImGui::SetNextWindowSize(ImVec2(400.0f, 300.0f));
-                    ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
                     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                    if (ImGuiFileDialog::Instance()->Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                             ImVec2(1200.0f, 1000.0f))) {
-                        // action if OK
-                        if (ImGuiFileDialog::Instance()->IsOk()) {
-                            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                            dev.record.frameSaveFolder = filePathName;
-                            // action
-                        }
 
-                        // close
-                        ImGuiFileDialog::Instance()->Close();
-                    }
-                    ImGui::PopStyleColor();
                 }
                 /// RADIOBUTTONS
                 ImGui::Dummy(ImVec2(0.0f, 0.0f));

@@ -4,24 +4,25 @@
 
 #ifndef MULTISENSE_VIEWER_SENSORCONFIGURATIONEXT_H
 #define MULTISENSE_VIEWER_SENSORCONFIGURATIONEXT_H
-#include <ImGuiFileDialog.h>
 
 #include "Viewer/ImGui/Custom/imgui_user.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/Tools/Macros.h"
+#include "Viewer/ImGui/LayerUtils.h"
 
 // Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-class SensorConfigurationExt   : public VkRender::Layer {
+class SensorConfigurationExt : public VkRender::Layer {
 private:
-    ImGuiFileDialog chooseIntrinsicsDialog;
-    ImGuiFileDialog chooseExtrinsicsDialog;
-    ImGuiFileDialog saveCalibrationDialog;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSavedTimer;
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
     std::string setCalibrationFeedbackText;
+
+    std::future<std::string> setIntrinsicsFuture;
+    std::future<std::string> setExtrinsicsFuture;
+    std::future<std::string> setCalibrationFolderFuture;
 
 public:
 
@@ -37,7 +38,7 @@ public:
     }
 
     /** Called once per frame **/
-    void onUIRender(VkRender::GuiObjectHandles* handles) override {
+    void onUIRender(VkRender::GuiObjectHandles *handles) override {
         for (auto &dev: handles->devices) {
             if (dev.state != CRL_STATE_ACTIVE)
                 continue;
@@ -736,7 +737,7 @@ public:
                 ImGui::SetNextItemWidth(handles->info->controlAreaWidth - 72.0f - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 if (ImGui::SliderFloat("##Startup Time",
-                                      &d.parameters.light.startupTime, 0,
+                                       &d.parameters.light.startupTime, 0,
                                        60, "%.1f") && ImGui::IsItemActivated()) {
                     handles->usageMonitor->userClickAction("##Startup Time", "SliderFloat",
                                                            ImGui::GetCurrentWindow()->Name);
@@ -846,27 +847,23 @@ public:
 
 
                 if (ImGui::Button("Choose Dir", btnSize)) {
-                    saveCalibrationDialog.OpenDialog("ChooseDirDlgKey", "Choose save location", nullptr,
-                                                     ".");
+                    if (!setCalibrationFolderFuture.valid())
+                        setCalibrationFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
-                // display
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (saveCalibrationDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                  ImVec2(1200.0f, 1000.0f))) {
-                    // action if OK
-                    if (saveCalibrationDialog.IsOk()) {
-                        std::string filePathName = saveCalibrationDialog.GetFilePathName();
-                        d.parameters.calib.saveCalibrationPath = filePathName;
-                        // action
+                handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
+
+                if (setCalibrationFolderFuture.valid()) {
+                    if (setCalibrationFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                        std::string selectedFolder = setCalibrationFolderFuture.get(); // This will also make the future invalid
+                        if (!selectedFolder.empty()) {
+                            d.parameters.calib.saveCalibrationPath = selectedFolder;
+                        }
                     }
-                    // close
-                    saveCalibrationDialog.Close();
                 }
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor(2);
+                // display
+                ImGui::PopStyleColor();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
@@ -936,28 +933,21 @@ public:
 
 
                 if (ImGui::Button("Choose File##1", btnSize)) {
-                    chooseIntrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose intrinsics .yml file", ".yml",
-                                                      ".");
+                    if (!setIntrinsicsFuture.valid())
+                        setIntrinsicsFuture = std::async(VkRender::LayerUtils::selectYamlFile);
                     handles->usageMonitor->userClickAction("Choose File##1", "Button", ImGui::GetCurrentWindow()->Name);
+                }
 
+                if (setIntrinsicsFuture.valid()) {
+                    if (setIntrinsicsFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                        std::string selectedFolder = setIntrinsicsFuture.get(); // This will also make the future invalid
+                        if (!selectedFolder.empty()) {
+                            d.parameters.calib.intrinsicsFilePath = selectedFolder;
+                        }
+                    }
                 }
                 // display
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (chooseIntrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                   ImVec2(1200.0f, 1000.0f))) {
-                    // action if OK
-                    if (chooseIntrinsicsDialog.IsOk()) {
-                        std::string filePathName = chooseIntrinsicsDialog.GetFilePathName();
-                        d.parameters.calib.intrinsicsFilePath = filePathName;
-                        // action
-                    }
-                    // close
-                    chooseIntrinsicsDialog.Close();
-                }
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor(2);
-
+                ImGui::PopStyleColor();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
@@ -981,28 +971,22 @@ public:
                 ImGui::PopStyleColor();
                 ImGui::SameLine();
                 if (ImGui::Button("Choose File##2", btnSize)) {
-                    chooseExtrinsicsDialog.OpenDialog("ChooseFileDlgKey", "Choose extrinsics .yml file", ".yml",
-                                                      ".");
+                    if (!setExtrinsicsFuture.valid())
+                        setExtrinsicsFuture = std::async(VkRender::LayerUtils::selectYamlFile);
                     handles->usageMonitor->userClickAction("Choose File##2", "Button", ImGui::GetCurrentWindow()->Name);
-
                 }
-                // display
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-                if (chooseExtrinsicsDialog.Display("ChooseFileDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                                   ImVec2(1200.0f, 1000.0f))) {
-                    // action if OK
-                    if (chooseExtrinsicsDialog.IsOk()) {
-                        std::string filePathName = chooseExtrinsicsDialog.GetFilePathName();
-                        d.parameters.calib.extrinsicsFilePath = filePathName;
-                        // action
+
+                if (setExtrinsicsFuture.valid()) {
+                    if (setExtrinsicsFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                        std::string selectedFolder = setExtrinsicsFuture.get(); // This will also make the future invalid
+                        if (!selectedFolder.empty()) {
+                            d.parameters.calib.extrinsicsFilePath = selectedFolder;
+                        }
                     }
-                    // close
-                    chooseExtrinsicsDialog.Close();
                 }
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor(2);
 
+                // display
+                ImGui::PopStyleColor();
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(25.0f, 0.0f));
                 ImGui::SameLine();
@@ -1084,6 +1068,7 @@ public:
     }
 
 };
+
 DISABLE_WARNING_POP
 
 #endif //MULTISENSE_VIEWER_SENSORCONFIGURATIONEXT_H

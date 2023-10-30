@@ -43,10 +43,7 @@
 
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
-#define MULTISENSE_VIEWER_DEBUG
-
 #include "Viewer/Core/Validation.h"
-
 #endif
 
 

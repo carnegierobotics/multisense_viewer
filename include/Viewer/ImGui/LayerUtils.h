@@ -5,7 +5,14 @@
 #ifndef MULTISENSE_VIEWER_LAYERUTILS_H
 #define MULTISENSE_VIEWER_LAYERUTILS_H
 
+#ifdef WIN32
+
+#else
+#include <gtk/gtk.h>
+#endif
+
 #include <imgui.h>
+
 
 #include "Viewer/ImGui/Widgets.h"
 
@@ -85,6 +92,73 @@ namespace VkRender::LayerUtils {
         }
         ImGui::Dummy(ImVec2());
     }
+
+
+
+    static inline std::string selectYamlFile() {
+        std::string filename = "";
+
+        gtk_init(0, NULL);
+
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                "Open YAML File",
+                NULL,
+                GTK_FILE_CHOOSER_ACTION_OPEN,
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Open"), GTK_RESPONSE_ACCEPT,
+                NULL
+        );
+
+        GtkFileFilter *filter = gtk_file_filter_new();
+        gtk_file_filter_set_name(filter, "YML Files");
+        gtk_file_filter_add_pattern(filter, "*.yml");
+        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSysteHomePath().c_str());
+
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            filename = selected_file;
+            g_free(selected_file);
+        }
+
+        gtk_widget_destroy(dialog);
+        while (gtk_events_pending()) {
+            gtk_main_iteration();
+        }
+
+        return filename;
+    }
+
+
+    static inline std::string selectFolder() {
+        std::string folderPath = "";
+
+        gtk_init(0, NULL);
+
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                "Select Folder",
+                NULL,
+                GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Open"), GTK_RESPONSE_ACCEPT,
+                NULL
+        );
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSysteHomePath().c_str());
+
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            folderPath = selected_folder;
+            g_free(selected_folder);
+        }
+
+        gtk_widget_destroy(dialog);
+        while (gtk_events_pending()) {
+            gtk_main_iteration();
+        }
+
+        return folderPath;
+    }
+
 }
 
 

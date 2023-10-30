@@ -123,6 +123,7 @@ if (UNIX) ## Linux
     set_project_warnings(VulkanRenderer)
     set_project_warnings(MultiSense-Viewer)
 
+
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -254,3 +255,14 @@ if (WIN32)
         endif ()
     endif ()
 endif ()
+
+# Compile definitions
+if (CMAKE_BUILD_TYPE MATCHES "Release")
+    target_compile_definitions(VulkanRenderer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+    target_compile_definitions(ScriptLibrary PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+else()
+    target_compile_definitions(VulkanRenderer PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(ScriptLibrary PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_DEBUG)
+endif()

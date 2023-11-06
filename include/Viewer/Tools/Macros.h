@@ -74,6 +74,7 @@
 #define DISABLE_WARNING_MISSING_INITIALIZERS                      DISABLE_WARNING(-Wmissing-field-initializers)
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION                     DISABLE_WARNING(-Wunused-function)
 #define DISABLE_WARNING_PEDANTIC                                  DISABLE_WARNING(-Wpedantic)
+#define DISABLE_WARNING_DEPRECATION
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
 // other warnings you want to deactivate...
 

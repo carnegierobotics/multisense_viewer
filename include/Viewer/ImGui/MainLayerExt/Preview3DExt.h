@@ -280,7 +280,7 @@ public:
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("Color:");
+            ImGui::Text("Color Source:");
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
@@ -313,7 +313,8 @@ public:
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             ImGui::Text("Save Point cloud as .ply file");
             ImGui::PopStyleColor(); // Text Color grey
-
+            ImGui::SameLine();
+            ImGui::HelpMarker("Disparity image to point-cloud conversion is performed on the cpu and therefore slow. Be patient, especially for full res images.");
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();

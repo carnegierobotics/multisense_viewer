@@ -256,7 +256,8 @@ public:
 
                 // Check if the user has set a filepath
                 if (strlen(dev.record.frameSaveFolder.c_str()) > 0 && !dev.record.frame) {
-                    if (!std::filesystem::is_empty(dev.record.frameSaveFolder)) {
+                    if (std::filesystem::exists(dev.record.frameSaveFolder) &&
+                        !std::filesystem::is_empty(dev.record.frameSaveFolder)) {
                         ImGui::SameLine();
                         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::TextRedColor);
                         ImGui::Text("Record folder is not empty");

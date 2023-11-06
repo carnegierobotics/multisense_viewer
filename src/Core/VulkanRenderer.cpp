@@ -37,8 +37,8 @@
 
 #include <stb_image.h>
 
-#include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Populate.h"
 
 

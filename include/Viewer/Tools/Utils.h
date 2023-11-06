@@ -53,6 +53,7 @@
 
 #include <direct.h>
 #include <windows.h>
+#include <UserEnv.h>
 
 #else
 
@@ -735,23 +736,23 @@ namespace Utils {
         return multiSenseCachePath;
     }
 
-    static inline std::filesystem::path getSysteHomePath() {
+    static inline std::filesystem::path getSystemHomePath() {
 #ifdef WIN32
         char path[MAX_PATH];
-    HANDLE hToken;
-    DWORD bufferSize = sizeof(path);
+        HANDLE hToken;
+        DWORD bufferSize = sizeof(path);
 
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &hToken)) {
-        if (!GetUserProfileDirectory(hToken, path, &bufferSize)) {
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &hToken)) {
+            if (!GetUserProfileDirectory(hToken, path, &bufferSize)) {
+                CloseHandle(hToken);
+                return ""; // Failed to get home directory
+            }
             CloseHandle(hToken);
-            return ""; // Failed to get home directory
+        } else {
+            return ""; // Failed to open process token
         }
-        CloseHandle(hToken);
-    } else {
-        return ""; // Failed to open process token
-    }
 
-    return std::string(path);
+        return std::string(path);
 #else
         const char *homeDir = getenv("HOME");
         if (homeDir) {

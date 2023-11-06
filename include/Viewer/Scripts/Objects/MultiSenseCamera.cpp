@@ -210,7 +210,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             rateTableIndex = d.rateTableIndex;
             auto ratesInfo = renderData.crlCamera->getCameraInfo(0).imuSensorInfos.front();
             for (const auto &rate: ratesInfo.rates)
-                rates.emplace_back(rate.sampleRate);
+                rates.emplace_back(static_cast<uint32_t>(rate.sampleRate));
 
             snprintf(sampleRateLabel, sizeof(sampleRateLabel), "Rate (Hz): %d", rates[rateTableIndex]);
 

@@ -223,12 +223,12 @@ public:
                     handles->usageMonitor->userClickAction("Set ROI", "Button", ImGui::GetCurrentWindow()->Name);
 
                     try {
-                        d.parameters.stereo.ep.autoExposureRoiX = std::stoi(buf1);
-                        d.parameters.stereo.ep.autoExposureRoiY = std::stoi(buf2);
+                        d.parameters.stereo.ep.autoExposureRoiX = static_cast<uint16_t>(std::stoi(buf1));
+                        d.parameters.stereo.ep.autoExposureRoiY = static_cast<uint16_t>(std::stoi(buf2));
                         d.parameters.stereo.ep.autoExposureRoiWidth =
-                                std::stoi(buf3) - d.parameters.stereo.ep.autoExposureRoiX;
+                                static_cast<uint16_t>( std::stoi(buf3)) - d.parameters.stereo.ep.autoExposureRoiX;
                         d.parameters.stereo.ep.autoExposureRoiHeight =
-                                std::stoi(buf4) - d.parameters.stereo.ep.autoExposureRoiY;
+                                static_cast<uint16_t>(std::stoi(buf4)) - d.parameters.stereo.ep.autoExposureRoiY;
                         d.parameters.stereo.ep.update |= true;
                     } catch (...) {
                         Log::Logger::getInstance()->error(
@@ -447,12 +447,12 @@ public:
                                                                ImGui::GetCurrentWindow()->Name);
 
                         try {
-                            d.parameters.aux.ep.autoExposureRoiX = std::stoi(buf1);
-                            d.parameters.aux.ep.autoExposureRoiY = std::stoi(buf2);
+                            d.parameters.aux.ep.autoExposureRoiX = static_cast<uint16_t>(std::stoi(buf1));
+                            d.parameters.aux.ep.autoExposureRoiY = static_cast<uint16_t>(std::stoi(buf2));
                             d.parameters.aux.ep.autoExposureRoiWidth =
-                                    std::stoi(buf3) - d.parameters.aux.ep.autoExposureRoiX;
+                                    static_cast<uint16_t>(std::stoi(buf3)) - d.parameters.aux.ep.autoExposureRoiX;
                             d.parameters.aux.ep.autoExposureRoiHeight =
-                                    std::stoi(buf4) - d.parameters.aux.ep.autoExposureRoiY;
+                                    static_cast<uint16_t>( std::stoi(buf4)) - d.parameters.aux.ep.autoExposureRoiY;
                             d.parameters.aux.update |= true;
                         } catch (...) {
                             Log::Logger::getInstance()->error(

@@ -106,7 +106,7 @@ if (UNIX) ## Linux
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
                 CACHE PATH "default install path" FORCE)
     endif ()
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
     # GTK for native file dialog
     # Locate pkg-config
@@ -161,8 +161,7 @@ if (WIN32)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
         target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
-        set(CMAKE_CXX_FLAGS_RELEASE "/Ox /DNDEBUG")
-
+        #set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
     endif ()
 
     # Include directory for WinPcap
@@ -198,6 +197,7 @@ if (WIN32)
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
+
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)

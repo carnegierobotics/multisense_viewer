@@ -410,7 +410,7 @@ namespace VkRender {
      * Contain possible streams and resolutions for each channel
      */
     struct ChannelInfo {
-        uint32_t index = 0;
+        crl::multisense::RemoteHeadChannel index = 0;
         std::vector<std::string> availableSources{};
         /** @brief Current connection state for this channel */
         ArConnectionState state = CRL_STATE_DISCONNECTED;

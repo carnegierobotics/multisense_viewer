@@ -118,16 +118,14 @@ endif ()
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${IMGUI_DIR}/imgui.h")
     message(FATAL_ERROR "The submodules ${IMGUI_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 else ()
-    message("[INFO] Adding IMGUI and ImGuiFileDialog from directory: ${IMGUI_DIR}")
+    message("[INFO] Adding IMGUI from directory: ${IMGUI_DIR}")
 
     set(IMGUI_DIR external/imgui)
-    set(IMGUI_FILEDIALOG_DIR external/ImGuiFileDialog)
     include_directories(SYSTEM ${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
-    include_directories(SYSTEM ${IMGUI_FILEDIALOG_DIR})
     include_directories(${PROJECT_SOURCE_DIR}/include/Viewer/ImGui/Custom) # Custom IMGUI application
     set(IMGUI_SRC
             ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp
-            ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_FILEDIALOG_DIR}/ImGuiFileDialog.cpp
+            ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp
             include/Viewer/ImGui/Custom/imgui_user.h)
     add_library(imgui STATIC ${IMGUI_SRC})
 endif ()

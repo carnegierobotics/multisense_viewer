@@ -66,7 +66,7 @@ std::ostream& writeMatrix (std::ostream& stream, std::string const& name, uint32
       if (j != 0)    {
         stream << ", ";
       }
-      sprintf(buf,"%22.17f", data[i * columns + j]);
+        sprintf(buf, "%22.17f", static_cast<double>(data[i * columns + j]));
 
       stream << buf;
     }

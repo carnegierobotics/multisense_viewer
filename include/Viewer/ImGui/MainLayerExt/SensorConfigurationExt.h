@@ -852,8 +852,6 @@ public:
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
-                handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
-
                 if (setCalibrationFolderFuture.valid()) {
                     if (setCalibrationFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                         std::string selectedFolder = setCalibrationFolderFuture.get(); // This will also make the future invalid

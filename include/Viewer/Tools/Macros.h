@@ -53,7 +53,8 @@
 #define DISABLE_WARNING_DOUBLE_PROMOTION                         
 #define DISABLE_WARNING_IMPLICIT_FALLTHROUGH                     
 #define DISABLE_WARNING_TYPE_LIMITS                              
-#define DISABLE_WARNING_MISSING_INITIALIZERS                     
+#define DISABLE_WARNING_MISSING_INITIALIZERS
+#define DISABLE_WARNING_DEPRECATION                      DISABLE_WARNING(4996)
 // other warnings you want to deactivate...
 
 #elif defined(__GNUC__) || defined(__clang__)
@@ -73,6 +74,7 @@
 #define DISABLE_WARNING_MISSING_INITIALIZERS                      DISABLE_WARNING(-Wmissing-field-initializers)
 #define DISABLE_WARNING_UNREFERENCED_FUNCTION                     DISABLE_WARNING(-Wunused-function)
 #define DISABLE_WARNING_PEDANTIC                                  DISABLE_WARNING(-Wpedantic)
+#define DISABLE_WARNING_DEPRECATION
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
 // other warnings you want to deactivate...
 

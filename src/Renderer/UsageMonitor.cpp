@@ -143,12 +143,22 @@ nlohmann::json UsageMonitor::parseJSON(const std::stringstream &buffer) {
 }
 
 void UsageMonitor::initializeJSONFile() {
-    if (std::filesystem::exists(usageFilePath)) {
-        if (!std::filesystem::remove(usageFilePath)) {
+    try {
+        if (std::filesystem::exists(usageFilePath)) {
+            std::filesystem::remove(usageFilePath);
             Log::Logger::getInstance()->info("File {} deleted successfully", usageFilePath.string());
-        } else {
-            Log::Logger::getInstance()->error("Error deleting {}", usageFilePath.string());
         }
+    } catch (const std::filesystem::filesystem_error& e) {
+        Log::Logger::getInstance()->error("Error deleting file {}: {}", usageFilePath.string(), e.what());
+        // Handle the error, e.g., retrying the deletion, informing the user, etc.
+    } catch (const std::exception& e) {
+        // Catch any other standard exceptions
+        Log::Logger::getInstance()->error("An error occurred: {}", e.what());
+        // Handle the error
+    } catch (...) {
+        // Catch any other exceptions not caught by the previous catch blocks
+        Log::Logger::getInstance()->error("An unknown error occurred while deleting file {}", usageFilePath.string());
+        // Handle the error
     }
 
     VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();

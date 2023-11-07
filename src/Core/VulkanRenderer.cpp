@@ -37,16 +37,13 @@
 
 #include <stb_image.h>
 
-#include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Tools/Populate.h"
 
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
-#define MULTISENSE_VIEWER_DEBUG
-
 #include "Viewer/Core/Validation.h"
-
 #endif
 
 

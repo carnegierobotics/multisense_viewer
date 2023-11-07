@@ -110,7 +110,7 @@ public:
     ImVector<LOG_COLOR> colors;
     ImVec4 lastLogTextColor = VkRender::Colors::TextColorGray;
     size_t ethernetComboIndex = 0;
-    size_t resultsComboIndex = -1;
+    int resultsComboIndex = -1;
 
     bool startedAutoConnect = false;
     std::unique_ptr<AutoConnectReader> reader;
@@ -936,7 +936,7 @@ private:
                         handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable",
                                                                ImGui::GetCurrentWindow()->Name);
 
-                        resultsComboIndex = n;
+                        resultsComboIndex = static_cast<int>(n);
                         entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished
                         m_Entry = entryConnectDeviceList[n];
                         selected = true;

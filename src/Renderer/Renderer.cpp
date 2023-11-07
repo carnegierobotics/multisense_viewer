@@ -184,7 +184,6 @@ void Renderer::buildScripts() {
 
         if (scripts[scriptName].get() == nullptr) {
             pLogger->error("Failed to register script {}.", scriptName);
-            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
             scripts.erase(scriptName);
             return;
         }

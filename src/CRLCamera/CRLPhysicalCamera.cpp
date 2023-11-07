@@ -897,14 +897,14 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::writeImageIntrinics(std::ostream &stream, crl::multisense::image::Calibration const &calibration,
                                            bool hasAuxCamera) {
         stream << "%YAML:1.0\n";
-        writeMatrix(stream, "M1", 3, 3, reinterpret_cast<const double *>(&calibration.left.M[0][0]));
-        writeMatrix(stream, "D1", 1, 8, reinterpret_cast<const double *>(&calibration.left.D[0]));
-        writeMatrix(stream, "M2", 3, 3, reinterpret_cast<const double *>(&calibration.right.M[0][0]));
-        writeMatrix(stream, "D2", 1, 8, reinterpret_cast<const double *>(&calibration.right.D[0]));
+        writeMatrix(stream, "M1", 3, 3, &calibration.left.M[0][0]);
+        writeMatrix(stream, "D1", 1, 8, &calibration.left.D[0]);
+        writeMatrix(stream, "M2", 3, 3, &calibration.right.M[0][0]);
+        writeMatrix(stream, "D2", 1, 8, &calibration.right.D[0]);
 
         if (hasAuxCamera) {
-            writeMatrix(stream, "M3", 3, 3, reinterpret_cast<const double *>(&calibration.aux.M[0][0]));
-            writeMatrix(stream, "D3", 1, 8, reinterpret_cast<const double *>(&calibration.aux.D[0]));
+            writeMatrix(stream, "M3", 3, 3, &calibration.aux.M[0][0]);
+            writeMatrix(stream, "D3", 1, 8, &calibration.aux.D[0]);
         }
         return stream;
     }
@@ -914,14 +914,14 @@ namespace VkRender::MultiSense {
     CRLPhysicalCamera::writeImageExtrinics(std::ostream &stream, crl::multisense::image::Calibration const &calibration,
                                            bool hasAuxCamera) {
         stream << "%YAML:1.0\n";
-        writeMatrix(stream, "R1", 3, 3, reinterpret_cast<const double *>(&calibration.left.R[0][0]));
-        writeMatrix(stream, "P1", 3, 4, reinterpret_cast<const double *>(&calibration.left.P[0][0]));
-        writeMatrix(stream, "R2", 3, 3, reinterpret_cast<const double *>(&calibration.right.R[0][0]));
-        writeMatrix(stream, "P2", 3, 4, reinterpret_cast<const double *>(&calibration.right.P[0][0]));
+        writeMatrix(stream, "R1", 3, 3, &calibration.left.R[0][0]);
+        writeMatrix(stream, "P1", 3, 4, &calibration.left.P[0][0]);
+        writeMatrix(stream, "R2", 3, 3, &calibration.right.R[0][0]);
+        writeMatrix(stream, "P2", 3, 4, &calibration.right.P[0][0]);
 
         if (hasAuxCamera) {
-            writeMatrix(stream, "R3", 3, 3, reinterpret_cast<const double *>(&calibration.aux.R[0][0]));
-            writeMatrix(stream, "P3", 3, 4, reinterpret_cast<const double *>(&calibration.aux.P[0][0]));
+            writeMatrix(stream, "R3", 3, 3, &calibration.aux.R[0][0]);
+            writeMatrix(stream, "P3", 3, 4, &calibration.aux.P[0][0]);
         }
         return stream;
     }

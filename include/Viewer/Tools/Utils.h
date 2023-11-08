@@ -191,6 +191,8 @@ namespace Utils {
         if (d == "Compressed Aux") return CRL_COLOR_IMAGE_YUV420;
         if (d == "Compressed Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
 
+        if (d == "Particle") return CRL_COMPUTE_SHADER;
+
         return CRL_CAMERA_IMAGE_NONE;
     }
 
@@ -634,8 +636,9 @@ namespace Utils {
 
     static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
         dev.state = CRL_STATE_JUST_ADDED;
-        dev.cameraName = "Multisense-KS21";
-        dev.notRealDevice = true;
+        dev.cameraName = "Simulated device";
+        dev.IP = "127.0.0.1";
+        dev.simulatedDevice = true;
         dev.channelInfo.resize(4); // max number of remote heads
         dev.win.clear();
         crl::multisense::RemoteHeadChannel ch = 0;

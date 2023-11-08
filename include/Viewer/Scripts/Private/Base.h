@@ -77,12 +77,16 @@ namespace VkRender {
         std::vector<std::unique_ptr<VkRender::RenderDescriptorBuffers>> additionalBuffers{};
         std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
 
+        std::unique_ptr<VkRender::Particle> particleIn{};
+        std::unique_ptr<VkRender::Particle> particleOut{};
+
         std::vector<VkShaderModule> shaderModules{};
         VkRender::SkyboxTextures skyboxTextures;
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
-        std::unique_ptr<SharedData> sharedData;
+        std::unique_ptr<SharedData> sharedData; // TODO remove this
+        VkRender::TopLevelScriptData* topLevelData;
 
         virtual ~Base() = default;
 
@@ -196,7 +200,8 @@ namespace VkRender {
 
         }
 
-        void createUniformBuffers(const VkRender::RenderUtils &utils, VkRender::RenderData rData) {
+        void createUniformBuffers(const RenderUtils &utils, RenderData rData, TopLevelScriptData *topLevelPtr) {
+            topLevelData = topLevelPtr;
             renderData = std::move(rData);
             renderUtils = utils;
             renderUtils.uniformBuffers.resize(renderUtils.UBCount);
@@ -223,6 +228,9 @@ namespace VkRender {
                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                                  &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
                 uniformBuffer.bufferThree.map();
+
+                // Particle buffers
+
 
             }
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();

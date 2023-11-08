@@ -340,7 +340,7 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
 
     // Exit if either a graphics or a presenting queue hasn't been found
     if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) {
-        throw std::runtime_error("Could not find a graphics and/or presenting queue!");
+        throw std::runtime_error("Could not find a graphics and/or presenting graphicsQueue!");
     }
 
     if (graphicsQueueNodeIndex != presentQueueNodeIndex) {

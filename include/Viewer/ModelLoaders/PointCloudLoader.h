@@ -56,6 +56,7 @@ public:
     const VkRender::RenderUtils *renderer;
 public:
     std::unique_ptr<Model> model;
+    std::vector<VkBuffer>* buffers = nullptr;
 
     explicit PointCloudLoader(const VkRender::RenderUtils *renderUtils) {
         renderer = renderUtils;

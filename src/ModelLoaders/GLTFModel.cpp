@@ -2191,7 +2191,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     createPipeline(*utils.renderPass, shaders2, utils.msaaSamples);
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    Log::Logger::getInstance()->info("Created render pipeline for {} took {} ms", m_FileName, tDiff);
+    Log::Logger::getInstance()->info("Created recordCommands pipeline for {} took {} ms", m_FileName, tDiff);
 
 }
 

@@ -50,21 +50,41 @@ public:
 
         ImVec2 btnSize(120.0f, 50.0f);
 
-        // Btn X length is: 150 * 2 + 20 = 320
-        // So I should start drawing at winSize / 2 - 160.0f
-        ImGui::SetCursorPos(ImVec2(winSize.x / 2.0f - 160.0f, winSize.y / 2.0f - 25.0f));
+        // Btn X length is: 150 * 3 + 20 = 470
+        // So I should start drawing at winSize / 2 - 235.0f
+        ImGui::SetCursorPos(ImVec2(winSize.x / 2.0f - 235.0f, winSize.y / 2.0f - 25.0f));
         ImGui::PushFont(handles->info->font15);
-        if(ImGui::Button("ADD DEVICE", btnSize)){
+        if(ImGui::Button("Add Device", btnSize)){
             handles->openAddDevicePopup = true;
             handles->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
         }
         ImGui::SameLine(0.0f, 20.0f);
-        if(ImGui::Button("3D RENDERER", btnSize)){
+        if(ImGui::Button("3D Renderer", btnSize)){
             // Open 3D Renderer with a basic scene.
             // Get rid of sidebar
             //
             handles->renderer3D = true;
         }
+        ImGui::SameLine(0.0f, 20.0f);
+
+        if(ImGui::Button("MS Renderer", btnSize)){
+                handles->usageMonitor->userClickAction("MultiSense RENDERER", "Button", ImGui::GetCurrentWindow()->Name);
+                // Add test device to renderer if not present
+                bool exists = false;
+                for (const auto &device: handles->devices) {
+                    if (device.cameraName == "Simulated device")
+                        exists = true;
+                }
+                if (!exists) {
+                    VkRender::Device testDevice;
+                    testDevice.name = "AccuRender Profile";
+                    Utils::initializeUIDataBlockWithTestData(testDevice);
+                    handles->devices.emplace_back(testDevice);
+                    Log::Logger::getInstance()->info("Adding a test device to the profile section");
+                }
+                handles->simulator.enabled = true;
+        }
+
         ImGui::PopFont();
         ImGui::End();
         ImGui::PopStyleVar();

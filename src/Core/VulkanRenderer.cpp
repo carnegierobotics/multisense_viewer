@@ -43,7 +43,9 @@
 
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
+
 #include "Viewer/Core/Validation.h"
+
 #endif
 
 
@@ -208,31 +210,11 @@ namespace VkRender {
 
         device = vulkanDevice->m_LogicalDevice;
         // Get a graphics queue from the m_Device
-        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.graphics, 0, &queue);
+        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.graphics, 0, &graphicsQueue);
+        // Get Compute queue
+        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.compute, 0, &computeQueue);
         // Find a suitable depth m_Format
         depthFormat = Utils::findDepthFormat(physicalDevice);
-        // Create synchronization Objects
-        VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-        // Create a semaphore used to synchronize m_Image presentation
-        // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-        if (err)
-            throw std::runtime_error("Failed to create semaphore");
-        // Create a semaphore used to synchronize command submission
-        // Ensures that the m_Image is not presented until all commands have been submitted and executed
-        err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete);
-        if (err)
-            throw std::runtime_error("Failed to create semaphore");
-        // Set up submit info structure
-        // Semaphores will stay the same during application lifetime
-        // Command buffer submission info is set by each example
-        submitInfo = Populate::submitInfo();
-        submitInfo.pWaitDstStageMask = &submitPipelineStages;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &semaphores.renderComplete;
-
 
         return true;
     }
@@ -257,16 +239,25 @@ namespace VkRender {
         vkDestroyImageView(device, colorImage.view, nullptr);
         vkFreeMemory(device, colorImage.mem, nullptr);
         vkDestroyCommandPool(device, cmdPool, nullptr);
+        vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
         for (auto &fence: waitFences) {
             vkDestroyFence(device, fence, nullptr);
         }
+        for (auto &fence: computeInFlightFences) {
+            vkDestroyFence(device, fence, nullptr);
+        }
+
         vkDestroyRenderPass(device, renderPass, nullptr);
         for (auto &fb: frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
-        vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-        vkDestroySemaphore(device, semaphores.renderComplete, nullptr);
+        for (auto &semaphore: semaphores) {
+            vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
+            vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
+            vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
+        }
+
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 
@@ -592,6 +583,12 @@ namespace VkRender {
         cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         VkResult result = vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &cmdPool);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
+
+        VkCommandPoolCreateInfo cmdPoolComputeInfo = Populate::commandPoolCreateInfo();
+        cmdPoolComputeInfo.queueFamilyIndex = vulkanDevice->m_QueueFamilyIndices.compute;
+        cmdPoolComputeInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        result = vkCreateCommandPool(device, &cmdPoolComputeInfo, nullptr, &cmdPoolCompute);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create compute command pool");
     }
 
     void VulkanRenderer::createCommandBuffers() {
@@ -605,16 +602,47 @@ namespace VkRender {
                         static_cast<uint32_t>(drawCmdBuffers.size()));
 
         VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data());
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
+
+
+        // Create one command buffer for each swap chain m_Image and reuse for rendering
+        computeCmdBuffers.resize(swapchain->imageCount);
+
+        VkCommandBufferAllocateInfo cmdBufAllocateComputeInfo = Populate::commandBufferAllocateInfo(
+                cmdPoolCompute,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                static_cast<uint32_t>(computeCmdBuffers.size()));
+
+        result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCmdBuffers.data());
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
+
     }
 
     void VulkanRenderer::createSynchronizationPrimitives() {
+        // Create synchronization Objects
+        // Create a semaphore used to synchronize m_Image presentation
+        // Ensures that the m_Image is displayed before we start submitting new commands to the queue
+
+        // Set up submit info structure
+        // Semaphores will stay the same during application lifetime
+        // Command buffer submission info is set by each example
+        VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
+
         // Wait fences to sync command buffer access
         VkFenceCreateInfo fenceCreateInfo = Populate::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-        waitFences.resize(drawCmdBuffers.size());
-        for (auto &fence: waitFences) {
-            VkResult result = vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
+        waitFences.resize(swapchain->imageCount);
+        semaphores.resize(swapchain->imageCount);
+        computeInFlightFences.resize(swapchain->imageCount);
+        for (size_t i = 0; i < swapchain->imageCount; ++i) {
+            if (vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete) !=
+                VK_SUCCESS ||
+                vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete) != VK_SUCCESS ||
+                vkCreateFence(device, &fenceCreateInfo, nullptr, &waitFences[i]) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
+            }
+            if (vkCreateFence(device, &fenceCreateInfo, nullptr, &computeInFlightFences[i]) != VK_SUCCESS ||
+                vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
+                throw std::runtime_error("Failed to create compute synchronization fence");
         }
     }
 
@@ -669,7 +697,7 @@ namespace VkRender {
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
-        vkQueueWaitIdle(queue);
+        vkQueueWaitIdle(graphicsQueue);
         vkDeviceWaitIdle(device);
 
         // Recreate swap chain
@@ -694,11 +722,11 @@ namespace VkRender {
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-        VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-        if (err != VK_SUCCESS)
-            throw std::runtime_error("Failed to create semaphore");
-        submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+        //vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
+        //VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
+        //if (err != VK_SUCCESS)
+        //    throw std::runtime_error("Failed to create semaphore");
+        //submitInfo.pWaitSemaphores = &semaphores.presentComplete;
         //for (const auto& fence : waitFences) {
         //    vkDestroyFence(device, fence, nullptr);
         //}
@@ -718,6 +746,8 @@ namespace VkRender {
 
     void VulkanRenderer::destroyCommandBuffers() {
         vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
+        vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCmdBuffers.size()),
+                             computeCmdBuffers.data());
     }
 
     void VulkanRenderer::windowResize() {
@@ -734,7 +764,7 @@ namespace VkRender {
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
-        vkQueueWaitIdle(queue);
+        vkQueueWaitIdle(graphicsQueue);
         vkDeviceWaitIdle(device);
 
         // Recreate swap chain
@@ -757,11 +787,12 @@ namespace VkRender {
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-        VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-        if (err != VK_SUCCESS)
-            throw std::runtime_error("Failed to create semaphore");
-        submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+        for (auto &semaphore: semaphores) {
+            vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
+            VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore.presentComplete);
+            if (err != VK_SUCCESS)
+                throw std::runtime_error("Failed to create semaphore");
+        }
         //for (const auto& fence : waitFences) {
         //    vkDestroyFence(device, fence, nullptr);
         //}
@@ -812,9 +843,12 @@ namespace VkRender {
             io.MouseDown[1] = mouseButtons.right;
             input.lastKeyPress = keyPress;
             input.action = keyAction;
+            /** Compute pipeline command recording and submission **/
+            computePipeline();
+            /** Aquire next image **/
             prepareFrame();
             /** Call Renderer's render function **/
-            render();
+            recordCommands();
             /** Reset some variables for next frame **/
             submitFrame();
             keyPress = -1;
@@ -843,15 +877,48 @@ namespace VkRender {
         }
     }
 
+
+    void VulkanRenderer::computePipeline() {
+        VkSubmitInfo sInfo{};
+        sInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        // Compute submission
+        // Only wait on the fence if we submitted work last time
+        vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+        updateUniformBuffers();
+
+        vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
+
+        vkResetCommandBuffer(computeCmdBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+
+        /** call renderer compute function **/
+        bool hasWork = compute();
+
+        sInfo.commandBufferCount = 1;
+        sInfo.pCommandBuffers = &computeCmdBuffers[currentFrame];
+        sInfo.signalSemaphoreCount = 1;
+        sInfo.pSignalSemaphores = &semaphores[currentFrame].computeComplete;
+
+        if (vkQueueSubmit(computeQueue, 1, &sInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit compute command buffer!");
+        }
+    }
+
+
     void VulkanRenderer::prepareFrame() {
+        // Use a fence to wait until the command buffer has finished execution before using it again
+        VkResult result = vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("Failed to wait for fence");
+
         // Acquire the next m_Image from the swap chain
-        VkResult result = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
+        result = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
         // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
         if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
             Log::Logger::getInstance()->info("SwapChain no longer compatible on acquire next image. Recreating..");
             windowResize();
             // New swapchain so we dont need to wait for present complete sempahore
-            VkResult res = swapchain->acquireNextImage(semaphores.presentComplete, &currentBuffer);
+            VkResult res = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
             if (res != VK_SUCCESS) {
                 throw std::runtime_error(
                         "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
@@ -863,34 +930,41 @@ namespace VkRender {
             throw std::runtime_error(
                     "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
-        // Use a fence to wait until the command buffer has finished execution before using it again
-        result = vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX);
-        if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to wait for fence");
-        result = vkResetFences(device, 1, &waitFences[currentBuffer]);
+
+        result = vkResetFences(device, 1, &waitFences[currentFrame]);
         if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to reset fence");
+
+        vkResetCommandBuffer(drawCmdBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+
     }
 
     void VulkanRenderer::submitFrame() {
         std::scoped_lock<std::mutex> lock(queueSubmitMutex);
+        VkSemaphore waitSemaphores[] = {semaphores[currentFrame].computeComplete, semaphores[currentFrame].presentComplete };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 2;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer];
+        submitInfo.pCommandBuffers = &drawCmdBuffers[currentFrame];
 
-        vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]);
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
-        VkResult result = swapchain->queuePresent(queue, currentBuffer, semaphores.renderComplete);
+        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
-            Log::Logger::getInstance()->warning("SwapChain no longer compatible on queue present");
+            Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present");
         } else if (result != VK_SUCCESS) {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
                                               std::to_string(result));
         }
-        if (vkQueueWaitIdle(queue) != VK_SUCCESS)
-            throw std::runtime_error(
-                    "Failed to wait for Queue Idle. This should not happen and may indicate lost GPU instance. Shutting down . VkResult: " +
-                    std::to_string(result));
+
+        currentFrame = (currentFrame + 1) % swapchain->imageCount;
     }
 
 /** CALLBACKS **/
@@ -911,12 +985,15 @@ namespace VkRender {
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
+
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     }
+
     DISABLE_WARNING_POP
 
 

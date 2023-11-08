@@ -208,7 +208,7 @@ void PointCloudLoader::createDescriptorSets() {
 }
 
 void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector) {
-    VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+    VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 0);
     CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &info, nullptr, &pipelineLayout))
 
     // Vertex bindings an attributes
@@ -235,8 +235,8 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
 
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
     depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilStateCI.depthTestEnable = VK_TRUE;
-    depthStencilStateCI.depthWriteEnable = VK_TRUE;
+    depthStencilStateCI.depthTestEnable = VK_FALSE;
+    depthStencilStateCI.depthWriteEnable = VK_FALSE;
     depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
     depthStencilStateCI.stencilTestEnable = VK_FALSE;
@@ -261,16 +261,11 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
     dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
 
-    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
+    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Particle),
                                                           VK_VERTEX_INPUT_RATE_VERTEX};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VkRender::Vertex, pos)},
-            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VkRender::Vertex, normal)},
-            {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VkRender::Vertex, uv0)},
-            {3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VkRender::Vertex, uv1)},
-            {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, joint0)},
-            {5, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, weight0)},
-            {6, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, color)}
+            {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VkRender::Particle, position)},
+            {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Particle, color)},
     };
     VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
     vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -302,17 +297,25 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
 
 }
 
-void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
+void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 
-    if (cbIndex >= renderer->UBCount)
+    if (imageIndex >= renderer->UBCount)
         return;
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                            &descriptors[cbIndex], 0, nullptr);
+    //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+    //                        &descriptors[imageIndex], 0, nullptr);
+    //
+    //const VkDeviceSize offsets[1] = {0};
+    //vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
+
+    //vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
+    if (buffers->empty()){
+        throw std::runtime_error("Should not be empty");
+    }
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
 
-    vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &(*buffers)[imageIndex], offsets);
 
+    vkCmdDraw(commandBuffer, 4096, 1, 0, 0);
 
 }

@@ -41,9 +41,9 @@
 void SingleLayout::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    m_Model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    m_NoDataModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_Model = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
+    m_NoDataModel = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
+    m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
 
     // Create quad and store it locally on the GPU
     VkRender::ScriptUtils::ImageData imgData{};
@@ -83,7 +83,7 @@ void SingleLayout::update() {
         return;
     auto tex = VkRender::TextureData(textureType, res);
 
-    m_Model->getTextureDataPointers(&tex);
+    m_Model->getTextureDataPointers(&tex, renderData.index);
     // If we get an image attempt to update the GPU buffer
     if (!virtualDevice && renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
@@ -102,7 +102,7 @@ void SingleLayout::update() {
         }
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
-        if (m_Model->updateTexture(textureType)) {
+        if (m_Model->updateTexture(textureType, renderData.index)) {
             state = DRAW_MULTISENSE;
             lastPresentedFrameID = tex.m_Id;
         } else {
@@ -136,7 +136,8 @@ void SingleLayout::update() {
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
                                         options->data.maxDisparityValue, options->interpolation);
-    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);
+    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);
+    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);
 
     d2->pad.x = options->depthColorMap;
 
@@ -144,7 +145,7 @@ void SingleLayout::update() {
 }
 
 void SingleLayout::prepareDefaultTexture() {
-    m_NoDataModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     std::string vertexShaderFileName = "Scene/spv/color.vert";
     std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
@@ -155,19 +156,25 @@ void SingleLayout::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
-        std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
-        m_NoDataModel->updateTexture(defTex->m_Type);
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
+            std::memcpy(defTex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            m_NoDataModel->updateTexture(defTex->m_Type, i);
+        }
     }
 
-    m_NoSourceModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+
+    m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
-        std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
-        m_NoSourceModel->updateTexture(tex->m_Type);
+
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoSourceModel->getTextureDataPointers(tex.get(), i)) {
+            std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            m_NoSourceModel->updateTexture(tex->m_Type, i);
+        }
     }
 
 }
@@ -189,30 +196,42 @@ void SingleLayout::prepareMultiSenseTexture() {
             vertexShaderFileName = "Scene/spv/disparity.vert";
             fragmentShaderFileName = "Scene/spv/disparity.frag";
             break;
+        case CRL_COMPUTE_SHADER:
+            vertexShaderFileName = "Scene/spv/grayscale.vert";
+            fragmentShaderFileName = "Scene/spv/compute.frag";
+            break;
         default:
             return;
     }
 
-    Log::Logger::getInstance()->info("Loading shaders {} and {} for SingeLayout script", vertexShaderFileName.c_str(), fragmentShaderFileName.c_str());
+    Log::Logger::getInstance()->info("Loading shaders {} and {} for SingeLayout script", vertexShaderFileName.c_str(),
+                                     fragmentShaderFileName.c_str());
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
+    m_Model->m_CameraDataType = textureType;
+    if (CRL_COMPUTE_SHADER != textureType) {
+        uint32_t width = 0, height = 0, depth = 0;
+        Utils::cameraResolutionToValue(res, &width, &height, &depth);
+        if (width == 0 || height == 0) {
+            Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
+            return;
+        }
 
-    uint32_t width = 0, height = 0, depth = 0;
-    Utils::cameraResolutionToValue(res, &width, &height, &depth);
-    if (width == 0 || height == 0) {
-        Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
+        m_Model->createEmptyTexture(width, height, textureType, false, 0);
+        // Create graphics render pipeline
+        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+        return;
+    } else if (topLevelData->compute.valid) {
+        m_Model->m_TextureComputeTarget = topLevelData->compute.textureComputeTarget;
+        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
         return;
     }
-    m_Model->cameraDataType = textureType;
-    m_Model->createEmptyTexture(width, height, textureType, false, 0);
-    // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
 void SingleLayout::prepareTestDeviceTexture() {
-    m_ModelTestDevice = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_ModelTestDevice = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
     // Create quad and store it locally on the GPU
     VkRender::ScriptUtils::ImageData imgData{};
     m_ModelTestDevice->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
@@ -227,7 +246,7 @@ void SingleLayout::prepareTestDeviceTexture() {
         throw std::runtime_error("Failed to load texture image: neist_point.jpg");
     }
 
-    m_ModelTestDevice->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_ModelTestDevice->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_ModelTestDevice->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     std::string vertexShaderFileName = "Scene/spv/color.vert";
@@ -240,18 +259,21 @@ void SingleLayout::prepareTestDeviceTexture() {
 
     CRLCameraModels::createRenderPipeline(shaders, m_ModelTestDevice.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_ModelTestDevice->getTextureDataPointers(tex.get())) {
-        std::memcpy(tex->data, m_TestDeviceTex, texWidth * texHeight * texChannels);
-        m_ModelTestDevice->updateTexture(tex->m_Type);
+
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_ModelTestDevice->getTextureDataPointers(tex.get(), i)) {
+            std::memcpy(tex->data, m_TestDeviceTex, texWidth * texHeight * texChannels);
+            m_ModelTestDevice->updateTexture(tex->m_Type, i);
+        }
     }
+
 }
 
 void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
-
-
         if (dev.state != CRL_STATE_ACTIVE)
             continue;
+
         selectedPreviewTab = dev.selectedPreviewTab;
         auto &preview = dev.win.at(CRL_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
@@ -259,10 +281,11 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         if (src == "Idle") {
             state = DRAW_NO_SOURCE;
+        } else if (src == "Compute") {
+            state = DRAW_MULTISENSE;
         } else {
             state = DRAW_NO_DATA;
         }
-
 
         zoom.resChanged = currentRes != res;
         uint32_t width = 0, height = 0, depth = 0;
@@ -279,9 +302,19 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             prepareMultiSenseTexture();
         }
 
+        if (topLevelData->compute.reset) {
+            prepareMultiSenseTexture();
+            topLevelData->compute.reset = false;
+        }
+
         if (virtualDevice) {
             state = DRAW_TEST;
-            if (!m_ModelTestDevice) {
+            if (src != "Idle") {
+                state = DRAW_MULTISENSE;
+                //m_ModelTestDevice.reset();
+            }
+
+            if (!m_ModelTestDevice && src == "Idle") {
                 prepareTestDeviceTexture();
                 zoom.resolutionUpdated(texWidth, texHeight);
             }
@@ -291,10 +324,10 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         zoomEnabled = preview.enableZoom;
         VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, CRL_PREVIEW_ONE);
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
-            VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
-                                                    (uiHandle->mouse->left && preview.isHovered),
-                                                    options->magnifyZoomMode,
-                                                    preview.enableZoom);
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_ONE, deltaMouse,
+                                                (uiHandle->mouse->left && preview.isHovered),
+                                                options->magnifyZoomMode,
+                                                preview.enableZoom);
     }
 }
 

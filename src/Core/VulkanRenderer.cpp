@@ -849,7 +849,7 @@ namespace VkRender {
             prepareFrame();
             /** Call Renderer's render function **/
             recordCommands();
-            /** Reset some variables for next frame **/
+            /** Present frame **/
             submitFrame();
             keyPress = -1;
             keyAction = -1;
@@ -883,7 +883,9 @@ namespace VkRender {
         sInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         // Compute submission
         // Only wait on the fence if we submitted work last time
-        vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX!= VK_SUCCESS))
+            throw std::runtime_error("Failed to wait for compute fence");
+
 
         updateUniformBuffers();
 
@@ -907,12 +909,11 @@ namespace VkRender {
 
     void VulkanRenderer::prepareFrame() {
         // Use a fence to wait until the command buffer has finished execution before using it again
-        VkResult result = vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
-        if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to wait for fence");
+        if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+            throw std::runtime_error("Failed to wait for render fence");
 
         // Acquire the next m_Image from the swap chain
-        result = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
+        VkResult result = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
         // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
         if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
             Log::Logger::getInstance()->info("SwapChain no longer compatible on acquire next image. Recreating..");

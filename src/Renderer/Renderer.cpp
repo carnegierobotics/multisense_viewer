@@ -139,6 +139,8 @@ void Renderer::buildScripts() {
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     vars.queueSubmitMutex = &queueSubmitMutex;
+    renderData.height = m_Height;
+    renderData.width = m_Width;
     // create first set of scripts for TOP OF PIPE
     for (auto &script: scripts) {
         if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
@@ -184,9 +186,12 @@ void Renderer::buildScript(const std::string &scriptName) {
     VkRender::RenderUtils vars{};
     vars.device = vulkanDevice.get();
     vars.renderPass = &renderPass;
+    vars.msaaSamples = msaaSamples;
     vars.UBCount = swapchain->imageCount;
     vars.picking = &selection;
     vars.queueSubmitMutex = &queueSubmitMutex;
+    renderData.height = m_Height;
+    renderData.width = m_Width;
     // create first set of scripts for TOP OF PIPE
     if (scripts[scriptName]->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
         scripts[scriptName]->createUniformBuffers(vars, renderData, &topLevelScriptData);
@@ -261,8 +266,33 @@ void Renderer::buildCommandBuffers() {
     const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
 
     renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
-
     vkBeginCommandBuffer(drawCmdBuffers[currentFrame], &cmdBufInfo);
+
+    // Syncrhonization before renderpass
+
+    // Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
+    if (topLevelScriptData.compute.valid){
+    VkImageMemoryBarrier imageMemoryBarrier = {};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    // We won't be changing the layout of the image
+    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    imageMemoryBarrier.image = (*topLevelScriptData.compute.textureComputeTarget)[currentFrame].m_Image;
+    imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vkCmdPipelineBarrier(
+            drawCmdBuffers[currentFrame],
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &imageMemoryBarrier);
+    }
+
     vkCmdBeginRenderPass(drawCmdBuffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdSetViewport(drawCmdBuffers[currentFrame], 0, 1, &viewport);
     vkCmdSetScissor(drawCmdBuffers[currentFrame], 0, 1, &scissor);

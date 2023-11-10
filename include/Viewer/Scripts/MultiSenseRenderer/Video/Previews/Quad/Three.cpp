@@ -40,9 +40,9 @@
 void Three::setup() {
     // Prepare a m_Model for drawing a texture onto
     // Don't draw it before we create the texture in update()
-    m_Model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    m_NoDataModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils);
+    m_Model = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
+    m_NoDataModel = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
+    m_NoSourceModel = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
 
     // Create quad and store it locally on the GPU
     VkRender::ScriptUtils::ImageData imgData{};
@@ -76,7 +76,7 @@ void Three::update() {
 
     auto tex = VkRender::TextureData(textureType, res);
 
-    m_Model->getTextureDataPointers(&tex);
+    m_Model->getTextureDataPointers(&tex, renderData.index);;
     // If we get an image attempt to update the GPU buffer
     if (renderData.crlCamera->getCameraStream(src, &tex, remoteHeadIndex)) {
         // If we have already presented this frame id and
@@ -95,7 +95,7 @@ void Three::update() {
 
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
-        if (m_Model->updateTexture(textureType)) {
+        if (m_Model->updateTexture(textureType, renderData.index)) {
             state = DRAW_MULTISENSE;
             lastPresentedFrameID = tex.m_Id;
         } else {
@@ -131,7 +131,7 @@ void Three::update() {
 
 
 void Three::prepareDefaultTexture() {
-    m_NoDataModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     std::string vertexShaderFileName = "Scene/spv/color.vert";
     std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
@@ -142,19 +142,19 @@ void Three::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoDataModel->getTextureDataPointers(defTex.get())) {
+    if (m_NoDataModel->getTextureDataPointers(defTex.get(), renderData.index)) {
         std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
-        m_NoDataModel->updateTexture(defTex->m_Type);
+        m_NoDataModel->updateTexture(defTex->m_Type, renderData.index);
     }
 
-    m_NoSourceModel->cameraDataType = CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoSourceModel->getTextureDataPointers(tex.get())) {
+    if (m_NoSourceModel->getTextureDataPointers(tex.get(), renderData.index)) {
         std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
-        m_NoSourceModel->updateTexture(tex->m_Type);
+        m_NoSourceModel->updateTexture(tex->m_Type, renderData.index);
     }
 }
 
@@ -189,7 +189,7 @@ void Three::prepareMultiSenseTexture() {
         Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
-    m_Model->cameraDataType = textureType;
+    m_Model->m_CameraDataType = textureType;
     m_Model->createEmptyTexture(width, height, textureType, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);

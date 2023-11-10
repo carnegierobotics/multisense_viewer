@@ -293,7 +293,7 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
     VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
                                              &pipeline);
     if (res != VK_SUCCESS)
-        throw std::runtime_error("Failed to create graphics pipeline");
+        throw std::runtime_error("Failed to create graphics m_Pipeline");
 
 }
 

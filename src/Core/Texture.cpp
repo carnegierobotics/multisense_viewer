@@ -247,7 +247,7 @@ void Texture2D::fromglTfImage(tinygltf::Image &gltfimage, TextureSampler texture
 void
 Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
                       VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
-                      VkImageLayout imageLayout) {
+                      VkImageLayout imageLayout, bool sharedQueue) {
     assert(buffer);
 
     this->m_Device = device;
@@ -307,6 +307,20 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
         imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
+
+    // If compute and graphics queue family indices differ, we create an image that can be shared between them
+    // This can result in worse performance than exclusive sharing mode, but save some synchronization to keep the sample simple
+    std::vector<uint32_t> queueFamilyIndices;
+    if (sharedQueue && device->m_QueueFamilyIndices.graphics != device->m_QueueFamilyIndices.compute) {
+        queueFamilyIndices = {
+                device->m_QueueFamilyIndices.graphics,
+                device->m_QueueFamilyIndices.compute
+        };
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        imageCreateInfo.queueFamilyIndexCount = 2;
+        imageCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+    }
+
 
     CHECK_RESULT(vkCreateImage(device->m_LogicalDevice, &imageCreateInfo, nullptr, &m_Image))
 
@@ -727,7 +741,7 @@ Do your rendering and whatnot
 start over at 1.
 */
 TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
-                           VkFormat format) : Texture() {
+                           VkFormat format, VkImageUsageFlags usageFlags, bool sharedQueue) : Texture() {
 
     assert(texWidth != 0 && texHeight != 0);
 
@@ -748,10 +762,21 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageCreateInfo.extent = {m_Width, m_Height, 1};
-    imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageCreateInfo.usage = usageFlags;
     // Ensure that the TRANSFER_DST bit is set for staging
     if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
         imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+
+    std::vector<uint32_t> queueFamilyIndices;
+    if (sharedQueue && device->m_QueueFamilyIndices.graphics != device->m_QueueFamilyIndices.compute) {
+        queueFamilyIndices = {
+                device->m_QueueFamilyIndices.graphics,
+                device->m_QueueFamilyIndices.compute
+        };
+        imageCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        imageCreateInfo.queueFamilyIndexCount = 2;
+        imageCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
     }
 
     CHECK_RESULT(vkCreateImage(device->m_LogicalDevice, &imageCreateInfo, nullptr, &m_Image))
@@ -765,6 +790,39 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAlloc, nullptr, &m_DeviceMemory))
 
     CHECK_RESULT(vkBindImageMemory(device->m_LogicalDevice, m_Image, m_DeviceMemory, 0))
+
+
+    // Use a separate command buffer for texture loading
+    VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = m_MipLevels;
+    subresourceRange.layerCount = 1;
+    // Image barrier for optimal m_Image (target)
+    // Optimal m_Image will be used as destination for the copy
+    Utils::setImageLayout(
+            copyCmd,
+            m_Image,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            subresourceRange,
+            VK_PIPELINE_STAGE_HOST_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Change texture m_Image layout to shader read after all mip levels have been copied
+    Utils::setImageLayout(
+            copyCmd,
+            m_Image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            layout,
+            subresourceRange,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    this->m_ImageLayout = layout;
+
+    device->flushCommandBuffer(copyCmd, device->m_TransferQueue);
 
     VkImageViewCreateInfo viewCreateInfo = {};
     VkSamplerYcbcrConversionInfo samplerYcbcrConversionInfo{};
@@ -806,42 +864,6 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     viewCreateInfo.image = m_Image;
 
     CHECK_RESULT(vkCreateImageView(device->m_LogicalDevice, &viewCreateInfo, nullptr, &m_View))
-    // Use a separate command buffer for texture loading
-    VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-    VkImageSubresourceRange subresourceRange = {};
-    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresourceRange.baseMipLevel = 0;
-    subresourceRange.levelCount = m_MipLevels;
-    subresourceRange.layerCount = 1;
-    // Image barrier for optimal m_Image (target)
-    // Optimal m_Image will be used as destination for the copy
-    Utils::setImageLayout(
-            copyCmd,
-            m_Image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            subresourceRange,
-            VK_PIPELINE_STAGE_HOST_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-    // Change texture m_Image layout to shader read after all mip levels have been copied
-    Utils::setImageLayout(
-            copyCmd,
-            m_Image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            layout,
-            subresourceRange,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    this->m_ImageLayout = layout;
-
-    device->flushCommandBuffer(copyCmd, device->m_TransferQueue);
-
-    // Update m_Descriptor m_Image info member that can be used for setting up m_Descriptor sets
-    updateDescriptor();
-
-    // Create empty buffers we can copy our texture m_DataPtr to
 
     // Create m_Sampler dependt on m_Image m_Format
     switch (format) {
@@ -890,12 +912,13 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
                                          m_TexSizeSecondary, static_cast<int>(format));
 
     }
+    updateDescriptor();
 
 
 }
 
 
-void TextureVideo::updateTextureFromBuffer() {
+void TextureVideo::updateTextureFromBuffer(VkImageLayout initialLayout, VkImageLayout finalLayout) {
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;
@@ -920,7 +943,7 @@ void TextureVideo::updateTextureFromBuffer() {
     Utils::setImageLayout(
             copyCmd,
             m_Image,
-            VK_IMAGE_LAYOUT_UNDEFINED,
+            initialLayout,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             subresourceRange,
             VK_PIPELINE_STAGE_HOST_BIT,
@@ -942,7 +965,7 @@ void TextureVideo::updateTextureFromBuffer() {
             copyCmd,
             m_Image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            finalLayout,
             subresourceRange,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);

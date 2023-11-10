@@ -725,11 +725,6 @@ namespace VkRender {
 
     };
 
-    struct TopLevelScriptData{
-        std::vector<VkBuffer>* computeBuffer = nullptr;
-
-    };
-
 }
 
 

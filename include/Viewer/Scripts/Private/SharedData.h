@@ -39,26 +39,39 @@
 
 #include <string>
 
+namespace VkRender {
+    struct TopLevelScriptData {
+        struct {
+            std::vector<VkBuffer> *computeBuffer = nullptr;
+            std::vector<Texture2D> *textureComputeTarget = nullptr;
+            bool valid = false;
+            bool reset = false;
+        } compute;
+    };
+}
+
 class SharedData {
 public:
 
-    explicit SharedData(size_t sharedMemorySize){
+    explicit SharedData(size_t sharedMemorySize) {
         data = calloc(sharedMemorySize, 1);
     }
-    ~SharedData(){
+
+    ~SharedData() {
         free(data);
     }
 
     template<typename T>
-    void put(T* t, size_t extraSize, size_t copies = 1){
+    void put(T *t, size_t extraSize, size_t copies = 1) {
         std::memcpy(data, t, extraSize + sizeof(t) * copies);
     }
 
     std::string destination;
     std::string source;
 
-    void* data = nullptr;
+    void *data = nullptr;
 
 
 };
+
 #endif //MULTISENSE_VIEWER_SHAREDDATA_H

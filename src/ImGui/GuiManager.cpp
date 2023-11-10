@@ -328,7 +328,7 @@ namespace VkRender {
         if (
                 vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
                 VK_SUCCESS)
-            throw std::runtime_error("Failed to create pipeline layout");
+            throw std::runtime_error("Failed to create m_Pipeline layout");
 
         // Setup graphics pipeline for UI rendering
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
@@ -417,7 +417,7 @@ namespace VkRender {
 
         if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics pipeline");
+            throw std::runtime_error("Failed to create graphics m_Pipeline");
     }
 
     void GuiManager::initializeFonts() {

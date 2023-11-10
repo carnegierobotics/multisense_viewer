@@ -39,20 +39,23 @@
 #include "Viewer/ImGui/Widgets.h"
 
 void PointCloud::setup() {
-    model = std::make_unique<CRLCameraModels::Model>(&renderUtils);
-    model->draw = false;
-    model->cameraDataType = CRL_POINT_CLOUD;
+    model = std::make_unique<CRLCameraModels::Model>(&renderUtils, renderUtils.UBCount);
+    model->m_Draw = false;
+    model->m_CameraDataType = CRL_POINT_CLOUD;
+    for(uint32_t i = 0; i < renderUtils.UBCount; ++i){
+        renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                         &model->m_ColorPointCloudBuffer[i], sizeof(VkRender::ColorPointCloudParams));
+        model->m_ColorPointCloudBuffer[i].map();
+    }
 
-    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                     &model->colorPointCloudBuffer, sizeof(VkRender::ColorPointCloudParams));
-    model->colorPointCloudBuffer.map();
 
     Widgets::make()->text("PointCloud", "Set Point Size:");
     Widgets::make()->slider("PointCloud", "##Set Point size", &pointSize, 0, 10);
     // Widgets::make()->text("Flip pointcloud: ");
     //Widgets::make()->checkbox("##Flip pc", &flipPointCloud);
+
 
     pc = std::make_unique<PointCloudLoader>(&renderUtils);
     VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pc3D.vert", VK_SHADER_STAGE_VERTEX_BIT);
@@ -64,28 +67,27 @@ void PointCloud::setup() {
 }
 
 void PointCloud::update() {
-    if (!pc->buffers)
-        pc->buffers = topLevelData->computeBuffer;
+
 
     if (prepareTexFuture.valid() && prepareTexFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
         if (prepareTexFuture.get())
-            model->draw = true;
+            model->m_Draw = true;
     }
 
-    if (model->draw  && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+    if (model->m_Draw && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
         const auto &conf = renderData.crlCamera->getCameraInfo(remoteHeadIndex).imgConf;
         auto tex = VkRender::TextureData(lumaOrColor ? CRL_COLOR_IMAGE_YUV420 : CRL_GRAYSCALE_IMAGE, conf.width(),
                                          conf.height(), true);
-        model->getTextureDataPointers(&tex);
+        model->getTextureDataPointers(&tex, renderData.index);
         if (renderData.crlCamera->getCameraStream(lumaOrColor ? "Color Rectified Aux" : "Luma Rectified Left", &tex,
                                                   remoteHeadIndex)) {
-            model->updateTexture(&tex);
+            model->updateTexture(&tex, renderData.index);
         }
 
         auto depthTex = VkRender::TextureData(CRL_DISPARITY_IMAGE, conf.width(), conf.height());
-        model->getTextureDataPointers(&depthTex);
+        model->getTextureDataPointers(&depthTex, renderData.index);
         if (renderData.crlCamera->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
-            model->updateTexture(depthTex.m_Type);
+            model->updateTexture(depthTex.m_Type, renderData.index);
         }
 
         VkRender::UBOMatrix mat{};
@@ -108,7 +110,7 @@ void PointCloud::update() {
         data.extrinsics = renderData.crlCamera->getCameraInfo(0).KColorMatExtrinsic;
         data.useColor = lumaOrColor == 1;
         data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-        memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
+        memcpy(model->m_ColorPointCloudBuffer[renderData.index].mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
         auto *buf = bufferThreeData.get();
         buf->pointSize = pointSize;
@@ -132,7 +134,7 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         if (dev.simulatedDevice) {
             currentRes = CRL_RESOLUTION_1920_1200_128;
-            model->draw = false;
+            model->m_Draw = false;
         }
 
         if ((currentRes != res ||
@@ -140,7 +142,7 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             res = currentRes;
             remoteHeadIndex = preview.selectedRemoteHeadIndex;
             lumaOrColor = dev.useAuxForPointCloudColor;
-            model->draw = false;
+            model->m_Draw = false;
             auto& device = const_cast<VkRender::Device &>(dev);
             prepareTexFuture = std::async(std::launch::async, &PointCloud::prepareTexture, this, std::ref(device));
         }
@@ -150,9 +152,9 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b){
-        pc->draw(commandBuffer, i);
+        //pc->draw(commandBuffer, i);
 
-        if (model->draw ) {
+        if (model->m_Draw ) {
             CRLCameraModels::draw(commandBuffer, i, model.get(), b);
         }
     }

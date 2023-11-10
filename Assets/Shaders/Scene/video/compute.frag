@@ -262,33 +262,8 @@ void main()
     float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
     float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
 
-
-    vec4 color;
-    bool useInterpolation = info.normalize.w == 1.0f;
-
-
-    if (useInterpolation){
-        color = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
-
-        //vec4 sobelColor = vec4(vec3(gradientMagnitude), 1.0);
-        //color = mix(texture(samplerColorMap, vec2(uvSampleX, uvSampleY)), sobelColor, 0.7);
-        //
-
-    } else {
-        color = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
-    }
-
-    if (info.kernelFilters.x == 1.0f){
-        color = edgeDetect(samplerColorMap, vec2(uvSampleX, uvSampleY));
-    }
-    if (info.kernelFilters.y == 1.0f){
-        color = blurKernel(samplerColorMap, vec2(uvSampleX, uvSampleY));
-    }
-    if (info.kernelFilters.z == 1.0f){
-        color = emboss(samplerColorMap, vec2(uvSampleX, uvSampleY));
-    }
-    if (info.kernelFilters.w == 1.0f){
-        color = sharpening(samplerColorMap, vec2(uvSampleX, uvSampleY));
-    }
+    vec4 color = bilateralFilter(samplerColorMap, vec2(inUV));
     outColor = vec4(color.r, color.r, color.r, 1.0);
+
+
 }

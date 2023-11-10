@@ -13,14 +13,15 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Tools/Logger.h"
+#include "Viewer/Scripts/Private/TextureDataDef.h"
 
-class ComputeShader{
+class ComputeShader {
 public:
-    ComputeShader(){
+    ComputeShader() {
 
     }
 
-    VulkanDevice *vulkanDevice{};
+    VulkanDevice *m_VulkanDevice{};
 
     void createBuffers(uint32_t numBuffers) {
 
@@ -47,12 +48,13 @@ public:
         VkDeviceMemory stagingMemory;
 
         VkDeviceSize bufferSize = sizeof(VkRender::Particle) * PARTICLE_COUNT;
-        buffer.resize(numBuffers);
-        memory.resize(numBuffers);
+        m_Buffer.resize(numBuffers);
+        m_Memory.resize(numBuffers);
         // Create staging buffers
         // Vertex m_DataPtr
-        CHECK_RESULT(vulkanDevice->createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        CHECK_RESULT(m_VulkanDevice->createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 bufferSize,
                 &stagingBuffer,
                 &stagingMemory,
@@ -60,26 +62,26 @@ public:
 
         for (size_t i = 0; i < numBuffers; i++) {
 
-            CHECK_RESULT(vulkanDevice->createBuffer(
+            CHECK_RESULT(m_VulkanDevice->createBuffer(
                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     bufferSize,
-                    &buffer[i],
-                    &memory[i] ));
+                    &m_Buffer[i],
+                    &m_Memory[i]));
             // Copy from staging buffers
-            VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+            VkCommandBuffer copyCmd = m_VulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             VkBufferCopy copyRegion = {};
             copyRegion.size = bufferSize;
-            vkCmdCopyBuffer(copyCmd, stagingBuffer, buffer[i], 1, &copyRegion);
-            vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->m_TransferQueue, true);
+            vkCmdCopyBuffer(copyCmd, stagingBuffer, m_Buffer[i], 1, &copyRegion);
+            m_VulkanDevice->flushCommandBuffer(copyCmd, m_VulkanDevice->m_TransferQueue, true);
         }
-        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice->m_LogicalDevice, stagingMemory, nullptr);
+        vkDestroyBuffer(m_VulkanDevice->m_LogicalDevice, stagingBuffer, nullptr);
+        vkFreeMemory(m_VulkanDevice->m_LogicalDevice, stagingMemory, nullptr);
     }
 
 
-    void createDescriptorSetLayout(){
-        std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
+    void createDescriptorSetLayout() {
+        std::array<VkDescriptorSetLayoutBinding, 6> layoutBindings{};
         layoutBindings[0].binding = 0;
         layoutBindings[0].descriptorCount = 1;
         layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -98,28 +100,50 @@ public:
         layoutBindings[2].pImmutableSamplers = nullptr;
         layoutBindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+        layoutBindings[3].binding = 3;
+        layoutBindings[3].descriptorCount = 1;
+        layoutBindings[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        layoutBindings[3].pImmutableSamplers = nullptr;
+        layoutBindings[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        layoutBindings[4].binding = 4;
+        layoutBindings[4].descriptorCount = 1;
+        layoutBindings[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        layoutBindings[4].pImmutableSamplers = nullptr;
+        layoutBindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        layoutBindings[5].binding = 5;
+        layoutBindings[5].descriptorCount = 1;
+        layoutBindings[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        layoutBindings[5].pImmutableSamplers = nullptr;
+        layoutBindings[5].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 3;
+        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
         layoutInfo.pBindings = layoutBindings.data();
 
-        if (vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create compute descriptor set layout!");
         }
     }
 
-    void createDescriptorSetPool(uint32_t count){
+    void createDescriptorSetPool(uint32_t count) {
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         count},
-                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         2 * count},
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
 
         };
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
         CHECK_RESULT(
-                vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+                vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
     }
 
-    void createDescriptorSets(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo){
+    void createDescriptorSets(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
         descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, descriptorSetLayout);
 
@@ -128,12 +152,12 @@ public:
         descriptorSetAllocInfo.descriptorPool = descriptorPool;
         descriptorSetAllocInfo.pSetLayouts = layouts.data();
         descriptorSetAllocInfo.descriptorSetCount = count;
-        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                               descriptors.data()));
 
         for (size_t i = 0; i < count; i++) {
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites(3);
+            std::vector<VkWriteDescriptorSet> descriptorWrites(6);
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptors[i];
@@ -145,7 +169,7 @@ public:
 
             VkDescriptorBufferInfo storageBufferInfoLastFrame{};
             //storageBufferInfoLastFrame.buffer = buffer[];
-            storageBufferInfoLastFrame.buffer = buffer[i];
+            storageBufferInfoLastFrame.buffer = m_Buffer[i];
             storageBufferInfoLastFrame.offset = 0;
             storageBufferInfoLastFrame.range = sizeof(VkRender::Particle) * PARTICLE_COUNT;
 
@@ -158,7 +182,7 @@ public:
             descriptorWrites[1].pBufferInfo = &storageBufferInfoLastFrame;
 
             VkDescriptorBufferInfo storageBufferInfoCurrentFrame{};
-            storageBufferInfoCurrentFrame.buffer = buffer[(i + 1) % count];
+            storageBufferInfoCurrentFrame.buffer = m_Buffer[(i + 1) % count];
             storageBufferInfoCurrentFrame.offset = 0;
             storageBufferInfoCurrentFrame.range = sizeof(VkRender::Particle) * PARTICLE_COUNT;
 
@@ -170,18 +194,71 @@ public:
             descriptorWrites[2].descriptorCount = 1;
             descriptorWrites[2].pBufferInfo = &storageBufferInfoCurrentFrame;
 
-            vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 3, descriptorWrites.data(), 0, nullptr);
+            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[3].dstSet = descriptors[i];
+            descriptorWrites[3].dstBinding = 3;
+            descriptorWrites[3].dstArrayElement = 0;
+            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[3].descriptorCount = 1;
+            descriptorWrites[3].pImageInfo = &m_TextureComputeLeftInput[i]->m_Descriptor;
+
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = descriptors[i];
+            descriptorWrites[4].dstBinding = 4;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &m_TextureComputeRightInput[i]->m_Descriptor;
+
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = descriptors[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &m_TextureComputeTarget[i].m_Descriptor;
+
+            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, 6, descriptorWrites.data(), 0, nullptr);
         }
     }
 
-    void createComputePipeline(VkPipelineShaderStageCreateInfo computeShaderStageInfo){
+    void createTextureTarget(uint32_t width, uint32_t height, uint32_t framesInFlight) {
+        m_TextureComputeTarget.resize(framesInFlight);
+        m_TextureComputeLeftInput.resize(framesInFlight);
+        m_TextureComputeRightInput.resize(framesInFlight);
+        uint8_t *array = new uint8_t[width * height](); // The parentheses initialize all elements to zero.
+        for (uint32_t i = 0; i < framesInFlight; ++i) {
+            m_TextureComputeTarget[i].fromBuffer(array, width * height, VK_FORMAT_R8_UNORM, width, height,
+                                                 m_VulkanDevice,
+                                                 m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
+                                                 VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+                                                 VK_IMAGE_LAYOUT_GENERAL,
+                                                 true);
+            m_TextureComputeLeftInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
+                                                                                       VK_IMAGE_LAYOUT_GENERAL,
+                                                                                       VK_FORMAT_R8_UNORM,
+                                                                                       VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                                                       VK_IMAGE_USAGE_STORAGE_BIT,
+                                                                                       true);
+            m_TextureComputeRightInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
+                                                                                        VK_IMAGE_LAYOUT_GENERAL,
+                                                                                        VK_FORMAT_R8_UNORM,
+                                                                                        VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                                                        VK_IMAGE_USAGE_STORAGE_BIT,
+                                                                                        true);
+        }
+        delete[] array;
+    }
+
+    void createComputePipeline(VkPipelineShaderStageCreateInfo computeShaderStageInfo) {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-        if (vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create compute pipeline layout!");
+        if (vkCreatePipelineLayout(m_VulkanDevice->m_LogicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute m_Pipeline layout!");
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
@@ -189,13 +266,14 @@ public:
         pipelineInfo.layout = pipelineLayout;
         pipelineInfo.stage = computeShaderStageInfo;
 
-        if (vkCreateComputePipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create compute pipeline!");
+        if (vkCreateComputePipelines(m_VulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                     &pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute m_Pipeline!");
         }
     }
 
 
-    void recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t currentFrame){
+    void recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -205,11 +283,12 @@ public:
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptors[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
+                                &descriptors[currentFrame], 0, nullptr);
 
         //Log::Logger::getInstance()->trace("Binding descriptors: {} in compute-call", currentFrame);
 
-        vkCmdDispatch(commandBuffer, PARTICLE_COUNT / 256, 1, 1);
+        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,  m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record compute command buffer!");
@@ -217,26 +296,31 @@ public:
 
     }
 
-    ~ComputeShader(){
+    ~ComputeShader() {
 
-        for(auto& b : buffer){
-            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, b, nullptr);
+        for (auto &b: m_Buffer) {
+            vkDestroyBuffer(m_VulkanDevice->m_LogicalDevice, b, nullptr);
         }
-        for(auto& m : memory){
-            vkFreeMemory(vulkanDevice->m_LogicalDevice, m, nullptr);
+        for (auto &m: m_Memory) {
+            vkFreeMemory(m_VulkanDevice->m_LogicalDevice, m, nullptr);
         }
 
-        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
-        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice,descriptorSetLayout ,nullptr);
+        vkDestroyPipelineLayout(m_VulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+        vkDestroyPipeline(m_VulkanDevice->m_LogicalDevice, pipeline, nullptr);
+        vkDestroyDescriptorPool(m_VulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
     }
 
-    std::vector<VkBuffer> buffer{};
-    std::vector<VkDeviceMemory> memory{};
+    std::vector<VkBuffer> m_Buffer{};
+    std::vector<Texture2D> m_TextureComputeTarget{};
+    std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeLeftInput{};
+    std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeRightInput{};
+    std::vector<VkDeviceMemory> m_Memory{};
 
-    private:
-        int PARTICLE_COUNT = 4096;
+
+
+private:
+    int PARTICLE_COUNT = 4096;
 
     VkDescriptorSetLayout descriptorSetLayout{};
     VkDescriptorPool descriptorPool{};
@@ -245,5 +329,6 @@ public:
     VkPipeline pipeline{};
     VkPipelineLayout pipelineLayout{};
 };
+
 
 #endif //MULTISENSE_VIEWER_COMPUTESHADER_H

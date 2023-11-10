@@ -525,6 +525,7 @@ namespace VkRender::MultiSense {
             chInfo.availableSources.clear();
             chInfo.modes.clear();
             chInfo.availableSources.emplace_back("Idle");
+            chInfo.availableSources.emplace_back("Compute");
             chInfo.index = ch;
             chInfo.state = CRL_STATE_ACTIVE;
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch, camPtr);
@@ -899,7 +900,7 @@ namespace VkRender::MultiSense {
         // If we successfully connect
         //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
         Utils::initializeUIDataBlockWithTestData(*dev);
-        dev->channelInfo.front().availableSources.emplace_back("Particle");
+        dev->channelInfo.front().availableSources.emplace_back("Compute");
         dev->state = CRL_STATE_ACTIVE;
         Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
     }

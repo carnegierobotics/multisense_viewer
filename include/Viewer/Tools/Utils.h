@@ -191,7 +191,7 @@ namespace Utils {
         if (d == "Compressed Aux") return CRL_COLOR_IMAGE_YUV420;
         if (d == "Compressed Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
 
-        if (d == "Particle") return CRL_COMPUTE_SHADER;
+        if (d == "Compute") return CRL_COMPUTE_SHADER;
 
         return CRL_CAMERA_IMAGE_NONE;
     }

@@ -1883,7 +1883,7 @@ void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<Vk
             VkResult res = vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                                     &material.descriptorSet);
             if (res != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate material descriptors. VkResult: " + std::to_string(res));
+                throw std::runtime_error("Failed to allocate material m_Descriptors. VkResult: " + std::to_string(res));
             }
 
             std::vector<VkDescriptorImageInfo> imageDescriptors = {
@@ -2191,7 +2191,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     createPipeline(*utils.renderPass, shaders2, utils.msaaSamples);
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-    Log::Logger::getInstance()->info("Created recordCommands pipeline for {} took {} ms", m_FileName, tDiff);
+    Log::Logger::getInstance()->info("Created recordCommands m_Pipeline for {} took {} ms", m_FileName, tDiff);
 
 }
 

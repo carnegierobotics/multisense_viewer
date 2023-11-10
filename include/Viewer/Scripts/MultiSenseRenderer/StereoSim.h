@@ -41,9 +41,17 @@ public:
     ScriptTypeFlags type = CRL_SCRIPT_TYPE_SIMULATED_CAMERA;
     DrawMethod drawMethod = CRL_SCRIPT_DRAW;
 
+    void onDestroy() override {
+        topLevelData->compute.reset = true;
+    }
+
     ComputeShader computeShader;
+    int64_t lastPresentedFrameID = -1;
+    std::chrono::steady_clock::time_point lastPresentTime;
 
     void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b);
+
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle);
 };
 
 

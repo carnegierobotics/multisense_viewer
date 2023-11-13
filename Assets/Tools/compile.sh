@@ -68,6 +68,7 @@ $glslc ${sceneDir}/video/compute.frag -o ${sceneOutDir}compute.frag.spv
 #echo "Compiled Renderer3D shaders"
 
 $glslc ${sceneDir}/stereo_sim.comp -o ${sceneOutDir}stereo_sim.comp.spv
+$glslc ${sceneDir}/stereo_sim_ext.comp -o ${sceneOutDir}stereo_sim_ext.comp.spv
 $glslc ${sceneDir}/particle.frag -o ${sceneOutDir}particle.frag.spv
 $glslc ${sceneDir}/particle.vert -o ${sceneOutDir}particle.vert.spv
 echo "Compiled Compute shaders"

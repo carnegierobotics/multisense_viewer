@@ -216,24 +216,18 @@ public:
             descriptorWrites[5].dstArrayElement = 0;
             descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             descriptorWrites[5].descriptorCount = 1;
-            descriptorWrites[5].pImageInfo = &m_TextureComputeTarget[i].m_Descriptor;
+            descriptorWrites[5].pImageInfo = &m_TextureComputeTargets[i].m_Descriptor;
 
             vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, 6, descriptorWrites.data(), 0, nullptr);
         }
     }
 
-    void createTextureTarget(uint32_t width, uint32_t height, uint32_t framesInFlight) {
-        m_TextureComputeTarget.resize(framesInFlight);
-        m_TextureComputeLeftInput.resize(framesInFlight);
-        m_TextureComputeRightInput.resize(framesInFlight);
+    void createTextureTarget(uint32_t width, uint32_t height, uint32_t framesInFlight, uint32_t numTextures = 6) {
+        m_TextureComputeTargets.resize(framesInFlight * numTextures);
+        m_TextureComputeLeftInput.resize(framesInFlight * numTextures);
+        m_TextureComputeRightInput.resize(framesInFlight * numTextures);
         uint8_t *array = new uint8_t[width * height](); // The parentheses initialize all elements to zero.
         for (uint32_t i = 0; i < framesInFlight; ++i) {
-            m_TextureComputeTarget[i].fromBuffer(array, width * height, VK_FORMAT_R8_UNORM, width, height,
-                                                 m_VulkanDevice,
-                                                 m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
-                                                 VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-                                                 VK_IMAGE_LAYOUT_GENERAL,
-                                                 true);
             m_TextureComputeLeftInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
                                                                                        VK_IMAGE_LAYOUT_GENERAL,
                                                                                        VK_FORMAT_R8_UNORM,
@@ -246,6 +240,15 @@ public:
                                                                                         VK_IMAGE_USAGE_SAMPLED_BIT |
                                                                                         VK_IMAGE_USAGE_STORAGE_BIT,
                                                                                         true);
+        }
+
+        for (uint32_t i = 0; i < framesInFlight * numTextures; ++i) {
+            m_TextureComputeTargets[i].fromBuffer(array, width * height, VK_FORMAT_R8_UNORM, width, height,
+                                                  m_VulkanDevice,
+                                                  m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+                                                  VK_IMAGE_LAYOUT_GENERAL,
+                                                  true);
         }
         delete[] array;
     }
@@ -312,7 +315,7 @@ public:
     }
 
     std::vector<VkBuffer> m_Buffer{};
-    std::vector<Texture2D> m_TextureComputeTarget{};
+    std::vector<Texture2D> m_TextureComputeTargets{};
     std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeLeftInput{};
     std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeRightInput{};
     std::vector<VkDeviceMemory> m_Memory{};

@@ -23,7 +23,7 @@ void StereoSim::setup() {
                                                    VK_SHADER_STAGE_COMPUTE_BIT));
     // Execute compute pipeline
     topLevelData->compute.computeBuffer = &computeShader.m_Buffer;
-    topLevelData->compute.textureComputeTarget = &computeShader.m_TextureComputeTarget;
+    topLevelData->compute.textureComputeTarget = &computeShader.m_TextureComputeTargets;
     topLevelData->compute.valid = true;
     // Read Result
 }

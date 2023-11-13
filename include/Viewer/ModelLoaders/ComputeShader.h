@@ -79,167 +79,26 @@ public:
         vkFreeMemory(m_VulkanDevice->m_LogicalDevice, stagingMemory, nullptr);
     }
 
-
-    void createDescriptorSetLayout() {
-        std::array<VkDescriptorSetLayoutBinding, 6> layoutBindings{};
-        layoutBindings[0].binding = 0;
-        layoutBindings[0].descriptorCount = 1;
-        layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        layoutBindings[0].pImmutableSamplers = nullptr;
-        layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        layoutBindings[1].binding = 1;
-        layoutBindings[1].descriptorCount = 1;
-        layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        layoutBindings[1].pImmutableSamplers = nullptr;
-        layoutBindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        layoutBindings[2].binding = 2;
-        layoutBindings[2].descriptorCount = 1;
-        layoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        layoutBindings[2].pImmutableSamplers = nullptr;
-        layoutBindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        layoutBindings[3].binding = 3;
-        layoutBindings[3].descriptorCount = 1;
-        layoutBindings[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        layoutBindings[3].pImmutableSamplers = nullptr;
-        layoutBindings[3].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        layoutBindings[4].binding = 4;
-        layoutBindings[4].descriptorCount = 1;
-        layoutBindings[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        layoutBindings[4].pImmutableSamplers = nullptr;
-        layoutBindings[4].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        layoutBindings[5].binding = 5;
-        layoutBindings[5].descriptorCount = 1;
-        layoutBindings[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        layoutBindings[5].pImmutableSamplers = nullptr;
-        layoutBindings[5].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-        layoutInfo.pBindings = layoutBindings.data();
-
-        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create compute descriptor set layout!");
-        }
-    }
-
-    void createDescriptorSetPool(uint32_t count) {
-        std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count},
-                {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2 * count},
-                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
-                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
-                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
-
-        };
-        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
-        CHECK_RESULT(
-                vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-    }
-
-    void createDescriptorSets(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
-        descriptors.resize(count);
-        std::vector<VkDescriptorSetLayout> layouts(count, descriptorSetLayout);
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
-        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocInfo.pSetLayouts = layouts.data();
-        descriptorSetAllocInfo.descriptorSetCount = count;
-        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                              descriptors.data()));
-
-        for (size_t i = 0; i < count; i++) {
-
-            std::vector<VkWriteDescriptorSet> descriptorWrites(6);
-
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptors[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
-
-            VkDescriptorBufferInfo storageBufferInfoLastFrame{};
-            //storageBufferInfoLastFrame.buffer = buffer[];
-            storageBufferInfoLastFrame.buffer = m_Buffer[i];
-            storageBufferInfoLastFrame.offset = 0;
-            storageBufferInfoLastFrame.range = sizeof(VkRender::Particle) * PARTICLE_COUNT;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptors[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pBufferInfo = &storageBufferInfoLastFrame;
-
-            VkDescriptorBufferInfo storageBufferInfoCurrentFrame{};
-            storageBufferInfoCurrentFrame.buffer = m_Buffer[(i + 1) % count];
-            storageBufferInfoCurrentFrame.offset = 0;
-            storageBufferInfoCurrentFrame.range = sizeof(VkRender::Particle) * PARTICLE_COUNT;
-
-            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[2].dstSet = descriptors[i];
-            descriptorWrites[2].dstBinding = 2;
-            descriptorWrites[2].dstArrayElement = 0;
-            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pBufferInfo = &storageBufferInfoCurrentFrame;
-
-            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[3].dstSet = descriptors[i];
-            descriptorWrites[3].dstBinding = 3;
-            descriptorWrites[3].dstArrayElement = 0;
-            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            descriptorWrites[3].descriptorCount = 1;
-            descriptorWrites[3].pImageInfo = &m_TextureComputeLeftInput[i]->m_Descriptor;
-
-            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[4].dstSet = descriptors[i];
-            descriptorWrites[4].dstBinding = 4;
-            descriptorWrites[4].dstArrayElement = 0;
-            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            descriptorWrites[4].descriptorCount = 1;
-            descriptorWrites[4].pImageInfo = &m_TextureComputeRightInput[i]->m_Descriptor;
-
-            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[5].dstSet = descriptors[i];
-            descriptorWrites[5].dstBinding = 5;
-            descriptorWrites[5].dstArrayElement = 0;
-            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            descriptorWrites[5].descriptorCount = 1;
-            descriptorWrites[5].pImageInfo = &m_TextureComputeTargets[i].m_Descriptor;
-
-            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, 6, descriptorWrites.data(), 0, nullptr);
-        }
-    }
-
-    void createTextureTarget(uint32_t width, uint32_t height, uint32_t framesInFlight, uint32_t numTextures = 6) {
+    void createTextureTarget(uint32_t width, uint32_t height, uint32_t depth, uint32_t framesInFlight, uint32_t numTextures = 11) {
         m_TextureComputeTargets.resize(framesInFlight * numTextures);
-        m_TextureComputeLeftInput.resize(framesInFlight * numTextures);
-        m_TextureComputeRightInput.resize(framesInFlight * numTextures);
+        m_TextureComputeLeftInput.resize(framesInFlight);
+        m_TextureComputeRightInput.resize(framesInFlight);
+        m_TextureComputeTargets3D.resize(framesInFlight * numTextures);
+
         uint8_t *array = new uint8_t[width * height](); // The parentheses initialize all elements to zero.
         for (uint32_t i = 0; i < framesInFlight; ++i) {
             m_TextureComputeLeftInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
-                                                                                       VK_IMAGE_LAYOUT_GENERAL,
-                                                                                       VK_FORMAT_R8_UNORM,
-                                                                                       VK_IMAGE_USAGE_SAMPLED_BIT |
-                                                                                       VK_IMAGE_USAGE_STORAGE_BIT,
-                                                                                       true);
+                                                                          VK_IMAGE_LAYOUT_GENERAL,
+                                                                          VK_FORMAT_R8_UNORM,
+                                                                          VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                                          VK_IMAGE_USAGE_STORAGE_BIT,
+                                                                          true);
             m_TextureComputeRightInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
-                                                                                        VK_IMAGE_LAYOUT_GENERAL,
-                                                                                        VK_FORMAT_R8_UNORM,
-                                                                                        VK_IMAGE_USAGE_SAMPLED_BIT |
-                                                                                        VK_IMAGE_USAGE_STORAGE_BIT,
-                                                                                        true);
+                                                                           VK_IMAGE_LAYOUT_GENERAL,
+                                                                           VK_FORMAT_R8_UNORM,
+                                                                           VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                                           VK_IMAGE_USAGE_STORAGE_BIT,
+                                                                           true);
         }
 
         for (uint32_t i = 0; i < framesInFlight * numTextures; ++i) {
@@ -249,31 +108,224 @@ public:
                                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
                                                   VK_IMAGE_LAYOUT_GENERAL,
                                                   true);
+
+            m_TextureComputeTargets3D[i].fromBuffer(array, width * height, VK_FORMAT_R16_UNORM, width, height, depth,
+                                                  m_VulkanDevice,
+                                                  m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+                                                  VK_IMAGE_LAYOUT_GENERAL,
+                                                  true);
         }
         delete[] array;
     }
 
-    void createComputePipeline(VkPipelineShaderStageCreateInfo computeShaderStageInfo) {
+
+    void prepareDescriptors(uint32_t framesInFlight, const std::vector<VkRender::UniformBufferSet> &ubo,  std::vector<VkPipelineShaderStageCreateInfo> & shaders) {
+        pass.resize(numPasses);
+        descriptorLayoutProcessImagesPass();
+        descriptorLayoutPixelCostPass();
+        descriptorPoolProcessImagesPass(framesInFlight);
+        descriptorPoolPixelCostPass(framesInFlight);
+        descriptorSetsProcessImagePass(framesInFlight, ubo);
+        descriptorSetsPixelCostPass(framesInFlight, ubo);
+
+        computePipelinePass(shaders[0], 0);
+        computePipelinePass(shaders[1], 1);
+    }
+
+    void descriptorLayoutProcessImagesPass() {
+        std::array<VkDescriptorSetLayoutBinding, 10> layoutBindings{};
+        layoutBindings[0].binding = 0;
+        layoutBindings[0].descriptorCount = 1;
+        layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layoutBindings[0].pImmutableSamplers = nullptr;
+        layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        for (size_t i = 1; i < 10; ++i) {
+            layoutBindings[i].binding = i;
+            layoutBindings[i].descriptorCount = 1;
+            layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            layoutBindings[i].pImmutableSamplers = nullptr;
+            layoutBindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        }
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+        layoutInfo.pBindings = layoutBindings.data();
+        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr,
+                                        &pass[0].descriptorSetLayout) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute descriptor set layout!");
+        }
+    }
+
+    void descriptorLayoutPixelCostPass() {
+        std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings{};
+        layoutBindings[0].binding = 0;
+        layoutBindings[0].descriptorCount = 1;
+        layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        layoutBindings[0].pImmutableSamplers = nullptr;
+        layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        layoutBindings[1].binding = 1;
+        layoutBindings[1].descriptorCount = 1;
+        layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        layoutBindings[1].pImmutableSamplers = nullptr;
+        layoutBindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+        layoutInfo.pBindings = layoutBindings.data();
+        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr,
+                                        &pass[1].descriptorSetLayout) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute descriptor set layout!");
+        }
+    }
+
+    void descriptorPoolProcessImagesPass(uint32_t count) {
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * count},
+
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
+        CHECK_RESULT(
+                vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
+                                       &pass[0].descriptorPool));
+    }
+
+    void descriptorPoolPixelCostPass(uint32_t count) {
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2 * count},
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
+        CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
+                                            &pass[1].descriptorPool));
+    }
+
+    void descriptorSetsProcessImagePass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+        pass[0].descriptors.resize(count);
+        std::vector<VkDescriptorSetLayout> layouts(count, pass[0].descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = pass[0].descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = layouts.data();
+        descriptorSetAllocInfo.descriptorSetCount = count;
+        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              pass[0].descriptors.data()));
+
+        for (size_t i = 0; i < count; i++) {
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites(10);
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = pass[0].descriptors[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &ubo[i].bufferTwo.m_DescriptorBufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = pass[0].descriptors[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &m_TextureComputeLeftInput[i]->m_Descriptor;
+
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = pass[0].descriptors[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &m_TextureComputeRightInput[i]->m_Descriptor;
+
+            for (size_t j = 3; j < 10; ++j) {
+                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[j].dstSet = pass[0].descriptors[i];
+                descriptorWrites[j].dstBinding = j;
+                descriptorWrites[j].dstArrayElement = 0;
+                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                descriptorWrites[j].descriptorCount = 1;
+                descriptorWrites[j].pImageInfo = &m_TextureComputeTargets[((j - 3) * 5 )+ i].m_Descriptor;
+            }
+            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
+                                   descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void descriptorSetsPixelCostPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+        pass[1].descriptors.resize(count);
+        std::vector<VkDescriptorSetLayout> layouts(count, pass[1].descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = pass[1].descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = layouts.data();
+        descriptorSetAllocInfo.descriptorSetCount = count;
+        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              pass[1].descriptors.data()));
+
+        for (size_t i = 0; i < count; i++) {
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites(2);
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = pass[1].descriptors[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pImageInfo = &m_TextureComputeTargets[30 + i].m_Descriptor;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = pass[1].descriptors[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &m_TextureComputeTargets[35 + i].m_Descriptor;
+
+            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
+                                   descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void computePipelinePass(VkPipelineShaderStageCreateInfo computeShaderStageInfo, size_t passNumber) {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+        pipelineLayoutInfo.pSetLayouts = &pass[passNumber].descriptorSetLayout;
 
-        if (vkCreatePipelineLayout(m_VulkanDevice->m_LogicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
+        if (vkCreatePipelineLayout(m_VulkanDevice->m_LogicalDevice, &pipelineLayoutInfo, nullptr, &pass[passNumber].pipelineLayout) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create compute m_Pipeline layout!");
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.layout = pass[passNumber].pipelineLayout;
         pipelineInfo.stage = computeShaderStageInfo;
 
         if (vkCreateComputePipelines(m_VulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-                                     &pipeline) != VK_SUCCESS) {
+                                     &pass[passNumber].pipeline) != VK_SUCCESS) {
             throw std::runtime_error("failed to create compute m_Pipeline!");
         }
     }
+
+
 
 
     void recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
@@ -284,14 +336,59 @@ public:
             throw std::runtime_error("failed to begin recording compute command buffer!");
         }
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipeline);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
-                                &descriptors[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipelineLayout, 0, 1,
+                                &pass[0].descriptors[currentFrame], 0, nullptr);
 
-        //Log::Logger::getInstance()->trace("Binding descriptors: {} in compute-call", currentFrame);
 
-        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,  m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
+        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;  // Layout of the image before the barrier
+        barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;  // Layout of the image after the barrier
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Operations to wait on and stages where those operations occur
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Queue family ownership transfer (not used here)
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = m_TextureComputeTargets[30 + currentFrame].m_Image; // Image being accessed and modified as part of the barrier
+
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // Aspect of the image being altered
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        // Image index calculation
+        // Pass 1
+        //  6 output (sxL/R, syL/R, rawL/R) + 1 output (costRaw)
+        // Pass 2
+        // - 1 input image3D (costRaw), 1 output image3D (costNorm)
+        // framesInFlight = 5
+        // total images = 6 + 1 + 2 = 9
+        // m_TextureComputeTargets has in total 11 images. Which is 11 * framesInFlight = 45;
+        // ...10-14 15-19,20-24, 25-29 | 30-34, 35-39  40-44 | 45-49 | 50-54 |
+
+        // Insert the barrier
+        vkCmdPipelineBarrier(
+                commandBuffer,
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                0, // Dependency flags
+                0, nullptr, // Memory barriers
+                0, nullptr, // Buffer memory barriers
+                1, &barrier // Image memory barriers
+        );
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipeline);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipelineLayout, 0, 1,
+                                &pass[1].descriptors[currentFrame], 0, nullptr);
+
+        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record compute command buffer!");
@@ -308,29 +405,37 @@ public:
             vkFreeMemory(m_VulkanDevice->m_LogicalDevice, m, nullptr);
         }
 
-        vkDestroyPipelineLayout(m_VulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(m_VulkanDevice->m_LogicalDevice, pipeline, nullptr);
-        vkDestroyDescriptorPool(m_VulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
+        for (size_t i = 0; i < pass.size(); ++i){
+            vkDestroyPipelineLayout(m_VulkanDevice->m_LogicalDevice, pass[i].pipelineLayout, nullptr);
+            vkDestroyPipeline(m_VulkanDevice->m_LogicalDevice, pass[i].pipeline, nullptr);
+            vkDestroyDescriptorPool(m_VulkanDevice->m_LogicalDevice, pass[i].descriptorPool, nullptr);
+            vkDestroyDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, pass[i].descriptorSetLayout, nullptr);
+        }
+
     }
 
     std::vector<VkBuffer> m_Buffer{};
     std::vector<Texture2D> m_TextureComputeTargets{};
+    std::vector<Texture3D> m_TextureComputeTargets3D{};
     std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeLeftInput{};
     std::vector<std::unique_ptr<TextureVideo>> m_TextureComputeRightInput{};
-    std::vector<VkDeviceMemory> m_Memory{};
 
+    std::vector<VkDeviceMemory> m_Memory{};
 
 
 private:
     int PARTICLE_COUNT = 4096;
+    size_t numPasses = 2;
+    struct ComputePass {
+        VkDescriptorSetLayout descriptorSetLayout{};
+        VkDescriptorPool descriptorPool{};
+        std::vector<VkDescriptorSet> descriptors{};
+        VkPipeline pipeline{};
+        VkPipelineLayout pipelineLayout{};
+    };
+    std::vector<ComputePass> pass;
 
-    VkDescriptorSetLayout descriptorSetLayout{};
-    VkDescriptorPool descriptorPool{};
-    std::vector<VkDescriptorSet> descriptors{};
 
-    VkPipeline pipeline{};
-    VkPipelineLayout pipelineLayout{};
 };
 
 

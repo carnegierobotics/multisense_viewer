@@ -416,7 +416,7 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
             writeDescriptorSet.dstSet = model->m_Descriptors[i];
             writeDescriptorSet.dstBinding = 2;
             if (model->m_CameraDataType == CRL_COMPUTE_SHADER) {
-                writeDescriptorSet.pImageInfo = &(*model->m_TextureComputeTarget)[i].m_Descriptor;
+                writeDescriptorSet.pImageInfo = &(*model->m_TextureComputeTarget)[35 + i].m_Descriptor;
             } else {
                 writeDescriptorSet.pImageInfo = &model->m_TextureVideo[i]->m_Descriptor;
             }

@@ -11,16 +11,16 @@ void StereoSim::setup() {
 
     // Load L/R image
     lastPresentTime = std::chrono::steady_clock::now();
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/stereo_sim_ext.comp.spv",
+                                                                        VK_SHADER_STAGE_COMPUTE_BIT)},
+                                                            {loadShader("Scene/spv/stereo_sim_pass_2.comp.spv",
+                                                                        VK_SHADER_STAGE_COMPUTE_BIT)}};
 
     computeShader.m_VulkanDevice = renderUtils.device;
     computeShader.createBuffers(renderUtils.UBCount);
-    computeShader.createTextureTarget(960, 600, renderUtils.UBCount);
-    computeShader.createDescriptorSetLayout();
-    computeShader.createDescriptorSetPool(renderUtils.UBCount);
-    computeShader.createDescriptorSets(renderUtils.UBCount, renderUtils.uniformBuffers);
+    computeShader.createTextureTarget(960, 600, 256, renderUtils.UBCount);
+    computeShader.prepareDescriptors(renderUtils.UBCount, renderUtils.uniformBuffers, shaders);
 
-    computeShader.createComputePipeline(loadShader("Scene/spv/stereo_sim.comp.spv",
-                                                   VK_SHADER_STAGE_COMPUTE_BIT));
     // Execute compute pipeline
     topLevelData->compute.computeBuffer = &computeShader.m_Buffer;
     topLevelData->compute.textureComputeTarget = &computeShader.m_TextureComputeTargets;

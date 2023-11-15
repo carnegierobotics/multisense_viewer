@@ -144,9 +144,11 @@ void One::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoDataModel->getTextureDataPointers(defTex.get(), renderData.index)) {
-        std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
-        m_NoDataModel->updateTexture(defTex->m_Type, renderData.index);
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
+            std::memcpy(defTex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            m_NoDataModel->updateTexture(defTex->m_Type, i);
+        }
     }
 
     m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
@@ -154,9 +156,11 @@ void One::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoSourceModel->getTextureDataPointers(tex.get(), renderData.index)) {
-        std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
-        m_NoSourceModel->updateTexture(tex->m_Type, renderData.index);
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoSourceModel->getTextureDataPointers(tex.get(), i)) {
+            std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            m_NoSourceModel->updateTexture(tex->m_Type, i);
+        }
     }
 }
 
@@ -177,6 +181,10 @@ void One::prepareMultiSenseTexture() {
             vertexShaderFileName = "Scene/spv/disparity.vert";
             fragmentShaderFileName = "Scene/spv/disparity.frag";
             break;
+        case CRL_COMPUTE_SHADER:
+            vertexShaderFileName = "Scene/spv/grayscale.vert";
+            fragmentShaderFileName = "Scene/spv/compute.frag";
+            break;
         default:
             return;
     }
@@ -185,16 +193,24 @@ void One::prepareMultiSenseTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
 
-    uint32_t width = 0, height = 0, depth = 0;
-    Utils::cameraResolutionToValue(res, &width, &height, &depth);
-    if (width == 0 || height == 0){
-        Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
+    m_Model->m_CameraDataType = textureType;
+    if (CRL_COMPUTE_SHADER != textureType) {
+        uint32_t width = 0, height = 0, depth = 0;
+        Utils::cameraResolutionToValue(res, &width, &height, &depth);
+        if (width == 0 || height == 0) {
+            Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
+            return;
+        }
+
+        m_Model->createEmptyTexture(width, height, textureType, false, 0);
+        // Create graphics render pipeline
+        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+        return;
+    } else if (topLevelData->compute.valid) {
+        m_Model->m_TextureComputeTarget = topLevelData->compute.textureComputeTarget;
+        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
         return;
     }
-    m_Model->m_CameraDataType = textureType;
-    m_Model->createEmptyTexture(width, height, textureType, false, 0);
-    // Create graphics render pipeline
-    CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
 }
 
 void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
@@ -211,6 +227,8 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         if (src == "Idle") {
             state = DRAW_NO_SOURCE;
+        } else if (src == "Compute") {
+            state = DRAW_MULTISENSE;
         } else {
             state = DRAW_NO_DATA;
         }
@@ -228,6 +246,11 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             zoom.resolutionUpdated(width, height);
 
             prepareMultiSenseTexture();
+        }
+
+        if (topLevelData->compute.reset) {
+            prepareMultiSenseTexture();
+            topLevelData->compute.reset = false;
         }
         transformToUISpace(uiHandle, dev);
         options = &preview.effects;

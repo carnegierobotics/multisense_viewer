@@ -1359,6 +1359,9 @@ void Texture3D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat forma
     m_Height = texHeight;
     m_Depth = texDepth;
     m_MipLevels = 1;
+    m_Format = format;
+    m_Type = VK_IMAGE_TYPE_3D;
+    m_ViewType = VK_IMAGE_VIEW_TYPE_3D;
 
     // Create a host-visible staging buffer that contains the raw m_Image m_DataPtr
     VkBuffer stagingBuffer;
@@ -1394,11 +1397,12 @@ void Texture3D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat forma
     bufferCopyRegion.imageExtent.width = m_Width;
     bufferCopyRegion.imageExtent.height = m_Height;
     bufferCopyRegion.imageExtent.depth = m_Depth;
+    bufferCopyRegion.imageOffset = {0, 0, 0};
     bufferCopyRegion.bufferOffset = 0;
 
     // Create optimal tiled target m_Image
     VkImageCreateInfo imageCreateInfo = Populate::imageCreateInfo();
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
+    imageCreateInfo.imageType = m_Type;
     imageCreateInfo.format = format;
     imageCreateInfo.mipLevels = m_MipLevels;
     imageCreateInfo.arrayLayers = 1;
@@ -1406,7 +1410,7 @@ void Texture3D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat forma
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageCreateInfo.extent = {m_Width, m_Height, 1};
+    imageCreateInfo.extent = {m_Width, m_Height, m_Depth};
     imageCreateInfo.usage = imageUsageFlags;
     // Ensure that the TRANSFER_DST bit is set for staging
     if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
@@ -1506,7 +1510,7 @@ void Texture3D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat forma
     VkImageViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreateInfo.pNext = nullptr;
-    viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+    viewCreateInfo.viewType = m_ViewType;
     viewCreateInfo.format = format;
     viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
                                  VK_COMPONENT_SWIZZLE_A};

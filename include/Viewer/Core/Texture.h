@@ -63,6 +63,9 @@ public:
     VkSampler m_Sampler{};
     VkSamplerYcbcrConversion m_YUVSamplerToRGB{};
     VkFormat m_Format{};
+    VkImageType m_Type{};
+    VkImageViewType m_ViewType{};
+
 
     struct TextureSampler {
         VkFilter magFilter;

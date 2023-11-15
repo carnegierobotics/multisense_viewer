@@ -112,7 +112,9 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
     {
         desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+        // Triple/Double buffering
     }
+    desiredNumberOfSwapchainImages = std::min(static_cast<uint32_t>(2), desiredNumberOfSwapchainImages);
 
     // Find the transformation of the surface
     VkSurfaceTransformFlagsKHR preTransform;
@@ -187,11 +189,12 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     result = vkGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL);
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get swapchain images");
 
+    // We dont need more than three
+
     // Get the swap chain images
     images.resize(imageCount);
     result = vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get swapchain images");
-
     // Get the swap chain buffers containing the m_Image and imageview
     buffers.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)

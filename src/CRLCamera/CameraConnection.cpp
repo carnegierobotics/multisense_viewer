@@ -232,7 +232,7 @@ namespace VkRender::MultiSense {
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool",
                                                   (updateFreqSec == INTERVAL_1_SECOND ? "getStatusTask"
                                                                                       : "getCameraConfigsTask"));
-                pool->Push(taskFunction, this, dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : 0, dev);
+                pool->Push(taskFunction, this, dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : static_cast<crl::multisense::RemoteHeadChannel>(0), dev);
             }
         }
     }
@@ -453,17 +453,15 @@ namespace VkRender::MultiSense {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_ACTIVE | CRL_STATE_JUST_ADDED",
                                                  dev.name);
 
-                bool resetOtherDevice = false;
-                VkRender::Device *otherDev;
+                VkRender::Device *otherDev = nullptr;
                 for (auto &d: devices) {
                     if (d.state == CRL_STATE_ACTIVE && d.name != dev.name) {
                         d.state = CRL_STATE_RESET;
                         Log::Logger::getInstance()->info("Set dev state to RESET {}", d.name);
-                        resetOtherDevice = true;
                         otherDev = &d;
                     }
                 }
-                if (resetOtherDevice) {
+                if (otherDev) {
                     for (auto ch: otherDev->channelConnections)
                         camPtr.stop("All", ch); // Blocking operation
 

@@ -37,11 +37,11 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
-#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
+//#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
 
-#ifndef MULTISENSE_VIEWER_PRODUCTION
-#define MULTISENSE_VIEWER_DEBUG
-#endif
+//#ifndef MULTISENSE_VIEWER_PRODUCTION
+//    #define MULTISENSE_VIEWER_DEBUG
+//#endif
 
 #ifdef WIN32
     #ifdef APIENTRY
@@ -410,7 +410,7 @@ namespace VkRender {
      * Contain possible streams and resolutions for each channel
      */
     struct ChannelInfo {
-        uint32_t index = 0;
+        crl::multisense::RemoteHeadChannel index = 0;
         std::vector<std::string> availableSources{};
         /** @brief Current connection state for this channel */
         ArConnectionState state = CRL_STATE_DISCONNECTED;

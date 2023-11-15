@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "1")
+set(VERSION_PATCH "2")
 set(ARCHITECTURE "amd64")
 
 # Set install directory. Used to generate installers for both Windows and Ubuntu using their native approaches
@@ -106,10 +106,23 @@ if (UNIX) ## Linux
         set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
                 CACHE PATH "default install path" FORCE)
     endif ()
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+    # GTK for native file dialog
+    # Locate pkg-config
+    find_package(PkgConfig REQUIRED)
+    # Check for GTK+ using pkg-config
+    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+    # Add GTK+ include directories
+    include_directories(${GTK3_INCLUDE_DIRS})
+    # Add GTK+ linking directories
+    link_directories(${GTK3_LIBRARY_DIRS})
+    # Add GTK+ compiler flags
+    add_definitions(${GTK3_CFLAGS_OTHER})
+
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} ${GTK3_LIBRARIES})
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
@@ -122,6 +135,7 @@ if (UNIX) ## Linux
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
     set_project_warnings(MultiSense-Viewer)
+
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -147,8 +161,7 @@ if (WIN32)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
         target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
-        set(CMAKE_CXX_FLAGS_RELEASE "/Ox /DNDEBUG")
-
+        #set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
     endif ()
 
     # Include directory for WinPcap
@@ -184,6 +197,7 @@ if (WIN32)
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
+
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
@@ -254,3 +268,14 @@ if (WIN32)
         endif ()
     endif ()
 endif ()
+
+# Compile definitions
+if (CMAKE_BUILD_TYPE MATCHES "Release")
+    target_compile_definitions(VulkanRenderer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+    target_compile_definitions(ScriptLibrary PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
+else()
+    target_compile_definitions(VulkanRenderer PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(ScriptLibrary PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_DEBUG)
+endif()

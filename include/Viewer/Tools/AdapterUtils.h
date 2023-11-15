@@ -151,7 +151,6 @@ public:
             }
 
             // Print the list
-            int i = 0;
             std::string prefix = "\\Device\\Tcpip_";
             const char *token = "{";
             // Find { token in order to find correct prefix

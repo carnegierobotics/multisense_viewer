@@ -15,8 +15,9 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
 class Preview3DExt : public VkRender::Layer {
 private:
-    ImGuiFileDialog savePointCloudDialog;
-    ImGuiFileDialog saveIMUDataDialog;
+
+    std::future<std::string> savePointCloudFolderFuture;
+    std::future<std::string> saveIMUFolderFuture;
 
 public:
 
@@ -207,7 +208,8 @@ public:
                 ImGui::PopStyleColor(); // Text Color grey
                 ImGui::SameLine();
                 ImGui::HelpMarker(
-                        "Record the IMU data to file. The gyro data is saved to gyro.txt as (time (s), dx, dy, dz\nThe accelerometer data is saved to accel.txt as (time (s), x, y, z)", VkRender::Colors::CRLTextWhite);
+                        "Record the IMU data to file. The gyro data is saved to gyro.txt as (time (s), dx, dy, dz\nThe accelerometer data is saved to accel.txt as (time (s), x, y, z)",
+                        VkRender::Colors::CRLTextWhite);
                 // if start then show gif spinner
 
                 ImGui::Dummy(ImVec2(0.0f, 3.0));
@@ -224,32 +226,23 @@ public:
                 }
                 ImGui::SameLine();
 
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
 
                 if (ImGui::Button("Set Dir##imu", btnSize)) {
-                    saveIMUDataDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                 ".");
+                    if (!saveIMUFolderFuture.valid())
+                        saveIMUFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
 
-                // display
-
-                if (saveIMUDataDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                              ImVec2(1200.0f, 1000.0f))) {
-                    // action if OK
-                    if (saveIMUDataDialog.IsOk()) {
-                        std::string filePathName = saveIMUDataDialog.GetFilePathName();
-                        dev.record.imuSaveFolder = filePathName;
-                        // action
+                if (saveIMUFolderFuture.valid()) {
+                    if (saveIMUFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                        std::string selectedFolder = saveIMUFolderFuture.get(); // This will also make the future invalid
+                        if (!selectedFolder.empty()) {
+                            // Do something with the selected folder
+                            dev.record.imuSaveFolder = selectedFolder;
+                        }
                     }
-                    // close
-                    saveIMUDataDialog.Close();
                 }
-                ImGui::PopStyleVar(); // ImGuiStyleVar_ChildPadding
-                ImGui::PopStyleColor(2); // ImGuiCol_WindowBg | ImGuiCol_ChildBg
 
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(
@@ -287,7 +280,7 @@ public:
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("Color:");
+            ImGui::Text("Color Source:");
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
@@ -318,9 +311,10 @@ public:
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("Save Point cloud as .ply file");
+            ImGui::Text("Save current point cloud as .ply file");
             ImGui::PopStyleColor(); // Text Color grey
-
+            ImGui::SameLine();
+            ImGui::HelpMarker("Disparity image to point-cloud conversion is performed on the cpu and therefore slow. Be patient, especially for full res images.");
             ImGui::Dummy(ImVec2(0.0f, 3.0));
             ImGui::Dummy(ImVec2(pos.paddingX, 0.0));
             ImGui::SameLine();
@@ -336,31 +330,22 @@ public:
             ImGui::SameLine();
 
             if (ImGui::Button("Choose Dir##pointcloud", btnSize)) {
-                savePointCloudDialog.OpenDialog("ChooseDirDlgKey", "Choose a Directory", nullptr,
-                                                ".");
+                if (!savePointCloudFolderFuture.valid())
+                    savePointCloudFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
+
                 handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
             }
 
-            // display
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-
-            if (savePointCloudDialog.Display("ChooseDirDlgKey", 0, ImVec2(600.0f, 400.0f),
-                                             ImVec2(1200.0f, 1000.0f))) {
-                // action if OK
-                if (savePointCloudDialog.IsOk()) {
-                    std::string filePathName = savePointCloudDialog.GetFilePathName();
-                    dev.record.pointCloudSaveFolder = filePathName;
-                    // action
+            if (savePointCloudFolderFuture.valid()) {
+                if (savePointCloudFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    std::string selectedFolder = savePointCloudFolderFuture.get(); // This will also make the future invalid
+                    if (!selectedFolder.empty()) {
+                        // Do something with the selected folder
+                        dev.record.pointCloudSaveFolder = selectedFolder;
+                    }
                 }
-                // close
-                savePointCloudDialog.Close();
             }
-            ImGui::PopStyleVar(); // ImGuiStyleVar_ChildPadding
-            ImGui::PopStyleColor(2); // ImGuiCol_WindowBg | ImGuiCol_ChildBg
-
 
             ImGui::SameLine();
             ImGui::SetNextItemWidth(

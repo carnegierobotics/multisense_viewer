@@ -53,9 +53,12 @@
 
 #include <direct.h>
 #include <windows.h>
+#include <UserEnv.h>
 
 #else
+
 #include <sys/stat.h>
+
 #endif
 
 #include "Viewer/Tools/Macros.h"
@@ -683,7 +686,7 @@ namespace Utils {
     static inline bool stringToBool(const std::string &str) {
         std::string lowerStr;
         std::transform(str.begin(), str.end(), std::back_inserter(lowerStr),
-                       [](unsigned char c) {  return static_cast<char>(std::tolower(c)); });
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
         if (lowerStr == "true") {
             return true;
@@ -733,6 +736,33 @@ namespace Utils {
         return multiSenseCachePath;
     }
 
+    static inline std::filesystem::path getSystemHomePath() {
+#ifdef WIN32
+        char path[MAX_PATH];
+        HANDLE hToken;
+        DWORD bufferSize = sizeof(path);
+
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &hToken)) {
+            if (!GetUserProfileDirectory(hToken, path, &bufferSize)) {
+                CloseHandle(hToken);
+                return ""; // Failed to get home directory
+            }
+            CloseHandle(hToken);
+        } else {
+            return ""; // Failed to open process token
+        }
+
+        return std::string(path);
+#else
+        const char *homeDir = getenv("HOME");
+        if (homeDir) {
+            return std::string(homeDir);
+        } else {
+            return getSystemCachePath();
+        }
+#endif
+    }
+
     static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
         std::string lowered_str = str;
         std::transform(str.begin(), str.end(), lowered_str.begin(),
@@ -741,7 +771,6 @@ namespace Utils {
         std::regex pattern(expression, std::regex_constants::icase);  // icase for case-insensitive matching
         return std::regex_search(lowered_str, pattern);
     }
-
 
 
     static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {

@@ -394,7 +394,7 @@ public:
         strcpy_s(pBuf + (SharedBufferSize / 2), (SharedBufferSize / 2), nlohmann::to_string(send).c_str());
         Log::Logger::getInstance()->info("Sent stop signal to AutoConnect");
     }
-    void setIpConfig(size_t index) {
+    void setIpConfig(int index) {
         if (!isOpen || index < 0)
             return;
 

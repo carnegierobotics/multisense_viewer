@@ -5,7 +5,18 @@
 #ifndef MULTISENSE_VIEWER_LAYERUTILS_H
 #define MULTISENSE_VIEWER_LAYERUTILS_H
 
+#ifdef WIN32
+#include <windows.h>
+#include <shobjidl.h>
+#include <locale>
+#include <codecvt>
+
+#else
+#include <gtk/gtk.h>
+#endif
+
 #include <imgui.h>
+
 
 #include "Viewer/ImGui/Widgets.h"
 
@@ -85,6 +96,157 @@ namespace VkRender::LayerUtils {
         }
         ImGui::Dummy(ImVec2());
     }
+
+
+#ifdef WIN32
+
+    static inline std::string selectFolder() {
+        PWSTR path = NULL;
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        if (SUCCEEDED(hr)) {
+            IFileOpenDialog* pfd;
+            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pfd));
+            if (SUCCEEDED(hr)) {
+                DWORD dwOptions;
+                hr = pfd->GetOptions(&dwOptions);
+                if (SUCCEEDED(hr)) {
+                    hr = pfd->SetOptions(dwOptions | FOS_PICKFOLDERS);
+                    if (SUCCEEDED(hr)) {
+                        hr = pfd->Show(NULL);
+                        if (SUCCEEDED(hr)) {
+                            IShellItem* psi;
+                            hr = pfd->GetResult(&psi);
+                            if (SUCCEEDED(hr)) {
+                                hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                                psi->Release();
+                            }
+                        }
+                    }
+                }
+                pfd->Release();
+            }
+            CoUninitialize();
+        }
+
+        if (path) {
+            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, NULL, NULL);
+            std::string str(count - 1, 0);
+            WideCharToMultiByte(CP_UTF8, 0, path, -1, &str[0], count, NULL, NULL);
+            CoTaskMemFree(path);
+            return str;
+        }
+        return std::string();
+    }
+
+    static inline std::string selectYamlFile() {
+        PWSTR path = NULL;
+        std::string filePath;
+        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        if (SUCCEEDED(hr)) {
+            IFileOpenDialog* pfd;
+            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pfd));
+            if (SUCCEEDED(hr)) {
+                // Set the file types to display only. Notice the double null termination.
+                COMDLG_FILTERSPEC rgSpec[] = {
+                        { L"YAML Files", L"*.yaml;*.yml" },
+                        { L"All Files", L"*.*" },
+                };
+                pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+
+                // Show the dialog
+                hr = pfd->Show(NULL);
+                if (SUCCEEDED(hr)) {
+                    IShellItem* psi;
+                    hr = pfd->GetResult(&psi);
+                    if (SUCCEEDED(hr)) {
+                        hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                        psi->Release();
+                        if (SUCCEEDED(hr)) {
+                            // Convert the selected file path to a narrow string
+                            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, NULL, NULL);
+                            filePath.resize(count - 1);
+                            WideCharToMultiByte(CP_UTF8, 0, path, -1, &filePath[0], count, NULL, NULL);
+                        }
+                    }
+                }
+                pfd->Release();
+            }
+            CoUninitialize();
+        }
+
+        if (path) {
+            CoTaskMemFree(path);
+        }
+
+        return filePath;
+    }
+
+#else
+
+    static inline std::string selectYamlFile() {
+        std::string filename = "";
+
+        gtk_init(0, NULL);
+
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                "Open YAML File",
+                NULL,
+                GTK_FILE_CHOOSER_ACTION_OPEN,
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Open"), GTK_RESPONSE_ACCEPT,
+                NULL
+        );
+
+        GtkFileFilter *filter = gtk_file_filter_new();
+        gtk_file_filter_set_name(filter, "YML Files");
+        gtk_file_filter_add_pattern(filter, "*.yml");
+        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSystemHomePath().c_str());
+
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            filename = selected_file;
+            g_free(selected_file);
+        }
+
+        gtk_widget_destroy(dialog);
+        while (gtk_events_pending()) {
+            gtk_main_iteration();
+        }
+
+        return filename;
+    }
+
+
+    static inline std::string selectFolder() {
+        std::string folderPath = "";
+
+        gtk_init(0, NULL);
+
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                "Select Folder",
+                NULL,
+                GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Open"), GTK_RESPONSE_ACCEPT,
+                NULL
+        );
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSystemHomePath().c_str());
+
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            folderPath = selected_folder;
+            g_free(selected_folder);
+        }
+
+        gtk_widget_destroy(dialog);
+        while (gtk_events_pending()) {
+            gtk_main_iteration();
+        }
+
+        return folderPath;
+    }
+#endif
 }
 
 

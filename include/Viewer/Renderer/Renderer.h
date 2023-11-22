@@ -85,7 +85,9 @@ public:
 
 private:
 
-    void render() override;
+    void recordCommands() override;
+    bool compute() override;
+    void updateUniformBuffers() override;
 
     void prepareRenderer();
 
@@ -96,6 +98,8 @@ private:
     std::shared_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
+    VkRender::TopLevelScriptData topLevelScriptData{};
+
     bool renderSelectionPass = true;
 
     // Create a host-visible staging buffer that contains the raw m_Image data

@@ -192,8 +192,7 @@ namespace VkRender {
                 orientation = pitchRotation * orientation;
                 orientation = glm::normalize(orientation);  // Ensure it stays normalized
 
-                Log::Logger::getInstance()->info("Orientation {},{},{},{}", orientation.x, orientation.y, orientation.z,
-                                                 orientation.w);
+                //Log::Logger::getInstance()->info("Orientation {},{},{},{}", orientation.x, orientation.y, orientation.z, orientation.w);
 
                 // Extract the camera's front direction
                 glm::vec3 dir = glm::mat3_cast(orientation) * glm::vec3(1.0f, 0.0f, 0.0f);

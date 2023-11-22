@@ -198,7 +198,7 @@ public:
 
             ImGui::Dummy(ImVec2(0.0f, 5.0));
 
-            VkRender::LayerUtils::createWidgets(handles, "IMU", pos);
+            VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_IMU, pos);
 
             { // Save point cloud
                 ImGui::Dummy(ImVec2(0.0f, 3.0));
@@ -304,7 +304,7 @@ public:
             ImGui::PopStyleColor();
             ImGui::Dummy(ImVec2(0.0f, 5.0));
 
-            VkRender::LayerUtils::createWidgets(handles, "PointCloud", pos);
+            VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_POINTCLOUD, pos);
 
 
             ImGui::Dummy(ImVec2(0.0f, 3.0));

@@ -66,6 +66,9 @@ $glslc ${renderer3DDir}/pc3D.vert -o ${sceneOutDir}pc3D.vert.spv
 $glslc ${renderer3DDir}/pc3D.frag -o ${sceneOutDir}pc3D.frag.spv
 echo "Compiled Renderer3D shaders"
 
+$glslc ${sceneDir}/compute/particle.frag -o ${sceneOutDir}particle.frag.spv
+$glslc ${sceneDir}/compute/particle.vert -o ${sceneOutDir}particle.vert.spv
+echo "Compiled Compute shaders"
 
 echo "Copying to debug build location: ${sceneOutDir}*.spv | to | ${outDir}"
 cp ${sceneOutDir}*.spv  ${outDir}

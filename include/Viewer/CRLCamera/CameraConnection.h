@@ -293,7 +293,7 @@ namespace VkRender::MultiSense {
                          float updateFreqSec);
 
         static void
-        connectFakeCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead);
+        connectFakeCameraTask(void *context, VkRender::Device *dev);
     };
 
 }

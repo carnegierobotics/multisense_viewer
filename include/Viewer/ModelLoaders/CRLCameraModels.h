@@ -49,6 +49,7 @@
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Core/Texture.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Macros.h"
 
 /***
@@ -61,58 +62,52 @@ public:
 
     ~CRLCameraModels()  = default;
     struct Model {
-        explicit Model(const VkRender::RenderUtils *renderUtils);
+        explicit Model(const VkRender::RenderUtils *renderUtils, uint32_t framesInFlight);
 
         ~Model();
 
-        std::vector<VkDescriptorSet> descriptors;
-        VkDescriptorSetLayout descriptorSetLayout{};
-        VkDescriptorPool descriptorPool{};
-        VkPipeline pipeline{};
-        VkPipeline selectionPipeline{};
-        bool initializedPipeline = false;
+        std::vector<VkDescriptorSet> m_Descriptors;
+        std::vector<VkDescriptorSetLayout> m_DescriptorSetLayout{};
+        VkDescriptorPool m_DescriptorPool{};
+        std::vector<VkPipeline> m_Pipeline{};
+        std::vector<VkPipeline> m_SelectionPipeline{};
+        bool m_InitializedPipeline = false;
 
-        VkPipelineLayout pipelineLayout{};
-        VkPipelineLayout selectionPipelineLayout{};
+        std::vector<VkPipelineLayout> m_PipelineLayout{};
+        std::vector<VkPipelineLayout> m_SelectionPipelineLayout{};
 
         /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
-        bool draw = true;
-        CRLCameraDataType cameraDataType{};
+        bool m_Draw = true;
+        CRLCameraDataType m_CameraDataType{};
 
         struct Mesh {
             VulkanDevice *device = nullptr;
             uint32_t firstIndex = 0;
             uint32_t indexCount = 0;
             uint32_t vertexCount = 0;
-
             struct Vertices {
                 VkBuffer buffer = VK_NULL_HANDLE;
                 VkDeviceMemory memory{};
-            } vertices{};
+            };
             struct Indices {
                 VkBuffer buffer = VK_NULL_HANDLE;
                 VkDeviceMemory memory{};
-            } indices{};
-
+            };
+            std::vector<Vertices> vertices;
+            std::vector<Indices> indices;
             Buffer uniformBuffer{};
+        } m_Mesh{};
 
-        } mesh{};
+        VulkanDevice *m_VulkanDevice{};
+        uint32_t m_FramesInFlight = 1;
 
-        struct Dimensions {
-            glm::vec3 min = glm::vec3(FLT_MAX);
-            glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions;
-
-        VulkanDevice *vulkanDevice{};
-        std::vector<std::string> extensions;
-
-        std::unique_ptr<TextureVideo> textureVideo;       // Default texture that gets updated usually on each camera frame update
-        std::unique_ptr<TextureVideo> pointCloudTexture;  // pc color texture
-        std::unique_ptr<TextureVideo> textureChromaU;     // supporting tex if no ycbcr sampler present (old hw)
-        std::unique_ptr<TextureVideo> textureChromaV;     // supporting tex if no ycbcr sampler is present (oldhw)
-        Buffer colorPointCloudBuffer;
-
-        std::vector<Texture::TextureSampler> textureSamplers;
+        std::vector<std::unique_ptr<TextureVideo>> m_TextureVideo;       // Default texture that gets updated usually on each camera frame update
+        std::vector<std::unique_ptr<TextureVideo>> m_PointCloudTexture;  // pc color texture
+        std::vector<std::unique_ptr<TextureVideo>> m_TextureChromaU;     // supporting tex if no ycbcr sampler present (old hw)
+        std::vector<std::unique_ptr<TextureVideo>> m_TextureChromaV;     // supporting tex if no ycbcr sampler is present (oldhw)
+        std::vector<Buffer> m_ColorPointCloudBuffer;
+        std::vector<Texture2D> *m_TextureComputeTarget;
+        std::vector<Texture3D> *m_TextureComputeTarget3D;
 
         void
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
@@ -120,18 +115,12 @@ public:
 
         void createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType, bool forPointCloud = false, int i = 0);
 
-        bool updateTexture(CRLCameraDataType type);
+        bool updateTexture(CRLCameraDataType type, uint32_t currentFrame);
 
-        bool getTextureDataPointers(VkRender::TextureData *tex) const;
+        bool getTextureDataPointers(VkRender::TextureData *tex, uint32_t currentFrame) const;
 
-        bool updateTexture(VkRender::TextureData *tex);
+        bool updateTexture(VkRender::TextureData *tex, uint32_t currentFrame);
     };
-
-
-
-
-
-
 
     /**
      * Call to draw m_Model
@@ -140,7 +129,7 @@ public:
      * @param model modeol to draw
      * @param b if we want to render additional pipeline
      */
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b = true);
+    void draw(CommandBuffer * commandBuffer, uint32_t i, Model *model, bool b = true);
 
 protected:
 
@@ -161,7 +150,7 @@ protected:
      * Create the pipeline layout
      * @param pT pointer to store pipelinelayout object
      */
-    void createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout const &layout);
+    void createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout *layout, uint32_t numDescriptorLayouts);
 
     /**
      * @brief Bind a default m_Descriptor layout to the pipeline for images
@@ -186,7 +175,7 @@ protected:
      * @param pLayoutT additional pipeline layout
      */
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
-                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel, VkSampleCountFlagBits bits);
+                        VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, VkSampleCountFlagBits bits);
 
     /**
      * Create descriptors for this m_Model

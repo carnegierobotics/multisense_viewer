@@ -114,17 +114,19 @@ namespace Log {
  * @brief Defines draw behaviour of a script
  */
 typedef enum ScriptType {
-    /** CRL_SCRIPT_TYPE_DISABLED Do not draw script at all */
+    /** Do not draw script at all */
     CRL_SCRIPT_TYPE_DISABLED             = 0x00,
-    /** CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS Draw script since first frame and allocate additional MVP buffers */
+    /** Draw script since first frame and allocate additional MVP buffers */ //TODO Delete if possible
     CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS   = 0x01,
-    /** CRL_SCRIPT_TYPE_DEFAULT Draw script after crl camera connect */
+    /** Draw script after crl camera connect */
     CRL_SCRIPT_TYPE_DEFAULT              = 0x02,
-    /** CRL_SCRIPT_TYPE_RENDER Draw script since application startup in the Renderer3D. No particular order */
+    /** Draw script since application startup in the Renderer3D. No particular order */
     CRL_SCRIPT_TYPE_RENDERER3D           = 0x04,
     /** Create this script before default and always render this type first. No internal ordering amongst scripts */
     CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE   = 0x08,
-    CRL_SCRIPT_TYPE_RENDER_PBR           = 0x10
+    /** Draw script since application startup in the Simulated camera. No particular order */
+    CRL_SCRIPT_TYPE_SIMULATED_CAMERA     = 0x10,
+
 } ScriptType;
 typedef VkRenderFlags ScriptTypeFlags;
 
@@ -146,7 +148,8 @@ typedef enum CRLCameraDataType {
     CRL_COLOR_IMAGE_YUV420,
     CRL_CAMERA_IMAGE_NONE,
     CRL_DISPARITY_IMAGE,
-    CRL_POINT_CLOUD
+    CRL_POINT_CLOUD,
+    CRL_COMPUTE_SHADER,
 } CRLCameraDataType;
 
 /**
@@ -227,16 +230,6 @@ typedef enum PreviewLayout {
     CRL_PREVIEW_LAYOUT_QUAD = 4,
     CRL_PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
-
-typedef enum ScriptWidgetType {
-    WIDGET_FLOAT_SLIDER = 0,
-    WIDGET_INT_SLIDER = 1,
-    WIDGET_INPUT_NUMBER = 2,
-    WIDGET_TEXT = 3,
-    WIDGET_CHECKBOX = 4,
-    WIDGET_INPUT_TEXT = 5,
-    WIDGET_BUTTON = 6,
-} ScriptWidgetType;
 
 /**
  * @brief Adjustable sensor parameters
@@ -512,7 +505,7 @@ namespace VkRender {
         /** @brief Which compression method to use. Default is tiff which offer no compression */
         std::string saveImageCompressionMethod = "tiff";
         /** @brief Not a physical device just testing the GUI */
-        bool notRealDevice = false;
+        bool simulatedDevice = false;
         /** @brief If possible then use the IMU in the camera */
         bool enableIMU = true;
         /** @brief If possible then use the IMU in the camera */
@@ -579,6 +572,12 @@ namespace VkRender {
         glm::vec3 camPos;
     };
 
+    struct Particle {
+        glm::vec2 position;
+        glm::vec2 velocity;
+        glm::vec4 color;
+    };
+
     /**
      * @brief Basic lighting params for simple light calculation
      */
@@ -595,6 +594,7 @@ namespace VkRender {
         glm::vec2 pad{};
         glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
         glm::vec4 kernelFilters; // 0 Sobel/Edge kernel, Blur kernel,
+        float dt = 0.0f;
     };
 
     struct SkyboxTextures {
@@ -711,6 +711,7 @@ namespace VkRender {
         uint32_t width = 0;
         const Input *input = nullptr;
         bool additionalBuffers = false;
+
     };
 
 }

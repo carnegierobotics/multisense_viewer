@@ -8,6 +8,7 @@
 
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
+#include "Viewer/Core/CommandBuffer.h"
 
 class CustomModels {
 private:
@@ -84,7 +85,7 @@ public:
 
     void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t cbIndex);
+    void draw(CommandBuffer * commandBuffer, uint32_t cbIndex);
 };
 
 

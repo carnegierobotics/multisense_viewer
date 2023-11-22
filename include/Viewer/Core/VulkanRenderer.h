@@ -42,10 +42,11 @@
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
+#ifdef APIENTRY
+#undef APIENTRY
 #endif
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <vulkan/vulkan.h>
@@ -56,7 +57,9 @@
 #include <iostream>
 #include <glm/vec2.hpp>
 #include <chrono>
+
 #define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui.h>
 
 #include "Viewer/ImGui/GuiManager.h"
@@ -65,6 +68,7 @@
 #include "Viewer/Core/Validation.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/CommandBuffer.h"
 
 namespace VkRender {
 
@@ -140,7 +144,13 @@ namespace VkRender {
         virtual VkResult createInstance(bool enableValidation);
 
         /** @brief (Pure virtual) Render function to be implemented by the application */
-        virtual void render() = 0;
+        virtual void recordCommands() = 0;
+
+        /** @brief (Pure virtual) compute render function to be implemented by the application */
+        virtual bool compute() = 0;
+
+        /** @brief (Pure virtual) compute render function to be implemented by the application */
+        virtual void updateUniformBuffers() = 0;
 
         /** @brief (Virtual) Called when the camera m_View has changed */
         virtual void viewChanged();
@@ -203,7 +213,9 @@ namespace VkRender {
         /** @brief Logical m_Device, application's m_View of the physical m_Device (GPU) */
         VkDevice device{};
         // Handle to the m_Device graphics queue that command buffers are submitted to
-        VkQueue queue{};
+        VkQueue graphicsQueue{};
+        // Handle to the m_Device compute queue that command buffers are submitted to
+        VkQueue computeQueue{};
         /**@brief synchronozation for vkQueueSubmit*/
         std::mutex queueSubmitMutex;
         // Depth buffer m_Format (selected during Vulkan initialization)
@@ -211,27 +223,42 @@ namespace VkRender {
         // Wraps the swap chain to present images (framebuffers) to the windowing system
         std::unique_ptr<VulkanSwapchain> swapchain;
         // Synchronization semaphores
-        struct {
+        struct Semaphores{
             // Swap chain m_Image presentation
             VkSemaphore presentComplete;
             // Command buffer submission and execution
             VkSemaphore renderComplete;
-        } semaphores{};
+            // compute submission
+            VkSemaphore computeComplete;
+        };
+        std::vector<Semaphores> semaphores;
+
         std::vector<VkFence> waitFences{};
+        std::vector<VkFence> computeInFlightFences{};
+        // if we have work in our compute command buffers
+        std::vector<bool> hasWorkFromLastSubmit{};
+
         /** @brief Pipeline stages used to wait at for graphics queue submissions */
-        VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkPipelineStageFlags submitPipelineStages[2] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
         // Contains command buffers and semaphores to be presented to the queue
         VkSubmitInfo submitInfo{};
         // CommandPool for render command buffers
         VkCommandPool cmdPool{};
+        // CommandPool for compute command buffers
+        VkCommandPool cmdPoolCompute{};
         // Command buffers used for rendering
-        std::vector<VkCommandBuffer> drawCmdBuffers{};
+        CommandBuffer drawCmdBuffers{};
+        // Command buffers used for compute
+        CommandBuffer computeCommand{};
         // Global render pass for frame buffer writes
         VkRenderPass renderPass{};
         // List of available frame buffers (same as number of swap chain images)
         std::vector<VkFramebuffer> frameBuffers{};
         // Active frame buffer index
-        uint32_t currentBuffer = 0;
+        uint32_t currentFrame = 0;
+        // Active image index in swapchain
+        uint32_t imageIndex = 0;
         // Descriptor set pool
         // Pipeline cache object
         VkPipelineCache pipelineCache{};
@@ -292,6 +319,8 @@ namespace VkRender {
 #endif
 
         void createColorResources();
+
+        void computePipeline();
 
     };
 }

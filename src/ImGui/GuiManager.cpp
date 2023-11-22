@@ -59,9 +59,14 @@ namespace VkRender {
         glfwSetClipboardString(reinterpret_cast<GLFWwindow *>(userData), text);
     }
 
-    GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                           const uint32_t &height, VkSampleCountFlagBits msaaSamples) {
+    GuiManager::GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
+                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount) {
         device = vulkanDevice;
+        vertexBuffer.resize(imageCount);
+        indexBuffer.resize(imageCount);
+        indexCount.resize(imageCount);
+        vertexCount.resize(imageCount);
+
         ImGui::CreateContext();
         if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
             Log::Logger::getInstance()->info("Loading imgui conf file from disk {}",
@@ -126,9 +131,12 @@ namespace VkRender {
 
 
 // Update vertex and index buffer containing the imGui elements when required
-    bool GuiManager::updateBuffers() {
+    bool GuiManager::updateBuffers(uint32_t currentFrame) {
         ImDrawData *imDrawData = ImGui::GetDrawData();
 
+        // If we have no drawData return early
+        if (!imDrawData)
+            return false;
 
         bool updateCommandBuffers = false;
         // Note: Alignment is done inside buffer creation
@@ -142,34 +150,36 @@ namespace VkRender {
         // Update buffers only if vertex or index count has been changed compared to current buffer size
 
         // Vertex buffer
-        if ((vertexBuffer.m_Buffer == VK_NULL_HANDLE) || (vertexCount != imDrawData->TotalVtxCount)) {
-            vertexBuffer.unmap();
-            vertexBuffer.destroy();
+        if ((vertexBuffer[currentFrame].m_Buffer == VK_NULL_HANDLE) || (vertexCount[currentFrame] != imDrawData->TotalVtxCount)) {
+            vertexBuffer[currentFrame].unmap();
+            vertexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
                 device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                     &vertexBuffer, vertexBufferSize))
+                                     &vertexBuffer[currentFrame], vertexBufferSize))
                 throw std::runtime_error("Failed to create vertex Buffer");
-            vertexCount = imDrawData->TotalVtxCount;
-            vertexBuffer.map();
+            vertexCount[currentFrame] = imDrawData->TotalVtxCount;
+            vertexBuffer[currentFrame].map();
             updateCommandBuffers = true;
+            updatedBufferIndex = currentFrame;
         }
 
         // Index buffer
-        if ((indexBuffer.m_Buffer == VK_NULL_HANDLE) || (indexCount < imDrawData->TotalIdxCount)) {
-            indexBuffer.unmap();
-            indexBuffer.destroy();
+        if ((indexBuffer[currentFrame].m_Buffer == VK_NULL_HANDLE) || (indexCount[currentFrame] < imDrawData->TotalIdxCount)) {
+            indexBuffer[currentFrame].unmap();
+            indexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
                 device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                     &indexBuffer, indexBufferSize))
+                                     &indexBuffer[currentFrame], indexBufferSize))
                 throw std::runtime_error("Failed to create index buffer");
-            indexCount = imDrawData->TotalIdxCount;
-            indexBuffer.map();
+            indexCount[currentFrame] = imDrawData->TotalIdxCount;
+            indexBuffer[currentFrame].map();
             updateCommandBuffers = true;
+            updatedBufferIndex = currentFrame;
         }
 
         // Upload data
-        auto *vtxDst = reinterpret_cast<ImDrawVert *>(vertexBuffer.mapped);
-        auto *idxDst = reinterpret_cast<ImDrawIdx *>(indexBuffer.mapped);
+        auto *vtxDst = reinterpret_cast<ImDrawVert *>(vertexBuffer[currentFrame].mapped);
+        auto *idxDst = reinterpret_cast<ImDrawIdx *>(indexBuffer[currentFrame].mapped);
 
         for (int n = 0; n < imDrawData->CmdListsCount; n++) {
             const ImDrawList *cmd_list = imDrawData->CmdLists[n];
@@ -180,14 +190,17 @@ namespace VkRender {
         }
 
         // Flush to make writes visible to GPU
-        vertexBuffer.flush();
-        indexBuffer.flush();
+        vertexBuffer[currentFrame].flush();
+        indexBuffer[currentFrame].flush();
 
         return updateCommandBuffers;
     }
 
 
-    void GuiManager::drawFrame(VkCommandBuffer commandBuffer) {
+    void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
+        // Need to update buffers
+
+        updateBuffers(currentFrame);
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -213,8 +226,8 @@ namespace VkRender {
         if (imDrawData->CmdListsCount > 0) {
 
             VkDeviceSize offsets[1] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.m_Buffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer[currentFrame].m_Buffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer[currentFrame].m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];
@@ -315,7 +328,7 @@ namespace VkRender {
         if (
                 vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
                 VK_SUCCESS)
-            throw std::runtime_error("Failed to create pipeline layout");
+            throw std::runtime_error("Failed to create m_Pipeline layout");
 
         // Setup graphics pipeline for UI rendering
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
@@ -404,7 +417,7 @@ namespace VkRender {
 
         if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics pipeline");
+            throw std::runtime_error("Failed to create graphics m_Pipeline");
     }
 
     void GuiManager::initializeFonts() {

@@ -62,7 +62,7 @@ void Example3D::update() {
 
 }
 
-void Example3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Example3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b)
         KS21->draw(commandBuffer, i);
 }

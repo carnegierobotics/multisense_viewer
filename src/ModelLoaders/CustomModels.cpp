@@ -235,22 +235,22 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
     VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
                                              &pipeline);
     if (res != VK_SUCCESS)
-        throw std::runtime_error("Failed to create graphics pipeline");
+        throw std::runtime_error("Failed to create graphics m_Pipeline");
 
 }
 
-void CustomModels::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
+void CustomModels::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
 
     if (cbIndex >= renderer->UBCount)
         return;
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+    vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[cbIndex], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     const VkDeviceSize offsets[1] = {0};
 
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
+    vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);
+    vkCmdBindIndexBuffer(commandBuffer->buffers[cbIndex], model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(commandBuffer->buffers[cbIndex], model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
 
 }
 

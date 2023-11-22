@@ -188,7 +188,7 @@ namespace VkRender::MultiSense {
         }
 
         // Query for status
-        queryDevice(CameraConnection::getStatusTask, dev, &queryStatusTimer, INTERVAL_1_SECOND);
+            queryDevice(CameraConnection::getStatusTask, dev, &queryStatusTimer, INTERVAL_1_SECOND);
 
         // Query for camera configs
         if (!dev->updateDeviceConfigsSucceeded)
@@ -416,15 +416,7 @@ namespace VkRender::MultiSense {
             return;
 
         for (auto &dev: devices) {
-            // Skip update test for non-real (debug) devices
-/*            if (dev.notRealDevice) {
-                // Just delete and remove if requested
-                if (dev.state == CRL_STATE_DISCONNECT_AND_FORGET) {
-                    dev.state = CRL_STATE_REMOVE_FROM_LIST;
-                }
-                continue;
-            }
-*/
+
             if (dev.state == CRL_STATE_INTERRUPT_CONNECTION) {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_INTERRUPT_CONNECTION", dev.name);
                 dev.record.frame = false;
@@ -468,7 +460,6 @@ namespace VkRender::MultiSense {
                     saveProfileAndDisconnect(otherDev);
                 }
 
-                bool delayConnection = (dev.state == CRL_STATE_JUST_ADDED_WINDOWS);
 
                 dev.state = CRL_STATE_CONNECTING;
                 Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_CONNECTING ", dev.name);
@@ -483,9 +474,10 @@ namespace VkRender::MultiSense {
                                                   timeSpan.count() * 1000);
                 // Perform connection by pushing a connect task.
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool", "connectCRLCameraTask");
-                if (dev.notRealDevice) {
-                    pool->Push(CameraConnection::connectFakeCameraTask, this, &dev, dev.isRemoteHead);
+                if (dev.simulatedDevice) {
+                    pool->Push(CameraConnection::connectFakeCameraTask, this, &dev);
                 } else {
+                    bool delayConnection = (dev.state == CRL_STATE_JUST_ADDED_WINDOWS);
                     pool->Push(CameraConnection::connectCRLCameraTask, this, &dev, dev.isRemoteHead,
                                shouldConfigNetwork, delayConnection);
                 }
@@ -497,7 +489,9 @@ namespace VkRender::MultiSense {
                 continue;
             }
 
-            updateActiveDevice(&dev);
+            if (!dev.simulatedDevice)
+                updateActiveDevice(&dev);
+
             // Disable if we click a m_Device already connected
             if (dev.clicked && dev.state == CRL_STATE_ACTIVE) {
                 // Disable all streams and delete camPtr on next update
@@ -854,11 +848,7 @@ namespace VkRender::MultiSense {
                 }
             }
 
-
             app->updateUIDataBlock(*dev, app->camPtr);
-            if (dev->notRealDevice) {
-                Utils::initializeUIDataBlockWithTestData(*dev);
-            }
 
             if (!isRemoteHead)
                 app->getProfileFromIni(*dev);
@@ -901,21 +891,13 @@ namespace VkRender::MultiSense {
 
     }
 
-    void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev, bool isRemoteHead) {
-        auto *app = reinterpret_cast<CameraConnection *>(context);
-
+    void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev) {
         Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP,
                                          dev->interfaceDescription);
         // If we successfully connect
-        dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
-
-
+        //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
         Utils::initializeUIDataBlockWithTestData(*dev);
-
-
-        if (!isRemoteHead)
-            app->getProfileFromIni(*dev);
-
+        dev->channelInfo.front().availableSources.emplace_back("Compute");
         dev->state = CRL_STATE_ACTIVE;
         Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
     }

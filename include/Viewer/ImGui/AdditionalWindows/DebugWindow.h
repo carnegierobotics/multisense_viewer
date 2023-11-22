@@ -276,7 +276,7 @@ public:
 
             auto met = Log::Logger::getLogMetrics();
 
-            if (met->device.dev != nullptr && !met->device.dev->notRealDevice) {
+            if (met->device.dev != nullptr && !met->device.dev->simulatedDevice) {
                 // Check if channelInfo contains key 0
                 if (!met->device.dev->channelInfo.empty()) {
                     ImGui::PushFont(handles->info->font15);
@@ -391,6 +391,8 @@ public:
                     handles->devices.emplace_back(testDevice);
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
+                handles->simulator.enabled = true;
+
             }
 #endif
 
@@ -445,6 +447,7 @@ public:
             static size_t scriptSelectionIndex = 0; // Here we store our selection data as an index.
             std::string scriptPreviewValue = user.scripts.names.empty() ? ""
                                                                         : user.scripts.names[scriptSelectionIndex].c_str();
+#ifdef MULTISENSE_VIEWER_DEBUG
 
             if (ImGui::Button("Rebuild script: ")) {
                 handles->usageMonitor->userClickAction("Rebuild script: ", "Button", ImGui::GetCurrentWindow()->Name);
@@ -472,6 +475,7 @@ public:
                 }
                 ImGui::EndCombo();
             }
+#endif
 
             ImGui::PopStyleVar(); //Item spacing
 

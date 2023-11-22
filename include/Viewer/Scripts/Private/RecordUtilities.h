@@ -132,21 +132,18 @@ namespace RecordUtility {
 
     static void writePNGImageGrayscale(const std::filesystem::path &fileName, std::shared_ptr<VkRender::TextureData> &ptr, bool convertDisparity=false){
         auto dataPtr = ptr->data;
+        std::vector<uint8_t> buf;
         if (convertDisparity){
             auto *d = reinterpret_cast<uint16_t *>( ptr->data);
-            std::vector<uint8_t> buf;
-            buf.reserve(ptr->m_Width * ptr->m_Height);
+            buf.reserve(ptr->m_Width * ptr->m_Height * 2);
             for (size_t i = 0; i < ptr->m_Width * ptr->m_Height; ++i) {
-                d[i] /= 16;
-                uint8_t lsb = d[i] & 0x000000FF;
-                buf.emplace_back(lsb);
+                d[i] /= 16; // values are now between 0-255
+                uint8_t lsb = d[i] & 0x000000FF; // keep 8 lsb bits
+                buf.emplace_back(lsb); // put into buf
             }
-
-            dataPtr = buf.data();
+            dataPtr = buf.data(); // update dataPtr
         }
-
-        stbi_write_png((fileName.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, dataPtr,
-                       ptr->m_Width);
+        stbi_write_png((fileName.string()).c_str(), ptr->m_Width, ptr->m_Height, 1, dataPtr, ptr->m_Width);
     }
 
     static void writePNGImageColor(const std::filesystem::path &fileName, std::shared_ptr<VkRender::TextureData> &ptr){

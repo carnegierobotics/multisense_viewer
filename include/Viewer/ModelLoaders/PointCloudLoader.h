@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_POINTCLOUDLOADER_H
 
 #include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 
 class PointCloudLoader {
@@ -33,23 +34,11 @@ public:
                 VkDeviceMemory memory{};
             } indices{};
 
-            Buffer uniformBuffer{};
-
         } mesh{};
 
-        struct Dimensions {
-            glm::vec3 min = glm::vec3(FLT_MAX);
-            glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions;
-
         VulkanDevice *vulkanDevice{};
-        std::vector<std::string> extensions;
-        std::vector<Texture::TextureSampler> textureSamplers;
-
         Texture2D disparityTexture;
         Texture2D colorTexture;
-
-        void uploadMeshDeviceLocal(uint32_t width, uint32_t height);
 
         void
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
@@ -68,6 +57,7 @@ public:
     const VkRender::RenderUtils *renderer;
 public:
     std::unique_ptr<Model> model;
+    std::vector<VkBuffer>* buffers = nullptr;
 
     explicit PointCloudLoader(const VkRender::RenderUtils *renderUtils) {
         renderer = renderUtils;
@@ -90,7 +80,7 @@ public:
 
     void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t cbIndex);
+    void draw(CommandBuffer * commandBuffer, uint32_t cbIndex);
 
 };
 

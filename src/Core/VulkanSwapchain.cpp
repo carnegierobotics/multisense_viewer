@@ -35,6 +35,7 @@
  **/
 
 #include "Viewer/Core/VulkanSwapchain.h"
+#include "Viewer/Tools/Logger.h"
 
 /** @brief Creates the surface abstraction of the native platform window used for presentation */
 /**
@@ -112,7 +113,9 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
     {
         desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+        // Triple/Double buffering
     }
+    desiredNumberOfSwapchainImages = std::min(surfCaps.minImageCount, desiredNumberOfSwapchainImages);
 
     // Find the transformation of the surface
     VkSurfaceTransformFlagsKHR preTransform;
@@ -173,7 +176,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
 
     result = vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain");
-
+    Log::Logger::getInstance()->info("Created swapchain with minImageCount: {}", swapchainCI.minImageCount);
     // If an existing swap chain is re-created, destroy the old swap chain
     // This also cleans up all the presentable images
     if (oldSwapchain != VK_NULL_HANDLE)
@@ -187,11 +190,12 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     result = vkGetSwapchainImagesKHR(device, swapChain, &imageCount, NULL);
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get swapchain images");
 
+    // We dont need more than three
+
     // Get the swap chain images
     images.resize(imageCount);
     result = vkGetSwapchainImagesKHR(device, swapChain, &imageCount, images.data());
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to get swapchain images");
-
     // Get the swap chain buffers containing the m_Image and imageview
     buffers.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
@@ -340,7 +344,7 @@ VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *w
 
     // Exit if either a graphics or a presenting queue hasn't been found
     if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) {
-        throw std::runtime_error("Could not find a graphics and/or presenting queue!");
+        throw std::runtime_error("Could not find a graphics and/or presenting graphicsQueue!");
     }
 
     if (graphicsQueueNodeIndex != presentQueueNodeIndex) {

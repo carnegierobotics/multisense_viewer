@@ -38,7 +38,7 @@ public:
         window_flags =
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(handles->info->width, 50.0f));
+        ImGui::SetNextWindowSize(ImVec2(250.0f, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::Begin("3DTopBar", &pOpen, window_flags);
@@ -54,17 +54,19 @@ public:
             handles->showDebugWindow = !handles->showDebugWindow;
             handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
         }
+        VkRender::LayerUtils::WidgetPosition pos;
+        pos.paddingX = 5.0f;
+        pos.maxElementWidth = 230.0f;
+        VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_RENDERER3D);
 
-        VkRender::LayerUtils::createWidgets(handles, "Renderer3D");
-
-        ImGui::End();
-
-        window_flags =
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse;
-        ImGui::SetNextWindowPos(ImVec2(handles->info->width - 225.0f, 50.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(225.0f, handles->info->height - 50.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
-        ImGui::Begin("Settings bar", &pOpen, window_flags);
+        //ImGui::End();
+//
+        //window_flags =
+        //        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse;
+        //ImGui::SetNextWindowPos(ImVec2(handles->info->width - 225.0f, 50.0f), ImGuiCond_Always);
+        //ImGui::SetNextWindowSize(ImVec2(225.0f, handles->info->height - 50.0f));
+        //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        //ImGui::Begin("Settings bar", &pOpen, window_flags);
 
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
         handles->camera.reset = false;
@@ -101,8 +103,6 @@ public:
                     static_cast<double>(handles->camera.rot.y),
                     static_cast<double>(handles->camera.rot.z));
         ImGui::End();
-        ImGui::PopStyleVar();
-        //ImGui::PopStyleVar();
         ImGui::PopStyleColor();
 
     }

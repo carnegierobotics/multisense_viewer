@@ -66,7 +66,7 @@ void MultiSense::update() {
 
 }
 
-void MultiSense::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void MultiSense::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
         KS21->draw(commandBuffer, i);
     }

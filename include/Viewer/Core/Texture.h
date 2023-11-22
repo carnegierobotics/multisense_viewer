@@ -56,13 +56,16 @@ public:
     VkImageLayout m_ImageLayout{};
     VkDeviceMemory m_DeviceMemory{};
     VkImageView m_View{};
-    uint32_t m_Width = 0, m_Height = 0;
+    uint32_t m_Width = 0, m_Height = 0, m_Depth = 0;
     uint32_t m_MipLevels = 0;
     uint32_t m_LayerCount = 0;
     VkDescriptorImageInfo m_Descriptor{};
     VkSampler m_Sampler{};
     VkSamplerYcbcrConversion m_YUVSamplerToRGB{};
     VkFormat m_Format{};
+    VkImageType m_Type{};
+    VkImageViewType m_ViewType{};
+
 
     struct TextureSampler {
         VkFilter magFilter;
@@ -126,7 +129,8 @@ public:
             VkQueue copyQueue,
             VkFilter filter = VK_FILTER_LINEAR,
             VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-            VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            bool sharedQueue = false);
 
 
     void
@@ -175,13 +179,13 @@ public:
     }
 
     TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *device, VkImageLayout layout,
-                 VkFormat format);
+                 VkFormat format, VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, bool sharedQueue = false);
 
     VkSamplerYcbcrConversionInfo createYUV420Sampler(VkFormat format);
 
     void createDefaultSampler();
 
-    void updateTextureFromBuffer();
+    void updateTextureFromBuffer(VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     void updateTextureFromBufferYUV();
 
@@ -196,6 +200,25 @@ public:
     void loadFromFile(const std::filesystem::path &path, VulkanDevice *device,
                       VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
                       VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+};
+
+class Texture3D : public Texture {
+public:
+    Texture3D() = default;
+
+    void fromBuffer(
+            void *buffer,
+            VkDeviceSize bufferSize,
+            VkFormat format,
+            uint32_t texWidth,
+            uint32_t texHeight,
+            uint32_t texDepth,
+            VulkanDevice *device,
+            VkQueue copyQueue,
+            VkFilter filter = VK_FILTER_LINEAR,
+            VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+            VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            bool sharedQueue = false);
 };
 
 #endif //MULTISENSE_TEXTURE_H

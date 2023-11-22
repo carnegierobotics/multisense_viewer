@@ -51,7 +51,7 @@ namespace VkRender::LayerUtils {
                     break;
 
                 case WIDGET_FLOAT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
@@ -61,7 +61,7 @@ namespace VkRender::LayerUtils {
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_INT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     *elem.active = false;
                     ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);

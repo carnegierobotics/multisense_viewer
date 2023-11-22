@@ -127,6 +127,8 @@ void RecordFrames::saveImageToFile() {
 
 
 void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+    if(uiHandle->devices.empty())
+        sources.clear();
 
     for (VkRender::Device &dev: uiHandle->devices) {
 

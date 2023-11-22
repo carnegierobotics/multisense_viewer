@@ -48,8 +48,9 @@ public:
     ComputeShader computeShader;
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
+    bool enable = false;
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b);
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b);
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle);
 };

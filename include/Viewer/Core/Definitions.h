@@ -231,17 +231,6 @@ typedef enum PreviewLayout {
     CRL_PREVIEW_LAYOUT_NINE = 5
 } PreviewLayout;
 
-typedef enum ScriptWidgetType {
-    WIDGET_FLOAT_SLIDER = 0,
-    WIDGET_INT_SLIDER = 1,
-    WIDGET_INPUT_NUMBER = 2,
-    WIDGET_TEXT = 3,
-    WIDGET_CHECKBOX = 4,
-    WIDGET_INPUT_TEXT = 5,
-    WIDGET_BUTTON = 6,
-    WIDGET_SELECT_DIR_DIALOG = 7,
-} ScriptWidgetType;
-
 /**
  * @brief Adjustable sensor parameters
  */

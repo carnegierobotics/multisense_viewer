@@ -249,7 +249,7 @@ void Two::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const 
 }
 
 
-void Two::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Two::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

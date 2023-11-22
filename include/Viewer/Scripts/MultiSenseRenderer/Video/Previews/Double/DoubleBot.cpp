@@ -262,7 +262,7 @@ void DoubleBot::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
 }
 
 
-void DoubleBot::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void DoubleBot::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

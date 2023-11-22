@@ -68,6 +68,7 @@
 #include "Viewer/Core/Validation.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/CommandBuffer.h"
 
 namespace VkRender {
 
@@ -96,7 +97,7 @@ namespace VkRender {
         std::string m_Title = "-1";
         std::string m_Name = "VulkanRenderer";
         /** @brief This application is written against Vulkan API v.1.1+ **/
-        uint32_t apiVersion = VK_API_VERSION_1_1;
+        uint32_t apiVersion = VK_API_VERSION_1_3;
         bool backendInitialized = false;
         uint32_t m_Width = 1920;      // Default values - Actual values set in constructor
         uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
@@ -247,9 +248,9 @@ namespace VkRender {
         // CommandPool for compute command buffers
         VkCommandPool cmdPoolCompute{};
         // Command buffers used for rendering
-        std::vector<VkCommandBuffer> drawCmdBuffers{};
+        CommandBuffer drawCmdBuffers{};
         // Command buffers used for compute
-        std::vector<VkCommandBuffer> computeCmdBuffers{};
+        CommandBuffer computeCommand{};
         // Global render pass for frame buffer writes
         VkRenderPass renderPass{};
         // List of available frame buffers (same as number of swap chain images)

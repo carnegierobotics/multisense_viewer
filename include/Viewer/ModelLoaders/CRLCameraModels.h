@@ -49,6 +49,7 @@
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Core/Texture.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Macros.h"
 
 /***
@@ -106,6 +107,7 @@ public:
         std::vector<std::unique_ptr<TextureVideo>> m_TextureChromaV;     // supporting tex if no ycbcr sampler is present (oldhw)
         std::vector<Buffer> m_ColorPointCloudBuffer;
         std::vector<Texture2D> *m_TextureComputeTarget;
+        std::vector<Texture3D> *m_TextureComputeTarget3D;
 
         void
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
@@ -127,7 +129,7 @@ public:
      * @param model modeol to draw
      * @param b if we want to render additional pipeline
      */
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b = true);
+    void draw(CommandBuffer * commandBuffer, uint32_t i, Model *model, bool b = true);
 
 protected:
 

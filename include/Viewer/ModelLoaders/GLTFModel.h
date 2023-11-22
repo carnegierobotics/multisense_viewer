@@ -45,6 +45,7 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
+#include "Viewer/Core/CommandBuffer.h"
 
 
 class GLTFModel {
@@ -296,7 +297,7 @@ public:
                             VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
 
-        void draw(VkCommandBuffer commandBuffer, uint32_t i);
+        void draw(CommandBuffer * commandBuffer, uint32_t i);
         void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
         void createRenderPipeline(const VkRender::RenderUtils &utils,
@@ -323,7 +324,7 @@ public:
                           const std::vector<VkRender::UniformBufferSet> &uboVec,
                           VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
-        void drawSkybox(VkCommandBuffer commandBuffer, uint32_t i);
+        void drawSkybox(CommandBuffer *  commandBuffer, uint32_t i);
 
         void
         getNodeProps(const tinygltf::Node &node, const tinygltf::Model &model, size_t &vertexCount, size_t &indexCount);

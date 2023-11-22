@@ -31,7 +31,7 @@ namespace VkRender::LayerUtils {
     };
 
     static inline void
-    createWidgets(VkRender::GuiObjectHandles *handles, const std::string &area, WidgetPosition pos = WidgetPosition()) {
+    createWidgets(VkRender::GuiObjectHandles *handles, const ScriptWidgetPlacement &area, WidgetPosition pos = WidgetPosition()) {
         for (auto &elem: Widgets::make()->elements[area]) {
 
             if (pos.paddingX != -1) {
@@ -41,7 +41,7 @@ namespace VkRender::LayerUtils {
 
             switch (elem.type) {
                 case WIDGET_CHECKBOX:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
                         ImGui::IsItemActivated()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
@@ -51,7 +51,7 @@ namespace VkRender::LayerUtils {
                     break;
 
                 case WIDGET_FLOAT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
@@ -61,7 +61,7 @@ namespace VkRender::LayerUtils {
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_INT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     *elem.active = false;
                     ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
@@ -79,13 +79,13 @@ namespace VkRender::LayerUtils {
 
                     break;
                 case WIDGET_INPUT_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
                     ImGui::PopStyleColor();
                     break;
                 case WIDGET_BUTTON:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     *elem.button = ImGui::Button(elem.label.c_str());
                     ImGui::PopStyleColor();
                     break;

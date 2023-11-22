@@ -55,7 +55,7 @@ void Helmet::setup() {
     helmet->createRenderPipeline(renderUtils, shaders);
 }
 
-void Helmet::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
+void Helmet::draw(CommandBuffer * commandBuffer, uint32_t i, bool primaryDraw) {
     if (primaryDraw)
         helmet->draw(commandBuffer, i);
 }

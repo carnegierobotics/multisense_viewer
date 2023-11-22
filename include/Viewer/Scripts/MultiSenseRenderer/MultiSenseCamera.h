@@ -112,7 +112,7 @@ public:
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcImuRotationTimer;
 
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     void loadModelsAsync();
     std::future<void> loadModelFuture;

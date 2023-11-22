@@ -297,12 +297,12 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
 
 }
 
-void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void PointCloudLoader::draw(CommandBuffer * commandBuffer, uint32_t currentFrame) {
 
-    if (imageIndex >= renderer->UBCount)
+    if (currentFrame >= renderer->UBCount)
         return;
     //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-    //                        &descriptors[imageIndex], 0, nullptr);
+    //                        &descriptors[currentFrame], 0, nullptr);
     //
     //const VkDeviceSize offsets[1] = {0};
     //vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
@@ -311,11 +311,11 @@ void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t imageIndex) 
     if (buffers->empty()){
         throw std::runtime_error("Should not be empty");
     }
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &(*buffers)[imageIndex], offsets);
+    vkCmdBindVertexBuffers(commandBuffer->buffers[currentFrame], 0, 1, &(*buffers)[currentFrame], offsets);
 
-    vkCmdDraw(commandBuffer, 4096, 1, 0, 0);
+    vkCmdDraw(commandBuffer->buffers[currentFrame], 4096, 1, 0, 0);
 
 }

@@ -54,7 +54,7 @@ void Gizmos::setup() {
     m_Model->createRenderPipeline(renderUtils, shaders);
 }
 
-void Gizmos::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
+void Gizmos::draw(CommandBuffer * commandBuffer, uint32_t i, bool primaryDraw) {
     if (primaryDraw)
         m_Model->draw(commandBuffer, i);
 }

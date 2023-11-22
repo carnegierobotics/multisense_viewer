@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_POINTCLOUDLOADER_H
 
 #include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 
 class PointCloudLoader {
@@ -79,7 +80,7 @@ public:
 
     void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t cbIndex);
+    void draw(CommandBuffer * commandBuffer, uint32_t cbIndex);
 
 };
 

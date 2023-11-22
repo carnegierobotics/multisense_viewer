@@ -208,6 +208,7 @@ void One::prepareMultiSenseTexture() {
         return;
     } else if (topLevelData->compute.valid) {
         m_Model->m_TextureComputeTarget = topLevelData->compute.textureComputeTarget;
+        m_Model->m_TextureComputeTarget3D = topLevelData->compute.textureComputeTarget3D;
         CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
         return;
     }
@@ -276,7 +277,7 @@ void One::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const 
 }
 
 
-void One::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void One::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

@@ -253,7 +253,7 @@ void Four::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const
 
 
 
-void Four::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Four::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

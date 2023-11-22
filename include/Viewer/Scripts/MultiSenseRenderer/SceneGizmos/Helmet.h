@@ -88,7 +88,7 @@ public:
 
     float value = 50.0f;
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 };
 
 

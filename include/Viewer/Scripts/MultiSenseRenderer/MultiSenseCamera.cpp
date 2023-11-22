@@ -46,8 +46,8 @@ void MultiSenseCamera::setup() {
     */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
-    Widgets::make()->text("IMU", "Set IMU smoothing");
-    Widgets::make()->slider("IMU", "##IMU smoothing", &alpha, 0.5f, 0.999f);
+    Widgets::make()->text(WIDGET_PLACEMENT_IMU, "Set IMU smoothing");
+    Widgets::make()->slider(WIDGET_PLACEMENT_IMU, "##IMU smoothing", &alpha, 0.5f, 0.999f);
 
 
 }
@@ -76,7 +76,7 @@ void MultiSenseCamera::loadModelsAsync() {
 
 }
 
-void MultiSenseCamera::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void MultiSenseCamera::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (loadModelFuture.valid() &&
         loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
         return;
@@ -187,7 +187,7 @@ void MultiSenseCamera::setIMUSampleRate() {
     if (sampleRateChanged) {
         renderData.crlCamera->setIMUConfig(static_cast<uint32_t>(rateTableIndex));
         snprintf(sampleRateLabel, sizeof(sampleRateLabel), "Rate (Hz): %d", rates[rateTableIndex]);
-        Widgets::make()->updateText("IMU", prevLabel, sampleRateLabel);
+        Widgets::make()->updateText(WIDGET_PLACEMENT_IMU, prevLabel, sampleRateLabel);
     }
 
 }
@@ -214,8 +214,8 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
             snprintf(sampleRateLabel, sizeof(sampleRateLabel), "Rate (Hz): %d", rates[rateTableIndex]);
 
-            Widgets::make()->text("IMU", "Set IMU sample rate");
-            Widgets::make()->slider("IMU", sampleRateLabel, &rateTableIndex, 0,
+            Widgets::make()->text(WIDGET_PLACEMENT_IMU, "Set IMU sample rate");
+            Widgets::make()->slider(WIDGET_PLACEMENT_IMU, sampleRateLabel, &rateTableIndex, 0,
                                     static_cast<int>(rates.empty() ? 0 : rates.size() - 1), &sampleRateChanged);
         }
 

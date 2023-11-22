@@ -9,10 +9,12 @@
 #include <glm/vec4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/geometric.hpp>
+
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Logger.h"
+#include "Viewer/Tools/Macros.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 
 class ComputeShader {
@@ -83,9 +85,9 @@ public:
         m_TextureComputeTargets.resize(framesInFlight * numTextures);
         m_TextureComputeLeftInput.resize(framesInFlight);
         m_TextureComputeRightInput.resize(framesInFlight);
-        m_TextureComputeTargets3D.resize(framesInFlight * 6);
-        m_TextureDisparityTarget.resize(framesInFlight);
-        uint8_t *array = new uint8_t[width * height * depth * 2](); // The parentheses initialize all elements to zero.
+        m_TextureComputeTargets3D.resize(framesInFlight * 10);
+        m_TextureDisparityTarget.resize(framesInFlight * 6);
+        uint8_t *array = new uint8_t[width * height * 2](); // The parentheses initialize all elements to zero.
         for (uint32_t i = 0; i < framesInFlight; ++i) {
             m_TextureComputeLeftInput[i] = std::make_unique<TextureVideo>(width, height, m_VulkanDevice,
                                                                           VK_IMAGE_LAYOUT_GENERAL,
@@ -100,12 +102,7 @@ public:
                                                                            VK_IMAGE_USAGE_STORAGE_BIT,
                                                                            true);
 
-            m_TextureDisparityTarget[i].fromBuffer(array, width * height * 2, VK_FORMAT_R16_UNORM, width, height,
-                                                  m_VulkanDevice,
-                                                  m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
-                                                  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-                                                  VK_IMAGE_LAYOUT_GENERAL,
-                                                  true);
+
         }
 
         for (uint32_t i = 0; i < framesInFlight * numTextures; ++i) {
@@ -117,19 +114,30 @@ public:
                                                   true);
 
         }
+        uint8_t *array3D = new uint8_t[width * height * depth]; // The parentheses initialize all elements to zero.
+        std::fill(array3D, array3D + width * height * depth , static_cast<uint8_t>(1));
 
-        for (uint32_t i = 0; i < framesInFlight * 6; ++i) {
+        for (uint32_t i = 0; i < framesInFlight * 10; ++i) {
 
-            m_TextureComputeTargets3D[i].fromBuffer(array, width * height * depth * 2, VK_FORMAT_R16_UNORM, width, height,
+            m_TextureComputeTargets3D[i].fromBuffer(array3D, width * height * depth, VK_FORMAT_R8_UNORM, width, height,
                                                     depth,
                                                     m_VulkanDevice,
                                                     m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
                                                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
                                                     VK_IMAGE_LAYOUT_GENERAL,
                                                     true);
-        }
 
+        }
+        for (uint32_t i = 0; i < framesInFlight * 4; ++i) {
+        m_TextureDisparityTarget[i].fromBuffer(array, width * height * 2, VK_FORMAT_R16_UNORM, width, height,
+                                               m_VulkanDevice,
+                                               m_VulkanDevice->m_TransferQueue, VK_FILTER_LINEAR,
+                                               VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+                                               VK_IMAGE_LAYOUT_GENERAL,
+                                               true);
+        }
         delete[] array;
+        delete[] array3D;
     }
 
 
@@ -137,23 +145,28 @@ public:
         pass.resize(numPasses);
         descriptorLayoutProcessImagesPass();
         descriptorLayoutPixelCostPass();
+        descriptorLayoutWindowedPixelCostPass();
         descriptorLayoutProcessPathPass();
         descriptorLayoutCalcDispPass();
+        descriptorLayoutLRCheckPass();
 
         descriptorPoolProcessImagesPass(framesInFlight);
         descriptorPoolPixelCostPass(framesInFlight);
+        descriptorPoolWindowedPixelCostPass(framesInFlight);
         descriptorPoolProcessImagePath(framesInFlight);
         descriptorPoolCalcDispPass(framesInFlight);
+        descriptorPoolLRCheckPass(framesInFlight);
 
         descriptorSetsProcessImagePass(framesInFlight, ubo);
         descriptorSetsPixelCostPass(framesInFlight, ubo);
+        descriptorSetsWindowedPixelCostPass(framesInFlight, ubo);
         descriptorSetsProcessPathPass(framesInFlight, ubo);
         descriptorSetsCalcDispPass(framesInFlight, ubo);
+        descriptorSetsLRCheckPass(framesInFlight, ubo);
 
-        computePipelinePass(shaders[0], 0);
-        computePipelinePass(shaders[1], 1);
-        computePipelinePass(shaders[2], 2);
-        computePipelinePass(shaders[3], 3);
+        for(uint32_t i = 0; i < numPasses; ++i){
+            computePipelinePass(shaders[i], i);
+        }
     }
 
     void descriptorLayoutProcessImagesPass() {
@@ -202,10 +215,10 @@ public:
             throw std::runtime_error("failed to create compute descriptor set layout!");
         }
     }
+ void descriptorLayoutWindowedPixelCostPass() {
+        std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings{};
 
-    void descriptorLayoutProcessPathPass() {
-        std::array<VkDescriptorSetLayoutBinding, 5> layoutBindings{};
-        for (int i = 0; i < layoutBindings.size(); ++i) {
+        for (size_t i = 0; i < layoutBindings.size(); ++i) {
             layoutBindings[i].binding = i;
             layoutBindings[i].descriptorCount = 1;
             layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -224,9 +237,9 @@ public:
         }
     }
 
-    void descriptorLayoutCalcDispPass() {
-        std::array<VkDescriptorSetLayoutBinding, 5> layoutBindings{};
-        for (int i = 0; i < layoutBindings.size(); ++i) {
+    void descriptorLayoutProcessPathPass() {
+        std::array<VkDescriptorSetLayoutBinding, 9> layoutBindings{};
+        for (size_t i = 0; i < layoutBindings.size(); ++i) {
             layoutBindings[i].binding = i;
             layoutBindings[i].descriptorCount = 1;
             layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -240,6 +253,48 @@ public:
         layoutInfo.pBindings = layoutBindings.data();
         if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr,
                                         &pass[3].descriptorSetLayout) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute descriptor set layout!");
+        }
+    }
+
+    void descriptorLayoutCalcDispPass() {
+        std::array<VkDescriptorSetLayoutBinding, 7> layoutBindings{};
+        for (size_t i = 0; i < layoutBindings.size(); ++i) {
+            layoutBindings[i].binding = i;
+            layoutBindings[i].descriptorCount = 1;
+            layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            layoutBindings[i].pImmutableSamplers = nullptr;
+            layoutBindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        }
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+        layoutInfo.pBindings = layoutBindings.data();
+        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr,
+                                        &pass[4].descriptorSetLayout) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create compute descriptor set layout!");
+        }
+    }
+
+    void descriptorLayoutLRCheckPass() {
+        std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
+        for (size_t i = 0; i < layoutBindings.size(); ++i) {
+            layoutBindings[i].binding = i;
+            layoutBindings[i].descriptorCount = 1;
+            layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            layoutBindings[i].pImmutableSamplers = nullptr;
+            layoutBindings[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        }
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+        layoutInfo.pBindings = layoutBindings.data();
+        if (vkCreateDescriptorSetLayout(m_VulkanDevice->m_LogicalDevice, &layoutInfo, nullptr,
+                                        &pass[5].descriptorSetLayout) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create compute descriptor set layout!");
         }
@@ -278,25 +333,41 @@ public:
         CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
                                             &pass[1].descriptorPool));
     }
-
-    void descriptorPoolProcessImagePath(uint32_t count) {
+    void descriptorPoolWindowedPixelCostPass(uint32_t count) {
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2 * count},
         };
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
         CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
                                             &pass[2].descriptorPool));
     }
 
-    void descriptorPoolCalcDispPass(uint32_t count) {
+    void descriptorPoolProcessImagePath(uint32_t count) {
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 6 * count},
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 9 * count},
         };
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
         CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
                                             &pass[3].descriptorPool));
     }
 
+    void descriptorPoolCalcDispPass(uint32_t count) {
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 8 * count},
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
+        CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
+                                            &pass[4].descriptorPool));
+    }
+
+    void descriptorPoolLRCheckPass(uint32_t count) {
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 3 * count},
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, count);
+        CHECK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr,
+                                            &pass[5].descriptorPool));
+    }
 
 
     void descriptorSetsProcessImagePass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
@@ -392,7 +463,7 @@ public:
         }
     }
 
-    void descriptorSetsProcessPathPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsWindowedPixelCostPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
         pass[2].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[2].descriptorSetLayout);
 
@@ -405,25 +476,30 @@ public:
                                               pass[2].descriptors.data()));
 
         for (size_t i = 0; i < count; i++) {
+            std::vector<VkWriteDescriptorSet> descriptorWrites(2);
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = pass[2].descriptors[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pImageInfo = &m_TextureComputeTargets3D[i].m_Descriptor;
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites(5);
-            for (int j = 0; j < descriptorWrites.size(); ++j) {
-                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[j].dstSet = pass[2].descriptors[i];
-                descriptorWrites[j].dstBinding = j;
-                descriptorWrites[j].dstArrayElement = 0;
-                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                descriptorWrites[j].descriptorCount = 1;
-                size_t idx = i + (j * count);
-                descriptorWrites[j].pImageInfo = &m_TextureComputeTargets3D[idx].m_Descriptor;
-            }
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = pass[2].descriptors[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &m_TextureComputeTargets3D[i + count].m_Descriptor;
+
 
             vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
                                    descriptorWrites.data(), 0, nullptr);
         }
     }
 
-    void descriptorSetsCalcDispPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsProcessPathPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
         pass[3].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[3].descriptorSetLayout);
 
@@ -437,25 +513,102 @@ public:
 
         for (size_t i = 0; i < count; i++) {
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites(5);
-            for (int j = 0; j < descriptorWrites.size() - 1; ++j) {
+            std::vector<VkWriteDescriptorSet> descriptorWrites(9);
+            for (size_t j = 0; j < descriptorWrites.size(); ++j) {
                 descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrites[j].dstSet = pass[3].descriptors[i];
                 descriptorWrites[j].dstBinding = j;
                 descriptorWrites[j].dstArrayElement = 0;
                 descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
                 descriptorWrites[j].descriptorCount = 1;
-                size_t idx = (count) + i + (j * count);
+                size_t idx = count + i + (j * count);
+                descriptorWrites[j].pImageInfo = &m_TextureComputeTargets3D[idx].m_Descriptor;
+            }
+
+            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
+                                   descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void descriptorSetsCalcDispPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+        pass[4].descriptors.resize(count);
+        std::vector<VkDescriptorSetLayout> layouts(count, pass[4].descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = pass[4].descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = layouts.data();
+        descriptorSetAllocInfo.descriptorSetCount = count;
+        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              pass[4].descriptors.data()));
+
+        for (size_t i = 0; i < count; i++) {
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites(7);
+            for (size_t j = 0; j < descriptorWrites.size() - 1; ++j) {
+                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[j].dstSet = pass[4].descriptors[i];
+                descriptorWrites[j].dstBinding = j;
+                descriptorWrites[j].dstArrayElement = 0;
+                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                descriptorWrites[j].descriptorCount = 1;
+                size_t idx = (count * 2) + i + (j * count);
                 descriptorWrites[j].pImageInfo = &m_TextureComputeTargets3D[idx].m_Descriptor;
             }
 
             descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[4].dstSet = pass[3].descriptors[i];
+            descriptorWrites[4].dstSet = pass[4].descriptors[i];
             descriptorWrites[4].dstBinding = 4;
             descriptorWrites[4].dstArrayElement = 0;
             descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             descriptorWrites[4].descriptorCount = 1;
             descriptorWrites[4].pImageInfo = &m_TextureDisparityTarget[i].m_Descriptor;
+
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = pass[4].descriptors[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &m_TextureDisparityTarget[i + count].m_Descriptor;
+
+            descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[6].dstSet = pass[4].descriptors[i];
+            descriptorWrites[6].dstBinding = 6;
+            descriptorWrites[6].dstArrayElement = 0;
+            descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            descriptorWrites[6].descriptorCount = 1;
+            descriptorWrites[6].pImageInfo = &m_TextureDisparityTarget[i + (count * 3)].m_Descriptor;
+
+            vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
+                                   descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void descriptorSetsLRCheckPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+        pass[5].descriptors.resize(count);
+        std::vector<VkDescriptorSetLayout> layouts(count, pass[5].descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+        descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocInfo.descriptorPool = pass[5].descriptorPool;
+        descriptorSetAllocInfo.pSetLayouts = layouts.data();
+        descriptorSetAllocInfo.descriptorSetCount = count;
+        CHECK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                              pass[5].descriptors.data()));
+
+        for (size_t i = 0; i < count; i++) {
+            std::vector<VkWriteDescriptorSet> descriptorWrites(3);
+            for (size_t j = 0; j < descriptorWrites.size(); ++j) {
+                descriptorWrites[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[j].dstSet = pass[5].descriptors[i];
+                descriptorWrites[j].dstBinding = j;
+                descriptorWrites[j].dstArrayElement = 0;
+                descriptorWrites[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                descriptorWrites[j].descriptorCount = 1;
+                size_t idx = i + (j * count);
+                descriptorWrites[j].pImageInfo = &m_TextureDisparityTarget[idx].m_Descriptor;
+            }
 
             vkUpdateDescriptorSets(m_VulkanDevice->m_LogicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
                                    descriptorWrites.data(), 0, nullptr);
@@ -487,17 +640,14 @@ public:
 
 
 
-    void recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording compute command buffer!");
-        }
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipelineLayout, 0, 1,
+    void recordDrawCommands(CommandBuffer * commandBuffer, uint32_t currentFrame) {
+        uint32_t workGroupSize = 24;
+
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipeline);
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[0].pipelineLayout, 0, 1,
                                 &pass[0].descriptors[currentFrame], 0, nullptr);
-        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
-                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], m_TextureComputeLeftInput[currentFrame]->m_Width / workGroupSize,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / workGroupSize, 1);
 
         VkImageMemoryBarrier barrier = {};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -516,7 +666,7 @@ public:
 
         // Insert the barrier
         vkCmdPipelineBarrier(
-                commandBuffer,
+                commandBuffer->buffers[currentFrame],
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 0, // Dependency flags
@@ -525,19 +675,19 @@ public:
                 1, &barrier // Image memory barriers
         );
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipeline);
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipeline);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipelineLayout, 0, 1,
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[1].pipelineLayout, 0, 1,
                                 &pass[1].descriptors[currentFrame], 0, nullptr);
 
-        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
-                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], m_TextureComputeLeftInput[currentFrame]->m_Width / workGroupSize,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / workGroupSize, 1);
 
 
-        barrier.image = m_TextureComputeTargets3D[(pass[1].descriptors.size() * 1) + currentFrame].m_Image; // Image being accessed and modified as part of the barrier
+        barrier.image = m_TextureComputeTargets3D[currentFrame].m_Image; // Image being accessed and modified as part of the barrier
         // Insert the barrier
         vkCmdPipelineBarrier(
-                commandBuffer,
+                commandBuffer->buffers[currentFrame],
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 0, // Dependency flags
@@ -546,16 +696,20 @@ public:
                 1, &barrier // Image memory barriers
         );
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[2].pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[2].pipelineLayout, 0, 1,
+
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[2].pipeline);
+
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[2].pipelineLayout, 0, 1,
                                 &pass[2].descriptors[currentFrame], 0, nullptr);
-        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
-                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
 
-        barrier.image = m_TextureComputeTargets3D[(pass[2].descriptors.size() * 5) + currentFrame].m_Image; // Image being accessed and modified as part of the barrier
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], m_TextureComputeLeftInput[currentFrame]->m_Width / workGroupSize,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / workGroupSize, 1);
+
+
+        barrier.image = m_TextureComputeTargets3D[currentFrame + pass[0].descriptors.size()].m_Image; // Image being accessed and modified as part of the barrier
         // Insert the barrier
         vkCmdPipelineBarrier(
-                commandBuffer,
+                commandBuffer->buffers[currentFrame],
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 0, // Dependency flags
@@ -564,15 +718,48 @@ public:
                 1, &barrier // Image memory barriers
         );
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[3].pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass[3].pipelineLayout, 0, 1,
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[3].pipeline);
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[3].pipelineLayout, 0, 1,
                                 &pass[3].descriptors[currentFrame], 0, nullptr);
-        vkCmdDispatch(commandBuffer, m_TextureComputeLeftInput[currentFrame]->m_Width / 16,
-                      m_TextureComputeLeftInput[currentFrame]->m_Height / 16, 1);
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], 960 / workGroupSize, 600 / workGroupSize, 1);
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record compute command buffer!");
-        }
+        barrier.image = m_TextureComputeTargets3D[(pass[3].descriptors.size() * 4) + currentFrame].m_Image; // Image being accessed and modified as part of the barrier
+        // Insert the barrier
+        vkCmdPipelineBarrier(
+                commandBuffer->buffers[currentFrame],
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                0, // Dependency flags
+                0, nullptr, // Memory barriers
+                0, nullptr, // Buffer memory barriers
+                1, &barrier // Image memory barriers
+        );
+
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[4].pipeline);
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[4].pipelineLayout, 0, 1,
+                                &pass[4].descriptors[currentFrame], 0, nullptr);
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], m_TextureComputeLeftInput[currentFrame]->m_Width / workGroupSize,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / workGroupSize, 1);
+
+
+        barrier.image = m_TextureDisparityTarget[(pass[4].descriptors.size() * 2) + currentFrame].m_Image; // Image being accessed and modified as part of the barrier
+        // Insert the barrier
+        vkCmdPipelineBarrier(
+                commandBuffer->buffers[currentFrame],
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Pipeline stages that the barrier is inserted between
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                0, // Dependency flags
+                0, nullptr, // Memory barriers
+                0, nullptr, // Buffer memory barriers
+                1, &barrier // Image memory barriers
+        );
+
+        vkCmdBindPipeline(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[5].pipeline);
+        vkCmdBindDescriptorSets(commandBuffer->buffers[currentFrame], VK_PIPELINE_BIND_POINT_COMPUTE, pass[5].pipelineLayout, 0, 1,
+                                &pass[5].descriptors[currentFrame], 0, nullptr);
+        vkCmdDispatch(commandBuffer->buffers[currentFrame], m_TextureComputeLeftInput[currentFrame]->m_Width / workGroupSize,
+                      m_TextureComputeLeftInput[currentFrame]->m_Height / workGroupSize, 1);
+
 
     }
 
@@ -606,7 +793,7 @@ public:
 
 private:
     int PARTICLE_COUNT = 4096;
-    size_t numPasses = 4;
+    size_t numPasses = 6;
     struct ComputePass {
         VkDescriptorSetLayout descriptorSetLayout{};
         VkDescriptorPool descriptorPool{};

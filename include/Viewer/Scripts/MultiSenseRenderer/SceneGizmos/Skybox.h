@@ -71,7 +71,7 @@ public:
     int debugViewInputs = 0;
     float lod = 0.8f;
 
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     Page selectedPreviewTab = CRL_TAB_NONE;
 };

@@ -91,7 +91,7 @@ public:
     int lumaOrColor = false; // 0 : luma // 1 : Color
     float pointSize = 1.8f;
     bool flipPointCloud = false;
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     int point = 0;
 

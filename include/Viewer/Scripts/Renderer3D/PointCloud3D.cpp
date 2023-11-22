@@ -66,7 +66,7 @@ void PointCloud3D::update() {
 
 }
 
-void PointCloud3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void PointCloud3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
         //pc->draw(commandBuffer, i);
     }

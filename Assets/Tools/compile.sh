@@ -68,11 +68,12 @@ $glslc ${sceneDir}/video/compute.frag -o ${sceneOutDir}compute.frag.spv
 #echo "Compiled Renderer3D shaders"
 
 $glslc ${sceneDir}/stereo_sim.comp -o ${sceneOutDir}stereo_sim.comp.spv
-$glslc ${sceneDir}/stereo_sim_ext.comp -o ${sceneOutDir}stereo_sim_ext.comp.spv
-$glslc ${sceneDir}/stereo_sim_pix_norm_pass.comp -o ${sceneOutDir}stereo_sim_pix_norm_pass.comp.spv
+$glslc ${sceneDir}/stereo_sim_pass_1.comp -o ${sceneOutDir}stereo_sim_pass_1.comp.spv
 $glslc ${sceneDir}/stereo_sim_pass_2.comp -o ${sceneOutDir}stereo_sim_pass_2.comp.spv
+$glslc ${sceneDir}/stereo_sim_pass_2_ext.comp -o ${sceneOutDir}stereo_sim_pass_2_ext.comp.spv
 $glslc ${sceneDir}/stereo_sim_pass_3.comp -o ${sceneOutDir}stereo_sim_pass_3.comp.spv
 $glslc ${sceneDir}/stereo_sim_pass_4.comp -o ${sceneOutDir}stereo_sim_pass_4.comp.spv
+$glslc ${sceneDir}/stereo_sim_pass_5.comp -o ${sceneOutDir}stereo_sim_pass_5.comp.spv
 $glslc ${sceneDir}/particle.frag -o ${sceneOutDir}particle.frag.spv
 $glslc ${sceneDir}/particle.vert -o ${sceneOutDir}particle.vert.spv
 echo "Compiled Compute shaders"

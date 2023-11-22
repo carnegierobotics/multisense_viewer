@@ -30,6 +30,9 @@ layout(binding = 1, set = 0) uniform Info {
 
 layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
 
+layout (set = 0, binding = 3) uniform sampler3D samplerColorMap3D;
+
+layout (set = 0, binding = 4) uniform sampler2D samplerCostMap;
 
 // https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
 vec4 cubic(float v)
@@ -105,6 +108,37 @@ vec2 sobel3x3(sampler2D tex, vec2 uv, vec2 texSize) {
     return gradient;
 }
 
+
+float colormap_red(float x) {
+    if (x < 0.7) {
+        return 4.0 * x - 1.5;
+    } else {
+        return -4.0 * x + 4.5;
+    }
+}
+
+float colormap_green(float x) {
+    if (x < 0.5) {
+        return 4.0 * x - 0.5;
+    } else {
+        return -4.0 * x + 3.5;
+    }
+}
+
+float colormap_blue(float x) {
+    if (x < 0.3) {
+        return 4.0 * x + 0.5;
+    } else {
+        return -4.0 * x + 2.5;
+    }
+}
+
+vec4 colormap(float x) {
+    float r = clamp(colormap_red(x), 0.0, 1.0);
+    float g = clamp(colormap_green(x), 0.0, 1.0);
+    float b = clamp(colormap_blue(x), 0.0, 1.0);
+    return vec4(r, g, b, 1.0);
+}
 
 const int kernelSize = 2;
 vec4 blurKernel(sampler2D textureSampler, vec2 texCoord) {
@@ -219,7 +253,7 @@ vec4 sharpening(sampler2D textureSampler, vec2 texCoord) {
 }
 
 vec4 bilateralFilter(sampler2D image, vec2 uv) {
-    const float sigmaSpace = 1.0; // Spatial standard deviation (adjust as needed)
+    const float sigmaSpace = 3; // Spatial standard deviation (adjust as needed)
     const float sigmaColor = 0.1; // Color standard deviation (adjust as needed)
     const vec2 resolution = vec2(textureSize(image, 0)); // Resolution of the image
     vec3 centralColor = texture(image, uv).rgb;
@@ -261,8 +295,15 @@ void main()
 
     float uvSampleX = (inUV.x - zoomCenterX) / info.zoom.z + zoomCenterX;
     float uvSampleY = (inUV.y - zoomCenterY) / info.zoom.z + zoomCenterY;
+    vec4 color;
+    //color = bilateralFilter(samplerColorMap, vec2(inUV));
+    // color = texture(samplerColorMap, vec2(inUV));
+    //vec4 jetColor = colormap(color.r);
+    //outColor = jetColor;
+    //outColor = vec4(color.r, color.r, color.r, 1.0f);;
 
-    vec4 color = bilateralFilter(samplerColorMap, vec2(inUV));
+    color = texture(samplerColorMap3D, vec3(inUV, 0));
+    //color = texture(samplerCostMap, inUV);
     outColor = vec4(color.r, color.r, color.r, 1.0);
 
 

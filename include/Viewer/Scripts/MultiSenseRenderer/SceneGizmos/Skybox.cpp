@@ -39,7 +39,7 @@ void Skybox::setup() {
     sharedData->destination = "All";
 }
 
-void Skybox::draw(VkCommandBuffer commandBuffer, uint32_t i, bool primaryDraw) {
+void Skybox::draw(CommandBuffer * commandBuffer, uint32_t i, bool primaryDraw) {
     if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && primaryDraw)
         skybox->drawSkybox(commandBuffer, i);
 }

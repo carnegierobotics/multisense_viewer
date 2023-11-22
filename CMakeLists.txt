@@ -71,7 +71,7 @@ set(ENGINE_SRC
         src/Renderer/UsageMonitor.cpp
         src/Core/RendererConfig.cpp
         src/Core/ServerConnection.cpp
-
+        src/Core/CommandBuffer.cpp
 )
 
 set(SCRIPTS_LIB_SRC

@@ -260,7 +260,7 @@ void DoubleTop::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
 }
 
 
-void DoubleTop::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void DoubleTop::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

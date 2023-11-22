@@ -49,10 +49,11 @@
 #include <stb_image_write.h>
 
 #include "Viewer/Core/KeyInput.h"
-#include "Viewer/CRLCamera/CRLPhysicalCamera.h"
-#include "Viewer/Tools/Macros.h"
-#include "Viewer/Scripts/Private/SharedData.h"
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/CRLCamera/CRLPhysicalCamera.h"
+#include "Viewer/Scripts/Private/SharedData.h"
+#include "Viewer/Tools/Macros.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/ImGui/Layer.h"
@@ -129,7 +130,7 @@ namespace VkRender {
         }
 
         /**@brief Record draw command into a VkCommandBuffer */
-        virtual void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+        virtual void draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
 
         }
@@ -149,7 +150,7 @@ namespace VkRender {
 
         }
 
-        void drawScript(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+        void drawScript(CommandBuffer* commandBuffer, uint32_t i, bool b) {
 
             if (!renderData.drawThisScript || getDrawMethod() == CRL_SCRIPT_DONT_DRAW)
                 return;

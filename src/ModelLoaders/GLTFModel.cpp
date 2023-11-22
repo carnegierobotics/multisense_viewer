@@ -1232,44 +1232,44 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
     }
 }
 
-void GLTFModel::Model::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
+void GLTFModel::Model::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
     if (!gltfModelLoaded)
         return;
     VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
+    vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
     if (indices.buffer != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer->buffers[cbIndex], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     }
 
     boundPipeline = VK_NULL_HANDLE;
 
     // Opaque primitives first
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_OPAQUE);
+        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_OPAQUE);
     }
     // Alpha masked primitives
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_MASK);
+        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_MASK);
     }
     // Transparent primitives
     // TODO: Correct depth sorting
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_BLEND);
+        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_BLEND);
     }
 
 }
 
-void GLTFModel::Model::drawSkybox(VkCommandBuffer commandBuffer, uint32_t i) {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+void GLTFModel::Model::drawSkybox(CommandBuffer * commandBuffer, uint32_t i) {
+    vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
                             1, &descriptors[i], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
+    vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
     const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
+    vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &vertices.buffer, offsets);
     if (indices.buffer != VK_NULL_HANDLE) {
-        vkCmdBindIndexBuffer(commandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer->buffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     }
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer);
+        drawNode(node, commandBuffer->buffers[i]);
     }
 }
 

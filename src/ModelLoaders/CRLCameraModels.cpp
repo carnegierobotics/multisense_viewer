@@ -210,6 +210,8 @@ bool CRLCameraModels::Model::updateTexture(VkRender::TextureData *tex, uint32_t 
             break;
         case CRL_POINT_CLOUD:
             break;
+        case CRL_COMPUTE_SHADER:
+            break;
     }
 
     return true;
@@ -313,7 +315,7 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
     model->m_Descriptors.resize(count);
 
     uint32_t uniformDescriptorCount = (5 * count);
-    uint32_t imageDescriptorSamplerCount = (5 * count);
+    uint32_t imageDescriptorSamplerCount = (6 * count);
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageDescriptorSamplerCount},
@@ -416,11 +418,32 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
             writeDescriptorSet.dstSet = model->m_Descriptors[i];
             writeDescriptorSet.dstBinding = 2;
             if (model->m_CameraDataType == CRL_COMPUTE_SHADER) {
-                writeDescriptorSet.pImageInfo = &(*model->m_TextureComputeTarget)[i].m_Descriptor;
+                writeDescriptorSet.pImageInfo = &(*model->m_TextureComputeTarget)[i + (ubo.size() * 2)].m_Descriptor;
             } else {
                 writeDescriptorSet.pImageInfo = &model->m_TextureVideo[i]->m_Descriptor;
             }
             writeDescriptorSets.emplace_back(writeDescriptorSet);
+
+            if (model->m_CameraDataType == CRL_COMPUTE_SHADER) {
+                VkWriteDescriptorSet writeDescriptorSet2 = {};
+                writeDescriptorSet2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSet2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSet2.descriptorCount = 1;
+                writeDescriptorSet2.dstSet = model->m_Descriptors[i];
+                writeDescriptorSet2.dstBinding = 3;
+                writeDescriptorSet2.pImageInfo = &(*model->m_TextureComputeTarget3D)[i + (ubo.size() * 2)].m_Descriptor;
+                writeDescriptorSets.emplace_back(writeDescriptorSet2);
+
+                VkWriteDescriptorSet writeDescriptorSet3 = {};
+                writeDescriptorSet3.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSet3.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSet3.descriptorCount = 1;
+                writeDescriptorSet3.dstSet = model->m_Descriptors[i];
+                writeDescriptorSet3.dstBinding = 4;
+                writeDescriptorSet3.pImageInfo = &(*model->m_TextureComputeTarget)[i + (ubo.size() * 3)].m_Descriptor;
+                writeDescriptorSets.emplace_back(writeDescriptorSet3);
+            }
+
         }
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, NULL);
@@ -551,6 +574,8 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
                         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                         {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                         {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                        {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                 };
 
                 break;
@@ -578,7 +603,8 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
     }
 }
 
-void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout *layout, uint32_t numDescriptorLayouts) {
+void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout *layout,
+                                           uint32_t numDescriptorLayouts) {
     VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(layout, numDescriptorLayouts);
 
     VkPushConstantRange pushconstantRanges{};
@@ -730,26 +756,26 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
     model->m_InitializedPipeline = true;
 }
 
-void CRLCameraModels::draw(VkCommandBuffer commandBuffer, uint32_t i, Model *model, bool b) {
+void CRLCameraModels::draw(CommandBuffer *commandBuffer, uint32_t i, Model *model, bool b) {
     if (i >= m_SwapChainImageCount)
         return;
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, model->m_PipelineLayout[i], 0, 1,
+    vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, model->m_PipelineLayout[i], 0,
+                            1,
                             &model->m_Descriptors[i], 0, nullptr);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       b ? model->m_Pipeline[i] : model->m_SelectionPipeline[i]);
 
 
-
     const VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->m_Mesh.vertices[i].buffer, offsets);
+    vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &model->m_Mesh.vertices[i].buffer, offsets);
 
     if (model->m_Mesh.indexCount > 0) {
-        vkCmdBindIndexBuffer(commandBuffer, model->m_Mesh.indices[i].buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, model->m_Mesh.indexCount, 1, model->m_Mesh.firstIndex, 0, 0);
+        vkCmdBindIndexBuffer(commandBuffer->buffers[i], model->m_Mesh.indices[i].buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer->buffers[i], model->m_Mesh.indexCount, 1, model->m_Mesh.firstIndex, 0, 0);
     } else {
-        vkCmdDraw(commandBuffer, model->m_Mesh.vertexCount, 1, 0, 0);
+        vkCmdDraw(commandBuffer->buffers[i], model->m_Mesh.vertexCount, 1, 0, 0);
     }
 
 }

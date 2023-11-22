@@ -3,6 +3,8 @@
 //
 
 #include "Viewer/Scripts/MultiSenseRenderer/StereoSim.h"
+#include "Viewer/ImGui/Widgets.h"
+
 
 void StereoSim::setup() {
 
@@ -11,13 +13,17 @@ void StereoSim::setup() {
 
     // Load L/R image
     lastPresentTime = std::chrono::steady_clock::now();
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/stereo_sim_ext.comp.spv",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/stereo_sim_pass_1.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pix_norm_pass.comp.spv",
+                                                            {loadShader("Scene/spv/stereo_sim_pass_2.comp.spv",
+                                                                        VK_SHADER_STAGE_COMPUTE_BIT)},
+                                                            {loadShader("Scene/spv/stereo_sim_pass_2_ext.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
                                                             {loadShader("Scene/spv/stereo_sim_pass_3.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
                                                             {loadShader("Scene/spv/stereo_sim_pass_4.comp.spv",
+                                                                        VK_SHADER_STAGE_COMPUTE_BIT)},
+                                                            {loadShader("Scene/spv/stereo_sim_pass_5.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)}};
 
     computeShader.m_VulkanDevice = renderUtils.device;
@@ -28,7 +34,13 @@ void StereoSim::setup() {
     // Execute compute pipeline
     topLevelData->compute.computeBuffer = &computeShader.m_Buffer;
     topLevelData->compute.textureComputeTarget = &computeShader.m_TextureDisparityTarget;
+    topLevelData->compute.textureComputeTarget3D = &computeShader.m_TextureComputeTargets3D;
+
     topLevelData->compute.valid = true;
+
+
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_MULTISENSE_RENDERER, "Enable compute", &enable);
+
     // Read Result
 }
 
@@ -82,9 +94,11 @@ void StereoSim::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 }
 
 
-void StereoSim::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
-    if (b && topLevelData->compute.valid) {
+void StereoSim::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
+    if (b && topLevelData->compute.valid && enable) {
         computeShader.recordDrawCommands(commandBuffer, i);
+        commandBuffer->hasWork[i] = true;
+
     }
 
 

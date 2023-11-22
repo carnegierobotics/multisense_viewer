@@ -250,7 +250,7 @@ void Three::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, cons
 }
 
 
-void Three::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Three::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

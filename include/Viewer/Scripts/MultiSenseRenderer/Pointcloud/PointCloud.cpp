@@ -51,8 +51,8 @@ void PointCloud::setup() {
     }
 
 
-    Widgets::make()->text("PointCloud", "Set Point Size:");
-    Widgets::make()->slider("PointCloud", "##Set Point size", &pointSize, 0, 10);
+    Widgets::make()->text(WIDGET_PLACEMENT_POINTCLOUD, "Set Point Size:");
+    Widgets::make()->slider(WIDGET_PLACEMENT_POINTCLOUD, "##Set Point size", &pointSize, 0, 10);
     // Widgets::make()->text("Flip pointcloud: ");
     //Widgets::make()->checkbox("##Flip pc", &flipPointCloud);
 
@@ -150,7 +150,7 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 }
 
 
-void PointCloud::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void PointCloud::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b){
         //pc->draw(commandBuffer, i);
 

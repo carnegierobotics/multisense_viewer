@@ -266,7 +266,7 @@ void Renderer::buildCommandBuffers() {
     const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
 
     renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
-    vkBeginCommandBuffer(drawCmdBuffers[currentFrame], &cmdBufInfo);
+    vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
     // Syncrhonization before renderpass
 
@@ -284,7 +284,7 @@ void Renderer::buildCommandBuffers() {
     imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     vkCmdPipelineBarrier(
-            drawCmdBuffers[currentFrame],
+            drawCmdBuffers.buffers[currentFrame],
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             0,
@@ -293,14 +293,14 @@ void Renderer::buildCommandBuffers() {
             1, &imageMemoryBarrier);
     }
 
-    vkCmdBeginRenderPass(drawCmdBuffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdSetViewport(drawCmdBuffers[currentFrame], 0, 1, &viewport);
-    vkCmdSetScissor(drawCmdBuffers[currentFrame], 0, 1, &scissor);
+    vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+    vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
     // Draw scripts that must be drawn first
     for (auto &script: scripts) {
         if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
-            script.second->drawScript(drawCmdBuffers[currentFrame], currentFrame, true);
+            script.second->drawScript(&drawCmdBuffers, currentFrame, true);
     }
 
     /** Generate Script draw commands **/
@@ -308,25 +308,30 @@ void Renderer::buildCommandBuffers() {
         if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED &&
             script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
             script.second->getType() != CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
-            script.second->drawScript(drawCmdBuffers[currentFrame], currentFrame, true);
+            script.second->drawScript(&drawCmdBuffers, currentFrame, true);
         }
     }
     /** Generate UI draw commands **/
-    guiManager->drawFrame(drawCmdBuffers[currentFrame], currentFrame);
-    vkCmdEndRenderPass(drawCmdBuffers[currentFrame]);
-    CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[currentFrame]));
+    guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
+    vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+    CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]));
 }
 
 bool Renderer::compute() {
-    bool hasWork = false;
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    if (vkBeginCommandBuffer(computeCommand.buffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording compute command buffer!");
+    }
     for (auto &script: scripts) {
         if (script.second->getType() & CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
-            script.second->drawScript(computeCmdBuffers[currentFrame], currentFrame, true);
-            hasWork = true;
+            script.second->drawScript(&computeCommand, currentFrame, true);
         }
-
     }
-    return hasWork;
+    if (vkEndCommandBuffer(computeCommand.buffers[currentFrame]) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record compute command buffer!");
+    }
+    return true;
 }
 
 void Renderer::updateUniformBuffers() {
@@ -553,7 +558,8 @@ void Renderer::recordCommands() {
     buildCommandBuffers();
     /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
     if (renderSelectionPass) {
-        VkCommandBuffer renderCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        CommandBuffer cmdBuffer{};
+        cmdBuffer.buffers.emplace_back(vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true));
         std::array<VkClearValue, 3> clearValues{};
         clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
                             guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
@@ -575,16 +581,16 @@ void Renderer::recordCommands() {
         renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.renderPass = selection.renderPass;
         renderPassBeginInfo.framebuffer = selection.frameBuffer;
-        vkCmdBeginRenderPass(renderCmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdSetViewport(renderCmd, 0, 1, &viewport);
-        vkCmdSetScissor(renderCmd, 0, 1, &scissor);
+        vkCmdBeginRenderPass(cmdBuffer.buffers.front(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdSetViewport(cmdBuffer.buffers.front(), 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer.buffers.front(), 0, 1, &scissor);
         for (auto &script: scripts) {
             if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
-                script.second->drawScript(renderCmd, 0, false);
+                script.second->drawScript(&cmdBuffer, 0, false);
             }
         }
-        vkCmdEndRenderPass(renderCmd);
-        vulkanDevice->flushCommandBuffer(renderCmd, graphicsQueue);
+        vkCmdEndRenderPass(cmdBuffer.buffers.front());
+        vulkanDevice->flushCommandBuffer(cmdBuffer.buffers.front(), graphicsQueue);
         VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         VkMemoryBarrier memoryBarrier = {
                 VK_STRUCTURE_TYPE_MEMORY_BARRIER,

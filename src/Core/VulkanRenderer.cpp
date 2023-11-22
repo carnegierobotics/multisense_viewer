@@ -110,14 +110,18 @@ namespace VkRender {
         // Check if extensions are supported
         if (!Validation::checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
+
+        VkValidationFeatureEnableEXT enables[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+        VkValidationFeaturesEXT features = {};
+        features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+        features.enabledValidationFeatureCount = 1;
+        features.pEnabledValidationFeatures = enables;
+
         VkInstanceCreateInfo instanceCreateInfo = {};
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceCreateInfo.pNext = nullptr;
         instanceCreateInfo.pApplicationInfo = &appInfo;
         if (!enabledInstanceExtensions.empty()) {
-            if (settings.validation) {
-                enabledInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            }
             instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledInstanceExtensions.size());
             instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
         }
@@ -593,27 +597,29 @@ namespace VkRender {
 
     void VulkanRenderer::createCommandBuffers() {
         // Create one command buffer for each swap chain m_Image and reuse for rendering
-        drawCmdBuffers.resize(swapchain->imageCount);
+        drawCmdBuffers.buffers.resize(swapchain->imageCount);
+        drawCmdBuffers.hasWork.resize(swapchain->imageCount);
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
                 Populate::commandBufferAllocateInfo(
                         cmdPool,
                         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                        static_cast<uint32_t>(drawCmdBuffers.size()));
+                        static_cast<uint32_t>(drawCmdBuffers.buffers.size()));
 
-        VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data());
+        VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.buffers.data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
 
 
         // Create one command buffer for each swap chain m_Image and reuse for rendering
-        computeCmdBuffers.resize(swapchain->imageCount);
+        computeCommand.buffers.resize(swapchain->imageCount);
+        computeCommand.hasWork.resize(swapchain->imageCount);
 
         VkCommandBufferAllocateInfo cmdBufAllocateComputeInfo = Populate::commandBufferAllocateInfo(
                 cmdPoolCompute,
                 VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                static_cast<uint32_t>(computeCmdBuffers.size()));
+                static_cast<uint32_t>(computeCommand.buffers.size()));
 
-        result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCmdBuffers.data());
+        result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.buffers.data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
 
     }
@@ -745,9 +751,10 @@ namespace VkRender {
 
 
     void VulkanRenderer::destroyCommandBuffers() {
-        vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
-        vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCmdBuffers.size()),
-                             computeCmdBuffers.data());
+        vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.buffers.size()),
+                             drawCmdBuffers.buffers.data());
+        vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCommand.buffers.size()),
+                             computeCommand.buffers.data());
     }
 
     void VulkanRenderer::windowResize() {
@@ -883,7 +890,7 @@ namespace VkRender {
         sInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         // Compute submission
         // Only wait on the fence if we submitted work last time
-        if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX!= VK_SUCCESS))
+        if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX != VK_SUCCESS))
             throw std::runtime_error("Failed to wait for compute fence");
 
 
@@ -891,18 +898,17 @@ namespace VkRender {
 
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
-        vkResetCommandBuffer(computeCmdBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-
+        vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        computeCommand.hasWork[currentFrame] = false;
         /** call renderer compute function **/
         bool hasWork = compute();
-
         sInfo.commandBufferCount = 1;
-        sInfo.pCommandBuffers = &computeCmdBuffers[currentFrame];
+        sInfo.pCommandBuffers = &computeCommand.buffers[currentFrame];
         sInfo.signalSemaphoreCount = 1;
         sInfo.pSignalSemaphores = &semaphores[currentFrame].computeComplete;
-
         if (vkQueueSubmit(computeQueue, 1, &sInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit compute command buffer!");
+
         }
     }
 
@@ -936,14 +942,16 @@ namespace VkRender {
         if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to reset fence");
 
-        vkResetCommandBuffer(drawCmdBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        vkResetCommandBuffer(drawCmdBuffers.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
     }
 
     void VulkanRenderer::submitFrame() {
         std::scoped_lock<std::mutex> lock(queueSubmitMutex);
-        VkSemaphore waitSemaphores[] = {semaphores[currentFrame].computeComplete, semaphores[currentFrame].presentComplete };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkSemaphore waitSemaphores[] = {semaphores[currentFrame].computeComplete,
+                                        semaphores[currentFrame].presentComplete};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 2;
@@ -952,7 +960,7 @@ namespace VkRender {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &drawCmdBuffers[currentFrame];
+        submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
 
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 

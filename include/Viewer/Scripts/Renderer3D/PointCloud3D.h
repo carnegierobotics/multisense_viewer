@@ -39,7 +39,7 @@ public:
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief draw function called once per frame **/
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
     ScriptTypeFlags getType() override { return type; }

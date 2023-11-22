@@ -44,6 +44,7 @@ namespace VkRender {
         struct {
             std::vector<VkBuffer> *computeBuffer = nullptr;
             std::vector<Texture2D> *textureComputeTarget = nullptr;
+            std::vector<Texture3D> *textureComputeTarget3D = nullptr;
             bool valid = false;
             bool reset = false;
         } compute;

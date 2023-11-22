@@ -5,8 +5,6 @@
 layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
-layout(location = 3) in vec3 inCoords;
-layout(location = 4) in vec2 imageDimmensions;
 
 
 layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
@@ -19,9 +17,6 @@ layout (set = 0, binding = 4) uniform colorConversionParams {
 } mat;
 
 layout(location = 0) out vec4 outColor;
-
-
-
 
 void main()
 {

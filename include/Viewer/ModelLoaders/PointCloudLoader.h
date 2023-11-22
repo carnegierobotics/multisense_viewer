@@ -33,23 +33,11 @@ public:
                 VkDeviceMemory memory{};
             } indices{};
 
-            Buffer uniformBuffer{};
-
         } mesh{};
 
-        struct Dimensions {
-            glm::vec3 min = glm::vec3(FLT_MAX);
-            glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions;
-
         VulkanDevice *vulkanDevice{};
-        std::vector<std::string> extensions;
-        std::vector<Texture::TextureSampler> textureSamplers;
-
         Texture2D disparityTexture;
         Texture2D colorTexture;
-
-        void uploadMeshDeviceLocal(uint32_t width, uint32_t height);
 
         void
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,

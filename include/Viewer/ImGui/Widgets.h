@@ -59,6 +59,9 @@ private:
 
             type = WIDGET_INPUT_TEXT;
         }
+
+        Element(const char *labelVal, char *_buf, bool *btn, ScriptWidgetType _type) : label(labelVal), button(btn), buf(_buf),  type(_type) {
+        }
     };
 
     static Widgets *m_Instance;
@@ -120,6 +123,14 @@ public:
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, buf);
+    }
+
+
+    void fileDialog(std::string window, const char *label, char *buf, bool* btn) {
+        if (labelExists(label, window))
+            return;
+        elements[window].emplace_back(label, buf, btn, WIDGET_SELECT_DIR_DIALOG);
+
     }
 
     static Widgets *make();

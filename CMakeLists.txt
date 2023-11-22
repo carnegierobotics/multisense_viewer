@@ -92,6 +92,8 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Objects/SceneGizmos/Skybox.cpp
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Renderer3D/Grid.cpp
+        include/Viewer/Scripts/Renderer3D/PointCloud3D.cpp
+        include/Viewer/Scripts/Renderer3D/Grid.cpp
         include/Viewer/Scripts/Private/RecordUtilities.h)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer")
@@ -135,7 +137,6 @@ if (UNIX) ## Linux
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
     set_project_warnings(MultiSense-Viewer)
-
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -197,7 +198,6 @@ if (WIN32)
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect)
-
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)

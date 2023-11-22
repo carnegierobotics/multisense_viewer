@@ -1078,6 +1078,8 @@ namespace VkRender::MultiSense {
         Q[3][2] = fx * fy * tx;
         Q[3][3] = fy * dcx;
 
+        printf("scale: %f, %f\n", static_cast<double>(scale), static_cast<double>(Q[3][3]));
+
         // keep as is
         infoMap[channelID].QMat = Q;
         infoMap[channelID].focalLength = fx;

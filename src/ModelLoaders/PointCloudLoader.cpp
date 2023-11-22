@@ -22,26 +22,26 @@ PointCloudLoader::Model::~Model() {
 
 void PointCloudLoader::Model::createTexture(uint32_t width, uint32_t height) {
 
-    Log::Logger::getInstance()->info("Creating new texture {}x{}", width, height);
     disparityTexture = Texture2D();
 
-    auto* data = reinterpret_cast<uint16_t*>(malloc(width*height * 2));
+    auto *data = (uint16_t *) malloc(width * height * 2);
 
-    for (size_t i = 0; i < width*height; i++){
+    for (int i = 0; i < width * height; i++) {
         data[i] = 127;
     }
 
-    disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
+    disparityTexture.fromBuffer(data, width * height * 2, VK_FORMAT_R16_UNORM, width, height, vulkanDevice,
+                                vulkanDevice->m_TransferQueue);
 
     // colorTexture = std::make_unique<TextureVideo>( TextureVideo(width, height, vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8_UNORM));
 
 
-    auto* data2 =  reinterpret_cast<uint8_t*>(malloc(960 * 600));
-    for (size_t i = 0; i < width*height; i++){
+    uint8_t *data2 = (uint8_t *) malloc(960 * 600);
+    for (int i = 0; i < width * height; i++) {
         data2[i] = 200;
     }
-    colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice, vulkanDevice->m_TransferQueue);
-
+    colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice,
+                            vulkanDevice->m_TransferQueue);
 
 }
 
@@ -55,14 +55,12 @@ void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::
                                                     const std::vector<uint32_t> &indices) {
 
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
-    size_t indexBufferSize = indices.size() * sizeof(uint32_t);
     mesh.vertexCount = static_cast<uint32_t>(vertices.size());
-    mesh.indexCount = static_cast<uint32_t>(indices.size());
 
     struct StagingBuffer {
         VkBuffer buffer;
         VkDeviceMemory memory;
-    } vertexStaging{}, indexStaging{};
+    } vertexStaging{};
 
     // Create staging buffers
     // Vertex m_DataPtr
@@ -72,60 +70,52 @@ void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::
             vertexBufferSize,
             &vertexStaging.buffer,
             &vertexStaging.memory,
-            reinterpret_cast<const void *>(vertices.data())))
-    // Index m_DataPtr
-    if (indexBufferSize > 0) {
-        CHECK_RESULT(vulkanDevice->createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                indexBufferSize,
-                &indexStaging.buffer,
-                &indexStaging.memory,
-                reinterpret_cast<const void *>(indices.data())))
-    }
+            (void *) vertices.data()));
+
     // Create m_Device local buffers
     // Vertex buffer
     if (mesh.vertices.buffer != VK_NULL_HANDLE) {
         vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.vertices.buffer, nullptr);
         vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.vertices.memory, nullptr);
-        if (indexBufferSize > 0) {
-            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.indices.buffer, nullptr);
-            vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.indices.memory, nullptr);
-        }
     }
+
     CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             vertexBufferSize,
             &mesh.vertices.buffer,
             &mesh.vertices.memory));
-    // Index buffer
-    if (indexBufferSize > 0) {
-        CHECK_RESULT(vulkanDevice->createBuffer(
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                indexBufferSize,
-                &mesh.indices.buffer,
-                &mesh.indices.memory));
-    }
 
     // Copy from staging buffers
     VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
     VkBufferCopy copyRegion = {};
     copyRegion.size = vertexBufferSize;
     vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, mesh.vertices.buffer, 1, &copyRegion);
-    if (indexBufferSize > 0) {
-        copyRegion.size = indexBufferSize;
-        vkCmdCopyBuffer(copyCmd, indexStaging.buffer, mesh.indices.buffer, 1, &copyRegion);
-    }
+
+    VkBufferMemoryBarrier bufferBarrier{};
+    bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT; // Memory operations that have been performed before the barrier
+    bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // Memory operations that will be performed after the barrier
+    bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufferBarrier.buffer = mesh.vertices.buffer; // The buffer you're synchronizing
+    bufferBarrier.offset = 0;
+    bufferBarrier.size = VK_WHOLE_SIZE; // This will cover the entire buffer
+
+    vkCmdPipelineBarrier(
+            copyCmd,
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // Pipeline stage where operations occur before the barrier
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // Pipeline stage where operations occur after the barrier
+            0, // Dependency flags, usually 0
+            0, nullptr, // Memory barriers (not used)
+            1, &bufferBarrier, // Buffer memory barriers
+            0, nullptr // Image memory barriers (not used)
+    );
+
     vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->m_TransferQueue, true);
     vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
     vkFreeMemory(vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
 
-    if (indexBufferSize > 0) {
-        vkDestroyBuffer(vulkanDevice->m_LogicalDevice, indexStaging.buffer, nullptr);
-        vkFreeMemory(vulkanDevice->m_LogicalDevice, indexStaging.memory, nullptr);
-    }
 }
 
 
@@ -153,8 +143,8 @@ void PointCloudLoader::createDescriptorPool() {
     uint32_t samplerDescriptorCount = 2 * renderer->UBCount;
 
     std::vector<VkDescriptorPoolSize> poolSizes = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount},
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,        samplerDescriptorCount},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uniformDescriptorCount},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, samplerDescriptorCount},
     };
     VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, renderer->UBCount);
 
@@ -274,10 +264,13 @@ void PointCloudLoader::createGraphicsPipeline(std::vector<VkPipelineShaderStageC
     VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
                                                           VK_VERTEX_INPUT_RATE_VERTEX};
     std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
-            {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
-
+            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VkRender::Vertex, pos)},
+            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VkRender::Vertex, normal)},
+            {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VkRender::Vertex, uv0)},
+            {3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VkRender::Vertex, uv1)},
+            {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, joint0)},
+            {5, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, weight0)},
+            {6, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VkRender::Vertex, color)}
     };
     VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
     vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -316,12 +309,10 @@ void PointCloudLoader::draw(VkCommandBuffer commandBuffer, uint32_t cbIndex) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                             &descriptors[cbIndex], 0, nullptr);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    const VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->mesh.vertices.buffer, offsets);
 
-    if (model->mesh.indexCount > 0) {
-        vkCmdBindIndexBuffer(commandBuffer, model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
-    } else {
-        vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
-    }
+    vkCmdDraw(commandBuffer, model->mesh.vertexCount, 1, 0, 0);
+
 
 }

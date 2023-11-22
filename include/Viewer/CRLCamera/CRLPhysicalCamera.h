@@ -86,7 +86,7 @@ namespace VkRender::MultiSense {
     class IMUBufferWrapper {
     public:
         IMUBufferWrapper(crl::multisense::Channel *driver,
-                           crl::multisense::imu::Header data) :
+                         crl::multisense::imu::Header data) :
                 driver_(driver),
                 callbackBuffer_(driver->reserveCallbackBuffer()),
                 data_(std::move(data)) {

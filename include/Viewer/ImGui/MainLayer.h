@@ -38,7 +38,7 @@
 #ifndef MULTISENSE_INTERACTIONMENU_H
 #define MULTISENSE_INTERACTIONMENU_H
 #ifdef WIN32
-    #ifdef APIENTRY
+#ifdef APIENTRY
         #undef APIENTRY
     #endif
 #endif

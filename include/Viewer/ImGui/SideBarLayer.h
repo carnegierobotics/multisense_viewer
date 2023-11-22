@@ -248,10 +248,10 @@ public:
     }
 
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-            if (handles->renderer3D){
+        if (handles->renderer3D){
 
-                return;
-            }
+            return;
+        }
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;

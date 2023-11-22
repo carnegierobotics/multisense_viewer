@@ -68,21 +68,21 @@ public:
         ImGui::SameLine(0.0f, 20.0f);
 
         if(ImGui::Button("MS Renderer", btnSize)){
-                handles->usageMonitor->userClickAction("MultiSense RENDERER", "Button", ImGui::GetCurrentWindow()->Name);
-                // Add test device to renderer if not present
-                bool exists = false;
-                for (const auto &device: handles->devices) {
-                    if (device.cameraName == "Simulated device")
-                        exists = true;
-                }
-                if (!exists) {
-                    VkRender::Device testDevice;
-                    testDevice.name = "AccuRender Profile";
-                    Utils::initializeUIDataBlockWithTestData(testDevice);
-                    handles->devices.emplace_back(testDevice);
-                    Log::Logger::getInstance()->info("Adding a test device to the profile section");
-                }
-                handles->simulator.enabled = true;
+            handles->usageMonitor->userClickAction("MultiSense RENDERER", "Button", ImGui::GetCurrentWindow()->Name);
+            // Add test device to renderer if not present
+            bool exists = false;
+            for (const auto &device: handles->devices) {
+                if (device.cameraName == "Simulated device")
+                    exists = true;
+            }
+            if (!exists) {
+                VkRender::Device testDevice;
+                testDevice.name = "AccuRender Profile";
+                Utils::initializeUIDataBlockWithTestData(testDevice);
+                handles->devices.emplace_back(testDevice);
+                Log::Logger::getInstance()->info("Adding a test device to the profile section");
+            }
+            handles->simulator.enabled = true;
         }
 
         ImGui::PopFont();

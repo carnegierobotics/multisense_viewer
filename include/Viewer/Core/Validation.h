@@ -62,7 +62,7 @@ namespace Validation {
     CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                  const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) {
         auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT> (vkGetInstanceProcAddr(instance,
-                                                                               "vkCreateDebugUtilsMessengerEXT"));
+                                                                                                "vkCreateDebugUtilsMessengerEXT"));
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
         } else {
@@ -73,7 +73,7 @@ namespace Validation {
     static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                               const VkAllocationCallbacks *pAllocator) {
         auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>( vkGetInstanceProcAddr(instance,
-                                                                                "vkDestroyDebugUtilsMessengerEXT"));
+                                                                                                 "vkDestroyDebugUtilsMessengerEXT"));
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
         }
@@ -172,7 +172,7 @@ namespace Validation {
         return true;
     }
 
-DISABLE_WARNING_POP
+    DISABLE_WARNING_POP
 }
 
 #endif //MULTISENSE_VALIDATION_H

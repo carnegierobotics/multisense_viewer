@@ -36,7 +36,7 @@
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
 #ifdef WIN32
-    #ifdef APIENTRY
+#ifdef APIENTRY
     #undef APIENTRY
     #endif
 #endif

@@ -258,8 +258,8 @@ public:
                 ImGui::Text("Frame time: %.5f",static_cast<double>( handles->info->frameTimer));
                 ImGui::Text("Frame: %lu", handles->info->frameID);
 
-            #ifdef MULTISENSE_VIEWER_DEBUG
-                    ImGui::Text("Camera: ");
+#ifdef MULTISENSE_VIEWER_DEBUG
+                ImGui::Text("Camera: ");
                 ImGui::Text("Position: (%.3f, %.3f, %.3f)",
                             static_cast<double>(handles->camera.pos.x),
                             static_cast<double>(handles->camera.pos.y),
@@ -269,7 +269,7 @@ public:
                             static_cast<double>(handles->camera.rot.x),
                             static_cast<double>(handles->camera.rot.y),
                             static_cast<double>(handles->camera.rot.z));
-            #endif
+#endif
 
             }
             ImGui::Separator();

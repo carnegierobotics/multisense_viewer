@@ -44,7 +44,7 @@
 //#endif
 
 #ifdef WIN32
-    #ifdef APIENTRY
+#ifdef APIENTRY
         #undef APIENTRY
     #endif
 #endif

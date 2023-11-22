@@ -3,7 +3,7 @@ project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
         LANGUAGES C CXX
-        )
+)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -153,7 +153,7 @@ if (UNIX) ## Linux
             POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/AutoConnect ${CMAKE_BINARY_DIR}/
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/Assets/Tools/Ubuntu/AutoConnectLauncher.sh ${CMAKE_BINARY_DIR}/
-            )
+    )
 endif ()
 
 if (WIN32)
@@ -234,7 +234,7 @@ if (WIN32)
             # WinPcap DLLs
             ${CMAKE_CURRENT_SOURCE_DIR}/internal/AutoConnect/WinPcap/Packet.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/internal/AutoConnect/WinPcap/wpcap.dll
-            )
+    )
     # do the copying
     foreach (file_i ${THIRD_PARTY_DLLS})
         add_custom_command(

@@ -25,7 +25,7 @@ Write-Host "You provided the path: $path"
 Write-Host "You provided the version: $version"
 
 
-cmake -B . -DCMAKE_BUILD_TYPE=Release -DGIT_SUBMODULE=OFF $path
+cmake -B . -DCMAKE_BUILD_TYPE=Release -DWARNINGS_AS_ERRORS=FALSE -DGIT_SUBMODULE=OFF $path
 cmake --build . --config Release --target install -- /m:10
 
 mkdir files

@@ -87,7 +87,7 @@ private:
     bool labelExists(const char *label, const ScriptWidgetPlacement &window) {
         for (const auto& elem : elements[window]){
             if (elem.label == label){
-                Log::Logger::getInstance()->warning("Label {} already exists in window {}", label, window);
+                Log::Logger::getInstance()->warning("Label {} already exists in window {}", label, static_cast<int>(window));
                 return true;
             }
         }

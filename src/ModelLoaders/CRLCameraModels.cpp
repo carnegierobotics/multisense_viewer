@@ -174,11 +174,7 @@ bool CRLCameraModels::Model::updateTexture(CRLCameraDataType type, uint32_t curr
                 m_TextureChromaV[currentFrame]->updateTextureFromBuffer();
             }
             break;
-        case CRL_CAMERA_IMAGE_NONE:
-            break;
-        case CRL_DATA_NONE:
-            break;
-        case CRL_POINT_CLOUD:
+        default:
             break;
     }
 
@@ -622,7 +618,7 @@ void CRLCameraModels::createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSet
 void
 CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector,
                                 CRLCameraDataType type,
-                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, Model *pModel,
+                                VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT,
                                 VkSampleCountFlagBits samples) {
 
     // Vertex bindings an attributes
@@ -747,11 +743,10 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
         createPipelineLayout(&model->m_SelectionPipelineLayout[i], &model->m_DescriptorSetLayout[i], 1);
 
         createPipeline(*renderUtils->renderPass, vector, model->m_CameraDataType, &model->m_Pipeline[i],
-                       &model->m_PipelineLayout[i],
-                       model, renderUtils->msaaSamples);
+                       &model->m_PipelineLayout[i], renderUtils->msaaSamples);
         createPipeline(renderUtils->picking->renderPass, vector, model->m_CameraDataType,
                        &model->m_SelectionPipeline[i],
-                       &model->m_SelectionPipelineLayout[i], model, VK_SAMPLE_COUNT_1_BIT);
+                       &model->m_SelectionPipelineLayout[i], VK_SAMPLE_COUNT_1_BIT);
     }
     model->m_InitializedPipeline = true;
 }

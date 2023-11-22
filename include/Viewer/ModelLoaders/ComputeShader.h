@@ -28,7 +28,7 @@ public:
     void createBuffers(uint32_t numBuffers) {
 
         // Initialize particles
-        std::default_random_engine rndEngine((unsigned) time(nullptr));
+        std::default_random_engine rndEngine(static_cast<unsigned>(time(nullptr)));
         std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
         // Initial particle positions on a circle
@@ -158,11 +158,11 @@ public:
         descriptorPoolLRCheckPass(framesInFlight);
 
         descriptorSetsProcessImagePass(framesInFlight, ubo);
-        descriptorSetsPixelCostPass(framesInFlight, ubo);
-        descriptorSetsWindowedPixelCostPass(framesInFlight, ubo);
-        descriptorSetsProcessPathPass(framesInFlight, ubo);
-        descriptorSetsCalcDispPass(framesInFlight, ubo);
-        descriptorSetsLRCheckPass(framesInFlight, ubo);
+        descriptorSetsPixelCostPass(framesInFlight);
+        descriptorSetsWindowedPixelCostPass(framesInFlight);
+        descriptorSetsProcessPathPass(framesInFlight);
+        descriptorSetsCalcDispPass(framesInFlight);
+        descriptorSetsLRCheckPass(framesInFlight);
 
         for(uint32_t i = 0; i < numPasses; ++i){
             computePipelinePass(shaders[i], i);
@@ -425,7 +425,7 @@ public:
         }
     }
 
-    void descriptorSetsPixelCostPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsPixelCostPass(uint32_t count) {
         pass[1].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[1].descriptorSetLayout);
 
@@ -463,7 +463,7 @@ public:
         }
     }
 
-    void descriptorSetsWindowedPixelCostPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsWindowedPixelCostPass(uint32_t count) {
         pass[2].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[2].descriptorSetLayout);
 
@@ -499,7 +499,7 @@ public:
         }
     }
 
-    void descriptorSetsProcessPathPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsProcessPathPass(uint32_t count) {
         pass[3].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[3].descriptorSetLayout);
 
@@ -530,7 +530,7 @@ public:
         }
     }
 
-    void descriptorSetsCalcDispPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsCalcDispPass(uint32_t count) {
         pass[4].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[4].descriptorSetLayout);
 
@@ -585,7 +585,7 @@ public:
         }
     }
 
-    void descriptorSetsLRCheckPass(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo) {
+    void descriptorSetsLRCheckPass(uint32_t count) {
         pass[5].descriptors.resize(count);
         std::vector<VkDescriptorSetLayout> layouts(count, pass[5].descriptorSetLayout);
 

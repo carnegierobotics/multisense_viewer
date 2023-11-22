@@ -447,6 +447,7 @@ public:
             static size_t scriptSelectionIndex = 0; // Here we store our selection data as an index.
             std::string scriptPreviewValue = user.scripts.names.empty() ? ""
                                                                         : user.scripts.names[scriptSelectionIndex].c_str();
+#ifdef MULTISENSE_VIEWER_DEBUG
 
             if (ImGui::Button("Rebuild script: ")) {
                 handles->usageMonitor->userClickAction("Rebuild script: ", "Button", ImGui::GetCurrentWindow()->Name);
@@ -474,6 +475,7 @@ public:
                 }
                 ImGui::EndCombo();
             }
+#endif
 
             ImGui::PopStyleVar(); //Item spacing
 

@@ -178,6 +178,7 @@ namespace VkRender {
 
     };
 
+    /** @brief block for simulated camera, Mostly used for testing  */
     struct CameraSimulator {
         bool enabled = false;
 

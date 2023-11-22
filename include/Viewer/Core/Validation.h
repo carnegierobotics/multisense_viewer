@@ -160,7 +160,6 @@ namespace Validation {
         for (const auto &checkExtension : checkExtensions) {
             bool hasExtensions = false;
             for (const auto &extension: extensions) {
-                printf("ExtensionName: %s\n", extension.extensionName);
                 if (strcmp(checkExtension, extension.extensionName) == 0) {
                     hasExtensions = true;
                     break;

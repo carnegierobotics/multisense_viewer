@@ -391,7 +391,8 @@ void Renderer::updateUniformBuffers() {
 
     // Update Camera connection based on Actions from GUI
     cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
-    // Enable/disable Renderer3D scripts
+    // Enable/disable Renderer3D scripts and simulated camera
+
     for (auto &script: scripts) {
         if (!guiManager->handles.renderer3D) {
             if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D)
@@ -400,13 +401,7 @@ void Renderer::updateUniformBuffers() {
             if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D)
                 script.second->setDrawMethod(CRL_SCRIPT_DRAW);
         }
-        if (guiManager->handles.simulator.enabled) {
-            if (script.second->getType() &
-                CRL_SCRIPT_TYPE_SIMULATED_CAMERA);//script.second->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        } else {
-            if (script.second->getType() & CRL_SCRIPT_TYPE_SIMULATED_CAMERA)
-                script.second->setDrawMethod(CRL_SCRIPT_DRAW);
-        }
+        // TODO add simulated camera handling
     }
 
 

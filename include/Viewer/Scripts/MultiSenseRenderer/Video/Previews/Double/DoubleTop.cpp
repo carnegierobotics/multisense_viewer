@@ -150,9 +150,11 @@ void DoubleTop::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
     auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoDataModel->getTextureDataPointers(defTex.get(), renderData.index)) {
-        std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
-        m_NoDataModel->updateTexture(defTex->m_Type, renderData.index);
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
+            std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
+            m_NoDataModel->updateTexture(defTex->m_Type, i);
+        }
     }
 
     m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
@@ -160,9 +162,11 @@ void DoubleTop::prepareDefaultTexture() {
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
-    if (m_NoSourceModel->getTextureDataPointers(tex.get(), renderData.index)) {
-        std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
-        m_NoSourceModel->updateTexture(tex->m_Type, renderData.index);
+    for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
+        if (m_NoSourceModel->getTextureDataPointers(tex.get(), i)) {
+            std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            m_NoSourceModel->updateTexture(tex->m_Type, i);
+        }
     }
 }
 

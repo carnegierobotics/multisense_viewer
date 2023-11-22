@@ -60,8 +60,8 @@ void PointCloud3D::update() {
     data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
     //memcpy(model->colorPointCloudBuffer.mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
-    auto *buf = bufferThreeData.get();
-    buf->pointSize = 1.8f;
+    auto *bufferThree = bufferThreeData.get();
+    bufferThree->pointSize = 1.8f;
 
 
 }

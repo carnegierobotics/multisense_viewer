@@ -35,6 +35,7 @@
  **/
 
 #include "Viewer/Core/VulkanSwapchain.h"
+#include "Viewer/Tools/Logger.h"
 
 /** @brief Creates the surface abstraction of the native platform window used for presentation */
 /**
@@ -114,7 +115,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
         desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
         // Triple/Double buffering
     }
-    desiredNumberOfSwapchainImages = std::min(static_cast<uint32_t>(2), desiredNumberOfSwapchainImages);
+    desiredNumberOfSwapchainImages = std::min(surfCaps.minImageCount, desiredNumberOfSwapchainImages);
 
     // Find the transformation of the surface
     VkSurfaceTransformFlagsKHR preTransform;
@@ -175,7 +176,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
 
     result = vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain);
     if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain");
-
+    Log::Logger::getInstance()->info("Created swapchain with minImageCount: {}", swapchainCI.minImageCount);
     // If an existing swap chain is re-created, destroy the old swap chain
     // This also cleans up all the presentable images
     if (oldSwapchain != VK_NULL_HANDLE)

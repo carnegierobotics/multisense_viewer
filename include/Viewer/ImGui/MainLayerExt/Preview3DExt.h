@@ -165,7 +165,7 @@ public:
 
             VkRender::LayerUtils::WidgetPosition pos;
             pos.paddingX = 10.0f;
-            pos.textColor = VkRender::Colors::CRLTextGray;
+            pos.textColor = VkRender::Colors::CRLTextWhite;
 
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 5.0f);
             ImGui::BeginChild("Imu 3D child", ImVec2(0.0f, 200.0f));

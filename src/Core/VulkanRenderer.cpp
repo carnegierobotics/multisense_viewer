@@ -111,12 +111,6 @@ namespace VkRender {
         if (!Validation::checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
 
-        VkValidationFeatureEnableEXT enables[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
-        VkValidationFeaturesEXT features = {};
-        features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-        features.enabledValidationFeatureCount = 1;
-        features.pEnabledValidationFeatures = enables;
-
         VkInstanceCreateInfo instanceCreateInfo = {};
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceCreateInfo.pNext = nullptr;
@@ -725,17 +719,6 @@ namespace VkRender {
         setupDepthStencil();
         setupRenderPass();
 
-        VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-        // Create a semaphore used to synchronize m_Image presentation
-        // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        //vkDestroySemaphore(device, semaphores.presentComplete, nullptr);
-        //VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete);
-        //if (err != VK_SUCCESS)
-        //    throw std::runtime_error("Failed to create semaphore");
-        //submitInfo.pWaitSemaphores = &semaphores.presentComplete;
-        //for (const auto& fence : waitFences) {
-        //    vkDestroyFence(device, fence, nullptr);
-        //}
         setupMainFramebuffer();
 
         // Command buffers need to be recreated as they may store
@@ -901,7 +884,7 @@ namespace VkRender {
         vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         computeCommand.hasWork[currentFrame] = false;
         /** call renderer compute function **/
-        bool hasWork = compute();
+        compute();
         sInfo.commandBufferCount = 1;
         sInfo.pCommandBuffers = &computeCommand.buffers[currentFrame];
         sInfo.signalSemaphoreCount = 1;

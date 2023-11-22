@@ -158,7 +158,7 @@ void SingleLayout::prepareDefaultTexture() {
     auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
         if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
-            std::memcpy(defTex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
+            std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
             m_NoDataModel->updateTexture(defTex->m_Type, i);
         }
     }

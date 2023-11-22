@@ -38,8 +38,8 @@ public:
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_SIMULATED_CAMERA;
-    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DISABLED;
+    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     void onDestroy() override {
         topLevelData->compute.reset = true;

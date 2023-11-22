@@ -525,7 +525,6 @@ namespace VkRender::MultiSense {
             chInfo.availableSources.clear();
             chInfo.modes.clear();
             chInfo.availableSources.emplace_back("Idle");
-            chInfo.availableSources.emplace_back("Compute");
             chInfo.index = ch;
             chInfo.state = CRL_STATE_ACTIVE;
             filterAvailableSources(&chInfo.availableSources, maskArrayAll, ch, camPtr);

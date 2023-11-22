@@ -160,7 +160,7 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlagBits queueFlags) const {
         }
     }
 
-    throw std::runtime_error("Could not find a matching queue family index");
+    throw std::runtime_error("Could not find a matching graphicsQueue family index");
 }
 
 /**
@@ -545,7 +545,7 @@ void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue que
     std::scoped_lock<std::mutex> lock(*m_QueueSubmitMutex);
     res = vkQueueSubmit(queue, 1, &submitInfo, fence);
     if (res != VK_SUCCESS)
-        throw std::runtime_error("Failed to submit to queue");
+        throw std::runtime_error("Failed to submit to graphicsQueue");
     // Wait for the fence to signal that command buffer has finished executing
     res = vkWaitForFences(m_LogicalDevice, 1, &fence, VK_TRUE, UINT64_MAX);
     if (res != VK_SUCCESS)

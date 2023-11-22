@@ -88,7 +88,11 @@ public:
 
             createRecordingHeader(handles, dev);
 
-
+            VkRender::LayerUtils::WidgetPosition pos;
+            pos.paddingX = 5.0f;
+            pos.maxElementWidth = handles->info->controlAreaWidth - pos.paddingX;
+            pos.textColor = VkRender::Colors::CRLTextGray;
+            VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_MULTISENSE_RENDERER, pos);
         }
 
         ImGui::EndChild();

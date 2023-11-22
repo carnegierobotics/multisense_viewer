@@ -39,7 +39,7 @@ public:
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief draw function called once per frame **/
-    void draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) override;
+    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
     ScriptTypeFlags getType() override { return type; }
@@ -48,7 +48,7 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
-    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
+    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<PointCloudLoader> pc;
     char buf[1024] = "/home/magnus/crl/disparity_quality/processing/images_and_pose.csv";

@@ -218,6 +218,37 @@ vec4 sharpening(sampler2D textureSampler, vec2 texCoord) {
     return vec4(sharpenedColor, 1.0);
 }
 
+vec4 bilateralFilter(sampler2D image, vec2 uv) {
+    const float sigmaSpace = 1.0; // Spatial standard deviation (adjust as needed)
+    const float sigmaColor = 0.1; // Color standard deviation (adjust as needed)
+    const vec2 resolution = vec2(textureSize(image, 0)); // Resolution of the image
+    vec3 centralColor = texture(image, uv).rgb;
+    vec2 texelSize = 1.0 / resolution;
+
+    float spaceCoeff = -0.5 / (sigmaSpace * sigmaSpace);
+    float colorCoeff = -0.5 / (sigmaColor * sigmaColor);
+
+    vec3 result = vec3(0.0);
+    float weightSum = 0.0;
+
+    int kernelRadius = int(2.0 * sigmaSpace);
+
+    for (int dx = -kernelRadius; dx <= kernelRadius; dx++) {
+        for (int dy = -kernelRadius; dy <= kernelRadius; dy++) {
+            vec2 offset = vec2(dx, dy) * texelSize;
+            vec3 neighborColor = texture(image, uv + offset).rgb;
+            float spatialWeight = exp((dx * dx + dy * dy) * spaceCoeff);
+            float colorWeight = exp(dot(neighborColor - centralColor, neighborColor - centralColor) * colorCoeff);
+            float weight = spatialWeight * colorWeight;
+
+            result += neighborColor * weight;
+            weightSum += weight;
+        }
+    }
+
+    return vec4(result / weightSum, 1.0);
+}
+
 
 void main()
 {
@@ -259,8 +290,5 @@ void main()
     if (info.kernelFilters.w == 1.0f){
         color = sharpening(samplerColorMap, vec2(uvSampleX, uvSampleY));
     }
-
     outColor = vec4(color.r, color.r, color.r, 1.0);
-
-
 }

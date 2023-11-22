@@ -46,6 +46,7 @@
 
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Scripts/Private/Base.h"
+#include "Viewer/Core/CommandBuffer.h"
 
 // Based of self registering factory
 // cppstories https://www.cppstories.com/2018/02/factory-selfregister/

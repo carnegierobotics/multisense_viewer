@@ -62,8 +62,8 @@ namespace VkRender {
     public:
         GuiObjectHandles handles{};
 
-        GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass &renderPass, const uint32_t &width,
-                   const uint32_t &height,VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
+        GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
+                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount);
 
         ~GuiManager() {
             Log::Logger::getInstance()->info("Saving ImGui file: {}",
@@ -89,10 +89,10 @@ namespace VkRender {
         void setup(const uint32_t &width, const uint32_t &height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
         /**@brief Draw command called once per command buffer recording*/
-        void drawFrame(VkCommandBuffer commandBuffer);
+        void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
         /**@brief ReCreate buffers if they have changed in size*/
-        bool updateBuffers();
+        bool updateBuffers(uint32_t imageIndex);
 
         /** @brief Push a new GUI Layer to the layer stack. Layers are drawn in the order they are pushed. **/
         template<typename T>
@@ -126,10 +126,19 @@ namespace VkRender {
         std::unique_ptr<Texture2D> gifTexture[99];
 
         // Vulkan resources for rendering the UI
-        Buffer vertexBuffer;
-        Buffer indexBuffer;
-        int32_t vertexCount = 0;
-        int32_t indexCount = 0;
+        //Buffer vertexBuffer;
+        //Buffer indexBuffer;
+        // Vulkan resources for rendering the UI
+        std::vector<Buffer> vertexBuffer;
+        std::vector<Buffer> indexBuffer;
+
+        std::vector<int32_t> vertexCount{};
+        std::vector<int32_t> indexCount{};
+
+        uint32_t updatedBufferIndex = 0;
+        //int32_t vertexCount = 0;
+        //int32_t indexCount = 0;
+
         VkPipelineCache pipelineCache{};
         VkPipelineLayout pipelineLayout{};
         VkPipeline pipeline{};

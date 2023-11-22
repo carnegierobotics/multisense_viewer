@@ -9,7 +9,7 @@
 
 void PointCloud3D::setup() {
 
-
+/*
     uint32_t width = 960, height = 600, depth = 255;
 
     pc = std::make_unique<PointCloudLoader>(&renderUtils);
@@ -41,7 +41,7 @@ void PointCloud3D::setup() {
 
 
     Widgets::make()->inputText("Renderer3D", "Draw pc", buf);
-
+*/
 }
 
 void PointCloud3D::update() {
@@ -66,8 +66,8 @@ void PointCloud3D::update() {
 
 }
 
-void PointCloud3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void PointCloud3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
-        pc->draw(commandBuffer, i);
+        //pc->draw(commandBuffer, i);
     }
 }

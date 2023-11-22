@@ -1,0 +1,118 @@
+#version 450
+
+struct Particle {
+    vec2 position;
+    vec2 velocity;
+    vec4 color;
+};
+
+layout(binding = 0, set = 0) uniform Info {
+    vec4 lightDir;
+    vec4 zoom;
+    vec4 zoomTranslate;
+    float exposure;
+    float gamma;
+    float prefilteredCubeMipLevels;
+    float scaleIBLAmbient;
+    float debugViewInputs;
+    float lod;
+    vec2 pad;
+    vec4 normalize;
+    vec4 kernelFilters;
+    float deltaTime;
+} ubo;
+
+layout(std140, binding = 1) readonly buffer ParticleSSBOIn {
+    Particle particlesIn[];
+};
+
+layout(std140, binding = 2) buffer ParticleSSBOOut {
+    Particle particlesOut[];
+};
+layout (binding = 3, r8) uniform readonly image2D leftImage;
+layout (binding = 4, r8) uniform readonly image2D rightImage;
+
+layout (binding = 5, r8) uniform image2D resultImage;
+
+layout (local_size_x = 24, local_size_y = 24) in;
+
+void main() {
+    ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 imageSize = imageSize(leftImage);// Assuming both images have the same size
+
+    // kernel size and loop boundaries from L to H
+    int kSize = 2;
+    int kernelSize = (kSize * 2 + 1) * (kSize * 2 + 1);
+
+    float sum = 0;
+    int disparityLevel = 256;
+    ivec2 readPosLeft, readPosRight;
+    vec4 imgLeft, imgRight;
+    float average;
+
+    float minAverage = 1e10; // Minimum SAD value
+    float secondMinAverage = 1e10; // Second minimum SAD value
+    int pixelDisparity_LR = 0;
+
+
+    for (int d = 0; d < disparityLevel; ++d) {
+        // Kernel find absolute differences along x axis
+        for (int row = -kSize; row <= kSize; ++row) {
+            for (int col = -kSize; col <= kSize; ++col) {
+                readPosLeft.xy = ivec2(gid.x + col, gid.y + row);
+                readPosRight.xy = ivec2(gid.x + col - d, gid.y + row);
+                imgLeft = imageLoad(leftImage, readPosLeft);
+                imgRight = imageLoad(rightImage, readPosRight);
+                sum += abs(imgLeft.x - imgRight.x);
+            }
+        }
+        average = sum;
+        if (average < minAverage) {
+            // If the new average is less than the current minimum, update both min and second min
+            secondMinAverage = minAverage;
+            minAverage = average;
+            pixelDisparity_LR = d;
+        } else if (average < secondMinAverage && average != minAverage) {
+            // If the new average is less than the second min and not equal to the min, update second min
+            secondMinAverage = average;
+        }
+        sum = 0;
+    }
+    float uniqueMinThreshold = 0.99; // Define a threshold for uniqueness
+
+    // Check if the minimum is unique
+    if (minAverage / secondMinAverage >= uniqueMinThreshold) {
+        pixelDisparity_LR = 0; // Not a unique minimum, invalidate this disparity
+    }
+    imageStore(resultImage, ivec2(gid), vec4(float(pixelDisparity_LR) / float(disparityLevel), 0, 0, 0));
+
+
+/*
+    if (gid.y > 0 && gid.x > 0) {
+        for (int d = 0; d < disparityLevel; ++d) {
+            // Kernel find absolute differences along x axis
+            for (int row = -kSize; row <= kSize; ++row) {
+                for (int col = -kSize; col <= kSize; ++col) {
+                    readPosLeft.xy = ivec2(gid.x + col + d, gid.y + row);
+                    readPosRight.xy = ivec2(gid.x + col, gid.y + row);
+                    imgLeft = imageLoad(leftImage, readPosLeft);
+                    imgRight = imageLoad(rightImage, readPosRight);
+                    sum += abs(imgLeft.x - imgRight.x);
+                }
+            }
+            average = sum;
+            // If this kernel average was lower than the previous average then keep it
+            if (average < minAverage) {
+                minAverage = average;
+                pixelDisparity_RL = d;
+            }
+            sum = 0;
+        }
+    }
+    // Consistency Check
+    const float disparityThreshold = 25.0;// Threshold for consistency check
+    if (abs(pixelDisparity_LR - pixelDisparity_RL) > disparityThreshold) {
+        pixelDisparity_LR = 0;// Mark as invalid disparity
+    }
+    */
+}

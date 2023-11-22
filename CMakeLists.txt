@@ -61,6 +61,7 @@ set(ENGINE_SRC
         src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
         src/ModelLoaders/PointCloudLoader.cpp
+        src/ModelLoaders/ComputeShader.cpp
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
@@ -70,31 +71,35 @@ set(ENGINE_SRC
         src/Renderer/UsageMonitor.cpp
         src/Core/RendererConfig.cpp
         src/Core/ServerConnection.cpp
+        src/Core/CommandBuffer.cpp
 )
 
 set(SCRIPTS_LIB_SRC
+        include/Viewer/Scripts/MultiSenseRenderer/MultiSenseCamera.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Example.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Pointcloud/PointCloud.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Gizmos.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Helmet.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/RecordFrames.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Single/SingleLayout.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleTop.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleBot.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/One.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Two.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Three.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Four.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Skybox.cpp
+        include/Viewer/Scripts/MultiSenseRenderer/StereoSim.cpp
+
+        include/Viewer/Scripts/Private/ScriptUtils.h
+        include/Viewer/Scripts/Private/RecordUtilities.h
+
+        include/Viewer/Scripts/Renderer3D/Grid.cpp
+        include/Viewer/Scripts/Renderer3D/PointCloud3D.cpp
         include/Viewer/Scripts/Renderer3D/Main3D.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        include/Viewer/Scripts/Objects/MultiSenseCamera.cpp
-        include/Viewer/Scripts/Objects/Example.cpp
-        include/Viewer/Scripts/Objects/Pointcloud/PointCloud.cpp
-        include/Viewer/Scripts/Objects/SceneGizmos/Gizmos.cpp
-        include/Viewer/Scripts/Objects/SceneGizmos/Helmet.cpp
-        include/Viewer/Scripts/Objects/Video/RecordFrames.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Single/SingleLayout.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Double/DoubleTop.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Double/DoubleBot.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Quad/One.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Quad/Two.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Quad/Three.cpp
-        include/Viewer/Scripts/Objects/Video/Previews/Quad/Four.cpp
-        include/Viewer/Scripts/Objects/SceneGizmos/Skybox.cpp
-        include/Viewer/Scripts/Private/ScriptUtils.h
-        include/Viewer/Scripts/Renderer3D/Grid.cpp
-        include/Viewer/Scripts/Renderer3D/PointCloud3D.cpp
-        include/Viewer/Scripts/Renderer3D/Grid.cpp
-        include/Viewer/Scripts/Private/RecordUtilities.h)
+)
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer")
 
@@ -137,6 +142,7 @@ if (UNIX) ## Linux
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)
     set_project_warnings(MultiSense-Viewer)
+
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})

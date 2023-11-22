@@ -19,16 +19,16 @@ void Main3D::setup() {
     humvee->createRenderPipeline(renderUtils, shaders);
 
 
-    Widgets::make()->fileDialog("Renderer3D", "Set file", filePathDialog, &openDialog);
+    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "Set file", filePathDialog, &openDialog);
 
-    Widgets::make()->button("Renderer3D", "Start", &play);
-    Widgets::make()->button("Renderer3D", "Pause", &pause);
-    Widgets::make()->button("Renderer3D", "Stop", &restart);
-    //Widgets::make()->slider("Renderer3D", "skip n", &val, 1, 50);
-    //Widgets::make()->text("Renderer3D", "Sim time:");
-    //Widgets::make()->text("Renderer3D", simTimeText.c_str(), "id1");
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Start", &play);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Pause", &pause);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Stop", &restart);
+    //Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "skip n", &val, 1, 50);
+    //Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Sim time:");
+    //Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, simTimeText.c_str(), "id1");
 
-    Widgets::make()->checkbox("Renderer3D", "Realtime", &forceRealTime);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Realtime", &forceRealTime);
 
 
     lastEntryTime = std::chrono::steady_clock::now();
@@ -186,7 +186,7 @@ void Main3D::update() {
 
 }
 
-void Main3D::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Main3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
         humvee->draw(commandBuffer, i);
     }

@@ -57,7 +57,7 @@ public:
         VkRender::LayerUtils::WidgetPosition pos;
         pos.paddingX = 5.0f;
         pos.maxElementWidth = 230.0f;
-        VkRender::LayerUtils::createWidgets(handles, "Renderer3D");
+        VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_RENDERER3D);
 
         //ImGui::End();
 //

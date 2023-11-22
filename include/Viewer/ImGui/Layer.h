@@ -178,6 +178,11 @@ namespace VkRender {
 
     };
 
+    struct CameraSimulator {
+        bool enabled = false;
+
+    };
+
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
@@ -230,7 +235,8 @@ namespace VkRender {
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
 
-        CameraUIBlock camera;
+        CameraUIBlock camera{};
+        CameraSimulator simulator{};
     };
 
     /**

@@ -276,7 +276,7 @@ public:
 
             auto met = Log::Logger::getLogMetrics();
 
-            if (met->device.dev != nullptr && !met->device.dev->notRealDevice) {
+            if (met->device.dev != nullptr && !met->device.dev->simulatedDevice) {
                 // Check if channelInfo contains key 0
                 if (!met->device.dev->channelInfo.empty()) {
                     ImGui::PushFont(handles->info->font15);
@@ -391,6 +391,8 @@ public:
                     handles->devices.emplace_back(testDevice);
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
+                handles->simulator.enabled = true;
+
             }
 #endif
 

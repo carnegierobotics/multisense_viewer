@@ -20,7 +20,7 @@ void Grid::setup() {
     model->createDescriptorSets();
     model->createGraphicsPipeline(shaders);
 
-    Widgets::make()->checkbox("Renderer3D", "Grid", &enable);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Grid", &enable);
 
 
 }
@@ -49,7 +49,7 @@ void Grid::update() {
 
 }
 
-void Grid::draw(VkCommandBuffer commandBuffer, uint32_t i, bool b) {
+void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
         model->draw(commandBuffer, i);
     }

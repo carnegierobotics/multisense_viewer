@@ -72,7 +72,7 @@ namespace Log {
             std::uintmax_t fileSize = std::filesystem::file_size(logFileName);
             fileSizeMB = static_cast<double>(fileSize) / (1024.0 * 1024.0);  // Convert to MB
             // Delete file if size exceeds 10 MB
-            resetLogFile = fileSizeMB > 10.0;
+            resetLogFile = fileSizeMB > 5.0;
             if (resetLogFile) {
                 std::filesystem::remove(logFileName);
             }

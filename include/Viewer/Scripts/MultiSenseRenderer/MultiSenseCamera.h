@@ -77,6 +77,8 @@ public:
     DrawMethod getDrawMethod() override {return drawMethod;}
     void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 
+    void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
+
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
@@ -109,6 +111,8 @@ public:
 
     std::future<bool> imuRotationFuture;
     std::future<void> setImuConfigFuture;
+    std::atomic<bool> cancelLoadModels{false};
+
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> calcImuRotationTimer;
 
 

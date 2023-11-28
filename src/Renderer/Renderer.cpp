@@ -90,8 +90,18 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
+    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
+    std::string line;
+    while (std::getline(infile, line)) {
+        // Skip comment # line
+        if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
+            continue;
+        availableScriptNames.emplace_back(line);
+    }
     // Load Object Scripts from file
-    buildScripts();
+    buildScript("Skybox");
+    for (const auto& name : availableScriptNames)
+        buildScript(name);
 
 }
 
@@ -106,63 +116,6 @@ void Renderer::addDeviceFeatures() {
             enabledFeatures.samplerAnisotropy = VK_TRUE;
         }
     }
-}
-
-
-void Renderer::buildScripts() {
-    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
-    std::string scriptName;
-    while (std::getline(infile, scriptName)) {
-        // Skip comment # line
-        if (scriptName.find('#') != std::string::npos)
-            continue;
-        // Do not recreate script if already created
-        auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
-        if (it != builtScriptNames.end())
-            return;
-        scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
-
-        if (scripts[scriptName].get() == nullptr) {
-            pLogger->error("Failed to register script {}.", scriptName);
-            scripts.erase(scriptName);
-            return;
-        }
-        pLogger->info("Registered script: {} in factory", scriptName.c_str());
-        builtScriptNames.emplace_back(scriptName);
-    }
-
-    // Run Once
-    VkRender::RenderUtils vars{};
-    vars.device = vulkanDevice.get();
-    vars.renderPass = &renderPass;
-    vars.msaaSamples = msaaSamples;
-    vars.UBCount = swapchain->imageCount;
-    vars.picking = &selection;
-    vars.queueSubmitMutex = &queueSubmitMutex;
-    renderData.height = m_Height;
-    renderData.width = m_Width;
-    // create first set of scripts for TOP OF PIPE
-    for (auto &script: scripts) {
-        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-            script.second->createUniformBuffers(vars, renderData, &topLevelScriptData);
-        }
-    }
-    // Copy data generated from TOP OF PIPE scripts
-    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
-    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
-    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
-    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
-
-    // Run script setup function
-    for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-            script.second->createUniformBuffers(vars, renderData, &topLevelScriptData);
-        }
-    }
-
-    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-    conf.scripts.names = builtScriptNames;
-    VkRender::RendererConfig::getInstance().setUserSetting(conf);
 }
 
 void Renderer::buildScript(const std::string &scriptName) {
@@ -183,30 +136,22 @@ void Renderer::buildScript(const std::string &scriptName) {
     builtScriptNames.emplace_back(scriptName);
 
     // Run Once
-    VkRender::RenderUtils vars{};
-    vars.device = vulkanDevice.get();
-    vars.renderPass = &renderPass;
-    vars.msaaSamples = msaaSamples;
-    vars.UBCount = swapchain->imageCount;
-    vars.picking = &selection;
-    vars.queueSubmitMutex = &queueSubmitMutex;
+    renderUtils.device = vulkanDevice.get();
+    renderUtils.renderPass = &renderPass;
+    renderUtils.msaaSamples = msaaSamples;
+    renderUtils.UBCount = swapchain->imageCount;
+    renderUtils.picking = &selection;
+    renderUtils.queueSubmitMutex = &queueSubmitMutex;
     renderData.height = m_Height;
     renderData.width = m_Width;
-    // create first set of scripts for TOP OF PIPE
-    if (scripts[scriptName]->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-        scripts[scriptName]->createUniformBuffers(vars, renderData, &topLevelScriptData);
-    }
 
     // Copy data generated from TOP OF PIPE scripts
-    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
-    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
-    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
-    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
+    renderUtils.skybox.irradianceCube = scripts["Skybox"]->skyboxTextures.irradianceCube;
+    renderUtils.skybox.lutBrdf = scripts["Skybox"]->skyboxTextures.lutBrdf;
+    renderUtils.skybox.prefilterEnv = scripts["Skybox"]->skyboxTextures.prefilterEnv;
+    renderUtils.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
 
-
-    if (scripts[scriptName]->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-        scripts[scriptName]->createUniformBuffers(vars, renderData, &topLevelScriptData);
-    }
+    scripts[scriptName]->createUniformBuffers(renderUtils, renderData, &topLevelScriptData);
 
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
     conf.scripts.names = builtScriptNames;
@@ -361,7 +306,9 @@ void Renderer::updateUniformBuffers() {
                 scripts.erase(name);
             }
             builtScriptNames.clear();
-            buildScripts();
+            buildScript("Skybox");
+            for (const auto& name : availableScriptNames)
+                buildScript(name);
 
         } else {
             deleteScript(scriptName);
@@ -551,7 +498,8 @@ void Renderer::recordCommands() {
 
     /** Generate Draw Commands **/
     buildCommandBuffers();
-    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
+    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation)
+     *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
     if (renderSelectionPass) {
         CommandBuffer cmdBuffer{};
         cmdBuffer.buffers.emplace_back(vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true));
@@ -777,29 +725,6 @@ void Renderer::recordCommands() {
 }
 
 void Renderer::windowResized() {
-
-    // Clear script and scriptnames before rebuilding
-    for (const auto &scriptName: builtScriptNames) {
-        pLogger->info("Deleting Script: {}", scriptName.c_str());
-        scripts[scriptName].get()->onDestroyScript();
-        scripts[scriptName].reset();
-        scripts.erase(scriptName);
-    }
-    builtScriptNames.clear();
-
-    // Recreate to fit new dimensions
-    vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
-    vkDestroyImage(device, selection.colorImage, nullptr);
-    vkDestroyImage(device, selection.depthImage, nullptr);
-    vkDestroyImageView(device, selection.colorView, nullptr);
-    vkDestroyImageView(device, selection.depthView, nullptr);
-    vkFreeMemory(device, selection.colorMem, nullptr);
-    vkFreeMemory(device, selection.depthMem, nullptr);
-    createSelectionImages();
-    createSelectionFramebuffer();
-    destroySelectionBuffer();
-    createSelectionBuffer();
-
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentFrame;
@@ -816,8 +741,34 @@ void Renderer::windowResized() {
             script.second->windowResize(&renderData, &guiManager->handles);
     }
 
+    // Clear script and scriptnames before rebuilding
+    for (const auto &scriptName: builtScriptNames) {
+        pLogger->info("Deleting Script: {}", scriptName.c_str());
+        scripts[scriptName].get()->onDestroyScript();
+        scripts[scriptName].reset();
+        scripts.erase(scriptName);
+    }
+    builtScriptNames.clear();
 
-    buildScripts();
+    // Scripts. Start with skybox as usual
+    buildScript("Skybox");
+    for (const auto& name : availableScriptNames)
+        buildScript(name);
+
+    // Recreate to fit new dimensions
+    vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
+    vkDestroyImage(device, selection.colorImage, nullptr);
+    vkDestroyImage(device, selection.depthImage, nullptr);
+    vkDestroyImageView(device, selection.colorView, nullptr);
+    vkDestroyImageView(device, selection.depthView, nullptr);
+    vkFreeMemory(device, selection.colorMem, nullptr);
+    vkFreeMemory(device, selection.depthMem, nullptr);
+    createSelectionImages();
+    createSelectionFramebuffer();
+    destroySelectionBuffer();
+    createSelectionBuffer();
+
+
 }
 
 

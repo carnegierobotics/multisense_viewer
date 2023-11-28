@@ -44,10 +44,11 @@
 //#endif
 
 #ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
+#ifdef APIENTRY
+#undef APIENTRY
 #endif
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <unordered_map>
@@ -115,17 +116,17 @@ namespace Log {
  */
 typedef enum ScriptType {
     /** Do not draw script at all */
-    CRL_SCRIPT_TYPE_DISABLED             = 0x00,
+    CRL_SCRIPT_TYPE_DISABLED = 0x00,
     /** Draw script since first frame and allocate additional MVP buffers */ //TODO Delete if possible
-    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS   = 0x01,
+    CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS = 0x01,
     /** Draw script after crl camera connect */
-    CRL_SCRIPT_TYPE_DEFAULT              = 0x02,
+    CRL_SCRIPT_TYPE_DEFAULT = 0x02,
     /** Draw script since application startup in the Renderer3D. No particular order */
-    CRL_SCRIPT_TYPE_RENDERER3D           = 0x04,
+    CRL_SCRIPT_TYPE_RENDERER3D = 0x04,
     /** Create this script before default and always render this type first. No internal ordering amongst scripts */
-    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE   = 0x08,
+    CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE = 0x08,
     /** Draw script since application startup in the Simulated camera. No particular order */
-    CRL_SCRIPT_TYPE_SIMULATED_CAMERA     = 0x10,
+    CRL_SCRIPT_TYPE_SIMULATED_CAMERA = 0x10,
 
 } ScriptType;
 typedef VkRenderFlags ScriptTypeFlags;
@@ -598,10 +599,10 @@ namespace VkRender {
     };
 
     struct SkyboxTextures {
-        TextureCubeMap environmentMap{};
-        TextureCubeMap irradianceCube{};
-        TextureCubeMap prefilterEnv{};
-        Texture2D lutBrdf{};
+        std::shared_ptr<TextureCubeMap> environmentMap{};
+        std::shared_ptr<TextureCubeMap> irradianceCube{};
+        std::shared_ptr<TextureCubeMap> prefilterEnv{};
+        std::shared_ptr<Texture2D> lutBrdf{};
         float prefilteredCubeMipLevels = 0;
     };
 
@@ -684,9 +685,9 @@ namespace VkRender {
         std::vector<UniformBufferSet> uniformBuffers{};
         const VkRender::ObjectPicking *picking = nullptr;
         struct {
-            TextureCubeMap *irradianceCube;
-            TextureCubeMap *prefilterEnv;
-            Texture2D *lutBrdf;
+            std::shared_ptr<TextureCubeMap> irradianceCube = nullptr;
+            std::shared_ptr<TextureCubeMap> prefilterEnv = nullptr;
+            std::shared_ptr<Texture2D> lutBrdf = nullptr;
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
         std::mutex *queueSubmitMutex;

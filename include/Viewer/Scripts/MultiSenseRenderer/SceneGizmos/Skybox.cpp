@@ -32,8 +32,12 @@ void Skybox::setup() {
     Widgets::make()->slider("default", "debugView", &debugViewInputs, 0, 6);
     Widgets::make()->slider("default", "Skybox - LOD", &lod, 0, 10.0f);
     */
+    skyboxTextures.environmentMap = std::make_shared<TextureCubeMap>();
+    skyboxTextures.irradianceCube = std::make_shared<TextureCubeMap>();
+    skyboxTextures.prefilterEnv = std::make_shared<TextureCubeMap>();
+    skyboxTextures.lutBrdf = std::make_shared<Texture2D>();
 
-    skyboxTextures.environmentMap.loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"), renderUtils.device);
+    skyboxTextures.environmentMap->loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"), renderUtils.device);
 
     skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures, renderUtils.msaaSamples);
     sharedData->destination = "All";

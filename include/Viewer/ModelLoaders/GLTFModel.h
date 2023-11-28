@@ -215,7 +215,6 @@ public:
             prefilterEnv = r->skybox.prefilterEnv;
             irradianceCube = r->skybox.irradianceCube;
             lutBrdf = r->skybox.lutBrdf;
-
         }
         ~Model();
 
@@ -224,9 +223,9 @@ public:
         std::vector<Texture2D> m_Textures;
         Texture2D emptyTexture;
 
-        TextureCubeMap *irradianceCube;
-        TextureCubeMap *prefilterEnv;
-        Texture2D *lutBrdf;
+        std::shared_ptr<TextureCubeMap> irradianceCube;
+        std::shared_ptr<TextureCubeMap> prefilterEnv;
+        std::shared_ptr<Texture2D> lutBrdf;
 
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;

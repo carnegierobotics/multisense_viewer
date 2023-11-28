@@ -197,8 +197,6 @@ namespace VkRender {
                     }
                 }
             }
-
-
         }
 
         void createUniformBuffers(const RenderUtils &utils, RenderData rData, TopLevelScriptData *topLevelPtr) {

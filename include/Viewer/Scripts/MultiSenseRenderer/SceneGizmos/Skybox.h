@@ -23,20 +23,20 @@ public:
     }
 
     ~Skybox(){
-        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube.m_View, nullptr);
-        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube.m_Image, nullptr);
-        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube.m_Sampler, nullptr);
-        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube.m_DeviceMemory, nullptr);
+        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube->m_View, nullptr);
+        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube->m_Image, nullptr);
+        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube->m_Sampler, nullptr);
+        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.irradianceCube->m_DeviceMemory, nullptr);
 
-        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv.m_View, nullptr);
-        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv.m_Image, nullptr);
-        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv.m_Sampler, nullptr);
-        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv.m_DeviceMemory, nullptr);
+        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv->m_View, nullptr);
+        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv->m_Image, nullptr);
+        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv->m_Sampler, nullptr);
+        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.prefilterEnv->m_DeviceMemory, nullptr);
 
-        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf.m_View, nullptr);
-        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf.m_Image, nullptr);
-        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf.m_Sampler, nullptr);
-        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf.m_DeviceMemory, nullptr);
+        vkDestroyImageView(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf->m_View, nullptr);
+        vkDestroyImage(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf->m_Image, nullptr);
+        vkDestroySampler(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf->m_Sampler, nullptr);
+        vkFreeMemory(renderUtils.device->m_LogicalDevice, skyboxTextures.lutBrdf->m_DeviceMemory, nullptr);
     }
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/

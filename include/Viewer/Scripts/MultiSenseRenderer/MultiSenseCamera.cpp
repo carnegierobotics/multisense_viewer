@@ -59,20 +59,21 @@ void MultiSenseCamera::loadModelsAsync() {
                                                             {loadShader("Scene/spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    S30 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), deviceCopy,
-                      deviceCopy->m_TransferQueue, 1.0f);
-    S30->createRenderPipeline(renderUtils, shaders);
+    // Define a list of model names and corresponding unique pointers
+    std::vector<std::pair<std::string, std::unique_ptr<GLTFModel::Model>*>> models = {
+            {"Models/s30_pbr.gltf", &S30},
+            {"Models/s27_pbr.gltf", &S27},
+            {"Models/ks21_pbr.gltf", &KS21}
+    };
 
-    S27 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), deviceCopy,
-                      deviceCopy->m_TransferQueue, 1.0f);
-    S27->createRenderPipeline(renderUtils, shaders);
+    for (auto& [modelPath, modelPtr] : models) {
+        *modelPtr = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
+        (*modelPtr)->loadFromFile(Utils::getAssetsPath().append(modelPath).string(), deviceCopy, deviceCopy->m_TransferQueue, 1.0f);
 
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), deviceCopy,
-                       deviceCopy->m_TransferQueue, 1.0f);
-    KS21->createRenderPipeline(renderUtils, shaders);
+        if (cancelLoadModels.load()) // Don't create render pipeline if our resources may be out of date
+            break;
+        (*modelPtr)->createRenderPipeline(renderUtils, shaders);
+    }
 
 }
 
@@ -223,4 +224,8 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (noActiveDevice)
         stopDraw = true;
+}
+
+void MultiSenseCamera::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    cancelLoadModels = true;
 }

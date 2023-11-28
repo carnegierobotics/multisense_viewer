@@ -95,9 +95,11 @@ private:
     std::unique_ptr<VkRender::GuiManager> guiManager{};
     std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
     std::vector<std::string> builtScriptNames;
+    std::vector<std::string> availableScriptNames;
     std::shared_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
+    VkRender::RenderUtils renderUtils{};
     VkRender::TopLevelScriptData topLevelScriptData{};
 
     bool renderSelectionPass = true;
@@ -113,24 +115,23 @@ private:
     void buildCommandBuffers() override;
     void mouseMoved(float x, float y, bool&handled) override;
     void mouseScroll(float change) override;
-    /**
-     * @brief creates instances from classes located in src/Scripts/Objects directory.
-     * Usually each class here represents object(s) in the scene
-     */
-    void buildScripts();
-
-    /**
-     * @brief deletes a script if stored in \refitem builtScriptNames
-     * @param scriptName m_Name of script to delete
-     */
-    void deleteScript(const std::string &scriptName);
 
     void createSelectionFramebuffer();
     void createSelectionImages();
     void destroySelectionBuffer();
     void createSelectionBuffer();
 
+    /**
+     * @brief creates instances from classes located in src/Scripts/ directory.
+     * Usually each class here represents object(s) in the scene
+     */
     void buildScript(const std::string &scriptName);
+
+    /**
+     * @brief deletes a script if stored in \refitem builtScriptNames
+     * @param scriptName m_Name of script to delete
+     */
+    void deleteScript(const std::string &scriptName);
 };
 
 

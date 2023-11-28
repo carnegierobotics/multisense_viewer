@@ -329,6 +329,10 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                                                 (uiHandle->mouse->left && preview.isHovered),
                                                 options->magnifyZoomMode,
                                                 preview.enableZoom);
+
+
+        // If we loaded in a rosbag file, present the topics to the window option:
+
     }
 }
 

@@ -8,6 +8,7 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/ModelLoaders/GaussianSplat.h"
 
 
 class MultiSense: public VkRender::Base, public VkRender::RegisteredInFactory<MultiSense>
@@ -50,6 +51,7 @@ public:
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<GLTFModel::Model> KS21;
+    std::unique_ptr<GaussianSplat> gSplat;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

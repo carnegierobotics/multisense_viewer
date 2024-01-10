@@ -17,7 +17,7 @@ public:
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     Humvee() {
         DISABLE_WARNING_PUSH
-                DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
         DISABLE_WARNING_UNUSED_VARIABLE
                 s_bRegistered;
         DISABLE_WARNING_POP
@@ -46,7 +46,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
+    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DISABLED;
     DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<GLTFModel::Model> humvee;

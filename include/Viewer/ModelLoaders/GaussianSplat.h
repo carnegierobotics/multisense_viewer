@@ -1,0 +1,14 @@
+//
+// Created by mgjer on 10/01/2024.
+//
+
+#ifndef MULTISENSE_VIEWER_GAUSSIANSPLAT_H
+#define MULTISENSE_VIEWER_GAUSSIANSPLAT_H
+
+
+class GaussianSplat {
+
+};
+
+
+#endif //MULTISENSE_VIEWER_GAUSSIANSPLAT_H

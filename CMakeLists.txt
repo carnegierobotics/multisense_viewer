@@ -62,6 +62,8 @@ set(ENGINE_SRC
         src/ModelLoaders/GLTFModel.cpp
         src/ModelLoaders/PointCloudLoader.cpp
         src/ModelLoaders/ComputeShader.cpp
+        src/ModelLoaders/GaussianSplat.cpp
+
         src/Renderer/Renderer.cpp
         src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp

@@ -2,11 +2,11 @@
 // Created by magnus on 10/2/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/Main3D.h"
+#include "Viewer/Scripts/Renderer3D/Humvee.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Scripts/Private/ScriptUtils.h"
 
-void Main3D::setup() {
+void Humvee::setup() {
 
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
@@ -39,7 +39,7 @@ void Main3D::setup() {
 
 
 
-void Main3D::update() {
+void Humvee::update() {
     auto &d = bufferOneData;
 
     if (pause)
@@ -186,7 +186,7 @@ void Main3D::update() {
 
 }
 
-void Main3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
+void Humvee::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b) {
         humvee->draw(commandBuffer, i);
     }

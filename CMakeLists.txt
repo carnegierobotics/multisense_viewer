@@ -95,7 +95,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Private/RecordUtilities.h
 
         include/Viewer/Scripts/Renderer3D/Grid.cpp
-        include/Viewer/Scripts/Renderer3D/Main3D.cpp
+        include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )

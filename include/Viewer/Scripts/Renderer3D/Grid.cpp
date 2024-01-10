@@ -50,7 +50,7 @@ void Grid::update() {
 }
 
 void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-    if (b) {
+    if (b && enable) {
         model->draw(commandBuffer, i);
     }
 }

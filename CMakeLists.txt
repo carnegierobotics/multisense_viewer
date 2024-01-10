@@ -31,6 +31,11 @@ endif ()
 # Find Vulkan
 find_package(Vulkan REQUIRED)
 
+# Torch
+set(Torch_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch/share/cmake/Torch/")
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
 
@@ -102,7 +107,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;${TORCH_LIBRARIES}")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -170,6 +175,7 @@ if (WIN32)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
         target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
         #set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
+
     endif ()
 
     # Include directory for WinPcap
@@ -223,8 +229,16 @@ if (WIN32)
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
-    # create a list of third part DLLs to copy
+    # LibTorch
+    message("[INFO]  Copying libtorch dlls from: ${TORCH_INSTALL_PREFIX}/lib/*.dll $<TARGET_FILE_DIR:MultiSense-Viewer>")
+    file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+    add_custom_command(TARGET MultiSense-Viewer
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${TORCH_DLLS}
+            $<TARGET_FILE_DIR:MultiSense-Viewer>)
 
+    # create a list of third part DLLs to copy
     set(THIRD_PARTY_DLLS
             #FFMPEG
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll

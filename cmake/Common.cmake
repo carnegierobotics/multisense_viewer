@@ -40,6 +40,7 @@ set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
 
+set(CUDA_DIFF_RASTERIZER internal/diff-gaussian-rasterization)
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)
 
@@ -190,6 +191,13 @@ else ()
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF)
     set(OPENSSL_USE_STATIC_LIBS ON)
     add_subdirectory(${CPP_HTTPLIB})
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${CUDA_DIFF_RASTERIZER}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${CUDA_DIFF_RASTERIZER} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding CUDA_DIFF_RASTERIZER from directory: ${CUDA_DIFF_RASTERIZER}")
+    add_subdirectory(${CUDA_DIFF_RASTERIZER})
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

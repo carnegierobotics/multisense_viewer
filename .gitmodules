@@ -41,3 +41,6 @@
 [submodule "internal/rosbag_writer_cpp"]
 	path = internal/rosbag_writer_cpp
 	url = https://github.com/M-Gjerde/rosbag_writer_cpp
+[submodule "internal/diff-gaussian-rasterization"]
+	path = internal/diff-gaussian-rasterization
+	url = https://github.com/M-Gjerde/diff-gaussian-rasterization

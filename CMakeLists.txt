@@ -2,11 +2,14 @@ cmake_minimum_required(VERSION 3.14)
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
-        LANGUAGES C CXX
+        LANGUAGES C CXX CUDA
 )
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
@@ -60,6 +63,7 @@ set(ENGINE_SRC
         src/Core/VulkanDevice.cpp
         src/Core/VulkanRenderer.cpp
         src/Core/VulkanSwapchain.cpp
+        src/Core/RenderResource.cpp
         src/CRLCamera/CRLPhysicalCamera.cpp
         src/ImGui/GuiManager.cpp
         src/ModelLoaders/CRLCameraModels.cpp

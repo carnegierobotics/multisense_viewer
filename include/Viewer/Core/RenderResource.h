@@ -1,0 +1,12 @@
+//
+// Created by mgjer on 12/01/2024.
+//
+
+#ifndef MULTISENSE_VIEWER_RENDERRESOURCE_H
+#define MULTISENSE_VIEWER_RENDERRESOURCE_H
+
+struct ShaderIOConfig{
+
+};
+
+#endif //MULTISENSE_VIEWER_RENDERRESOURCE_H

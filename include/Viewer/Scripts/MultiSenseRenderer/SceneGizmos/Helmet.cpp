@@ -44,9 +44,9 @@ void Helmet::setup() {
     //helmet->loadFromFile(Utils::getAssetsPath() + "Models/s27_pbr2.gltf", renderUtils.device,renderUtils.device->m_TransferQueue, 1.0f);
 
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/object.frag",
+                                                            {loadShader("spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}
     };
 

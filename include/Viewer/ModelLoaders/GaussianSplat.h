@@ -7,7 +7,6 @@
 
 #include <torch/torch.h>
 
-
 namespace CUDARenderer {
     struct RasterSettings {
 

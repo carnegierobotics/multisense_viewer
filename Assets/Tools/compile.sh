@@ -10,11 +10,10 @@ if [[ "$1" == "windows" ]]; then
     # shellcheck disable=SC2046
     project_path="$(pwd)/../.."
     echo "Compiling from Windows: project path: ${project_path})"
-    outDir="${project_path}/cmake-build-debug/Assets/Shaders/Scene/spv/"
     glslc="${project_path}/shaderc/build/glslc/Debug/glslc.exe"
-    sceneOutDir="${project_path}/Assets/Shaders/Scene/spv/"
+    sceneOutDir="${project_path}/Assets/Shaders/spv/"
     sceneDir="${project_path}/Assets/Shaders/Scene"
-    outDir="${project_path}/cmake-build-debug/Assets/Shaders/Scene/spv/"
+    outDir="${project_path}/cmake-build-debug/Assets/Shaders/spv/"
 
         echo "compiling shader from folder ${sceneDir}"
         echo "copying to this folder ${sceneOutDir}"
@@ -24,14 +23,20 @@ else
     # Unix location
     echo "Compiling from ubuntu $(pwd)"
     glslc="../../shaderc/build/glslc/glslc"
-    outDir="./../../cmake-build-debug/Assets/Shaders/Scene/spv/"
-    sceneOutDir="../Shaders/Scene/spv/"
+    outDir="./../../cmake-build-debug/Assets/Shaders/spv/"
+    sceneOutDir="../Shaders/spv/"
     sceneDir="../Shaders/Scene"
     renderer3DDir="../Shaders/Renderer3D"
 fi
 
 
 mkdir -p ${sceneOutDir}
+
+
+
+$glslc ${sceneDir}/../default.frag -o ${sceneOutDir}default.frag.spv
+$glslc ${sceneDir}/../default.vert -o ${sceneOutDir}default.vert.spv
+echo "Compiled Default shaders"
 
 $glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv
 $glslc ${sceneDir}/video/disparity.vert -o ${sceneOutDir}disparity.vert.spv
@@ -69,6 +74,7 @@ echo "Compiled Renderer3D shaders"
 $glslc ${sceneDir}/compute/particle.frag -o ${sceneOutDir}particle.frag.spv
 $glslc ${sceneDir}/compute/particle.vert -o ${sceneOutDir}particle.vert.spv
 echo "Compiled Compute shaders"
+
 
 echo "Copying to debug build location: ${sceneOutDir}*.spv | to | ${outDir}"
 cp ${sceneOutDir}*.spv  ${outDir}

@@ -8,19 +8,19 @@
 void Skybox::setup() {
     // Create Skybox
     skybox = std::make_unique<GLTFModel::Model>(renderUtils.device);
-    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("Scene/spv/filtercube.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> envShaders = {{loadShader("spv/filtercube.vert",
                                                                            VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/irradiancecube.frag",
+                                                               {loadShader("spv/irradiancecube.frag",
                                                                            VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/prefilterenvmap.frag",
+                                                               {loadShader("spv/prefilterenvmap.frag",
                                                                            VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.vert",
+                                                               {loadShader("spv/genbrdflut.vert",
                                                                            VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/genbrdflut.frag",
+                                                               {loadShader("spv/genbrdflut.frag",
                                                                            VK_SHADER_STAGE_FRAGMENT_BIT)},
-                                                               {loadShader("Scene/spv/skybox.vert",
+                                                               {loadShader("spv/skybox.vert",
                                                                            VK_SHADER_STAGE_VERTEX_BIT)},
-                                                               {loadShader("Scene/spv/skybox.frag",
+                                                               {loadShader("spv/skybox.frag",
                                                                            VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
 

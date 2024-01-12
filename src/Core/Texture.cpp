@@ -34,9 +34,6 @@
  *   2021-09-13, mgjerde@carnegierobotics.com, Created file.
  **/
 
-#ifdef WIN32
-#define NOMINMAX
-#endif
 
 #include <filesystem>
 #include <vulkan/vulkan.h>

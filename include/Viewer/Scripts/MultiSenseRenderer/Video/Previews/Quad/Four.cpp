@@ -135,8 +135,8 @@ void Four::update() {
 void Four::prepareDefaultTexture() {
     m_NoDataModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
     m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
-    std::string vertexShaderFileName = "Scene/spv/color.vert";
-    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
+    std::string vertexShaderFileName = "spv/color.vert";
+    std::string fragmentShaderFileName = "spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
@@ -168,17 +168,17 @@ void Four::prepareMultiSenseTexture() {
     std::string fragmentShaderFileName;
     switch (textureType) {
         case CRL_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "Scene/spv/grayscale.vert";
-            fragmentShaderFileName = "Scene/spv/grayscale.frag";
+            vertexShaderFileName = "spv/grayscale.vert";
+            fragmentShaderFileName = "spv/grayscale.frag";
             break;
         case CRL_COLOR_IMAGE_YUV420:
-            vertexShaderFileName = "Scene/spv/color.vert";
+            vertexShaderFileName = "spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.frag";
+                                     "spv/color_default_sampler.frag" :  "spv/color_ycbcr_sampler.frag";
             break;
         case CRL_DISPARITY_IMAGE:
-            vertexShaderFileName = "Scene/spv/disparity.vert";
-            fragmentShaderFileName = "Scene/spv/disparity.frag";
+            vertexShaderFileName = "spv/disparity.vert";
+            fragmentShaderFileName = "spv/disparity.frag";
             break;
         default:
             return;

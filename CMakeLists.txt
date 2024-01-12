@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
+# Windows issue
+add_definitions(-DNOMINMAX)
+
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "1")
@@ -108,6 +111,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Grid.cpp
         include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
+        include/Viewer/Scripts/Renderer3D/GaussianSplatScript.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )
 

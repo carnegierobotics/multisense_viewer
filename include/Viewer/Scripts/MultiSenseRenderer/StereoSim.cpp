@@ -13,17 +13,17 @@ void StereoSim::setup() {
 
     // Load L/R image
     lastPresentTime = std::chrono::steady_clock::now();
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/stereo_sim_pass_1.comp.spv",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/stereo_sim_pass_1.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pass_2.comp.spv",
+                                                            {loadShader("spv/stereo_sim_pass_2.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pass_2_ext.comp.spv",
+                                                            {loadShader("spv/stereo_sim_pass_2_ext.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pass_3.comp.spv",
+                                                            {loadShader("spv/stereo_sim_pass_3.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pass_4.comp.spv",
+                                                            {loadShader("spv/stereo_sim_pass_4.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)},
-                                                            {loadShader("Scene/spv/stereo_sim_pass_5.comp.spv",
+                                                            {loadShader("spv/stereo_sim_pass_5.comp.spv",
                                                                         VK_SHADER_STAGE_COMPUTE_BIT)}};
 
     computeShader.m_VulkanDevice = renderUtils.device;

@@ -169,8 +169,8 @@ bool PointCloud::prepareTexture(VkRender::Device &dev) {
     }
     model->createMeshDeviceLocal(meshData);
     model->createEmptyTexture(width, height, CRL_DISPARITY_IMAGE, true, lumaOrColor);
-    VkPipelineShaderStageCreateInfo vs = loadShader("Scene/spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
-    VkPipelineShaderStageCreateInfo fs = loadShader("Scene/spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+    VkPipelineShaderStageCreateInfo vs = loadShader("spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
+    VkPipelineShaderStageCreateInfo fs = loadShader("spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);

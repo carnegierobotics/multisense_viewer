@@ -134,9 +134,12 @@ namespace VkRender {
         int keyAction = -1;
         Input input;
 
+        /** @ physical device uuid */
+        uint8_t vkDeviceUUID[VK_UUID_SIZE] = {0};
+        PFN_vkGetPhysicalDeviceProperties2 fpGetPhysicalDeviceProperties2;
+
         /** @brief Handle for Logging*/
         Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
-
 
         /** @brief Handle for UI updates and overlay */
 

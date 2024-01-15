@@ -142,6 +142,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     renderUtils.UBCount = swapchain->imageCount;
     renderUtils.picking = &selection;
     renderUtils.queueSubmitMutex = &queueSubmitMutex;
+    renderUtils.vkDeviceUUID = vkDeviceUUID;
     renderData.height = m_Height;
     renderData.width = m_Width;
 

@@ -14,10 +14,36 @@
 #include "Viewer/Tools/Macros.h"
 
 namespace RenderResource {
-    struct Mesh {
+
+    struct MeshConfig {
+        VulkanDevice *device = nullptr;
+        std::string type;
+
+    };
+
+    class Mesh {
     public:
-        struct Data {
-            VulkanDevice *device = nullptr;
+        explicit Mesh(const RenderResource::MeshConfig &meshConf) : conf(meshConf) {
+            device = meshConf.device;
+            defaultCube(&model);
+            uploadMeshDeviceLocal(&model);
+        }
+
+        ~Mesh() {
+            if (model.vertices.buffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(device->m_LogicalDevice, model.vertices.buffer, nullptr);
+                vkFreeMemory(device->m_LogicalDevice, model.vertices.memory, nullptr);
+                if (model.indexCount > 0) {
+                    vkDestroyBuffer(device->m_LogicalDevice, model.indices.buffer, nullptr);
+                    vkFreeMemory(device->m_LogicalDevice, model.indices.memory, nullptr);
+                }
+            }
+        }
+
+        VulkanDevice *device = nullptr;
+        MeshConfig conf;
+
+        struct Model {
             uint32_t firstIndex = 0;
             uint32_t indexCount = 0;
             uint32_t vertexCount = 0;
@@ -37,50 +63,33 @@ namespace RenderResource {
 
             Buffer uniformBuffer{};
 
-        };
 
-        struct Config {
-            explicit Config(std::string _type = "default", VulkanDevice *_device = nullptr) : type(
-                    std::move(_type)), device(_device) {
+        } model;
 
-            }
-
-            VulkanDevice *device = nullptr;
-            std::string type;
-
-        };
-        static void defaultCube(RenderResource::Mesh::Data *mesh) {
+    private:
+        void defaultCube(RenderResource::Mesh::Model *mesh) {
             // Define the vertices of the cube
 
             std::vector<VkRender::Vertex> vertices{};
-            vertices.resize(8);
+            vertices.resize(4);
             // Front face
-            vertices[0].pos = glm::vec3(-0.5f, -0.5f, 0.5f); // 0
-            vertices[1].pos = glm::vec3(0.5f, -0.5f, 0.5f); // 1
-            vertices[2].pos = glm::vec3(0.5f, 0.5f, 0.5f); // 2
-            vertices[3].pos = glm::vec3(-0.5f, 0.5f, 0.5f); // 3
+            vertices[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Bottom-left
+            vertices[0].uv0 = glm::vec2(0.0f, 1.0f);
 
-            // Back face
-            vertices[4].pos = glm::vec3(-0.5f, -0.5f, -0.5f); // 4
-            vertices[5].pos = glm::vec3(0.5f, -0.5f, -0.5f); // 5
-            vertices[6].pos = glm::vec3(0.5f, 0.5f, -0.5f); // 6
-            vertices[7].pos = glm::vec3(-0.5f, 0.5f, -0.5f); // 7
+            vertices[1].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Bottom-right
+            vertices[1].uv0 = glm::vec2(1.0f, 1.0f);
+
+            vertices[2].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Top-right
+            vertices[2].uv0 = glm::vec2(1.0f, 0.0f);
+
+            vertices[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Top-left
+            vertices[3].uv0 = glm::vec2(0.0f, 0.0f);
 
 
             // Define the indices for the cube
             std::vector<uint32_t> indices = {
-                    // Front face
-                    0, 1, 2, 2, 3, 0,
-                    // Right face
-                    1, 5, 6, 6, 2, 1,
-                    // Back face
-                    7, 6, 5, 5, 4, 7,
-                    // Left face
-                    4, 0, 3, 3, 7, 4,
-                    // Bottom face
-                    4, 5, 1, 1, 0, 4,
-                    // Top face
-                    3, 2, 6, 6, 7, 3
+                    0, 1, 2, // First triangle (bottom-right)
+                    2, 3, 0  // Second triangle (top-left)
             };
 
             mesh->firstIndex = 0;
@@ -90,7 +99,7 @@ namespace RenderResource {
             mesh->indices.data = indices;
         }
 
-        static void uploadMeshDeviceLocal(RenderResource::Mesh::Data *mesh, VulkanDevice *vulkanDevice) {
+        void uploadMeshDeviceLocal(RenderResource::Mesh::Model *mesh) {
             size_t vertexBufferSize = mesh->vertexCount * sizeof(VkRender::Vertex);
             size_t indexBufferSize = mesh->indexCount * sizeof(uint32_t);
 
@@ -101,7 +110,7 @@ namespace RenderResource {
 
             // Create staging buffers
             // Vertex m_DataPtr
-            CHECK_RESULT(vulkanDevice->createBuffer(
+            CHECK_RESULT(device->createBuffer(
                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     vertexBufferSize,
@@ -110,7 +119,7 @@ namespace RenderResource {
                     reinterpret_cast<const void *>(mesh->vertices.data.data())))
             // Index m_DataPtr
             if (indexBufferSize > 0) {
-                CHECK_RESULT(vulkanDevice->createBuffer(
+                CHECK_RESULT(device->createBuffer(
                         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                         indexBufferSize,
@@ -121,14 +130,14 @@ namespace RenderResource {
             // Create m_Device local buffers
             // Vertex buffer
             if (mesh->vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh->vertices.buffer, nullptr);
-                vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh->vertices.memory, nullptr);
+                vkDestroyBuffer(device->m_LogicalDevice, mesh->vertices.buffer, nullptr);
+                vkFreeMemory(device->m_LogicalDevice, mesh->vertices.memory, nullptr);
                 if (indexBufferSize > 0) {
-                    vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh->indices.buffer, nullptr);
-                    vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh->indices.memory, nullptr);
+                    vkDestroyBuffer(device->m_LogicalDevice, mesh->indices.buffer, nullptr);
+                    vkFreeMemory(device->m_LogicalDevice, mesh->indices.memory, nullptr);
                 }
             }
-            CHECK_RESULT(vulkanDevice->createBuffer(
+            CHECK_RESULT(device->createBuffer(
                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     vertexBufferSize,
@@ -136,7 +145,7 @@ namespace RenderResource {
                     &mesh->vertices.memory));
             // Index buffer
             if (indexBufferSize > 0) {
-                CHECK_RESULT(vulkanDevice->createBuffer(
+                CHECK_RESULT(device->createBuffer(
                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                         indexBufferSize,
@@ -145,7 +154,7 @@ namespace RenderResource {
             }
 
             // Copy from staging buffers
-            VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+            VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             VkBufferCopy copyRegion = {};
             copyRegion.size = vertexBufferSize;
             vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, mesh->vertices.buffer, 1, &copyRegion);
@@ -153,109 +162,125 @@ namespace RenderResource {
                 copyRegion.size = indexBufferSize;
                 vkCmdCopyBuffer(copyCmd, indexStaging.buffer, mesh->indices.buffer, 1, &copyRegion);
             }
-            vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->m_TransferQueue, true);
-            vkDestroyBuffer(vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
-            vkFreeMemory(vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
+            device->flushCommandBuffer(copyCmd, device->m_TransferQueue, true);
+            vkDestroyBuffer(device->m_LogicalDevice, vertexStaging.buffer, nullptr);
+            vkFreeMemory(device->m_LogicalDevice, vertexStaging.memory, nullptr);
 
             if (indexBufferSize > 0) {
-                vkDestroyBuffer(vulkanDevice->m_LogicalDevice, indexStaging.buffer, nullptr);
-                vkFreeMemory(vulkanDevice->m_LogicalDevice, indexStaging.memory, nullptr);
+                vkDestroyBuffer(device->m_LogicalDevice, indexStaging.buffer, nullptr);
+                vkFreeMemory(device->m_LogicalDevice, indexStaging.memory, nullptr);
             }
-        }
-
-        static RenderResource::Mesh::Data createMesh(const RenderResource::Mesh::Config &config) {
-            RenderResource::Mesh::Data mesh;
-            defaultCube(&mesh);
-            uploadMeshDeviceLocal(&mesh, config.device);
-
-            return mesh;
-
         }
     };
 }
 
 namespace RenderResource {
+    struct PipelineConfig {
+        VulkanDevice *device = nullptr;
+        uint32_t UboCount = 0;
+        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkRenderPass *renderPass{};
+        Buffer *ubo{};
+        std::vector<Texture2D> *textures{};
+        std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
+    };
 
-    struct Pipeline {
-        struct Config {
-            explicit Config(std::string _type = "default", VulkanDevice *_device = nullptr) : type(
-                    std::move(_type)), device(_device) {
-
-            }
-
-            VulkanDevice *device = nullptr;
-            std::string type;
-            uint32_t UboCount = 0;
-            VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-            VkRenderPass *renderPass{};
-            Buffer* ubo{};
-            std::vector<VkPipelineShaderStageCreateInfo> shaders;
-        };
-
-        struct Data{
+    class Pipeline {
+    public:
+        VulkanDevice *device = nullptr;
+        struct Data {
             std::vector<VkDescriptorSet> descriptors;
             VkDescriptorSetLayout descriptorSetLayout{};
             VkDescriptorPool descriptorPool{};
             VkPipeline pipeline{};
-            bool initializedPipeline = false;
             VkPipelineLayout pipelineLayout{};
+        } data;
 
-        };
+        explicit Pipeline(PipelineConfig _conf) : conf(_conf) {
+            device = _conf.device;
 
-        static void createDefaultDescriptorLayout(Data *pipeline, const Config *conf) {
+            createDefaultDescriptorLayout();
+            createDefaultDescriptorPool();
+            createDescriptorSets();
+            createGraphicsPipeline();
+        }
+
+        ~Pipeline() {
+            vkDestroyDescriptorSetLayout(device->m_LogicalDevice, data.descriptorSetLayout, nullptr);
+            vkDestroyDescriptorPool(device->m_LogicalDevice, data.descriptorPool, nullptr);
+            vkDestroyPipelineLayout(device->m_LogicalDevice, data.pipelineLayout, nullptr);
+            vkDestroyPipeline(device->m_LogicalDevice, data.pipeline, nullptr);
+        }
+
+        PipelineConfig conf;
+
+        void createDefaultDescriptorLayout() {
             std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
 
             setLayoutBindings = {
-                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             };
 
-            VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
-                                                                                                       static_cast<uint32_t>(setLayoutBindings.size()));
-            CHECK_RESULT(vkCreateDescriptorSetLayout(conf->device->m_LogicalDevice, &layoutCreateInfo, nullptr,
-                                                     &pipeline->descriptorSetLayout));
+            VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                    setLayoutBindings.data(),
+                    static_cast<uint32_t>(setLayoutBindings.size()));
+            CHECK_RESULT(vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
+                                                     &data.descriptorSetLayout));
         }
 
-        static void createDefaultDescriptorPool(Data *pipeline, const Config *conf) {
+        void createDefaultDescriptorPool() {
 
-            uint32_t uniformDescriptorCount = conf->UboCount;
+            uint32_t framesInFlight = conf.UboCount;
             std::vector<VkDescriptorPoolSize> poolSizes = {
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount},
+                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         framesInFlight},
+                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, framesInFlight},
             };
-            VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, conf->UboCount);
+            VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, framesInFlight *
+                                                                                                      poolSizes.size());
 
             CHECK_RESULT(
-                    vkCreateDescriptorPool(conf->device->m_LogicalDevice, &poolCreateInfo, nullptr, &pipeline->descriptorPool));
+                    vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr,
+                                           &data.descriptorPool));
         }
-        static void createDescriptorSets(Data *pipeline, const Config *conf) {
 
-            pipeline->descriptors.resize(conf->UboCount);
-            for (size_t i = 0; i < conf->UboCount; i++) {
+        void createDescriptorSets() {
+
+            data.descriptors.resize(conf.UboCount);
+            for (size_t i = 0; i < conf.UboCount; i++) {
 
                 VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                 descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptorSetAllocInfo.descriptorPool = pipeline->descriptorPool;
-                descriptorSetAllocInfo.pSetLayouts = &pipeline->descriptorSetLayout;
+                descriptorSetAllocInfo.descriptorPool = data.descriptorPool;
+                descriptorSetAllocInfo.pSetLayouts = &data.descriptorSetLayout;
                 descriptorSetAllocInfo.descriptorSetCount = 1;
-                CHECK_RESULT(vkAllocateDescriptorSets(conf->device->m_LogicalDevice, &descriptorSetAllocInfo,
-                                                      &pipeline->descriptors[i]));
+                CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &descriptorSetAllocInfo,
+                                                      &data.descriptors[i]));
 
-                std::vector<VkWriteDescriptorSet> writeDescriptorSets(1);
+                std::vector<VkWriteDescriptorSet> writeDescriptorSets(2);
                 writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 writeDescriptorSets[0].descriptorCount = 1;
-                writeDescriptorSets[0].dstSet = pipeline->descriptors[i];
+                writeDescriptorSets[0].dstSet = data.descriptors[i];
                 writeDescriptorSets[0].dstBinding = 0;
-                writeDescriptorSets[0].pBufferInfo = &conf->ubo[i].m_DescriptorBufferInfo;
+                writeDescriptorSets[0].pBufferInfo = &conf.ubo[i].m_DescriptorBufferInfo;
 
+                writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSets[1].descriptorCount = 1;
+                writeDescriptorSets[1].dstSet = data.descriptors[i];
+                writeDescriptorSets[1].dstBinding = 1;
+                writeDescriptorSets[1].pImageInfo = &(*conf.textures)[i].m_Descriptor;
 
-                vkUpdateDescriptorSets(conf->device->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+                vkUpdateDescriptorSets(device->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                        writeDescriptorSets.data(), 0, nullptr);
             }
         }
 
-        static void createGraphicsPipeline(Data *pipeline, const Config *conf) {
-            VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&pipeline->descriptorSetLayout, 1);
-            CHECK_RESULT(vkCreatePipelineLayout(conf->device->m_LogicalDevice, &info, nullptr, &pipeline->pipelineLayout))
+        void createGraphicsPipeline() {
+            VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&data.descriptorSetLayout, 1);
+            CHECK_RESULT(
+                    vkCreatePipelineLayout(device->m_LogicalDevice, &info, nullptr, &data.pipelineLayout))
 
             // Vertex bindings an attributes
             VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -271,7 +296,8 @@ namespace RenderResource {
 
             VkPipelineColorBlendAttachmentState blendAttachmentState{};
             blendAttachmentState.colorWriteMask =
-                    VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                    VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                    VK_COLOR_COMPONENT_A_BIT;
             blendAttachmentState.blendEnable = VK_FALSE;
 
             VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
@@ -294,7 +320,7 @@ namespace RenderResource {
 
             VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
             multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-            multisampleStateCI.rasterizationSamples = conf->msaaSamples;
+            multisampleStateCI.rasterizationSamples = conf.msaaSamples;
 
 
             std::vector<VkDynamicState> dynamicStateEnables = {
@@ -324,8 +350,8 @@ namespace RenderResource {
             // Pipelines
             VkGraphicsPipelineCreateInfo pipelineCI{};
             pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            pipelineCI.layout = pipeline->pipelineLayout;
-            pipelineCI.renderPass = *conf->renderPass;
+            pipelineCI.layout = data.pipelineLayout;
+            pipelineCI.renderPass = *conf.renderPass;
             pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
             pipelineCI.pVertexInputState = &vertexInputStateCI;
             pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -334,24 +360,13 @@ namespace RenderResource {
             pipelineCI.pViewportState = &viewportStateCI;
             pipelineCI.pDepthStencilState = &depthStencilStateCI;
             pipelineCI.pDynamicState = &dynamicStateCI;
-            pipelineCI.stageCount = static_cast<uint32_t>(conf->shaders.size());
-            pipelineCI.pStages = conf->shaders.data();
+            pipelineCI.stageCount = static_cast<uint32_t>((*conf.shaders).size());
+            pipelineCI.pStages = (*conf.shaders).data();
 
-            VkResult res = vkCreateGraphicsPipelines(conf->device->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                                     &pipeline->pipeline);
+            VkResult res = vkCreateGraphicsPipelines(device->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                                     &data.pipeline);
             if (res != VK_SUCCESS)
                 throw std::runtime_error("Failed to create graphics m_Pipeline");
-
-        }
-
-        static RenderResource::Pipeline::Data createRenderPipeline(const RenderResource::Pipeline::Config& config){
-            Data data;
-            createDefaultDescriptorLayout(&data, &config);
-            createDefaultDescriptorPool(&data, &config);
-            createDescriptorSets(&data, &config);
-            createGraphicsPipeline(&data, &config);
-
-            return data;
         }
     };
 }

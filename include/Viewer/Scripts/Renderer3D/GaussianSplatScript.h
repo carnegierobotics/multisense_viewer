@@ -8,6 +8,7 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Core/RenderResource.h"
+#include "Viewer/ModelLoaders/GaussianSplat.h"
 
 
 class GaussianSplatScript : public VkRender::Base, public VkRender::RegisteredInFactory<GaussianSplatScript> {
@@ -55,10 +56,16 @@ public:
 
     VkRender::UBOMatrix mvpMat{};
     std::vector<Buffer> uniformBuffers;
+    std::vector<Texture2D> textures;
+    std::unique_ptr<Texture2D> cudaTexture;
 
-    RenderResource::Mesh::Data mesh;
-    RenderResource::Pipeline::Data pipeline;
+    std::unique_ptr<RenderResource::Mesh> mesh;
+    std::unique_ptr<RenderResource::Pipeline> pipeline;
 
+
+    std::unique_ptr<GaussianSplat> splat;
+
+    void createCudaVkImage(uint32_t width, uint32_t height);
 };
 
 

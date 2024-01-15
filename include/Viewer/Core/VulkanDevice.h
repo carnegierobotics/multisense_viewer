@@ -77,6 +77,7 @@ struct VulkanDevice {
 
     } m_QueueFamilyIndices;
 
+
     VulkanDevice(VkPhysicalDevice physicalDevice, std::mutex *mut);
     explicit VulkanDevice(VulkanDevice* copy);
     bool isCopy = false;

@@ -107,6 +107,14 @@ namespace VkRender {
                       VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
         enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
+
+        std::vector<const char*> instanceExtensions = {
+                VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+                VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+                VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME };
+        enabledInstanceExtensions.insert(enabledInstanceExtensions.end(), instanceExtensions.begin(), instanceExtensions.end());
+
         // Check if extensions are supported
         if (!Validation::checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
@@ -189,6 +197,31 @@ namespace VkRender {
         features2.features = deviceFeatures;
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+        fpGetPhysicalDeviceProperties2 =
+                (PFN_vkGetPhysicalDeviceProperties2)vkGetInstanceProcAddr(
+                        instance, "vkGetPhysicalDeviceProperties2");
+        if (fpGetPhysicalDeviceProperties2 == NULL) {
+            throw std::runtime_error(
+                    "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
+                    "found.\n");
+        }
+
+        // Physical Device UUID
+        VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties = {};
+        vkPhysicalDeviceIDProperties.sType =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+        vkPhysicalDeviceIDProperties.pNext = NULL;
+
+        VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2 = {};
+        vkPhysicalDeviceProperties2.sType =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
+
+        fpGetPhysicalDeviceProperties2(physicalDevice,
+                                       &vkPhysicalDeviceProperties2);
+        size_t size = sizeof(vkDeviceUUID);
+        memcpy(vkDeviceUUID, vkPhysicalDeviceIDProperties.deviceUUID, size);
 
         // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {

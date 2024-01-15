@@ -326,8 +326,12 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     memAlloc.allocationSize = memReqs.size;
     memAlloc.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAlloc, nullptr, &m_DeviceMemory))
+    VkExportMemoryAllocateInfoKHR exportInfo = {};
+    exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+    exportInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+    memAlloc.pNext = &exportInfo;
 
+    CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAlloc, nullptr, &m_DeviceMemory))
     CHECK_RESULT(vkBindImageMemory(device->m_LogicalDevice, m_Image, m_DeviceMemory, 0))
 
     VkImageSubresourceRange subresourceRange = {};

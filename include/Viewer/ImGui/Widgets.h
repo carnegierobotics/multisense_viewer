@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_WIDGETS_H
 #define MULTISENSE_VIEWER_WIDGETS_H
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
 
 typedef enum ScriptWidgetType {

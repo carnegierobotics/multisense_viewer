@@ -103,7 +103,7 @@ void Helmet::update() {
 void Helmet::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     for (const auto &d: uiHandle->devices) {
-        if (d.state != CRL_STATE_ACTIVE)
+        if (d.state != VkRender::CRL_STATE_ACTIVE)
             continue;
     }
 }

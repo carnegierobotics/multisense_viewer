@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_SCRIPTUTILS_H
 #define MULTISENSE_VIEWER_SCRIPTUTILS_H
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 
 namespace VkRender::ScriptUtils {
 
@@ -134,7 +134,7 @@ namespace VkRender::ScriptUtils {
 
         auto it = map->find(windowIndex);
         if (it == map->end()) {
-            // Handle the case where CRL_PREVIEW_TWO is not in the map
+            // Handle the case where VkRender::CRL_PREVIEW_TWO is not in the map
             return false;
         }
 

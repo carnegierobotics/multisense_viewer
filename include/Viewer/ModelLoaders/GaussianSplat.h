@@ -12,6 +12,7 @@
 
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/Macros.h"
+#include "Viewer/Tools/Logger.h"
 
 /*
 namespace CUDARenderer {
@@ -48,7 +49,16 @@ public:
     GaussianSplat(VulkanDevice *_device) : device(_device) {}
 
     VulkanDevice *device;
+    // CUDA objects
+    cudaExternalMemory_t cudaExtMemImageBuffer;
+    cudaMipmappedArray_t cudaMipmappedImageArray, cudaMipmappedImageArrayTemp,
+            cudaMipmappedImageArrayOrig;
+    std::vector<cudaSurfaceObject_t> surfaceObjectList, surfaceObjectListTemp;
+    cudaSurfaceObject_t *d_surfaceObjectList, *d_surfaceObjectListTemp;
+    cudaTextureObject_t textureObjMipMapInput;
 
+    cudaExternalSemaphore_t cudaExtCudaUpdateVkSemaphore;
+    cudaExternalSemaphore_t cudaExtVkUpdateCudaSemaphore;
     /*
 // Bind texture to be used by the rasterizer
     CUDARenderer::GaussianData gaussianData;
@@ -75,25 +85,24 @@ public:
         // Find the GPU which is selected by Vulkan
         while (current_device < device_count) {
             cudaGetDeviceProperties(&deviceProp, current_device);
-            auto *ptr = reinterpret_cast<unsigned char *>(&(deviceProp.uuid.bytes[0])); // Get the address of the first element
+            auto *ptr = reinterpret_cast<unsigned char *>(&(deviceProp.uuid.bytes)); // Get the address of the first element
             auto *ptr2 = reinterpret_cast<unsigned char *>(vkDeviceUUID); // Get the address of the first element
 
-            for(int i = 0; i < VK_UUID_SIZE; ++i){
-                printf("%c : %c\n", ptr[i], ptr2[i]);
+            for (int i = 0; i < VK_UUID_SIZE; ++i) {
+                Log::Logger::getInstance()->info("ptr1:ptr2 --> {} : {}", ptr[i], ptr2[i]);
             }
-
             if ((deviceProp.computeMode != cudaComputeModeProhibited)) {
                 // Compare the cuda device UUID with vulkan UUID
                 int ret = memcmp(&ptr, &ptr2, VK_UUID_SIZE);
-                if (ret == 0) {
-                    checkCudaErrors(cudaSetDevice(current_device));
-                    checkCudaErrors(cudaGetDeviceProperties(&deviceProp, current_device));
-                    printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n",
-                           current_device, deviceProp.name, deviceProp.major,
-                           deviceProp.minor);
 
-                    return current_device;
-                }
+                checkCudaErrors(cudaSetDevice(current_device));
+                checkCudaErrors(cudaGetDeviceProperties(&deviceProp, current_device));
+                Log::Logger::getInstance()->info("GPU Device {}: \"{}\" with compute capability {}.{}\n\n",
+                                                 current_device, deviceProp.name, deviceProp.major,
+                                                 deviceProp.minor);
+
+                return current_device;
+
 
             } else {
                 devices_prohibited++;
@@ -160,6 +169,198 @@ public:
         CHECK_RESULT(vkBindImageMemory(device->m_LogicalDevice, cudaTexture->m_Image,
                                        cudaTexture->m_DeviceMemory, 0))
 
+    }
+
+    /*
+
+    void cudaVkImportSemaphore() {
+        cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDesc{};
+        memset(&externalSemaphoreHandleDesc, 0,
+               sizeof(externalSemaphoreHandleDesc));
+#ifdef _WIN64
+        externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
+
+        externalSemaphoreHandleDesc.handle.win32.handle = getVkSemaphoreHandle(
+                VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT);
+#else
+        externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueFd;
+    externalSemaphoreHandleDesc.handle.fd = getVkSemaphoreHandle(
+        VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT, cudaUpdateVkSemaphore);
+#endif
+        externalSemaphoreHandleDesc.flags = 0;
+
+        checkCudaErrors(cudaImportExternalSemaphore(&cudaExtCudaUpdateVkSemaphore,
+                                                    &externalSemaphoreHandleDesc));
+
+        memset(&externalSemaphoreHandleDesc, 0,
+               sizeof(externalSemaphoreHandleDesc));
+#ifdef _WIN64
+        externalSemaphoreHandleDesc.type =
+                IsWindows8OrGreater() ? cudaExternalSemaphoreHandleTypeOpaqueWin32
+                                      : cudaExternalSemaphoreHandleTypeOpaqueWin32Kmt;;
+        externalSemaphoreHandleDesc.handle.win32.handle = getVkSemaphoreHandle(
+                IsWindows8OrGreater()
+                ? VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT
+                : VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT,
+                vkUpdateCudaSemaphore);
+#else
+        externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueFd;
+    externalSemaphoreHandleDesc.handle.fd = getVkSemaphoreHandle(
+        VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT, vkUpdateCudaSemaphore);
+#endif
+        externalSemaphoreHandleDesc.flags = 0;
+        checkCudaErrors(cudaImportExternalSemaphore(&cudaExtVkUpdateCudaSemaphore,
+                                                    &externalSemaphoreHandleDesc));
+        printf("CUDA Imported Vulkan semaphore\n");
+    }
+
+    void cudaVkImportImageMem() {
+        cudaExternalMemoryHandleDesc cudaExtMemHandleDesc;
+        memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
+#ifdef _WIN64
+        cudaExtMemHandleDesc.type =
+                IsWindows8OrGreater() ? cudaExternalMemoryHandleTypeOpaqueWin32
+                                      : cudaExternalMemoryHandleTypeOpaqueWin32Kmt;
+        cudaExtMemHandleDesc.handle.win32.handle = getVkImageMemHandle(
+                IsWindows8OrGreater()
+                ? VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT
+                : VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT);
+#else
+        cudaExtMemHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueFd;
+
+    cudaExtMemHandleDesc.handle.fd =
+        getVkImageMemHandle(VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
+#endif
+        cudaExtMemHandleDesc.size = totalImageMemSize;
+
+        checkCudaErrors(cudaImportExternalMemory(&cudaExtMemImageBuffer,
+                                                 &cudaExtMemHandleDesc));
+
+        cudaExternalMemoryMipmappedArrayDesc externalMemoryMipmappedArrayDesc;
+
+        memset(&externalMemoryMipmappedArrayDesc, 0,
+               sizeof(externalMemoryMipmappedArrayDesc));
+
+        cudaExtent extent = make_cudaExtent(imageWidth, imageHeight, 0);
+        cudaChannelFormatDesc formatDesc;
+        formatDesc.x = 8;
+        formatDesc.y = 8;
+        formatDesc.z = 8;
+        formatDesc.w = 8;
+        formatDesc.f = cudaChannelFormatKindUnsigned;
+
+        externalMemoryMipmappedArrayDesc.offset = 0;
+        externalMemoryMipmappedArrayDesc.formatDesc = formatDesc;
+        externalMemoryMipmappedArrayDesc.extent = extent;
+        externalMemoryMipmappedArrayDesc.flags = 0;
+        externalMemoryMipmappedArrayDesc.numLevels = mipLevels;
+
+        checkCudaErrors(cudaExternalMemoryGetMappedMipmappedArray(
+                &cudaMipmappedImageArray, cudaExtMemImageBuffer,
+                &externalMemoryMipmappedArrayDesc));
+
+        checkCudaErrors(cudaMallocMipmappedArray(&cudaMipmappedImageArrayTemp,
+                                                 &formatDesc, extent, mipLevels));
+        checkCudaErrors(cudaMallocMipmappedArray(&cudaMipmappedImageArrayOrig,
+                                                 &formatDesc, extent, mipLevels));
+
+        for (int mipLevelIdx = 0; mipLevelIdx < mipLevels; mipLevelIdx++) {
+            cudaArray_t cudaMipLevelArray, cudaMipLevelArrayTemp,
+                    cudaMipLevelArrayOrig;
+            cudaResourceDesc resourceDesc;
+
+            checkCudaErrors(cudaGetMipmappedArrayLevel(
+                    &cudaMipLevelArray, cudaMipmappedImageArray, mipLevelIdx));
+            checkCudaErrors(cudaGetMipmappedArrayLevel(
+                    &cudaMipLevelArrayTemp, cudaMipmappedImageArrayTemp, mipLevelIdx));
+            checkCudaErrors(cudaGetMipmappedArrayLevel(
+                    &cudaMipLevelArrayOrig, cudaMipmappedImageArrayOrig, mipLevelIdx));
+
+            uint32_t width =
+                    (imageWidth >> mipLevelIdx) ? (imageWidth >> mipLevelIdx) : 1;
+            uint32_t height =
+                    (imageHeight >> mipLevelIdx) ? (imageHeight >> mipLevelIdx) : 1;
+            checkCudaErrors(cudaMemcpy2DArrayToArray(
+                    cudaMipLevelArrayOrig, 0, 0, cudaMipLevelArray, 0, 0,
+                    width * sizeof(uchar4), height, cudaMemcpyDeviceToDevice));
+
+            memset(&resourceDesc, 0, sizeof(resourceDesc));
+            resourceDesc.resType = cudaResourceTypeArray;
+            resourceDesc.res.array.array = cudaMipLevelArray;
+
+            cudaSurfaceObject_t surfaceObject;
+            checkCudaErrors(cudaCreateSurfaceObject(&surfaceObject, &resourceDesc));
+
+            surfaceObjectList.push_back(surfaceObject);
+
+            memset(&resourceDesc, 0, sizeof(resourceDesc));
+            resourceDesc.resType = cudaResourceTypeArray;
+            resourceDesc.res.array.array = cudaMipLevelArrayTemp;
+
+            cudaSurfaceObject_t surfaceObjectTemp;
+            checkCudaErrors(
+                    cudaCreateSurfaceObject(&surfaceObjectTemp, &resourceDesc));
+            surfaceObjectListTemp.push_back(surfaceObjectTemp);
+        }
+
+        cudaResourceDesc resDescr;
+        memset(&resDescr, 0, sizeof(cudaResourceDesc));
+
+        resDescr.resType = cudaResourceTypeMipmappedArray;
+        resDescr.res.mipmap.mipmap = cudaMipmappedImageArrayOrig;
+
+        cudaTextureDesc texDescr;
+        memset(&texDescr, 0, sizeof(cudaTextureDesc));
+
+        texDescr.normalizedCoords = true;
+        texDescr.filterMode = cudaFilterModeLinear;
+        texDescr.mipmapFilterMode = cudaFilterModeLinear;
+
+        texDescr.addressMode[0] = cudaAddressModeWrap;
+        texDescr.addressMode[1] = cudaAddressModeWrap;
+
+        texDescr.maxMipmapLevelClamp = float(mipLevels - 1);
+
+        texDescr.readMode = cudaReadModeNormalizedFloat;
+
+        checkCudaErrors(cudaCreateTextureObject(&textureObjMipMapInput, &resDescr,
+                                                &texDescr, NULL));
+
+        checkCudaErrors(cudaMalloc((void **) &d_surfaceObjectList,
+                                   sizeof(cudaSurfaceObject_t) * mipLevels));
+        checkCudaErrors(cudaMalloc((void **) &d_surfaceObjectListTemp,
+                                   sizeof(cudaSurfaceObject_t) * mipLevels));
+
+        checkCudaErrors(cudaMemcpy(d_surfaceObjectList, surfaceObjectList.data(),
+                                   sizeof(cudaSurfaceObject_t) * mipLevels,
+                                   cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(
+                d_surfaceObjectListTemp, surfaceObjectListTemp.data(),
+                sizeof(cudaSurfaceObject_t) * mipLevels, cudaMemcpyHostToDevice));
+
+        printf("CUDA Kernel Vulkan image buffer\n");
+    }
+     */
+
+    void cudaUpdateVkImage() {
+        /*
+        cudaVkSemaphoreWait(cudaExtVkUpdateCudaSemaphore);
+
+        int nthreads = 128;
+
+        //Perform 2D box filter on image using CUDA
+        d_boxfilter_rgba_x<<<imageHeight / nthreads, nthreads, 0, streamToRun>>>(
+                d_surfaceObjectListTemp, textureObjMipMapInput, imageWidth, imageHeight,
+                        mipLevels, filter_radius);
+
+        d_boxfilter_rgba_y<<<imageWidth / nthreads, nthreads, 0, streamToRun>>>(
+                d_surfaceObjectList, d_surfaceObjectListTemp, imageWidth, imageHeight,
+                        mipLevels, filter_radius);
+
+        varySigma();
+
+        cudaVkSemaphoreSignal(cudaExtCudaUpdateVkSemaphore);
+        */
     }
 
 };

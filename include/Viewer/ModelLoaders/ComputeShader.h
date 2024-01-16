@@ -11,7 +11,7 @@
 #include <glm/geometric.hpp>
 
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Macros.h"

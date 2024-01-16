@@ -8,7 +8,6 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Core/RenderResource.h"
-#include "Viewer/ModelLoaders/GaussianSplat.h"
 
 
 class GaussianSplatScript : public VkRender::Base, public VkRender::RegisteredInFactory<GaussianSplatScript> {
@@ -39,20 +38,20 @@ public:
     void onDestroy() override;
 
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(DrawMethod _drawMethod) override { this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::DrawMethod _drawMethod) override { this->drawMethod = _drawMethod; }
 
     /** @brief draw function called once per frame **/
     void draw(CommandBuffer *commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
-    ScriptTypeFlags getType() override { return type; }
+    VkRender::ScriptTypeFlags getType() override { return type; }
 
-    DrawMethod getDrawMethod() override { return drawMethod; }
+    VkRender::DrawMethod getDrawMethod() override { return drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
+    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     VkRender::UBOMatrix mvpMat{};
     std::vector<Buffer> uniformBuffers;
@@ -63,7 +62,7 @@ public:
     std::unique_ptr<RenderResource::Pipeline> pipeline;
 
 
-    std::unique_ptr<GaussianSplat> splat;
+    //std::unique_ptr<GaussianSplat> splat;
 
     void createCudaVkImage(uint32_t width, uint32_t height);
 };

@@ -66,7 +66,7 @@ public:
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         for (auto &dev: handles->devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             ImGui::SetNextWindowPos(handles->info->viewingAreaWindowPos, ImGuiCond_Always);
@@ -89,13 +89,13 @@ public:
                     ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByPopup);
             ImGui::PopStyleColor();
             ImGui::PopStyleVar();
-            if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW)
+            if (dev.selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW)
                 drawVideoPreviewGuiOverlay(handles, dev);
             ImGui::End(); // End the empty view area window
 
             handles->scroll = 0.0f;
 
-            if (handles->info->isViewingAreaHovered && dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE &&
+            if (handles->info->isViewingAreaHovered && dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE &&
                 !handles->info->hoverState) {
                 handles->accumulatedActiveScroll -= ImGui::GetIO().MouseWheel * 100.0f;
                 handles->scroll = ImGui::GetIO().MouseWheel * 100.0f;
@@ -122,7 +122,7 @@ public:
     }
 
     void drawVideoPreviewGuiOverlay(VkRender::GuiObjectHandles *handles, VkRender::Device &dev) {
-        if (dev.layout != CRL_PREVIEW_LAYOUT_NONE) {
+        if (dev.layout != VkRender::CRL_PREVIEW_LAYOUT_NONE) {
             createWindowPreviews(handles, dev);
         }
 
@@ -136,7 +136,7 @@ public:
             // Loop over all previews and check their source.
             // If it matches either point cloud source then it means it is in use
             for (const auto &preview: dev.win) {
-                if (preview.second.selectedSource == source && preview.first != CRL_PREVIEW_POINT_CLOUD)
+                if (preview.second.selectedSource == source && preview.first != VkRender::CRL_PREVIEW_POINT_CLOUD)
                     inUse = true;
             }
             if (!inUse && Utils::isInVector(chInfo.requestedStreams, source)) {
@@ -154,25 +154,25 @@ public:
 
         int cols = 0, rows = 0;
         switch (dev.layout) {
-            case CRL_PREVIEW_LAYOUT_NONE:
+            case VkRender::CRL_PREVIEW_LAYOUT_NONE:
                 break;
-            case CRL_PREVIEW_LAYOUT_SINGLE:
+            case VkRender::CRL_PREVIEW_LAYOUT_SINGLE:
                 cols = 1;
                 rows = 1;
                 break;
-            case CRL_PREVIEW_LAYOUT_DOUBLE:
+            case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE:
                 rows = 2;
                 cols = 1;
                 break;
-            case CRL_PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE:
+            case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE_SIDE_BY_SIDE:
                 rows = 1;
                 cols = 2;
                 break;
-            case CRL_PREVIEW_LAYOUT_QUAD:
+            case VkRender::CRL_PREVIEW_LAYOUT_QUAD:
                 cols = 2;
                 rows = 2;
                 break;
-            case CRL_PREVIEW_LAYOUT_NINE:
+            case VkRender::CRL_PREVIEW_LAYOUT_NINE:
                 cols = 3;
                 rows = 3;
                 break;
@@ -183,12 +183,12 @@ public:
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 std::string windowName = std::string("View Area ") + std::to_string(index);
-                auto &window = dev.win[static_cast<StreamWindowIndex>(index)];
+                auto &window = dev.win[static_cast<VkRender::StreamWindowIndex>(index)];
                 window.name = windowName;
 
                 float newWidth = (handles->info->width - (640 + (5.0f + (5.0f * static_cast<float>(cols))))) /
                                  static_cast<float>(cols);
-                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE)
+                if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE)
                     newWidth -= 50.0f * (handles->info->width / 1280);
 
                 float newHeight = newWidth * (10.0f / 16.0f); // aspect ratio 16:10 of camera images
@@ -199,7 +199,7 @@ public:
 
 
                 float offsetX;
-                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE || dev.layout == CRL_PREVIEW_LAYOUT_SINGLE) {
+                if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE || dev.layout == VkRender::CRL_PREVIEW_LAYOUT_SINGLE) {
                     offsetX = (handles->info->controlAreaWidth + handles->info->sidebarWidth +
                                ((handles->info->viewingAreaWidth - newWidth) / 2));
                 } else
@@ -213,18 +213,18 @@ public:
                         windowSize,
                         ImGuiCond_Always);
 */
-                dev.win.at(static_cast<StreamWindowIndex>(index)).row = float(row);
-                dev.win.at(static_cast<StreamWindowIndex>(index)).col = float(col);
+                dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).row = float(row);
+                dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).col = float(col);
                 // Calculate window m_Position
                 float viewAreaElementPosY =
                         handles->info->tabAreaHeight +
                         (static_cast<float>(row) * (handles->info->viewAreaElementSizeY + 10.0f));
 
-                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE) {
                     viewAreaElementPosY = viewAreaElementPosY + handles->accumulatedActiveScroll;
                 }
-                dev.win.at(static_cast<StreamWindowIndex>(index)).xPixelStartPos = viewAreaElementPosX;
-                dev.win.at(static_cast<StreamWindowIndex>(index)).yPixelStartPos = viewAreaElementPosY;
+                dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).xPixelStartPos = viewAreaElementPosX;
+                dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).yPixelStartPos = viewAreaElementPosY;
                 ImVec2 childPos = ImVec2(viewAreaElementPosX, viewAreaElementPosY);
                 //ImGui::SetNextWindowPos(childPos,ImGuiCond_Always);
                 ImGui::SetCursorScreenPos(childPos);
@@ -297,20 +297,20 @@ public:
                 if (window.isHovered) {
                     // Offsset cursor positions.
                     switch (Utils::CRLSourceToTextureType(
-                            dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource)) {
-                        case CRL_GRAYSCALE_IMAGE:
-                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
-                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
-                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].intensity);
+                            dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).selectedSource)) {
+                        case VkRender::CRL_GRAYSCALE_IMAGE:
+                            ImGui::Text("(%d, %d) %d", dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].y,
+                                        dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].intensity);
                             break;
-                        case CRL_DISPARITY_IMAGE:
-                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
-                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y,
-                                        static_cast<double>(dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].depth));
+                        case VkRender::CRL_DISPARITY_IMAGE:
+                            ImGui::Text("(%d, %d) %.2f m", dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].y,
+                                        static_cast<double>(dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].depth));
                             break;
                         default:
-                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].x,
-                                        dev.pixelInfoZoomed[static_cast<StreamWindowIndex>(index)].y);
+                            ImGui::Text("(%d, %d)", dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].x,
+                                        dev.pixelInfoZoomed[static_cast<VkRender::StreamWindowIndex>(index)].y);
                     }
 
                 }
@@ -341,10 +341,10 @@ public:
 
 
                 // Specific case for scrolled windows and popup position
-                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE) {
                     window.popupPosition.y -= handles->scroll;
                 }
-                if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE) {
                     ImVec2 pos = window.popupPosition;
                     if (window.popupPosition.x == 0.0f) {
                         pos.x = handles->mouse->pos.x;
@@ -360,7 +360,7 @@ public:
                 }
 
                 if (ImGui::BeginPopup(("image effect " + std::to_string(index)).c_str())) {
-                    if (dev.layout == CRL_PREVIEW_LAYOUT_DOUBLE) {
+                    if (dev.layout == VkRender::CRL_PREVIEW_LAYOUT_DOUBLE) {
                         window.popupPosition = ImGui::GetWindowPos();
                         window.popupWindowSize = ImGui::GetWindowSize();
                     }
@@ -416,14 +416,14 @@ public:
 
                     bool isColorImageSelected =
                             Utils::CRLSourceToTextureType(
-                                    dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
-                            CRL_COLOR_IMAGE_YUV420;
+                                    dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).selectedSource) ==
+                            VkRender::CRL_COLOR_IMAGE_YUV420;
 
 
                     bool isDisparitySelected =
                             Utils::CRLSourceToTextureType(
-                                    dev.win.at(static_cast<StreamWindowIndex>(index)).selectedSource) ==
-                            CRL_DISPARITY_IMAGE;
+                                    dev.win.at(static_cast<VkRender::StreamWindowIndex>(index)).selectedSource) ==
+                            VkRender::CRL_DISPARITY_IMAGE;
 
                     if ((isColorImageSelected && !VkRender::RendererConfig::getInstance().hasEnabledExtension(
                             VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) )|| isDisparitySelected) {
@@ -809,13 +809,13 @@ public:
                     }
 
                     if (window.enableZoom) {
-                        handles->previewZoom[static_cast<StreamWindowIndex>(index)] += ImGui::GetIO().MouseWheel / 5.0f;
+                        handles->previewZoom[static_cast<VkRender::StreamWindowIndex>(index)] += ImGui::GetIO().MouseWheel / 5.0f;
 
-                        if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] > handles->maxZoom) {
-                            handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->maxZoom;
+                        if (handles->previewZoom[static_cast<VkRender::StreamWindowIndex>(index)] > handles->maxZoom) {
+                            handles->previewZoom[static_cast<VkRender::StreamWindowIndex>(index)] = handles->maxZoom;
                         }
-                        if (handles->previewZoom[static_cast<StreamWindowIndex>(index)] < handles->minZoom) {
-                            handles->previewZoom[static_cast<StreamWindowIndex>(index)] = handles->minZoom;
+                        if (handles->previewZoom[static_cast<VkRender::StreamWindowIndex>(index)] < handles->minZoom) {
+                            handles->previewZoom[static_cast<VkRender::StreamWindowIndex>(index)] = handles->minZoom;
                         }
                     }
                 }

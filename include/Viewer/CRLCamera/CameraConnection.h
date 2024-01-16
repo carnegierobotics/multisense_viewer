@@ -41,7 +41,7 @@
 #include <SimpleIni.h>
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
 
 #define MAX_FAILED_STATUS_ATTEMPTS 8

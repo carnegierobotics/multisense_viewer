@@ -35,10 +35,6 @@
  **/
 
 #include <utility>
-#include <cuda.h>
-#include <cuda_runtime.h>
-
-
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Populate.h"

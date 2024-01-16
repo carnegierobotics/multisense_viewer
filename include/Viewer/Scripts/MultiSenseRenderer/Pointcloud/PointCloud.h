@@ -67,25 +67,25 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}    /** @brief UI update function called once per frame **/
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}    /** @brief UI update function called once per frame **/
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DEFAULT;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
+    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CRLCameraModels::Model> model;
     std::unique_ptr<PointCloudLoader> pc;
 
     int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};
-    Page selectedPreviewTab = CRL_TAB_NONE;
-    CRLCameraResolution res = CRL_RESOLUTION_NONE;
+    VkRender::Page selectedPreviewTab = VkRender::CRL_TAB_NONE;
+    VkRender::CRLCameraResolution res = VkRender::CRL_RESOLUTION_NONE;
     std::future<bool> prepareTexFuture;
 
     int lumaOrColor = false; // 0 : luma // 1 : Color

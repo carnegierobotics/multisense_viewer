@@ -60,6 +60,10 @@ include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
 GenerateVersionFile()
 
+set(LOGGER_SRC
+        src/Tools/Logger.cpp
+)
+
 set(ENGINE_SRC
         src/Core/Buffer.cpp
         src/Core/Texture.cpp
@@ -74,10 +78,8 @@ set(ENGINE_SRC
         src/ModelLoaders/GLTFModel.cpp
         src/ModelLoaders/PointCloudLoader.cpp
         src/ModelLoaders/ComputeShader.cpp
-        src/ModelLoaders/GaussianSplat.cpp
 
         src/Renderer/Renderer.cpp
-        src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/Widgets.cpp
@@ -108,14 +110,21 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Private/RecordUtilities.h
 
+        include/Viewer/Scripts/Renderer3D/GaussianSplatScript.cpp
         include/Viewer/Scripts/Renderer3D/Grid.cpp
         include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
-        include/Viewer/Scripts/Renderer3D/GaussianSplatScript.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;${TORCH_LIBRARIES};CudaRasterizer")
+# CUDA source files
+set(CUDA_SOURCES
+        include/Viewer/Cuda/Cuda_example.cu
+)
+
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
+
+set(LIBRARIES_GPU "${TORCH_LIBRARIES};CudaRasterizer")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -209,15 +218,26 @@ if (WIN32)
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
+    add_library(CustomLoggerInterface INTERFACE)
+    target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
+
+    add_library(CustomLogger ${LOGGER_SRC})
+    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
+
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)
+
+    add_library(CudaOperations ${CUDA_SOURCES})
+    set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(CudaOperations CustomLoggerInterface ${LIBRARIES_GPU})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
+    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations)
     target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
+
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)

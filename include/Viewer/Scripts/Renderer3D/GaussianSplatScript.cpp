@@ -4,7 +4,8 @@
 
 #include "Viewer/Scripts/Renderer3D/GaussianSplatScript.h"
 
-#include "Viewer/ModelLoaders/GaussianSplat.h"
+#include "Viewer/Cuda/Cuda_example.h"
+
 
 void GaussianSplatScript::setup() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/default.vert",
@@ -51,11 +52,15 @@ void GaussianSplatScript::setup() {
 
     cudaTexture = std::make_unique<Texture2D>(renderUtils.device);
 
+    /*
     splat = std::make_unique<GaussianSplat>(renderUtils.device);
     int device = splat->setCudaVkDevice(renderUtils.vkDeviceUUID);
     cudaStream_t streamToRun;
     checkCudaErrors(cudaStreamCreate(&streamToRun));
+    */
 
+    function_with_cuda_calls();
+    call_rasterize_functions();
 
 }
 

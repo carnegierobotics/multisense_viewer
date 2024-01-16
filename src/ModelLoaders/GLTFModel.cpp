@@ -39,7 +39,7 @@
 #include <utility>
 #include <stb_image.h>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
@@ -2198,9 +2198,9 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
                                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
                                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers,
-                                            ScriptTypeFlags flags) {
+                                            VkRender::ScriptTypeFlags flags) {
     this->vulkanDevice = utils.device;
-    if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
+    if (flags == VkRender::CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
         createPipeline(*utils.renderPass, shaders, utils.msaaSamples);

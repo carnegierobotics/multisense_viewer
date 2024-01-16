@@ -48,8 +48,8 @@ void StereoSim::setup() {
 void StereoSim::update() {
 
     if (topLevelData->compute.valid) {
-        auto lTex = VkRender::TextureData(CRL_GRAYSCALE_IMAGE, CRL_RESOLUTION_960_600_256);
-        auto rTex = VkRender::TextureData(CRL_GRAYSCALE_IMAGE, CRL_RESOLUTION_960_600_256);
+        auto lTex = VkRender::TextureData(VkRender::CRL_GRAYSCALE_IMAGE,VkRender::CRL_RESOLUTION_960_600_256);
+        auto rTex = VkRender::TextureData(VkRender::CRL_GRAYSCALE_IMAGE,VkRender::CRL_RESOLUTION_960_600_256);
         lTex.data = computeShader.m_TextureComputeLeftInput[renderData.index]->m_DataPtr;
         rTex.data = computeShader.m_TextureComputeRightInput[renderData.index]->m_DataPtr;
         bool gotLeft = renderData.crlCamera->getCameraStream("Luma Rectified Left", &lTex, 0);
@@ -79,13 +79,13 @@ void StereoSim::update() {
 
 void StereoSim::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (const auto &dev: uiHandle->devices) {
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state !=VkRender::CRL_STATE_ACTIVE)
             continue;
 
-        auto &preview = dev.win.at(CRL_PREVIEW_ONE);
+        auto &preview = dev.win.at(VkRender::CRL_PREVIEW_ONE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
         // Setup compute pipeline
-        if (!topLevelData->compute.valid && currentRes != CRL_RESOLUTION_NONE) {
+        if (!topLevelData->compute.valid && currentRes !=VkRender::CRL_RESOLUTION_NONE) {
             uint32_t width, height, depth;
             Utils::cameraResolutionToValue(currentRes, &width, &height, &depth);
 

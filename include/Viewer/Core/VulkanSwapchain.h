@@ -50,7 +50,7 @@
 #include <vector>
 #include <cassert>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 
 typedef struct SwapChainBuffers {
     VkImage image;

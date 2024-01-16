@@ -48,7 +48,7 @@
 #include <string>
 #include <memory>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 

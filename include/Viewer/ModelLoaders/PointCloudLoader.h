@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_POINTCLOUDLOADER_H
 #define MULTISENSE_VIEWER_POINTCLOUDLOADER_H
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 

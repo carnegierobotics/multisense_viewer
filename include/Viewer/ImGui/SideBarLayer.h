@@ -413,8 +413,8 @@ private:
 
         el.name = entry.profileName;
         el.IP = entry.IP;
-        el.state = fromWindowsAutoConnect ? CRL_STATE_JUST_ADDED_WINDOWS : CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
+        el.state = fromWindowsAutoConnect ? VkRender::CRL_STATE_JUST_ADDED_WINDOWS : VkRender::CRL_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
                                          fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
@@ -437,67 +437,67 @@ private:
             ImVec4 btnColor{};
             // Set colors based on state
             switch (e.state) {
-                case CRL_STATE_CONNECTED:
+                case VkRender::CRL_STATE_CONNECTED:
                     break;
-                case CRL_STATE_CONNECTING:
+                case VkRender::CRL_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case CRL_STATE_ACTIVE:
+                case VkRender::CRL_STATE_ACTIVE:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
                     break;
-                case CRL_STATE_INACTIVE:
+                case VkRender::CRL_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case CRL_STATE_LOST_CONNECTION:
+                case VkRender::CRL_STATE_LOST_CONNECTION:
                     buttonIdentifier = "Lost connection...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case CRL_STATE_DISCONNECTED:
+                case VkRender::CRL_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case CRL_STATE_UNAVAILABLE:
+                case VkRender::CRL_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLDarkGray425);
                     btnColor = VkRender::Colors::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
-                case CRL_STATE_JUST_ADDED :
+                case VkRender::CRL_STATE_JUST_ADDED :
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
-                case CRL_STATE_JUST_ADDED_WINDOWS:
+                case VkRender::CRL_STATE_JUST_ADDED_WINDOWS:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
-                case CRL_STATE_DISCONNECT_AND_FORGET:
+                case VkRender::CRL_STATE_DISCONNECT_AND_FORGET:
                     buttonIdentifier = "Disconnecting...cmake";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
-                case CRL_STATE_REMOVE_FROM_LIST:
+                case VkRender::CRL_STATE_REMOVE_FROM_LIST:
                     buttonIdentifier = "Removing...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
-                case CRL_STATE_RESET:
+                case VkRender::CRL_STATE_RESET:
                     buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -520,12 +520,12 @@ private:
 
                 if (ImGui::SmallButton("X")) {
                     // delete and disconnect devices
-                    if (handles->devices.at(i).state == CRL_STATE_CONNECTING)
-                        handles->devices.at(i).state = CRL_STATE_INTERRUPT_CONNECTION;
+                    if (handles->devices.at(i).state == VkRender::CRL_STATE_CONNECTING)
+                        handles->devices.at(i).state = VkRender::CRL_STATE_INTERRUPT_CONNECTION;
                     else
-                        handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
+                        handles->devices.at(i).state = VkRender::CRL_STATE_DISCONNECT_AND_FORGET;
 
-                    Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECT_AND_FORGET ",
+                    Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_DISCONNECT_AND_FORGET ",
                                                      handles->devices.at(i).name);
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor(3);
@@ -595,7 +595,7 @@ private:
             // Check if other device is already attempting to connect
             bool busy = false;
             for (const auto &dev: handles->devices) {
-                if (dev.state == CRL_STATE_CONNECTING)
+                if (dev.state == VkRender::CRL_STATE_CONNECTING)
                     busy = true;
             }
 

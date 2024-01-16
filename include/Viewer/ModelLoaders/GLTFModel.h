@@ -311,7 +311,7 @@ public:
         void
         createRenderPipeline(const VkRender::RenderUtils &utils,
                              const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
-                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptTypeFlags flags);
+                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, VkRender::ScriptTypeFlags flags);
 
         void createDescriptorSetLayoutAdditionalBuffers();
 

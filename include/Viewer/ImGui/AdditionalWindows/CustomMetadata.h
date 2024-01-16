@@ -37,7 +37,7 @@ public:
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handle) override {
         for (auto &dev: handle->devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             if (dev.record.showCustomMetaDataWindow) {

@@ -12,6 +12,7 @@
 
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Macros.h"
+#include "RenderDefinitions.h"
 
 namespace RenderResource {
 

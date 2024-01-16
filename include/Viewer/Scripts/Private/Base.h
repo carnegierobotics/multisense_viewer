@@ -109,7 +109,7 @@ namespace VkRender {
         }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
-        virtual void setDrawMethod(DrawMethod drawMethod) = 0;
+        virtual void setDrawMethod(VkRender::DrawMethod drawMethod) = 0;
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
@@ -121,12 +121,12 @@ namespace VkRender {
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
         virtual ScriptTypeFlags getType() {
-            return CRL_SCRIPT_TYPE_DISABLED;
+            return VkRender::CRL_SCRIPT_TYPE_DISABLED;
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-        virtual DrawMethod getDrawMethod() {
-            return CRL_SCRIPT_DONT_DRAW;
+        virtual VkRender::DrawMethod getDrawMethod() {
+            return VkRender::CRL_SCRIPT_DONT_DRAW;
         }
 
         /**@brief Record draw command into a VkCommandBuffer */
@@ -152,7 +152,7 @@ namespace VkRender {
 
         void drawScript(CommandBuffer* commandBuffer, uint32_t i, bool b) {
 
-            if (!renderData.drawThisScript || getDrawMethod() == CRL_SCRIPT_DONT_DRAW)
+            if (!renderData.drawThisScript || getDrawMethod() == VkRender::CRL_SCRIPT_DONT_DRAW)
                 return;
 
             /*
@@ -180,7 +180,7 @@ namespace VkRender {
                 update();
 
             VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
-            if (renderData.type != CRL_SCRIPT_TYPE_DISABLED) {
+            if (renderData.type != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
                 memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
                 memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
@@ -236,7 +236,7 @@ namespace VkRender {
 
             sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED) {
+            if (getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 setup();
                 renderData.drawThisScript = true;
             }
@@ -326,7 +326,6 @@ namespace VkRender {
             this->renderData.height = data->height;
             this->renderData.width = data->width;
             this->renderData.type = getType();
-            input = data->input;
         }
 
         const Input *input{};

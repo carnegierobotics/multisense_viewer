@@ -44,7 +44,7 @@ void Skybox::setup() {
 }
 
 void Skybox::draw(CommandBuffer * commandBuffer, uint32_t i, bool primaryDraw) {
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && primaryDraw)
+    if (selectedPreviewTab ==VkRender::CRL_TAB_3D_POINT_CLOUD && primaryDraw)
         skybox->drawSkybox(commandBuffer, i);
 }
 
@@ -72,7 +72,7 @@ void Skybox::update() {
 void Skybox::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     for (const auto &d: uiHandle->devices) {
-        if (d.state != CRL_STATE_ACTIVE)
+        if (d.state !=VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
 

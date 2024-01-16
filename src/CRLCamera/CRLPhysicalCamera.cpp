@@ -45,7 +45,7 @@
 #include <cmath>
 
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/CRLCamera/CalibrationYaml.h"
 #include "Viewer/Tools/Utils.h"
 

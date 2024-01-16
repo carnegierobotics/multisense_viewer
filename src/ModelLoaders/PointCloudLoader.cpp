@@ -26,7 +26,7 @@ void PointCloudLoader::Model::createTexture(uint32_t width, uint32_t height) {
 
     auto *data = (uint16_t *) malloc(width * height * 2);
 
-    for (int i = 0; i < width * height; i++) {
+    for (size_t i = 0; i < width * height; i++) {
         data[i] = 127;
     }
 
@@ -37,7 +37,7 @@ void PointCloudLoader::Model::createTexture(uint32_t width, uint32_t height) {
 
 
     uint8_t *data2 = (uint8_t *) malloc(960 * 600);
-    for (int i = 0; i < width * height; i++) {
+    for (size_t i = 0; i < width * height; i++) {
         data2[i] = 200;
     }
     colorTexture.fromBuffer(data2, width * height, VK_FORMAT_R8_UNORM, width, height, vulkanDevice,

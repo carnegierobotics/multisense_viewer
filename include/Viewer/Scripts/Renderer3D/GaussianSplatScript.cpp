@@ -58,9 +58,19 @@ void GaussianSplatScript::setup() {
     cudaStream_t streamToRun;
     checkCudaErrors(cudaStreamCreate(&streamToRun));
     */
+    auto camParams = renderData.camera->getFocalParams(1280, 720);
 
-    function_with_cuda_calls();
-    call_rasterize_functions();
+    CudaImplementation::RasterSettings settings;
+    settings.camPos = renderData.camera->m_Position;
+    settings.viewMat = renderData.camera->matrices.view;
+    settings.projMat = renderData.camera->matrices.perspective;
+    settings.imageWidth = 1280;
+    settings.imageHeight = 720;
+    settings.shDegree = 3;
+    settings.tanFovY = camParams.htany;
+    settings.tanFovX = camParams.htanx;
+
+    cudaImplementation = std::make_unique<CudaImplementation>(&settings);
 
 }
 
@@ -70,9 +80,14 @@ void GaussianSplatScript::update() {
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;
     memcpy(uniformBuffers[renderData.index].mapped, &mvpMat, sizeof(VkRender::UBOMatrix));
+
+    cudaImplementation->updateCameraPose(mvpMat.view, mvpMat.projection, renderData.camera->m_Position);
 }
 
 void GaussianSplatScript::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
+
+    cudaImplementation->draw();
+
     if (b) {
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->data.pipelineLayout, 0,
                                 1,

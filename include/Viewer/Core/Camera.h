@@ -117,6 +117,18 @@ namespace VkRender {
             bool down = false;
         } keys;
 
+        struct Focal {
+            float htanx = 0.0f;
+            float htany = 0.0f;
+            float focal = 0.0f;
+        };
+        Focal getFocalParams(float w, float h){
+            float htany = glm::radians(m_Fov) / 2;
+            float htanx = htany / h * w;
+            float focal = h / (2 * htany);
+            return {htanx, htany, focal};
+        }
+
         bool moving() {
             return keys.left || keys.right || keys.up || keys.down;
         }

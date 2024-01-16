@@ -124,8 +124,6 @@ set(CUDA_SOURCES
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
 
-set(LIBRARIES_GPU "${TORCH_LIBRARIES};CudaRasterizer")
-
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
@@ -225,11 +223,16 @@ if (WIN32)
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
+
+    set(OpenCV_DIR "C:\\opencv\\opencv\\build")
+    find_package(OpenCV REQUIRED )
+    INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
+
 
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${LIBRARIES_GPU})
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer;${OpenCV_LIBS})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations)
@@ -237,7 +240,7 @@ if (WIN32)
 
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations )
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)

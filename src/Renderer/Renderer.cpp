@@ -145,6 +145,7 @@ void Renderer::buildScript(const std::string &scriptName) {
     renderUtils.vkDeviceUUID = vkDeviceUUID;
     renderData.height = m_Height;
     renderData.width = m_Width;
+    renderData.camera = &camera;
 
     // Copy data generated from TOP OF PIPE scripts
     renderUtils.skybox.irradianceCube = scripts["Skybox"]->skyboxTextures.irradianceCube;

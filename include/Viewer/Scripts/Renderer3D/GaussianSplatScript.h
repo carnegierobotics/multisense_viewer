@@ -8,6 +8,7 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Core/RenderResource.h"
+#include "Viewer/Cuda/Cuda_example.h"
 
 
 class GaussianSplatScript : public VkRender::Base, public VkRender::RegisteredInFactory<GaussianSplatScript> {
@@ -60,6 +61,8 @@ public:
 
     std::unique_ptr<RenderResource::Mesh> mesh;
     std::unique_ptr<RenderResource::Pipeline> pipeline;
+
+    std::unique_ptr<CudaImplementation> cudaImplementation;
 
 
     //std::unique_ptr<GaussianSplat> splat;

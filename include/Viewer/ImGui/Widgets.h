@@ -7,6 +7,7 @@
 
 #include "Viewer/Core/Definitions.h"
 #include "Viewer/Tools/Logger.h"
+#include <fmt/format.h>
 
 typedef enum ScriptWidgetType {
     WIDGET_FLOAT_SLIDER = 0,
@@ -25,6 +26,34 @@ typedef enum ScriptWidgetPlacement {
     WIDGET_PLACEMENT_POINTCLOUD = 2,
     WIDGET_PLACEMENT_MULTISENSE_RENDERER = 3
 }ScriptWidgetPlacement ;
+
+/**@brief Formatter for ScripWidgetPlacement for FMT.*/
+template <>
+struct fmt::formatter<ScriptWidgetPlacement> : fmt::formatter<std::string> {
+    // use the formatter for std::string to format ScriptWidgetPlacement
+    template <typename FormatContext>
+    auto format(ScriptWidgetPlacement swp, FormatContext& ctx) -> decltype(ctx.out()) {
+        std::string name;
+        switch (swp) {
+            case WIDGET_PLACEMENT_RENDERER3D:
+                name = "RENDERER3D";
+            break;
+            case WIDGET_PLACEMENT_IMU:
+                name = "IMU";
+            break;
+            case WIDGET_PLACEMENT_POINTCLOUD:
+                name = "POINTCLOUD";
+            break;
+            case WIDGET_PLACEMENT_MULTISENSE_RENDERER:
+                name = "MULTISENSE_RENDERER";
+            break;
+            default:
+                name = "UNKNOWN";
+            break;
+        }
+        return fmt::formatter<std::string>::format(name, ctx);
+    }
+};
 
 class Widgets {
 

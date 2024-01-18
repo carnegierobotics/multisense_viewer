@@ -175,15 +175,15 @@ void CudaImplementation::updateGaussianData() {
 void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 pos) {
     // Inverting the first and third rows of the view matrix
     // Note: GLM is column-major, so we access columns via view[col][row]
-    view[0][0] = -view[0][0];
-    view[1][0] = -view[1][0];
-    view[2][0] = -view[2][0];
-    view[3][0] = -view[3][0];
+    //view[0][0] = -view[0][0];
+    //view[1][0] = -view[1][0];
+    //view[2][0] = -view[2][0];
+    //view[3][0] = -view[3][0];
 
-    view[0][2] = -view[0][2];
-    view[1][2] = -view[1][2];
-    view[2][2] = -view[2][2];
-    view[3][2] = -view[3][2];
+    //view[0][2] = -view[0][2];
+    //view[1][2] = -view[1][2];
+    //view[2][2] = -view[2][2];
+    //view[3][2] = -view[3][2];
 
     proj[1][1] *= -1; // re-flip y-axis to match OpenGL and other impl.
     // Multiplying projection matrix with view matrix
@@ -243,7 +243,7 @@ void CudaImplementation::draw(uint32_t i) {
     checkCudaErrors(cudaGetMipmappedArrayLevel(&levelArray, cudaMipMappedArrays[i], 0)); // 0 for the first level
 
     cudaMemcpy3DParms p = {0};
-    p.srcPtr   = make_cudaPitchedPtr(img_with_alpha.data_ptr(), 1024 * sizeof(float), 1024, 1024);
+    p.srcPtr   = make_cudaPitchedPtr(img_with_alpha.data_ptr(), 1024 * 16, 1024, 1024);
     p.dstArray = levelArray;
     p.extent   = make_cudaExtent(1024, 1024, 1); // depth is 1 for 2D
     p.kind     = cudaMemcpyDeviceToDevice;

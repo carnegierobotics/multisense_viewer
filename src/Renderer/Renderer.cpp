@@ -331,7 +331,8 @@ void Renderer::updateUniformBuffers() {
         camera.resetRotation();
     }
     guiManager->handles.camera.pos = camera.m_Position;
-    guiManager->handles.camera.rot = camera.m_Rotation;
+    guiManager->handles.camera.up = camera.cameraUp;
+    guiManager->handles.camera.target = camera.m_Target;
     guiManager->handles.camera.cameraFront = camera.cameraFront;
 
     // Update GUI

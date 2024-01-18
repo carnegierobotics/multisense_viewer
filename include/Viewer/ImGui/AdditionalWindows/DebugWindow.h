@@ -266,9 +266,9 @@ public:
                             static_cast<double>(handles->camera.pos.z));
 
                 ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->camera.rot.x),
-                            static_cast<double>(handles->camera.rot.y),
-                            static_cast<double>(handles->camera.rot.z));
+                            static_cast<double>(handles->camera.target.x),
+                            static_cast<double>(handles->camera.target.y),
+                            static_cast<double>(handles->camera.target.z));
             #endif
 
             }

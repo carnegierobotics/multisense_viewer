@@ -17,6 +17,7 @@ typedef enum ScriptWidgetType {
     WIDGET_INPUT_TEXT = 5,
     WIDGET_BUTTON = 6,
     WIDGET_SELECT_DIR_DIALOG = 7,
+    WIDGET_GLM_VEC_3 = 8,
 } ScriptWidgetType;
 
 typedef enum ScriptWidgetPlacement {
@@ -44,6 +45,12 @@ private:
         bool activeVal = false;
         std::string id;
         ScriptWidgetType type{};
+        struct {
+            glm::vec3* vec3{};
+            char xBuf[16] = {0};
+            char yBuf[16] = {0};
+            char zBuf[16] = {0};
+        }glm;
 
         Element(const char *labelVal, float *valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
                                                                                    minValue(minVal), maxValue(maxVal) {
@@ -63,6 +70,21 @@ private:
 
         Element(const char *labelVal, std::string _id = "") : label(labelVal), id(_id) {
             type = WIDGET_TEXT;
+        }
+
+        Element(const char *labelVal, glm::vec3* valPtr) : label(labelVal) {
+            type = WIDGET_GLM_VEC_3;
+            glm.vec3 = valPtr;
+
+            // Initialize the array to zero
+            std::fill_n(glm.xBuf, 16, 0);
+            std::memcpy(glm.xBuf, &valPtr->x, sizeof(float));
+
+            std::fill_n(glm.yBuf, 16, 0);
+            std::memcpy(glm.yBuf, &valPtr->y, sizeof(float));
+
+            std::fill_n(glm.zBuf, 16, 0);
+            std::memcpy(glm.zBuf, &valPtr->z, sizeof(float));
         }
 
 
@@ -102,6 +124,12 @@ public:
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, value, min, max);
+    }
+
+    void vec3(ScriptWidgetPlacement window, const char *label, glm::vec3 *value) {
+        if (labelExists(label, window))
+            return;
+        elements[window].emplace_back(label, value);
     }
 
     void

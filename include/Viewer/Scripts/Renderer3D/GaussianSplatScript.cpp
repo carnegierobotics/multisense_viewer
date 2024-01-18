@@ -110,23 +110,34 @@ void GaussianSplatScript::setup() {
 
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
     Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "##scale modifier", &scaleModifier, 0.1f, 5.0f);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera pos");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera pos", &cameraPos);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera target");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera target", &target);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera up");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera up", &up);
+
+
 }
 
 
 void GaussianSplatScript::update() {
-    mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+    mvpMat.model = glm::mat4(1.0f);
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;
     memcpy(uniformBuffers[renderData.index].mapped, &mvpMat, sizeof(VkRender::UBOMatrix));
 
     settings.scaleModifier = scaleModifier;
-
     cudaImplementation->updateCameraPose(mvpMat.view, mvpMat.projection, renderData.camera->m_Position);
     cudaImplementation->updateSettings(settings);
 }
 
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
     cudaImplementation->draw(i);
+            vkCmdDraw(commandBuffer->buffers[i], 3, 1, 0, 0);
 
     if (b) {
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -135,15 +146,17 @@ void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b)
                                 &pipeline->data.descriptors[i], 0, nullptr);
         vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->data.pipeline);
         const VkDeviceSize offsets[1] = {0};
+        vkCmdDraw(commandBuffer->buffers[i], 3, 1, 0, 0);
 
+        /*
         vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &mesh->model.vertices.buffer, offsets);
         if (mesh->model.indexCount) {
             vkCmdBindIndexBuffer(commandBuffer->buffers[i], mesh->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(commandBuffer->buffers[i], mesh->model.indexCount, 1, mesh->model.firstIndex, 0, 0);
         }
         else {
-            vkCmdDraw(commandBuffer->buffers[i], mesh->model.vertexCount, 1, 0, 0);
         }
+        */
     }
 }
 

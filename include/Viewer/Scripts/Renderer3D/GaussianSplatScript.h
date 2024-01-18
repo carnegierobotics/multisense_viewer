@@ -65,6 +65,9 @@ public:
     std::unique_ptr<CudaImplementation> cudaImplementation;
 
     float scaleModifier = 1.0f;
+    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f);
     CudaImplementation::RasterSettings settings;
 
     //std::unique_ptr<GaussianSplat> splat;

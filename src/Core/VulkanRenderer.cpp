@@ -51,10 +51,10 @@
 
 #ifdef WIN32
 #include <strsafe.h>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+#include <vulkan/vulkan_win32.h>
 #include <Windows.h>
 
 #endif
@@ -231,6 +231,9 @@ namespace VkRender {
             pLogger->error("YCBCR Sampler Extension support not found!");
         }
 
+        //enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device

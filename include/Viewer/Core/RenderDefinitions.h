@@ -285,6 +285,7 @@ namespace VkRender {
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
+        VkInstance* instance{};
         uint8_t* vkDeviceUUID = nullptr; // array with size VK_UUID_SIZE
 
         uint32_t UBCount = 0; // TODO rename to swapchain iamges

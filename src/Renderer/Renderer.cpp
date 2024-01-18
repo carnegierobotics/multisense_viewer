@@ -137,6 +137,7 @@ void Renderer::buildScript(const std::string &scriptName) {
 
     // Run Once
     renderUtils.device = vulkanDevice.get();
+    renderUtils.instance = &instance;
     renderUtils.renderPass = &renderPass;
     renderUtils.msaaSamples = msaaSamples;
     renderUtils.UBCount = swapchain->imageCount;

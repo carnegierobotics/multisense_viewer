@@ -222,10 +222,6 @@ if (WIN32)
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
 
-    set(OpenCV_DIR "C:\\opencv\\build")
-    find_package(OpenCV REQUIRED )
-    INCLUDE_DIRECTORIES( ${OpenCV_INCLUDE_DIRS} )
-
 
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
@@ -237,7 +233,7 @@ if (WIN32)
 
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations )
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations CUDA::cuda_driver)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)

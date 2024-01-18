@@ -56,7 +56,7 @@ public:
 
     VkRender::UBOMatrix mvpMat{};
     std::vector<Buffer> uniformBuffers;
-    std::vector<Texture2D> textures;
+    std::vector<TextureCuda> textures;
     std::unique_ptr<Texture2D> cudaTexture;
 
     std::unique_ptr<RenderResource::Mesh> mesh;
@@ -64,6 +64,8 @@ public:
 
     std::unique_ptr<CudaImplementation> cudaImplementation;
 
+    float scaleModifier = 1.0f;
+    CudaImplementation::RasterSettings settings;
 
     //std::unique_ptr<GaussianSplat> splat;
 

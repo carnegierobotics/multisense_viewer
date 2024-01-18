@@ -74,16 +74,16 @@ namespace RenderResource {
             std::vector<VkRender::Vertex> vertices{};
             vertices.resize(4);
             // Front face
-            vertices[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Bottom-left
+            vertices[0].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Bottom-left
             vertices[0].uv0 = glm::vec2(0.0f, 1.0f);
 
-            vertices[1].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Bottom-right
+            vertices[1].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Bottom-right
             vertices[1].uv0 = glm::vec2(1.0f, 1.0f);
 
-            vertices[2].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Top-right
+            vertices[2].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Top-right
             vertices[2].uv0 = glm::vec2(1.0f, 0.0f);
 
-            vertices[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Top-left
+            vertices[3].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Top-left
             vertices[3].uv0 = glm::vec2(0.0f, 0.0f);
 
 
@@ -182,7 +182,7 @@ namespace RenderResource {
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkRenderPass *renderPass{};
         Buffer *ubo{};
-        std::vector<Texture2D> *textures{};
+        std::vector<TextureCuda> *textures{};
         std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
     };
 

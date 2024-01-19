@@ -51,10 +51,10 @@
 
 #ifdef WIN32
 #include <strsafe.h>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+#include <vulkan/vulkan_win32.h>
 #include <Windows.h>
 
 #endif
@@ -231,6 +231,9 @@ namespace VkRender {
             pLogger->error("YCBCR Sampler Extension support not found!");
         }
 
+        //enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
@@ -626,6 +629,8 @@ namespace VkRender {
         // Create one command buffer for each swap chain m_Image and reuse for rendering
         drawCmdBuffers.buffers.resize(swapchain->imageCount);
         drawCmdBuffers.hasWork.resize(swapchain->imageCount);
+        drawCmdBuffers.busy.resize(swapchain->imageCount, false);
+
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
                 Populate::commandBufferAllocateInfo(
@@ -977,7 +982,7 @@ namespace VkRender {
         submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
-
+        drawCmdBuffers.busy[currentFrame] = true;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
         VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);

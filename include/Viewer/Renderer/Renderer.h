@@ -93,7 +93,8 @@ private:
 
 
     std::unique_ptr<VkRender::GuiManager> guiManager{};
-    std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
     std::vector<std::string> builtScriptNames;
     std::vector<std::string> availableScriptNames;
     std::shared_ptr<UsageMonitor> usageMonitor;

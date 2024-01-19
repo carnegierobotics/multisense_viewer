@@ -6,8 +6,7 @@
         - [Clone this repo using git](#clone-this-repo-using-git)
         - [Tested with Visual Studio 2022.](#tested-with-visual-studio-2022)
     
-# Code structure
-![Alt text](MainClasses.png?raw=true "Title")
+
 
 # Setting up development environment
 ## Ubuntu
@@ -42,11 +41,12 @@ To be able to use the auto connect feature, launch with root/admin privileges.
 ## Windows
 <b> Prerequisites: </b>
 
-Have Microsoft's Visual studio with c++ desktop environment tools installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>
-Install the Vulkan SDK for windows. Get the SDK installer [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe) and run it. <br/>
-Install WinPcap DLLs. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe). You can uncheck enabling winpcap driver after installation.
+1. Have Microsoft's Visual studio with c++ desktop environment tools installed. [Link to download](https://visualstudio.microsoft.com/vs/) <br/>
+2. Install the Vulkan SDK for windows. Get the SDK installer [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe) and run it. <br/>
+3. Install WinPcap DLLs. [link to installer](https://www.winpcap.org/install/bin/WinPcap_4_1_3.exe). You can uncheck enabling winpcap driver after installation.
+4. Install OpenSSL
 
-#### Clone this repo using git
+#### Clone this repo and submodules using git
 ``` sh
 $ git clone --recurse-submodule https://github.com/carnegierobotics/multisense_viewer
 ```

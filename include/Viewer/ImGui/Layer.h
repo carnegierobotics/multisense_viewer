@@ -173,7 +173,8 @@ namespace VkRender {
         bool reset = false;
 
         glm::vec3 pos;
-        glm::vec3 rot;
+        glm::vec3 up;
+        glm::vec3 target;
         glm::vec3 cameraFront;
 
     };

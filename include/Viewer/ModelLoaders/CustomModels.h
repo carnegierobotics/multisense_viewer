@@ -9,6 +9,7 @@
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 class CustomModels {
 private:
@@ -64,18 +65,12 @@ private:
 public:
     std::unique_ptr<Model> model;
 
-    explicit CustomModels(const VkRender::RenderUtils *renderUtils) {
+    explicit CustomModels(const VkRender::RenderUtils *renderUtils, std::vector<VkRender::ScriptUtils::ResourceEntry>* resoucesTracker) {
         renderer = renderUtils;
         vulkanDevice = renderUtils->device;
         model = std::make_unique<Model>(renderUtils);
     }
 
-    ~CustomModels(){
-        vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayout, nullptr);
-        vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
-        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
-        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
-    }
 
     void createDescriptorSetLayout();
 
@@ -85,7 +80,7 @@ public:
 
     void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-    void draw(CommandBuffer * commandBuffer, uint32_t cbIndex);
+    void draw(CommandBuffer * commandBuffer, uint32_t cbIndex, VkRender::ScriptUtils::ResourceEntry* resourceTracker);
 };
 
 

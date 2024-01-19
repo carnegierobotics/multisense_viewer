@@ -57,8 +57,10 @@ namespace VkRender {
 
         void updateViewMatrix() {
             if (type == CameraType::flycam) {
-                matrices.view = glm::lookAt(m_Position, m_Position + cameraFront, cameraUp);
-// Convert to direction vector (assuming initial direction is along X-axis)
+                m_Target = m_Position + cameraFront;
+
+                matrices.view = glm::lookAt(m_Position, glm::vec3(0.0, 0.0, 0.0), cameraUp);
+                // Convert to direction vector (assuming initial direction is along X-axis)
 
                 // matrices.view = glm::rotate(matrices.view, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                 // m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
@@ -92,6 +94,7 @@ namespace VkRender {
         glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, 0.0f);
 
         glm::vec3 m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 m_Target =  glm::vec3(0.0f, 0.0f, 0.0f);
 
         glm::vec3 cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
         glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -102,7 +105,7 @@ namespace VkRender {
 
         float m_RotationSpeed = 0.20f;
         float m_MovementSpeed = 3.0f;
-        glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
         float zoomVal = 1.0f;
         struct {
@@ -141,17 +144,41 @@ namespace VkRender {
             return m_Zfar;
         }
 
-        void setPerspective(float fov, float aspect, float znear, float zfar) {
-            this->m_Fov = fov;
-            this->m_Znear = znear;
-            this->m_Zfar = zfar;
-            matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-            matrices.perspective[1][1] *= -1;
+        void setPerspective(float fov, float aspect, float zNear, float zFar) {
+            // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
+
+            m_Fov = fov;
+            m_Znear = zNear;
+            m_Zfar = zFar;
+            float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
+            float x = focal_length / aspect;
+            float y = -focal_length;
+            float A = zFar / (m_Zfar - m_Znear);
+            float B = m_Zfar * A;
+
+
+            matrices.perspective = glm::mat4(
+            x,    0.0f,  0.0f, 0.0f,
+            0.0f,    y,  0.0f, 0.0f,
+            0.0f, 0.0f,     A,    B,
+            0.0f, 0.0f, -1.0f, 0.0f
+        );
         };
 
         void updateAspectRatio(float aspect) {
-            matrices.perspective = glm::perspective(glm::radians(m_Fov), aspect, m_Znear, m_Zfar);
-            matrices.perspective[1][1] *= -1;
+            float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
+            float x = focal_length / aspect;
+            float y = -focal_length;
+            float A = m_Zfar / (m_Zfar - m_Znear);
+            float B = m_Zfar * A;
+
+
+            matrices.perspective = glm::mat4(
+            x,    0.0f,  0.0f, 0.0f,
+            0.0f,    y,  0.0f, 0.0f,
+            0.0f, 0.0f,     A,    B,
+            0.0f, 0.0f, -1.0f, 0.0f
+        );
         }
 
         void resetPosition() {
@@ -186,9 +213,11 @@ namespace VkRender {
             dx *= m_RotationSpeed;
             dy *= m_RotationSpeed;
 
+
             if (type == flycam) {
                 // On mouse move:
                 // Calculate yaw rotation
+
                 glm::quat yawRotation = glm::angleAxis(glm::radians(dx / 2.0f),
                                                        cameraUp); // Rotate around Z-axis
 

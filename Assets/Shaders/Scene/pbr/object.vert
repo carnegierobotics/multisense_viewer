@@ -36,5 +36,5 @@ void main()
     outWorldPos = locPos.xyz / locPos.w;
     outUV0 = inUV0;
     outUV1 = inUV1;
-    gl_Position =  ubo.projection * ubo.view * vec4(outWorldPos, 1.0);
+    gl_Position =  ubo.projection * ubo.view * vec4(locPos.xyz, 1.0);
 }

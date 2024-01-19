@@ -137,6 +137,7 @@ void Renderer::buildScript(const std::string &scriptName) {
 
     // Run Once
     renderUtils.device = vulkanDevice.get();
+    renderUtils.instance = &instance;
     renderUtils.renderPass = &renderPass;
     renderUtils.msaaSamples = msaaSamples;
     renderUtils.UBCount = swapchain->imageCount;
@@ -169,6 +170,7 @@ void Renderer::deleteScript(const std::string &scriptName) {
     else
         return;
     pLogger->info("Deleting Script: {}", scriptName.c_str());
+    scriptsForDeletion[scriptName] = scripts[scriptName];
     scripts[scriptName].get()->onDestroyScript();
     scripts[scriptName].reset();
     scripts.erase(scriptName);
@@ -330,7 +332,8 @@ void Renderer::updateUniformBuffers() {
         camera.resetRotation();
     }
     guiManager->handles.camera.pos = camera.m_Position;
-    guiManager->handles.camera.rot = camera.m_Rotation;
+    guiManager->handles.camera.up = camera.cameraUp;
+    guiManager->handles.camera.target = camera.m_Target;
     guiManager->handles.camera.cameraFront = camera.cameraFront;
 
     // Update GUI

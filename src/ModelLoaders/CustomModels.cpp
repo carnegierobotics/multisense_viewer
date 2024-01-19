@@ -4,6 +4,8 @@
 
 #include "Viewer/ModelLoaders/CustomModels.h"
 
+#include "Viewer/Scripts/Private/ScriptUtils.h"
+
 CustomModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
@@ -239,7 +241,7 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
 
 }
 
-void CustomModels::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
+void CustomModels::draw(CommandBuffer * commandBuffer, uint32_t cbIndex, VkRender::ScriptUtils::ResourceEntry* resourceTracker) {
 
     if (cbIndex >= renderer->UBCount)
         return;

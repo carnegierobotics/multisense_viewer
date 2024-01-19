@@ -170,6 +170,7 @@ void Renderer::deleteScript(const std::string &scriptName) {
     else
         return;
     pLogger->info("Deleting Script: {}", scriptName.c_str());
+    scriptsForDeletion[scriptName] = scripts[scriptName];
     scripts[scriptName].get()->onDestroyScript();
     scripts[scriptName].reset();
     scripts.erase(scriptName);

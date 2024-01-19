@@ -7,6 +7,7 @@
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
 class Grid: public VkRender::Base, public VkRender::RegisteredInFactory<Grid>
@@ -53,10 +54,10 @@ public:
     bool enable = true;
     bool hide = false;
 
-    struct LightSource {
-        glm::vec3 color = glm::vec3(1.0f);
-        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-    } lightSource;
+
+    std::vector<VkRender::ScriptUtils::ResourceEntry> resourceTracker;
+
+
 };
 
 #endif //MULTISENSE_VIEWER_GRID_H

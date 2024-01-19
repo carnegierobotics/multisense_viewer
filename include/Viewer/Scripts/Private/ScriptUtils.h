@@ -194,6 +194,28 @@ namespace VkRender::ScriptUtils {
             iP[5] = 3;
         }
     };
+
+
+
+    struct ResourceEntry {
+        // Resource handle (e.g., VkBuffer, VkImage, etc.)
+        VkPipeline pipeline;
+        VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorPool descriptorPool;
+        VkPipelineLayout pipelineLayout;
+        VkBuffer buffer;
+        VkDeviceMemory memory;
+
+        bool flaggedForDestroy = false;
+
+        void destroyResources(const VkDevice& device) {
+            // If not in use then destroy
+            vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+            vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+            vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+            vkDestroyPipeline(device, pipeline, nullptr);
+        }
+    };
 }
 
 #endif //MULTISENSE_VIEWER_SCRIPTUTILS_H

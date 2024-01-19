@@ -12,7 +12,10 @@ void Grid::setup() {
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
                                                             {loadShader("spv/grid.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
-    model = std::make_unique<CustomModels>(&renderUtils);
+
+    resourceTracker.resize(renderUtils.UBCount);
+
+    model = std::make_unique<CustomModels>(&renderUtils, &resourceTracker);
     VkRender::ScriptUtils::ImageData imgData{};
     model->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
     model->createDescriptorSetLayout();
@@ -28,30 +31,19 @@ void Grid::setup() {
 
 void Grid::update() {
     auto &d = bufferOneData;
-
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    d->model = glm::rotate(d->model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    d->model = glm::scale(d->model, glm::vec3(0.001f, 0.001f, 0.001f));
-
+    d->model = glm::mat4(1.0f);
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
-    d->camPos = glm::vec3(
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(renderData.camera->m_Position.z) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
-    );
-
 }
 
 void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b && enable) {
-        model->draw(commandBuffer, i);
+        model->draw(commandBuffer, i, &resourceTracker[i]);
+    }
+
+    // Check if we have resources that we can destroy
+    if (resourceTracker[i].flaggedForDestroy) {
+
     }
 }
 

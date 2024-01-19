@@ -629,6 +629,8 @@ namespace VkRender {
         // Create one command buffer for each swap chain m_Image and reuse for rendering
         drawCmdBuffers.buffers.resize(swapchain->imageCount);
         drawCmdBuffers.hasWork.resize(swapchain->imageCount);
+        drawCmdBuffers.busy.resize(swapchain->imageCount, false);
+
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
                 Populate::commandBufferAllocateInfo(
@@ -980,7 +982,7 @@ namespace VkRender {
         submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
-
+        drawCmdBuffers.busy[currentFrame] = true;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
         VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);

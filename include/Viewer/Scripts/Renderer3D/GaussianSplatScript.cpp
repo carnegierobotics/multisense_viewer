@@ -137,8 +137,6 @@ void GaussianSplatScript::update() {
 
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
     cudaImplementation->draw(i);
-            vkCmdDraw(commandBuffer->buffers[i], 3, 1, 0, 0);
-
     if (b) {
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipeline->data.pipelineLayout, 0,
@@ -146,10 +144,10 @@ void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b)
                                 &pipeline->data.descriptors[i], 0, nullptr);
         vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->data.pipeline);
         const VkDeviceSize offsets[1] = {0};
+        vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &mesh->model.vertices.buffer, offsets);
         vkCmdDraw(commandBuffer->buffers[i], 3, 1, 0, 0);
 
         /*
-        vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &mesh->model.vertices.buffer, offsets);
         if (mesh->model.indexCount) {
             vkCmdBindIndexBuffer(commandBuffer->buffers[i], mesh->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(commandBuffer->buffers[i], mesh->model.indexCount, 1, mesh->model.firstIndex, 0, 0);

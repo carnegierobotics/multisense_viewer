@@ -83,7 +83,7 @@ Renderer::Renderer(const std::string& title) : VulkanRenderer(title) {
 
 void Renderer::prepareRenderer() {
     camera.type = VkRender::Camera::arcball;
-    camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
+    camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.001f, 100.0f);
     camera.resetPosition();
     camera.resetRotation();
     createSelectionImages();
@@ -459,17 +459,19 @@ void Renderer::updateUniformBuffers() {
                 break;
             }
 
-            switch (dev.selectedPreviewTab) {
-            case VkRender::CRL_TAB_3D_POINT_CLOUD:
-                scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                break;
-            default:
-                scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                break;
+            if (scripts.contains("MultiSenseCamera")) { // TODO quickfix to check if script exists during reload. Need a more permament fix
+                switch (dev.selectedPreviewTab) {
+                    case VkRender::CRL_TAB_3D_POINT_CLOUD:
+                        scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
+                        scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
+                        scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
+                        break;
+                    default:
+                        scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
+                        scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
+                        scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
+                        break;
+                }
             }
         }
     }

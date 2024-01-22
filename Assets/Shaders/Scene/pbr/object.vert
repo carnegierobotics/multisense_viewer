@@ -30,11 +30,14 @@ void main()
 {
     outColor0 = inColor0;
 
-    vec4  locPos = ubo.model * node.matrix * vec4(inPos, 1.0);
+    //vec4  locPos = ubo.model * node.matrix * vec4(inPos, 1.0);
+    vec4  locPos = ubo.model * vec4(inPos, 1.0);
+
     outNormal = normalize(transpose(inverse(mat3(ubo.model * node.matrix))) * inNormal);
 
+    //outWorldPos = locPos.xyz / locPos.w;
     outWorldPos = locPos.xyz / locPos.w;
     outUV0 = inUV0;
     outUV1 = inUV1;
-    gl_Position =  ubo.projection * ubo.view * vec4(locPos.xyz, 1.0);
+    gl_Position =  ubo.projection * ubo.view * vec4(outWorldPos, 1.0);
 }

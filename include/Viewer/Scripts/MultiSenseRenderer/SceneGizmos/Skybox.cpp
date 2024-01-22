@@ -37,19 +37,24 @@ void Skybox::setup() {
     skyboxTextures.prefilterEnv = std::make_shared<TextureCubeMap>();
     skyboxTextures.lutBrdf = std::make_shared<Texture2D>();
 
-    skyboxTextures.environmentMap->loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"), renderUtils.device);
+    skyboxTextures.environmentMap->loadFromFile(Utils::getAssetsPath().append("Textures/Environments/skies.ktx2"),
+                                                renderUtils.device);
 
-    skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures, renderUtils.msaaSamples);
+    skybox->createSkybox(envShaders, renderUtils.uniformBuffers, renderUtils.renderPass, &skyboxTextures,
+                         renderUtils.msaaSamples);
     sharedData->destination = "All";
 }
 
-void Skybox::draw(CommandBuffer * commandBuffer, uint32_t i, bool primaryDraw) {
-    if (selectedPreviewTab ==VkRender::CRL_TAB_3D_POINT_CLOUD && primaryDraw)
+void Skybox::draw(CommandBuffer *commandBuffer, uint32_t i, bool primaryDraw) {
+    if (selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD && primaryDraw)
         skybox->drawSkybox(commandBuffer, i);
 }
 
 void Skybox::update() {
     auto &d = bufferOneData;
+    // we can remove the translation section of transformation matrices by taking the upper-left 3x3 matrix of the
+    // 4x4 matrix. We can achieve this by converting the view matrix to a 3x3 matrix (removing translation)
+    // and converting it back to a 4x4 matrix:
     d->model = glm::mat4(glm::mat3(renderData.camera->matrices.view));
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -72,7 +77,7 @@ void Skybox::update() {
 void Skybox::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     for (const auto &d: uiHandle->devices) {
-        if (d.state !=VkRender::CRL_STATE_ACTIVE)
+        if (d.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
 

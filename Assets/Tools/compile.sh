@@ -57,8 +57,8 @@ echo "Compiled Default shaders"
 #echo "Compiled UI shaders"
 $glslc ${sceneDir}/pbr/object.vert -o ${sceneOutDir}object.vert.spv
 $glslc ${sceneDir}/pbr/object.frag -o ${sceneOutDir}object.frag.spv
-#$glslc ${sceneDir}/pbr/skybox.vert -o ${sceneOutDir}skybox.vert.spv
-#$glslc ${sceneDir}/pbr/skybox.frag -o ${sceneOutDir}skybox.frag.spv
+$glslc ${sceneDir}/pbr/skybox.vert -o ${sceneOutDir}skybox.vert.spv
+$glslc ${sceneDir}/pbr/skybox.frag -o ${sceneOutDir}skybox.frag.spv
 #$glslc ${sceneDir}/pbr/genbrdflut.vert -o ${sceneOutDir}genbrdflut.vert.spv
 #$glslc ${sceneDir}/pbr/genbrdflut.frag -o ${sceneOutDir}genbrdflut.frag.spv
 #$glslc ${sceneDir}/pbr/filtercube.vert -o ${sceneOutDir}filtercube.vert.spv

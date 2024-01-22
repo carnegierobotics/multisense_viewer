@@ -33,7 +33,6 @@ public:
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
-        model.reset();
     }
     /** @brief set if this script should be drawn or not. */
     void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
@@ -53,10 +52,6 @@ public:
     std::unique_ptr<CustomModels> model;
     bool enable = true;
     bool hide = false;
-
-
-    std::vector<VkRender::ScriptUtils::ResourceEntry> resourceTracker;
-
 
 };
 

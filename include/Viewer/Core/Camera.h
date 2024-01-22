@@ -59,7 +59,7 @@ namespace VkRender {
             if (type == CameraType::flycam) {
                 m_Target = m_Position + cameraFront;
 
-                matrices.view = glm::lookAt(m_Position, glm::vec3(0.0, 0.0, 0.0), cameraUp);
+                matrices.view = glm::lookAt(m_Position, m_Target, cameraUp);
                 // Convert to direction vector (assuming initial direction is along X-axis)
 
                 // matrices.view = glm::rotate(matrices.view, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -144,6 +144,13 @@ namespace VkRender {
             return m_Zfar;
         }
 
+        glm::mat4 lookat() {
+            glm::vec3 direction = glm::normalize(m_Target - m_Position);
+            glm::vec3 right = glm::normalize(glm::cross(cameraUp, direction));
+            glm::vec3 trueUp = glm::cross(direction, right);
+
+        }
+
         void setPerspective(float fov, float aspect, float zNear, float zFar) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
 
@@ -153,15 +160,15 @@ namespace VkRender {
             float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
             float x = focal_length / aspect;
             float y = -focal_length;
-            float A = zFar / (m_Zfar - m_Znear);
-            float B = m_Zfar * A;
+            float A = m_Zfar / (m_Znear - m_Zfar);
+            float B = focal_length * A;
 
 
             matrices.perspective = glm::mat4(
             x,    0.0f,  0.0f, 0.0f,
             0.0f,    y,  0.0f, 0.0f,
-            0.0f, 0.0f,     A,    B,
-            0.0f, 0.0f, -1.0f, 0.0f
+            0.0f, 0.0f,     A,    -1.0f,
+            0.0f, 0.0f, B, 0.0f
         );
         };
 
@@ -169,15 +176,15 @@ namespace VkRender {
             float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
             float x = focal_length / aspect;
             float y = -focal_length;
-            float A = m_Zfar / (m_Zfar - m_Znear);
-            float B = m_Zfar * A;
+            float A = m_Zfar / (m_Znear - m_Zfar);
+            float B = focal_length * A;
 
 
             matrices.perspective = glm::mat4(
             x,    0.0f,  0.0f, 0.0f,
             0.0f,    y,  0.0f, 0.0f,
-            0.0f, 0.0f,     A,    B,
-            0.0f, 0.0f, -1.0f, 0.0f
+            0.0f, 0.0f,     A,    -1.0f,
+            0.0f, 0.0f, B, 0.0f
         );
         }
 

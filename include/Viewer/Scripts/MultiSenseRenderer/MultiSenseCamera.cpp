@@ -180,7 +180,6 @@ void MultiSenseCamera::update() {
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
-
 }
 
 void MultiSenseCamera::setIMUSampleRate() {

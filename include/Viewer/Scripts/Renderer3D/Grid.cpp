@@ -14,8 +14,7 @@ void Grid::setup() {
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     resourceTracker.resize(renderUtils.UBCount);
-
-    model = std::make_unique<CustomModels>(&renderUtils, &resourceTracker);
+    model = std::make_unique<CustomModels>(&renderUtils);
     VkRender::ScriptUtils::ImageData imgData{};
     model->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
     model->createDescriptorSetLayout();
@@ -23,9 +22,15 @@ void Grid::setup() {
     model->createDescriptorSets();
     model->createGraphicsPipeline(shaders);
 
+    for (size_t i = 0; i < renderUtils.UBCount; ++i) {
+        resourceTracker[i].pipeline = model->pipelines[i];
+        resourceTracker[i].pipelineLayout = model->pipelineLayouts[i];
+        resourceTracker[i].descriptorSetLayout = model->descriptorSetLayouts[i];
+        resourceTracker[i].descriptorPool = model->descriptorPools[i];
+    }
+
+
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Grid", &enable);
-
-
 }
 
 
@@ -38,12 +43,7 @@ void Grid::update() {
 
 void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b && enable) {
-        model->draw(commandBuffer, i, &resourceTracker[i]);
-    }
-
-    // Check if we have resources that we can destroy
-    if (resourceTracker[i].flaggedForDestroy) {
-
+        model->draw(commandBuffer, i);
     }
 }
 

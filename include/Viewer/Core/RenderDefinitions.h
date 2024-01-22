@@ -300,6 +300,7 @@ namespace VkRender {
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
         std::mutex *queueSubmitMutex;
+        const std::vector<VkFence>* fence;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/

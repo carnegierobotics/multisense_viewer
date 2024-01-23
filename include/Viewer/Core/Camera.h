@@ -160,8 +160,8 @@ namespace VkRender {
             float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
             float x = focal_length / aspect;
             float y = -focal_length;
-            float A = m_Zfar / (m_Znear - m_Zfar);
-            float B = focal_length * A;
+            float A = -m_Zfar / (m_Zfar - m_Znear);
+            float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
 
 
             matrices.perspective = glm::mat4(
@@ -176,8 +176,8 @@ namespace VkRender {
             float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
             float x = focal_length / aspect;
             float y = -focal_length;
-            float A = m_Zfar / (m_Znear - m_Zfar);
-            float B = focal_length * A;
+            float A = m_Znear / (m_Zfar - m_Znear);
+            float B = m_Zfar * A;
 
 
             matrices.perspective = glm::mat4(

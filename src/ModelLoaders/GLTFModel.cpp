@@ -2078,7 +2078,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT,
-            VK_FALSE);
+            VK_TRUE);
 
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = Populate::pipelineColorBlendStateCreateInfo(1,
                                                                                                         &blendAttachmentState);

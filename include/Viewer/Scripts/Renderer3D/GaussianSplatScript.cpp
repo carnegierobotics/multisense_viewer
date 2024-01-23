@@ -65,11 +65,11 @@ void GaussianSplatScript::setup() {
         vkMemoryGetWin32HandleInfoKHR.memory = textures[i].m_DeviceMemory;
         vkMemoryGetWin32HandleInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 
-        if (fpGetMemoryWin32HandleKHR(renderUtils.device->m_LogicalDevice, &vkMemoryGetWin32HandleInfoKHR, &handles[i]) !=
+        if (fpGetMemoryWin32HandleKHR(renderUtils.device->m_LogicalDevice, &vkMemoryGetWin32HandleInfoKHR,
+                                      &handles[i]) !=
             VK_SUCCESS) {
             Log::Logger::getInstance()->error("vkGetMemoryWin32HandleKHR not available");
-            }
-
+        }
     }
     stbi_image_free(pixels);
 
@@ -95,7 +95,7 @@ void GaussianSplatScript::setup() {
     cudaStream_t streamToRun;
     checkCudaErrors(cudaStreamCreate(&streamToRun));
     */
-    auto camParams = renderData.camera->getFocalParams(1280, 720);
+    auto camParams = renderData.camera->getFocalParams(texWidth, texHeight);
 
     settings.camPos = renderData.camera->m_Position;
     settings.viewMat = renderData.camera->matrices.view;
@@ -108,9 +108,10 @@ void GaussianSplatScript::setup() {
 
     cudaImplementation = std::make_unique<CudaImplementation>(&settings, handles);
 
+
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
     Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "##scale modifier", &scaleModifier, 0.1f, 5.0f);
-
+    /*
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera pos");
     Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera pos", &cameraPos);
 
@@ -120,24 +121,25 @@ void GaussianSplatScript::setup() {
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera up");
     Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera up", &up);
 
-
+    */
 }
 
 
 void GaussianSplatScript::update() {
-    mvpMat.model = glm::mat4(1.0f);
+    mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;
     memcpy(uniformBuffers[renderData.index].mapped, &mvpMat, sizeof(VkRender::UBOMatrix));
 
     settings.scaleModifier = scaleModifier;
-    cudaImplementation->updateCameraPose(mvpMat.view, mvpMat.projection, renderData.camera->m_Position);
+    cudaImplementation->updateCameraPose(renderData.camera->matrices.view, renderData.camera->matrices.perspective,
+                                         renderData.camera->m_Position);
     cudaImplementation->updateSettings(settings);
 }
 
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
-    cudaImplementation->draw(i);
     if (b) {
+        cudaImplementation->draw(i);
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipeline->data.pipelineLayout, 0,
                                 1,
@@ -145,16 +147,13 @@ void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b)
         vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->data.pipeline);
         const VkDeviceSize offsets[1] = {0};
         vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &mesh->model.vertices.buffer, offsets);
-        vkCmdDraw(commandBuffer->buffers[i], 3, 1, 0, 0);
-
-        /*
+        //vkCmdDraw(commandBuffer->buffers[i], 6, 1, 0, 0);
         if (mesh->model.indexCount) {
             vkCmdBindIndexBuffer(commandBuffer->buffers[i], mesh->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(commandBuffer->buffers[i], mesh->model.indexCount, 1, mesh->model.firstIndex, 0, 0);
         }
         else {
         }
-        */
     }
 }
 

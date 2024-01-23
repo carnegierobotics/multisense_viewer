@@ -65,9 +65,6 @@ namespace VkRender {
                 // matrices.view = glm::rotate(matrices.view, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                 // m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
             } else if (type == CameraType::arcball) {
-
-
-
                 // 1. Translate the scene so that the camera's position becomes the origin
                 // 2. Apply rotations
                 glm::mat4 rotM = glm::mat4(1.0f);
@@ -76,7 +73,7 @@ namespace VkRender {
 
                 // 4. Translate the camera based on the zoom value
 
-                glm::mat4 transM = glm::translate(glm::mat4(1.0f), zoomVal * m_Position);
+                glm::mat4 transM = glm::translate(glm::mat4(1.0f), -zoomVal * m_Position);
                 glm::mat4 transMat = glm::translate(glm::mat4(1.0f), m_Translate);
 
                 matrices.view = transM * rotM * transMat;
@@ -176,8 +173,8 @@ namespace VkRender {
             float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
             float x = focal_length / aspect;
             float y = -focal_length;
-            float A = m_Znear / (m_Zfar - m_Znear);
-            float B = m_Zfar * A;
+            float A = -m_Zfar / (m_Zfar - m_Znear);
+            float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
 
 
             matrices.perspective = glm::mat4(
@@ -193,7 +190,7 @@ namespace VkRender {
             m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
 
             if (type == arcball) {
-                this->m_Position = pos * glm::vec3(0.0f, 0.0f, -1.0f); // Setting for arcball we just want a Z value
+                this->m_Position = pos * glm::vec3(0.0f, 0.0f, 1.0f); // Setting for arcball we just want a Z value
             } else
                 this->m_Position = pos;
 

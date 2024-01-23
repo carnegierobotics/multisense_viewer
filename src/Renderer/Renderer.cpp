@@ -378,7 +378,7 @@ void Renderer::updateUniformBuffers() {
         camera.resetPosition();
         camera.resetRotation();
     }
-    guiManager->handles.camera.pos = camera.m_Position;
+    guiManager->handles.camera.pos = glm::vec3(glm::inverse(camera.matrices.view)[3]);
     guiManager->handles.camera.up = camera.cameraUp;
     guiManager->handles.camera.target = camera.m_Target;
     guiManager->handles.camera.cameraFront = camera.cameraFront;

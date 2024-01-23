@@ -39,7 +39,6 @@ public:
     void draw(uint32_t i);
 
     void updateCameraIntrinsics(float hfox, float hfovy);
-    void printTensor(const torch::Tensor& tensor);
 
     void updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 pos);
     void updateSettings(const RasterSettings& settings);

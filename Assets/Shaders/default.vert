@@ -29,11 +29,11 @@ vec2 texpos[3] = vec2[3](
 void main() {
     //gl_Position = positions[gl_VertexIndex];
     //outUV = texpos[gl_VertexIndex];
+    //vec4 pos = ubo.model * vec4(inPos, 1.0f);
+    //gl_Position =  ubo.projection * ubo.view * vec4(pos.xyz, 1.0);
 
-    //vec4  locPos = ubo.model * vec4(inPos, 1.0);
-    //vec3 outWorldPos = locPos.xyz / locPos.w;
-	//outUV = inUV;
-	//gl_Position = vec4(inPos, 1.0);
-	//gl_Position = ubo.projection * ubo.view * vec4(outWorldPos, 1.0);
+    //gl_Position = vec4(inPos, 1.0);
+    //outUV = inUV;
+
 }
 

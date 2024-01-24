@@ -82,8 +82,8 @@ Renderer::Renderer(const std::string& title) : VulkanRenderer(title) {
 
 
 void Renderer::prepareRenderer() {
-    camera.type = VkRender::Camera::arcball;
-    camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.001f, 100.0f);
+    camera.type = VkRender::Camera::flycam;
+    camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
     camera.resetPosition();
     camera.resetRotation();
     createSelectionImages();

@@ -49,12 +49,14 @@ private:
     torch::Tensor opacity;
     torch::Tensor scales;
     torch::Tensor rotations;
-    torch::Tensor cov3D_precomp;
     torch::Tensor colors;
     torch::Tensor viewmatrix;
     torch::Tensor projmatrix;
+
+
     torch::Tensor campos;
     torch::Tensor bg;
+    torch::Tensor cov3Dprecompute;
 
     float scale_modifier = 0;
     float tan_fovx = 0;

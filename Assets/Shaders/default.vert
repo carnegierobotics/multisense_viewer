@@ -14,26 +14,14 @@ layout (set = 0, binding = 0) uniform UBO
 
 layout(location = 0) out vec2 outUV;
 
-vec4 positions[3] = vec4[3](
-    vec4(-1.0, 1.0, 0.0, 1.0),
-    vec4(3.0, 1.0, 0.0, 1.0),
-    vec4(-1.0, -3.0, 0.0, 1.0)
-);
-
-vec2 texpos[3] = vec2[3](
-    vec2(0, 0),
-    vec2(2, 0),
-    vec2(0, 2)
-);
-
 void main() {
     //gl_Position = positions[gl_VertexIndex];
     //outUV = texpos[gl_VertexIndex];
     //vec4 pos = ubo.model * vec4(inPos, 1.0f);
     //gl_Position =  ubo.projection * ubo.view * vec4(pos.xyz, 1.0);
 
-    //gl_Position = vec4(inPos, 1.0);
-    //outUV = inUV;
+    gl_Position = vec4(inPos, 1.0);
+    outUV = inUV;
 
 }
 

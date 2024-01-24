@@ -30,8 +30,9 @@ void GaussianSplatScript::setup() {
     uniformBuffers.resize(renderUtils.UBCount);
     textures.resize(renderUtils.UBCount);
     // Create texture m_Image if not created
-    int texWidth = 0, texHeight = 0, texChannels = 0;
+    int texWidth = 1280, texHeight = 720, texChannels = 0;
 
+    /*
     auto pixels = stbi_load((Utils::getTexturePath().append("rover.png")).string().c_str(), &texWidth, &texHeight,
                             &texChannels,
                             STBI_rgb_alpha);
@@ -39,6 +40,9 @@ void GaussianSplatScript::setup() {
         Log::Logger::getInstance()->error("Failed to load texture image {}",
                                           (Utils::getTexturePath().append("rover.png")).string());
     }
+    */
+    auto* pixels = malloc(texWidth * texHeight * 4);
+
     PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
         vkGetInstanceProcAddr(*renderUtils.instance, "vkGetMemoryWin32HandleKHR"));
     if (fpGetMemoryWin32HandleKHR == nullptr) {
@@ -133,7 +137,7 @@ void GaussianSplatScript::update() {
 
     settings.scaleModifier = scaleModifier;
     cudaImplementation->updateCameraPose(renderData.camera->matrices.view, renderData.camera->matrices.perspective,
-                                         renderData.camera->m_Position);
+                                         renderData.camera->m_Target);
     cudaImplementation->updateSettings(settings);
 }
 

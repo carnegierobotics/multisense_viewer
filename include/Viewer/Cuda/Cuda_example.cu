@@ -18,9 +18,8 @@
 #include <Viewer/Tools/helper_cuda.h>
 
 #include <opencv2/opencv.hpp>
-#include <glm/gtx/transform.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 void printTensor(const torch::Tensor& tensor, bool printContents = false) {
     std::cout << "Shape/Size: " << tensor.sizes() << std::endl;
@@ -28,6 +27,7 @@ void printTensor(const torch::Tensor& tensor, bool printContents = false) {
     std::cout << "Device: " << tensor.device() << std::endl;
     if (printContents)
         std::cout << "Data: " << tensor << std::endl;
+    std::cout << std::endl;
 }
 
 // GaussianData class definition
@@ -43,7 +43,7 @@ public:
         return torch::cat({xyz, rot, scale, opacity, sh}, -1).contiguous();
     }
 
-    size_t length() const {
+    int64_t length() const {
         return xyz.size(0);
     }
 
@@ -104,20 +104,21 @@ GaussianData naive_gaussian() {
                                  },
                                  torch::dtype(torch::kFloat32)).view({-1, 4});
     auto gau_s = torch::tensor({
-                                   0.03, 0.03, 0.03,
+                                   0.1, 0.1, 0.1,
                                    0.2, 0.03, 0.03,
                                    0.03, 0.2, 0.03,
                                    0.03, 0.03, 0.2
                                },
                                torch::dtype(torch::kFloat32)).view({-1, 3});
     auto gau_c = torch::tensor({
-                                   1, 0, 1,
-                                   1, 0, 0,
-                                   0, 1, 0,
-                                   0, 0, 1
+        1, 0, 1,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
                                },
                                torch::dtype(torch::kFloat32)).view({-1, 3});
     gau_c = (gau_c - 0.5) / 0.28209;
+
     auto gau_a = torch::tensor({1, 1, 1, 1}, torch::dtype(torch::kFloat32)).view({-1, 1});
 
     return GaussianData(gau_xyz, gau_rot, gau_s, gau_a, gau_c);
@@ -304,7 +305,7 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
         cudaExtent extent = {0, 0, 0};
         extent.width = settings->imageWidth;
         extent.height = settings->imageHeight;
-        extent.depth = 0;
+        extent.depth = 1;
 
         unsigned int flags = 0;
         flags |= cudaArrayLayered;
@@ -341,10 +342,12 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
     // Example usage
     means3D = gaussianData.xyz.to(device);
     shs = gaussianData.sh.to(device);
+    auto len = gaussianData.length();
+    shs = shs.view({gaussianData.length(), -1, 3}).contiguous();
     opacity = gaussianData.opacity.to(device);
     scales = gaussianData.scale.to(device);
     rotations = gaussianData.rot.to(device);
-    cov3D_precomp = torch::tensor({}).to(device);
+    cov3Dprecompute = torch::tensor({}).to(device);
     colors = torch::tensor({}).to(device);
     degree = 0;
 
@@ -369,28 +372,136 @@ void CudaImplementation::updateGaussianData() {
     */
 }
 
-void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 pos) {
+glm::mat4 createViewMat(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up) {
+    auto Z = glm::normalize(center - eye);
+    auto X = glm::normalize(glm::cross(Z, up));
+    auto Y = glm::normalize(glm::cross(X, Z));
+
+    glm::mat4 Result(1.0f);
+    Result[0][0] = X.x;
+    Result[1][0] = X.y;
+    Result[2][0] = X.z;
+    Result[0][1] = Y.x;
+    Result[1][1] = Y.y;
+    Result[2][1] = Y.z;
+    Result[0][2] = -Z.x;
+    Result[1][2] = -Z.y;
+    Result[2][2] = -Z.z;
+    Result[3][0] = -dot(X, eye);
+    Result[3][1] = -dot(Y, eye);
+    Result[3][2] = dot(Z, eye);
+    return Result;
+}
+
+void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 target) {
     torch::Device device(torch::kCUDA);
 
-    auto cameraPos = glm::vec3(glm::inverse(view)[3]);
-    // Inverting the first and third rows of the view matrix
-    // Note: GLM is column-major, so we access columns via view[col][row]
-    view = glm::lookAt(-cameraPos, glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    view[0][0] = -view[0][0];
-    view[1][0] = -view[1][0];
-    view[2][0] = -view[2][0];
-    view[3][0] = -view[3][0];
-    ////
-    view[0][2] = -view[0][2];
-    view[1][2] = -view[1][2];
-    view[2][2] = -view[2][2];
-    view[3][2] = -view[3][2];
+    glm::vec3 cameraPos = glm::inverse(view)[3];
 
-    proj = glm::perspective(60.0f, 1024.0f / 1024.0f, 0.01f, 100.0f);
+    //glm::vec3 cameraPos(3.0f, -3.0f, 0.0f);
+    glm::vec3 dirNorm = glm::normalize(target - cameraPos);
+    glm::vec3 worldUp(0.0f, 0.0f, 1.0f);
+    glm::vec3 right = glm::cross(worldUp, dirNorm);
+    glm::vec3 cameraUp = glm::cross(dirNorm, right);
+    glm::mat4 cameraTrans(
+        right.x, right.y, right.z, 0,
+        cameraUp.x, cameraUp.y, cameraUp.z, 0,
+        -dirNorm.x, -dirNorm.y, -dirNorm.z, 0,
+        cameraPos.x, cameraPos.y, cameraPos.z, 1
+    );
+    view = glm::inverse(cameraTrans);
+    //std::cout << dirNorm.x << ", " << dirNorm.y << ", " << dirNorm.z << std::endl;
+
+    view[0][0] *= -1;
+    view[1][0] *= -1;
+    view[2][0] *= -1;
+    view[3][0] *= -1;
+
+    view[0][2] *= -1;
+    view[1][2] *= -1;
+    view[2][2] *= -1;
+    view[3][2] *= -1;
+
+    float aspect = 1280.0f/720.0f;
+    float far = 100;
+    float near = 0.01;
+    float focal_length = 1.0f / tan(glm::radians(60.0f)* 0.5f) ;
+    float x = focal_length / aspect;
+    float y = focal_length;
+    float A = far / (far - near);
+    float B = -far * near / (far -near);
+
+
+    proj = glm::mat4(
+    x,    0.0f,  0.0f, 0.0f,
+    0.0f,    y,  0.0f, 0.0f,
+    0.0f, 0.0f,     A,    1.0f,
+    0.0f, 0.0f, B, 0.0f);
+
+
     glm::mat4 projView = proj * view;
     viewmatrix = ConvertGlmMat4ToTensor(view).to(device);
     projmatrix = ConvertGlmMat4ToTensor(projView).to(device);
+    //printTensor(viewmatrix, true);
+    //printTensor(projmatrix, true);
     campos = ConvertGlmVec3ToTensor(cameraPos).to(torch::kFloat).to(device);
+
+    return;
+    cov3Dprecompute = torch::zeros({4, 6}); // size 6 with n rows
+    float* ptr = cov3Dprecompute.data_ptr<float>();
+    // Precomp 3D
+    for (int64_t i = 0; i < 4; ++i) {
+        // Create scaling matrix
+        auto scaleTensor = scales.index({i, torch::indexing::Slice()}).to(torch::kCPU);
+        //printTensor(scaleTensor, true);
+        glm::vec3 scale(0.0f);
+        // Ensure the tensor is of the expected size
+        if (scaleTensor.numel() == 3) {
+            std::memcpy(&scale[0], scaleTensor.data_ptr<float>(), 3 * sizeof(float));
+        }
+        else {
+            // Handle error: The tensor does not have the expected size
+        }
+        glm::mat3 S = glm::mat3(1.0f);
+        S[0][0] = scale_modifier * scale.x;
+        S[1][1] = scale_modifier * scale.y;
+        S[2][2] = scale_modifier * scale.z;
+        auto rotTensor = rotations.index({i, torch::indexing::Slice()}).to(torch::kCPU);
+
+        // Normalize quaternion to get valid rotation
+        glm::vec4 q(0.0f);; // / glm::length(rot);
+
+        if (scaleTensor.numel() == 4) {
+            std::memcpy(&q[0], rotTensor.data_ptr<float>(), 4 * sizeof(float));
+        }
+        else {
+            // Handle error: The tensor does not have the expected size
+        }
+        float r = q.x;
+        float x = q.y;
+        float y = q.z;
+        float z = q.w;
+        // Compute rotation matrix from quaternion
+        glm::mat3 R = glm::mat3(
+            1.f - 2.f * (y * y + z * z), 2.f * (x * y - r * z), 2.f * (x * z + r * y),
+            2.f * (x * y + r * z), 1.f - 2.f * (x * x + z * z), 2.f * (y * z - r * x),
+            2.f * (x * z - r * y), 2.f * (y * z + r * x), 1.f - 2.f * (x * x + y * y)
+        );
+
+        glm::mat3 M = R * S;
+
+        // Compute 3D world covariance matrix Sigma
+        glm::mat3 Sigma = glm::transpose(M) * M;
+
+        // Covariance is symmetric, only store upper right
+        ptr[0 + (i * 6)] = Sigma[0][0];
+        ptr[1 + (i * 6)] = Sigma[0][1];
+        ptr[2 + (i * 6)] = Sigma[0][2];
+        ptr[3 + (i * 6)] = Sigma[1][1];
+        ptr[4 + (i * 6)] = Sigma[1][2];
+        ptr[5 + (i * 6)] = Sigma[2][2];
+    }
+    //printTensor(cov3Dprecompute, true);
 }
 
 void CudaImplementation::updateSettings(const CudaImplementation::RasterSettings& settings) {
@@ -409,7 +520,7 @@ void CudaImplementation::draw(uint32_t i) {
     // Call the function
     std::tie(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer) = RasterizeGaussiansCUDA(
         bg, means3D, colors, opacity, scales, rotations,
-        scale_modifier, cov3D_precomp, viewmatrix, projmatrix, tan_fovx, tan_fovy,
+        scale_modifier, cov3Dprecompute, viewmatrix, projmatrix, tan_fovx, tan_fovy,
         image_height, image_width, shs, degree, campos, prefiltered, debug
     );
     // Ensure the tensor is on the CPU and is a byte tensor
@@ -421,14 +532,18 @@ void CudaImplementation::draw(uint32_t i) {
     img_with_alpha = img_with_alpha.contiguous();
     size_t data_size = img_with_alpha.numel(); // Assuming the tensor is of type torch::kFloat
     //printTensor(img_with_alpha);
+    img_with_alpha = torch::clamp(img_with_alpha, 0, 255);
+    img_with_alpha = img_with_alpha.to(torch::kU8);
+    auto img_with_alpha_ptr = img_with_alpha.data_ptr<uint8_t>();
 
     cudaArray_t levelArray;
     checkCudaErrors(cudaGetMipmappedArrayLevel(&levelArray, cudaMipMappedArrays[i], 0)); // 0 for the first level
 
-    cudaMemcpy3DParms p = {0};
-    p.srcPtr = make_cudaPitchedPtr(img_with_alpha.data_ptr(), 1024 * 16, 1024, 1024);
+    cudaMemcpy3DParms p{};
+    memset(&p, 0x00, sizeof(cudaMemcpy3DParms));
+    p.srcPtr = make_cudaPitchedPtr(img_with_alpha_ptr, 1280 * 4, 1280, 720);
     p.dstArray = levelArray;
-    p.extent = make_cudaExtent(1024, 1024, 1); // depth is 1 for 2D
+    p.extent = make_cudaExtent(1280, 720, 1); // depth is 1 for 2D
     p.kind = cudaMemcpyDeviceToDevice;
     checkCudaErrors(cudaMemcpy3D(&p));
     /*
@@ -447,9 +562,13 @@ void CudaImplementation::draw(uint32_t i) {
             img = img.contiguous();
 
             cv::Mat mat(img.size(0), img.size(1), CV_32FC(img.size(2)), img.data_ptr<float>());
-
+            cv::Mat img_flipped;
+            cv::Mat img_flipped_x;
+            cv::flip(mat, img_flipped, 0); // Flip the image vertically
+            cv::cvtColor(img_flipped, img_flipped, cv::COLOR_BGR2RGB);
             // Display the image
-            cv::imshow("Output Image", mat);
+            cv::imshow("Output Image", img_flipped);
+            //cv::imshow("Output Image flipped x", img_flipped_x);
             cv::waitKey(1); // Wait for a key press (use 0 for infinite wait)
         }
     }

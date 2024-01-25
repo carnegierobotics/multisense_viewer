@@ -20,8 +20,8 @@ void main() {
     //vec4 pos = ubo.model * vec4(inPos, 1.0f);
     //gl_Position =  ubo.projection * ubo.view * vec4(pos.xyz, 1.0);
 
-    gl_Position = vec4(inPos, 1.0);
-    outUV = inUV;
+    //gl_Position = vec4(inPos, 1.0);
+    //outUV = inUV;
 
 }
 

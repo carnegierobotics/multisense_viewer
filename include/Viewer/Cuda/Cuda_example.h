@@ -33,7 +33,7 @@ public:
         glm::mat4 projMat;
         glm::vec3 camPos;
     };
-    CudaImplementation(const RasterSettings *settings, std::vector<void*> handles);
+    CudaImplementation(const RasterSettings *settings, std::vector<void*> handles, const std::filesystem::path& modelPath);
     void updateGaussianData();
 
     void draw(uint32_t i);

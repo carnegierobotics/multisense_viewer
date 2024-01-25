@@ -120,6 +120,8 @@ GaussianData naive_gaussian() {
     gau_c = (gau_c - 0.5) / 0.28209;
 
     auto gau_a = torch::tensor({1, 1, 1, 1}, torch::dtype(torch::kFloat32)).view({-1, 1});
+    printTensor(gau_xyz);
+    printTensor(gau_a);
 
     return GaussianData(gau_xyz, gau_rot, gau_s, gau_a, gau_c);
 }
@@ -157,16 +159,49 @@ GaussianData loadPly(std::filesystem::path filePath) {
         opacity_values.push_back(v.opacity);
     }
 
-    auto x_tensor = torch::from_blob(x_values.data(), {static_cast<int64>(vertices.size())}, torch::kFloat32);
-    auto y_tensor = torch::from_blob(y_values.data(), {static_cast<int64>(vertices.size())}, torch::kFloat32);
-    auto z_tensor = torch::from_blob(z_values.data(), {static_cast<int64>(vertices.size())}, torch::kFloat32);
+    int64_t numVertices = static_cast<int64>(vertices.size());
+    auto x_tensor = torch::from_blob(x_values.data(), {numVertices}, torch::kFloat32);
+    auto y_tensor = torch::from_blob(y_values.data(), {numVertices}, torch::kFloat32);
+    auto z_tensor = torch::from_blob(z_values.data(), {numVertices}, torch::kFloat32);
     auto xyz_tensor = torch::stack({x_tensor, y_tensor, z_tensor}, 1);
     auto opacities_tensor = torch::from_blob(opacity_values.data(), {static_cast<int64>(vertices.size())},
                                              torch::kFloat32);
     auto opacities_tensor_reshaped = opacities_tensor.unsqueeze(-1);
 
-    // Continue reading the file based on header information
+    auto opacities = torch::sigmoid(opacities_tensor_reshaped);
 
+    torch::Tensor rotations = torch::empty({numVertices, 4});
+    torch::Tensor scales = torch::empty({numVertices, 3});
+    torch::Tensor shs = torch::empty({numVertices, 3});
+
+    rotations.zero_();
+    scales.zero_();
+    shs.zero_();
+    /*
+    // Set the first element of each row to 1
+    for (int64_t i = 0; i < numVertices; ++i) {
+        rotations[i][0] = 1;
+        scales[i][0] = 0.02;
+        scales[i][1] = 0.02;
+        scales[i][2] = 0.02;
+        shs[i][0] = 1;
+    }
+    */
+    // Set the first element of each row to 1 for rotations and shs
+    rotations.index({torch::indexing::Slice(), 0}) = 1;
+    shs.index({torch::indexing::Slice(), 0}) = 1;
+
+    // Set all elements of scales to x
+    scales.fill_(0.02);
+
+    printTensor(xyz_tensor);
+    printTensor(rotations);
+    printTensor(scales);
+    printTensor(opacities);
+    printTensor(shs);
+
+    // Continue reading the file based on header information
+    /*
     int64_t num_vertices = vertices.size();
     auto features_dc = torch::zeros({num_vertices, 3, 1}, torch::kFloat32);
     std::vector<float> f_dc_0_values, f_dc_1_values, f_dc_2_values;
@@ -264,10 +299,11 @@ GaussianData loadPly(std::filesystem::path filePath) {
     auto features_dc_expanded = features_dc_reshaped.unsqueeze(-1).expand({-1, -1, 3});
 
     auto shs = torch::cat({features_dc_expanded, features_extra}, 1);
+     */
     return {xyz_tensor, rotations, scales, opacities, shs};
 }
 
-CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vector<void*> handles) {
+CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vector<void*> handles, const std::filesystem::path& modelPath) {
     this->handles = handles;
 
     cudaExtMem.resize(handles.size());
@@ -336,9 +372,10 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
     degree = settings->shDegree;
     prefiltered = settings->prefilter;
     debug = settings->debug;
-
-    //auto gaussianData = loadPly("C:\\Users\\mgjer\\Downloads\\models\\room\\point_cloud\\iteration_7000\\point_cloud.ply");
-    auto gaussianData = naive_gaussian();
+    std::filesystem::path pointCloudPath = "point_cloud/iteration_7000/point_cloud.ply";
+    std::filesystem::path fullPath = modelPath / pointCloudPath;
+    auto gaussianData = loadPly(fullPath);
+    auto gaussianData2 = naive_gaussian();
     // Example usage
     means3D = gaussianData.xyz.to(device);
     shs = gaussianData.sh.to(device);

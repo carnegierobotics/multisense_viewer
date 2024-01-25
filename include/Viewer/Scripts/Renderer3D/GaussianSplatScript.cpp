@@ -124,8 +124,10 @@ void GaussianSplatScript::setup() {
 
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera up");
     Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera up", &up);
-
     */
+
+    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "load model", filePathDialog, &openDialog);
+
 }
 
 

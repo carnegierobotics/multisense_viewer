@@ -63,6 +63,7 @@ public:
     std::unique_ptr<RenderResource::Pipeline> pipeline;
 
     std::unique_ptr<CudaImplementation> cudaImplementation;
+    char filePathDialog[1024] = "C:\\Users\\mgjer\\Downloads\\models\\room";
 
     float scaleModifier = 1.0f;
     glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);

@@ -19,8 +19,6 @@ void Humvee::setup() {
     humvee->createRenderPipeline(renderUtils, shaders);
 
 
-    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "Set file", filePathDialog, &openDialog);
-
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Start", &play);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Pause", &pause);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Stop", &restart);

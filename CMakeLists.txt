@@ -227,7 +227,7 @@ if (WIN32)
     include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer;${OpenCV_LIBS})
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer ${OpenCV_LIBS} tinyply)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations CUDA::cuda_driver)

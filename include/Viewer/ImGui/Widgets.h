@@ -25,54 +25,54 @@ typedef enum ScriptWidgetPlacement {
     WIDGET_PLACEMENT_IMU = 1,
     WIDGET_PLACEMENT_POINTCLOUD = 2,
     WIDGET_PLACEMENT_MULTISENSE_RENDERER = 3
-}ScriptWidgetPlacement ;
+} ScriptWidgetPlacement;
 
 class Widgets {
-
 private:
     struct Element {
         std::string label;
-        float *value = nullptr;
+        float* value = nullptr;
         float minValue = 0.0f;
         float maxValue = 1.0f;
-        bool *button = nullptr;
-        bool *checkbox = nullptr;
-        int *intValue = nullptr;
+        bool* button = nullptr;
+        bool* checkbox = nullptr;
+        int* intValue = nullptr;
         int intMin = 0;
         int intMax = 1;
-        char *buf = nullptr;
-        bool *active = nullptr;
+        char* buf = nullptr;
+        bool* active = nullptr;
         bool activeVal = false;
         std::string id;
         ScriptWidgetType type{};
+
         struct {
             glm::vec3* vec3{};
             char xBuf[16] = {0};
             char yBuf[16] = {0};
             char zBuf[16] = {0};
-        }glm;
+        } glm;
 
-        Element(const char *labelVal, float *valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
-                                                                                   minValue(minVal), maxValue(maxVal) {
+        Element(const char* labelVal, float* valPtr, float minVal, float maxVal) : label(labelVal), value(valPtr),
+            minValue(minVal), maxValue(maxVal) {
             type = WIDGET_FLOAT_SLIDER;
         }
 
-        Element(const char *labelVal, int *valPtr, int minVal, int maxVal, bool *valueChanged) : label(labelVal),
-                                                                                                 intValue(valPtr),
-                                                                                                 intMin(minVal),
-                                                                                                 intMax(maxVal),
-                                                                                                 active(valueChanged) {
+        Element(const char* labelVal, int* valPtr, int minVal, int maxVal, bool* valueChanged) : label(labelVal),
+            intValue(valPtr),
+            intMin(minVal),
+            intMax(maxVal),
+            active(valueChanged) {
             type = WIDGET_INT_SLIDER;
             if (valueChanged == nullptr) {
                 active = &activeVal;
             }
         }
 
-        Element(const char *labelVal, std::string _id = "") : label(labelVal), id(_id) {
+        Element(const char* labelVal, std::string _id = "") : label(labelVal), id(_id) {
             type = WIDGET_TEXT;
         }
 
-        Element(const char *labelVal, glm::vec3* valPtr) : label(labelVal) {
+        Element(const char* labelVal, glm::vec3* valPtr) : label(labelVal) {
             type = WIDGET_GLM_VEC_3;
             glm.vec3 = valPtr;
 
@@ -88,28 +88,32 @@ private:
         }
 
 
-        Element(const char *labelVal, bool *check) : label(labelVal), checkbox(check) {
+        Element(const char* labelVal, bool* check) : label(labelVal), checkbox(check) {
             type = WIDGET_CHECKBOX;
         }
 
-        Element(const char *labelVal, bool *btn, ScriptWidgetType _type) : label(labelVal), button(btn), type(_type) {
+        Element(const char* labelVal, bool* btn, ScriptWidgetType _type) : label(labelVal), button(btn), type(_type) {
         }
 
-        Element(const char *labelVal, char *_buf) : label(labelVal), buf(_buf) {
-
+        Element(const char* labelVal, char* _buf) : label(labelVal), buf(_buf) {
             type = WIDGET_INPUT_TEXT;
         }
 
-        Element(const char *labelVal, char *_buf, bool *btn, ScriptWidgetType _type) : label(labelVal), button(btn), buf(_buf),  type(_type) {
+        /**File dialog constructor **/
+        std::future<std::string>* future;
+
+        Element(const char* labelVal, std::future<std::string>* _future, ScriptWidgetType _type) : label(labelVal),
+            future(_future), type(_type) {
         }
     };
 
-    static Widgets *m_Instance;
+    static Widgets* m_Instance;
 
-    bool labelExists(const char *label, const ScriptWidgetPlacement &window) {
-        for (const auto& elem : elements[window]){
-            if (elem.label == label){
-                Log::Logger::getInstance()->warning("Label {} already exists in window {}", label, static_cast<int>(window));
+    bool labelExists(const char* label, const ScriptWidgetPlacement& window) {
+        for (const auto& elem : elements[window]) {
+            if (elem.label == label) {
+                Log::Logger::getInstance()->warning("Label {} already exists in window {}", label,
+                                                    static_cast<int>(window));
                 return true;
             }
         }
@@ -120,40 +124,41 @@ private:
 public:
     std::unordered_map<ScriptWidgetPlacement, std::vector<Element>> elements;
 
-    void slider(ScriptWidgetPlacement window, const char *label, float *value, float min = 0.0f, float max = 1.0f) {
+    void slider(ScriptWidgetPlacement window, const char* label, float* value, float min = 0.0f, float max = 1.0f) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, value, min, max);
     }
 
-    void vec3(ScriptWidgetPlacement window, const char *label, glm::vec3 *value) {
+    void vec3(ScriptWidgetPlacement window, const char* label, glm::vec3* value) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, value);
     }
 
     void
-    slider(ScriptWidgetPlacement window, const char *label, int *value, int min = 0, int max = 10, bool *valueChanged = nullptr) {
+    slider(ScriptWidgetPlacement window, const char* label, int* value, int min = 0, int max = 10,
+           bool* valueChanged = nullptr) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, value, min, max, valueChanged);
     }
 
-    void text(ScriptWidgetPlacement window, const char *label) {
+    void text(ScriptWidgetPlacement window, const char* label) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label);
     }
 
     void updateText(ScriptWidgetPlacement window, std::string prevLabel, std::string newLabel) {
-        for (auto &el: elements[window]) {
+        for (auto& el : elements[window]) {
             if (el.label == prevLabel) {
                 el.label = newLabel;
             }
         }
     }
 
-    void checkbox(ScriptWidgetPlacement window, const char *label, bool *val) {
+    void checkbox(ScriptWidgetPlacement window, const char* label, bool* val) {
         auto& windowElements = elements[window];
         for (auto& element : windowElements) {
             if (element.label == label) {
@@ -166,27 +171,26 @@ public:
         elements[window].emplace_back(label, val);
     }
 
-    void button(ScriptWidgetPlacement window, const char *label, bool *val) {
+    void button(ScriptWidgetPlacement window, const char* label, bool* val) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, val, WIDGET_BUTTON);
     }
 
-    void inputText(ScriptWidgetPlacement window, const char *label, char *buf) {
+    void inputText(ScriptWidgetPlacement window, const char* label, char* buf) {
         if (labelExists(label, window))
             return;
         elements[window].emplace_back(label, buf);
     }
 
 
-    void fileDialog(ScriptWidgetPlacement window, const char *label, char *buf, bool* btn) {
+    void fileDialog(ScriptWidgetPlacement window, const char* label, std::future<std::string>* future) {
         if (labelExists(label, window))
             return;
-        elements[window].emplace_back(label, buf, btn, WIDGET_SELECT_DIR_DIALOG);
-
+        elements[window].emplace_back(label, future, WIDGET_SELECT_DIR_DIALOG);
     }
 
-    static Widgets *make();
+    static Widgets* make();
 
     static void clear();
 };

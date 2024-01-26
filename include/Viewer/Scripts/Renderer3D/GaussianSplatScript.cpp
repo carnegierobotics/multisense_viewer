@@ -31,24 +31,12 @@ void GaussianSplatScript::setup() {
     textures.resize(renderUtils.UBCount);
     // Create texture m_Image if not created
     int texWidth = 1280, texHeight = 720, texChannels = 0;
-
-    /*
-    auto pixels = stbi_load((Utils::getTexturePath().append("rover.png")).string().c_str(), &texWidth, &texHeight,
-                            &texChannels,
-                            STBI_rgb_alpha);
-    if (!pixels) {
-        Log::Logger::getInstance()->error("Failed to load texture image {}",
-                                          (Utils::getTexturePath().append("rover.png")).string());
-    }
-    */
     auto* pixels = malloc(texWidth * texHeight * 4);
-
     PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
         vkGetInstanceProcAddr(*renderUtils.instance, "vkGetMemoryWin32HandleKHR"));
     if (fpGetMemoryWin32HandleKHR == nullptr) {
         Log::Logger::getInstance()->error("Function not available");
     }
-    std::vector<void*> handles;
     handles.resize(textures.size());
 
     for (size_t i = 0; i < renderUtils.UBCount; ++i) {
@@ -110,7 +98,6 @@ void GaussianSplatScript::setup() {
     settings.tanFovY = camParams.htany;
     settings.tanFovX = camParams.htanx;
 
-    cudaImplementation = std::make_unique<CudaImplementation>(&settings, handles);
 
 
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
@@ -126,12 +113,25 @@ void GaussianSplatScript::setup() {
     Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera up", &up);
     */
 
-    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "load model", filePathDialog, &openDialog);
+    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "load model", &plyFileFolder);
+
+    cudaImplementation = std::make_unique<CudaImplementation>(&settings, handles, filePathDialog);
 
 }
 
 
 void GaussianSplatScript::update() {
+    if (plyFileFolder.valid()) {
+        if (plyFileFolder.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            std::string selectedFolder = plyFileFolder.get(); // This will also make the future invalid
+            if (!selectedFolder.empty()) {
+                // Do something with the selected folder
+                cudaImplementation = std::make_unique<CudaImplementation>(&settings, handles, selectedFolder);
+
+            }
+        }
+    }
+
     mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;

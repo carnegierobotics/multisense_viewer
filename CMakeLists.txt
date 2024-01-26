@@ -219,15 +219,16 @@ if (WIN32)
     add_library(CustomLogger ${LOGGER_SRC})
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
 
-    add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
-
     set(OpenCV_DIR "C:\\opencv\\build")
     find_package(OpenCV REQUIRED)
     include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer ${OpenCV_LIBS} tinyply)
+
+    add_library(VulkanRenderer STATIC ${ENGINE_SRC})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES} CudaOperations )
+    set_target_properties(VulkanRenderer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations CUDA::cuda_driver)

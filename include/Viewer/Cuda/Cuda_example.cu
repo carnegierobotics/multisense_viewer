@@ -300,16 +300,6 @@ GaussianData loadTinyPly(std::filesystem::path filePath, bool preloadIntoMemory 
                                                extraFeatures.reshape({dcFeatures.size(0), -1})
                                            }, -1);
 
-            // Set the first element of each row to 1 for rotations and shs
-
-
-            //shsTensor = torch::zeros({count, 3});
-            //shsTensor.index({torch::indexing::Slice(), 0}) = 1;
-            printTensor(shsTensor);
-            xyzTensor *= 1000;
-            printTensor(xyzTensor);
-            xyzTensor = xyzTensor.transpose(1, 2);
-            xyzTensor.select(1, 2) = -xyzTensor.select(1, 2);
             printTensor(xyzTensor);
         }
     }
@@ -333,30 +323,22 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
     for (size_t i = 0; i < handles.size(); ++i) {
         cudaExternalMemoryHandleDesc cudaExtMemHandleDesc{};
         memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
-        cudaExtMemHandleDesc.size = settings->imageHeight * settings->imageWidth * 4;
+        cudaExtMemHandleDesc.size = settings->imageHeight * settings->imageWidth * 16;
         cudaExtMemHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueWin32;
         cudaExtMemHandleDesc.handle.win32.handle = handles[i];
         cudaExtMemHandleDesc.flags = 0;
         checkCudaErrors(cudaImportExternalMemory(&cudaExtMem[i], &cudaExtMemHandleDesc));
 
-        // Step 3: CUDA memory copy
-        /*
-                cudaExternalMemoryBufferDesc bufferDesc{};
-                memset(&bufferDesc, 0, sizeof(bufferDesc));
-                bufferDesc.offset = 0;
-                bufferDesc.size = cudaExtMemHandleDesc.size;
-                checkCudaErrors(cudaExternalMemoryGetMappedBuffer(&cudaMemPtr[i], cudaExtMem[i], &bufferDesc));
-                */
         cudaExternalMemoryMipmappedArrayDesc desc = {};
         memset(&desc, 0, sizeof(desc));
 
         cudaChannelFormatDesc formatDesc;
         memset(&formatDesc, 0, sizeof(formatDesc));
-        formatDesc.x = 8;
-        formatDesc.y = 8;
-        formatDesc.z = 8;
-        formatDesc.w = 8;
-        formatDesc.f = cudaChannelFormatKindUnsigned;
+        formatDesc.x = 8 * 4;
+        formatDesc.y = 8 * 4;
+        formatDesc.z = 8 * 4;
+        formatDesc.w = 8 * 4;
+        formatDesc.f = cudaChannelFormatKindFloat;
 
         cudaExtent extent = {0, 0, 0};
         extent.width = settings->imageWidth;
@@ -364,13 +346,12 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
         extent.depth = 1;
 
         unsigned int flags = 0;
-        flags |= cudaArrayLayered;
         flags |= cudaArrayColorAttachment;
 
         desc.offset = 0;
         desc.formatDesc = formatDesc;
         desc.extent = extent;
-        desc.flags = 0;
+        desc.flags = flags;
         desc.numLevels = 1;
 
         checkCudaErrors(cudaExternalMemoryGetMappedMipmappedArray(&cudaMipMappedArrays[i], cudaExtMem[i], &desc));
@@ -379,8 +360,6 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
 
     torch::Device device(torch::kCUDA);
 
-    //viewmatrix = ConvertGlmMat4ToTensor(settings->viewMat).to(device);
-    //projmatrix = ConvertGlmMat4ToTensor(settings->projMat).to(device);
     campos = ConvertGlmVec3ToTensor(settings->camPos).to(device);
     bg = torch::tensor({0.0, 0.0, 0.0}, torch::dtype(torch::kFloat32)).to(device);
     // Other parameters
@@ -410,56 +389,19 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
     degree = 0;
 
     shs = shs.view({gaussianData.length(), -1, 3}).contiguous();
-
 }
 
 void CudaImplementation::updateGaussianData() {
-    /*
-    auto gaussianData = naive_gaussian();
-    torch::Device device(torch::kCUDA);
-
-    means3D = gaussianData.xyz.to(device);
-    shs = gaussianData.sh.to(device);
-    opacity = gaussianData.opacity.to(device);
-    scales = gaussianData.scale.to(device);
-    rotations = gaussianData.rot.to(device);
-    cov3D_precomp = torch::tensor({}).to(device);
-    colors = torch::tensor({}).to(device);
-
-    degree = static_cast<int>(std::round(std::sqrt(gaussianData.sh_dim()))) - 1;
-    */
 }
 
-glm::mat4 createViewMat(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up) {
-    auto Z = glm::normalize(center - eye);
-    auto X = glm::normalize(glm::cross(Z, up));
-    auto Y = glm::normalize(glm::cross(X, Z));
-
-    glm::mat4 Result(1.0f);
-    Result[0][0] = X.x;
-    Result[1][0] = X.y;
-    Result[2][0] = X.z;
-    Result[0][1] = Y.x;
-    Result[1][1] = Y.y;
-    Result[2][1] = Y.z;
-    Result[0][2] = -Z.x;
-    Result[1][2] = -Z.y;
-    Result[2][2] = -Z.z;
-    Result[3][0] = -dot(X, eye);
-    Result[3][1] = -dot(Y, eye);
-    Result[3][2] = dot(Z, eye);
-    return Result;
-}
 
 void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 target) {
     torch::Device device(torch::kCUDA);
 
     glm::vec3 cameraPos = glm::inverse(view)[3];
-    cameraPos *= 1000;
-    target *= 1000;
     //glm::vec3 cameraPos(3.0f, -3.0f, 0.0f);
     glm::vec3 dirNorm = glm::normalize(target - cameraPos);
-    glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+    glm::vec3 worldUp(0.0f, 0.0f, 1.0f);
     glm::vec3 right = glm::cross(worldUp, dirNorm);
     glm::vec3 cameraUp = glm::cross(dirNorm, right);
     glm::mat4 cameraTrans(
@@ -475,7 +417,7 @@ void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::v
     view[1][0] *= -1;
     view[2][0] *= -1;
     view[3][0] *= -1;
-//
+    //
     view[0][2] *= -1;
     view[1][2] *= -1;
     view[2][2] *= -1;
@@ -504,63 +446,6 @@ void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::v
     //printTensor(viewmatrix, true);
     //printTensor(projmatrix, true);
     campos = ConvertGlmVec3ToTensor(cameraPos).to(torch::kFloat).to(device);
-
-    return;
-    cov3Dprecompute = torch::zeros({4, 6}); // size 6 with n rows
-    float* ptr = cov3Dprecompute.data_ptr<float>();
-    // Precomp 3D
-    for (int64_t i = 0; i < 4; ++i) {
-        // Create scaling matrix
-        auto scaleTensor = scales.index({i, torch::indexing::Slice()}).to(torch::kCPU);
-        //printTensor(scaleTensor, true);
-        glm::vec3 scale(0.0f);
-        // Ensure the tensor is of the expected size
-        if (scaleTensor.numel() == 3) {
-            std::memcpy(&scale[0], scaleTensor.data_ptr<float>(), 3 * sizeof(float));
-        }
-        else {
-            // Handle error: The tensor does not have the expected size
-        }
-        glm::mat3 S = glm::mat3(1.0f);
-        S[0][0] = scale_modifier * scale.x;
-        S[1][1] = scale_modifier * scale.y;
-        S[2][2] = scale_modifier * scale.z;
-        auto rotTensor = rotations.index({i, torch::indexing::Slice()}).to(torch::kCPU);
-
-        // Normalize quaternion to get valid rotation
-        glm::vec4 q(0.0f);; // / glm::length(rot);
-
-        if (scaleTensor.numel() == 4) {
-            std::memcpy(&q[0], rotTensor.data_ptr<float>(), 4 * sizeof(float));
-        }
-        else {
-            // Handle error: The tensor does not have the expected size
-        }
-        float r = q.x;
-        float x = q.y;
-        float y = q.z;
-        float z = q.w;
-        // Compute rotation matrix from quaternion
-        glm::mat3 R = glm::mat3(
-            1.f - 2.f * (y * y + z * z), 2.f * (x * y - r * z), 2.f * (x * z + r * y),
-            2.f * (x * y + r * z), 1.f - 2.f * (x * x + z * z), 2.f * (y * z - r * x),
-            2.f * (x * z - r * y), 2.f * (y * z + r * x), 1.f - 2.f * (x * x + y * y)
-        );
-
-        glm::mat3 M = R * S;
-
-        // Compute 3D world covariance matrix Sigma
-        glm::mat3 Sigma = glm::transpose(M) * M;
-
-        // Covariance is symmetric, only store upper right
-        ptr[0 + (i * 6)] = Sigma[0][0];
-        ptr[1 + (i * 6)] = Sigma[0][1];
-        ptr[2 + (i * 6)] = Sigma[0][2];
-        ptr[3 + (i * 6)] = Sigma[1][1];
-        ptr[4 + (i * 6)] = Sigma[1][2];
-        ptr[5 + (i * 6)] = Sigma[2][2];
-    }
-    //printTensor(cov3Dprecompute, true);
 }
 
 void CudaImplementation::updateSettings(const CudaImplementation::RasterSettings& settings) {
@@ -577,11 +462,16 @@ void CudaImplementation::draw(uint32_t i) {
     int rendered;
     torch::Tensor out_color, radii, geomBuffer, binningBuffer, imgBuffer;
     // Call the function
-    std::tie(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer) = RasterizeGaussiansCUDA(
-        bg, means3D, colors, opacity, scales, rotations,
-        scale_modifier, cov3Dprecompute, viewmatrix, projmatrix, tan_fovx, tan_fovy,
-        image_height, image_width, shs, degree, campos, prefiltered, debug
-    );
+    try {
+        std::tie(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer) = RasterizeGaussiansCUDA(
+            bg, means3D, colors, opacity, scales, rotations,
+            scale_modifier, cov3Dprecompute, viewmatrix, projmatrix, tan_fovx, tan_fovy,
+            image_height, image_width, shs, degree, campos, prefiltered, debug
+        );
+    } catch (const std::exception& e) {
+        std::cerr << "Caught exception: " << e.what() << std::endl;
+        rendered = 0;
+    }
     // Ensure the tensor is on the CPU and is a byte tensor
     if (rendered == 0) {
         return;
@@ -591,38 +481,28 @@ void CudaImplementation::draw(uint32_t i) {
     auto alpha_channel = torch::ones({img.size(0), img.size(1), 1}, img.options());
     auto img_with_alpha = torch::cat({img, alpha_channel}, 2);
     img_with_alpha = img_with_alpha.contiguous();
-    size_t data_size = img_with_alpha.numel(); // Assuming the tensor is of type torch::kFloat
-    //printTensor(img_with_alpha);
-    img_with_alpha = torch::clamp(img_with_alpha, 0, 255);
-    img_with_alpha = img_with_alpha.to(torch::kU8);
-    auto img_with_alpha_ptr = img_with_alpha.data_ptr<uint8_t>();
-
+    auto img_with_alpha_ptr = img_with_alpha.data_ptr<float>();
     cudaArray_t levelArray;
     checkCudaErrors(cudaGetMipmappedArrayLevel(&levelArray, cudaMipMappedArrays[i], 0)); // 0 for the first level
 
     cudaMemcpy3DParms p{};
     memset(&p, 0x00, sizeof(cudaMemcpy3DParms));
-    p.srcPtr = make_cudaPitchedPtr(img_with_alpha_ptr, 1280 * 4, 1280, 720);
+    p.srcPtr = make_cudaPitchedPtr(img_with_alpha_ptr, 16 * image_width, image_width, image_height);
     p.dstArray = levelArray;
-    p.extent = make_cudaExtent(1280, 720, 1); // depth is 1 for 2D
+    p.extent = make_cudaExtent(image_width, image_height, 1); // depth is 1 for 2D
     p.kind = cudaMemcpyDeviceToDevice;
     checkCudaErrors(cudaMemcpy3D(&p));
-    /*
-    cudaMemcpy3DParms p = {0};
-    p.srcPtr   = make_cudaPitchedPtr(img_with_alpha.data_ptr(), 1024 * sizeof(float), 1024, 1024);
-    p.dstArray = levelArray;
-    p.extent   = make_cudaExtent(width, height, depth); // depth is 1 for 2D
-    p.kind     = cudaMemcpyDeviceToDevice;
-    checkCudaErrors(cudaMemcpy3D(&p));
-    */
 
     try {
         if (img.device().is_cuda()) {
             img = img.to(torch::kCPU);
             // Make sure the tensor is contiguous and in the format [Height, Width, Channels]
             img = img.contiguous();
+            img = img * 255;
+            torch::Tensor img_uchar = img.to(torch::kU8);
 
-            cv::Mat mat(img.size(0), img.size(1), CV_32FC(img.size(2)), img.data_ptr<float>());
+            cv::Mat mat(img_uchar.size(0), img_uchar.size(1), CV_8UC(img_uchar.size(2)),
+                        img_uchar.data_ptr<glm::uint8_t>());
             cv::Mat img_flipped;
             cv::Mat img_flipped_x;
             cv::flip(mat, img_flipped, 0); // Flip the image vertically

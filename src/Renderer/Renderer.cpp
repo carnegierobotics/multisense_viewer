@@ -75,6 +75,7 @@ Renderer::Renderer(const std::string& title) : VulkanRenderer(title) {
                                                         swapchain->imageCount);
     guiManager->handles.mouse = &mouseButtons;
     guiManager->handles.usageMonitor = usageMonitor;
+    guiManager->handles.camera.type = camera.type;
 
     prepareRenderer();
     pLogger->info("Prepared Renderer");

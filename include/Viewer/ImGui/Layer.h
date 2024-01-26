@@ -168,7 +168,7 @@ namespace VkRender {
 
     struct CameraUIBlock {
         /** @brief 3D view camera type for this device. Arcball or first person view controls) */
-        int type = 0;
+        int type = 1;
         /** @brief Reset 3D view camera position and rotation */
         bool reset = false;
 

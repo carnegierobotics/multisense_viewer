@@ -31,7 +31,7 @@ void GaussianSplatScript::setup() {
     textures.resize(renderUtils.UBCount);
     // Create texture m_Image if not created
     int texWidth = 1280, texHeight = 720, texChannels = 0;
-    auto* pixels = malloc(texWidth * texHeight * 4);
+    auto* pixels = malloc(texWidth * texHeight * 16);
     PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
         vkGetInstanceProcAddr(*renderUtils.instance, "vkGetMemoryWin32HandleKHR"));
     if (fpGetMemoryWin32HandleKHR == nullptr) {
@@ -46,7 +46,7 @@ void GaussianSplatScript::setup() {
                                          &uniformBuffers[i], sizeof(VkRender::UBOMatrix));
         uniformBuffers[i].map();
 
-        textures[i].fromBuffer(pixels, texWidth * texHeight * 4, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight,
+        textures[i].fromBuffer(pixels, texWidth * texHeight * 16, VK_FORMAT_R32G32B32A32_SFLOAT, texWidth, texHeight,
                                renderUtils.device,
                                renderUtils.device->m_TransferQueue);
 
@@ -146,6 +146,7 @@ void GaussianSplatScript::update() {
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
     if (b) {
         cudaImplementation->draw(i);
+
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipeline->data.pipelineLayout, 0,
                                 1,

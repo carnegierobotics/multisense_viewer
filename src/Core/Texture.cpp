@@ -1667,11 +1667,7 @@ assert(buffer);
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageCreateInfo.extent = {m_Width, m_Height, 1};
-    imageCreateInfo.usage = imageUsageFlags;
-    // Ensure that the TRANSFER_DST bit is set for staging
-    if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
-        imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    }
+    imageCreateInfo.usage = imageUsageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // If compute and graphics queue family indices differ, we create an image that can be shared between them
     // This can result in worse performance than exclusive sharing mode, but save some synchronization to keep the sample simple
@@ -1686,6 +1682,14 @@ assert(buffer);
         imageCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
     }
 
+    VkExternalMemoryImageCreateInfo vkExternalMemImageCreateInfo = {};
+    vkExternalMemImageCreateInfo.sType =
+        VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+    vkExternalMemImageCreateInfo.pNext = NULL;
+    vkExternalMemImageCreateInfo.handleTypes =
+        VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+    imageCreateInfo.pNext = &vkExternalMemImageCreateInfo;
 
     CHECK_RESULT(vkCreateImage(device->m_LogicalDevice, &imageCreateInfo, nullptr, &m_Image))
 

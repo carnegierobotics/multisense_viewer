@@ -5,10 +5,6 @@
 #ifndef MULTISENSE_VIEWER_GAUSSIANSPLAT_H
 #define MULTISENSE_VIEWER_GAUSSIANSPLAT_H
 
-#include <torch/torch.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <Viewer/Tools/helper_cuda.h>
 
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/Macros.h"

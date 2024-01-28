@@ -7,15 +7,9 @@
 
 
 #include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
-#include <memory>  // For std::unique_ptr
 
 #include <torch/torch.h>
-#include <Viewer/Tools/helper_cuda.h>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
 #include <driver_types.h>
-
 #include "Viewer/Core/Texture.h"
 
 class CudaImplementation {
@@ -33,10 +27,10 @@ public:
         glm::mat4 projMat;
         glm::vec3 camPos;
     };
-    CudaImplementation(const RasterSettings *settings, std::vector<void*> handles, const std::filesystem::path& modelPath);
+    CudaImplementation(VkInstance* instance, VkDevice device, const RasterSettings *settings, const std::filesystem::path& modelPath, uint32_t memSizeCuda,     std::vector<TextureCuda>* textures);
     void updateGaussianData();
 
-    void draw(uint32_t i);
+    void draw(uint32_t i, void* streamToRun);
 
     void updateCameraIntrinsics(float hfox, float hfovy);
 
@@ -71,6 +65,7 @@ private:
     std::vector<cudaExternalMemory_t> cudaExtMem;
     std::vector<void *> cudaMemPtr;
     std::vector<cudaMipmappedArray_t> cudaMipMappedArrays;
+    std::vector<cudaArray_t> cudaFirstLevels;
 
 };
 

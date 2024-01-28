@@ -94,7 +94,7 @@ namespace VkRender {
         glm::vec3 m_Target =  glm::vec3(0.0f, 0.0f, 0.0f);
 
         glm::vec3 cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
-        glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, -1.0f);
         glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
 
         glm::vec3 arcBallTranslate = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -274,7 +274,7 @@ namespace VkRender {
         void update(float deltaTime) {
             if (type == CameraType::flycam) {
                 if (moving()) {
-                    float moveSpeed = deltaTime * m_MovementSpeed;
+                    float moveSpeed = deltaTime * m_MovementSpeed * 1000;
                     if (keys.up)
                         m_Position += cameraFront * moveSpeed;
                     if (keys.down)

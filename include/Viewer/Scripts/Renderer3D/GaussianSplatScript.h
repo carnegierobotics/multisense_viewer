@@ -63,15 +63,17 @@ public:
     std::unique_ptr<RenderResource::Pipeline> pipeline;
 
     std::unique_ptr<CudaImplementation> cudaImplementation;
-    char filePathDialog[1024] = "C:\\Users\\mgjer\\Downloads\\models\\room";
+    char filePathDialog[1024] = "C:\\Users\\mgjer\\Downloads\\models\\stump";
     std::future<std::string> plyFileFolder;
     std::vector<void*> handles;
+    bool renderGaussians = true;
 
     float scaleModifier = 1.0f;
     glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f);
     CudaImplementation::RasterSettings settings;
+    uint32_t cudaRequestedMemorySize = 0;
 
     //std::unique_ptr<GaussianSplat> splat;
 

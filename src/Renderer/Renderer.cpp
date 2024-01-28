@@ -150,6 +150,7 @@ void Renderer::buildScript(const std::string& scriptName) {
     renderData.height = m_Height;
     renderData.width = m_Width;
     renderData.camera = &camera;
+    renderData.streamToRun = streamToRun;
 
     // Copy data generated from TOP OF PIPE scripts
     renderUtils.skybox.irradianceCube = scripts["Skybox"]->skyboxTextures.irradianceCube;

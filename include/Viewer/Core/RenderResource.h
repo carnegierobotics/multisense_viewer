@@ -74,17 +74,17 @@ namespace RenderResource {
             std::vector<VkRender::Vertex> vertices{};
             vertices.resize(4);
             // Front face
-            vertices[0].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Bottom-left
-            vertices[0].uv0 = glm::vec2(0.0f, 1.0f);
+            vertices[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Bottom-left Top-left
+            vertices[0].uv0 = glm::vec2(0.0f, 0.0f);
 
-            vertices[1].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Bottom-right
-            vertices[1].uv0 = glm::vec2(1.0f, 1.0f);
+            vertices[1].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Bottom-right
+            vertices[1].uv0 = glm::vec2(1.0f, 0.0f);
 
-            vertices[2].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Top-right
-            vertices[2].uv0 = glm::vec2(1.0f, 0.0f);
+            vertices[2].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Top-right
+            vertices[2].uv0 = glm::vec2(1.0f, 1.0f);
 
-            vertices[3].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Top-left
-            vertices[3].uv0 = glm::vec2(0.0f, 0.0f);
+            vertices[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Top-left
+            vertices[3].uv0 = glm::vec2(0.0f, 1.0f);
 
 
             // Define the indices for the cube
@@ -287,6 +287,7 @@ namespace RenderResource {
             VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
             inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            inputAssemblyStateCI.primitiveRestartEnable = VK_FALSE;
 
             VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
             rasterizationStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -294,6 +295,8 @@ namespace RenderResource {
             rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
             rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
             rasterizationStateCI.lineWidth = 1.0f;
+            rasterizationStateCI.depthClampEnable = VK_FALSE;
+            rasterizationStateCI.rasterizerDiscardEnable = VK_FALSE;
 
             VkPipelineColorBlendAttachmentState blendAttachmentState{};
             blendAttachmentState.colorWriteMask =
@@ -303,8 +306,14 @@ namespace RenderResource {
 
             VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
             colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            colorBlendStateCI.logicOpEnable = VK_FALSE;
+            colorBlendStateCI.logicOp = VK_LOGIC_OP_COPY;
             colorBlendStateCI.attachmentCount = 1;
             colorBlendStateCI.pAttachments = &blendAttachmentState;
+            colorBlendStateCI.blendConstants[0] = 0.0f;
+            colorBlendStateCI.blendConstants[1] = 0.0f;
+            colorBlendStateCI.blendConstants[2] = 0.0f;
+            colorBlendStateCI.blendConstants[3] = 0.0f;
 
             VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
             depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -321,7 +330,7 @@ namespace RenderResource {
 
             VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
             multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-            multisampleStateCI.rasterizationSamples = conf.msaaSamples;
+            multisampleStateCI.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 
             std::vector<VkDynamicState> dynamicStateEnables = {
@@ -337,9 +346,13 @@ namespace RenderResource {
             VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
                                                                   VK_VERTEX_INPUT_RATE_VERTEX};
             std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-                    {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-                    {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
-                    {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
+                {0, 0, VK_FORMAT_R32G32B32_SFLOAT,    0},
+                {1, 0, VK_FORMAT_R32G32B32_SFLOAT,    sizeof(float) * 3},
+                {2, 0, VK_FORMAT_R32G32_SFLOAT,       sizeof(float) * 6},
+                {3, 0, VK_FORMAT_R32G32_SFLOAT,       sizeof(float) * 8},
+                {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 10},
+                {5, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 14},
+                {6, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 18}
             };
             VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
             vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

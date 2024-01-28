@@ -1597,7 +1597,7 @@ WindowsSecurityAttributes::~WindowsSecurityAttributes() {
 #endif
 
 void TextureCuda::fromBuffer(void* buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight,
-    VulkanDevice* device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags,
+    VulkanDevice* device, VkQueue copyQueue, uint32_t* memSize, VkFilter filter, VkImageUsageFlags imageUsageFlags,
     VkImageLayout imageLayout, bool sharedQueue) {
 assert(buffer);
 
@@ -1667,20 +1667,7 @@ assert(buffer);
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageCreateInfo.extent = {m_Width, m_Height, 1};
-    imageCreateInfo.usage = imageUsageFlags | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-    // If compute and graphics queue family indices differ, we create an image that can be shared between them
-    // This can result in worse performance than exclusive sharing mode, but save some synchronization to keep the sample simple
-    std::vector<uint32_t> queueFamilyIndices;
-    if (sharedQueue && device->m_QueueFamilyIndices.graphics != device->m_QueueFamilyIndices.compute) {
-        queueFamilyIndices = {
-                device->m_QueueFamilyIndices.graphics,
-                device->m_QueueFamilyIndices.compute
-        };
-        imageCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
-        imageCreateInfo.queueFamilyIndexCount = 2;
-        imageCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-    }
+    imageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
     VkExternalMemoryImageCreateInfo vkExternalMemImageCreateInfo = {};
     vkExternalMemImageCreateInfo.sType =
@@ -1698,7 +1685,8 @@ assert(buffer);
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     memAllocInfo.pNext = &exportInfo;
-
+    Log::Logger::getInstance()->info("Memory size of CUDA: {}", memReqs.size);
+    *memSize = memReqs.size;
 
     CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAllocInfo, nullptr, &m_DeviceMemory))
     CHECK_RESULT(vkBindImageMemory(device->m_LogicalDevice, m_Image, m_DeviceMemory, 0))
@@ -1753,17 +1741,22 @@ assert(buffer);
     // Create m_Sampler
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.magFilter = filter;
-    samplerCreateInfo.minFilter = filter;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.mipLodBias = 0.0f;
-    samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
-    samplerCreateInfo.minLod = 0.0f;
-    samplerCreateInfo.maxLod = 0.0f;
-    samplerCreateInfo.maxAnisotropy = 1.0f;
+    samplerCreateInfo.anisotropyEnable = VK_TRUE;
+    samplerCreateInfo.maxAnisotropy = 16;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerCreateInfo.compareEnable = VK_FALSE;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.minLod = 0;  // Optional
+    samplerCreateInfo.maxLod = 1;
+    samplerCreateInfo.mipLodBias = 0;  // Optional
 
     CHECK_RESULT(vkCreateSampler(device->m_LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler))
 
@@ -1773,8 +1766,6 @@ assert(buffer);
     viewCreateInfo.pNext = nullptr;
     viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewCreateInfo.format = format;
-    viewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
-                                 VK_COMPONENT_SWIZZLE_A};
     viewCreateInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.image = m_Image;

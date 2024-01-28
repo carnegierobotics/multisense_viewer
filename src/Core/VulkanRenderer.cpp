@@ -184,7 +184,7 @@ namespace VkRender {
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
-        msaaSamples = getMaxUsableSampleCount();
+        msaaSamples = VK_SAMPLE_COUNT_1_BIT;//;getMaxUsableSampleCount();
         VkPhysicalDeviceSamplerYcbcrConversionFeatures features;
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
         features.pNext = nullptr;
@@ -655,14 +655,14 @@ namespace VkRender {
 #ifdef WIN32
         PFN_vkGetSemaphoreWin32HandleKHR fpGetSemaphoreWin32HandleKHR;
 
-        fpGetSemaphoreWin32HandleKHR = reinterpret_cast<PFN_vkGetSemaphoreWin32HandleKHR>(vkGetDeviceProcAddr(device, "vkGetSemaphoreWin32HandleKHR"));
+        fpGetSemaphoreWin32HandleKHR = reinterpret_cast<PFN_vkGetSemaphoreWin32HandleKHR>(vkGetDeviceProcAddr(
+            device, "vkGetSemaphoreWin32HandleKHR"));
 
         if (fpGetSemaphoreWin32HandleKHR == nullptr) {
             Log::Logger::getInstance()->error("Function not available");
             throw std::runtime_error("Failed to find function: vkGetSemaphoreWin32HandleKHR");
         }
 
-        cudaStreamCreate(&streamToRun);
         checkCudaErrors(cudaStreamCreate(&streamToRun));
 #endif
         // Create synchronization Objects
@@ -674,48 +674,66 @@ namespace VkRender {
         // Command buffer submission info is set by each example
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         VkSemaphoreCreateInfo semaphoreCreateInfo2 = Populate::semaphoreCreateInfo();
-
+        VkSemaphoreCreateInfo semaphoreCreateInfoCuda = Populate::semaphoreCreateInfo();
         VkExportSemaphoreCreateInfo exportCreateInfo = {};
         exportCreateInfo.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
         exportCreateInfo.pNext = NULL;
         exportCreateInfo.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-        semaphoreCreateInfo.pNext = &exportCreateInfo;
+        semaphoreCreateInfo2.pNext = &exportCreateInfo;
+        semaphoreCreateInfoCuda.pNext = &exportCreateInfo;
+        semaphoreCreateInfoCuda.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         // Wait fences to sync command buffer access
         VkFenceCreateInfo fenceCreateInfo = Populate::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
         waitFences.resize(swapchain->imageCount);
         semaphores.resize(swapchain->imageCount);
         computeInFlightFences.resize(swapchain->imageCount);
         for (size_t i = 0; i < swapchain->imageCount; ++i) {
-            if (vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &semaphores[i].presentComplete) !=
+            if (vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete) !=
                 VK_SUCCESS ||
                 vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete) != VK_SUCCESS ||
                 vkCreateFence(device, &fenceCreateInfo, nullptr, &waitFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
             }
             if (vkCreateFence(device, &fenceCreateInfo, nullptr, &computeInFlightFences[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
+                vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create compute synchronization fence");
+        }
+        if (vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &updateVulkan) !=
+            VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &updateCuda) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
+        }
 
 #ifdef WIN32
-            VkSemaphoreGetWin32HandleInfoKHR handleInfo = {};
-            handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
-            handleInfo.semaphore = semaphores[i].renderComplete;
-            handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-            handleInfo.pNext = nullptr;
+        FD_HANDLE semHandleVulkan, semHandleCuda;
+        // Vulkan/Cuda ext semaphore
+        VkSemaphoreGetWin32HandleInfoKHR handleInfo = {};
+        handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
+        handleInfo.semaphore = updateVulkan;
+        handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+        handleInfo.pNext = nullptr;
+        fpGetSemaphoreWin32HandleKHR(device, &handleInfo, &semHandleVulkan);
 
-            fpGetSemaphoreWin32HandleKHR(device, &handleInfo, &semaphores[i].cudaVkSync);
+        cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDesc;
+        memset(&externalSemaphoreHandleDesc, 0, sizeof(externalSemaphoreHandleDesc));
+        externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
+        externalSemaphoreHandleDesc.handle.win32.handle = semHandleVulkan;
+        cudaImportExternalSemaphore(&updateVulkanExt, &externalSemaphoreHandleDesc);
+        // Cuda ext semaphore
+        VkSemaphoreGetWin32HandleInfoKHR handleInfoCuda = {};
+        handleInfoCuda.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
+        handleInfoCuda.semaphore = updateCuda;
+        handleInfoCuda.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+        handleInfoCuda.pNext = nullptr;
 
+        fpGetSemaphoreWin32HandleKHR(device, &handleInfoCuda, &semHandleCuda);
 
-
-            cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDesc;
-            memset(&externalSemaphoreHandleDesc, 0, sizeof(externalSemaphoreHandleDesc));
-            externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
-            externalSemaphoreHandleDesc.handle.win32.handle = semaphores[i].cudaVkSync;
-
-            cudaImportExternalSemaphore(&semaphores[i].cudaSemaphore, &externalSemaphoreHandleDesc);
-
+        cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDescCuda;
+        memset(&externalSemaphoreHandleDescCuda, 0, sizeof(externalSemaphoreHandleDesc));
+        externalSemaphoreHandleDescCuda.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
+        externalSemaphoreHandleDescCuda.handle.win32.handle = semHandleCuda;
+        cudaImportExternalSemaphore(&updateCudaExt, &externalSemaphoreHandleDescCuda);
 #endif
-        }
     }
 
 
@@ -945,18 +963,23 @@ namespace VkRender {
         if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX != VK_SUCCESS))
             throw std::runtime_error("Failed to wait for compute fence");
 
-        // Wait for the semaphore in CUDA
-        cudaExternalSemaphoreWaitParams waitParams;
-        memset(&waitParams, 0, sizeof(waitParams));
-        cudaWaitExternalSemaphoresAsync(&semaphores[currentFrame].cudaSemaphore, &waitParams, 1, streamToRun);
-
+        if (frameCounter > 0) {
+            // Wait for the semaphore in CUDA
+            cudaExternalSemaphoreWaitParams waitParams;
+            memset(&waitParams, 0, sizeof(waitParams));
+            waitParams.params.fence.value = 0;
+            waitParams.flags = 0;
+            checkCudaErrors(cudaWaitExternalSemaphoresAsync(&updateCudaExt, &waitParams, 1, streamToRun));
+        }
         updateUniformBuffers();
-
-        // Signal the semaphore in CUDA for Vulkan to wait on
-        cudaExternalSemaphoreSignalParams signalParams;
-        memset(&signalParams, 0, sizeof(signalParams));
-        cudaSignalExternalSemaphoresAsync(&semaphores[currentFrame].cudaSemaphore, &signalParams, 1, streamToRun);
-
+        if (frameCounter > 0) {
+            // Signal the semaphore in CUDA for Vulkan to wait on
+            cudaExternalSemaphoreSignalParams signalParams;
+            memset(&signalParams, 0, sizeof(signalParams));
+            signalParams.params.fence.value = 0;
+            signalParams.flags = 0;
+            checkCudaErrors(cudaSignalExternalSemaphoresAsync(&updateVulkanExt, &signalParams, 1, streamToRun));
+        }
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
         vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -1008,19 +1031,26 @@ namespace VkRender {
         std::scoped_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
             semaphores[currentFrame].computeComplete,
-            semaphores[currentFrame].presentComplete
+            semaphores[currentFrame].presentComplete,
+            updateVulkan
         };
         VkPipelineStageFlags waitStages[] = {
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
         };
+        VkSemaphore signalSemaphores[] = {
+            semaphores[currentFrame].renderComplete,
+            updateCuda
+        };
+
         submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 2;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
+        submitInfo.signalSemaphoreCount = 2;
+        submitInfo.pSignalSemaphores = signalSemaphores;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
         drawCmdBuffers.busy[currentFrame] = true;

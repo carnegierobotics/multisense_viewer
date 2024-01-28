@@ -237,10 +237,13 @@ namespace VkRender {
             // compute submission
             VkSemaphore computeComplete;
             // Cuda semaphore handle
-            FD_HANDLE cudaVkSync;
-            // Cuda semaphore
-            cudaExternalSemaphore_t cudaSemaphore;
         };
+        // Cuda semaphore
+        VkSemaphore updateVulkan;
+        // Cuda semaphore
+        VkSemaphore updateCuda;
+        cudaExternalSemaphore_t updateVulkanExt;
+        cudaExternalSemaphore_t updateCudaExt;
         cudaStream_t streamToRun;
         std::vector<Semaphores> semaphores;
 

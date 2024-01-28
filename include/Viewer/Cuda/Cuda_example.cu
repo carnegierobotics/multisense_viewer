@@ -2,18 +2,35 @@
 // Created by mgjer on 15/01/2024.
 //
 
-#include <iostream>
-#include <random>
+#define NOMINMAX
+#define GLFW_INCLUDE_VULKAN
+#ifdef _WIN64
+#include <aclapi.h>
+#include <dxgi1_2.h>
+#include <windows.h>
+#include <VersionHelpers.h>
+#define _USE_MATH_DEFINES
+#endif
+
+#include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
+#ifdef _WIN64
+#include <vulkan/vulkan_win32.h>
+#endif
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <Viewer/Tools/helper_cuda.h>
+
 #include <rasterize_points.h>
-#include <glm/ext/quaternion_trigonometric.hpp>
-#include <torch/torch.h>
 #include <opencv2/opencv.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <tinyply.h>
 
 #include <Viewer/Tools/helper_cuda.h>
 #include "Viewer/Cuda/Cuda_example.h"
+
+#include <glm/trigonometric.hpp>
+
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Tools/Logger.h"
 
@@ -299,6 +316,7 @@ GaussianData loadTinyPly(std::filesystem::path filePath, bool preloadIntoMemory 
                                                dcFeatures.reshape({-1, 3}),
                                                extraFeatures.reshape({dcFeatures.size(0), -1})
                                            }, -1);
+            xyzTensor *= 10;
 
             printTensor(xyzTensor);
         }
@@ -312,42 +330,63 @@ GaussianData loadTinyPly(std::filesystem::path filePath, bool preloadIntoMemory 
 }
 
 
-CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vector<void*> handles,
-                                       const std::filesystem::path& modelPath) {
-    this->handles = handles;
+CudaImplementation::CudaImplementation(VkInstance* instance, VkDevice device, const RasterSettings* settings,
+                                       const std::filesystem::path& modelPath, uint32_t memSizeCuda,
+                                       std::vector<TextureCuda>* textures
+) {
+    uint32_t type = sizeof(uint8_t);
+    uint32_t channels = 4;
+    uint32_t imageSize = settings->imageHeight * settings->imageWidth * channels * type;
+    cudaExtMem.resize(textures->size());
+    cudaMemPtr.resize(textures->size());
+    cudaMipMappedArrays.resize(textures->size());
+    cudaFirstLevels.resize(textures->size());
 
-    cudaExtMem.resize(handles.size());
-    cudaMemPtr.resize(handles.size());
-    cudaMipMappedArrays.resize(handles.size());
+    PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
+        vkGetInstanceProcAddr(*instance, "vkGetMemoryWin32HandleKHR"));
+    if (fpGetMemoryWin32HandleKHR == nullptr) {
+        Log::Logger::getInstance()->error("Function not available");
+    }
 
-    for (size_t i = 0; i < handles.size(); ++i) {
+    for (size_t i = 0; i < cudaExtMem.size(); ++i) {
+        void* handle;
+        VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR = {};
+        vkMemoryGetWin32HandleInfoKHR.sType =
+            VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+        vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
+        vkMemoryGetWin32HandleInfoKHR.memory = (*textures)[i].m_DeviceMemory;
+        vkMemoryGetWin32HandleInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+        if (fpGetMemoryWin32HandleKHR(device, &vkMemoryGetWin32HandleInfoKHR,
+                                      &handle) !=
+            VK_SUCCESS) {
+            Log::Logger::getInstance()->error("vkGetMemoryWin32HandleKHR not available");
+        }
+
         cudaExternalMemoryHandleDesc cudaExtMemHandleDesc{};
         memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
-        cudaExtMemHandleDesc.size = settings->imageHeight * settings->imageWidth * 16;
+        cudaExtMemHandleDesc.size = memSizeCuda;
         cudaExtMemHandleDesc.type = cudaExternalMemoryHandleTypeOpaqueWin32;
-        cudaExtMemHandleDesc.handle.win32.handle = handles[i];
+        cudaExtMemHandleDesc.handle.win32.handle = handle;
         cudaExtMemHandleDesc.flags = 0;
         checkCudaErrors(cudaImportExternalMemory(&cudaExtMem[i], &cudaExtMemHandleDesc));
 
-        cudaExternalMemoryMipmappedArrayDesc desc = {};
-        memset(&desc, 0, sizeof(desc));
 
         cudaChannelFormatDesc formatDesc;
         memset(&formatDesc, 0, sizeof(formatDesc));
-        formatDesc.x = 8 * 4;
-        formatDesc.y = 8 * 4;
-        formatDesc.z = 8 * 4;
-        formatDesc.w = 8 * 4;
-        formatDesc.f = cudaChannelFormatKindFloat;
+        formatDesc.x = 8;
+        formatDesc.y = 8;
+        formatDesc.z = 8;
+        formatDesc.w = 8;
+        formatDesc.f = cudaChannelFormatKindUnsigned;
 
-        cudaExtent extent = {0, 0, 0};
-        extent.width = settings->imageWidth;
-        extent.height = settings->imageHeight;
-        extent.depth = 1;
+        cudaExtent extent = make_cudaExtent(settings->imageWidth, settings->imageHeight, 0);
 
         unsigned int flags = 0;
-        flags |= cudaArrayColorAttachment;
+        //flags |= cudaArrayColorAttachment;
 
+        cudaExternalMemoryMipmappedArrayDesc desc = {};
+        memset(&desc, 0, sizeof(desc));
         desc.offset = 0;
         desc.formatDesc = formatDesc;
         desc.extent = extent;
@@ -355,13 +394,16 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
         desc.numLevels = 1;
 
         checkCudaErrors(cudaExternalMemoryGetMappedMipmappedArray(&cudaMipMappedArrays[i], cudaExtMem[i], &desc));
+
+        checkCudaErrors(cudaGetMipmappedArrayLevel(&cudaFirstLevels[i], cudaMipMappedArrays[i], 0));
+        // 0 for the first level
     }
 
 
-    torch::Device device(torch::kCUDA);
+    torch::Device cudaDevice(torch::kCUDA);
 
-    campos = ConvertGlmVec3ToTensor(settings->camPos).to(device);
-    bg = torch::tensor({0.0, 0.0, 0.0}, torch::dtype(torch::kFloat32)).to(device);
+    campos = ConvertGlmVec3ToTensor(settings->camPos).to(cudaDevice);
+    bg = torch::tensor({0.0, 0.0, 0.0}, torch::dtype(torch::kFloat32)).to(cudaDevice);
     // Other parameters
     scale_modifier = settings->scaleModifier;
     tan_fovx = settings->tanFovX;
@@ -373,19 +415,19 @@ CudaImplementation::CudaImplementation(const RasterSettings* settings, std::vect
     debug = settings->debug;
     std::filesystem::path pointCloudPath = "point_cloud/iteration_7000/point_cloud.ply";
     std::filesystem::path fullPath = modelPath / pointCloudPath;
-    //auto gaussianData = loadTinyPly(fullPath);
-    auto gaussianData = naive_gaussian();
+    auto gaussianData = loadTinyPly(fullPath);
+    //auto gaussianData = naive_gaussian();
     // Example usage
     if (!gaussianData.length()) {
         gaussianData = naive_gaussian();
     }
-    means3D = gaussianData.xyz.to(device);
-    shs = gaussianData.sh.to(device);
-    opacity = gaussianData.opacity.to(device);
-    scales = gaussianData.scale.to(device);
-    rotations = gaussianData.rot.to(device);
-    cov3Dprecompute = torch::tensor({}).to(device);
-    colors = torch::tensor({}).to(device);
+    means3D = gaussianData.xyz.to(cudaDevice);
+    shs = gaussianData.sh.to(cudaDevice);
+    opacity = gaussianData.opacity.to(cudaDevice);
+    scales = gaussianData.scale.to(cudaDevice);
+    rotations = gaussianData.rot.to(cudaDevice);
+    cov3Dprecompute = torch::tensor({}).to(cudaDevice);
+    colors = torch::tensor({}).to(cudaDevice);
     degree = 0;
 
     shs = shs.view({gaussianData.length(), -1, 3}).contiguous();
@@ -397,7 +439,8 @@ void CudaImplementation::updateGaussianData() {
 
 void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 target) {
     torch::Device device(torch::kCUDA);
-
+    glm::vec3 cameraPos = glm::inverse(view)[3];
+    /*
     glm::vec3 cameraPos = glm::inverse(view)[3];
     //glm::vec3 cameraPos(3.0f, -3.0f, 0.0f);
     glm::vec3 dirNorm = glm::normalize(target - cameraPos);
@@ -413,32 +456,32 @@ void CudaImplementation::updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::v
     view = glm::inverse(cameraTrans);
     //std::cout << dirNorm.x << ", " << dirNorm.y << ", " << dirNorm.z << std::endl;
 
-    view[0][0] *= -1;
-    view[1][0] *= -1;
-    view[2][0] *= -1;
-    view[3][0] *= -1;
-    //
-    view[0][2] *= -1;
-    view[1][2] *= -1;
-    view[2][2] *= -1;
-    view[3][2] *= -1;
+    //view[0][0] *= -1;
+    //view[1][0] *= -1;
+    //view[2][0] *= -1;
+    //view[3][0] *= -1;
+    ////
+    //view[0][2] *= -1;
+    //view[1][2] *= -1;
+    //view[2][2] *= -1;
+    //view[3][2] *= -1;
 
     float aspect = 1280.0f / 720.0f;
-    float far = 100;
-    float near = 0.01;
+    float farPlane = 100;
+    float nearPlane = 0.01;
     float focal_length = 1.0f / tan(glm::radians(60.0f) * 0.5f);
     float x = focal_length / aspect;
-    float y = focal_length;
-    float A = far / (far - near);
-    float B = -far * near / (far - near);
+    float y = -focal_length;
+    float A = -farPlane / (farPlane - nearPlane);
+    float B = -farPlane * nearPlane / (farPlane - nearPlane);
 
 
     proj = glm::mat4(
         x, 0.0f, 0.0f, 0.0f,
         0.0f, y, 0.0f, 0.0f,
-        0.0f, 0.0f, A, 1.0f,
+        0.0f, 0.0f, A, -1.0f,
         0.0f, 0.0f, B, 0.0f);
-
+    */
 
     glm::mat4 projView = proj * view;
     viewmatrix = ConvertGlmMat4ToTensor(view).to(device);
@@ -458,7 +501,7 @@ void CudaImplementation::updateCameraIntrinsics(float hfox, float hfovy) {
 }
 
 
-void CudaImplementation::draw(uint32_t i) {
+void CudaImplementation::draw(uint32_t i, void* streamToRun) {
     int rendered;
     torch::Tensor out_color, radii, geomBuffer, binningBuffer, imgBuffer;
     // Call the function
@@ -466,9 +509,10 @@ void CudaImplementation::draw(uint32_t i) {
         std::tie(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer) = RasterizeGaussiansCUDA(
             bg, means3D, colors, opacity, scales, rotations,
             scale_modifier, cov3Dprecompute, viewmatrix, projmatrix, tan_fovx, tan_fovy,
-            image_height, image_width, shs, degree, campos, prefiltered, debug
+            image_height, image_width, shs, degree, campos, prefiltered, debug, streamToRun
         );
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         std::cerr << "Caught exception: " << e.what() << std::endl;
         rendered = 0;
     }
@@ -481,28 +525,30 @@ void CudaImplementation::draw(uint32_t i) {
     auto alpha_channel = torch::ones({img.size(0), img.size(1), 1}, img.options());
     auto img_with_alpha = torch::cat({img, alpha_channel}, 2);
     img_with_alpha = img_with_alpha.contiguous();
-    auto img_with_alpha_ptr = img_with_alpha.data_ptr<float>();
-    cudaArray_t levelArray;
-    checkCudaErrors(cudaGetMipmappedArrayLevel(&levelArray, cudaMipMappedArrays[i], 0)); // 0 for the first level
-
+    img_with_alpha *= 255;
+    img_with_alpha = img_with_alpha.to(torch::kU8);
+    auto img_with_alpha_ptr = img_with_alpha.data_ptr<uint8_t>();
     cudaMemcpy3DParms p{};
     memset(&p, 0x00, sizeof(cudaMemcpy3DParms));
-    p.srcPtr = make_cudaPitchedPtr(img_with_alpha_ptr, 16 * image_width, image_width, image_height);
-    p.dstArray = levelArray;
+
+    p.srcPtr = make_cudaPitchedPtr(img_with_alpha_ptr, image_width * 4, image_width, image_height);
+    p.dstArray = cudaFirstLevels[i];
     p.extent = make_cudaExtent(image_width, image_height, 1); // depth is 1 for 2D
     p.kind = cudaMemcpyDeviceToDevice;
     checkCudaErrors(cudaMemcpy3D(&p));
-
+    /*
     try {
         if (img.device().is_cuda()) {
             img = img.to(torch::kCPU);
             // Make sure the tensor is contiguous and in the format [Height, Width, Channels]
             img = img.contiguous();
-            img = img * 255;
-            torch::Tensor img_uchar = img.to(torch::kU8);
+            //img = img * 255;
+            //torch::Tensor img_uchar = img.to(torch::kU8);
+            //printTensor(img_uchar, 0);
 
-            cv::Mat mat(img_uchar.size(0), img_uchar.size(1), CV_8UC(img_uchar.size(2)),
-                        img_uchar.data_ptr<glm::uint8_t>());
+            auto channels = CV_32FC(img.size(2));
+            cv::Mat mat(img.size(0), img.size(1), channels,
+                        img.data_ptr<float>());
             cv::Mat img_flipped;
             cv::Mat img_flipped_x;
             cv::flip(mat, img_flipped, 0); // Flip the image vertically
@@ -516,7 +562,7 @@ void CudaImplementation::draw(uint32_t i) {
     catch (const torch::Error& e) {
         std::cerr << "Error during tensor device check or transfer: " << e.what() << std::endl;
     }
-
+    */
 
     //checkCudaErrors(cudaMemcpy(cudaMipMappedArrays[i],img_with_alpha.data_ptr() , data_size, cudaMemcpyDeviceToDevice));
 }

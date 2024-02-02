@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.25)
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
-        LANGUAGES C CXX CUDA
+        LANGUAGES CXX C CUDA
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -148,10 +148,20 @@ if (UNIX) ## Linux
     # Add GTK+ compiler flags
     add_definitions(${GTK3_CFLAGS_OTHER})
 
+    add_library(CustomLoggerInterface INTERFACE)
+    target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
+
+    add_library(CustomLogger ${LOGGER_SRC})
+    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
+
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} ${GTK3_LIBRARIES})
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
+
+    add_library(CudaOperations ${CUDA_SOURCES})
+    set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
@@ -225,7 +235,7 @@ if (WIN32)
 
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer;${OpenCV_LIBS})
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer})
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations)

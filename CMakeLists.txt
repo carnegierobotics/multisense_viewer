@@ -156,7 +156,7 @@ if (UNIX) ## Linux
 
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} ${GTK3_LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(CudaOperations ${CUDA_SOURCES})
@@ -164,10 +164,10 @@ if (UNIX) ## Linux
     target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
+    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer CudaOperations)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary )
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CUDA::cuda_driver)
     add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)

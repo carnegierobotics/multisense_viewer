@@ -421,14 +421,14 @@ CudaImplementation::CudaImplementation(VkInstance* instance, VkDevice device, co
     if (!gaussianData.length()) {
         gaussianData = naive_gaussian();
     }
-    means3D = gaussianData.xyz.to(cudaDevice);
+    means3D = gaussianData.xyz.to(cudaDevice) * 100;
     shs = gaussianData.sh.to(cudaDevice);
     opacity = gaussianData.opacity.to(cudaDevice);
     scales = gaussianData.scale.to(cudaDevice);
     rotations = gaussianData.rot.to(cudaDevice);
     cov3Dprecompute = torch::tensor({}).to(cudaDevice);
     colors = torch::tensor({}).to(cudaDevice);
-    degree = 0;
+    degree = 3;
 
     shs = shs.view({gaussianData.length(), -1, 3}).contiguous();
 }

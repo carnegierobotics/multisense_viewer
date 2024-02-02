@@ -48,17 +48,17 @@ echo "Compiled Default shaders"
 #$glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
 #
 #echo "Compiled video shaders"
-#$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
-#$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
-#echo "Compiled pointcloud shaders"
+$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
+$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
+echo "Compiled pointcloud shaders"
 #
 #$glslc  ${sceneDir}/imgui/ui.vert -o ${sceneOutDir}ui.vert.spv
 #$glslc  ${sceneDir}/imgui/ui.frag -o ${sceneOutDir}ui.frag.spv
 #echo "Compiled UI shaders"
-$glslc ${sceneDir}/pbr/object.vert -o ${sceneOutDir}object.vert.spv
-$glslc ${sceneDir}/pbr/object.frag -o ${sceneOutDir}object.frag.spv
-$glslc ${sceneDir}/pbr/skybox.vert -o ${sceneOutDir}skybox.vert.spv
-$glslc ${sceneDir}/pbr/skybox.frag -o ${sceneOutDir}skybox.frag.spv
+#$glslc ${sceneDir}/pbr/object.vert -o ${sceneOutDir}object.vert.spv
+#$glslc ${sceneDir}/pbr/object.frag -o ${sceneOutDir}object.frag.spv
+#$glslc ${sceneDir}/pbr/skybox.vert -o ${sceneOutDir}skybox.vert.spv
+#$glslc ${sceneDir}/pbr/skybox.frag -o ${sceneOutDir}skybox.frag.spv
 #$glslc ${sceneDir}/pbr/genbrdflut.vert -o ${sceneOutDir}genbrdflut.vert.spv
 #$glslc ${sceneDir}/pbr/genbrdflut.frag -o ${sceneOutDir}genbrdflut.frag.spv
 #$glslc ${sceneDir}/pbr/filtercube.vert -o ${sceneOutDir}filtercube.vert.spv

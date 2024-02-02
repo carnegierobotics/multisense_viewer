@@ -461,7 +461,7 @@ void Renderer::updateUniformBuffers() {
                 break;
             }
 
-            if (scripts.contains("MultiSenseCamera")) { // TODO quickfix to check if script exists during reload. Need a more permament fix
+            if (scripts.contains("MultiSenseCamera") && scripts.contains("PointCloud")) { // TODO quickfix to check if script exists during reload. Need a more permament fix
                 switch (dev.selectedPreviewTab) {
                     case VkRender::CRL_TAB_3D_POINT_CLOUD:
                         scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);

@@ -51,8 +51,8 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
+    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     VkRender::UBOMatrix mvpMat{};
     std::vector<Buffer> uniformBuffers;

@@ -4,18 +4,10 @@
 
 #include "Viewer/Scripts/Renderer3D/GaussianSplatScript.h"
 
-
 #include <Viewer/ImGui/Widgets.h>
 
 #ifdef WIN32
-#define FD_HANDLE HANDLE
-#include <vulkan/vulkan_win32.h>
-#include <AclAPI.h>
-
-#else
-#define FD_HANDLE int
 #endif
-
 void GaussianSplatScript::setup() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {
         {
@@ -30,23 +22,13 @@ void GaussianSplatScript::setup() {
     uniformBuffers.resize(renderUtils.UBCount);
     textures.resize(renderUtils.UBCount);
     // Create texture m_Image if not created
-    int texWidth = 0, texHeight = 0, texChannels = 0;
+    int texWidth = 1280, texHeight = 720, texChannels = 4;
+    auto* pixels = malloc(texWidth * texHeight * 16);
+    memset(pixels, 0xFF, texWidth * texHeight * 16);
 
-    auto pixels = stbi_load((Utils::getTexturePath().append("rover.png")).string().c_str(), &texWidth, &texHeight,
-                            &texChannels,
-                            STBI_rgb_alpha);
-    if (!pixels) {
-        Log::Logger::getInstance()->error("Failed to load texture image {}",
-                                          (Utils::getTexturePath().append("rover.png")).string());
-    }
-    PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
-        vkGetInstanceProcAddr(*renderUtils.instance, "vkGetMemoryWin32HandleKHR"));
-    if (fpGetMemoryWin32HandleKHR == nullptr) {
-        Log::Logger::getInstance()->error("Function not available");
-    }
-    std::vector<void*> handles;
     handles.resize(textures.size());
-
+    uint32_t bytesPerChannel = sizeof(uint8_t);
+    uint32_t bufferSize = texWidth * texHeight * texChannels * bytesPerChannel;
     for (size_t i = 0; i < renderUtils.UBCount; ++i) {
         renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -54,22 +36,9 @@ void GaussianSplatScript::setup() {
                                          &uniformBuffers[i], sizeof(VkRender::UBOMatrix));
         uniformBuffers[i].map();
 
-        textures[i].fromBuffer(pixels, texWidth * texHeight * 4, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight,
+        textures[i].fromBuffer(pixels, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight,
                                renderUtils.device,
-                               renderUtils.device->m_TransferQueue);
-
-        VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR = {};
-        vkMemoryGetWin32HandleInfoKHR.sType =
-            VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
-        vkMemoryGetWin32HandleInfoKHR.pNext = NULL;
-        vkMemoryGetWin32HandleInfoKHR.memory = textures[i].m_DeviceMemory;
-        vkMemoryGetWin32HandleInfoKHR.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-
-        if (fpGetMemoryWin32HandleKHR(renderUtils.device->m_LogicalDevice, &vkMemoryGetWin32HandleInfoKHR, &handles[i]) !=
-            VK_SUCCESS) {
-            Log::Logger::getInstance()->error("vkGetMemoryWin32HandleKHR not available");
-            }
-
+                               renderUtils.device->m_TransferQueue, &cudaRequestedMemorySize);
     }
     stbi_image_free(pixels);
 
@@ -88,14 +57,7 @@ void GaussianSplatScript::setup() {
     pConf.ubo = uniformBuffers.data();
     pipeline = std::make_unique<RenderResource::Pipeline>(pConf);
 
-
-    /*
-    splat = std::make_unique<GaussianSplat>(renderUtils.device);
-    int device = splat->setCudaVkDevice(renderUtils.vkDeviceUUID);
-    cudaStream_t streamToRun;
-    checkCudaErrors(cudaStreamCreate(&streamToRun));
-    */
-    auto camParams = renderData.camera->getFocalParams(1280, 720);
+    auto camParams = renderData.camera->getFocalParams(texWidth, texHeight);
 
     settings.camPos = renderData.camera->m_Position;
     settings.viewMat = renderData.camera->matrices.view;
@@ -106,43 +68,68 @@ void GaussianSplatScript::setup() {
     settings.tanFovY = camParams.htany;
     settings.tanFovX = camParams.htanx;
 
-    cudaImplementation = std::make_unique<CudaImplementation>(&settings, handles);
 
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
     Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "##scale modifier", &scaleModifier, 0.1f, 5.0f);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Render Gaussians", &renderGaussians);
+    /*
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera pos");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera pos", &cameraPos);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera target");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera target", &target);
+
+    Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set camera up");
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "##camera up", &up);
+    */
+
+    Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "load model", &plyFileFolder);
+
+    cudaImplementation = std::make_unique<CudaImplementation>(renderUtils.instance, renderUtils.device->m_LogicalDevice, &settings, filePathDialog, cudaRequestedMemorySize, &textures);
 }
 
 
 void GaussianSplatScript::update() {
-    mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+    if (plyFileFolder.valid()) {
+        if (plyFileFolder.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            std::string selectedFolder = plyFileFolder.get(); // This will also make the future invalid
+            if (!selectedFolder.empty()) {
+                // Do something with the selected folder
+                cudaImplementation = std::make_unique<CudaImplementation>(renderUtils.instance,renderUtils.device->m_LogicalDevice, &settings, selectedFolder, cudaRequestedMemorySize, &textures);
+            }
+        }
+    }
+
+    mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;
     memcpy(uniformBuffers[renderData.index].mapped, &mvpMat, sizeof(VkRender::UBOMatrix));
 
     settings.scaleModifier = scaleModifier;
-
-    cudaImplementation->updateCameraPose(mvpMat.view, mvpMat.projection, renderData.camera->m_Position);
+    cudaImplementation->updateCameraPose(renderData.camera->matrices.view, renderData.camera->matrices.perspective,
+                                         renderData.camera->m_Target);
     cudaImplementation->updateSettings(settings);
 }
 
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
-    cudaImplementation->draw(i);
+    if (b && renderGaussians) {
+        cudaImplementation->draw(i, renderData.streamToRun);
 
-    if (b) {
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipeline->data.pipelineLayout, 0,
                                 1,
                                 &pipeline->data.descriptors[i], 0, nullptr);
         vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->data.pipeline);
         const VkDeviceSize offsets[1] = {0};
-
         vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &mesh->model.vertices.buffer, offsets);
+        //vkCmdDraw(commandBuffer->buffers[i], 6, 1, 0, 0);
         if (mesh->model.indexCount) {
             vkCmdBindIndexBuffer(commandBuffer->buffers[i], mesh->model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(commandBuffer->buffers[i], mesh->model.indexCount, 1, mesh->model.firstIndex, 0, 0);
         }
         else {
-            vkCmdDraw(commandBuffer->buffers[i], mesh->model.vertexCount, 1, 0, 0);
         }
     }
 }

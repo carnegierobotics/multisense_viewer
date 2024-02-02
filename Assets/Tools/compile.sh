@@ -14,6 +14,7 @@ if [[ "$1" == "windows" ]]; then
     sceneOutDir="${project_path}/Assets/Shaders/spv/"
     sceneDir="${project_path}/Assets/Shaders/Scene"
     outDir="${project_path}/cmake-build-debug/Assets/Shaders/spv/"
+    renderer3DDir="../Shaders/Renderer3D"
 
         echo "compiling shader from folder ${sceneDir}"
         echo "copying to this folder ${sceneOutDir}"
@@ -47,9 +48,9 @@ echo "Compiled Default shaders"
 #$glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
 #
 #echo "Compiled video shaders"
-#$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
-#$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
-#echo "Compiled pointcloud shaders"
+$glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv
+$glslc ${sceneDir}/pointcloud/pc.frag -o ${sceneOutDir}pointcloud.frag.spv
+echo "Compiled pointcloud shaders"
 #
 #$glslc  ${sceneDir}/imgui/ui.vert -o ${sceneOutDir}ui.vert.spv
 #$glslc  ${sceneDir}/imgui/ui.frag -o ${sceneOutDir}ui.frag.spv
@@ -63,13 +64,13 @@ echo "Compiled Default shaders"
 #$glslc ${sceneDir}/pbr/filtercube.vert -o ${sceneOutDir}filtercube.vert.spv
 #$glslc ${sceneDir}/pbr/irradiancecube.frag -o ${sceneOutDir}irradiancecube.frag.spv
 #$glslc ${sceneDir}/pbr/prefilterenvmap.frag -o ${sceneOutDir}prefilterenvmap.frag.spv
-#echo "Compiled PBR shaders"
+echo "Compiled PBR shaders"
 #
-#$glslc ${renderer3DDir}/grid.vert -o ${sceneOutDir}grid.vert.spv
-#$glslc ${renderer3DDir}/grid.frag -o ${sceneOutDir}grid.frag.spv
-#$glslc ${renderer3DDir}/pc3D.vert -o ${sceneOutDir}pc3D.vert.spv
-#$glslc ${renderer3DDir}/pc3D.frag -o ${sceneOutDir}pc3D.frag.spv
-#echo "Compiled Renderer3D shaders"
+$glslc ${renderer3DDir}/grid.vert -o ${sceneOutDir}grid.vert.spv
+$glslc ${renderer3DDir}/grid.frag -o ${sceneOutDir}grid.frag.spv
+$glslc ${renderer3DDir}/pc3D.vert -o ${sceneOutDir}pc3D.vert.spv
+$glslc ${renderer3DDir}/pc3D.frag -o ${sceneOutDir}pc3D.frag.spv
+echo "Compiled Renderer3D shaders"
 #
 #$glslc ${sceneDir}/compute/particle.frag -o ${sceneOutDir}particle.frag.spv
 #$glslc ${sceneDir}/compute/particle.vert -o ${sceneOutDir}particle.vert.spv

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
-        LANGUAGES CXX C CUDA
+        LANGUAGES C CXX CUDA
 )
 
 set(CMAKE_CXX_STANDARD 20)
@@ -229,21 +229,24 @@ if (WIN32)
     add_library(CustomLogger ${LOGGER_SRC})
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
 
-    add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
-
-
+    set(OpenCV_DIR "C:\\opencv\\build")
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer})
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer ${OpenCV_LIBS} tinyply)
+
+    add_library(VulkanRenderer STATIC ${ENGINE_SRC})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES} CudaOperations )
+    set_target_properties(VulkanRenderer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations)
+    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations CUDA::cuda_driver)
     target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations CUDA::cuda_driver)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)

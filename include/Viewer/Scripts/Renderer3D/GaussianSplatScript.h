@@ -51,7 +51,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
     VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     VkRender::UBOMatrix mvpMat{};
@@ -63,9 +63,17 @@ public:
     std::unique_ptr<RenderResource::Pipeline> pipeline;
 
     std::unique_ptr<CudaImplementation> cudaImplementation;
+    char filePathDialog[1024] = "C:\\Users\\mgjer\\Downloads\\models\\stump";
+    std::future<std::string> plyFileFolder;
+    std::vector<void*> handles;
+    bool renderGaussians = true;
 
     float scaleModifier = 1.0f;
+    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f);
     CudaImplementation::RasterSettings settings;
+    uint32_t cudaRequestedMemorySize = 0;
 
     //std::unique_ptr<GaussianSplat> splat;
 

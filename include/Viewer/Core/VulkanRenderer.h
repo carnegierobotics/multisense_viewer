@@ -37,25 +37,29 @@
 
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
-
+#include <cuda_runtime.h>
+#include <driver_types.h>
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
+
 #ifdef WIN32
+#define FD_HANDLE HANDLE
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
+#else
+#define FD_HANDLE int
+
 #endif
 
 #include <GLFW/glfw3.h>
 
-#include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
 #include <vector>
 #include <cstring>
 #include <iostream>
-#include <glm/vec2.hpp>
 #include <chrono>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -65,7 +69,6 @@
 #include "Viewer/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Core/VulkanSwapchain.h"
-#include "Viewer/Core/Validation.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/CommandBuffer.h"
@@ -233,7 +236,15 @@ namespace VkRender {
             VkSemaphore renderComplete;
             // compute submission
             VkSemaphore computeComplete;
+            // Cuda semaphore handle
         };
+        // Cuda semaphore
+        VkSemaphore updateVulkan;
+        // Cuda semaphore
+        VkSemaphore updateCuda;
+        cudaExternalSemaphore_t updateVulkanExt;
+        cudaExternalSemaphore_t updateCudaExt;
+        cudaStream_t streamToRun;
         std::vector<Semaphores> semaphores;
 
         std::vector<VkFence> waitFences{};

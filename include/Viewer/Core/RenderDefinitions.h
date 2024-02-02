@@ -133,7 +133,7 @@ namespace VkRender {
      */
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
-        bool vsync = true;
+        bool vsync = false;
         VkInstance instance{};
         VkPhysicalDevice physicalDevice{};
         VkDevice device{};
@@ -300,6 +300,7 @@ namespace VkRender {
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
         std::mutex *queueSubmitMutex;
+        const std::vector<VkFence>* fence;
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
@@ -320,6 +321,7 @@ namespace VkRender {
         uint32_t height = 0;
         uint32_t width = 0;
         bool additionalBuffers = false;
+        void* streamToRun;
 
     };
 

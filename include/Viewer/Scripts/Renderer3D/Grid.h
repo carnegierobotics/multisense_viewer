@@ -7,6 +7,7 @@
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
 class Grid: public VkRender::Base, public VkRender::RegisteredInFactory<Grid>
@@ -32,7 +33,6 @@ public:
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
-        model.reset();
     }
     /** @brief set if this script should be drawn or not. */
     void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
@@ -53,10 +53,6 @@ public:
     bool enable = true;
     bool hide = false;
 
-    struct LightSource {
-        glm::vec3 color = glm::vec3(1.0f);
-        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-    } lightSource;
 };
 
 #endif //MULTISENSE_VIEWER_GRID_H

@@ -23,7 +23,6 @@ namespace RecordUtility {
 
     static void writeTIFFImage(const std::filesystem::path &fileName, std::shared_ptr<VkRender::TextureData> &ptr,
                                uint32_t bitsPerPixel) {
-
         int samplesPerPixel = 1;
         TIFF *out = TIFFOpen(fileName.string().c_str(), "w");
         TIFFSetField(out, TIFFTAG_IMAGEWIDTH, ptr->m_Width);  // set the width of the image
@@ -40,8 +39,9 @@ namespace RecordUtility {
         // We set the strip size of the file to be size of one row of pixels
         TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
         //Now writing image to the file one strip at a time
+        uint8_t stride = bitsPerPixel / 8;
         for (uint32_t row = 0; row < ptr->m_Height; row++) {
-            if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width]), row, 0) < 0)
+            if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width * stride]), row, 0) < 0)
                 break;
         }
         TIFFClose(out);

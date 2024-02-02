@@ -98,10 +98,15 @@ public:
                     static_cast<double>(handles->camera.pos.y),
                     static_cast<double>(handles->camera.pos.z));
 
-        ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->camera.rot.x),
-                    static_cast<double>(handles->camera.rot.y),
-                    static_cast<double>(handles->camera.rot.z));
+        ImGui::Text("Up: (%.3f, %.3f, %.3f)",
+                    static_cast<double>(handles->camera.up.x),
+                    static_cast<double>(handles->camera.up.y),
+                    static_cast<double>(handles->camera.up.z));
+
+        ImGui::Text("Target: (%.3f, %.3f, %.3f)",
+                    static_cast<double>(handles->camera.target.x),
+                    static_cast<double>(handles->camera.target.y),
+                    static_cast<double>(handles->camera.target.z));
         ImGui::End();
         ImGui::PopStyleColor();
 

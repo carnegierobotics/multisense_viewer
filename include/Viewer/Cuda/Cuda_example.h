@@ -7,15 +7,9 @@
 
 
 #include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
-#include <memory>  // For std::unique_ptr
 
 #include <torch/torch.h>
-#include <Viewer/Tools/helper_cuda.h>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
 #include <driver_types.h>
-
 #include "Viewer/Core/Texture.h"
 
 class CudaImplementation {
@@ -33,13 +27,12 @@ public:
         glm::mat4 projMat;
         glm::vec3 camPos;
     };
-    CudaImplementation(const RasterSettings *settings, std::vector<void*> handles);
+    CudaImplementation(VkInstance* instance, VkDevice device, const RasterSettings *settings, const std::filesystem::path& modelPath, uint32_t memSizeCuda,     std::vector<TextureCuda>* textures);
     void updateGaussianData();
 
-    void draw(uint32_t i);
+    void draw(uint32_t i, void* streamToRun);
 
     void updateCameraIntrinsics(float hfox, float hfovy);
-    void printTensor(const torch::Tensor& tensor);
 
     void updateCameraPose(glm::mat4 view, glm::mat4 proj, glm::vec3 pos);
     void updateSettings(const RasterSettings& settings);
@@ -50,12 +43,14 @@ private:
     torch::Tensor opacity;
     torch::Tensor scales;
     torch::Tensor rotations;
-    torch::Tensor cov3D_precomp;
     torch::Tensor colors;
     torch::Tensor viewmatrix;
     torch::Tensor projmatrix;
+
+
     torch::Tensor campos;
     torch::Tensor bg;
+    torch::Tensor cov3Dprecompute;
 
     float scale_modifier = 0;
     float tan_fovx = 0;
@@ -70,6 +65,7 @@ private:
     std::vector<cudaExternalMemory_t> cudaExtMem;
     std::vector<void *> cudaMemPtr;
     std::vector<cudaMipmappedArray_t> cudaMipMappedArrays;
+    std::vector<cudaArray_t> cudaFirstLevels;
 
 };
 

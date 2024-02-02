@@ -16,97 +16,22 @@
 #endif
 
 #include <imgui.h>
+#include <ATen/ops/cat.h>
 
 
 #include "Viewer/ImGui/Widgets.h"
 
 namespace VkRender::LayerUtils {
 
-    struct WidgetPosition {
-        float paddingX = -1.0f;
-        ImVec4 textColor = VkRender::Colors::CRLTextWhite;
-        bool sameLine = false;
-
-        float maxElementWidth = 300.0f;
-    };
-
-    static inline void
-    createWidgets(VkRender::GuiObjectHandles *handles, const ScriptWidgetPlacement &area, WidgetPosition pos = WidgetPosition()) {
-        for (auto &elem: Widgets::make()->elements[area]) {
-
-            if (pos.paddingX != -1) {
-                ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
-                ImGui::SameLine();
-            }
-
-            switch (elem.type) {
-                case WIDGET_CHECKBOX:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
-                        ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-
-                case WIDGET_FLOAT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
-                        ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_INT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    *elem.active = false;
-                    ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
-                        *elem.active = true;
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    ImGui::Text("%s", elem.label.c_str());
-                    ImGui::PopStyleColor();
-
-                    break;
-                case WIDGET_INPUT_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_BUTTON:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    *elem.button = ImGui::Button(elem.label.c_str());
-                    ImGui::PopStyleColor();
-                    break;
-                default:
-                    break;
-            }
-            if (pos.sameLine)
-                ImGui::SameLine();
-        }
-        ImGui::Dummy(ImVec2());
-    }
-
-
-#ifdef WIN32
+    #ifdef WIN32
 
     static inline std::string selectFolder() {
         PWSTR path = NULL;
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
             IFileOpenDialog* pfd;
-            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pfd));
+            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<void**>(&pfd));
             if (SUCCEEDED(hr)) {
                 DWORD dwOptions;
                 hr = pfd->GetOptions(&dwOptions);
@@ -145,12 +70,13 @@ namespace VkRender::LayerUtils {
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
             IFileOpenDialog* pfd;
-            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pfd));
+            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<void**>(&pfd));
             if (SUCCEEDED(hr)) {
                 // Set the file types to display only. Notice the double null termination.
                 COMDLG_FILTERSPEC rgSpec[] = {
-                        { L"YAML Files", L"*.yaml;*.yml" },
-                        { L"All Files", L"*.*" },
+                    {L"YAML Files", L"*.yaml;*.yml"},
+                    {L"All Files", L"*.*"},
                 };
                 pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
 
@@ -248,6 +174,108 @@ namespace VkRender::LayerUtils {
         return folderPath;
     }
 #endif
+
+    struct WidgetPosition {
+        float paddingX = -1.0f;
+        ImVec4 textColor = VkRender::Colors::CRLTextWhite;
+        bool sameLine = false;
+
+        float maxElementWidth = 300.0f;
+    };
+
+    static inline void
+    createWidgets(VkRender::GuiObjectHandles* handles, const ScriptWidgetPlacement& area,
+                  WidgetPosition pos = WidgetPosition()) {
+        for (auto& elem : Widgets::make()->elements[area]) {
+            if (pos.paddingX != -1) {
+                ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
+                ImGui::SameLine();
+            }
+
+            switch (elem.type) {
+            case WIDGET_CHECKBOX:
+                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
+                    ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
+                ImGui::PopStyleColor();
+                break;
+
+            case WIDGET_FLOAT_SLIDER:
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::SetNextItemWidth(pos.maxElementWidth);
+                if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
+                    ImGui::IsItemActivated()) {
+                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
+                ImGui::PopStyleColor();
+                break;
+            case WIDGET_INT_SLIDER:
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                ImGui::SetNextItemWidth(pos.maxElementWidth);
+                *elem.active = false;
+                ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
+                                                           ImGui::GetCurrentWindow()->Name);
+                    *elem.active = true;
+                }
+                ImGui::PopStyleColor();
+                break;
+            case WIDGET_TEXT:
+                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                ImGui::Text("%s", elem.label.c_str());
+                ImGui::PopStyleColor();
+
+                break;
+            case WIDGET_INPUT_TEXT:
+                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                ImGui::SetNextItemWidth(pos.maxElementWidth);
+                ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
+                ImGui::PopStyleColor();
+                break;
+            case WIDGET_BUTTON:
+                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                *elem.button = ImGui::Button(elem.label.c_str());
+                ImGui::PopStyleColor();
+                break;
+            case WIDGET_GLM_VEC_3:
+                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                ImGui::InputText(("x: " + elem.label).c_str(), elem.glm.xBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::InputText(("y: " + elem.label).c_str(), elem.glm.yBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                ImGui::InputText(("z: " + elem.label).c_str(), elem.glm.zBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                try {
+                    elem.glm.vec3->x = std::stof(elem.glm.xBuf);
+                    elem.glm.vec3->y = std::stof(elem.glm.yBuf);
+                    elem.glm.vec3->z = std::stof(elem.glm.zBuf);
+                }
+                catch (...) {
+                }
+
+                ImGui::PopStyleColor();
+                break;
+                case WIDGET_SELECT_DIR_DIALOG:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+
+                    if(ImGui::Button(elem.label.c_str())) {
+                        if (!elem.future->valid())
+                            *elem.future = std::async(selectFolder);
+                    }
+
+                    ImGui::PopStyleColor();
+                break;
+            default:
+                break;
+            }
+            if (pos.sameLine)
+                ImGui::SameLine();
+        }
+        ImGui::Dummy(ImVec2());
+    }
+
 }
 
 

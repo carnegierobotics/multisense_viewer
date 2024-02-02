@@ -2,7 +2,11 @@
 
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
-layout (location = 2) in vec2 inUV;
+layout (location = 2) in vec2 inUV0;
+layout (location = 3) in vec2 inUV1;
+layout (location = 4) in vec4 inJoint0;
+layout (location = 5) in vec4 inWeight0;
+layout (location = 6) in vec4 inColor0;
 
 layout (set = 0, binding = 0) uniform UBO
 {
@@ -14,26 +18,14 @@ layout (set = 0, binding = 0) uniform UBO
 
 layout(location = 0) out vec2 outUV;
 
-vec4 positions[3] = vec4[3](
-    vec4(-1.0, 1.0, 0.0, 1.0),
-    vec4(3.0, 1.0, 0.0, 1.0),
-    vec4(-1.0, -3.0, 0.0, 1.0)
-);
-
-vec2 texpos[3] = vec2[3](
-    vec2(0, 0),
-    vec2(2, 0),
-    vec2(0, 2)
-);
-
 void main() {
     //gl_Position = positions[gl_VertexIndex];
     //outUV = texpos[gl_VertexIndex];
+    //vec4 pos = ubo.model * vec4(inPos, 1.0f);
+    //gl_Position =  ubo.projection * ubo.view * vec4(pos.xyz, 1.0);
 
-    vec4  locPos = ubo.model * vec4(inPos, 1.0);
-    vec3 outWorldPos = locPos.xyz / locPos.w;
+    gl_Position = vec4(inPos, 1.0);
+    outUV = inUV0;
 
-	outUV = inUV;
-	gl_Position = vec4(inPos, 1.0);
 }
 

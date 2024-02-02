@@ -6,11 +6,16 @@
 #include "Viewer/ImGui/Widgets.h"
 
 void MultiSense::setup() {
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/object.vert",
-                                                                        VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("spv/object.frag",
-                                                                        VK_SHADER_STAGE_FRAGMENT_BIT)}};
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {
+        {
+            loadShader("spv/object.vert",
+                       VK_SHADER_STAGE_VERTEX_BIT)
+        },
+        {
+            loadShader("spv/object.frag",
+                       VK_SHADER_STAGE_FRAGMENT_BIT)
+        }
+    };
 
     KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
     KS21->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), renderUtils.device,
@@ -23,50 +28,46 @@ void MultiSense::setup() {
 
 
 void MultiSense::update() {
-
     std::chrono::duration<float> dt = std::chrono::steady_clock::now() - startPlay;
 
-    auto &d = bufferOneData;
-    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, glm::sin(dt.count() * 0.7f)));
+    auto& d = bufferOneData;
+    d->model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     // d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
     d->projection = renderData.camera->matrices.perspective;
+
+
     d->view = renderData.camera->matrices.view;
     d->camPos = glm::vec3(
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(-renderData.camera->m_Position.z) * sin(
-                    static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
-            static_cast<double>(renderData.camera->m_Position.z) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
-            cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
+        static_cast<double>(-renderData.camera->m_Position.z) * sin(
+            static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+        cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+        static_cast<double>(-renderData.camera->m_Position.z) * sin(
+            static_cast<double>(glm::radians(renderData.camera->m_Rotation.x))),
+        static_cast<double>(renderData.camera->m_Position.z) *
+        cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.y))) *
+        cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
-    auto &d2 = bufferTwoData;
+    auto& d2 = bufferTwoData;
     d2->lightDir = glm::vec4(
-            static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
-                    static_cast<double>(glm::radians(lightSource.rotation.y))),
-            sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
-            cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
-                    static_cast<double>(glm::radians(lightSource.rotation.y))),
-            0.0f);
+        static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
+            static_cast<double>(glm::radians(lightSource.rotation.y))),
+        sin(static_cast<double>(glm::radians(lightSource.rotation.y))),
+        cos(static_cast<double>(glm::radians(lightSource.rotation.x))) * cos(
+            static_cast<double>(glm::radians(lightSource.rotation.y))),
+        0.0f);
 
 
-    auto *ptr = reinterpret_cast<VkRender::FragShaderParams *>(sharedData->data);
+    auto* ptr = reinterpret_cast<VkRender::FragShaderParams*>(sharedData->data);
     d2->gamma = ptr->gamma;
     d2->exposure = ptr->exposure;
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
-
-
-
-
-
 }
 
-void MultiSense::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
+void MultiSense::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
     if (b) {
         KS21->draw(commandBuffer, i);
     }

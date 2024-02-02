@@ -141,7 +141,7 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 
 void PointCloud::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD && b){
+    if (selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD){
         //pc->draw(commandBuffer, i);
 
         if (model->m_Draw ) {

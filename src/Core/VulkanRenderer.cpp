@@ -41,7 +41,9 @@
 
 #include "Viewer/Core/VulkanRenderer.h"
 
+#ifdef WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
 #include <cuda_runtime.h>
 #include <Viewer/Tools/helper_cuda.h>
 
@@ -184,7 +186,7 @@ namespace VkRender {
         vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
-        msaaSamples = VK_SAMPLE_COUNT_1_BIT;//;getMaxUsableSampleCount();
+        msaaSamples = getMaxUsableSampleCount();
         VkPhysicalDeviceSamplerYcbcrConversionFeatures features;
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
         features.pNext = nullptr;
@@ -233,9 +235,13 @@ namespace VkRender {
 
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
-
+#ifdef WIN32
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#else
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+#endif
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
@@ -969,7 +975,7 @@ namespace VkRender {
             memset(&waitParams, 0, sizeof(waitParams));
             waitParams.params.fence.value = 0;
             waitParams.flags = 0;
-            checkCudaErrors(cudaWaitExternalSemaphoresAsync(&updateCudaExt, &waitParams, 1, streamToRun));
+            //checkCudaErrors(cudaWaitExternalSemaphoresAsync(&updateCudaExt, &waitParams, 1, streamToRun));
         }
         updateUniformBuffers();
         if (frameCounter > 0) {
@@ -978,7 +984,7 @@ namespace VkRender {
             memset(&signalParams, 0, sizeof(signalParams));
             signalParams.params.fence.value = 0;
             signalParams.flags = 0;
-            checkCudaErrors(cudaSignalExternalSemaphoresAsync(&updateVulkanExt, &signalParams, 1, streamToRun));
+            //checkCudaErrors(cudaSignalExternalSemaphoresAsync(&updateVulkanExt, &signalParams, 1, streamToRun));
         }
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
@@ -1032,16 +1038,16 @@ namespace VkRender {
         VkSemaphore waitSemaphores[] = {
             semaphores[currentFrame].computeComplete,
             semaphores[currentFrame].presentComplete,
-            updateVulkan
+            //updateVulkan
         };
         VkPipelineStageFlags waitStages[] = {
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+            //VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
         };
         VkSemaphore signalSemaphores[] = {
             semaphores[currentFrame].renderComplete,
-            updateCuda
+            //updateCuda
         };
 
         submitInfo = {};
@@ -1049,7 +1055,7 @@ namespace VkRender {
         submitInfo.waitSemaphoreCount = 2;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.signalSemaphoreCount = 2;
+        submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];

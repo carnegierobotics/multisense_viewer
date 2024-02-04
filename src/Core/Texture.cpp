@@ -1114,8 +1114,8 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = &samplerConversionInfo;
 
-    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -1601,7 +1601,7 @@ void TextureCuda::fromBuffer(void* buffer, VkDeviceSize bufferSize, VkFormat for
     VkImageLayout imageLayout, bool sharedQueue) {
 assert(buffer);
 
-
+#ifdef WIN32
     WindowsSecurityAttributes winSecurityAttributes;
     VkExportMemoryWin32HandleInfoKHR handleInfo;
     handleInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
@@ -1614,7 +1614,12 @@ assert(buffer);
     exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
     exportInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
     exportInfo.pNext = &handleInfo;
-
+#else
+    VkExportMemoryAllocateInfoKHR exportInfo;
+    exportInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+    exportInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+    exportInfo.pNext = nullptr;
+#endif
 
     this->m_Device = device;
     m_Width = texWidth;

@@ -5,11 +5,15 @@ project(
         LANGUAGES C CXX CUDA
 )
 
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+# Enable separable compilation to handle device linking
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 # Windows issue
 add_definitions(-DNOMINMAX)
@@ -157,17 +161,18 @@ if (UNIX) ## Linux
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
+    set_target_properties(VulkanRenderer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(CudaOperations ${CUDA_SOURCES})
     set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer)
+    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer tinyply)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer CudaOperations)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CUDA::cuda_driver)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)

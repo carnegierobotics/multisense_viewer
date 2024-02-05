@@ -23,7 +23,7 @@
 #include <Viewer/Tools/helper_cuda.h>
 
 #include <rasterize_points.h>
-#include <opencv2/opencv.hpp>
+//#include <opencv2/opencv.hpp>
 #include <tinyply.h>
 
 #include <Viewer/Tools/helper_cuda.h>
@@ -342,14 +342,40 @@ CudaImplementation::CudaImplementation(VkInstance* instance, VkDevice device, co
     cudaMipMappedArrays.resize(textures->size());
     cudaFirstLevels.resize(textures->size());
 
-    PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(
-        vkGetInstanceProcAddr(*instance, "vkGetMemoryWin32HandleKHR"));
-    if (fpGetMemoryWin32HandleKHR == nullptr) {
-        Log::Logger::getInstance()->error("Function not available");
+#ifdef _WIN64
+  PFN_vkGetMemoryWin32HandleKHR fpGetMemoryWin32HandleKHR;
+  PFN_vkGetSemaphoreWin32HandleKHR fpGetSemaphoreWin32HandleKHR;
+#else
+  PFN_vkGetMemoryFdKHR fpGetMemoryFdKHR = NULL;
+  PFN_vkGetSemaphoreFdKHR fpGetSemaphoreFdKHR = NULL;
+#endif
+
+
+
+#ifdef _WIN64
+    fpGetMemoryWin32HandleKHR =
+        (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(
+            *instance, "vkGetMemoryWin32HandleKHR");
+    if (fpGetMemoryWin32HandleKHR == NULL) {
+      throw std::runtime_error(
+          "Vulkan: Proc address for \"vkGetMemoryWin32HandleKHR\" not "
+          "found.\n");
     }
+#else
+    fpGetMemoryFdKHR = (PFN_vkGetMemoryFdKHR)vkGetInstanceProcAddr(
+        *instance, "vkGetMemoryFdKHR");
+    if (fpGetMemoryFdKHR == NULL) {
+      throw std::runtime_error(
+          "Vulkan: Proc address for \"vkGetMemoryFdKHR\" not found.\n");
+    } else {
+      std::cout << "Vulkan proc address for vkGetMemoryFdKHR - "
+                << fpGetMemoryFdKHR << std::endl;
+    }
+#endif
 
     for (size_t i = 0; i < cudaExtMem.size(); ++i) {
-        void* handle;
+            void* handle;
+#ifdef WIN32
         VkMemoryGetWin32HandleInfoKHR vkMemoryGetWin32HandleInfoKHR = {};
         vkMemoryGetWin32HandleInfoKHR.sType =
             VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
@@ -362,7 +388,7 @@ CudaImplementation::CudaImplementation(VkInstance* instance, VkDevice device, co
             VK_SUCCESS) {
             Log::Logger::getInstance()->error("vkGetMemoryWin32HandleKHR not available");
         }
-
+#endif
         cudaExternalMemoryHandleDesc cudaExtMemHandleDesc{};
         memset(&cudaExtMemHandleDesc, 0, sizeof(cudaExtMemHandleDesc));
         cudaExtMemHandleDesc.size = memSizeCuda;
@@ -509,7 +535,7 @@ void CudaImplementation::draw(uint32_t i, void* streamToRun) {
         std::tie(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer) = RasterizeGaussiansCUDA(
             bg, means3D, colors, opacity, scales, rotations,
             scale_modifier, cov3Dprecompute, viewmatrix, projmatrix, tan_fovx, tan_fovy,
-            image_height, image_width, shs, degree, campos, prefiltered, debug, streamToRun
+            image_height, image_width, shs, degree, campos, prefiltered, debug
         );
     }
     catch (const std::exception& e) {

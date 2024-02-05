@@ -39,13 +39,13 @@ $glslc ${sceneDir}/../default.frag -o ${sceneOutDir}default.frag.spv
 $glslc ${sceneDir}/../default.vert -o ${sceneOutDir}default.vert.spv
 echo "Compiled Default shaders"
 
-#$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv
-#$glslc ${sceneDir}/video/disparity.vert -o ${sceneOutDir}disparity.vert.spv
-#$glslc ${sceneDir}/video/grayscale.vert -o ${sceneOutDir}grayscale.vert.spv
-#$glslc ${sceneDir}/video/color_default_sampler.frag -o ${sceneOutDir}color_default_sampler.frag.spv
-#$glslc ${sceneDir}/video/color_ycbcr_sampler.frag -o ${sceneOutDir}color_ycbcr_sampler.frag.spv
-#$glslc ${sceneDir}/video/disparity.frag -o ${sceneOutDir}disparity.frag.spv
-#$glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
+$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv
+$glslc ${sceneDir}/video/disparity.vert -o ${sceneOutDir}disparity.vert.spv
+$glslc ${sceneDir}/video/grayscale.vert -o ${sceneOutDir}grayscale.vert.spv
+$glslc ${sceneDir}/video/color_default_sampler.frag -o ${sceneOutDir}color_default_sampler.frag.spv
+$glslc ${sceneDir}/video/color_ycbcr_sampler.frag -o ${sceneOutDir}color_ycbcr_sampler.frag.spv
+$glslc ${sceneDir}/video/disparity.frag -o ${sceneOutDir}disparity.frag.spv
+$glslc ${sceneDir}/video/grayscale.frag -o ${sceneOutDir}grayscale.frag.spv
 #
 #echo "Compiled video shaders"
 $glslc ${sceneDir}/pointcloud/pc.vert -o ${sceneOutDir}pointcloud.vert.spv

@@ -75,16 +75,7 @@ private:
         Element(const char* labelVal, glm::vec3* valPtr) : label(labelVal) {
             type = WIDGET_GLM_VEC_3;
             glm.vec3 = valPtr;
-
-            // Initialize the array to zero
-            std::fill_n(glm.xBuf, 16, 0);
-            std::memcpy(glm.xBuf, &valPtr->x, sizeof(float));
-
-            std::fill_n(glm.yBuf, 16, 0);
-            std::memcpy(glm.yBuf, &valPtr->y, sizeof(float));
-
-            std::fill_n(glm.zBuf, 16, 0);
-            std::memcpy(glm.zBuf, &valPtr->z, sizeof(float));
+            
         }
 
 

@@ -39,7 +39,7 @@ namespace RecordUtility {
         // We set the strip size of the file to be size of one row of pixels
         TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, 1);
         //Now writing image to the file one strip at a time
-        uint8_t stride = bitsPerPixel / 8;
+        uint32_t stride = bitsPerPixel / 8;
         for (uint32_t row = 0; row < ptr->m_Height; row++) {
             if (TIFFWriteScanline(out, &(ptr->data[row * ptr->m_Width * stride]), row, 0) < 0)
                 break;

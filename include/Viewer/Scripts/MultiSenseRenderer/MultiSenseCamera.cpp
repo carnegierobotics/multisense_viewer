@@ -227,4 +227,5 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 void MultiSenseCamera::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     cancelLoadModels = true;
+    Log::Logger::getInstance()->info("WindowResize triggered for {}, Renderer3D enabled: {}", GetFactoryName(), uiHandle->renderer3D);
 }

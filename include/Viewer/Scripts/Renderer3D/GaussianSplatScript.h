@@ -55,8 +55,7 @@ public:
 
     VkRender::UBOMatrix mvpMat{};
     std::vector<Buffer> uniformBuffers;
-    std::vector<TextureCuda> textures;
-    std::unique_ptr<Texture2D> cudaTexture;
+    std::vector<Texture2D> textures;
 
     std::unique_ptr<RenderResource::Mesh> mesh;
     std::unique_ptr<RenderResource::Pipeline> pipeline;

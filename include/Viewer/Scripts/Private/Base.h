@@ -36,17 +36,15 @@
 
 #ifndef MULTISENSE_BASE_H
 #define MULTISENSE_BASE_H
-#ifdef WIN32
-#ifdef APIENTRY
-    #undef APIENTRY
-#endif
-#endif
-#include <GLFW/glfw3.h>
 
 #include <filesystem>
 #include <utility>
 #include <stb_image.h>
 #include <stb_image_write.h>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Camera.h"

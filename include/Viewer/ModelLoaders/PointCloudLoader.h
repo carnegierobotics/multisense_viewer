@@ -41,8 +41,7 @@ public:
         Texture2D colorTexture;
 
         void
-        createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
-                              const std::vector<uint32_t> &indices = std::vector<uint32_t>());
+        createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices);
         void updateTexture();
 
         void createTexture(uint32_t width, uint32_t height);

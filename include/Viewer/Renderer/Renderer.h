@@ -35,12 +35,6 @@
  **/
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
-#ifdef WIN32
-    #ifdef APIENTRY
-    #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,6 +42,10 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Scripts/Private/Base.h"

@@ -48,9 +48,11 @@
 #include <string>
 #include <memory>
 
+#include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
-#include "Viewer/Renderer/UsageMonitor.h"
+#include "Viewer/Core/MultiSenseDeviceDefinitions.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 namespace VkRender {
 

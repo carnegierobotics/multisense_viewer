@@ -37,12 +37,7 @@
 
 #ifndef MULTISENSE_INTERACTIONMENU_H
 #define MULTISENSE_INTERACTIONMENU_H
-#ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
+
 #include <filesystem>
 
 #include "Viewer/ImGui/Custom/imgui_user.h"
@@ -54,10 +49,12 @@
 #include "Viewer/ImGui/MainLayerExt/SensorConfigurationExt.h"
 
 #ifdef WIN32
+#ifdef APIENTRY
+    #undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 #else
-
 #include <unistd.h>
-
 #endif
 
 

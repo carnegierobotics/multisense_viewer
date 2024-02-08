@@ -94,8 +94,8 @@ namespace RenderResource {
             };
 
             mesh->firstIndex = 0;
-            mesh->indexCount = indices.size();
-            mesh->vertexCount = vertices.size();
+            mesh->indexCount = static_cast<uint32_t>(indices.size());
+            mesh->vertexCount = static_cast<uint32_t>(vertices.size());
             mesh->vertices.data = vertices;
             mesh->indices.data = indices;
         }
@@ -182,8 +182,8 @@ namespace RenderResource {
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkRenderPass *renderPass{};
         Buffer *ubo{};
-        std::vector<TextureCuda> *textures{};
         std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
+        std::vector<Texture2D> *textures{};
     };
 
     class Pipeline {
@@ -238,7 +238,7 @@ namespace RenderResource {
                     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, framesInFlight},
             };
             VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, framesInFlight *
-                                                                                                      poolSizes.size());
+                    static_cast<uint32_t>(poolSizes.size()));
 
             CHECK_RESULT(
                     vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr,

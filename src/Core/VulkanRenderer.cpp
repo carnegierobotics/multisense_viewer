@@ -36,10 +36,12 @@
 
 
 #include <stb_image.h>
-#include "Viewer/Tools/Populate.h"
-#include "Viewer/Tools/Utils.h"
 
 #include "Viewer/Core/VulkanRenderer.h"
+
+#include "Viewer/Tools/Populate.h"
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/RendererConfig.h"
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
 #include "Viewer/Core/Validation.h"
@@ -92,7 +94,15 @@ namespace VkRender {
                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
                       VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
-        enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        if (settings.validation) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+        enabledInstanceExtensions = extensions;
+
 
         std::vector<const char*> instanceExtensions = {
             VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
@@ -102,7 +112,7 @@ namespace VkRender {
                                          instanceExtensions.end());
 
         // Check if extensions are supported
-        if (!Validation::checkInstanceExtensionSupport(enabledInstanceExtensions))
+        if (!checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
 
         VkInstanceCreateInfo instanceCreateInfo = {};
@@ -115,6 +125,7 @@ namespace VkRender {
         }
         const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
+#ifdef MULTISENSE_VIEWER_DEBUG
         if (settings.validation) {
             // Check if this layer is available at instance level
             if (Validation::checkValidationLayerSupport(validationLayers)) {
@@ -127,6 +138,7 @@ namespace VkRender {
                 pLogger->info("Disabled Validation Layers since it was not found");
             }
         }
+#endif
         return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     }
 
@@ -139,6 +151,8 @@ namespace VkRender {
         pLogger->info("Vulkan Instance successfully created");
         // If requested, we flashing the default validation layers for debugging
         // If requested, we flashing the default validation layers for debugging
+#ifdef MULTISENSE_VIEWER_DEBUG
+
         if (settings.validation) {
             // The report flags determine what type of messages for the layers will be displayed
             // For validating (debugging) an application the error and warning bits should suffice
@@ -150,6 +164,7 @@ namespace VkRender {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
         }
+#endif
         // Get list of devices and capabilities of each m_Device
         uint32_t gpuCount = 0;
         err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
@@ -188,7 +203,7 @@ namespace VkRender {
         fpGetPhysicalDeviceProperties2 =
             (PFN_vkGetPhysicalDeviceProperties2)vkGetInstanceProcAddr(
                 instance, "vkGetPhysicalDeviceProperties2");
-        if (fpGetPhysicalDeviceProperties2 == NULL) {
+        if (fpGetPhysicalDeviceProperties2 == nullptr) {
             throw std::runtime_error(
                 "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
                 "found.\n");
@@ -198,7 +213,7 @@ namespace VkRender {
         VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties = {};
         vkPhysicalDeviceIDProperties.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
-        vkPhysicalDeviceIDProperties.pNext = NULL;
+        vkPhysicalDeviceIDProperties.pNext = nullptr;
 
         VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2 = {};
         vkPhysicalDeviceProperties2.sType =
@@ -276,10 +291,10 @@ namespace VkRender {
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
         }
-
+#ifdef MULTISENSE_VIEWER_DEBUG
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
-
+#endif
         vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // CleanUp GLFW window
@@ -703,7 +718,7 @@ namespace VkRender {
 
         glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
         // Suspend application while it is in minimized state
-        // Also unsignal semaphore for presentation because we are recreating the swapchain
+        // Also signal semaphore for presentation because we are recreating the swap-chain
         while (m_Width == 0 || m_Height == 0) {
             glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
             glfwWaitEvents();
@@ -1495,14 +1510,36 @@ namespace VkRender {
         char* pszText = static_cast<char*>(GlobalLock(hData));
         if (pszText == nullptr)
             return;
-
         // Save text in a string class instance
         glfwSetClipboardString(window, pszText);
         // Release the lock
         GlobalUnlock(hData);
-
         CloseClipboard();
     }
-
 #endif
+
+    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char *>& checkExtensions) {
+        //Need to get number of extensions to create array of correct size to hold extensions.
+        uint32_t extensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        //Create a list of VkExtensionProperties using count.
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        //Populate the list of specific/named extensions
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        //Check if given extensions are in list of available extensions
+        for (const auto &checkExtension : checkExtensions) {
+            bool hasExtensions = false;
+            for (const auto &extension: extensions) {
+                if (strcmp(checkExtension, extension.extensionName) == 0) {
+                    hasExtensions = true;
+                    break;
+                }
+            }
+            if (!hasExtensions) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

@@ -38,7 +38,7 @@ void GaussianSplatScript::setup() {
 
         textures[i].fromBuffer(pixels, bufferSize, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight,
                                renderUtils.device,
-                               renderUtils.device->m_TransferQueue, &cudaRequestedMemorySize);
+                               renderUtils.device->m_TransferQueue);
     }
     stbi_image_free(pixels);
 
@@ -56,8 +56,6 @@ void GaussianSplatScript::setup() {
     pConf.renderPass = renderUtils.renderPass;
     pConf.ubo = uniformBuffers.data();
     pipeline = std::make_unique<RenderResource::Pipeline>(pConf);
-
-    auto camParams = renderData.camera->getFocalParams(texWidth, texHeight);
 
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
     Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "##scale modifier", &scaleModifier, 0.1f, 5.0f);

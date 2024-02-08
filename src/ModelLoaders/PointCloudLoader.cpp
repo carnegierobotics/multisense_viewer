@@ -51,9 +51,7 @@ void PointCloudLoader::Model::updateTexture() {
     //colorTexture->updateTextureFromBuffer();
 }
 
-void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
-                                                    const std::vector<uint32_t> &indices) {
-
+void PointCloudLoader::Model::createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices) {
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
     mesh.vertexCount = static_cast<uint32_t>(vertices.size());
 

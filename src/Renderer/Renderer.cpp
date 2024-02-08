@@ -36,13 +36,10 @@
 
 
 #ifdef WIN32
-//#include <WinRegEditor.h>
 #else
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sstream>
-
 #endif
 
 #include <array>

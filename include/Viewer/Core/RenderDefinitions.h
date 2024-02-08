@@ -37,19 +37,12 @@
 #ifndef MULTISENSE_DEFINITIONS_H
 #define MULTISENSE_DEFINITIONS_H
 
-//#define MULTISENSE_VIEWER_PRODUCTION // Disable validation layers and other test functionality
-
-//#ifndef MULTISENSE_VIEWER_PRODUCTION
-//    #define MULTISENSE_VIEWER_DEBUG
-//#endif
-
 #ifdef WIN32
-#ifdef APIENTRY
-#undef APIENTRY
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
+    #include <windows.h>
 #endif
-
-#include <GLFW/glfw3.h>
 
 #include <unordered_map>
 #include <memory>
@@ -60,6 +53,10 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"

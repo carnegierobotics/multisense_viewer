@@ -163,7 +163,7 @@ namespace VkRender {
         };
 
         void updateAspectRatio(float aspect) {
-            float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5);
+            float focal_length = 1.0f / tan(glm::radians(m_Fov) * 0.5f);
             float x = focal_length / aspect;
             float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);

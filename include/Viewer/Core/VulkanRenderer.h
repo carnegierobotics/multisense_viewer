@@ -38,21 +38,6 @@
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
 
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-
-#ifdef WIN32
-#define FD_HANDLE HANDLE
-#ifdef APIENTRY
-#undef APIENTRY
-#endif
-#else
-#define FD_HANDLE int
-
-#endif
-
-#include <GLFW/glfw3.h>
-
 #include <string>
 #include <vector>
 #include <vector>
@@ -61,8 +46,11 @@
 #include <chrono>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-
 #include <imgui.h>
+#ifdef APIENTRY
+    #undef APIENTRY
+#endif
+
 
 #include "Viewer/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"
@@ -70,6 +58,7 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/CommandBuffer.h"
+
 
 namespace VkRender {
 
@@ -126,7 +115,7 @@ namespace VkRender {
 
         VkRender::Camera camera;
         glm::vec2 mousePos{};
-        VkSampleCountFlagBits msaaSamples;
+        VkSampleCountFlagBits msaaSamples{};
 
         VkRender::MouseButtons mouseButtons{};
         float mouseScrollSpeed = 0.1f;
@@ -137,7 +126,7 @@ namespace VkRender {
 
         /** @ physical device uuid */
         uint8_t vkDeviceUUID[VK_UUID_SIZE] = {0};
-        PFN_vkGetPhysicalDeviceProperties2 fpGetPhysicalDeviceProperties2;
+        PFN_vkGetPhysicalDeviceProperties2 fpGetPhysicalDeviceProperties2{};
 
         /** @brief Handle for Logging*/
         Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
@@ -327,6 +316,7 @@ namespace VkRender {
 
         void computePipeline();
 
+        static bool checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions);
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

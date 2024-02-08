@@ -6,6 +6,9 @@
 #define MULTISENSE_VIEWER_LAYERUTILS_H
 
 #ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <shobjidl.h>
 #include <locale>

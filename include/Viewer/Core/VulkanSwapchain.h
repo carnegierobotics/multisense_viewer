@@ -37,20 +37,19 @@
 #define MULTISENSE_VULKANSWAPCHAIN_H
 
 
-#define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
-#ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
+
 #include <vulkan/vulkan.h>
 #include <stdexcept>
 #include <vector>
 #include <cassert>
 
+
 #include "Viewer/Core/RenderDefinitions.h"
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 typedef struct SwapChainBuffers {
     VkImage image;

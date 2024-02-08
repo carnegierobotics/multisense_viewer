@@ -16,8 +16,6 @@
 #endif
 
 #include <imgui.h>
-#include <ATen/ops/cat.h>
-
 
 #include "Viewer/ImGui/Widgets.h"
 

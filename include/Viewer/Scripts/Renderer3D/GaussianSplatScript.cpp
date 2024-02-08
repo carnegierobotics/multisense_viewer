@@ -59,16 +59,6 @@ void GaussianSplatScript::setup() {
 
     auto camParams = renderData.camera->getFocalParams(texWidth, texHeight);
 
-    settings.camPos = renderData.camera->m_Position;
-    settings.viewMat = renderData.camera->matrices.view;
-    settings.projMat = renderData.camera->matrices.perspective;
-    settings.imageWidth = texWidth;
-    settings.imageHeight = texHeight;
-    settings.shDegree = 3;
-    settings.tanFovY = camParams.htany;
-    settings.tanFovX = camParams.htanx;
-
-
     Widgets::make()->text(WIDGET_PLACEMENT_RENDERER3D, "Set scale modifier");
     Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "##scale modifier", &scaleModifier, 0.1f, 5.0f);
 
@@ -87,36 +77,20 @@ void GaussianSplatScript::setup() {
 
     Widgets::make()->fileDialog(WIDGET_PLACEMENT_RENDERER3D, "load model", &plyFileFolder);
 
-    cudaImplementation = std::make_unique<CudaImplementation>(renderUtils.instance, renderUtils.device->m_LogicalDevice, &settings, filePathDialog, cudaRequestedMemorySize, &textures);
 }
 
 
 void GaussianSplatScript::update() {
-    if (plyFileFolder.valid()) {
-        if (plyFileFolder.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            std::string selectedFolder = plyFileFolder.get(); // This will also make the future invalid
-            if (!selectedFolder.empty()) {
-                // Do something with the selected folder
-                cudaImplementation = std::make_unique<CudaImplementation>(renderUtils.instance,renderUtils.device->m_LogicalDevice, &settings, selectedFolder, cudaRequestedMemorySize, &textures);
-            }
-        }
-    }
 
     mvpMat.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     mvpMat.projection = renderData.camera->matrices.perspective;
     mvpMat.view = renderData.camera->matrices.view;
     memcpy(uniformBuffers[renderData.index].mapped, &mvpMat, sizeof(VkRender::UBOMatrix));
 
-    settings.scaleModifier = scaleModifier;
-    cudaImplementation->updateCameraPose(renderData.camera->matrices.view, renderData.camera->matrices.perspective,
-                                         renderData.camera->m_Target);
-    cudaImplementation->updateSettings(settings);
 }
 
 void GaussianSplatScript::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
     if (b && renderGaussians) {
-        cudaImplementation->draw(i, renderData.streamToRun);
-
         vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipeline->data.pipelineLayout, 0,
                                 1,

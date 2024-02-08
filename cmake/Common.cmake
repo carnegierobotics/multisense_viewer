@@ -195,7 +195,7 @@ else ()
 endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${CUDA_DIFF_RASTERIZER}/CMakeLists.txt")
-    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${CUDA_DIFF_RASTERIZER} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+    message(INFO "The submodules ${PROJECT_SOURCE_DIR}/${CUDA_DIFF_RASTERIZER} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 else ()
     message("[INFO] Adding CUDA_DIFF_RASTERIZER from directory: ${CUDA_DIFF_RASTERIZER}")
     add_subdirectory(${CUDA_DIFF_RASTERIZER})

@@ -41,12 +41,6 @@
 
 #include "Viewer/Core/VulkanRenderer.h"
 
-#ifdef WIN32
-#include <vulkan/vulkan_win32.h>
-#endif
-#include <cuda_runtime.h>
-#include <Viewer/Tools/helper_cuda.h>
-
 #ifndef MULTISENSE_VIEWER_PRODUCTION
 #include "Viewer/Core/Validation.h"
 #endif
@@ -102,9 +96,7 @@ namespace VkRender {
 
         std::vector<const char*> instanceExtensions = {
             VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-            VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
-            VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME
+            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
         };
         enabledInstanceExtensions.insert(enabledInstanceExtensions.end(), instanceExtensions.begin(),
                                          instanceExtensions.end());
@@ -173,12 +165,6 @@ namespace VkRender {
         // Select physical m_Device to be used for the Vulkan example
         // Defaults to the first m_Device unless anything else specified
         physicalDevice = pickPhysicalDevice(physicalDevices);
-        cudaDeviceProp deviceProp;
-        checkCudaErrors(cudaSetDevice(0));
-        checkCudaErrors(cudaGetDeviceProperties(&deviceProp, 0));
-        printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n",
-               0, deviceProp.name, deviceProp.major,
-               deviceProp.minor);
 
         // If pyshyical m_Device supports vulkan version > apiVersion then create new instance with this version.
         // Store m_Properties (including limits), m_Features and memory m_Properties of the physical m_Device (so that examples can check against them)
@@ -233,15 +219,6 @@ namespace VkRender {
             pLogger->error("YCBCR Sampler Extension support not found!");
         }
 
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
-#ifdef WIN32
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
-#else
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
-#endif
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
@@ -658,37 +635,13 @@ namespace VkRender {
     }
 
     void VulkanRenderer::createSynchronizationPrimitives() {
-#ifdef WIN32
-        PFN_vkGetSemaphoreWin32HandleKHR fpGetSemaphoreWin32HandleKHR;
-
-        fpGetSemaphoreWin32HandleKHR = reinterpret_cast<PFN_vkGetSemaphoreWin32HandleKHR>(vkGetDeviceProcAddr(
-            device, "vkGetSemaphoreWin32HandleKHR"));
-
-        if (fpGetSemaphoreWin32HandleKHR == nullptr) {
-            Log::Logger::getInstance()->error("Function not available");
-            throw std::runtime_error("Failed to find function: vkGetSemaphoreWin32HandleKHR");
-        }
-
-        checkCudaErrors(cudaStreamCreate(&streamToRun));
-#endif
         // Create synchronization Objects
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-
         // Set up submit info structure
         // Semaphores will stay the same during application lifetime
         // Command buffer submission info is set by each example
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-        VkSemaphoreCreateInfo semaphoreCreateInfo2 = Populate::semaphoreCreateInfo();
-        VkSemaphoreCreateInfo semaphoreCreateInfoCuda = Populate::semaphoreCreateInfo();
-        VkExportSemaphoreCreateInfo exportCreateInfo = {};
-        exportCreateInfo.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
-        exportCreateInfo.pNext = NULL;
-        exportCreateInfo.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-        semaphoreCreateInfo2.pNext = &exportCreateInfo;
-        semaphoreCreateInfoCuda.pNext = &exportCreateInfo;
-        semaphoreCreateInfoCuda.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        // Wait fences to sync command buffer access
         VkFenceCreateInfo fenceCreateInfo = Populate::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
         waitFences.resize(swapchain->imageCount);
         semaphores.resize(swapchain->imageCount);
@@ -704,42 +657,7 @@ namespace VkRender {
                 vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create compute synchronization fence");
         }
-        if (vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &updateVulkan) !=
-            VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreCreateInfo2, nullptr, &updateCuda) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create graphics synchronization objects for a frame!");
-        }
 
-#ifdef WIN32
-        FD_HANDLE semHandleVulkan, semHandleCuda;
-        // Vulkan/Cuda ext semaphore
-        VkSemaphoreGetWin32HandleInfoKHR handleInfo = {};
-        handleInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
-        handleInfo.semaphore = updateVulkan;
-        handleInfo.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-        handleInfo.pNext = nullptr;
-        fpGetSemaphoreWin32HandleKHR(device, &handleInfo, &semHandleVulkan);
-
-        cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDesc;
-        memset(&externalSemaphoreHandleDesc, 0, sizeof(externalSemaphoreHandleDesc));
-        externalSemaphoreHandleDesc.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
-        externalSemaphoreHandleDesc.handle.win32.handle = semHandleVulkan;
-        cudaImportExternalSemaphore(&updateVulkanExt, &externalSemaphoreHandleDesc);
-        // Cuda ext semaphore
-        VkSemaphoreGetWin32HandleInfoKHR handleInfoCuda = {};
-        handleInfoCuda.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR;
-        handleInfoCuda.semaphore = updateCuda;
-        handleInfoCuda.handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-        handleInfoCuda.pNext = nullptr;
-
-        fpGetSemaphoreWin32HandleKHR(device, &handleInfoCuda, &semHandleCuda);
-
-        cudaExternalSemaphoreHandleDesc externalSemaphoreHandleDescCuda;
-        memset(&externalSemaphoreHandleDescCuda, 0, sizeof(externalSemaphoreHandleDesc));
-        externalSemaphoreHandleDescCuda.type = cudaExternalSemaphoreHandleTypeOpaqueWin32;
-        externalSemaphoreHandleDescCuda.handle.win32.handle = semHandleCuda;
-        cudaImportExternalSemaphore(&updateCudaExt, &externalSemaphoreHandleDescCuda);
-#endif
     }
 
 
@@ -969,23 +887,9 @@ namespace VkRender {
         if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX != VK_SUCCESS))
             throw std::runtime_error("Failed to wait for compute fence");
 
-        if (frameCounter > 0) {
-            // Wait for the semaphore in CUDA
-            cudaExternalSemaphoreWaitParams waitParams;
-            memset(&waitParams, 0, sizeof(waitParams));
-            waitParams.params.fence.value = 0;
-            waitParams.flags = 0;
-            //checkCudaErrors(cudaWaitExternalSemaphoresAsync(&updateCudaExt, &waitParams, 1, streamToRun));
-        }
+
         updateUniformBuffers();
-        if (frameCounter > 0) {
-            // Signal the semaphore in CUDA for Vulkan to wait on
-            cudaExternalSemaphoreSignalParams signalParams;
-            memset(&signalParams, 0, sizeof(signalParams));
-            signalParams.params.fence.value = 0;
-            signalParams.flags = 0;
-            //checkCudaErrors(cudaSignalExternalSemaphoresAsync(&updateVulkanExt, &signalParams, 1, streamToRun));
-        }
+
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
         vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);

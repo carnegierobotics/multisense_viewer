@@ -8,7 +8,6 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Core/RenderResource.h"
-#include "Viewer/Cuda/Cuda_example.h"
 
 
 class GaussianSplatScript : public VkRender::Base, public VkRender::RegisteredInFactory<GaussianSplatScript> {
@@ -62,7 +61,6 @@ public:
     std::unique_ptr<RenderResource::Mesh> mesh;
     std::unique_ptr<RenderResource::Pipeline> pipeline;
 
-    std::unique_ptr<CudaImplementation> cudaImplementation;
     char filePathDialog[1024] = "C:\\Users\\mgjer\\Downloads\\models\\stump";
     std::future<std::string> plyFileFolder;
     std::vector<void*> handles;
@@ -72,7 +70,6 @@ public:
     glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f);
-    CudaImplementation::RasterSettings settings;
     uint32_t cudaRequestedMemorySize = 0;
 
     //std::unique_ptr<GaussianSplat> splat;

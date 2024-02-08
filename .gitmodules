@@ -43,3 +43,6 @@
 [submodule "external/tinyply"]
 	path = external/tinyply
 	url = https://github.com/ddiakopoulos/tinyply
+[submodule "external/KTX-Software"]
+	path = external/KTX-Software
+	url = https://github.com/KhronosGroup/KTX-Software

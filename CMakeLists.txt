@@ -2,18 +2,15 @@ cmake_minimum_required(VERSION 3.25)
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
-        LANGUAGES C CXX CUDA
+        LANGUAGES C CXX
 )
-
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-# Enable separable compilation to handle device linking
-set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON) # Enable separable compilation to handle device linking
 
 # Windows issue
 add_definitions(-DNOMINMAX)
@@ -42,9 +39,9 @@ endif ()
 find_package(Vulkan REQUIRED)
 
 # Torch
-set(Torch_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch/share/cmake/Torch/")
-find_package(Torch REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+#set(Torch_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch/share/cmake/Torch/")
+#find_package(Torch REQUIRED)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
@@ -156,20 +153,18 @@ if (UNIX) ## Linux
     target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
 
     add_library(CustomLogger ${LOGGER_SRC})
-    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
-
+    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger ${TORCH_LIBRARIES})
-    set_target_properties(VulkanRenderer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger)
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
-    add_library(CudaOperations ${CUDA_SOURCES})
-    set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES};CudaRasterizer tinyply)
+    #add_library(CudaOperations ${CUDA_SOURCES})
+    #set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    #target_link_libraries(CudaOperations CustomLoggerInterface tinyply)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer CudaOperations)
+    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
 
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
@@ -234,24 +229,19 @@ if (WIN32)
     add_library(CustomLogger ${LOGGER_SRC})
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
 
-    set(OpenCV_DIR "C:\\opencv\\build")
-    find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    add_library(CudaOperations ${CUDA_SOURCES})
-    set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer ${OpenCV_LIBS} tinyply)
+    #add_library(CudaOperations ${CUDA_SOURCES})
+    #set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    #target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer tinyply)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger ${TORCH_LIBRARIES} CudaOperations )
-    set_target_properties(VulkanRenderer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer CudaOperations CUDA::cuda_driver)
+    target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
     target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
-
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface CudaOperations)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)
@@ -270,15 +260,6 @@ if (WIN32)
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
-
-    # LibTorch
-    message("[INFO]  Copying libtorch dlls from: ${TORCH_INSTALL_PREFIX}/lib/*.dll $<TARGET_FILE_DIR:MultiSense-Viewer>")
-    file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
-    add_custom_command(TARGET MultiSense-Viewer
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${TORCH_DLLS}
-            $<TARGET_FILE_DIR:MultiSense-Viewer>)
 
     # create a list of third part DLLs to copy
     set(THIRD_PARTY_DLLS

@@ -37,8 +37,6 @@
 
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
-#include <cuda_runtime.h>
-#include <driver_types.h>
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
@@ -238,13 +236,6 @@ namespace VkRender {
             VkSemaphore computeComplete;
             // Cuda semaphore handle
         };
-        // Cuda semaphore
-        VkSemaphore updateVulkan;
-        // Cuda semaphore
-        VkSemaphore updateCuda;
-        cudaExternalSemaphore_t updateVulkanExt;
-        cudaExternalSemaphore_t updateCudaExt;
-        cudaStream_t streamToRun;
         std::vector<Semaphores> semaphores;
 
         std::vector<VkFence> waitFences{};

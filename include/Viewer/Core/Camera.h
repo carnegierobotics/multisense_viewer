@@ -94,7 +94,7 @@ namespace VkRender {
         glm::vec3 m_Target =  glm::vec3(0.0f, 0.0f, 0.0f);
 
         glm::vec3 cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
-        glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, -1.0f);
+        glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
 
         glm::vec3 arcBallTranslate = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -139,13 +139,6 @@ namespace VkRender {
 
         float getFarClip() {
             return m_Zfar;
-        }
-
-        glm::mat4 lookat() {
-            glm::vec3 direction = glm::normalize(m_Target - m_Position);
-            glm::vec3 right = glm::normalize(glm::cross(cameraUp, direction));
-            glm::vec3 trueUp = glm::cross(direction, right);
-
         }
 
         void setPerspective(float fov, float aspect, float zNear, float zFar) {
@@ -274,7 +267,7 @@ namespace VkRender {
         void update(float deltaTime) {
             if (type == CameraType::flycam) {
                 if (moving()) {
-                    float moveSpeed = deltaTime * m_MovementSpeed * 1000;
+                    float moveSpeed = deltaTime * m_MovementSpeed;
                     if (keys.up)
                         m_Position += cameraFront * moveSpeed;
                     if (keys.down)

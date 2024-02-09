@@ -68,16 +68,16 @@ public:
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     VkRender::ScriptTypeFlags getType() override { return type; }
-    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}    /** @brief UI update function called once per frame **/
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}    /** @brief UI update function called once per frame **/
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CRLCameraModels::Model> model;
     std::unique_ptr<PointCloudLoader> pc;

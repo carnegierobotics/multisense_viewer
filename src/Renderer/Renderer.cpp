@@ -116,6 +116,16 @@ void Renderer::addDeviceFeatures() {
     }
 }
 
+// Helper function to set draw methods safely
+void Renderer::setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD>& scriptDrawSettings, std::map<std::string, std::shared_ptr<VkRender::Base>>& scripts) {
+    for (const auto& setting : scriptDrawSettings) {
+        auto script = scripts.find(setting.first);
+        if (script != scripts.end()) { // Check if the script exists
+            script->second->setDrawMethod(setting.second); // Safely set the draw method
+        }
+    }
+}
+
 void Renderer::buildScript(const std::string& scriptName) {
     bool exists = Utils::isInVector(builtScriptNames, scriptName);
     bool isInDeletionQueue = scriptsForDeletion.contains(scriptName);
@@ -411,79 +421,52 @@ void Renderer::updateUniformBuffers() {
         camera.resetRotation();
     }
 
+    std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> scriptDrawSettings;
+    std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> specialScripts;
+    scriptDrawSettings = {
+            {"SingleLayout", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"DoubleTop", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"DoubleBot", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"One", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Two", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Three", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Four", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"MultiSenseCamera", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"PointCloud", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Skybox", VkRender::CRL_SCRIPT_DONT_DRAW}
+    };
+
     // Enable scripts depending on gui layout chosen
-    bool noActivePreview = true;
     for (auto& dev : guiManager->handles.devices) {
-        if (dev.state == VkRender::CRL_STATE_ACTIVE) {
-            noActivePreview = false;
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
+            continue;
             switch (dev.layout) {
-            case VkRender::CRL_PREVIEW_LAYOUT_SINGLE:
-                scripts.at("SingleLayout")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("DoubleTop")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("DoubleBot")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("One")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Two")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Three")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Four")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                break;
-            case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE:
-                scripts.at("DoubleTop")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("DoubleBot")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-
-                scripts.at("SingleLayout")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("One")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Two")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Three")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Four")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                break;
-            case VkRender::CRL_PREVIEW_LAYOUT_QUAD:
-                scripts.at("One")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("Two")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("Three")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                scripts.at("Four")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-
-                scripts.at("SingleLayout")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("DoubleTop")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("DoubleBot")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                break;
-            default:
-                scripts.at("SingleLayout")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("DoubleTop")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("DoubleBot")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("One")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Two")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Three")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                scripts.at("Four")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                break;
+                case VkRender::CRL_PREVIEW_LAYOUT_SINGLE:
+                    scriptDrawSettings["SingleLayout"] = VkRender::CRL_SCRIPT_DRAW;
+                    break;
+                case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE:
+                    scriptDrawSettings["DoubleTop"] = VkRender::CRL_SCRIPT_DRAW;
+                    scriptDrawSettings["DoubleBot"] = VkRender::CRL_SCRIPT_DRAW;
+                    break;
+                case VkRender::CRL_PREVIEW_LAYOUT_QUAD:
+                    scriptDrawSettings["One"] = VkRender::CRL_SCRIPT_DRAW;
+                    scriptDrawSettings["Two"] = VkRender::CRL_SCRIPT_DRAW;
+                    scriptDrawSettings["Three"] = VkRender::CRL_SCRIPT_DRAW;
+                    scriptDrawSettings["Four"] = VkRender::CRL_SCRIPT_DRAW;
+                    break;
             }
 
-            if (scripts.contains("MultiSenseCamera") && scripts.contains("PointCloud")) { // TODO quickfix to check if script exists during reload. Need a more permament fix
-                switch (dev.selectedPreviewTab) {
-                    case VkRender::CRL_TAB_3D_POINT_CLOUD:
-                        scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                        scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                        scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                        break;
-                    default:
-                        scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                        scripts.at("Skybox")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                        scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                        break;
-                }
+            // Additional handling for special tabs
+            if (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
+                specialScripts["Skybox"] = VkRender::CRL_SCRIPT_DRAW;
+                specialScripts["MultiSenseCamera"] = VkRender::CRL_SCRIPT_DRAW;
+                specialScripts["PointCloud"] = VkRender::CRL_SCRIPT_DRAW;
             }
-        }
     }
-    if (noActivePreview) {
-        scripts.at("SingleLayout")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("DoubleTop")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("DoubleBot")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("One")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Two")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Three")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Four")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("PointCloud")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.at("MultiSenseCamera")->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-    }
+    setScriptDrawMethods(scriptDrawSettings, scripts);
+    setScriptDrawMethods(specialScripts, scripts);
+
+
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
         if (guiManager->handles.devices.at(i).state == VkRender::CRL_STATE_REMOVE_FROM_LIST)

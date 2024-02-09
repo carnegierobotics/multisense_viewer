@@ -107,7 +107,7 @@ namespace VkRender {
         }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
-        virtual void setDrawMethod(VkRender::DrawMethod drawMethod) = 0;
+        virtual void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod) = 0;
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
         virtual void onWindowResize(const VkRender::GuiObjectHandles* uiHandle) {
@@ -123,7 +123,7 @@ namespace VkRender {
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-        virtual VkRender::DrawMethod getDrawMethod() {
+        virtual VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() {
             return VkRender::CRL_SCRIPT_DONT_DRAW;
         }
 

@@ -69,14 +69,14 @@ public:
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     VkRender::ScriptTypeFlags getType() override { return type; }
-    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D | VkRender::CRL_SCRIPT_TYPE_DEFAULT;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DRAW;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DRAW;
     std::unique_ptr<GLTFModel::Model> m_Model;
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

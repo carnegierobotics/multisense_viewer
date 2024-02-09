@@ -34,12 +34,12 @@ public:
     void update() override;
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
     VkRender::ScriptTypeFlags getType() override { return type; }
-    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}
-    void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     void onDestroy() override {
         topLevelData->compute.reset = true;

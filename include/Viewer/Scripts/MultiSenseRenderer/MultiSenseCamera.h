@@ -54,6 +54,7 @@ public:
     ~MultiSenseCamera()= default;
 
     void onDestroy() override{
+        cancelLoadModels = true;
         // Wait for async models to finish loading before destorying script.
         // So we dont rush cleaning up vulkan resources for old window before this script finished loading
         while(loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready);
@@ -74,8 +75,8 @@ public:
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     VkRender::ScriptTypeFlags getType() override { return type; }
-    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}
-    void setDrawMethod(VkRender::DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
 
@@ -84,7 +85,7 @@ public:
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
     std::unique_ptr<GLTFModel::Model> S27;
     std::unique_ptr<GLTFModel::Model> S30;
     std::unique_ptr<GLTFModel::Model> KS21;

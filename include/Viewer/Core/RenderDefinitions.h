@@ -108,7 +108,7 @@ namespace VkRender {
         CRL_SCRIPT_DRAW,
         /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (run onDestroy and Create funcs) next frame after this is set*/
         CRL_SCRIPT_RELOAD
-    } DrawMethod;
+    } CRL_SCRIPT_DRAW_METHOD;
 
 /**
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers

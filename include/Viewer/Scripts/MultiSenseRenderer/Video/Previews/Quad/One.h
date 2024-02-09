@@ -73,19 +73,19 @@ public:
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
     VkRender::ScriptTypeFlags getType() override { return type; }
-    VkRender::DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(VkRender::DrawMethod _drawMethod) override { this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override { this->drawMethod = _drawMethod; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
-    VkRender::DrawMethod drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CRLCameraModels::Model> m_Model;
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;

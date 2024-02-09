@@ -132,7 +132,7 @@ private:
      */
     void deleteScript(const std::string &scriptName);
 
-    void setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
+    static void setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
                               std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
 };
 

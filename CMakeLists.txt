@@ -8,12 +8,6 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CUDA_STANDARD 20)
-set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_SEPARABLE_COMPILATION ON) # Enable separable compilation to handle device linking
-
-# Windows issue
-add_definitions(-DNOMINMAX)
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
@@ -37,11 +31,6 @@ endif ()
 
 # Find Vulkan
 find_package(Vulkan REQUIRED)
-
-# Torch
-#set(Torch_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch/share/cmake/Torch/")
-#find_package(Torch REQUIRED)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 include(cmake/Common.cmake)
 include(cmake/CompilerWarnings.cmake)
@@ -116,11 +105,6 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-)
-
-# CUDA source files
-set(CUDA_SOURCES
-        include/Viewer/Cuda/Cuda_example.cu
 )
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
@@ -198,6 +182,7 @@ if (WIN32)
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+        add_definitions(-DNOMINMAX)
     endif ()
 
     # Include directory for WinPcap
@@ -228,10 +213,6 @@ if (WIN32)
 
     add_library(CustomLogger ${LOGGER_SRC})
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
-
-    #add_library(CudaOperations ${CUDA_SOURCES})
-    #set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    #target_link_libraries(CudaOperations CustomLoggerInterface ${TORCH_LIBRARIES} CudaRasterizer tinyply)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)

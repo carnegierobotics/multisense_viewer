@@ -15,7 +15,8 @@ Install Dependencies:
 Open your terminal and type in
 ```sh
 $ apt update
-$ apt install build-essential cmake git libzstd-dev libsdl2-dev libgl1-mesa-glx libgl1-mesa-dev libvulkan1 libvulkan-dev libassimp-dev opencl-c-headers libfmt-dev
+$ apt install build-essential cmake git libzstd-dev libsdl2-dev libgl1-mesa-glx libgl1-mesa-dev libvulkan1 libvulkan-dev libassimp-dev opencl-c-headers libfmt-dev libgtk-3-dev
+
 $ apt install pkg-config libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libtbb-dev libssl-dev
 ```
 To get the latest vulkan SDK for Ubuntu 20.04. use the following (Copied from https://vulkan.lunarg.com/sdk/home#linux):

@@ -33,7 +33,6 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include <glm/gtx/string_cast.hpp>
 
 #include "Viewer/Scripts/MultiSenseRenderer/Pointcloud/PointCloud.h"
 #include "Viewer/ImGui/Widgets.h"

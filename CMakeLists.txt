@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
+
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
+
+set(CMAKE_C_COMPILER "clang")
+
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
@@ -7,6 +13,7 @@ project(
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF) # Ensure -std=c++17 rather than -std=gnu++17
 
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
@@ -66,7 +73,6 @@ set(ENGINE_SRC
         src/ModelLoaders/CRLCameraModels.cpp
         src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
-        src/ModelLoaders/PointCloudLoader.cpp
         src/ModelLoaders/ComputeShader.cpp
 
         src/Renderer/Renderer.cpp
@@ -85,7 +91,6 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/MultiSenseRenderer/Example.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Pointcloud/PointCloud.cpp
         include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Gizmos.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Helmet.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/RecordFrames.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Single/SingleLayout.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleTop.cpp
@@ -99,9 +104,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Private/RecordUtilities.h
 
-        include/Viewer/Scripts/Renderer3D/GaussianSplatScript.cpp
         include/Viewer/Scripts/Renderer3D/Grid.cpp
-        include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )

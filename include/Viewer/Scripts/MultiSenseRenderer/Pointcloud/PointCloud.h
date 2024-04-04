@@ -41,7 +41,6 @@
 #include "Viewer/ModelLoaders/CRLCameraModels.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/CRLCamera/CRLPhysicalCamera.h"
-#include "Viewer/ModelLoaders/PointCloudLoader.h"
 
 class PointCloud: public VkRender::Base, public VkRender::RegisteredInFactory<PointCloud>, CRLCameraModels
 {
@@ -80,7 +79,6 @@ public:
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CRLCameraModels::Model> model;
-    std::unique_ptr<PointCloudLoader> pc;
 
     int16_t remoteHeadIndex = 0;
     std::vector<std::string> startedSources{};

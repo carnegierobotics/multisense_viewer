@@ -37,8 +37,6 @@
 #ifndef MULTISENSE_CAMERA_H
 #define MULTISENSE_CAMERA_H
 
-#include <glm/gtx/string_cast.hpp>
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 

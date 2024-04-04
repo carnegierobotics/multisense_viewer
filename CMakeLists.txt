@@ -95,7 +95,6 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Three.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Four.cpp
         include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Skybox.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/StereoSim.cpp
 
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Private/RecordUtilities.h
@@ -142,10 +141,6 @@ if (UNIX) ## Linux
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
     target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger)
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
-
-    #add_library(CudaOperations ${CUDA_SOURCES})
-    #set_target_properties(CudaOperations PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    #target_link_libraries(CudaOperations CustomLoggerInterface tinyply)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)

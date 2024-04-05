@@ -30,7 +30,7 @@
 	url = https://github.com/carnegierobotics/AutoConnect
 [submodule "external/KTX-Software"]
 	path = external/KTX-Software
-	url = https://github.com/KhronosGroup/KTX-Software
+	url = git@github.com:M-Gjerde/KTX-Software.git
 	branch = 4.2
 [submodule "external/json"]
 	path = external/json

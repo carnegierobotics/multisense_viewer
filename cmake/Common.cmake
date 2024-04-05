@@ -39,7 +39,6 @@ set(IMGUI_DIR external/imgui)
 set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
-set(TINY_PLY external/tinyply)
 
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)

@@ -132,8 +132,8 @@ namespace VkRender {
      * Radians
      */
     struct IMUData{
-        double roll = 0.0f;
-        double pitch = 0.0f;
+        double roll = 0.0;
+        double pitch = 0.0;
     };
 
     struct Shared{

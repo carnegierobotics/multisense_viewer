@@ -145,7 +145,7 @@ namespace Log {
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
             std::vector<std::string> disabledSources;
-            double upTime = 0.0f;
+            double upTime = 0.0;
             bool ignoreMissingStatusUpdate = false;
         } device;
         /// SingleLayout Preview

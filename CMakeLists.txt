@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
+#set(CMAKE_CXX_COMPILER "clang++")
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
 
-set(CMAKE_C_COMPILER "clang")
+#set(CMAKE_C_COMPILER "clang")
 
 project(
         MultiSense-Viewer
@@ -13,8 +13,6 @@ project(
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) # Ensure -std=c++17 rather than -std=gnu++17
-
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")

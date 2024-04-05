@@ -5,6 +5,8 @@
 #include "Viewer/Scripts/Renderer3D/MultiSense.h"
 #include "Viewer/ImGui/Widgets.h"
 
+#include <sycl/sycl.hpp>
+
 void MultiSense::setup() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {
         {

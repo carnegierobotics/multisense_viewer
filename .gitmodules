@@ -31,7 +31,7 @@
 [submodule "external/KTX-Software"]
 	path = external/KTX-Software
 	url = git@github.com:M-Gjerde/KTX-Software.git
-	branch = 4.2
+	branch = main
 [submodule "external/json"]
 	path = external/json
 	url = https://github.com/nlohmann/json

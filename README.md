@@ -10,7 +10,7 @@
 | Linux    | [![Linux Build Status](https://ci.appveyor.com/api/projects/status/abynv8xd75m26qo9/branch/master?svg=true)](https://ci.appveyor.com/project/ianfixes/arduino-ci) |
 | Windows  | [![Windows Build status](https://ci.appveyor.com/api/projects/status/abynv8xd75m26qo9/branch/master?svg=true)](https://travis-ci.org/Arduino-CI/arduino_ci)       |
 
-## Background
+## Why?
 
 Quickly test your MultiSense device by using this application. The application will automatically find the camera and
 configure your network adapter. Additionally, the app provides a rich 2D/3D viewer and options to control sensor
@@ -22,21 +22,17 @@ parameters.
 
 ### Ubuntu:
 
-Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and install the deb package from the
+Head over to releases https://github.com/carnegierobotics/multisense_viewer/releases, download and install the deb package from the
 latest release. Tested on Ubuntu 20.04 and 22.04
 
 ### Windows
 
-Head over to releases https://github.com/M-Gjerde/MultiSense/releases, download and run the windows installer from the
+Head over to releases https://github.com/carnegierobotics/multisense_viewer/releases, download and run the windows installer from the
 latest release. Tested on Windows 10 and 11.
 
 ## How to use
 
-[**Build Instructions -- for developers**](https://github.com/M-Gjerde/MultiSense/blob/master/docs/BUILD.md)
-
-## Author(s)
-
-* [**Magnus Gjerde**](https://github.com/M-Gjerde/)
+[**Build Instructions -- for developers**](https://github.com/carnegierobotics/multisense_viewer/blob/master/docs/BUILD.md)
 
 ## License
 

@@ -69,7 +69,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, std::mutex *mut) {
         std::vector<VkExtensionProperties> extensions(extCount);
         if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) ==
             VK_SUCCESS) {
-            for (const auto& ext: extensions) {
+            for (const auto &ext: extensions) {
                 m_SupportedExtensions.push_back(ext.extensionName);
             }
         }
@@ -230,12 +230,6 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
         m_QueueFamilyIndices.transfer = m_QueueFamilyIndices.graphics;
     }
 
-    // Create the logical m_Device representation
-    std::vector<const char *> deviceExtensions(std::move(enabledExtensions));
-    if (useSwapChain) {
-        // If the m_Device will be used for presenting to a display via a swapchain we need to request the swapchain extension
-        deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-    }
 
     VkDeviceCreateInfo deviceCreateInfo = {};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -252,14 +246,37 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
         deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.pNext = &physicalDeviceFeatures2;
     }
+
+    // Create the logical m_Device representation
+    std::vector<const char *> deviceExtensions = std::move(enabledExtensions);
+
+    if (useSwapChain) {
+        // If the m_Device will be used for presenting to a display via a swapchain we need to request the swapchain extension
+        deviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
+    // Nvidia CUDA stuff
+
+    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
+
+#ifdef _WIN64
+    //deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+    //deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#else
+    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+#endif
+
     // Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
     }
+
     if (!deviceExtensions.empty()) {
         for (const char *enabledExtension: deviceExtensions) {
             if (!extensionSupported(enabledExtension)) {
-                std::cerr << "Enabled m_Device extension \"" << enabledExtension << "\" is not present at m_Device level\n";
+                std::cerr << "Enabled m_Device extension \"" << enabledExtension
+                          << "\" is not present as device extension\n";
             } else {
                 Log::Logger::getInstance()->info("Enabled device extension: '{}'", enabledExtension);
             }
@@ -287,7 +304,8 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
 	* @return True if the extension is supported (present in the list read at m_Device creation time)
 	*/
 bool VulkanDevice::extensionSupported(std::string extension) const {
-    return (std::find(m_SupportedExtensions.begin(), m_SupportedExtensions.end(), extension) != m_SupportedExtensions.end());
+    return (std::find(m_SupportedExtensions.begin(), m_SupportedExtensions.end(), extension) !=
+            m_SupportedExtensions.end());
 }
 
 
@@ -348,11 +366,11 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
-        #ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
+#ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-        #else
+#else
         allocFlagsInfo.flags = 0;
-        #endif
+#endif
         memAlloc.pNext = &allocFlagsInfo;
     }
     if (VK_SUCCESS != vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, memory))
@@ -414,11 +432,11 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
-        #ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
+#ifdef VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-        #else
+#else
         allocFlagsInfo.flags = 0;
-        #endif
+#endif
         memAlloc.pNext = &allocFlagsInfo;
     }
     res = vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &buffer->m_Memory);

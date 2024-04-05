@@ -76,18 +76,18 @@ public:
     void update() override;
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
 
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(DrawMethod _drawMethod) override { this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override { this->drawMethod = _drawMethod; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DEFAULT;
-    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DRAW;
 
     std::unique_ptr<VkRender::ThreadPool> threadPool;
 
@@ -107,7 +107,7 @@ public:
     int prevNumberSources = 0;
     std::unordered_map<std::string, uint32_t> ids;
     crl::multisense::RemoteHeadChannel remoteHeadIndex = 0;
-    CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
+    VkRender::CRLCameraDataType textureType = VkRender::CRL_CAMERA_IMAGE_NONE;
 
     std::vector<std::string> colorSources{"Color Rectified Aux", "Luma Rectified Aux"};
     std::unordered_map<std::string, uint32_t> savedImageSourceCount;
@@ -119,7 +119,7 @@ public:
 
 
     static void
-    saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
+    saveImageToFileAsync(VkRender::CRLCameraDataType type, const std::string &path, std::string &stringSrc,
                          std::shared_ptr<VkRender::TextureData> &ptr,
                          std::string &fileFormat, std::shared_ptr<CRLRosWriter::RosbagWriter> rosbagWriter, std::mutex& rosbagWriterMut);
 
@@ -146,16 +146,16 @@ public:
                                 const std::vector<VkRender::MultiSense::CRLPhysicalCamera::ImuData> &accel);
 
 
-    static inline std::string CRLSourceToRosImageEncodingString(CRLCameraDataType type){
+    static inline std::string CRLSourceToRosImageEncodingString(VkRender::CRLCameraDataType type){
         std::string encoding;
         switch (type) {
-            case CRL_GRAYSCALE_IMAGE:
+            case VkRender::CRL_GRAYSCALE_IMAGE:
                 encoding = "mono8";
                 break;
-            case CRL_DISPARITY_IMAGE:
+            case VkRender::CRL_DISPARITY_IMAGE:
                 encoding = "mono16";
                 break;
-            case CRL_COLOR_IMAGE_YUV420:
+            case VkRender::CRL_COLOR_IMAGE_YUV420:
                 encoding = "rgb8"; // Make sure the camera streams are also converted from yuv420 to rgb8
                 break;
             default:

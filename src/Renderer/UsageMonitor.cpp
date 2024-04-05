@@ -9,6 +9,7 @@
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Core/RendererConfig.h"
+#include "Viewer/Core/ServerConnection.h"
 
 UsageMonitor::UsageMonitor() {
     // Initialize usage file

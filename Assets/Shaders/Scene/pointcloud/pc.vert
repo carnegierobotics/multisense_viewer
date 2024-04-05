@@ -57,6 +57,19 @@ void main()
     coords = coords / coords.w * matrix.scale;
     vec3 outCoordinates = vec3(coords.x, coords.y, coords.z);
 
+    // Define the view matrix inline, assuming camera at (0,0,0) looking down the positive X-axis
+    mat4 viewMatrix = mat4(
+    vec4(0.0, 0.0, -1.0, 0.0), // First column
+    vec4(-1.0, 0.0, 0.0, 0.0), // Second column
+    vec4(0.0, 1.0, 0.0, 0.0), // Third column
+    vec4(0.0, 0.0, 0.0, 1.0)  // Fourth column (translation part, identity here)
+    );
+
+    // Replace ubo.viewMatrix with viewMatrix in your gl_Position calculation
+    gl_Position = ubo.projectionMatrix * viewMatrix * ubo.modelMatrix * vec4(outCoordinates, 1.0f);
+
+
     outCoords = outCoordinates;
-    gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
+    //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
+    //gl_Position = ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
 }

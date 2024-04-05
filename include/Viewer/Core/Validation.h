@@ -39,16 +39,15 @@
 
 
 
-#define GLFW_INCLUDE_VULKAN
-#ifdef WIN32
-#ifdef APIENTRY
-#undef APIENTRY
-#endif
-#endif
-#include <GLFW/glfw3.h>
+
 #include <cstring>
 #include <iostream>
 #include <vector>
+#define GLFW_INCLUDE_VULKAN
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Tools/Macros.h"
 
@@ -108,20 +107,6 @@ namespace Validation {
     }
 
 
-    static std::vector<const char *> getRequiredExtensions(bool enableValidationLayers) {
-        uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        if (enableValidationLayers) {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        return extensions;
-    }
-
     static bool checkValidationLayerSupport(const std::vector<const char *>& validationLayerName ) {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -147,30 +132,7 @@ namespace Validation {
         return true;
     }
 
-    static bool checkInstanceExtensionSupport(const std::vector<const char *>& checkExtensions) {
-        //Need to get number of extensions to create array of correct size to hold extensions.
-        uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        //Create a list of VkExtensionProperties using count.
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        //Populate the list of specific/named extensions
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        //Check if given extensions are in list of available extensions
-        for (const auto &checkExtension : checkExtensions) {
-            bool hasExtensions = false;
-            for (const auto &extension: extensions) {
-                if (strcmp(checkExtension, extension.extensionName) == 0) {
-                    hasExtensions = true;
-                    break;
-                }
-            }
-            if (!hasExtensions) {
-                return false;
-            }
-        }
-        return true;
-    }
 
 DISABLE_WARNING_POP
 }

@@ -71,7 +71,7 @@ void Three::setup() {
 }
 
 void Three::update() {
-    if (selectedPreviewTab != CRL_TAB_2D_PREVIEW)
+    if (selectedPreviewTab != VkRender::CRL_TAB_2D_PREVIEW)
         return;
 
     auto tex = VkRender::TextureData(textureType, res);
@@ -131,28 +131,28 @@ void Three::update() {
 
 
 void Three::prepareDefaultTexture() {
-    m_NoDataModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
-    std::string vertexShaderFileName = "Scene/spv/color.vert";
-    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
+    m_NoDataModel->m_CameraDataType = VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
+    std::string vertexShaderFileName = "spv/color.vert";
+    std::string fragmentShaderFileName = "spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
-    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
+    auto defTex = std::make_unique<VkRender::TextureData> (VkRender::CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
         if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
             std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
             m_NoDataModel->updateTexture(defTex->m_Type, i);
         }
     }
-    m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
+    m_NoSourceModel->m_CameraDataType = VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
-    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
+    auto tex = std::make_unique<VkRender::TextureData> (VkRender::CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
         if (m_NoSourceModel->getTextureDataPointers(tex.get(), i)) {
             std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
@@ -165,18 +165,18 @@ void Three::prepareMultiSenseTexture() {
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
     switch (textureType) {
-        case CRL_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "Scene/spv/grayscale.vert";
-            fragmentShaderFileName = "Scene/spv/grayscale.frag";
+        case VkRender::CRL_GRAYSCALE_IMAGE:
+            vertexShaderFileName = "spv/grayscale.vert";
+            fragmentShaderFileName = "spv/grayscale.frag";
             break;
-        case CRL_COLOR_IMAGE_YUV420:
-            vertexShaderFileName = "Scene/spv/color.vert";
+        case VkRender::CRL_COLOR_IMAGE_YUV420:
+            vertexShaderFileName = "spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.frag";
+                                     "spv/color_default_sampler.frag" :  "spv/color_ycbcr_sampler.frag";
             break;
-        case CRL_DISPARITY_IMAGE:
-            vertexShaderFileName = "Scene/spv/disparity.vert";
-            fragmentShaderFileName = "Scene/spv/disparity.frag";
+        case VkRender::CRL_DISPARITY_IMAGE:
+            vertexShaderFileName = "spv/disparity.vert";
+            fragmentShaderFileName = "spv/disparity.frag";
             break;
         default:
             return;
@@ -203,11 +203,11 @@ void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
 
 
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
 
-        auto &preview = dev.win.at(CRL_PREVIEW_THREE);
+        auto &preview = dev.win.at(VkRender::CRL_PREVIEW_THREE);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
 
         if (src == "Idle") {
@@ -231,10 +231,10 @@ void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         options = &preview.effects;
         zoomEnabled = preview.enableZoom;
-        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, CRL_PREVIEW_THREE);
+        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, VkRender::CRL_PREVIEW_THREE);
 
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
-        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_THREE, deltaMouse,
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, VkRender::CRL_PREVIEW_THREE, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,
                                                 preview.enableZoom);
 
@@ -242,8 +242,8 @@ void Three::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 }
 
 void Three::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
-    float row = dev.win.at(CRL_PREVIEW_THREE).row;
-    float col = dev.win.at(CRL_PREVIEW_THREE).col;
+    float row = dev.win.at(VkRender::CRL_PREVIEW_THREE).row;
+    float col = dev.win.at(VkRender::CRL_PREVIEW_THREE).col;
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
     scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
@@ -254,7 +254,7 @@ void Three::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, cons
 
 
 void Three::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
+    if (selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:
                 CRLCameraModels::draw(commandBuffer, i, m_NoSourceModel.get(), b);
@@ -271,7 +271,7 @@ void Three::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
 
 void Three::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
     }
 }

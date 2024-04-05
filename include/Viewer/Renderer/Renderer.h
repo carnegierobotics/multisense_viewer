@@ -35,12 +35,6 @@
  **/
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
-#ifdef WIN32
-    #ifdef APIENTRY
-    #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,6 +42,10 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Scripts/Private/Base.h"
@@ -93,7 +91,8 @@ private:
 
 
     std::unique_ptr<VkRender::GuiManager> guiManager{};
-    std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
     std::vector<std::string> builtScriptNames;
     std::vector<std::string> availableScriptNames;
     std::shared_ptr<UsageMonitor> usageMonitor;
@@ -132,6 +131,9 @@ private:
      * @param scriptName m_Name of script to delete
      */
     void deleteScript(const std::string &scriptName);
+
+    static void setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
+                              std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
 };
 
 

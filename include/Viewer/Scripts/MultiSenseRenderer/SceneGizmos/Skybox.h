@@ -52,18 +52,18 @@ public:
     void update() override;
 
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE;
-    DrawMethod drawMethod = CRL_SCRIPT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DRAW;
     std::unique_ptr<GLTFModel::Model> skybox;
     float exposure = 8.1f;
     float gamma = 2.2f;
@@ -73,7 +73,7 @@ public:
 
     void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
-    Page selectedPreviewTab = CRL_TAB_NONE;
+    VkRender::Page selectedPreviewTab = VkRender::CRL_TAB_NONE;
 };
 
 

@@ -62,11 +62,11 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}
-    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DISABLED;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 };

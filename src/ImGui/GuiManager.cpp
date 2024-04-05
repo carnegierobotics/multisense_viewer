@@ -39,10 +39,6 @@
 // LICENSE: See MIT LICENSE in root folder of this repo
 
 
-#ifdef WIN32
-#define NOMINMAX
-#endif
-
 #include <stb_image.h>
 
 #include "Viewer/ImGui/GuiManager.h"

@@ -34,9 +34,6 @@
  *   2021-09-13, mgjerde@carnegierobotics.com, Created file.
  **/
 
-#ifdef WIN32
-#define NOMINMAX
-#endif
 
 #include <filesystem>
 #include <vulkan/vulkan.h>
@@ -44,6 +41,15 @@
 #include <ktxvulkan.h>
 
 #include "Viewer/Core/Texture.h"
+
+#ifdef WIN32
+#include <AclAPI.h>
+#include <vulkan/vulkan_win32.h>
+#include <dxgi1_2.h>
+#else
+
+#endif
+
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"
@@ -329,8 +335,8 @@ Texture2D::fromBuffer(void *buffer, VkDeviceSize bufferSize, VkFormat format, ui
     memAlloc.allocationSize = memReqs.size;
     memAlloc.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAlloc, nullptr, &m_DeviceMemory))
 
+    CHECK_RESULT(vkAllocateMemory(device->m_LogicalDevice, &memAlloc, nullptr, &m_DeviceMemory))
     CHECK_RESULT(vkBindImageMemory(device->m_LogicalDevice, m_Image, m_DeviceMemory, 0))
 
     VkImageSubresourceRange subresourceRange = {};
@@ -1108,8 +1114,8 @@ VkSamplerYcbcrConversionInfo TextureVideo::createYUV420Sampler(VkFormat format) 
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = &samplerConversionInfo;
 
-    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;

@@ -40,7 +40,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {

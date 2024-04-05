@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.25)
+
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
+
+set(CMAKE_C_COMPILER "clang")
+
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
@@ -7,6 +13,8 @@ project(
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF) # Ensure -std=c++17 rather than -std=gnu++17
+
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
@@ -49,21 +57,25 @@ include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 ExportScriptIncludes()
 GenerateVersionFile()
 
+set(LOGGER_SRC
+        src/Tools/Logger.cpp
+)
+
 set(ENGINE_SRC
         src/Core/Buffer.cpp
         src/Core/Texture.cpp
         src/Core/VulkanDevice.cpp
         src/Core/VulkanRenderer.cpp
         src/Core/VulkanSwapchain.cpp
+        src/Core/RenderResource.cpp
         src/CRLCamera/CRLPhysicalCamera.cpp
         src/ImGui/GuiManager.cpp
         src/ModelLoaders/CRLCameraModels.cpp
         src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
-        src/ModelLoaders/PointCloudLoader.cpp
         src/ModelLoaders/ComputeShader.cpp
+
         src/Renderer/Renderer.cpp
-        src/Tools/Logger.cpp
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/Widgets.cpp
@@ -79,7 +91,6 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/MultiSenseRenderer/Example.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Pointcloud/PointCloud.cpp
         include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Gizmos.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Helmet.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/RecordFrames.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Single/SingleLayout.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleTop.cpp
@@ -89,18 +100,16 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Three.cpp
         include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Four.cpp
         include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Skybox.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/StereoSim.cpp
 
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Private/RecordUtilities.h
 
         include/Viewer/Scripts/Renderer3D/Grid.cpp
-        include/Viewer/Scripts/Renderer3D/Humvee.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
 )
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;fmt::fmt;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -126,16 +135,21 @@ if (UNIX) ## Linux
     # Add GTK+ compiler flags
     add_definitions(${GTK3_CFLAGS_OTHER})
 
+    add_library(CustomLoggerInterface INTERFACE)
+    target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
+
+    add_library(CustomLogger ${LOGGER_SRC})
+    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} ${GTK3_LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger)
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary )
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)
@@ -166,8 +180,7 @@ if (WIN32)
     if (MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-        target_compile_options(ktx PRIVATE "/Wv:18") # Deprecation warning is treated as error in KTX build
-        #set(CMAKE_CXX_FLAGS_RELEASE "/Ox")
+        add_definitions(-DNOMINMAX)
     endif ()
 
     # Include directory for WinPcap
@@ -193,15 +206,20 @@ if (WIN32)
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
+    add_library(CustomLoggerInterface INTERFACE)
+    target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
+
+    add_library(CustomLogger ${LOGGER_SRC})
+    target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
+
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES})
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
-    target_include_directories(rosbag_cpp_writer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/include")
 
     add_executable(MultiSense-Viewer WIN32 src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface)
     add_dependencies(MultiSense-Viewer AutoConnect)
 
     set_project_warnings(ScriptLibrary)
@@ -222,7 +240,6 @@ if (WIN32)
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
     # create a list of third part DLLs to copy
-
     set(THIRD_PARTY_DLLS
             #FFMPEG
             ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll

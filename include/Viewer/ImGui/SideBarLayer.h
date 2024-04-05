@@ -71,8 +71,6 @@
 #endif
 
 
-#define ONE_SECOND 1
-
 class SideBarLayer : public VkRender::Layer {
 public:
 
@@ -88,7 +86,6 @@ public:
     std::chrono::steady_clock::time_point gifFrameTimer;
     std::chrono::steady_clock::time_point gifFrameTimer2;
     std::chrono::steady_clock::time_point searchingTextAnimTimer;
-    std::chrono::steady_clock::time_point searchNewAdaptersManualConnectTimer;
     std::vector<AdapterUtils::Adapter> manualConnectAdapters;
     AdapterUtils adapterUtils;
     std::string dots;
@@ -160,9 +157,9 @@ public:
         Log::Logger::getInstance()->trace("Adapter utils took {}s to shut down", timeSpan.count());
     }
 
-    void openURL(const std::string &url) {
+    static void openURL(const std::string &url) {
 #ifdef _WIN32
-        ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+        ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #elif __linux__
         std::string command = "xdg-open " + std::string(url);
         int result = std::system(command.c_str());
@@ -172,7 +169,7 @@ public:
 #endif
     }
 
-    void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles *handle) {
+    static void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles *handle) {
         if (VkRender::RendererConfig::getInstance().getUserSetting().askForUsageLoggingPermissions) {
             ImGui::OpenPopup("Anonymous Usage Statistics");
 
@@ -186,7 +183,7 @@ public:
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
         ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x / 2),
                                        (handle->info->height / 2) - (anonymousWindowSize.y / 2) - 50.0f));
-        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
             static bool isLinkHovered = false;
             ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f,
@@ -407,14 +404,14 @@ private:
         }
     }
 
-    void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry,
+    static void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry,
                               bool fromWindowsAutoConnect = false) {
         VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
-        el.state = fromWindowsAutoConnect ? CRL_STATE_JUST_ADDED_WINDOWS : CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
+        el.state = fromWindowsAutoConnect ? VkRender::CRL_STATE_JUST_ADDED_WINDOWS : VkRender::CRL_STATE_JUST_ADDED;
+        Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
                                          fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
@@ -437,67 +434,62 @@ private:
             ImVec4 btnColor{};
             // Set colors based on state
             switch (e.state) {
-                case CRL_STATE_CONNECTED:
+                case VkRender::CRL_STATE_CONNECTED:
                     break;
-                case CRL_STATE_CONNECTING:
+                case VkRender::CRL_STATE_CONNECTING:
                     buttonIdentifier = "Connecting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case CRL_STATE_ACTIVE:
+                case VkRender::CRL_STATE_ACTIVE:
                     buttonIdentifier = "Active";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
                     break;
-                case CRL_STATE_INACTIVE:
+                case VkRender::CRL_STATE_INACTIVE:
                     buttonIdentifier = "Inactive";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case CRL_STATE_LOST_CONNECTION:
+                case VkRender::CRL_STATE_LOST_CONNECTION:
                     buttonIdentifier = "Lost connection...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     btnColor = VkRender::Colors::CRLBlueIsh;
                     break;
-                case CRL_STATE_DISCONNECTED:
+                case VkRender::CRL_STATE_DISCONNECTED:
                     buttonIdentifier = "Disconnected";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
                     btnColor = VkRender::Colors::CRLRed;
                     break;
-                case CRL_STATE_UNAVAILABLE:
+                case VkRender::CRL_STATE_UNAVAILABLE:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLDarkGray425);
                     btnColor = VkRender::Colors::CRLDarkGray425;
                     buttonIdentifier = "Unavailable";
                     break;
-                case CRL_STATE_JUST_ADDED :
+                case VkRender::CRL_STATE_JUST_ADDED :
+                case VkRender::CRL_STATE_JUST_ADDED_WINDOWS:
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
                     buttonIdentifier = "Added...";
                     break;
-                case CRL_STATE_JUST_ADDED_WINDOWS:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-                    buttonIdentifier = "Added...";
-                    break;
-                case CRL_STATE_DISCONNECT_AND_FORGET:
+                case VkRender::CRL_STATE_DISCONNECT_AND_FORGET:
                     buttonIdentifier = "Disconnecting...cmake";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
-                case CRL_STATE_REMOVE_FROM_LIST:
+                case VkRender::CRL_STATE_REMOVE_FROM_LIST:
                     buttonIdentifier = "Removing...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
                     break;
-                case CRL_STATE_RESET:
+                case VkRender::CRL_STATE_RESET:
                     buttonIdentifier = "Resetting";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -520,12 +512,12 @@ private:
 
                 if (ImGui::SmallButton("X")) {
                     // delete and disconnect devices
-                    if (handles->devices.at(i).state == CRL_STATE_CONNECTING)
-                        handles->devices.at(i).state = CRL_STATE_INTERRUPT_CONNECTION;
+                    if (handles->devices.at(i).state == VkRender::CRL_STATE_CONNECTING)
+                        handles->devices.at(i).state = VkRender::CRL_STATE_INTERRUPT_CONNECTION;
                     else
-                        handles->devices.at(i).state = CRL_STATE_DISCONNECT_AND_FORGET;
+                        handles->devices.at(i).state = VkRender::CRL_STATE_DISCONNECT_AND_FORGET;
 
-                    Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECT_AND_FORGET ",
+                    Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_DISCONNECT_AND_FORGET ",
                                                      handles->devices.at(i).name);
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor(3);
@@ -595,7 +587,7 @@ private:
             // Check if other device is already attempting to connect
             bool busy = false;
             for (const auto &dev: handles->devices) {
-                if (dev.state == CRL_STATE_CONNECTING)
+                if (dev.state == VkRender::CRL_STATE_CONNECTING)
                     busy = true;
             }
 
@@ -630,7 +622,7 @@ private:
         }
     }
 
-    void addDeviceButton(VkRender::GuiObjectHandles *handles) {
+    static void addDeviceButton(VkRender::GuiObjectHandles *handles) {
 
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding));
@@ -886,7 +878,7 @@ private:
                 ImGui::SameLine();
 
                 auto time = std::chrono::steady_clock::now();
-                std::chrono::duration<float> time_span =
+                auto time_span =
                         std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
 
                 if (time_span.count() > 0.35f && startedAutoConnect) {
@@ -999,7 +991,6 @@ private:
                 }
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 // Call once a second
-                searchNewAdaptersManualConnectTimer = std::chrono::steady_clock::now();
                 manualConnectAdapters = adapterUtils.getAdaptersList();
                 interfaceNameList.clear();
                 indexList.clear();
@@ -1210,7 +1201,7 @@ private:
 
         ImGui::Image(handles->info->gif.image[gifFrameIndex], size, uv0, uv1, bg_col, tint_col);
         auto time = std::chrono::steady_clock::now();
-        std::chrono::duration<float> time_span =
+        auto time_span =
                 std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer);
 
         if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f) {

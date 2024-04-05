@@ -4,14 +4,14 @@
 
 #include "Viewer/ImGui/LayerFactory.h"
 
-#include "Viewer/ImGui/LayerExample.h"
 #include "Viewer/ImGui/SideBarLayer.h"
-#include "Viewer/ImGui/MainLayer.h"
 #include "Viewer/ImGui/WelcomeScreenLayer.h"
-#include "Viewer/ImGui/Renderer3DLayer.h"
+#include "Viewer/ImGui/MainLayer.h"
+#include "Viewer/ImGui/LayerExample.h"
 #include "Viewer/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/ImGui/AdditionalWindows/CustomMetadata.h"
+#include "Viewer/ImGui/Renderer3DLayer.h"
 
 std::shared_ptr<VkRender::Layer> LayerFactory::createLayer(const std::string& layerName) {
     if (layerName == "SideBarLayer") return std::make_shared<SideBarLayer>();

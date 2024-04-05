@@ -4,4 +4,4 @@
 
 
 #include "Viewer/ModelLoaders/ComputeShader.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"

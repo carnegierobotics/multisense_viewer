@@ -54,9 +54,9 @@ void MultiSenseCamera::setup() {
 
 void MultiSenseCamera::loadModelsAsync() {
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/object.frag",
+                                                            {loadShader("spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     // Define a list of model names and corresponding unique pointers
@@ -81,7 +81,7 @@ void MultiSenseCamera::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (loadModelFuture.valid() &&
         loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
         return;
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
+    if (selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
         if (Utils::checkRegexMatch(selectedModel, "s30"))
             S30->draw(commandBuffer, i);
         else if (Utils::checkRegexMatch(selectedModel, "s27"))
@@ -144,7 +144,7 @@ void MultiSenseCamera::update() {
                                         &MultiSenseCamera::setIMUSampleRate, this);
     }
 
-    if (imuEnabled && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+    if (imuEnabled && selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
         handleIMUUpdate();
     } else {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -180,7 +180,6 @@ void MultiSenseCamera::update() {
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
 
-
 }
 
 void MultiSenseCamera::setIMUSampleRate() {
@@ -198,7 +197,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     bool noActiveDevice = true;
     for (const auto &d: uiHandle->devices) {
-        if (d.state != CRL_STATE_ACTIVE)
+        if (d.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
         selectedModel = d.cameraName;
@@ -228,4 +227,5 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 void MultiSenseCamera::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     cancelLoadModels = true;
+    Log::Logger::getInstance()->info("WindowResize triggered for {}, Renderer3D enabled: {}", GetFactoryName(), uiHandle->renderer3D);
 }

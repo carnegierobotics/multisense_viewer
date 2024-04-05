@@ -35,11 +35,14 @@
  **/
 #define TINYGLTF_IMPLEMENTATION
 
-#include <glm/ext.hpp>
 #include <utility>
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/mat4x4.hpp>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
@@ -2078,7 +2081,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT,
-            VK_FALSE);
+            VK_TRUE);
 
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = Populate::pipelineColorBlendStateCreateInfo(1,
                                                                                                         &blendAttachmentState);
@@ -2198,9 +2201,9 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
 void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
                                             const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
                                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers,
-                                            ScriptTypeFlags flags) {
+                                            VkRender::ScriptTypeFlags flags) {
     this->vulkanDevice = utils.device;
-    if (flags == CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
+    if (flags == VkRender::CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
         createPipeline(*utils.renderPass, shaders, utils.msaaSamples);
@@ -2274,14 +2277,14 @@ void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPa
     VkPipelineColorBlendAttachmentState blendAttachmentState = Populate::pipelineColorBlendAttachmentState(
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
             VK_COLOR_COMPONENT_A_BIT,
-            VK_FALSE);
+            VK_TRUE);
 
     VkPipelineColorBlendStateCreateInfo colorBlendStateCI = Populate::pipelineColorBlendStateCreateInfo(1,
                                                                                                         &blendAttachmentState);
 
     VkPipelineDepthStencilStateCreateInfo depthStencilStateCI =
-            Populate::pipelineDepthStencilStateCreateInfo(VK_FALSE,
-                                                          VK_FALSE,
+            Populate::pipelineDepthStencilStateCreateInfo(VK_TRUE,
+                                                          VK_TRUE,
                                                           VK_COMPARE_OP_LESS_OR_EQUAL);
     depthStencilStateCI.front = depthStencilStateCI.back;
 

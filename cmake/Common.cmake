@@ -39,6 +39,7 @@ set(IMGUI_DIR external/imgui)
 set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
+set(TINY_PLY external/tinyply)
 
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)
@@ -151,13 +152,13 @@ else ()
 
 endif ()
 
-#if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${FMT_DIR}/CMakeLists.txt")
-#    message(FATAL_ERROR "The submodules ${FMT_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
-#else ()
-#    message("[INFO] Adding FMT from directory: ${FMT_DIR}")
-#
-#    add_subdirectory(${FMT_DIR})
-#endif ()
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${FMT_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${FMT_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding FMT from directory: ${FMT_DIR}")
+    include_directories(SYSTEM ${FMT_DIR}/include)
+    add_subdirectory(${FMT_DIR})
+endif ()
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${KTX_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${KTX_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")

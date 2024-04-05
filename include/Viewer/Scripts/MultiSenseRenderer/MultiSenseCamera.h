@@ -54,6 +54,7 @@ public:
     ~MultiSenseCamera()= default;
 
     void onDestroy() override{
+        cancelLoadModels = true;
         // Wait for async models to finish loading before destorying script.
         // So we dont rush cleaning up vulkan resources for old window before this script finished loading
         while(loadModelFuture.valid() && loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready);
@@ -73,9 +74,9 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}
-    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
 
@@ -83,8 +84,8 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_DEFAULT;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
     std::unique_ptr<GLTFModel::Model> S27;
     std::unique_ptr<GLTFModel::Model> S30;
     std::unique_ptr<GLTFModel::Model> KS21;
@@ -103,7 +104,7 @@ public:
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
     } lightSource;
     bool imuEnabled = false;
-    Page selectedPreviewTab = CRL_TAB_NONE;
+    VkRender::Page selectedPreviewTab = VkRender::CRL_TAB_NONE;
     VkRender::IMUData rot{};
     bool stopDraw = false;
     float frameRate = 30.0f;

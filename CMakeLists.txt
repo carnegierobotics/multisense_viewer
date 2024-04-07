@@ -8,6 +8,7 @@ project(
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-report")
 
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
@@ -52,6 +53,8 @@ GenerateVersionFile()
 
 set(LOGGER_SRC
         src/Tools/Logger.cpp
+        include/Viewer/ImGui/Renderer3D/Renderer3DBottom.h
+        include/Viewer/ImGui/Renderer3D/Renderer3DRight.h
 )
 
 set(ENGINE_SRC

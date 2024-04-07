@@ -37,9 +37,11 @@
 
 #ifdef WIN32
 #else
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sstream>
+
 #endif
 
 #include <array>
@@ -101,6 +103,10 @@ void Renderer::prepareRenderer() {
     buildScript("Skybox");
     for (const auto &name: availableScriptNames)
         buildScript(name);
+
+    for (const auto &pair: scripts) {
+        guiManager->handles.renderBlock.scripts[pair.first] = false;
+    }
 }
 
 void Renderer::addDeviceFeatures() {
@@ -401,11 +407,15 @@ void Renderer::updateUniformBuffers() {
 
     for (auto &script: scripts) {
         if (!guiManager->handles.renderer3D) {
-            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D)
+            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
                 script.second->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
+                guiManager->handles.renderBlock.scripts[script.first] = false;
+            }
         } else {
-            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D)
+            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
                 script.second->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
+                guiManager->handles.renderBlock.scripts[script.first] = true;
+            }
         }
         // TODO add simulated camera handling
     }
@@ -471,7 +481,7 @@ void Renderer::updateUniformBuffers() {
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
         if (guiManager->handles.devices.at(i).state == VkRender::CRL_STATE_REMOVE_FROM_LIST)
-            guiManager->handles.devices.erase(guiManager->handles.devices.begin() + (int)i);
+            guiManager->handles.devices.erase(guiManager->handles.devices.begin() + static_cast<int>(i));
     }
 
     // Scripts that share dataa
@@ -747,7 +757,7 @@ void Renderer::recordCommands() {
                                     }
                                     auto disparityDisplayed =
                                             static_cast<float>(p[(w * dev.pixelInfoZoomed[windowIndex].y) +
-                                              dev.pixelInfoZoomed[windowIndex].x]) /
+                                                                 dev.pixelInfoZoomed[windowIndex].x]) /
                                             16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;

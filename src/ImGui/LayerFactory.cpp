@@ -11,7 +11,9 @@
 #include "Viewer/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/ImGui/AdditionalWindows/CustomMetadata.h"
-#include "Viewer/ImGui/Renderer3DLayer.h"
+#include "Viewer/ImGui/Renderer3D/Renderer3DLeft.h"
+#include "Viewer/ImGui/Renderer3D/Renderer3DBottom.h"
+#include "Viewer/ImGui/Renderer3D/Renderer3DRight.h"
 
 std::shared_ptr<VkRender::Layer> LayerFactory::createLayer(const std::string& layerName) {
     if (layerName == "SideBarLayer") return std::make_shared<SideBarLayer>();
@@ -21,7 +23,9 @@ std::shared_ptr<VkRender::Layer> LayerFactory::createLayer(const std::string& la
     if (layerName == "DebugWindow") return std::make_shared<DebugWindow>();
     if (layerName == "NewVersionAvailable") return std::make_shared<NewVersionAvailable>();
     if (layerName == "CustomMetadata") return std::make_shared<CustomMetadata>();
-    if (layerName == "Renderer3DLayer") return std::make_shared<Renderer3DLayer>();
+    if (layerName == "Renderer3DLeft") return std::make_shared<Renderer3DLeft>();
+    if (layerName == "Renderer3DBottom") return std::make_shared<Renderer3DBottom>();
+    if (layerName == "Renderer3DRight") return std::make_shared<Renderer3DRight>();
 
     return nullptr; // or throw an exception if an unknown layer is requested
 }

@@ -165,6 +165,13 @@ namespace VkRender {
             float y = 0.0f;
         } pos;
     };
+    /**
+     * @brief MouseButtons user input
+     */
+    struct RenderBlock {
+        std::map<std::string, bool> scripts{};
+
+    };
 
     /**
      * @brief Default MVP matrices

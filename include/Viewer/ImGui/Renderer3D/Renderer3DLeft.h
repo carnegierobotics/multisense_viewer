@@ -80,7 +80,7 @@ public:
                 if (i == 0)
                     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
-                if (ImGui::TreeNode(reinterpret_cast<const char *>(i), script.first.c_str())) {
+                if (ImGui::TreeNode(std::to_string(i).c_str(), script.first.c_str())) {
                     ImGui::Text("blah blah");
                     ImGui::SameLine();
                     if (ImGui::SmallButton("button")) {}

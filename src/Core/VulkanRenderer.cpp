@@ -200,9 +200,8 @@ namespace VkRender {
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
-        fpGetPhysicalDeviceProperties2 =
-            (PFN_vkGetPhysicalDeviceProperties2)vkGetInstanceProcAddr(
-                instance, "vkGetPhysicalDeviceProperties2");
+        fpGetPhysicalDeviceProperties2 =reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2"));
+
         if (fpGetPhysicalDeviceProperties2 == nullptr) {
             throw std::runtime_error(
                 "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "

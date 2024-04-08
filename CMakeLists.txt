@@ -82,6 +82,7 @@ set(ENGINE_SRC
         src/Core/RendererConfig.cpp
         src/Core/ServerConnection.cpp
         src/Core/CommandBuffer.cpp
+        src/ModelLoaders/ImageView.cpp
 )
 
 set(SCRIPTS_LIB_SRC
@@ -105,6 +106,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/Grid.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
+        include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
 )
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")

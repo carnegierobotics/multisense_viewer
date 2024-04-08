@@ -316,6 +316,7 @@ namespace VkRender {
         handles.info->firstFrame = updateFrameGraph;
         handles.info->width = static_cast<float>(width);
         handles.info->height = static_cast<float>(height);
+        handles.info->aspect = static_cast<float>(width) / static_cast<float>(height);
         handles.input = pInput;
 
         ImGui::NewFrame();

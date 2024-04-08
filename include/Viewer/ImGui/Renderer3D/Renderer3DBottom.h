@@ -34,7 +34,7 @@ public:
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
                 ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize;
         ImGui::SetNextWindowPos(ImVec2(300.0f, handles->info->height - 150.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(680.0f, 150.0f));
+        ImGui::SetNextWindowSize(ImVec2(handles->info->width - (300.0f * 2), 150.0f));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
 
         ImGui::Begin("Renderer3DBottom", &pOpen, window_flags);

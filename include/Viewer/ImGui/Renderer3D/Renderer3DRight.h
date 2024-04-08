@@ -33,7 +33,7 @@ public:
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
                 ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize;
         ImGui::SetNextWindowPos(ImVec2(handles->info->width - 300.0f, 0.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(300.0f, handles->info->height));
+        ImGui::SetNextWindowSize(ImVec2(300.0f, handles->info->height - (300 *  1 / handles->info->aspect)));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
 
         ImGui::Begin("Renderer3DRight", &pOpen, window_flags);
@@ -56,6 +56,8 @@ public:
                     static_cast<double>(handles->camera.target.y),
                     static_cast<double>(handles->camera.target.z));
         ImGui::PopStyleColor();
+
+
 
         ImGui::End();
         ImGui::PopStyleColor();

@@ -21,9 +21,10 @@ if [[ "$1" == "windows" ]]; then
         echo "additional copy to ${outDir}"
 
 else
-    # Unix location
+    # Unix locatione
     echo "Compiling from ubuntu $(pwd)"
     glslc="../../shaderc/build/glslc/glslc"
+    glslc="/usr/bin/glslc"
     outDir="./../../cmake-build-debug/Assets/Shaders/spv/"
     sceneOutDir="../Shaders/spv/"
     sceneDir="../Shaders/Scene"

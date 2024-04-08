@@ -213,39 +213,13 @@ void Renderer::buildCommandBuffers() {
     std::array<VkClearValue, 3> clearValues{};
 
     if (guiManager->handles.renderer3D) {
-        clearValues[0] = {
-                {
-                        {
-                                0.0f, 0.0f,
-                                0.0f, 1.0f
-                        }
-                }
-        };
-        clearValues[2] = {
-                {
-                        {
-                                0.0f, 0.0f,
-                                0.0f, 1.0f
-                        }
-                }
-        };
+        clearValues[0] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        clearValues[2] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     } else {
-        clearValues[0] = {
-                {
-                        {
-                                guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]
-                        }
-                }
-        };
-        clearValues[2] = {
-                {
-                        {
-                                guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]
-                        }
-                }
-        };
+        clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
+        clearValues[2] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
     }
     clearValues[1].depthStencil = {1.0f, 0};
 

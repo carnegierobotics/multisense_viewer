@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
-
-set(CMAKE_C_COMPILER "clang")
-
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
@@ -57,6 +52,8 @@ GenerateVersionFile()
 
 set(LOGGER_SRC
         src/Tools/Logger.cpp
+        include/Viewer/ImGui/Renderer3D/Renderer3DBottom.h
+        include/Viewer/ImGui/Renderer3D/Renderer3DRight.h
 )
 
 set(ENGINE_SRC
@@ -145,6 +142,7 @@ if (UNIX) ## Linux
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
+    set_target_properties(ScriptLibrary PROPERTIES UNITY_BUILD ON)
 
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)

@@ -50,7 +50,8 @@ public:
         DISABLE_WARNING_UNREFERENCED_VARIABLE
         DISABLE_WARNING_UNUSED_VARIABLE
         s_bRegistered;
-        DISABLE_WARNING_POP    }
+        DISABLE_WARNING_POP
+    }
     ~MultiSenseCamera()= default;
 
     void onDestroy() override{

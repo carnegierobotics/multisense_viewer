@@ -79,7 +79,6 @@ public:
         return nullptr;
     }
 
-
 private:
     static std::map<std::string, TCreateMethod> s_methods;
 };
@@ -95,7 +94,5 @@ protected:
 template<typename T >
 bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
 }
-
-
 
 #endif //MULTISENSE_SCRIPTBUILDER_H

@@ -106,7 +106,6 @@ public:
                                                                                                    future(_future),
                                                                                                    type(_type) {}
     };
-
     std::unordered_map<ScriptWidgetPlacement, std::vector<Element>> elements;
 private:
 

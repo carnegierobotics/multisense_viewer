@@ -143,12 +143,14 @@ namespace VkRender {
 
         pushLayer("WelcomeScreenLayer");
         pushLayer("SideBarLayer");
-        pushLayer("Renderer3DLayer");
         pushLayer("MainLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
         pushLayer("CustomMetadata");
+        pushLayer("Renderer3DLeft");
+        pushLayer("Renderer3DBottom");
+        pushLayer("Renderer3DRight");
 
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
         handles.pool = pool;

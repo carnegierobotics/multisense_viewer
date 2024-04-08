@@ -38,18 +38,11 @@
 #include "Viewer/ImGui/Widgets.h"
 
 void MultiSenseCamera::setup() {
-
     loadModelFuture = std::async(std::launch::async, &MultiSenseCamera::loadModelsAsync, this);
-    /*
-    Widgets::make()->text("Select other camera models");
-    Widgets::make()->slider("##Select model", &selection, 0, 2);
-    */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
     Widgets::make()->text(WIDGET_PLACEMENT_IMU, "Set IMU smoothing");
     Widgets::make()->slider(WIDGET_PLACEMENT_IMU, "##IMU smoothing", &alpha, 0.5f, 0.999f);
-
-
 }
 
 void MultiSenseCamera::loadModelsAsync() {

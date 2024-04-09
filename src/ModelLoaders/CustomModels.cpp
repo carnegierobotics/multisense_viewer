@@ -251,6 +251,12 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
                                              &pipelines[i]);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create graphics m_Pipeline");
+
+    pipelineCI.renderPass = (*renderer->secondaryRenderPasses)[0].renderPass;
+    res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                         &pipelinesSecondary[i]);
+    if (res != VK_SUCCESS)
+        throw std::runtime_error("Failed to create graphics m_Pipeline");
 }
 }
 void CustomModels::draw(CommandBuffer* commandBuffer, uint32_t cbIndex) {
@@ -258,7 +264,11 @@ void CustomModels::draw(CommandBuffer* commandBuffer, uint32_t cbIndex) {
         return;
     vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts[cbIndex], 0, 1,
                             &descriptors[cbIndex], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[cbIndex]);
+    if (commandBuffer->boundRenderPass == "main"){
+        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[cbIndex]);
+    } else {
+        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelinesSecondary[cbIndex]);
+    }
     const VkDeviceSize offsets[1] = {0};
 
     vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);

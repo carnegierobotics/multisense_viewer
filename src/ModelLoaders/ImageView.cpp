@@ -132,11 +132,11 @@ void ImageView::Model::createEmptyTexture(uint32_t width, uint32_t height) {
 
 void ImageView::updateTexture(uint32_t currentFrame, void* data, uint32_t size) {
     auto *dataPtr = m_model->m_texture[currentFrame]->m_DataPtr;
-    std::memcpy(dataPtr, data, size;
+    std::memcpy(dataPtr, data, size);
     m_model->m_texture[currentFrame]->updateTextureFromBuffer();
 }
 
-void ImageView::createDescriptors() {
+void ImageView::createDescriptors(bool useOffScreenImageRender) {
     // 1 Create ONE descriptor pool
     // 2 Create descriptor layouts
     // 3 Create descriptor sets
@@ -190,13 +190,23 @@ void ImageView::createDescriptors() {
         writeDescriptorSets[1].dstBinding = 1;
         writeDescriptorSets[1].pBufferInfo = &m_renderUtils->uniformBuffers[i].bufferTwo.m_DescriptorBufferInfo;
 
+        if (useOffScreenImageRender){
+            writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets[2].descriptorCount = 1;
+            writeDescriptorSets[2].dstSet = m_model->m_descriptors[i];
+            writeDescriptorSets[2].dstBinding = 2;
+            writeDescriptorSets[2].pImageInfo = &(*m_renderUtils->secondaryRenderPasses)[0].imageInfo;
+        } else {
+
+
         writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptorSets[2].descriptorCount = 1;
         writeDescriptorSets[2].dstSet = m_model->m_descriptors[i];
         writeDescriptorSets[2].dstBinding = 2;
         writeDescriptorSets[2].pImageInfo = &m_model->m_texture[i]->m_Descriptor;
-
+        }
         vkUpdateDescriptorSets(m_vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                writeDescriptorSets.data(), 0, nullptr);
 

@@ -68,18 +68,12 @@ namespace VkRender {
         std::unique_ptr<VkRender::UBOMatrix> bufferOneData{};
         std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
         std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
-        std::vector<std::unique_ptr<VkRender::RenderDescriptorBuffers>> additionalBuffers{};
-        std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
-
-        std::unique_ptr<VkRender::Particle> particleIn{};
-        std::unique_ptr<VkRender::Particle> particleOut{};
 
         std::vector<VkShaderModule> shaderModules{};
         VkRender::SkyboxTextures skyboxTextures;
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
-        std::unique_ptr<SharedData> sharedData; // TODO remove this
         VkRender::TopLevelScriptData* topLevelData;
 
         virtual ~Base() = default;
@@ -173,18 +167,6 @@ namespace VkRender {
                 memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
                 memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
                 memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
-
-                // TODO Future optimization could be to copy blocks of data instead of for for loops.
-                if (renderData.additionalBuffers) {
-                    for (size_t i = 0; i < additionalBuffers.size(); ++i) {
-                        memcpy(additionalBuffersData[i][renderData.index].mvp.mapped, &additionalBuffers[i]->mvp,
-                               sizeof(VkRender::UBOMatrix));
-
-                        memcpy(additionalBuffersData[i][renderData.index].light.mapped,
-                               &additionalBuffers[i]->light,
-                               sizeof(VkRender::FragShaderParams));
-                    }
-                }
             }
         }
 
@@ -220,8 +202,6 @@ namespace VkRender {
                 // Particle buffers
             }
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
-
-            sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
             if (getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 setup();
@@ -291,34 +271,6 @@ namespace VkRender {
         }
 
 
-        void requestAdditionalBuffers(size_t numBuffers) {
-            // Num buffers for each object
-            additionalBuffers.resize(numBuffers);
-            additionalBuffersData.resize(numBuffers);
-
-
-            for (size_t i = 0; i < numBuffers; ++i) {
-                additionalBuffers[i] = std::make_unique<VkRender::RenderDescriptorBuffers>();
-                // Buffers for each swapchain image
-                additionalBuffersData[i].resize(renderUtils.uniformBuffers.size());
-                for (auto& uniformBuffer : additionalBuffersData[i]) {
-                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer.mvp, sizeof(VkRender::UBOMatrix));
-                    uniformBuffer.mvp.map();
-
-                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer.light, sizeof(VkRender::FragShaderParams));
-                    uniformBuffer.light.map();
-                }
-            }
-
-            renderData.additionalBuffers = true;
-        }
-
     private:
         struct ResourceEntry {
             // Resource handle (e.g., VkBuffer, VkImage, etc.)
@@ -358,7 +310,7 @@ namespace VkRender {
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
         std::chrono::steady_clock::time_point lastLogTime;
 
-        void updateRenderData(VkRender::RenderData* data) {
+        void updateRenderData(VkRender::RenderData* data) { // TODO get rid of this function
             this->renderData.camera = data->camera;
             this->renderData.crlCamera = data->crlCamera;
             this->renderData.deltaT = data->deltaT;
@@ -366,6 +318,7 @@ namespace VkRender {
             this->renderData.height = data->height;
             this->renderData.width = data->width;
             this->renderData.type = getType();
+            this->renderData.boundRenderPass = data->boundRenderPass;
         }
 
         const Input* input{};

@@ -282,6 +282,7 @@ public:
         struct Pipelines {
             VkPipeline pbr = VK_NULL_HANDLE;
             VkPipeline pbrDoubleSided = VK_NULL_HANDLE;
+            VkPipeline pbrDoubleSidedSecondary = VK_NULL_HANDLE; // TODO Better handling of multiple viewpoints
             VkPipeline pbrAlphaBlend = VK_NULL_HANDLE;
             VkPipeline skybox = VK_NULL_HANDLE;
         } pipelines{};
@@ -292,12 +293,12 @@ public:
 
         void setupNodeDescriptorSet(Node *node);
 
-        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+        void createPipeline(const VkRender::RenderUtils *utils, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
                             VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
 
         void draw(CommandBuffer * commandBuffer, uint32_t i);
-        void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
+        void drawNode(Node *node, CommandBuffer* commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
         void createRenderPipeline(const VkRender::RenderUtils &utils,
                                   const std::vector<VkPipelineShaderStageCreateInfo> &shaders);

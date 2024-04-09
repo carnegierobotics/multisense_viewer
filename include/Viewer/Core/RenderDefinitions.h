@@ -41,7 +41,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-    #include <windows.h>
+#include <windows.h>
 #endif
 
 #include <unordered_map>
@@ -53,9 +53,11 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
+
 #include <GLFW/glfw3.h>
 
 #include "Viewer/Core/Buffer.h"
@@ -107,7 +109,7 @@ namespace VkRender {
         CRL_SCRIPT_DONT_DRAW,
         CRL_SCRIPT_DRAW,
         /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (run onDestroy and Create funcs) next frame after this is set*/
-        CRL_SCRIPT_RELOAD
+        CRL_SCRIPT_RELOAD,
     } CRL_SCRIPT_DRAW_METHOD;
 
 /**
@@ -286,13 +288,38 @@ namespace VkRender {
         Buffer bufferThree{};
     };
 
+    struct SecondaryRenderPasses {
+        uint32_t currentFrame = 0;
+        VkPipelineCache pipelineCache{};
+        std::vector<VkFramebuffer> frameBuffers{};
+        VkRenderPass renderPass{};
+        Camera *camera{};
+        struct {
+            VkImage image;
+            VkDeviceMemory mem;
+            VkImageView view;
+        } depthStencil{};
+        struct {
+            VkImage image;
+            VkImage resolvedImage;
+            VkDeviceMemory mem;
+            VkDeviceMemory resolvedMem;
+            VkImageView view;
+            VkImageView resolvedView;
+            VkSampler sampler;
+        } colorImage{};
+
+        VkDescriptorImageInfo imageInfo{};
+    };
+
+
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
-        VkInstance* instance{};
-        uint8_t* vkDeviceUUID = nullptr; // array with size VK_UUID_SIZE
+        VkInstance *instance{};
+        uint8_t *vkDeviceUUID = nullptr; // array with size VK_UUID_SIZE
 
-        uint32_t UBCount = 0; // TODO rename to swapchain iamges
+        uint32_t UBCount = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
         std::vector<UniformBufferSet> uniformBuffers{};
@@ -304,7 +331,12 @@ namespace VkRender {
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
         std::mutex *queueSubmitMutex;
-        const std::vector<VkFence>* fence;
+        const std::vector<VkFence> *fence;
+
+        // Multiple viewpoint (Off screen rendering)
+        const std::vector<SecondaryRenderPasses>* secondaryRenderPasses;
+
+
     };
 
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
@@ -325,7 +357,8 @@ namespace VkRender {
         uint32_t height = 0;
         uint32_t width = 0;
         bool additionalBuffers = false;
-        void* streamToRun;
+        void *streamToRun;
+        std::string boundRenderPass = "main";
 
     };
 

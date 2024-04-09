@@ -18,7 +18,7 @@ class ImageView {
 
 public:
     ImageView(const VkRender::RenderUtils *renderUtils, int width, int height, int channels,
-              const std::vector<VkPipelineShaderStageCreateInfo> *shaders) {
+              const std::vector<VkPipelineShaderStageCreateInfo> *shaders, bool useOffScreenImageRender) {
 
         VkRender::ScriptUtils::ImageData imgData{};
         m_shaders = shaders;
@@ -41,7 +41,7 @@ public:
         }
 
         m_model->createEmptyTexture(width, height);
-        createDescriptors();
+        createDescriptors(useOffScreenImageRender);
         createGraphicsPipeline();
         for (uint32_t i = 0; i < renderUtils->UBCount; ++i) {
             auto *dataPtr = m_model->m_texture[i]->m_DataPtr;
@@ -95,7 +95,7 @@ private:
     };
 
 
-    void createDescriptors();
+    void createDescriptors(bool useOffScreenImageRender);
 
     void createGraphicsPipeline();
 

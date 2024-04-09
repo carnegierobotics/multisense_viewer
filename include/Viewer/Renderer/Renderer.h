@@ -85,7 +85,7 @@ private:
 
     void recordCommands() override;
     bool compute() override;
-    void updateUniformBuffers() override;
+    void updateUniformBuffers(std::string boundRenderPass) override;
 
     void prepareRenderer();
 

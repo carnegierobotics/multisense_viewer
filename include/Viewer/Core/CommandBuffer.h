@@ -19,6 +19,7 @@ struct CommandBuffer {
     // Owner --> Description?
     std::string description = "RenderCommandBuffer";
 
+    std::string boundRenderPass = "main";
     std::vector<bool> busy{};
 
 };

@@ -143,7 +143,7 @@ namespace VkRender {
         virtual bool compute() = 0;
 
         /** @brief (Pure virtual) compute render function to be implemented by the application */
-        virtual void updateUniformBuffers() = 0;
+        virtual void updateUniformBuffers(std::string boundRenderPass) = 0;
 
         /** @brief (Virtual) Called when the camera m_View has changed */
         virtual void viewChanged();
@@ -174,6 +174,9 @@ namespace VkRender {
 
         /** @brief Prepares all Vulkan resources and functions required to run the sample */
         virtual void prepare();
+
+        /** @brief Prepares secondary render passes. Can be added during runtime TODO Test */
+        void setupSecondaryRenderPasses();
 
         /** @brief Entry point for the main render loop */
         void renderLoop();
@@ -253,12 +256,13 @@ namespace VkRender {
         uint32_t currentFrame = 0;
         // Active image index in swapchain
         uint32_t imageIndex = 0;
-        // Descriptor set pool
         // Pipeline cache object
         VkPipelineCache pipelineCache{};
         VkRender::ObjectPicking selection{};
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
+
+        std::vector<SecondaryRenderPasses> secondaryRenderPasses;
 
         int frameCounter = 0;
         int frameID = 0;
@@ -269,7 +273,6 @@ namespace VkRender {
         uint32_t destWidth{};
         uint32_t destHeight{};
         float lastFPS{};
-
 
         VkSampleCountFlagBits getMaxUsableSampleCount();
 
@@ -317,6 +320,7 @@ namespace VkRender {
         void computePipeline();
 
         static bool checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions);
+
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

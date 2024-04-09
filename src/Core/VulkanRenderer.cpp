@@ -44,11 +44,13 @@
 #include "Viewer/Core/RendererConfig.h"
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
+
 #include "Viewer/Core/Validation.h"
+
 #endif
 
 namespace VkRender {
-    VulkanRenderer::VulkanRenderer(const std::string& title) {
+    VulkanRenderer::VulkanRenderer(const std::string &title) {
 #ifdef MULTISENSE_VIEWER_PRODUCTION
         settings.validation = false;
 #else
@@ -104,9 +106,9 @@ namespace VkRender {
         enabledInstanceExtensions = extensions;
 
 
-        std::vector<const char*> instanceExtensions = {
-            VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        std::vector<const char *> instanceExtensions = {
+                VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
         };
         enabledInstanceExtensions.insert(enabledInstanceExtensions.end(), instanceExtensions.begin(),
                                          instanceExtensions.end());
@@ -123,7 +125,7 @@ namespace VkRender {
             instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledInstanceExtensions.size());
             instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
         }
-        const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+        const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
 #ifdef MULTISENSE_VIEWER_DEBUG
         if (settings.validation) {
@@ -132,8 +134,7 @@ namespace VkRender {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
                 pLogger->info("Enabling Validation Layers");
-            }
-            else {
+            } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
                 pLogger->info("Disabled Validation Layers since it was not found");
             }
@@ -200,23 +201,24 @@ namespace VkRender {
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
-        fpGetPhysicalDeviceProperties2 =reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2"));
+        fpGetPhysicalDeviceProperties2 = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(
+                instance, "vkGetPhysicalDeviceProperties2"));
 
         if (fpGetPhysicalDeviceProperties2 == nullptr) {
             throw std::runtime_error(
-                "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
-                "found.\n");
+                    "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
+                    "found.\n");
         }
 
         // Physical Device UUID
         VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties = {};
         vkPhysicalDeviceIDProperties.sType =
-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
         vkPhysicalDeviceIDProperties.pNext = nullptr;
 
         VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2 = {};
         vkPhysicalDeviceProperties2.sType =
-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
 
         fpGetPhysicalDeviceProperties2(physicalDevice,
@@ -228,8 +230,7 @@ namespace VkRender {
         if (features.samplerYcbcrConversion) {
             enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-        }
-        else {
+        } else {
             pLogger->error("YCBCR Sampler Extension support not found!");
         }
 
@@ -273,19 +274,19 @@ namespace VkRender {
         vkFreeMemory(device, colorImage.mem, nullptr);
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
-        for (auto& fence : waitFences) {
+        for (auto &fence: waitFences) {
             vkDestroyFence(device, fence, nullptr);
         }
-        for (auto& fence : computeInFlightFences) {
+        for (auto &fence: computeInFlightFences) {
             vkDestroyFence(device, fence, nullptr);
         }
 
         vkDestroyRenderPass(device, renderPass, nullptr);
-        for (auto& fb : frameBuffers) {
+        for (auto &fb: frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
-        for (auto& semaphore : semaphores) {
+        for (auto &semaphore: semaphores) {
             vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
@@ -308,7 +309,7 @@ namespace VkRender {
     }
 
 
-    void VulkanRenderer::mouseMoved(float x, float y, bool& handled) {
+    void VulkanRenderer::mouseMoved(float x, float y, bool &handled) {
         mousePos = glm::vec2(x, y);
         handled = true;
     }
@@ -368,24 +369,23 @@ namespace VkRender {
             std::array<VkImageView, 2> attachments{};
             attachments[1] = depthStencil.view;
             VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                attachments.data(),
-                attachments.size(),
-                renderPass);
+                                                                                            attachments.data(),
+                                                                                            attachments.size(),
+                                                                                            renderPass);
             frameBuffers.resize(swapchain->imageCount);
             for (uint32_t i = 0; i < frameBuffers.size(); i++) {
                 attachments[0] = swapchain->buffers[i].view;
                 VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
                 if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
             }
-        }
-        else {
+        } else {
             std::array<VkImageView, 3> attachments{};
             attachments[0] = colorImage.view;
             attachments[1] = depthStencil.view;
             VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                attachments.data(),
-                attachments.size(),
-                renderPass);
+                                                                                            attachments.data(),
+                                                                                            attachments.size(),
+                                                                                            renderPass);
             frameBuffers.resize(swapchain->imageCount);
             for (uint32_t i = 0; i < frameBuffers.size(); i++) {
                 attachments[2] = swapchain->buffers[i].view;
@@ -442,8 +442,7 @@ namespace VkRender {
                 subpassDescription.preserveAttachmentCount = 0;
                 subpassDescription.pPreserveAttachments = nullptr;
                 subpassDescription.pResolveAttachments = nullptr;
-            }
-            else {
+            } else {
                 VkAttachmentDescription colorAttachment{};
                 // Color attachment
                 colorAttachment.format = swapchain->colorFormat;
@@ -626,10 +625,10 @@ namespace VkRender {
 
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-            Populate::commandBufferAllocateInfo(
-                cmdPool,
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                static_cast<uint32_t>(drawCmdBuffers.buffers.size()));
+                Populate::commandBufferAllocateInfo(
+                        cmdPool,
+                        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                        static_cast<uint32_t>(drawCmdBuffers.buffers.size()));
 
         VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.buffers.data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
@@ -640,9 +639,9 @@ namespace VkRender {
         computeCommand.hasWork.resize(swapchain->imageCount);
 
         VkCommandBufferAllocateInfo cmdBufAllocateComputeInfo = Populate::commandBufferAllocateInfo(
-            cmdPoolCompute,
-            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            static_cast<uint32_t>(computeCommand.buffers.size()));
+                cmdPoolCompute,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                static_cast<uint32_t>(computeCommand.buffers.size()));
 
         result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.buffers.data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
@@ -705,6 +704,277 @@ namespace VkRender {
         rendererStartTime = std::chrono::system_clock::now();
     }
 
+    void VulkanRenderer::setupSecondaryRenderPasses() {
+        secondaryRenderPasses.resize(1);
+        // Color image resource
+        // Depth stencil resource
+        // Render Pass
+        // Frame Buffer
+
+        //// DEPTH STENCIL RESOURCE /////
+        VkImageCreateInfo depthImageCI = Populate::imageCreateInfo();
+        depthImageCI.imageType = VK_IMAGE_TYPE_2D;
+        depthImageCI.format = depthFormat;
+        depthImageCI.extent = {m_Width, m_Height, 1};
+        depthImageCI.mipLevels = 1;
+        depthImageCI.arrayLayers = 1;
+        depthImageCI.samples = msaaSamples;
+        depthImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        VkResult result = vkCreateImage(device, &depthImageCI, nullptr, &secondaryRenderPasses[0].depthStencil.image);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
+
+        VkMemoryRequirements depthMemReqs{};
+        vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].depthStencil.image, &depthMemReqs);
+
+        VkMemoryAllocateInfo depthMemAllloc = Populate::memoryAllocateInfo();
+        depthMemAllloc.allocationSize = depthMemReqs.size;
+        depthMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(depthMemReqs.memoryTypeBits,
+                                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        result = vkAllocateMemory(device, &depthMemAllloc, nullptr, &secondaryRenderPasses[0].depthStencil.mem);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+        result = vkBindImageMemory(device, secondaryRenderPasses[0].depthStencil.image,
+                                   secondaryRenderPasses[0].depthStencil.mem, 0);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+
+        VkImageViewCreateInfo depthImageViewCI = Populate::imageViewCreateInfo();
+        depthImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthImageViewCI.image = secondaryRenderPasses[0].depthStencil.image;
+        depthImageViewCI.format = depthFormat;
+        depthImageViewCI.subresourceRange.baseMipLevel = 0;
+        depthImageViewCI.subresourceRange.levelCount = 1;
+        depthImageViewCI.subresourceRange.baseArrayLayer = 0;
+        depthImageViewCI.subresourceRange.layerCount = 1;
+        depthImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            depthImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(device, &depthImageViewCI, nullptr, &secondaryRenderPasses[0].depthStencil.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+
+        //// COLOR IMAGE RESOURCE /////
+
+        VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
+        colorImageCI.imageType = VK_IMAGE_TYPE_2D;
+        colorImageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorImageCI.extent = {m_Width, m_Height, 1};
+        colorImageCI.mipLevels = 1;
+        colorImageCI.arrayLayers = 1;
+        colorImageCI.samples = msaaSamples;
+        colorImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        colorImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.image);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
+
+        colorImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedImage);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
+        {
+            VkMemoryRequirements colorMemReqs{};
+            vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.image, &colorMemReqs);
+
+            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
+            colorMemAllloc.allocationSize = colorMemReqs.size;
+            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
+                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses[0].colorImage.mem);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+            result = vkBindImageMemory(device, secondaryRenderPasses[0].colorImage.image,
+                                       secondaryRenderPasses[0].colorImage.mem, 0);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+
+        }
+        {
+            VkMemoryRequirements colorMemReqs{};
+            vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.resolvedImage, &colorMemReqs);
+
+            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
+            colorMemAllloc.allocationSize = colorMemReqs.size;
+            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
+                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses[0].colorImage.resolvedMem);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+            result = vkBindImageMemory(device, secondaryRenderPasses[0].colorImage.resolvedImage,
+                                       secondaryRenderPasses[0].colorImage.resolvedMem, 0);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+        }
+
+
+        VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
+        colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        colorImageViewCI.image = secondaryRenderPasses[0].colorImage.image;
+        colorImageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorImageViewCI.subresourceRange.baseMipLevel = 0;
+        colorImageViewCI.subresourceRange.levelCount = 1;
+        colorImageViewCI.subresourceRange.baseArrayLayer = 0;
+        colorImageViewCI.subresourceRange.layerCount = 1;
+        colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+
+        colorImageViewCI.image = secondaryRenderPasses[0].colorImage.resolvedImage;
+        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedView);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+        //// SAMPLER SETUP ////
+        VkSamplerCreateInfo samplerInfo = {};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR; // Magnification filter
+        samplerInfo.minFilter = VK_FILTER_LINEAR; // Minification filter
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate U
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate V
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate W
+        samplerInfo.anisotropyEnable = VK_TRUE; // Enable anisotropic filtering
+        samplerInfo.maxAnisotropy = 16; // Max level of anisotropy
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Border color when using VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
+        samplerInfo.unnormalizedCoordinates = VK_FALSE; // Use normalized texture coordinates
+        samplerInfo.compareEnable = VK_FALSE; // Enable comparison mode for the sampler
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS; // Comparison operator if compareEnable is VK_TRUE
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // Mipmap interpolation mode
+        samplerInfo.minLod = 0; // Minimum level of detail
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE; // Maximum level of detail
+        samplerInfo.mipLodBias = 0.0f; // Level of detail bias
+
+        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses[0].colorImage.sampler) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+
+        //// RenderPass setup ////
+        std::vector<VkAttachmentDescription> attachments;
+        VkSubpassDescription subpassDescription{};
+
+
+        VkAttachmentReference colorReference{};
+        VkAttachmentReference depthReference{};
+        VkAttachmentReference colorAttachmentResolveRef{};
+
+        VkAttachmentDescription colorAttachment{};
+        // Color attachment
+        colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorAttachment.samples = msaaSamples;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        // Depth attachment
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = depthFormat;
+        depthAttachment.samples = msaaSamples;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentDescription colorAttachmentResolve{};
+        colorAttachmentResolve.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
+
+        colorAttachmentResolveRef.attachment = 2;
+        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        colorReference.attachment = 0;
+        colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        depthReference.attachment = 1;
+        depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount = 1;
+        subpassDescription.pColorAttachments = &colorReference;
+        subpassDescription.pDepthStencilAttachment = &depthReference;
+        subpassDescription.inputAttachmentCount = 0;
+        subpassDescription.pInputAttachments = nullptr;
+        subpassDescription.preserveAttachmentCount = 0;
+        subpassDescription.pPreserveAttachments = nullptr;
+        subpassDescription.pResolveAttachments = &colorAttachmentResolveRef;
+
+        // Subpass dependencies for layout transitions
+        std::array<VkSubpassDependency, 2> dependencies{};
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;;
+        dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR; // Adjusted to reflect completion of writes
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted if necessary
+        dependencies[1].srcAccessMask =VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; // Adjusted if subsequent operations are general
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        VkRenderPassCreateInfo renderPassInfo = Populate::renderPassCreateInfo();
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpassDescription;
+        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies = dependencies.data();
+
+
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &secondaryRenderPasses[0].renderPass) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create second render pass!");
+        }
+        //// FrameBuffer setup ////
+        std::array<VkImageView, 3> framebufeerAttachments{};
+        framebufeerAttachments[0] = secondaryRenderPasses[0].colorImage.view;
+        framebufeerAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
+        framebufeerAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
+                                                                                        framebufeerAttachments.data(),
+                                                                                        framebufeerAttachments.size(),
+                                                                                        secondaryRenderPasses[0].renderPass);
+        secondaryRenderPasses[0].frameBuffers.resize(swapchain->imageCount);
+        for (auto &frameBuffer: secondaryRenderPasses[0].frameBuffers) {
+            result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr,
+                                         &frameBuffer);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create secondary framebuffer");
+        }
+
+        VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
+
+        Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+        vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+
+        secondaryRenderPasses[0].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
+        secondaryRenderPasses[0].imageInfo.sampler = secondaryRenderPasses[0].colorImage.sampler; // The sampler you've just created
+
+    }
+
     // TODO Implement this functionality ..
     void VulkanRenderer::setMultiSampling(VkSampleCountFlagBits samples) {
         // destroy if created
@@ -715,11 +985,11 @@ namespace VkRender {
         backendInitialized = false;
         msaaSamples = samples;
 
-        glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
+        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
         // Suspend application while it is in minimized state
         // Also signal semaphore for presentation because we are recreating the swap-chain
         while (m_Width == 0 || m_Height == 0) {
-            glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
+            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
@@ -736,7 +1006,7 @@ namespace VkRender {
         vkDestroyImageView(device, colorImage.view, nullptr);
         vkDestroyImage(device, colorImage.image, nullptr);
         vkFreeMemory(device, colorImage.mem, nullptr);
-        for (auto& frameBuffer : frameBuffers) {
+        for (auto &frameBuffer: frameBuffers) {
             vkDestroyFramebuffer(device, frameBuffer, nullptr);
         }
         vkDestroyRenderPass(device, renderPass, nullptr);
@@ -771,11 +1041,11 @@ namespace VkRender {
         }
 
         backendInitialized = false;
-        glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
+        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
         // Suspend application while it is in minimized state
         // Also unsignal semaphore for presentation because we are recreating the swapchain
         while (m_Width == 0 || m_Height == 0) {
-            glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_Width), reinterpret_cast<int*>(&m_Height));
+            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
@@ -795,14 +1065,14 @@ namespace VkRender {
 
         createColorResources();
         setupDepthStencil();
-        for (auto& frameBuffer : frameBuffers) {
+        for (auto &frameBuffer: frameBuffers) {
             vkDestroyFramebuffer(device, frameBuffer, nullptr);
         }
 
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        for (auto& semaphore : semaphores) {
+        for (auto &semaphore: semaphores) {
             vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
             VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore.presentComplete);
             if (err != VK_SUCCESS)
@@ -849,7 +1119,7 @@ namespace VkRender {
             std::chrono::duration<float> elapsed_seconds = end - rendererStartTime;
             runTime = elapsed_seconds.count();
             /** Give ImGui Reference to this frame's input events **/
-            ImGuiIO& io = ImGui::GetIO();
+            ImGuiIO &io = ImGui::GetIO();
             io.DisplaySize = ImVec2(static_cast<float>(m_Width), static_cast<float>(m_Height));
             io.DeltaTime = frameTimer;
             io.WantCaptureMouse = true;
@@ -882,7 +1152,7 @@ namespace VkRender {
                 graphLastTimestamp = tEnd;
             }
             auto tDiff = std::chrono::duration<double, std::milli>(
-                std::chrono::high_resolution_clock::now() - tStart).count();
+                    std::chrono::high_resolution_clock::now() - tStart).count();
             frameTimer = static_cast<float>(tDiff) / 1000.0f;
             camera.update(frameTimer);
         }
@@ -902,7 +1172,7 @@ namespace VkRender {
             throw std::runtime_error("Failed to wait for compute fence");
 
 
-        updateUniformBuffers();
+        updateUniformBuffers("secondary");
 
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
@@ -935,13 +1205,12 @@ namespace VkRender {
             VkResult res = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
             if (res != VK_SUCCESS) {
                 throw std::runtime_error(
-                    "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
-                    std::to_string(result));
+                        "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
+                        std::to_string(result));
             }
-        }
-        else if (result != VK_SUCCESS)
+        } else if (result != VK_SUCCESS)
             throw std::runtime_error(
-                "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
+                    "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
 
         result = vkResetFences(device, 1, &waitFences[currentFrame]);
@@ -954,18 +1223,18 @@ namespace VkRender {
     void VulkanRenderer::submitFrame() {
         std::scoped_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
-            semaphores[currentFrame].computeComplete,
-            semaphores[currentFrame].presentComplete,
-            //updateVulkan
+                semaphores[currentFrame].computeComplete,
+                semaphores[currentFrame].presentComplete,
+                //updateVulkan
         };
         VkPipelineStageFlags waitStages[] = {
-            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            //VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                //VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
         };
         VkSemaphore signalSemaphores[] = {
-            semaphores[currentFrame].renderComplete,
-            //updateCuda
+                semaphores[currentFrame].renderComplete,
+                //updateCuda
         };
 
         submitInfo = {};
@@ -980,12 +1249,12 @@ namespace VkRender {
         drawCmdBuffers.busy[currentFrame] = true;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
-        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);
+        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex,
+                                                  semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present");
-        }
-        else if (result != VK_SUCCESS) {
+        } else if (result != VK_SUCCESS) {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
                                               std::to_string(result));
         }
@@ -1003,10 +1272,11 @@ namespace VkRender {
         }
     }
 
-    void VulkanRenderer::resizeCallback(GLFWwindow* window, int width, int height) {
-        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
+        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
-            if (myApp->destWidth != static_cast<uint32_t>(width) && myApp->destHeight != static_cast<uint32_t>(height))
+            if (myApp->destWidth != static_cast<uint32_t>(width) &&
+                myApp->destHeight != static_cast<uint32_t>(height))
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
@@ -1014,21 +1284,21 @@ namespace VkRender {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-    void VulkanRenderer::charCallback(GLFWwindow* window, unsigned int codepoint) {
-        ImGuiIO& io = ImGui::GetIO();
+    void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
+        ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     }
 
     DISABLE_WARNING_POP
 
 
-    void VulkanRenderer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
             myApp->pLogger->info("Escape key registered. Closing program..");
             glfwSetWindowShouldClose(window, true);
         }
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
         io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
@@ -1048,44 +1318,44 @@ namespace VkRender {
 
         if (action == GLFW_PRESS) {
             switch (key) {
-            case GLFW_KEY_W:
-            case GLFW_KEY_UP:
-                myApp->camera.keys.up = true;
-                break;
-            case GLFW_KEY_S:
-            case GLFW_KEY_DOWN:
-                myApp->camera.keys.down = true;
-                break;
-            case GLFW_KEY_A:
-            case GLFW_KEY_LEFT:
-                myApp->camera.keys.left = true;
-                break;
-            case GLFW_KEY_D:
-            case GLFW_KEY_RIGHT:
-                myApp->camera.keys.right = true;
-            default:
-                break;
+                case GLFW_KEY_W:
+                case GLFW_KEY_UP:
+                    myApp->camera.keys.up = true;
+                    break;
+                case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
+                    myApp->camera.keys.down = true;
+                    break;
+                case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
+                    myApp->camera.keys.left = true;
+                    break;
+                case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
+                    myApp->camera.keys.right = true;
+                default:
+                    break;
             }
         }
         if (action == GLFW_RELEASE) {
             switch (key) {
-            case GLFW_KEY_W:
-            case GLFW_KEY_UP:
-                myApp->camera.keys.up = false;
-                break;
-            case GLFW_KEY_S:
-            case GLFW_KEY_DOWN:
-                myApp->camera.keys.down = false;
-                break;
-            case GLFW_KEY_A:
-            case GLFW_KEY_LEFT:
-                myApp->camera.keys.left = false;
-                break;
-            case GLFW_KEY_D:
-            case GLFW_KEY_RIGHT:
-                myApp->camera.keys.right = false;
-            default:
-                break;
+                case GLFW_KEY_W:
+                case GLFW_KEY_UP:
+                    myApp->camera.keys.up = false;
+                    break;
+                case GLFW_KEY_S:
+                case GLFW_KEY_DOWN:
+                    myApp->camera.keys.down = false;
+                    break;
+                case GLFW_KEY_A:
+                case GLFW_KEY_LEFT:
+                    myApp->camera.keys.left = false;
+                    break;
+                case GLFW_KEY_D:
+                case GLFW_KEY_RIGHT:
+                    myApp->camera.keys.right = false;
+                default:
+                    break;
             }
         }
     }
@@ -1093,7 +1363,7 @@ namespace VkRender {
     void VulkanRenderer::handleMouseMove(float x, float y) {
         bool handled = false;
         if (settings.overlay) {
-            ImGuiIO& io = ImGui::GetIO();
+            ImGuiIO &io = ImGui::GetIO();
             io.WantCaptureMouse = true;
         }
 
@@ -1101,8 +1371,8 @@ namespace VkRender {
         viewChanged();
     }
 
-    void VulkanRenderer::cursorPositionCallback(GLFWwindow* window, double xPos, double yPos) {
-        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
+        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove(static_cast<float>(xPos), static_cast<float>(yPos));
         myApp->mouseButtons.pos.x = static_cast<float>(xPos);
         myApp->mouseButtons.pos.y = static_cast<float>(yPos);
@@ -1111,46 +1381,46 @@ namespace VkRender {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-    void VulkanRenderer::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
 
         if (action == GLFW_PRESS) {
             switch (button) {
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                myApp->mouseButtons.right = true;
-                break;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                myApp->mouseButtons.middle = true;
-                break;
-            case GLFW_MOUSE_BUTTON_LEFT:
-                myApp->mouseButtons.left = true;
-                break;
-            default:
-                break;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    myApp->mouseButtons.right = true;
+                    break;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    myApp->mouseButtons.middle = true;
+                    break;
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    myApp->mouseButtons.left = true;
+                    break;
+                default:
+                    break;
             }
             myApp->mouseButtons.action = GLFW_PRESS;
         }
         if (action == GLFW_RELEASE) {
             switch (button) {
-            case GLFW_MOUSE_BUTTON_RIGHT:
-                myApp->mouseButtons.right = false;
-                break;
-            case GLFW_MOUSE_BUTTON_MIDDLE:
-                myApp->mouseButtons.middle = false;
-                break;
-            case GLFW_MOUSE_BUTTON_LEFT:
-                myApp->mouseButtons.left = false;
-                break;
-            default:
-                break;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    myApp->mouseButtons.right = false;
+                    break;
+                case GLFW_MOUSE_BUTTON_MIDDLE:
+                    myApp->mouseButtons.middle = false;
+                    break;
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    myApp->mouseButtons.left = false;
+                    break;
+                default:
+                    break;
             }
             myApp->mouseButtons.action = GLFW_RELEASE;
         }
     }
 
-    void VulkanRenderer::mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-        ImGuiIO& io = ImGui::GetIO();
+    void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+        ImGuiIO &io = ImGui::GetIO();
         myApp->mouseScroll(static_cast<float>(yoffset));
         io.MouseWheel += 0.5f * static_cast<float>(yoffset);
     }
@@ -1160,7 +1430,7 @@ namespace VkRender {
     VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const {
         if (devices.empty())
             throw std::runtime_error("No physical devices available");
-        for (auto& d : devices) {
+        for (auto &d: devices) {
             VkPhysicalDeviceProperties properties{};
             VkPhysicalDeviceFeatures features{};
             VkPhysicalDeviceMemoryProperties memoryProperties{};
@@ -1184,7 +1454,7 @@ namespace VkRender {
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
         VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
-            physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+                                    physicalDeviceProperties.limits.framebufferDepthSampleCounts;
         if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
         if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
         if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
@@ -1223,218 +1493,218 @@ namespace VkRender {
 
     ImGuiKey VulkanRenderer::ImGui_ImplGlfw_KeyToImGuiKey(int key) {
         switch (key) {
-        case GLFW_KEY_TAB:
-            return ImGuiKey_Tab;
-        case GLFW_KEY_LEFT:
-            return ImGuiKey_LeftArrow;
-        case GLFW_KEY_RIGHT:
-            return ImGuiKey_RightArrow;
-        case GLFW_KEY_UP:
-            return ImGuiKey_UpArrow;
-        case GLFW_KEY_DOWN:
-            return ImGuiKey_DownArrow;
-        case GLFW_KEY_PAGE_UP:
-            return ImGuiKey_PageUp;
-        case GLFW_KEY_PAGE_DOWN:
-            return ImGuiKey_PageDown;
-        case GLFW_KEY_HOME:
-            return ImGuiKey_Home;
-        case GLFW_KEY_END:
-            return ImGuiKey_End;
-        case GLFW_KEY_INSERT:
-            return ImGuiKey_Insert;
-        case GLFW_KEY_DELETE:
-            return ImGuiKey_Delete;
-        case GLFW_KEY_BACKSPACE:
-            return ImGuiKey_Backspace;
-        case GLFW_KEY_SPACE:
-            return ImGuiKey_Space;
-        case GLFW_KEY_ENTER:
-            return ImGuiKey_Enter;
-        case GLFW_KEY_ESCAPE:
-            return ImGuiKey_Escape;
-        case GLFW_KEY_APOSTROPHE:
-            return ImGuiKey_Apostrophe;
-        case GLFW_KEY_COMMA:
-            return ImGuiKey_Comma;
-        case GLFW_KEY_MINUS:
-            return ImGuiKey_Minus;
-        case GLFW_KEY_PERIOD:
-            return ImGuiKey_Period;
-        case GLFW_KEY_SLASH:
-            return ImGuiKey_Slash;
-        case GLFW_KEY_SEMICOLON:
-            return ImGuiKey_Semicolon;
-        case GLFW_KEY_EQUAL:
-            return ImGuiKey_Equal;
-        case GLFW_KEY_LEFT_BRACKET:
-            return ImGuiKey_LeftBracket;
-        case GLFW_KEY_BACKSLASH:
-            return ImGuiKey_Backslash;
-        case GLFW_KEY_RIGHT_BRACKET:
-            return ImGuiKey_RightBracket;
-        case GLFW_KEY_GRAVE_ACCENT:
-            return ImGuiKey_GraveAccent;
-        case GLFW_KEY_CAPS_LOCK:
-            return ImGuiKey_CapsLock;
-        case GLFW_KEY_SCROLL_LOCK:
-            return ImGuiKey_ScrollLock;
-        case GLFW_KEY_NUM_LOCK:
-            return ImGuiKey_NumLock;
-        case GLFW_KEY_PRINT_SCREEN:
-            return ImGuiKey_PrintScreen;
-        case GLFW_KEY_PAUSE:
-            return ImGuiKey_Pause;
-        case GLFW_KEY_KP_0:
-            return ImGuiKey_Keypad0;
-        case GLFW_KEY_KP_1:
-            return ImGuiKey_Keypad1;
-        case GLFW_KEY_KP_2:
-            return ImGuiKey_Keypad2;
-        case GLFW_KEY_KP_3:
-            return ImGuiKey_Keypad3;
-        case GLFW_KEY_KP_4:
-            return ImGuiKey_Keypad4;
-        case GLFW_KEY_KP_5:
-            return ImGuiKey_Keypad5;
-        case GLFW_KEY_KP_6:
-            return ImGuiKey_Keypad6;
-        case GLFW_KEY_KP_7:
-            return ImGuiKey_Keypad7;
-        case GLFW_KEY_KP_8:
-            return ImGuiKey_Keypad8;
-        case GLFW_KEY_KP_9:
-            return ImGuiKey_Keypad9;
-        case GLFW_KEY_KP_DECIMAL:
-            return ImGuiKey_KeypadDecimal;
-        case GLFW_KEY_KP_DIVIDE:
-            return ImGuiKey_KeypadDivide;
-        case GLFW_KEY_KP_MULTIPLY:
-            return ImGuiKey_KeypadMultiply;
-        case GLFW_KEY_KP_SUBTRACT:
-            return ImGuiKey_KeypadSubtract;
-        case GLFW_KEY_KP_ADD:
-            return ImGuiKey_KeypadAdd;
-        case GLFW_KEY_KP_ENTER:
-            return ImGuiKey_KeypadEnter;
-        case GLFW_KEY_KP_EQUAL:
-            return ImGuiKey_KeypadEqual;
-        case GLFW_KEY_LEFT_SHIFT:
-            return ImGuiKey_LeftShift;
-        case GLFW_KEY_LEFT_CONTROL:
-            return ImGuiKey_ModCtrl;
-        case GLFW_KEY_LEFT_ALT:
-            return ImGuiKey_LeftAlt;
-        case GLFW_KEY_LEFT_SUPER:
-            return ImGuiKey_LeftSuper;
-        case GLFW_KEY_RIGHT_SHIFT:
-            return ImGuiKey_RightShift;
-        case GLFW_KEY_RIGHT_CONTROL:
-            return ImGuiKey_RightCtrl;
-        case GLFW_KEY_RIGHT_ALT:
-            return ImGuiKey_RightAlt;
-        case GLFW_KEY_RIGHT_SUPER:
-            return ImGuiKey_RightSuper;
-        case GLFW_KEY_MENU:
-            return ImGuiKey_Menu;
-        case GLFW_KEY_0:
-            return ImGuiKey_0;
-        case GLFW_KEY_1:
-            return ImGuiKey_1;
-        case GLFW_KEY_2:
-            return ImGuiKey_2;
-        case GLFW_KEY_3:
-            return ImGuiKey_3;
-        case GLFW_KEY_4:
-            return ImGuiKey_4;
-        case GLFW_KEY_5:
-            return ImGuiKey_5;
-        case GLFW_KEY_6:
-            return ImGuiKey_6;
-        case GLFW_KEY_7:
-            return ImGuiKey_7;
-        case GLFW_KEY_8:
-            return ImGuiKey_8;
-        case GLFW_KEY_9:
-            return ImGuiKey_9;
-        case GLFW_KEY_A:
-            return ImGuiKey_A;
-        case GLFW_KEY_B:
-            return ImGuiKey_B;
-        case GLFW_KEY_C:
-            return ImGuiKey_C;
-        case GLFW_KEY_D:
-            return ImGuiKey_D;
-        case GLFW_KEY_E:
-            return ImGuiKey_E;
-        case GLFW_KEY_F:
-            return ImGuiKey_F;
-        case GLFW_KEY_G:
-            return ImGuiKey_G;
-        case GLFW_KEY_H:
-            return ImGuiKey_H;
-        case GLFW_KEY_I:
-            return ImGuiKey_I;
-        case GLFW_KEY_J:
-            return ImGuiKey_J;
-        case GLFW_KEY_K:
-            return ImGuiKey_K;
-        case GLFW_KEY_L:
-            return ImGuiKey_L;
-        case GLFW_KEY_M:
-            return ImGuiKey_M;
-        case GLFW_KEY_N:
-            return ImGuiKey_N;
-        case GLFW_KEY_O:
-            return ImGuiKey_O;
-        case GLFW_KEY_P:
-            return ImGuiKey_P;
-        case GLFW_KEY_Q:
-            return ImGuiKey_Q;
-        case GLFW_KEY_R:
-            return ImGuiKey_R;
-        case GLFW_KEY_S:
-            return ImGuiKey_S;
-        case GLFW_KEY_T:
-            return ImGuiKey_T;
-        case GLFW_KEY_U:
-            return ImGuiKey_U;
-        case GLFW_KEY_V:
-            return ImGuiKey_V;
-        case GLFW_KEY_W:
-            return ImGuiKey_W;
-        case GLFW_KEY_X:
-            return ImGuiKey_X;
-        case GLFW_KEY_Y:
-            return ImGuiKey_Y;
-        case GLFW_KEY_Z:
-            return ImGuiKey_Z;
-        case GLFW_KEY_F1:
-            return ImGuiKey_F1;
-        case GLFW_KEY_F2:
-            return ImGuiKey_F2;
-        case GLFW_KEY_F3:
-            return ImGuiKey_F3;
-        case GLFW_KEY_F4:
-            return ImGuiKey_F4;
-        case GLFW_KEY_F5:
-            return ImGuiKey_F5;
-        case GLFW_KEY_F6:
-            return ImGuiKey_F6;
-        case GLFW_KEY_F7:
-            return ImGuiKey_F7;
-        case GLFW_KEY_F8:
-            return ImGuiKey_F8;
-        case GLFW_KEY_F9:
-            return ImGuiKey_F9;
-        case GLFW_KEY_F10:
-            return ImGuiKey_F10;
-        case GLFW_KEY_F11:
-            return ImGuiKey_F11;
-        case GLFW_KEY_F12:
-            return ImGuiKey_F12;
-        default:
-            return ImGuiKey_None;
+            case GLFW_KEY_TAB:
+                return ImGuiKey_Tab;
+            case GLFW_KEY_LEFT:
+                return ImGuiKey_LeftArrow;
+            case GLFW_KEY_RIGHT:
+                return ImGuiKey_RightArrow;
+            case GLFW_KEY_UP:
+                return ImGuiKey_UpArrow;
+            case GLFW_KEY_DOWN:
+                return ImGuiKey_DownArrow;
+            case GLFW_KEY_PAGE_UP:
+                return ImGuiKey_PageUp;
+            case GLFW_KEY_PAGE_DOWN:
+                return ImGuiKey_PageDown;
+            case GLFW_KEY_HOME:
+                return ImGuiKey_Home;
+            case GLFW_KEY_END:
+                return ImGuiKey_End;
+            case GLFW_KEY_INSERT:
+                return ImGuiKey_Insert;
+            case GLFW_KEY_DELETE:
+                return ImGuiKey_Delete;
+            case GLFW_KEY_BACKSPACE:
+                return ImGuiKey_Backspace;
+            case GLFW_KEY_SPACE:
+                return ImGuiKey_Space;
+            case GLFW_KEY_ENTER:
+                return ImGuiKey_Enter;
+            case GLFW_KEY_ESCAPE:
+                return ImGuiKey_Escape;
+            case GLFW_KEY_APOSTROPHE:
+                return ImGuiKey_Apostrophe;
+            case GLFW_KEY_COMMA:
+                return ImGuiKey_Comma;
+            case GLFW_KEY_MINUS:
+                return ImGuiKey_Minus;
+            case GLFW_KEY_PERIOD:
+                return ImGuiKey_Period;
+            case GLFW_KEY_SLASH:
+                return ImGuiKey_Slash;
+            case GLFW_KEY_SEMICOLON:
+                return ImGuiKey_Semicolon;
+            case GLFW_KEY_EQUAL:
+                return ImGuiKey_Equal;
+            case GLFW_KEY_LEFT_BRACKET:
+                return ImGuiKey_LeftBracket;
+            case GLFW_KEY_BACKSLASH:
+                return ImGuiKey_Backslash;
+            case GLFW_KEY_RIGHT_BRACKET:
+                return ImGuiKey_RightBracket;
+            case GLFW_KEY_GRAVE_ACCENT:
+                return ImGuiKey_GraveAccent;
+            case GLFW_KEY_CAPS_LOCK:
+                return ImGuiKey_CapsLock;
+            case GLFW_KEY_SCROLL_LOCK:
+                return ImGuiKey_ScrollLock;
+            case GLFW_KEY_NUM_LOCK:
+                return ImGuiKey_NumLock;
+            case GLFW_KEY_PRINT_SCREEN:
+                return ImGuiKey_PrintScreen;
+            case GLFW_KEY_PAUSE:
+                return ImGuiKey_Pause;
+            case GLFW_KEY_KP_0:
+                return ImGuiKey_Keypad0;
+            case GLFW_KEY_KP_1:
+                return ImGuiKey_Keypad1;
+            case GLFW_KEY_KP_2:
+                return ImGuiKey_Keypad2;
+            case GLFW_KEY_KP_3:
+                return ImGuiKey_Keypad3;
+            case GLFW_KEY_KP_4:
+                return ImGuiKey_Keypad4;
+            case GLFW_KEY_KP_5:
+                return ImGuiKey_Keypad5;
+            case GLFW_KEY_KP_6:
+                return ImGuiKey_Keypad6;
+            case GLFW_KEY_KP_7:
+                return ImGuiKey_Keypad7;
+            case GLFW_KEY_KP_8:
+                return ImGuiKey_Keypad8;
+            case GLFW_KEY_KP_9:
+                return ImGuiKey_Keypad9;
+            case GLFW_KEY_KP_DECIMAL:
+                return ImGuiKey_KeypadDecimal;
+            case GLFW_KEY_KP_DIVIDE:
+                return ImGuiKey_KeypadDivide;
+            case GLFW_KEY_KP_MULTIPLY:
+                return ImGuiKey_KeypadMultiply;
+            case GLFW_KEY_KP_SUBTRACT:
+                return ImGuiKey_KeypadSubtract;
+            case GLFW_KEY_KP_ADD:
+                return ImGuiKey_KeypadAdd;
+            case GLFW_KEY_KP_ENTER:
+                return ImGuiKey_KeypadEnter;
+            case GLFW_KEY_KP_EQUAL:
+                return ImGuiKey_KeypadEqual;
+            case GLFW_KEY_LEFT_SHIFT:
+                return ImGuiKey_LeftShift;
+            case GLFW_KEY_LEFT_CONTROL:
+                return ImGuiKey_ModCtrl;
+            case GLFW_KEY_LEFT_ALT:
+                return ImGuiKey_LeftAlt;
+            case GLFW_KEY_LEFT_SUPER:
+                return ImGuiKey_LeftSuper;
+            case GLFW_KEY_RIGHT_SHIFT:
+                return ImGuiKey_RightShift;
+            case GLFW_KEY_RIGHT_CONTROL:
+                return ImGuiKey_RightCtrl;
+            case GLFW_KEY_RIGHT_ALT:
+                return ImGuiKey_RightAlt;
+            case GLFW_KEY_RIGHT_SUPER:
+                return ImGuiKey_RightSuper;
+            case GLFW_KEY_MENU:
+                return ImGuiKey_Menu;
+            case GLFW_KEY_0:
+                return ImGuiKey_0;
+            case GLFW_KEY_1:
+                return ImGuiKey_1;
+            case GLFW_KEY_2:
+                return ImGuiKey_2;
+            case GLFW_KEY_3:
+                return ImGuiKey_3;
+            case GLFW_KEY_4:
+                return ImGuiKey_4;
+            case GLFW_KEY_5:
+                return ImGuiKey_5;
+            case GLFW_KEY_6:
+                return ImGuiKey_6;
+            case GLFW_KEY_7:
+                return ImGuiKey_7;
+            case GLFW_KEY_8:
+                return ImGuiKey_8;
+            case GLFW_KEY_9:
+                return ImGuiKey_9;
+            case GLFW_KEY_A:
+                return ImGuiKey_A;
+            case GLFW_KEY_B:
+                return ImGuiKey_B;
+            case GLFW_KEY_C:
+                return ImGuiKey_C;
+            case GLFW_KEY_D:
+                return ImGuiKey_D;
+            case GLFW_KEY_E:
+                return ImGuiKey_E;
+            case GLFW_KEY_F:
+                return ImGuiKey_F;
+            case GLFW_KEY_G:
+                return ImGuiKey_G;
+            case GLFW_KEY_H:
+                return ImGuiKey_H;
+            case GLFW_KEY_I:
+                return ImGuiKey_I;
+            case GLFW_KEY_J:
+                return ImGuiKey_J;
+            case GLFW_KEY_K:
+                return ImGuiKey_K;
+            case GLFW_KEY_L:
+                return ImGuiKey_L;
+            case GLFW_KEY_M:
+                return ImGuiKey_M;
+            case GLFW_KEY_N:
+                return ImGuiKey_N;
+            case GLFW_KEY_O:
+                return ImGuiKey_O;
+            case GLFW_KEY_P:
+                return ImGuiKey_P;
+            case GLFW_KEY_Q:
+                return ImGuiKey_Q;
+            case GLFW_KEY_R:
+                return ImGuiKey_R;
+            case GLFW_KEY_S:
+                return ImGuiKey_S;
+            case GLFW_KEY_T:
+                return ImGuiKey_T;
+            case GLFW_KEY_U:
+                return ImGuiKey_U;
+            case GLFW_KEY_V:
+                return ImGuiKey_V;
+            case GLFW_KEY_W:
+                return ImGuiKey_W;
+            case GLFW_KEY_X:
+                return ImGuiKey_X;
+            case GLFW_KEY_Y:
+                return ImGuiKey_Y;
+            case GLFW_KEY_Z:
+                return ImGuiKey_Z;
+            case GLFW_KEY_F1:
+                return ImGuiKey_F1;
+            case GLFW_KEY_F2:
+                return ImGuiKey_F2;
+            case GLFW_KEY_F3:
+                return ImGuiKey_F3;
+            case GLFW_KEY_F4:
+                return ImGuiKey_F4;
+            case GLFW_KEY_F5:
+                return ImGuiKey_F5;
+            case GLFW_KEY_F6:
+                return ImGuiKey_F6;
+            case GLFW_KEY_F7:
+                return ImGuiKey_F7;
+            case GLFW_KEY_F8:
+                return ImGuiKey_F8;
+            case GLFW_KEY_F9:
+                return ImGuiKey_F9;
+            case GLFW_KEY_F10:
+                return ImGuiKey_F10;
+            case GLFW_KEY_F11:
+                return ImGuiKey_F11;
+            case GLFW_KEY_F12:
+                return ImGuiKey_F12;
+            default:
+                return ImGuiKey_None;
         }
     }
 
@@ -1517,7 +1787,7 @@ namespace VkRender {
     }
 #endif
 
-    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char *>& checkExtensions) {
+    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions) {
         //Need to get number of extensions to create array of correct size to hold extensions.
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -1527,7 +1797,7 @@ namespace VkRender {
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
         //Check if given extensions are in list of available extensions
-        for (const auto &checkExtension : checkExtensions) {
+        for (const auto &checkExtension: checkExtensions) {
             bool hasExtensions = false;
             for (const auto &extension: extensions) {
                 if (strcmp(checkExtension, extension.extensionName) == 0) {

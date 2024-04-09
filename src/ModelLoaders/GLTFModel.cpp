@@ -88,7 +88,8 @@ void GLTFModel::Model::loadFromFile(std::string fileName, VulkanDevice *device, 
     loadTextures(gltfModel, vulkanDevice, transferQueue);
     loadMaterials(gltfModel);
     extensions = gltfModel.extensionsUsed;
-    emptyTexture.fromKtxFile(Utils::getAssetsPath().append("Textures/empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,vulkanDevice->m_TransferQueue);
+    emptyTexture.fromKtxFile(Utils::getAssetsPath().append("Textures/empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM,
+                             vulkanDevice, vulkanDevice->m_TransferQueue);
 
     const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
     // Get vertex and index buffer sizes up-front
@@ -326,7 +327,8 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
     memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     (vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &textures->lutBrdf->m_DeviceMemory));
-    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures->lutBrdf->m_Image, textures->lutBrdf->m_DeviceMemory, 0));
+    (vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures->lutBrdf->m_Image, textures->lutBrdf->m_DeviceMemory,
+                       0));
 
     // View
     VkImageViewCreateInfo viewCI{};
@@ -520,7 +522,7 @@ void GLTFModel::Model::generateBRDFLUT(const std::vector<VkPipelineShaderStageCr
 
     VkViewport viewport{};
     viewport.width = static_cast<float>(dim);
-    viewport.height =static_cast<float>(dim);
+    viewport.height = static_cast<float>(dim);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -606,7 +608,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             memAllocInfo.allocationSize = memReqs.size;
             memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            CHECK_RESULT(vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap->m_DeviceMemory))
+            CHECK_RESULT(
+                    vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr, &cubemap->m_DeviceMemory))
             CHECK_RESULT(vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap->m_Image, cubemap->m_DeviceMemory, 0))
 
             // View
@@ -743,7 +746,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
             framebufferCI.width = dim;
             framebufferCI.height = dim;
             framebufferCI.layers = 1;
-            CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr, &offscreen.framebuffer));
+            CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->m_LogicalDevice, &framebufferCI, nullptr,
+                                             &offscreen.framebuffer));
 
             VkCommandBuffer layoutCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             VkImageMemoryBarrier imageMemoryBarrier{};
@@ -768,7 +772,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
         descriptorSetLayoutCI.pBindings = &setLayoutBinding;
         descriptorSetLayoutCI.bindingCount = 1;
         CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                     &descriptorsetlayout))
+                                                 &descriptorsetlayout))
 
         // Descriptor Pool
         VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1};
@@ -917,7 +921,8 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
                 break;
         };
         VkPipeline pipeline;
-        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipeline))
+        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
+                                               &pipeline))
 
         // Render cubemap
         VkClearValue clearValues[1];
@@ -947,7 +952,7 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
 
         VkViewport viewport{};
         viewport.width = static_cast<float>(dim);
-        viewport.height =static_cast<float>(dim);
+        viewport.height = static_cast<float>(dim);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -1140,7 +1145,7 @@ void GLTFModel::Model::scale(const glm::vec3 &scale) {
 }
 
 void
-GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode alphaMode) {
+GLTFModel::Model::drawNode(Node *node, CommandBuffer *commandBuffer, uint32_t cbIndex, Material::AlphaMode alphaMode) {
     if (node->mesh) {
         // Render mesh primitives
         for (Primitive *primitive: node->mesh->primitives) {
@@ -1150,7 +1155,11 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                 switch (alphaMode) {
                     case Material::ALPHAMODE_OPAQUE:
                     case Material::ALPHAMODE_MASK:
-                        pipeline = primitive->material.doubleSided ? pipelines.pbrDoubleSided : pipelines.pbr;
+                        // TODO Better handling of secondary viewpoints
+                        if (commandBuffer->boundRenderPass == "main")
+                            pipeline = pipelines.pbrDoubleSided;
+                        else
+                            pipeline = pipelines.pbrDoubleSidedSecondary;
                         break;
                     case Material::ALPHAMODE_BLEND:
                         pipeline = pipelines.pbrAlphaBlend;
@@ -1158,7 +1167,7 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                 }
 
                 if (pipeline != boundPipeline) {
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                    vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
                     boundPipeline = pipeline;
                 }
 
@@ -1167,7 +1176,8 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                         primitive->material.descriptorSet,
                         node->mesh->uniformBuffer.descriptorSet,
                 };
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        pipelineLayout, 0,
                                         static_cast<uint32_t>(descriptorsets.size()), descriptorsets.data(), 0, NULL);
 
                 // Pass material parameters as push constants
@@ -1186,7 +1196,7 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                 pushConstBlock.emissiveTextureSet =
                         primitive->material.emissiveTexture != nullptr ? primitive->material.texCoordSets.emissive : -1;
                 pushConstBlock.alphaMask = static_cast<float>(primitive->material.alphaMode ==
-                                                                      Material::ALPHAMODE_MASK);
+                                                              Material::ALPHAMODE_MASK);
                 pushConstBlock.alphaMaskCutoff = primitive->material.alphaCutoff;
 
                 // TODO: glTF specs states that metallic roughness should be preferred, even if specular glosiness is present
@@ -1212,19 +1222,20 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
                             primitive->material.extension.specularGlossinessTexture != nullptr
                             ? primitive->material.texCoordSets.specularGlossiness : -1;
                     pushConstBlock.colorTextureSet = primitive->material.extension.diffuseTexture != nullptr
-                                                             ? primitive->material.texCoordSets.baseColor : -1;
+                                                     ? primitive->material.texCoordSets.baseColor : -1;
                     pushConstBlock.diffuseFactor = primitive->material.extension.diffuseFactor;
                     pushConstBlock.specularFactor = glm::vec4(primitive->material.extension.specularFactor,
-                                                                      1.0f);
+                                                              1.0f);
                 }
 
-                vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                vkCmdPushConstants(commandBuffer->buffers[cbIndex], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                    sizeof(PushConstBlockMaterial), &pushConstBlock);
 
                 if (primitive->hasIndices) {
-                    vkCmdDrawIndexed(commandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
+                    vkCmdDrawIndexed(commandBuffer->buffers[cbIndex], primitive->indexCount, 1, primitive->firstIndex,
+                                     0, 0);
                 } else {
-                    vkCmdDraw(commandBuffer, primitive->vertexCount, 1, 0, 0);
+                    vkCmdDraw(commandBuffer->buffers[cbIndex], primitive->vertexCount, 1, 0, 0);
                 }
             }
         }
@@ -1235,7 +1246,7 @@ GLTFModel::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t c
     }
 }
 
-void GLTFModel::Model::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
+void GLTFModel::Model::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
     if (!gltfModelLoaded)
         return;
     VkDeviceSize offsets[1] = {0};
@@ -1248,21 +1259,21 @@ void GLTFModel::Model::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
 
     // Opaque primitives first
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_OPAQUE);
+        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_OPAQUE);
     }
     // Alpha masked primitives
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_MASK);
+        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_MASK);
     }
     // Transparent primitives
     // TODO: Correct depth sorting
     for (auto &node: nodes) {
-        drawNode(node, commandBuffer->buffers[cbIndex], cbIndex, Material::ALPHAMODE_BLEND);
+        drawNode(node, commandBuffer, cbIndex, Material::ALPHAMODE_BLEND);
     }
 
 }
 
-void GLTFModel::Model::drawSkybox(CommandBuffer * commandBuffer, uint32_t i) {
+void GLTFModel::Model::drawSkybox(CommandBuffer *commandBuffer, uint32_t i) {
     vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
                             1, &descriptors[i], 0, nullptr);
     vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.skybox);
@@ -1592,7 +1603,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         }
         if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
             material.metallicRoughnessTexture = &m_Textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
-            material.texCoordSets.metallicRoughness =  static_cast<uint8_t>(mat.values["metallicRoughnessTexture"].TextureTexCoord());
+            material.texCoordSets.metallicRoughness = static_cast<uint8_t>(mat.values["metallicRoughnessTexture"].TextureTexCoord());
         }
         if (mat.values.find("roughnessFactor") != mat.values.end()) {
             material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
@@ -1605,15 +1616,15 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
         }
         if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
             material.normalTexture = &m_Textures[mat.additionalValues["normalTexture"].TextureIndex()];
-            material.texCoordSets.normal =  static_cast<uint8_t>(mat.additionalValues["normalTexture"].TextureTexCoord());
+            material.texCoordSets.normal = static_cast<uint8_t>(mat.additionalValues["normalTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
             material.emissiveTexture = &m_Textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
-            material.texCoordSets.emissive =  static_cast<uint8_t>(mat.additionalValues["emissiveTexture"].TextureTexCoord());
+            material.texCoordSets.emissive = static_cast<uint8_t>(mat.additionalValues["emissiveTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
             material.occlusionTexture = &m_Textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
-            material.texCoordSets.occlusion =  static_cast<uint8_t>(mat.additionalValues["occlusionTexture"].TextureTexCoord());
+            material.texCoordSets.occlusion = static_cast<uint8_t>(mat.additionalValues["occlusionTexture"].TextureTexCoord());
         }
         if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
             tinygltf::Parameter param = mat.additionalValues["alphaMode"];
@@ -1629,7 +1640,8 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
             material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
         }
         if (mat.additionalValues.find("emissiveFactor") != mat.additionalValues.end()) {
-            material.emissiveFactor = glm::vec4(glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
+            material.emissiveFactor = glm::vec4(
+                    glm::make_vec3(mat.additionalValues["emissiveFactor"].ColorFactor().data()), 1.0);
         }
 
         // Extensions
@@ -1640,7 +1652,7 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
                 auto index = ext->second.Get("specularGlossinessTexture").Get("index");
                 material.extension.specularGlossinessTexture = &m_Textures[index.Get<int>()];
                 auto texCoordSet = ext->second.Get("specularGlossinessTexture").Get("texCoord");
-                material.texCoordSets.specularGlossiness =  static_cast<uint8_t>(texCoordSet.Get<int>());
+                material.texCoordSets.specularGlossiness = static_cast<uint8_t>(texCoordSet.Get<int>());
                 material.pbrWorkflows.specularGlossiness = true;
             }
             if (ext->second.Has("diffuseTexture")) {
@@ -1651,14 +1663,16 @@ void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
                 auto factor = ext->second.Get("diffuseFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
+                    material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>())
+                                                                         : static_cast<float>(val.Get<int>());
                 }
             }
             if (ext->second.Has("specularFactor")) {
                 auto factor = ext->second.Get("specularFactor");
                 for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                     auto val = factor.Get(i);
-                    material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
+                    material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>())
+                                                                          : static_cast<float>(val.Get<int>());
                 }
             }
         }
@@ -1973,7 +1987,7 @@ GLTFModel::Model::createDescriptorsAdditionalBuffers(
     /**
      * Create Descriptor Pool
      */
-    uint32_t uniformDescriptorCount =static_cast<uint32_t> (2 * ubo.size() + static_cast<uint32_t>(nodes.size()));
+    uint32_t uniformDescriptorCount = static_cast<uint32_t> (2 * ubo.size() + static_cast<uint32_t>(nodes.size()));
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount}
     };
@@ -2047,9 +2061,10 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
         VkResult res =
                 vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                          &node->mesh->uniformBuffer.descriptorSet);
-        if (res != VK_SUCCESS){
+        if (res != VK_SUCCESS) {
             // TODO No need to exit application but treat error accordingly
-            Log::Logger::getInstance()->error("VkResult Error in setting up node descriptor set {}", static_cast<int>(res));
+            Log::Logger::getInstance()->error("VkResult Error in setting up node descriptor set {}",
+                                              static_cast<int>(res));
         }
         VkWriteDescriptorSet writeDescriptorSet{};
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2068,7 +2083,8 @@ void GLTFModel::Model::setupNodeDescriptorSet(GLTFModel::Node *node) {
 
 
 void
-GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+GLTFModel::Model::createPipeline(const VkRender::RenderUtils *utils,
+                                 std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
                                  VkSampleCountFlagBits msaaSamples) {
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
@@ -2153,7 +2169,7 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     VkGraphicsPipelineCreateInfo pipelineCI{};
     pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineCI.layout = pipelineLayout;
-    pipelineCI.renderPass = renderPass;
+    pipelineCI.renderPass = *utils->renderPass;
     pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
     pipelineCI.pVertexInputState = &vertexInputStateCI;
     pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -2165,11 +2181,16 @@ GLTFModel::Model::createPipeline(VkRenderPass renderPass, std::vector<VkPipeline
     pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
     pipelineCI.pStages = shaderStages.data();
 
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &pipelines.pbr));
+    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
+                                           &pipelines.pbr))
 
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-    (vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
-                               &pipelines.pbrDoubleSided));
+    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
+                                           &pipelines.pbrDoubleSided))
+
+    pipelineCI.renderPass = (*utils->secondaryRenderPasses)[0].renderPass;
+    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
+                                           &pipelines.pbrDoubleSidedSecondary))
 
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
     blendAttachmentState.blendEnable = VK_TRUE;
@@ -2191,7 +2212,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     auto tStart = std::chrono::high_resolution_clock::now();
     createDescriptors(utils.UBCount, utils.uniformBuffers);
     std::vector<VkPipelineShaderStageCreateInfo> shaders2 = {shaders[0], shaders[1]};
-    createPipeline(*utils.renderPass, shaders2, utils.msaaSamples);
+    createPipeline(&utils, shaders2, utils.msaaSamples);
     auto tEnd = std::chrono::high_resolution_clock::now();
     auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
     Log::Logger::getInstance()->info("Created recordCommands m_Pipeline for {} took {} ms", m_FileName, tDiff);
@@ -2206,7 +2227,7 @@ void GLTFModel::Model::createRenderPipeline(const VkRender::RenderUtils &utils,
     if (flags == VkRender::CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS) {
         createDescriptorSetLayoutAdditionalBuffers();
         createDescriptorsAdditionalBuffers(buffers);
-        createPipeline(*utils.renderPass, shaders, utils.msaaSamples);
+        createPipeline(&utils, shaders, utils.msaaSamples);
     }
 
 }
@@ -2254,9 +2275,11 @@ GLTFModel::Model::~Model() {
 void
 GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo> &envShaders,
                                const std::vector<VkRender::UniformBufferSet> &uboVec,
-                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures, VkSampleCountFlagBits msaaSamples) {
+                               VkRenderPass const *renderPass, VkRender::SkyboxTextures *skyboxTextures,
+                               VkSampleCountFlagBits msaaSamples) {
 
-    loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice, vulkanDevice->m_TransferQueue, 1.0f);
+    loadFromFile(Utils::getAssetsPath().append("Models/Box/glTF-Embedded/Box.gltf").string(), vulkanDevice,
+                 vulkanDevice->m_TransferQueue, 1.0f);
     generateCubemaps(envShaders, skyboxTextures);
     generateBRDFLUT(envShaders, skyboxTextures);
     setupSkyboxDescriptors(uboVec, skyboxTextures);
@@ -2265,7 +2288,8 @@ GLTFModel::Model::createSkybox(const std::vector<VkPipelineShaderStageCreateInfo
 }
 
 void GLTFModel::Model::createOpaqueGraphicsPipeline(VkRenderPass const *renderPass,
-                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders, VkSampleCountFlagBits msaaSamples) {
+                                                    std::vector<VkPipelineShaderStageCreateInfo> shaders,
+                                                    VkSampleCountFlagBits msaaSamples) {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = Populate::pipelineInputAssemblyStateCreateInfo(
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 

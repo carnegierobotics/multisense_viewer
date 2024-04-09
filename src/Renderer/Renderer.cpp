@@ -91,6 +91,10 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
+    // TODO Make dynamic
+    VulkanRenderer::setupSecondaryRenderPasses();
+    renderUtils.secondaryRenderPasses = &secondaryRenderPasses;
+
     std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
     std::string line;
     while (std::getline(infile, line)) {
@@ -107,6 +111,7 @@ void Renderer::prepareRenderer() {
     for (const auto &pair: scripts) {
         guiManager->handles.renderBlock.scripts[pair.first] = false;
     }
+
 }
 
 void Renderer::addDeviceFeatures() {
@@ -239,7 +244,61 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
     vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
-    // Syncrhonization before renderpass
+
+
+    // Record secondary stuff:
+    VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
+    secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    secondaryRenderPassBeginInfo.renderPass = secondaryRenderPasses[0].renderPass; // The second render pass
+    secondaryRenderPassBeginInfo.framebuffer = secondaryRenderPasses[0].frameBuffers[imageIndex];
+    secondaryRenderPassBeginInfo.renderArea.offset = {0, 0};
+    secondaryRenderPassBeginInfo.renderArea.extent = {m_Width, m_Height}; // Set to your off-screen image dimensions
+    secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
+
+    drawCmdBuffers.boundRenderPass = "secondary";
+    vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+    vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+    /** Generate Script draw commands **/
+    for (auto &script: scripts) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
+            script.second->getType() == VkRender::CRL_SCRIPT_TYPE_RENDERER3D &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
+            script.second->drawScript(&drawCmdBuffers, currentFrame, true);
+        }
+    }
+    vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = secondaryRenderPasses[0].colorImage.resolvedImage;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    // Syncrhonization before main renderpass
+    vkCmdPipelineBarrier(
+            drawCmdBuffers.buffers[currentFrame],
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+    );
+
+
 
     // Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
     if (topLevelScriptData.compute.valid) {
@@ -263,6 +322,8 @@ void Renderer::buildCommandBuffers() {
                 0, nullptr,
                 1, &imageMemoryBarrier);
     }
+    drawCmdBuffers.boundRenderPass = "main";
+    updateUniformBuffers("main");
 
     vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
@@ -285,6 +346,7 @@ void Renderer::buildCommandBuffers() {
     /** Generate UI draw commands **/
     guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
     vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
     CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
 }
 
@@ -305,13 +367,14 @@ bool Renderer::compute() {
     return true;
 }
 
-void Renderer::updateUniformBuffers() {
+void Renderer::updateUniformBuffers(std::string boundRenderPass) {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentFrame;
     renderData.height = m_Height;
     renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;
+    renderData.boundRenderPass = boundRenderPass;
 
     // Delete the requested scripts if resources are no longer busy in render pipeline
     std::vector<std::string> scriptsToDelete;

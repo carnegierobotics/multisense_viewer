@@ -58,6 +58,7 @@ public:
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts{};
     std::vector<VkDescriptorPool> descriptorPools{};
     std::vector<VkPipeline> pipelines{};
+    std::vector<VkPipeline> pipelinesSecondary{};
     std::vector<VkPipelineLayout> pipelineLayouts{};
 
     bool initializedPipeline = false;
@@ -75,6 +76,7 @@ public:
         descriptorSetLayouts.resize(renderUtils->UBCount);
         descriptorPools.resize(renderUtils->UBCount);
         pipelines.resize(renderUtils->UBCount);
+        pipelinesSecondary.resize(renderUtils->UBCount);
         pipelineLayouts.resize(renderUtils->UBCount);
     }
 

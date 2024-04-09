@@ -65,15 +65,14 @@ namespace VkRender {
      */
     class Base {
     public:
-        std::unique_ptr<VkRender::UBOMatrix> bufferOneData{};
-        std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
-        std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
+        std::vector<ScriptBufferSet> ubo;
 
         std::vector<VkShaderModule> shaderModules{};
         VkRender::SkyboxTextures skyboxTextures;
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
+        std::unique_ptr<SharedData> sharedData; // TODO remove this
         VkRender::TopLevelScriptData* topLevelData;
 
         virtual ~Base() = default;
@@ -162,11 +161,24 @@ namespace VkRender {
             if (renderData.crlCamera != nullptr)
                 update();
 
-            VkRender::UniformBufferSet& currentUB = renderUtils.uniformBuffers[renderData.index];
+            VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
             if (renderData.type != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-                memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
-                memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
-                memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
+                memcpy(currentUB.bufferOne.mapped, ubo[0].mvp.get(), sizeof(VkRender::UBOMatrix));
+                memcpy(currentUB.bufferTwo.mapped, ubo[0].fragShader.get(),
+                       sizeof(VkRender::FragShaderParams));
+                memcpy(currentUB.bufferThree.mapped, ubo[0].pointCloudData.get(),
+                       sizeof(VkRender::PointCloudParam));
+            }
+
+
+                VkRender::UniformBufferSet &currUBO = renderUtils.uboDevice[renderData.renderPassIndex][renderData.index];
+                if (renderData.type != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
+                    memcpy(currUBO.bufferOne.mapped, ubo[renderData.renderPassIndex].mvp.get(), sizeof(VkRender::UBOMatrix));
+                    memcpy(currUBO.bufferTwo.mapped, ubo[renderData.renderPassIndex].fragShader.get(),
+                           sizeof(VkRender::FragShaderParams));
+                    memcpy(currUBO.bufferThree.mapped, ubo[renderData.renderPassIndex].pointCloudData.get(),
+                           sizeof(VkRender::PointCloudParam));
+
             }
         }
 
@@ -177,9 +189,19 @@ namespace VkRender {
             renderUtils.uniformBuffers.resize(renderUtils.UBCount);
             startTime = std::chrono::steady_clock::now();
             lastLogTime = std::chrono::steady_clock::now();
-            bufferOneData = std::make_unique<VkRender::UBOMatrix>();
-            bufferTwoData = std::make_unique<VkRender::FragShaderParams>();
-            bufferThreeData = std::make_unique<VkRender::PointCloudParam>();
+            int renderPassCount = 2; // TODO make adjustable
+            ubo.resize(renderPassCount);
+            renderUtils.uboDevice.resize(renderPassCount);
+            for (int i = 0; i < renderPassCount; ++i){
+                ubo[i].mvp = std::make_unique<VkRender::UBOMatrix>();
+                ubo[i].fragShader = std::make_unique<VkRender::FragShaderParams>();
+                ubo[i].pointCloudData = std::make_unique<VkRender::PointCloudParam>();
+
+                renderUtils.uboDevice[i].resize(renderUtils.UBCount);
+
+            }
+
+
             for (auto& uniformBuffer : renderUtils.uniformBuffers) {
                 renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -198,10 +220,32 @@ namespace VkRender {
                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                                  &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
                 uniformBuffer.bufferThree.map();
+            }
+            for (int i = 0; i < renderPassCount; ++i) {
 
-                // Particle buffers
+                for (auto &uniformBuffer: renderUtils.uboDevice[i]) {
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferOne, sizeof(VkRender::UBOMatrix));
+                    uniformBuffer.bufferOne.map();
+
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferTwo, sizeof(VkRender::FragShaderParams));
+                    uniformBuffer.bufferTwo.map();
+
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
+                    uniformBuffer.bufferThree.map();
+                }
             }
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
+
+            sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
             if (getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 setup();
@@ -275,6 +319,7 @@ namespace VkRender {
         struct ResourceEntry {
             // Resource handle (e.g., VkBuffer, VkImage, etc.)
             VkPipeline pipeline = VK_NULL_HANDLE;
+            VkPipeline pipeline2 = VK_NULL_HANDLE;
             VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
             VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
             VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -293,6 +338,8 @@ namespace VkRender {
                     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
                 if (pipeline != VK_NULL_HANDLE)
                     vkDestroyPipeline(device, pipeline, nullptr);
+                if (pipeline2 != VK_NULL_HANDLE)
+                    vkDestroyPipeline(device, pipeline2, nullptr);
             }
 
             bool cleanUp(const VkDevice& device, const VkFence& fence) {
@@ -318,7 +365,7 @@ namespace VkRender {
             this->renderData.height = data->height;
             this->renderData.width = data->width;
             this->renderData.type = getType();
-            this->renderData.boundRenderPass = data->boundRenderPass;
+            this->renderData.renderPassIndex = data->renderPassIndex;
         }
 
         const Input* input{};

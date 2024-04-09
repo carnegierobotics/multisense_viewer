@@ -44,9 +44,9 @@ public:
         createDescriptors(useOffScreenImageRender);
         createGraphicsPipeline();
         for (uint32_t i = 0; i < renderUtils->UBCount; ++i) {
-            auto *dataPtr = m_model->m_texture[i]->m_DataPtr;
+            auto *dataPtr = m_model->resources[0].texture[i]->m_DataPtr;
             std::memcpy(dataPtr, pixels, width * height * channels);
-            m_model->m_texture[i]->updateTextureFromBuffer();
+            m_model->resources[0].texture[i]->updateTextureFromBuffer();
         }
 
     };
@@ -60,15 +60,21 @@ private:
     struct Model {
         explicit Model(uint32_t framesInFlight, VulkanDevice *vulkanDevice);
 
-        std::vector<std::unique_ptr<TextureVideo>> m_texture;
 
         VulkanDevice *m_vulkanDevice = nullptr;
         uint32_t m_framesInFlight = 1;
-        std::vector<VkDescriptorSet> m_descriptors;
-        std::vector<VkDescriptorSetLayout> m_descriptorSetLayout;
-        VkDescriptorPool m_descriptorPool{};
-        std::vector<VkPipeline> m_pipeline;
-        std::vector<VkPipelineLayout> m_pipelineLayout;
+
+        struct Resource {
+            VkDescriptorPool descriptorPool{};
+            std::vector<VkDescriptorSet> descriptors;
+            std::vector<VkDescriptorSetLayout> descriptorSetLayout;
+            std::vector<VkPipeline> pipeline;
+            std::vector<VkPipelineLayout> pipelineLayout;
+            std::vector<std::unique_ptr<TextureVideo>> texture;
+        };
+
+        std::vector<Resource> resources;
+
 
         struct Mesh {
             VulkanDevice *device = nullptr;

@@ -44,7 +44,6 @@ void ImageViewer::setup() {
                                                             {fs}};
 
 
-
     imageView = std::make_unique<ImageView>(&renderUtils, width, height, channels, &shaders, true);
 
 
@@ -52,9 +51,21 @@ void ImageViewer::setup() {
 
 
 void ImageViewer::update() {
+    {
+        if (renderData.scriptDrawCount < 100){
+            auto &d = ubo[1].mvp;
+            d->model = glm::mat4(1.0f);
+            d->view = renderData.camera->matrices.view;
+            d->projection = renderData.camera->matrices.perspective;
 
-    auto& d = bufferOneData;
+        }
+
+    }
+
+    auto &d = ubo[0].mvp;
     d->model = glm::mat4(1.0f);
+    d->view = renderData.camera->matrices.view;
+    d->projection = renderData.camera->matrices.perspective;
 
     float xOffsetPx = (renderData.width - 150.0) / renderData.width;
 
@@ -65,7 +76,6 @@ void ImageViewer::update() {
     d->model = glm::translate(d->model, glm::vec3(translationX, translationY, 0.0f));
     // Convert 300 pixels from the right edge into NDC
     float scaleX = 300.0f / renderData.width;
-    float scaleY = 0;
 
     d->model = glm::scale(d->model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
 
@@ -81,10 +91,8 @@ void ImageViewer::update() {
     //free(pixels);
 }
 
-void ImageViewer::draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
-    if (commandBuffer->boundRenderPass == "main"){
-        if (b){
-            imageView->draw(commandBuffer, i);
-        }
+void ImageViewer::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
+    if (commandBuffer->renderPassIndex == 0 && b) {
+        imageView->draw(commandBuffer, i);
     }
 }

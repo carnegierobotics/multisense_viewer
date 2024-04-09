@@ -24,6 +24,7 @@ void Grid::setup() {
 
     for (size_t i = 0; i < renderUtils.UBCount; ++i) {
         resourceTracker[i].pipeline = model->pipelines[i];
+        resourceTracker[i].pipeline2 = model->pipelinesSecondary[i];
         resourceTracker[i].pipelineLayout = model->pipelineLayouts[i];
         resourceTracker[i].descriptorSetLayout = model->descriptorSetLayouts[i];
         resourceTracker[i].descriptorPool = model->descriptorPools[i];
@@ -35,7 +36,7 @@ void Grid::setup() {
 
 
 void Grid::update() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
     d->model = glm::mat4(1.0f);
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;

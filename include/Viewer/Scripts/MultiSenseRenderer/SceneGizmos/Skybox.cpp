@@ -51,7 +51,7 @@ void Skybox::draw(CommandBuffer *commandBuffer, uint32_t i, bool primaryDraw) {
 }
 
 void Skybox::update() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
     // we can remove the translation section of transformation matrices by taking the upper-left 3x3 matrix of the
     // 4x4 matrix. We can achieve this by converting the view matrix to a 3x3 matrix (removing translation)
     // and converting it back to a 4x4 matrix:
@@ -60,7 +60,7 @@ void Skybox::update() {
     d->view = renderData.camera->matrices.view;
 
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
 
 
     d2->exposure = exposure;

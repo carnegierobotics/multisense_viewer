@@ -1134,16 +1134,6 @@ void GLTFModel::Model::generateCubemaps(const std::vector<VkPipelineShaderStageC
     }
 }
 
-
-void GLTFModel::Model::translate(const glm::vec3 &translation) {
-    nodeTranslation = translation;
-    useCustomTranslation = true;
-}
-
-void GLTFModel::Model::scale(const glm::vec3 &scale) {
-    nodeScale = scale;
-}
-
 void
 GLTFModel::Model::drawNode(Node *node, CommandBuffer *commandBuffer, uint32_t cbIndex, Material::AlphaMode alphaMode) {
     if (node->mesh) {
@@ -1155,11 +1145,7 @@ GLTFModel::Model::drawNode(Node *node, CommandBuffer *commandBuffer, uint32_t cb
                 switch (alphaMode) {
                     case Material::ALPHAMODE_OPAQUE:
                     case Material::ALPHAMODE_MASK:
-                        // TODO Better handling of secondary viewpoints
-                        if (commandBuffer->boundRenderPass == "main")
-                            pipeline = pipelines.pbrDoubleSided;
-                        else
-                            pipeline = pipelines.pbrDoubleSidedSecondary;
+                        pipeline = pipelines.pbrDoubleSided;
                         break;
                     case Material::ALPHAMODE_BLEND:
                         pipeline = pipelines.pbrAlphaBlend;
@@ -1319,9 +1305,6 @@ void GLTFModel::Model::loadNode(GLTFModel::Node *parent, const tinygltf::Node &n
         translation = glm::make_vec3(node.translation.data());
         newNode->translation = translation;
     }
-
-    if (useCustomTranslation)
-        newNode->translation = nodeTranslation;
 
     if (node.rotation.size() == 4) {
         newNode->rotation = glm::mat4(1.0f);
@@ -1596,7 +1579,6 @@ void GLTFModel::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *de
 void GLTFModel::Model::loadMaterials(tinygltf::Model &gltfModel) {
     for (tinygltf::Material &mat: gltfModel.materials) {
         GLTFModel::Material material{};
-        material.doubleSided = mat.doubleSided;
         if (mat.values.find("baseColorTexture") != mat.values.end()) {
             material.baseColorTexture = &m_Textures[mat.values["baseColorTexture"].TextureIndex()];
             material.texCoordSets.baseColor = static_cast<uint8_t>(mat.values["baseColorTexture"].TextureTexCoord());
@@ -1716,66 +1698,6 @@ VkFilter GLTFModel::Model::getVkFilterMode(int32_t filterMode) {
     }
 }
 
-/**
- * Function to set texture other than the specified in embedded glTF file.
- * @param fileName Name of texture. Requires full path
- */
-void GLTFModel::Model::setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
-    // Create texture m_Image
-
-    int texWidth = 0, texHeight = 0, texChannels = 0;
-    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);;
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture m_Image!");
-    }
-
-    Texture2D texture(vulkanDevice);
-    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
-                       vulkanDevice->m_TransferQueue);
-    textureIndices.baseColor = 0;
-    m_Textures.push_back(texture);
-
-    Texture::TextureSampler sampler{};
-    sampler.magFilter = VK_FILTER_LINEAR;
-    sampler.minFilter = VK_FILTER_LINEAR;
-    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    textureSamplers.push_back(sampler);
-
-
-}
-
-
-/**
- * Function to set normal texture other than the specified in embedded glTF file.
- * @param fileName Name of texture. Requires full path
- */
-void GLTFModel::Model::setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> fileName) {
-
-    int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    auto imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * 4);
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture m_Image!");
-    }
-
-    Texture2D texture(vulkanDevice);
-    texture.fromBuffer(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, vulkanDevice,
-                       vulkanDevice->m_TransferQueue);
-    textureIndices.normalMap = 1;
-    m_Textures.push_back(texture);
-
-    Texture::TextureSampler sampler{};
-    sampler.magFilter = VK_FILTER_LINEAR;
-    sampler.minFilter = VK_FILTER_LINEAR;
-    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    textureSamplers.push_back(sampler);
-
-}
 
 void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<VkRender::UniformBufferSet> &ubo) {
     descriptors.resize(uboCount);
@@ -1804,8 +1726,6 @@ void GLTFModel::Model::createDescriptors(uint32_t uboCount, const std::vector<Vk
     /*
         Descriptor sets
     */
-
-    // Scene (matrices and environment maps)
     {
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
                 {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1,
@@ -2187,10 +2107,6 @@ GLTFModel::Model::createPipeline(const VkRender::RenderUtils *utils,
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
     CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                            &pipelines.pbrDoubleSided))
-
-    pipelineCI.renderPass = (*utils->secondaryRenderPasses)[0].renderPass;
-    CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
-                                           &pipelines.pbrDoubleSidedSecondary))
 
     rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
     blendAttachmentState.blendEnable = VK_TRUE;

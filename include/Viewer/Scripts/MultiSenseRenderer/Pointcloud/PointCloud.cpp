@@ -89,7 +89,7 @@ void PointCloud::update() {
         //mat.m_Model = glm::rotate(mat.m_Model, glm::radians(24.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
         //mat.m_Model = glm::translate(mat.m_Model, glm::vec3(2.8, 0.4, -5));
-        auto &d = bufferOneData;
+        auto &d = ubo[0].mvp;
         d->model = mat.model;
         d->projection = renderData.camera->matrices.perspective;
         d->view = renderData.camera->matrices.view;
@@ -101,7 +101,7 @@ void PointCloud::update() {
         data.hasSampler = renderUtils.device->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         memcpy(model->m_ColorPointCloudBuffer[renderData.index].mapped, &data, sizeof(VkRender::ColorPointCloudParams));
 
-        auto *buf = bufferThreeData.get();
+        auto *buf = ubo[0].pointCloudData.get();
         buf->pointSize = pointSize;
 
 
@@ -177,7 +177,7 @@ bool PointCloud::prepareTexture(VkRender::Device &dev) {
 
     if (renderData.crlCamera->updateCameraInfo(&dev, 0)){
 
-        auto *buf = bufferThreeData.get();
+        auto *buf = ubo[0].pointCloudData.get();
         buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
         buf->height = static_cast<float>(height);
         buf->width = static_cast<float>(width);

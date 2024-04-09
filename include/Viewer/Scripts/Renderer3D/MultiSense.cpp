@@ -29,21 +29,21 @@ void MultiSense::setup() {
 void MultiSense::update() {
     std::chrono::duration<float> dt = std::chrono::steady_clock::now() - startPlay;
 
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 0.0f));
     d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     // d->model = glm::scale(d->model, glm::vec3(0.1f, 0.1f, 0.1f));
     d->projection = renderData.camera->matrices.perspective;
+    d->view = renderData.camera->matrices.view;
 
-    if (renderData.boundRenderPass == "secondary") {
+    if (renderData.renderPassIndex == 1) {
         glm::mat4 invViewMatrix = glm::inverse(renderData.camera->matrices.view);
         glm::vec3 pos = invViewMatrix[3];
         pos.x *= -1;
         pos.y *= -1;
         invViewMatrix[3] = glm::vec4(pos, 1.0f); // Use 1.0 for the homogeneous coordinate
-        d->view = glm::mat4(1.0f);
-    } else
-        d->view = renderData.camera->matrices.view;
+        d->view = glm::inverse(invViewMatrix);
+    }
 
     d->camPos = glm::vec3(
             static_cast<double>(-renderData.camera->m_Position.z) * sin(
@@ -56,7 +56,7 @@ void MultiSense::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),

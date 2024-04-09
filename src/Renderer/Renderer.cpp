@@ -256,11 +256,12 @@ void Renderer::buildCommandBuffers() {
     secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
 
-    drawCmdBuffers.boundRenderPass = "secondary";
-    vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
     vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
     vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-
+    drawCmdBuffers.renderPassIndex = 1;
     /** Generate Script draw commands **/
     for (auto &script: scripts) {
         if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
@@ -298,8 +299,6 @@ void Renderer::buildCommandBuffers() {
             1, &barrier
     );
 
-
-
     // Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
     if (topLevelScriptData.compute.valid) {
         VkImageMemoryBarrier imageMemoryBarrier = {};
@@ -322,8 +321,7 @@ void Renderer::buildCommandBuffers() {
                 0, nullptr,
                 1, &imageMemoryBarrier);
     }
-    drawCmdBuffers.boundRenderPass = "main";
-    updateUniformBuffers("main");
+    drawCmdBuffers.renderPassIndex = 0;
 
     vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
@@ -367,14 +365,14 @@ bool Renderer::compute() {
     return true;
 }
 
-void Renderer::updateUniformBuffers(std::string boundRenderPass) {
+void Renderer::updateUniformBuffers() {
     renderData.camera = &camera;
     renderData.deltaT = frameTimer;
     renderData.index = currentFrame;
     renderData.height = m_Height;
     renderData.width = m_Width;
     renderData.crlCamera = &cameraConnection->camPtr;
-    renderData.boundRenderPass = boundRenderPass;
+    renderData.renderPassIndex = 0;
 
     // Delete the requested scripts if resources are no longer busy in render pipeline
     std::vector<std::string> scriptsToDelete;
@@ -551,8 +549,6 @@ void Renderer::updateUniformBuffers(std::string boundRenderPass) {
             continue;
         cameraConnection->update(dev);
     }
-
-
     // Update renderer with application settings
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
     for (auto &script: conf.scripts.rebuildMap) {
@@ -563,12 +559,14 @@ void Renderer::updateUniformBuffers(std::string boundRenderPass) {
         }
     }
     VkRender::RendererConfig::getInstance().setUserSetting(conf);
-
-
-    // Run update function on Scripts
-    for (auto &script: scripts) {
-        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-            script.second->updateUniformBufferData(&renderData);
+    int numRenderPasses = 2;
+    for (int i = 0; i < numRenderPasses; ++i) {
+        renderData.renderPassIndex = i;
+        // Run update function on Scripts
+        for (auto &script: scripts) {
+            if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
+                script.second->updateUniformBufferData(&renderData);
+            }
         }
     }
 }

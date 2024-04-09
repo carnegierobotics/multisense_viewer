@@ -91,7 +91,7 @@ void MultiSenseCamera::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
 }
 
 void MultiSenseCamera::handleIMUUpdate() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
 
     if (imuRotationFuture.valid() &&
         imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
@@ -129,7 +129,7 @@ void MultiSenseCamera::handleIMUUpdate() {
 }
 
 void MultiSenseCamera::update() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
 
     if (!setImuConfigFuture.valid() ||
         setImuConfigFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
@@ -156,7 +156,7 @@ void MultiSenseCamera::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),

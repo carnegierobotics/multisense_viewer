@@ -288,9 +288,13 @@ namespace VkRender {
         Buffer bufferThree{};
     };
 
+    struct ScriptBufferSet {
+        std::unique_ptr<VkRender::UBOMatrix> mvp{};
+        std::unique_ptr<VkRender::FragShaderParams> fragShader{};
+        std::unique_ptr<VkRender::PointCloudParam> pointCloudData{};
+    };
+
     struct SecondaryRenderPasses {
-        uint32_t currentFrame = 0;
-        VkPipelineCache pipelineCache{};
         std::vector<VkFramebuffer> frameBuffers{};
         VkRenderPass renderPass{};
         Camera *camera{};
@@ -323,6 +327,7 @@ namespace VkRender {
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
         std::vector<UniformBufferSet> uniformBuffers{};
+        std::vector<std::vector<UniformBufferSet>> uboDevice{};
         const VkRender::ObjectPicking *picking = nullptr;
         struct {
             std::shared_ptr<TextureCubeMap> irradianceCube = nullptr;
@@ -358,7 +363,7 @@ namespace VkRender {
         uint32_t width = 0;
         bool additionalBuffers = false;
         void *streamToRun;
-        std::string boundRenderPass = "main";
+        int renderPassIndex = 0;
 
     };
 

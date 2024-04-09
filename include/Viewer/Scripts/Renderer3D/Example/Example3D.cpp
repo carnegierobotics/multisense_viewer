@@ -22,7 +22,7 @@ void Example3D::setup() {
 
 
 void Example3D::update() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
 
 
     d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -43,7 +43,7 @@ void Example3D::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),

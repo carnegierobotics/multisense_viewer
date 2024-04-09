@@ -254,6 +254,27 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
+
+        for (auto & pass : secondaryRenderPasses) {
+            vkFreeMemory(device, pass.depthStencil.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
+
+            vkDestroyImage(device, pass.colorImage.image, nullptr);
+            vkDestroyImage(device, pass.colorImage.resolvedImage, nullptr);
+            vkDestroyImageView(device, pass.colorImage.resolvedView, nullptr);
+            vkDestroyImageView(device, pass.colorImage.view, nullptr);
+            vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
+            vkDestroyImageView(device, pass.depthStencil.view, nullptr);
+            vkDestroyImage(device, pass.depthStencil.image, nullptr);
+
+            for (auto & frameBuffer : pass.frameBuffers) {
+                vkDestroyFramebuffer(device, frameBuffer, nullptr);
+            }
+            vkDestroyRenderPass(device, pass.renderPass, nullptr);
+        }
+
+
         // CleanUP all vulkan resources
         swapchain->cleanup();
         // Object picking resources
@@ -1172,7 +1193,7 @@ namespace VkRender {
             throw std::runtime_error("Failed to wait for compute fence");
 
 
-        updateUniformBuffers("secondary");
+        updateUniformBuffers();
 
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 

@@ -143,7 +143,7 @@ namespace VkRender {
         virtual bool compute() = 0;
 
         /** @brief (Pure virtual) compute render function to be implemented by the application */
-        virtual void updateUniformBuffers(std::string boundRenderPass) = 0;
+        virtual void updateUniformBuffers() = 0;
 
         /** @brief (Virtual) Called when the camera m_View has changed */
         virtual void viewChanged();

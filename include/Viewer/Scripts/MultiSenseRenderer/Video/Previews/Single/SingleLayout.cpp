@@ -123,14 +123,14 @@ void SingleLayout::update() {
     mat.model = glm::translate(mat.model, glm::vec3(centerX, centerY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
 
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
     updateLog();
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     VkRender::ScriptUtils::handleZoom(&zoom);
     d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);

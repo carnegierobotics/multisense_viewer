@@ -98,7 +98,7 @@ public:
             bool specularGlossiness = false;
         } pbrWorkflows;
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-        bool doubleSided;
+
         Texture2D *metallicRoughnessTexture;
         Texture2D *emissiveTexture;
         Texture2D *occlusionTexture;
@@ -109,20 +109,6 @@ public:
             glm::vec4 diffuseFactor = glm::vec4(1.0f);
             glm::vec3 specularFactor = glm::vec3(0.0f);
         } extension;
-    };
-
-    struct TextureIndices{
-        int baseColor = -1;
-        int normalMap = -1;
-    } ;
-
-    struct BoundingBox {
-        glm::vec3 min;
-        glm::vec3 max;
-        bool valid = false;
-        BoundingBox();
-        BoundingBox(glm::vec3 min, glm::vec3 max);
-        BoundingBox getAABB(glm::mat4 m);
     };
 
     struct Primitive {
@@ -197,13 +183,6 @@ public:
         }
     };
 
-    struct Skin {
-        std::string name;
-        Node *skeletonRoot = nullptr;
-        std::vector<glm::mat4> inverseBindMatrices;
-        std::vector<Node*> joints;
-    };
-
     struct Model {
         VulkanDevice *vulkanDevice = nullptr;
         std::string m_FileName;
@@ -218,24 +197,17 @@ public:
         }
         ~Model();
 
-        std::vector<Skin*> skins;
-        std::vector<std::string> extensions;
-        std::vector<Texture2D> m_Textures;
-        Texture2D emptyTexture;
-
         std::shared_ptr<TextureCubeMap> irradianceCube;
         std::shared_ptr<TextureCubeMap> prefilterEnv;
         std::shared_ptr<Texture2D> lutBrdf;
 
+        std::vector<std::string> extensions;
+        std::vector<Texture2D> m_Textures;
+        Texture2D emptyTexture;
+
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;
-        TextureIndices textureIndices;
-        bool useCustomTranslation = false;
-        glm::vec3 nodeTranslation{};
-        glm::vec3 nodeScale = glm::vec3(1.0f, 1.0f, 1.0f);
-
         bool gltfModelLoaded = false;
-
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory= VK_NULL_HANDLE;
@@ -249,30 +221,19 @@ public:
         std::vector<Node*> nodes{};
         std::vector<Node*> linearNodes{};
 
-        struct Dimensions {
-            glm::vec3 min = glm::vec3(FLT_MAX);
-            glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions{};
 
         std::vector<VkDescriptorSet> descriptors;
 
 
-        void destroy(VkDevice device);
         void loadNode(GLTFModel::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex,
                       const tinygltf::Model &_model, float globalscale, LoaderInfo &loaderInfo);
-        void loadSkins(tinygltf::Model& gltfModel);
+
         void loadTextures(tinygltf::Model& gltfModel, VulkanDevice* device, VkQueue transferQueue);
         VkSamplerAddressMode getVkWrapMode(int32_t wrapMode);
         VkFilter getVkFilterMode(int32_t filterMode);
         void loadTextureSamplers(tinygltf::Model& gltfModel);
         void loadMaterials(tinygltf::Model& gltfModel);
         void loadFromFile(std::string fileName, VulkanDevice *device, VkQueue transferQueue, float scale);
-        Node* findNode(Node* parent, uint32_t index);
-        Node* nodeFromIndex(uint32_t index);
-
-        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-        void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-
 
 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
@@ -282,7 +243,6 @@ public:
         struct Pipelines {
             VkPipeline pbr = VK_NULL_HANDLE;
             VkPipeline pbrDoubleSided = VK_NULL_HANDLE;
-            VkPipeline pbrDoubleSidedSecondary = VK_NULL_HANDLE; // TODO Better handling of multiple viewpoints
             VkPipeline pbrAlphaBlend = VK_NULL_HANDLE;
             VkPipeline skybox = VK_NULL_HANDLE;
         } pipelines{};
@@ -303,9 +263,6 @@ public:
         void createRenderPipeline(const VkRender::RenderUtils &utils,
                                   const std::vector<VkPipelineShaderStageCreateInfo> &shaders);
 
-
-        void translate(const glm::vec3 &translation);
-        void scale(const glm::vec3 &scale);
 
         void createDescriptorsAdditionalBuffers(const std::vector<VkRender::RenderDescriptorBuffersData> &ubo);
 

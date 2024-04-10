@@ -1098,6 +1098,7 @@ namespace VkRender {
             vkDestroyImageView(device, pass.colorImage.view, nullptr);
             vkDestroyImageView(device, pass.depthStencil.view, nullptr);
             vkDestroyImage(device, pass.depthStencil.image, nullptr);
+            vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
 
             for (auto & frameBuffer : pass.frameBuffers) {
                 vkDestroyFramebuffer(device, frameBuffer, nullptr);

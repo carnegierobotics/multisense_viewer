@@ -1,2 +1,19 @@
-# Project exclude paths
+.gitignore
 /cmake-build-debug/
+out/
+.vs
+.idea
+/Assets/compiler
+Assets/Generated
+/Assets/shaders/myScene/spv
+/compiler
+experimental_features
+/build
+/Assets/Tools/windows/mycert.pfx
+/Assets/Tools/windows/CreateCARoot.cmd
+/Assets/Tools/windows/cert.pfx
+/Src/Scripts/Private/ScriptHeader.h
+/venv/
+/shaderc
+/$
+/cmake-build-release/

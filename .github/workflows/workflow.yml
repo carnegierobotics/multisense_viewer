@@ -1,0 +1,268 @@
+name: MultiSense Viewer CI
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+    types:
+      - closed
+  workflow_dispatch:
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  VersionJob:
+    name: "Set Version"
+    runs-on: ubuntu-latest
+    outputs:
+      install_path: ${{  steps.install_path_id.outputs.install_path  }}
+      install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Mandatory to use the extract version from tag action
+      - name: Extract version from tag
+        uses: damienaicheh/extract-version-from-tag-action@v1.1.0
+      - name: Print version
+        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}"
+      - name: Set Output
+        id: install_path_id
+        run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+      - name: Set Output Ubuntu
+        id: install_path_id_ubuntu
+        run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+
+
+  ReleaseJob:
+    name: Create Release
+    needs: VersionJob
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: |
+            # MultiSense Viewer 1.1.1
+            - Not compatible with remote head systems. Revert to 1.0.0 for that purpose.
+            ### New features:
+            - Visualize IMU data with corresponding 3D model (MultiSense: KS-21, S27, S30)
+            - Image enhancements (Normalize disparity, apply colormaps, interpolate)
+            - Zoom controls in 2D view
+            - Colorize Point Cloud if the AUX camera is present
+            - Record point clouds as .ply files
+            - Record IMU data
+            - AUX camera exposure control with LibMultiSense 6.0.0
+            - Reloadable spirv-shaders (useful for testing various gpu-applied filters)
+            - Various optimizations and more reliable AutoConnect
+            - Opt-in for anonymous usage statistics
+            - Image effects (Edge detection, blurring, embossing, sharpening)
+
+            ### Windows users:
+
+            1.  Install WinPcap_driver.exe to let the viewer configure network settings automatically
+            2.  Download and run the Windows installer: MultiSenseSetup.exe
+
+            ### Ubuntu users:
+            1. Make sure you have updated graphics drivers, ffmpeg and policykit installed. Can be installed via apt pacakge manager:
+            $ apt install ffmpeg libvulkan1 policykit-1
+            2. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
+            $ dpkg --install ~/Downloads/multisense_1.1-0_amd64.deb
+            3. Launch through start menu or run a start script at
+            $ /opt/multisense/start.sh
+            - Uninstall application:
+            1. Windows: Run 000-uninstall.exe in the installation folder
+            2. Ubuntu: Uninstall with your package manager or run dpkg ($ dpkg --remove com.carnegierobotics.multisense)
+          draft: true
+          prerelease: true
+
+
+  BuildWindows:
+    name: Build For Windows
+    needs: [ReleaseJob, VersionJob]
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+
+    - name: Upload WinPCap Driver
+      id: upload-winpcap-driver
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: ${{github.workspace}}/internal/AutoConnect/WinPcap/WinPcap_driver.exe
+        asset_name: WinPcap_driver.exe
+        asset_content_type: application/zip
+
+
+    - name: Prepare Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
+      with:
+        vulkan-query-version: 1.3.204.0
+        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-use-cache: true
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE #-D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+
+    - name: Build project
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install -- /m:10
+
+    - name: zipFiles
+      uses: vimtor/action-zip@v1
+      with:
+        files: ./build/${{ needs.VersionJob.outputs.install_path  }}
+        dest:  MultiSense_viewer.zip
+
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: ./MultiSense_viewer.zip
+        asset_name: MultiSense_viewer.zip
+        asset_content_type: application/zip
+
+    - name: "Create Artifact"
+      uses: actions/upload-artifact@v2
+      with:
+        name: multisense-zip
+        path: ${{github.workspace}}/MultiSense_viewer.zip
+
+  BuildUbuntu:
+    name: Build and package for Ubuntu
+    needs: [ReleaseJob, VersionJob]
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: print install location
+      run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+
+    - name: Prepare Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@v1.2.0
+      with:
+        vulkan-query-version: 1.3.204.0
+        vulkan-components: Vulkan-Headers, Vulkan-Loader
+        vulkan-use-cache: true
+
+    - name: Install dependencies
+      run: sudo apt-get install -y cmake libx11-dev build-essential xorg-dev libtbb-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libssl-dev libgtk-3-dev
+
+    #- name: update gcc11
+      #run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-11 g++-11
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE #-D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build
+
+    - name: Install
+      working-directory: ${{github.workspace}}/build
+      run: cmake --install . --config ${{env.BUILD_TYPE}}
+
+    - name: Prepare package step
+      working-directory: ${{github.workspace}}/build
+      run: |
+        mkdir ${{ needs.VersionJob.outputs.install_path  }}/DEBIAN && cp ${{github.workspace}}/Assets/Tools/Ubuntu/control ${{ needs.VersionJob.outputs.install_path  }}/DEBIAN/
+        mkdir -p ${{ needs.VersionJob.outputs.install_path  }}/usr/share/applications && cp ${{github.workspace}}/Assets/Tools/Ubuntu/multisense.desktop ${{ needs.VersionJob.outputs.install_path  }}/usr/share/applications/
+        cp ${{github.workspace}}/Assets/Tools/Ubuntu/start.sh ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/include
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/lib
+        rm -rf ${{ needs.VersionJob.outputs.install_path  }}/opt/multisense/share
+
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}
+
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}.deb
+        asset_name: ${{ needs.VersionJob.outputs.install_path  }}.deb
+        asset_content_type: application/zip
+
+
+  build:
+    name: Create Windows Installer
+    needs: [BuildWindows, ReleaseJob]
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: multisense-zip
+
+      - name: Extract some files
+        run: |
+          mkdir files
+          tar -xf .\MultiSense_viewer.zip -C .\files\
+          mv .\files\Assets\Tools\windows\inno_setup_script.iss .\
+          mv .\files\Assets\Tools\compile.sh .\
+          mv .\files\Assets\Tools\install_spirv_compiler.sh .\
+          mv .\files\Assets\Tools\monitor_memory_usage.py .\
+          mv .\files\Assets\Tools\Windows\build_installer.ps1 .\
+          mv .\files\Assets\Tools\how_to_release .\
+          rm  -R .\files\Assets\Tools\Ubuntu
+          rm  -R .\files\bin
+          rm  -R .\files\include
+          rm  -R .\files\lib
+
+        shell: cmd
+      - name: Building the installer
+        run: |
+          "%programfiles(x86)%\inno Setup 6\iscc.exe" "inno_setup_script.iss"
+        shell: cmd
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./Output/MultiSenseSetup.exe
+          asset_name: MultiSenseSetup.exe
+          asset_content_type: application/zip
+

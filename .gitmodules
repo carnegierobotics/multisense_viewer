@@ -1,0 +1,41 @@
+[submodule "external/glfw"]
+	path = external/glfw
+	url = https://github.com/glfw/glfw
+[submodule "external/glm"]
+	path = external/glm
+	url = https://github.com/g-truc/glm
+[submodule "external/imgui"]
+	path = external/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "external/tinygltf"]
+	path = external/tinygltf
+	url = https://github.com/syoyo/tinygltf
+[submodule "external/LibMultiSense"]
+	path = external/LibMultiSense
+	url = https://github.com/carnegierobotics/LibMultiSense
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "external/simpleini"]
+	path = external/simpleini
+	url = https://github.com/brofield/simpleini
+[submodule "internal/AutoConnect"]
+	path = internal/AutoConnect
+	url = https://github.com/M-Gjerde/AutoConnect
+    branch = main
+[submodule "external/libtiff"]
+	path = external/libtiff
+	url = https://gitlab.com/libtiff/libtiff
+[submodule "external/KTX-Software"]
+	path = external/KTX-Software
+	url = git@github.com:M-Gjerde/KTX-Software.git
+	branch = main
+[submodule "external/json"]
+	path = external/json
+	url = https://github.com/nlohmann/json
+[submodule "external/cpp-httplib"]
+	path = external/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib
+[submodule "internal/rosbag_writer_cpp"]
+	path = internal/rosbag_writer_cpp
+	url = https://github.com/M-Gjerde/rosbag_writer_cpp

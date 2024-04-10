@@ -176,10 +176,10 @@ namespace VkRender::ScriptUtils {
             vertex[2].normal = glm::vec3(0.0f, 1.0f, 0.0f);
             vertex[3].normal = glm::vec3(0.0f, 1.0f, 0.0f);
 
-            vertex[0].uv0 = glm::vec2(0.0f, 0.0f + y);
-            vertex[1].uv0 = glm::vec2(1.0f, 0.0f + y);
-            vertex[2].uv0 = glm::vec2(1.0f, 1.0f + y);
-            vertex[3].uv0 = glm::vec2(0.0f, 1.0f + y);
+            vertex[0].uv0 = glm::vec2(0.0f, 0.0f);
+            vertex[1].uv0 = glm::vec2(1.0f, 0.0f);
+            vertex[2].uv0 = glm::vec2(1.0f, 1.0f);
+            vertex[3].uv0 = glm::vec2(0.0f, 1.0f);
 
             vP[0] = vertex[0];
             vP[1] = vertex[1];

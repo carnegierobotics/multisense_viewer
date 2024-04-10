@@ -36,13 +36,17 @@ void MultiSense::update() {
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
 
+    auto &dSecondary = ubo[1].mvp;
     if (renderData.renderPassIndex == 1) {
         glm::mat4 invViewMatrix = glm::inverse(renderData.camera->matrices.view);
         glm::vec3 pos = invViewMatrix[3];
         pos.x *= -1;
         pos.y *= -1;
         invViewMatrix[3] = glm::vec4(pos, 1.0f); // Use 1.0 for the homogeneous coordinate
-        d->view = glm::inverse(invViewMatrix);
+        dSecondary->view = glm::inverse(invViewMatrix);
+        dSecondary->projection = renderData.camera->matrices.perspective;
+        dSecondary->view = renderData.camera->matrices.view;
+
     }
 
     d->camPos = glm::vec3(

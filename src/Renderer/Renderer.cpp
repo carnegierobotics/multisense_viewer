@@ -214,9 +214,7 @@ void Renderer::buildCommandBuffers() {
     VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
     cmdBufInfo.flags = 0;
     cmdBufInfo.pInheritanceInfo = nullptr;
-
     std::array<VkClearValue, 3> clearValues{};
-
     if (guiManager->handles.renderer3D) {
         clearValues[0] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
         clearValues[2] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -227,7 +225,6 @@ void Renderer::buildCommandBuffers() {
                             guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
     }
     clearValues[1].depthStencil = {1.0f, 0};
-
     VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = renderPass;
     renderPassBeginInfo.renderArea.offset.x = 0;
@@ -244,8 +241,6 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
     vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
-
-
     // Record secondary stuff:
     VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
     secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -255,7 +250,6 @@ void Renderer::buildCommandBuffers() {
     secondaryRenderPassBeginInfo.renderArea.extent = {m_Width, m_Height}; // Set to your off-screen image dimensions
     secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
-
 
     vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
                          VK_SUBPASS_CONTENTS_INLINE);
@@ -272,7 +266,6 @@ void Renderer::buildCommandBuffers() {
         }
     }
     vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-
     VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

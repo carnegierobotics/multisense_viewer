@@ -9,6 +9,7 @@
 #include "Viewer/ModelLoaders/GLTFModel.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
 #include "Viewer/ModelLoaders/ImageView.h"
+#include "Viewer/SYCL/SyclRenderer.h"
 
 class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
 {
@@ -47,20 +48,10 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
+    SyclRenderer syclRenderer;
 
     std::unique_ptr<ImageView> imageView;
-
-    struct LightSource {
-        glm::vec3 color = glm::vec3(1.0f);
-        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-    } lightSource;
-
-    std::chrono::system_clock::time_point time;
-
-    std::chrono::steady_clock::time_point lastPrintedTime;
-    std::chrono::steady_clock::time_point startPlay;
-    size_t entryIdx = 0;
-
+    std::unique_ptr<ImageView> imageView2;
 
 };
 

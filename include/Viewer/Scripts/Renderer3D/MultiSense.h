@@ -2,8 +2,8 @@
 // Created by magnus on 10/2/23.
 //
 
-#ifndef MULTISENSE_VIEWER_MULTISENSE_H
-#define MULTISENSE_VIEWER_MULTISENSE_H
+#ifndef MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA
+#define MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/GLTFModel.h"
@@ -65,4 +65,4 @@ public:
 };
 
 
-#endif //MULTISENSE_VIEWER_MULTISENSE_H
+#endif //MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA

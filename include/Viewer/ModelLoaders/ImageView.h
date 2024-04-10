@@ -20,7 +20,7 @@ public:
     ImageView(const VkRender::RenderUtils *renderUtils, int width, int height, int channels,
               const std::vector<VkPipelineShaderStageCreateInfo> *shaders, bool useOffScreenImageRender) {
 
-        VkRender::ScriptUtils::ImageData imgData{};
+        VkRender::ScriptUtils::ImageData imgData(useOffScreenImageRender ? 0 : -2);
         m_shaders = shaders;
         m_renderUtils = renderUtils;
         m_model = std::make_unique<Model>(renderUtils->UBCount, renderUtils->device);
@@ -47,6 +47,10 @@ public:
             auto *dataPtr = m_model->resources[0].texture[i]->m_DataPtr;
             std::memcpy(dataPtr, pixels, width * height * channels);
             m_model->resources[0].texture[i]->updateTextureFromBuffer();
+
+            auto *dataPtr2 = m_model->resources[1].texture[i]->m_DataPtr;
+            std::memcpy(dataPtr2, pixels, width * height * channels);
+            m_model->resources[1].texture[i]->updateTextureFromBuffer();
         }
 
     };

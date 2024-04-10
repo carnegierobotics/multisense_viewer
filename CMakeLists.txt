@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-#set(CMAKE_CXX_COMPILER "clang++")
-#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl")
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g -O0")
 
-#set(CMAKE_C_COMPILER "clang")
+set(CMAKE_C_COMPILER "clang")
 
 project(
         MultiSense-Viewer
@@ -106,7 +106,10 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
         include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
+
+        include/Viewer/SYCL/SyclRenderer.cpp ## TODO MOVE out of here and into separate library
 )
+
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
 
@@ -150,7 +153,7 @@ if (UNIX) ## Linux
 
     add_executable(MultiSense-Viewer src/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
-    add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
+    add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer )
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)

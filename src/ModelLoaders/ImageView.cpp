@@ -149,9 +149,31 @@ void ImageView::Model::createEmptyTexture(uint32_t width, uint32_t height) {
 
 void ImageView::updateTexture(uint32_t currentFrame, void *data, uint32_t size) {
 
-    //auto *dataPtr = m_model->m_texture[currentFrame]->m_DataPtr;
-    //std::memcpy(dataPtr, data, size);
-    //m_model->m_texture[currentFrame]->updateTextureFromBuffer();
+    // Calculate the number of pixels
+    const uint32_t numPixels = size; // 3 floats per pixel for RGB
+
+    // Allocate a temporary buffer for RGBA data
+    auto* tempBuffer = new uint8_t[numPixels * 4]; // 4 bytes per pixel for RGBA
+
+    // Convert and copy each pixel
+    const double* floatData = static_cast<double*>(data);
+    for (uint32_t i = 0; i < numPixels; ++i) {
+        tempBuffer[i * 4] = static_cast<uint8_t>(std::clamp(floatData[i * 3] * 255.0, 0.0, 255.0));
+        tempBuffer[i * 4 + 1] = static_cast<uint8_t>(std::clamp(floatData[i * 3 + 1] * 255.0, 0.0, 255.0));
+        tempBuffer[i * 4 + 2] = static_cast<uint8_t>(std::clamp(floatData[i * 3 + 2] * 255.0, 0.0, 255.0));
+        tempBuffer[i * 4 + 3] = 255; // Alpha channel
+    }
+
+    // Copy the temporary buffer to the texture's data pointer
+    auto *dataPtr = m_model->resources[0].texture[currentFrame]->m_DataPtr;
+    std::memcpy(dataPtr, tempBuffer, numPixels * 4);
+
+    // Update the texture
+    m_model->resources[0].texture[currentFrame]->updateTextureFromBuffer();
+
+    // Free the temporary buffer
+    delete[] tempBuffer;
+
 }
 
 void ImageView::createDescriptors(bool useOffScreenImageRender) {
@@ -324,6 +346,7 @@ void ImageView::createGraphicsPipeline() {
             VkGraphicsPipelineCreateInfo pipelineCI{};
             pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
             pipelineCI.layout = m_model->resources[j].pipelineLayout[i];
+
             // TODO make dynamic
             if (j == 0) {
                 pipelineCI.renderPass = *m_renderUtils->renderPass;

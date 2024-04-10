@@ -5,31 +5,7 @@
 #include "Viewer/Scripts/Renderer3D/ImageViewer.h"
 #include "Viewer/ImGui/Widgets.h"
 
-//#include <sycl/sycl.hpp>
-
 void ImageViewer::setup() {
-
-    //auto queue = sycl::queue(sycl::gpu_selector_v);
-    //auto device = queue.get_device();
-    //auto platform = device.get_platform();
-    //// Printing information about the platform
-    //std::cout << "Platform Info:" << std::endl;
-    //std::cout << "Platform Name: " << platform.get_info<sycl::info::platform::name>() << std::endl;
-    //std::cout << "Platform Vendor: " << platform.get_info<sycl::info::platform::vendor>() << std::endl;
-    //std::cout << "Platform Version: " << platform.get_info<sycl::info::platform::version>() << std::endl;
-    //// Printing information about the device
-    //std::cout << "\nDevice Info:" << std::endl;
-    //std::cout << "Device Name: " << device.get_info<sycl::info::device::name>() << std::endl;
-    //std::cout << "Device Vendor: " << device.get_info<sycl::info::device::vendor>() << std::endl;
-    //std::cout << "Device Version: " << device.get_info<sycl::info::device::version>() << std::endl;
-    //std::cout << "Driver Version: " << device.get_info<sycl::info::device::driver_version>() << std::endl;
-    //// Queue information is more about properties and capabilities rather than specific attributes
-    //// SYCL doesn't directly expose queue information like platform and device info
-    //std::cout << "\nQueue Info:" << std::endl;
-    //std::cout << "Queue Device Max Size: " << queue.get_device().get_info<sycl::info::device::max_work_group_size>() << std::endl;
-    //std::cout << "Queue is In Order: " << std::boolalpha << queue.is_in_order() << std::endl;
-
-
     // Create a Quad Texture
     // - Will change very often
     // - Determine where to display on the screen
@@ -45,6 +21,8 @@ void ImageViewer::setup() {
 
 
     imageView = std::make_unique<ImageView>(&renderUtils, width, height, channels, &shaders, true);
+
+    imageView2 = std::make_unique<ImageView>(&renderUtils, width, height, channels, &shaders, false);
 
 
 }
@@ -79,14 +57,17 @@ void ImageViewer::update() {
 
     d->model = glm::scale(d->model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
 
+    *ubo[1].mvp = *ubo[0].mvp;
+    //size_t size = 1920 * 1080 * 4;
     //auto* pixels = (uint8_t*) malloc(1920 * 1080 * 4);
-    //for(int i = 0; i < 1920 * 1080 * 4; ++i){
+    //for(size_t i = 0; i < size; ++i){
     //    float noise = static_cast<float>(random()) / static_cast<float>(RAND_MAX); // Generate a value between 0.0 and 1.0
     //    pixels[i] = static_cast<uint8_t>(noise * 255); // Scale to 0-255 and convert to uint8_t
     //}
 
 
-    //imageView->updateTexture(renderData.index, nullptr, 1920 * 1080 * 4);
+    imageView2->updateTexture(renderData.index, syclRenderer.fb.data(), syclRenderer.fb.size());
+
 
     //free(pixels);
 }
@@ -95,4 +76,7 @@ void ImageViewer::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
     if (commandBuffer->renderPassIndex == 0 && b) {
         imageView->draw(commandBuffer, i);
     }
+    if (b)
+        imageView2->draw(commandBuffer, i);
+
 }

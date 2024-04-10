@@ -977,6 +977,7 @@ namespace VkRender {
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to create secondary framebuffer");
         }
 
+
         VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
         VkImageSubresourceRange subresourceRange = {};
@@ -989,6 +990,7 @@ namespace VkRender {
                               VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
         vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+
 
         secondaryRenderPasses[0].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
@@ -1084,6 +1086,25 @@ namespace VkRender {
         vkDestroyImage(device, colorImage.image, nullptr);
         vkFreeMemory(device, colorImage.mem, nullptr);
 
+        // Destroy the secondary renderpasses
+        for (auto & pass : secondaryRenderPasses) {
+            vkFreeMemory(device, pass.depthStencil.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
+
+            vkDestroyImage(device, pass.colorImage.image, nullptr);
+            vkDestroyImage(device, pass.colorImage.resolvedImage, nullptr);
+            vkDestroyImageView(device, pass.colorImage.resolvedView, nullptr);
+            vkDestroyImageView(device, pass.colorImage.view, nullptr);
+            vkDestroyImageView(device, pass.depthStencil.view, nullptr);
+            vkDestroyImage(device, pass.depthStencil.image, nullptr);
+
+            for (auto & frameBuffer : pass.frameBuffers) {
+                vkDestroyFramebuffer(device, frameBuffer, nullptr);
+            }
+            vkDestroyRenderPass(device, pass.renderPass, nullptr);
+        }
+
         createColorResources();
         setupDepthStencil();
         for (auto &frameBuffer: frameBuffers) {
@@ -1105,7 +1126,7 @@ namespace VkRender {
         setupMainFramebuffer();
 
         // Maybe resize overlay too
-        // --- Missing code snippet ---
+        setupSecondaryRenderPasses();
 
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer
@@ -1216,6 +1237,11 @@ namespace VkRender {
         if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for render fence");
 
+        if (recreateResourcesNextFrame){
+            Log::Logger::getInstance()->info("Attempting to launch resize window to solve vkSubmit Issue");
+            windowResize();
+            recreateResourcesNextFrame = false;
+        }
         // Acquire the next m_Image from the swap chain
         VkResult result = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
         // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
@@ -1242,7 +1268,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::submitFrame() {
-        std::scoped_lock<std::mutex> lock(queueSubmitMutex);
+        std::unique_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
                 semaphores[currentFrame].computeComplete,
                 semaphores[currentFrame].presentComplete,
@@ -1274,7 +1300,8 @@ namespace VkRender {
                                                   semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
-            Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present");
+            Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
+            recreateResourcesNextFrame = true;
         } else if (result != VK_SUCCESS) {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
                                               std::to_string(result));

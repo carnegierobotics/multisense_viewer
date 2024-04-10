@@ -83,7 +83,7 @@ namespace VkRender {
         enum CameraType {
             arcball, flycam
         };
-        CameraType type = CameraType::flycam;
+        CameraType type = CameraType::arcball;
 
         glm::vec3 m_Rotation = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, 0.0f);

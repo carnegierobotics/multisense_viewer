@@ -262,11 +262,12 @@ namespace VkRender {
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 
+
         std::vector<SecondaryRenderPasses> secondaryRenderPasses;
 
         int frameCounter = 0;
         int frameID = 0;
-
+        bool recreateResourcesNextFrame = false;
         void setMultiSampling(VkSampleCountFlagBits samples);
 
     private:

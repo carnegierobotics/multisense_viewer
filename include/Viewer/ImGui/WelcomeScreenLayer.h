@@ -28,9 +28,9 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        bool shouldDraw = false; //
+        bool shouldDraw = true; //
         for (const auto& dev: handles->devices){
-            if (dev.state == CRL_STATE_ACTIVE)
+            if (dev.state == VkRender::CRL_STATE_ACTIVE)
                 shouldDraw = false;
         }
         if (!shouldDraw || handles->renderer3D)

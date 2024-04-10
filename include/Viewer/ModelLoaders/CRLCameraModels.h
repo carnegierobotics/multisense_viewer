@@ -47,7 +47,7 @@
 #include <MultiSense/MultiSenseTypes.hh>
 
 #include "Viewer/Scripts/Private/TextureDataDef.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Macros.h"
@@ -78,7 +78,7 @@ public:
 
         /**@brief Property to flashing/disable drawing of this m_Model. Set to false if you want to control when to draw the m_Model. */
         bool m_Draw = true;
-        CRLCameraDataType m_CameraDataType{};
+        VkRender::CRLCameraDataType m_CameraDataType{};
 
         struct Mesh {
             VulkanDevice *device = nullptr;
@@ -113,9 +113,9 @@ public:
         createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                               const std::vector<uint32_t> &indices = std::vector<uint32_t>());
 
-        void createEmptyTexture(uint32_t width, uint32_t height, CRLCameraDataType texType, bool forPointCloud = false, int i = 0);
+        void createEmptyTexture(uint32_t width, uint32_t height, VkRender::CRLCameraDataType texType, bool forPointCloud = false, int i = 0);
 
-        bool updateTexture(CRLCameraDataType type, uint32_t currentFrame);
+        bool updateTexture(VkRender::CRLCameraDataType type, uint32_t currentFrame);
 
         bool getTextureDataPointers(VkRender::TextureData *tex, uint32_t currentFrame) const;
 
@@ -174,7 +174,7 @@ protected:
      * @param pPipelineT additional pipeline
      * @param pLayoutT additional pipeline layout
      */
-    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, CRLCameraDataType type,
+    void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, VkRender::CRLCameraDataType type,
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, VkSampleCountFlagBits bits);
 
     /**

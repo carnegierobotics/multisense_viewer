@@ -7,6 +7,7 @@
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
 class Grid: public VkRender::Base, public VkRender::RegisteredInFactory<Grid>
@@ -32,31 +33,26 @@ public:
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
-        model.reset();
     }
     /** @brief set if this script should be drawn or not. */
-    void setDrawMethod(DrawMethod _drawMethod) override{ this->drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
 
     /** @brief draw function called once per frame **/
     void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
 
     /** @brief Get the type of script. Future extension if Scripts should behave differently **/
-    ScriptTypeFlags getType() override { return type; }
-    DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::ScriptTypeFlags getType() override { return type; }
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags type = CRL_SCRIPT_TYPE_RENDERER3D;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::unique_ptr<CustomModels> model;
     bool enable = true;
     bool hide = false;
 
-    struct LightSource {
-        glm::vec3 color = glm::vec3(1.0f);
-        glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-    } lightSource;
 };
 
 #endif //MULTISENSE_VIEWER_GRID_H

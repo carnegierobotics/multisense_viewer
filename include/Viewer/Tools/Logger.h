@@ -45,7 +45,7 @@
 #include <fmt/core.h>
 #include <mutex>
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include <process.h>
 
@@ -74,8 +74,8 @@
 #endif
 #endif
 
-#include "Viewer/Core/Definitions.h"
 #include "Viewer/Tools/ThreadPool.h"
+#include "Viewer/Core/MultiSenseDeviceDefinitions.h"
 
 
 namespace Log {
@@ -86,6 +86,25 @@ namespace Log {
 #define LOG_INFO(x)     Logger::getInstance()->info(x)
 #define LOG_TRACE(x)    Logger::getInstance()->trace(x)
 #define LOG_DEBUG(x)    Logger::getInstance()->debug(x)
+
+    // enum for LOG_LEVEL
+    typedef enum LOG_LEVEL {
+        DISABLE_LOG = 1,
+        LOG_LEVEL_INFO = 2,
+        LOG_LEVEL_BUFFER = 3,
+        LOG_LEVEL_TRACE = 4,
+        LOG_LEVEL_DEBUG = 5,
+        ENABLE_LOG = 6,
+    } LogLevel;
+
+
+    // enum for LOG_TYPE
+    typedef enum LOG_TYPE {
+        NO_LOG = 1,
+        CONSOLE = 2,
+        FILE_LOG = 3,
+    } LogType;
+
 
 
     struct FormatString {
@@ -126,15 +145,14 @@ namespace Log {
             std::vector<std::string> enabledSources;
             std::vector<std::string> requestedSources;
             std::vector<std::string> disabledSources;
-            double upTime = 0.0f;
+            double upTime = 0.0;
             bool ignoreMissingStatusUpdate = false;
         } device;
         /// SingleLayout Preview
         struct {
-            CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
             uint32_t width = 0, height = 0;
             uint32_t texWidth = 0, texHeight = 0;
-            CRLCameraResolution res = CRL_RESOLUTION_NONE;
+            VkRender::CRLCameraResolution res = VkRender::CRL_RESOLUTION_NONE;
             std::string src;
             bool usingDefaultTexture = false;
             int empty = 0;
@@ -150,6 +168,7 @@ namespace Log {
         static Metrics *getLogMetrics() noexcept;
 
         void errorInternal(const char *text) noexcept;
+
         void fatalInternal(const char *text) noexcept;
 
         /**@brief Using templates to allow user to use formattet logging.
@@ -224,10 +243,11 @@ namespace Log {
             // which makes the next line crash when I reference value in counter[tag].
             // Does not happen if I use any other value such as 1. No functional difference but just weird
             // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
-            if (counter[tag] % frequencies[tag]  == 1) {
+            if (counter[tag] % frequencies[tag] == 1) {
                 vTrace(tag, format, fmt::make_format_args(args...));
             }
         }
+
         /**
          * log trace messages with a specific frequency. frequency == 1 means every frame otherwise every nth frame.
          * @tparam Args
@@ -250,7 +270,7 @@ namespace Log {
             // which makes the next line crash when I reference value in counter[tag].
             // Does not happen if I use any other value such as 1. No functional difference but just weird
             // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
-            if (counter[tag] % frequencies[tag]  == 1) {
+            if (counter[tag] % frequencies[tag] == 1) {
                 vWarning(tag, format, fmt::make_format_args(args...));
             }
         }
@@ -262,6 +282,7 @@ namespace Log {
         void vTrace(const std::string &tag, const FormatString &format, fmt::format_args args) {
             traceInternal(prepareMessage(format, args, frameNumber, tag).c_str());
         }
+
         void vWarning(const std::string &tag, const FormatString &format, fmt::format_args args) {
             warningInternal(prepareMessage(format, args, frameNumber, tag).c_str());
         }

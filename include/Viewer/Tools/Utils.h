@@ -62,8 +62,9 @@
 #endif
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
+#include "MultiSense/MultiSenseTypes.hh"
 
 namespace Utils {
     DISABLE_WARNING_PUSH
@@ -173,27 +174,27 @@ namespace Utils {
         return false;
     }
 
-    static CRLCameraDataType CRLSourceToTextureType(const std::string &d) {
-        if (d == "Luma Left") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Right") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Left") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Right") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Left") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Right") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Left") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Right") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Disparity Left") return CRL_DISPARITY_IMAGE;
+    static VkRender::CRLCameraDataType CRLSourceToTextureType(const std::string &d) {
+        if (d == "Luma Left") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Right") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Left") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Right") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Left") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Right") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Left") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Compressed Rectified Right") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Disparity Left") return VkRender::CRL_DISPARITY_IMAGE;
 
-        if (d == "Color Aux") return CRL_COLOR_IMAGE_YUV420;
-        if (d == "Color Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
-        if (d == "Luma Aux") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Aux") return CRL_GRAYSCALE_IMAGE;
-        if (d == "Compressed Aux") return CRL_COLOR_IMAGE_YUV420;
-        if (d == "Compressed Rectified Aux") return CRL_COLOR_IMAGE_YUV420;
+        if (d == "Color Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
+        if (d == "Color Rectified Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
+        if (d == "Luma Aux") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Luma Rectified Aux") return VkRender::CRL_GRAYSCALE_IMAGE;
+        if (d == "Compressed Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
+        if (d == "Compressed Rectified Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
 
-        if (d == "Compute") return CRL_COMPUTE_SHADER;
+        if (d == "Compute") return VkRender::CRL_COMPUTE_SHADER;
 
-        return CRL_CAMERA_IMAGE_NONE;
+        return VkRender::CRL_CAMERA_IMAGE_NONE;
     }
 
     DISABLE_WARNING_POP
@@ -211,7 +212,7 @@ namespace Utils {
     inline bool isStreamRunning(VkRender::Device &dev, const std::string &stream) {
         // Check if disparity stream is running
         for (auto &ch: dev.channelInfo) {
-            if (ch.state != CRL_STATE_ACTIVE)
+            if (ch.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             if (Utils::isInVector(ch.enabledStreams, stream)) {
@@ -264,37 +265,37 @@ namespace Utils {
 #endif
 
 
-    inline CRLCameraResolution stringToCameraResolution(const std::string &resolution) {
-        if (resolution == "960 x 600 x 64x") return CRL_RESOLUTION_960_600_64;
-        if (resolution == "960 x 600 x 128x") return CRL_RESOLUTION_960_600_128;
-        if (resolution == "960 x 600 x 256x") return CRL_RESOLUTION_960_600_256;
-        if (resolution == "1920 x 1200 x 64x") return CRL_RESOLUTION_1920_1200_64;
-        if (resolution == "1920 x 1200 x 128x") return CRL_RESOLUTION_1920_1200_128;
-        if (resolution == "1920 x 1200 x 256x") return CRL_RESOLUTION_1920_1200_256;
-        if (resolution == "1024 x 1024 x 128x") return CRL_RESOLUTION_1024_1024_128;
-        if (resolution == "2048 x 1088 x 256x") return CRL_RESOLUTION_2048_1088_256;
-        return CRL_RESOLUTION_NONE;
+    inline VkRender::CRLCameraResolution stringToCameraResolution(const std::string &resolution) {
+        if (resolution == "960 x 600 x 64x") return VkRender::CRL_RESOLUTION_960_600_64;
+        if (resolution == "960 x 600 x 128x") return VkRender::CRL_RESOLUTION_960_600_128;
+        if (resolution == "960 x 600 x 256x") return VkRender::CRL_RESOLUTION_960_600_256;
+        if (resolution == "1920 x 1200 x 64x") return VkRender::CRL_RESOLUTION_1920_1200_64;
+        if (resolution == "1920 x 1200 x 128x") return VkRender::CRL_RESOLUTION_1920_1200_128;
+        if (resolution == "1920 x 1200 x 256x") return VkRender::CRL_RESOLUTION_1920_1200_256;
+        if (resolution == "1024 x 1024 x 128x") return VkRender::CRL_RESOLUTION_1024_1024_128;
+        if (resolution == "2048 x 1088 x 256x") return VkRender::CRL_RESOLUTION_2048_1088_256;
+        return VkRender::CRL_RESOLUTION_NONE;
     }
 
-    inline std::string cameraResolutionToString(const CRLCameraResolution &res) {
+    inline std::string cameraResolutionToString(const VkRender::CRLCameraResolution &res) {
         switch (res) {
-            case CRL_RESOLUTION_960_600_64:
+            case VkRender::CRL_RESOLUTION_960_600_64:
                 return "960 x 600 x 64";
-            case CRL_RESOLUTION_960_600_128:
+            case VkRender::CRL_RESOLUTION_960_600_128:
                 return "960 x 600 x 128";
-            case CRL_RESOLUTION_960_600_256:
+            case VkRender::CRL_RESOLUTION_960_600_256:
                 return "960 x 600 x 256";
-            case CRL_RESOLUTION_1920_1200_64:
+            case VkRender::CRL_RESOLUTION_1920_1200_64:
                 return "1920 x 1200 x 64";
-            case CRL_RESOLUTION_1920_1200_128:
+            case VkRender::CRL_RESOLUTION_1920_1200_128:
                 return "1920 x 1200 x 128";
-            case CRL_RESOLUTION_1920_1200_256:
+            case VkRender::CRL_RESOLUTION_1920_1200_256:
                 return "1920 x 1200 x 256";
-            case CRL_RESOLUTION_1024_1024_128:
+            case VkRender::CRL_RESOLUTION_1024_1024_128:
                 return "1024 x 1024 x 128";
-            case CRL_RESOLUTION_2048_1088_256:
+            case VkRender::CRL_RESOLUTION_2048_1088_256:
                 return "2048 x 1088 x 256";
-            case CRL_RESOLUTION_NONE:
+            case VkRender::CRL_RESOLUTION_NONE:
                 return "Resolution not supported";
         }
         return "Resolution not supported";
@@ -302,50 +303,50 @@ namespace Utils {
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
     inline void
-    cameraResolutionToValue(CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {
+    cameraResolutionToValue(VkRender::CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {
         uint32_t width = 0, height = 0, depth = 0;
         switch (resolution) {
-            case CRL_RESOLUTION_NONE:
+            case VkRender::CRL_RESOLUTION_NONE:
                 width = 0;
                 height = 0;
                 depth = 0;
                 break;
-            case CRL_RESOLUTION_960_600_64:
+            case VkRender::CRL_RESOLUTION_960_600_64:
                 width = 960;
                 height = 600;
                 depth = 64;
                 break;
-            case CRL_RESOLUTION_960_600_128:
+            case VkRender::CRL_RESOLUTION_960_600_128:
                 width = 960;
                 height = 600;
                 depth = 128;
                 break;
-            case CRL_RESOLUTION_960_600_256:
+            case VkRender::CRL_RESOLUTION_960_600_256:
                 width = 960;
                 height = 600;
                 depth = 256;
                 break;
-            case CRL_RESOLUTION_1920_1200_64:
+            case VkRender::CRL_RESOLUTION_1920_1200_64:
                 width = 1920;
                 height = 1200;
                 depth = 64;
                 break;
-            case CRL_RESOLUTION_1920_1200_128:
+            case VkRender::CRL_RESOLUTION_1920_1200_128:
                 width = 1920;
                 height = 1200;
                 depth = 128;
                 break;
-            case CRL_RESOLUTION_1920_1200_256:
+            case VkRender::CRL_RESOLUTION_1920_1200_256:
                 width = 1920;
                 height = 1200;
                 depth = 256;
                 break;
-            case CRL_RESOLUTION_1024_1024_128:
+            case VkRender::CRL_RESOLUTION_1024_1024_128:
                 width = 1024;
                 height = 1024;
                 depth = 128;
                 break;
-            case CRL_RESOLUTION_2048_1088_256:
+            case VkRender::CRL_RESOLUTION_2048_1088_256:
                 width = 2048;
                 height = 1088;
                 depth = 256;
@@ -358,33 +359,33 @@ namespace Utils {
     }
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
-    inline CRLCameraResolution
+    inline VkRender::CRLCameraResolution
     valueToCameraResolution(uint32_t _width, uint32_t _height, uint32_t _depth) {
         if (_height == 600 && _width == 960 && _depth == 64) {
-            return CRL_RESOLUTION_960_600_64;
+            return VkRender::CRL_RESOLUTION_960_600_64;
         }
         if (_height == 600 && _width == 960 && _depth == 128) {
-            return CRL_RESOLUTION_960_600_128;
+            return VkRender::CRL_RESOLUTION_960_600_128;
         }
         if (_height == 600 && _width == 960 && _depth == 256) {
-            return CRL_RESOLUTION_960_600_256;
+            return VkRender::CRL_RESOLUTION_960_600_256;
         }
         if (_height == 1200 && _width == 1920 && _depth == 64) {
-            return CRL_RESOLUTION_1920_1200_64;
+            return VkRender::CRL_RESOLUTION_1920_1200_64;
         }
         if (_height == 1200 && _width == 1920 && _depth == 128) {
-            return CRL_RESOLUTION_1920_1200_128;
+            return VkRender::CRL_RESOLUTION_1920_1200_128;
         }
         if (_height == 1200 && _width == 1920 && _depth == 256) {
-            return CRL_RESOLUTION_1920_1200_256;
+            return VkRender::CRL_RESOLUTION_1920_1200_256;
         }
         if (_height == 1024 && _width == 1024 && _depth == 128) {
-            return CRL_RESOLUTION_1024_1024_128;
+            return VkRender::CRL_RESOLUTION_1024_1024_128;
         }
         if (_height == 2048 && _width == 1088 && _depth == 256) {
-            return CRL_RESOLUTION_2048_1088_256;
+            return VkRender::CRL_RESOLUTION_2048_1088_256;
         }
-        return CRL_RESOLUTION_NONE;
+        return VkRender::CRL_RESOLUTION_NONE;
     }
 
     inline VkFormat
@@ -635,7 +636,7 @@ namespace Utils {
 
 
     static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-        dev.state = CRL_STATE_JUST_ADDED;
+        dev.state = VkRender::CRL_STATE_JUST_ADDED;
         dev.cameraName = "Simulated device";
         dev.IP = "127.0.0.1";
         dev.simulatedDevice = true;
@@ -647,16 +648,16 @@ namespace Utils {
         chInfo.modes.clear();
         chInfo.availableSources.emplace_back("Idle");
         chInfo.index = ch;
-        chInfo.state = CRL_STATE_JUST_ADDED;
-        chInfo.selectedResolutionMode = CRL_RESOLUTION_1920_1200_128;
+        chInfo.state = VkRender::CRL_STATE_JUST_ADDED;
+        chInfo.selectedResolutionMode = VkRender::CRL_RESOLUTION_1920_1200_128;
         std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
         supportedDeviceModes.emplace_back();
         //initCameraModes(&chInfo.modes, supportedModes);
         chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
-        for (int i = 0; i < CRL_PREVIEW_TOTAL_MODES; ++i) {
-            dev.win[static_cast<StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
+        for (int i = 0; i < VkRender::CRL_PREVIEW_TOTAL_MODES; ++i) {
+            dev.win[static_cast<VkRender::StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
             if (!chInfo.availableSources.empty())
-                dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
+                dev.win[static_cast<VkRender::StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
         }
 
         // stop streams if there were any enabled, just so we can start with a clean slate

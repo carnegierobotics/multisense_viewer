@@ -83,7 +83,7 @@ public:
                                                              handles->info->scrollbarSize,
                                                              0.0f), false);
         for (auto &dev: handles->devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             createRecordingHeader(handles, dev);

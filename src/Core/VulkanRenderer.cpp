@@ -37,10 +37,11 @@
 
 #include <stb_image.h>
 
-#include "Viewer/Tools/Utils.h"
 #include "Viewer/Core/VulkanRenderer.h"
-#include "Viewer/Tools/Populate.h"
 
+#include "Viewer/Tools/Populate.h"
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/RendererConfig.h"
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
 
@@ -48,16 +49,6 @@
 
 #endif
 
-
-#ifdef WIN32
-#include <strsafe.h>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <Windows.h>
-
-#endif
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title) {
 #ifdef MULTISENSE_VIEWER_PRODUCTION
@@ -92,7 +83,6 @@ namespace VkRender {
         }
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
-
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -106,9 +96,25 @@ namespace VkRender {
                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
                       VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
-        enabledInstanceExtensions = Validation::getRequiredExtensions(settings.validation);
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        if (settings.validation) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+        enabledInstanceExtensions = extensions;
+
+
+        std::vector<const char *> instanceExtensions = {
+                VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        };
+        enabledInstanceExtensions.insert(enabledInstanceExtensions.end(), instanceExtensions.begin(),
+                                         instanceExtensions.end());
+
         // Check if extensions are supported
-        if (!Validation::checkInstanceExtensionSupport(enabledInstanceExtensions))
+        if (!checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
 
         VkInstanceCreateInfo instanceCreateInfo = {};
@@ -121,6 +127,7 @@ namespace VkRender {
         }
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
+#ifdef MULTISENSE_VIEWER_DEBUG
         if (settings.validation) {
             // Check if this layer is available at instance level
             if (Validation::checkValidationLayerSupport(validationLayers)) {
@@ -130,9 +137,9 @@ namespace VkRender {
             } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
                 pLogger->info("Disabled Validation Layers since it was not found");
-
             }
         }
+#endif
         return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
     }
 
@@ -144,7 +151,9 @@ namespace VkRender {
         }
         pLogger->info("Vulkan Instance successfully created");
         // If requested, we flashing the default validation layers for debugging
-// If requested, we flashing the default validation layers for debugging
+        // If requested, we flashing the default validation layers for debugging
+#ifdef MULTISENSE_VIEWER_DEBUG
+
         if (settings.validation) {
             // The report flags determine what type of messages for the layers will be displayed
             // For validating (debugging) an application the error and warning bits should suffice
@@ -156,6 +165,7 @@ namespace VkRender {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
         }
+#endif
         // Get list of devices and capabilities of each m_Device
         uint32_t gpuCount = 0;
         err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
@@ -171,6 +181,7 @@ namespace VkRender {
         // Select physical m_Device to be used for the Vulkan example
         // Defaults to the first m_Device unless anything else specified
         physicalDevice = pickPhysicalDevice(physicalDevices);
+
         // If pyshyical m_Device supports vulkan version > apiVersion then create new instance with this version.
         // Store m_Properties (including limits), m_Features and memory m_Properties of the physical m_Device (so that examples can check against them)
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -189,6 +200,31 @@ namespace VkRender {
         features2.features = deviceFeatures;
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+        fpGetPhysicalDeviceProperties2 = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(
+                instance, "vkGetPhysicalDeviceProperties2"));
+
+        if (fpGetPhysicalDeviceProperties2 == nullptr) {
+            throw std::runtime_error(
+                    "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
+                    "found.\n");
+        }
+
+        // Physical Device UUID
+        VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties = {};
+        vkPhysicalDeviceIDProperties.sType =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+        vkPhysicalDeviceIDProperties.pNext = nullptr;
+
+        VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2 = {};
+        vkPhysicalDeviceProperties2.sType =
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
+
+        fpGetPhysicalDeviceProperties2(physicalDevice,
+                                       &vkPhysicalDeviceProperties2);
+        size_t size = sizeof(vkDeviceUUID);
+        memcpy(vkDeviceUUID, vkPhysicalDeviceIDProperties.deviceUUID, size);
 
         // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {
@@ -218,6 +254,27 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
+
+        for (auto & pass : secondaryRenderPasses) {
+            vkFreeMemory(device, pass.depthStencil.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.mem, nullptr);
+            vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
+
+            vkDestroyImage(device, pass.colorImage.image, nullptr);
+            vkDestroyImage(device, pass.colorImage.resolvedImage, nullptr);
+            vkDestroyImageView(device, pass.colorImage.resolvedView, nullptr);
+            vkDestroyImageView(device, pass.colorImage.view, nullptr);
+            vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
+            vkDestroyImageView(device, pass.depthStencil.view, nullptr);
+            vkDestroyImage(device, pass.depthStencil.image, nullptr);
+
+            for (auto & frameBuffer : pass.frameBuffers) {
+                vkDestroyFramebuffer(device, frameBuffer, nullptr);
+            }
+            vkDestroyRenderPass(device, pass.renderPass, nullptr);
+        }
+
+
         // CleanUP all vulkan resources
         swapchain->cleanup();
         // Object picking resources
@@ -255,10 +312,10 @@ namespace VkRender {
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
         }
-
+#ifdef MULTISENSE_VIEWER_DEBUG
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
-
+#endif
         vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // CleanUp GLFW window
@@ -270,7 +327,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::viewChanged() {
-
     }
 
 
@@ -280,11 +336,9 @@ namespace VkRender {
     }
 
     void VulkanRenderer::windowResized() {
-
     }
 
     void VulkanRenderer::buildCommandBuffers() {
-
     }
 
     void VulkanRenderer::setupDepthStencil() {
@@ -331,7 +385,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::setupMainFramebuffer() {
-
         // Depth/Stencil attachment is the same for all frame buffers
         if (msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
             std::array<VkImageView, 2> attachments{};
@@ -346,7 +399,6 @@ namespace VkRender {
                 VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
                 if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
             }
-
         } else {
             std::array<VkImageView, 3> attachments{};
             attachments[0] = colorImage.view;
@@ -362,7 +414,6 @@ namespace VkRender {
                 if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
             }
         }
-
     }
 
     void VulkanRenderer::setupRenderPass() {
@@ -412,9 +463,7 @@ namespace VkRender {
                 subpassDescription.preserveAttachmentCount = 0;
                 subpassDescription.pPreserveAttachments = nullptr;
                 subpassDescription.pResolveAttachments = nullptr;
-
             } else {
-
                 VkAttachmentDescription colorAttachment{};
                 // Color attachment
                 colorAttachment.format = swapchain->colorFormat;
@@ -593,6 +642,8 @@ namespace VkRender {
         // Create one command buffer for each swap chain m_Image and reuse for rendering
         drawCmdBuffers.buffers.resize(swapchain->imageCount);
         drawCmdBuffers.hasWork.resize(swapchain->imageCount);
+        drawCmdBuffers.busy.resize(swapchain->imageCount, false);
+
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
                 Populate::commandBufferAllocateInfo(
@@ -615,20 +666,16 @@ namespace VkRender {
 
         result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.buffers.data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
-
     }
 
     void VulkanRenderer::createSynchronizationPrimitives() {
         // Create synchronization Objects
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-
         // Set up submit info structure
         // Semaphores will stay the same during application lifetime
         // Command buffer submission info is set by each example
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
-
-        // Wait fences to sync command buffer access
         VkFenceCreateInfo fenceCreateInfo = Populate::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
         waitFences.resize(swapchain->imageCount);
         semaphores.resize(swapchain->imageCount);
@@ -644,6 +691,7 @@ namespace VkRender {
                 vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create compute synchronization fence");
         }
+
     }
 
 
@@ -675,7 +723,276 @@ namespace VkRender {
         pLogger->info("Initialized Renderer backend");
 
         rendererStartTime = std::chrono::system_clock::now();
+    }
 
+    void VulkanRenderer::setupSecondaryRenderPasses() {
+        secondaryRenderPasses.resize(1);
+        // Color image resource
+        // Depth stencil resource
+        // Render Pass
+        // Frame Buffer
+
+        //// DEPTH STENCIL RESOURCE /////
+        VkImageCreateInfo depthImageCI = Populate::imageCreateInfo();
+        depthImageCI.imageType = VK_IMAGE_TYPE_2D;
+        depthImageCI.format = depthFormat;
+        depthImageCI.extent = {m_Width, m_Height, 1};
+        depthImageCI.mipLevels = 1;
+        depthImageCI.arrayLayers = 1;
+        depthImageCI.samples = msaaSamples;
+        depthImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        VkResult result = vkCreateImage(device, &depthImageCI, nullptr, &secondaryRenderPasses[0].depthStencil.image);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
+
+        VkMemoryRequirements depthMemReqs{};
+        vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].depthStencil.image, &depthMemReqs);
+
+        VkMemoryAllocateInfo depthMemAllloc = Populate::memoryAllocateInfo();
+        depthMemAllloc.allocationSize = depthMemReqs.size;
+        depthMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(depthMemReqs.memoryTypeBits,
+                                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        result = vkAllocateMemory(device, &depthMemAllloc, nullptr, &secondaryRenderPasses[0].depthStencil.mem);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+        result = vkBindImageMemory(device, secondaryRenderPasses[0].depthStencil.image,
+                                   secondaryRenderPasses[0].depthStencil.mem, 0);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+
+        VkImageViewCreateInfo depthImageViewCI = Populate::imageViewCreateInfo();
+        depthImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthImageViewCI.image = secondaryRenderPasses[0].depthStencil.image;
+        depthImageViewCI.format = depthFormat;
+        depthImageViewCI.subresourceRange.baseMipLevel = 0;
+        depthImageViewCI.subresourceRange.levelCount = 1;
+        depthImageViewCI.subresourceRange.baseArrayLayer = 0;
+        depthImageViewCI.subresourceRange.layerCount = 1;
+        depthImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            depthImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(device, &depthImageViewCI, nullptr, &secondaryRenderPasses[0].depthStencil.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+
+        //// COLOR IMAGE RESOURCE /////
+
+        VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
+        colorImageCI.imageType = VK_IMAGE_TYPE_2D;
+        colorImageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorImageCI.extent = {m_Width, m_Height, 1};
+        colorImageCI.mipLevels = 1;
+        colorImageCI.arrayLayers = 1;
+        colorImageCI.samples = msaaSamples;
+        colorImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        colorImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.image);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
+
+        colorImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedImage);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
+        {
+            VkMemoryRequirements colorMemReqs{};
+            vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.image, &colorMemReqs);
+
+            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
+            colorMemAllloc.allocationSize = colorMemReqs.size;
+            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
+                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses[0].colorImage.mem);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+            result = vkBindImageMemory(device, secondaryRenderPasses[0].colorImage.image,
+                                       secondaryRenderPasses[0].colorImage.mem, 0);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+
+        }
+        {
+            VkMemoryRequirements colorMemReqs{};
+            vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.resolvedImage, &colorMemReqs);
+
+            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
+            colorMemAllloc.allocationSize = colorMemReqs.size;
+            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
+                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses[0].colorImage.resolvedMem);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
+            result = vkBindImageMemory(device, secondaryRenderPasses[0].colorImage.resolvedImage,
+                                       secondaryRenderPasses[0].colorImage.resolvedMem, 0);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
+        }
+
+
+        VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
+        colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        colorImageViewCI.image = secondaryRenderPasses[0].colorImage.image;
+        colorImageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorImageViewCI.subresourceRange.baseMipLevel = 0;
+        colorImageViewCI.subresourceRange.levelCount = 1;
+        colorImageViewCI.subresourceRange.baseArrayLayer = 0;
+        colorImageViewCI.subresourceRange.layerCount = 1;
+        colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+
+        colorImageViewCI.image = secondaryRenderPasses[0].colorImage.resolvedImage;
+        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedView);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+        //// SAMPLER SETUP ////
+        VkSamplerCreateInfo samplerInfo = {};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR; // Magnification filter
+        samplerInfo.minFilter = VK_FILTER_LINEAR; // Minification filter
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate U
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate V
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate W
+        samplerInfo.anisotropyEnable = VK_TRUE; // Enable anisotropic filtering
+        samplerInfo.maxAnisotropy = 16; // Max level of anisotropy
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Border color when using VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
+        samplerInfo.unnormalizedCoordinates = VK_FALSE; // Use normalized texture coordinates
+        samplerInfo.compareEnable = VK_FALSE; // Enable comparison mode for the sampler
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS; // Comparison operator if compareEnable is VK_TRUE
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // Mipmap interpolation mode
+        samplerInfo.minLod = 0; // Minimum level of detail
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE; // Maximum level of detail
+        samplerInfo.mipLodBias = 0.0f; // Level of detail bias
+
+        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses[0].colorImage.sampler) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+
+        //// RenderPass setup ////
+        std::vector<VkAttachmentDescription> attachments;
+        VkSubpassDescription subpassDescription{};
+
+
+        VkAttachmentReference colorReference{};
+        VkAttachmentReference depthReference{};
+        VkAttachmentReference colorAttachmentResolveRef{};
+
+        VkAttachmentDescription colorAttachment{};
+        // Color attachment
+        colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorAttachment.samples = msaaSamples;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        // Depth attachment
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = depthFormat;
+        depthAttachment.samples = msaaSamples;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentDescription colorAttachmentResolve{};
+        colorAttachmentResolve.format = VK_FORMAT_R8G8B8A8_UNORM;
+        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
+
+        colorAttachmentResolveRef.attachment = 2;
+        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        colorReference.attachment = 0;
+        colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        depthReference.attachment = 1;
+        depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount = 1;
+        subpassDescription.pColorAttachments = &colorReference;
+        subpassDescription.pDepthStencilAttachment = &depthReference;
+        subpassDescription.inputAttachmentCount = 0;
+        subpassDescription.pInputAttachments = nullptr;
+        subpassDescription.preserveAttachmentCount = 0;
+        subpassDescription.pPreserveAttachments = nullptr;
+        subpassDescription.pResolveAttachments = &colorAttachmentResolveRef;
+
+        // Subpass dependencies for layout transitions
+        std::array<VkSubpassDependency, 2> dependencies{};
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;;
+        dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR; // Adjusted to reflect completion of writes
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted if necessary
+        dependencies[1].srcAccessMask =VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; // Adjusted if subsequent operations are general
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        VkRenderPassCreateInfo renderPassInfo = Populate::renderPassCreateInfo();
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpassDescription;
+        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies = dependencies.data();
+
+
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &secondaryRenderPasses[0].renderPass) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create second render pass!");
+        }
+        //// FrameBuffer setup ////
+        std::array<VkImageView, 3> framebufeerAttachments{};
+        framebufeerAttachments[0] = secondaryRenderPasses[0].colorImage.view;
+        framebufeerAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
+        framebufeerAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
+                                                                                        framebufeerAttachments.data(),
+                                                                                        framebufeerAttachments.size(),
+                                                                                        secondaryRenderPasses[0].renderPass);
+        secondaryRenderPasses[0].frameBuffers.resize(swapchain->imageCount);
+        for (auto &frameBuffer: secondaryRenderPasses[0].frameBuffers) {
+            result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr,
+                                         &frameBuffer);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create secondary framebuffer");
+        }
+
+        VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
+
+        Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+        vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+
+        secondaryRenderPasses[0].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
+        secondaryRenderPasses[0].imageInfo.sampler = secondaryRenderPasses[0].colorImage.sampler; // The sampler you've just created
 
     }
 
@@ -691,7 +1008,7 @@ namespace VkRender {
 
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
         // Suspend application while it is in minimized state
-        // Also unsignal semaphore for presentation because we are recreating the swapchain
+        // Also signal semaphore for presentation because we are recreating the swap-chain
         while (m_Width == 0 || m_Height == 0) {
             glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
             glfwWaitEvents();
@@ -729,7 +1046,6 @@ namespace VkRender {
 
         vkDeviceWaitIdle(device);
         backendInitialized = true;
-
     }
 
 
@@ -799,7 +1115,7 @@ namespace VkRender {
         vkDeviceWaitIdle(device);
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
-            camera.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>( m_Height));
+            camera.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
         }
         pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
 
@@ -825,7 +1141,7 @@ namespace VkRender {
             runTime = elapsed_seconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2(static_cast<float>( m_Width), static_cast<float>( m_Height));
+            io.DisplaySize = ImVec2(static_cast<float>(m_Width), static_cast<float>(m_Height));
             io.DeltaTime = frameTimer;
             io.WantCaptureMouse = true;
             io.MousePos = ImVec2(mousePos.x, mousePos.y);
@@ -891,7 +1207,6 @@ namespace VkRender {
         sInfo.pSignalSemaphores = &semaphores[currentFrame].computeComplete;
         if (vkQueueSubmit(computeQueue, 1, &sInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit compute command buffer!");
-
         }
     }
 
@@ -913,9 +1228,7 @@ namespace VkRender {
                 throw std::runtime_error(
                         "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
                         std::to_string(result));
-
             }
-
         } else if (result != VK_SUCCESS)
             throw std::runtime_error(
                     "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
@@ -926,28 +1239,39 @@ namespace VkRender {
             throw std::runtime_error("Failed to reset fence");
 
         vkResetCommandBuffer(drawCmdBuffers.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-
     }
 
     void VulkanRenderer::submitFrame() {
         std::scoped_lock<std::mutex> lock(queueSubmitMutex);
-        VkSemaphore waitSemaphores[] = {semaphores[currentFrame].computeComplete,
-                                        semaphores[currentFrame].presentComplete};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        VkSemaphore waitSemaphores[] = {
+                semaphores[currentFrame].computeComplete,
+                semaphores[currentFrame].presentComplete,
+                //updateVulkan
+        };
+        VkPipelineStageFlags waitStages[] = {
+                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                //VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        };
+        VkSemaphore signalSemaphores[] = {
+                semaphores[currentFrame].renderComplete,
+                //updateCuda
+        };
+
         submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 2;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
+        submitInfo.pSignalSemaphores = signalSemaphores;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
-
+        drawCmdBuffers.busy[currentFrame] = true;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
-        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);
+        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex,
+                                                  semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present");
@@ -959,7 +1283,7 @@ namespace VkRender {
         currentFrame = (currentFrame + 1) % swapchain->imageCount;
     }
 
-/** CALLBACKS **/
+    /** CALLBACKS **/
     void VulkanRenderer::setWindowSize(uint32_t _width, uint32_t _height) {
         if (frameID > 1) {
             destWidth = _width;
@@ -967,13 +1291,13 @@ namespace VkRender {
             //Log::Logger::getInstance()->info("New window size was set. Recreating..");
             //windowResize();
         }
-
     }
 
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
-            if (myApp->destWidth != static_cast<uint32_t>(width) && myApp->destHeight != static_cast<uint32_t>(height))
+            if (myApp->destWidth != static_cast<uint32_t>(width) &&
+                myApp->destHeight != static_cast<uint32_t>(height))
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
@@ -1070,7 +1394,7 @@ namespace VkRender {
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        myApp->handleMouseMove(static_cast<float>( xPos), static_cast<float>( yPos));
+        myApp->handleMouseMove(static_cast<float>(xPos), static_cast<float>(yPos));
         myApp->mouseButtons.pos.x = static_cast<float>(xPos);
         myApp->mouseButtons.pos.y = static_cast<float>(yPos);
     }
@@ -1118,8 +1442,8 @@ namespace VkRender {
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         ImGuiIO &io = ImGui::GetIO();
-        myApp->mouseScroll(static_cast<float>( yoffset));
-        io.MouseWheel += 0.5f * static_cast<float>( yoffset);
+        myApp->mouseScroll(static_cast<float>(yoffset));
+        io.MouseWheel += 0.5f * static_cast<float>(yoffset);
     }
 
     DISABLE_WARNING_POP
@@ -1457,8 +1781,6 @@ namespace VkRender {
         }
         result = vkCreateImageView(device, &imageViewCI, nullptr, &colorImage.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
-
-
     }
 
 
@@ -1475,17 +1797,39 @@ namespace VkRender {
             return;
 
         // Lock the handle to get the actual text pointer
-        char *pszText = static_cast<char *>( GlobalLock(hData));
+        char* pszText = static_cast<char*>(GlobalLock(hData));
         if (pszText == nullptr)
             return;
-
         // Save text in a string class instance
         glfwSetClipboardString(window, pszText);
         // Release the lock
         GlobalUnlock(hData);
-
         CloseClipboard();
     }
-
 #endif
+
+    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions) {
+        //Need to get number of extensions to create array of correct size to hold extensions.
+        uint32_t extensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        //Create a list of VkExtensionProperties using count.
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        //Populate the list of specific/named extensions
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        //Check if given extensions are in list of available extensions
+        for (const auto &checkExtension: checkExtensions) {
+            bool hasExtensions = false;
+            for (const auto &extension: extensions) {
+                if (strcmp(checkExtension, extension.extensionName) == 0) {
+                    hasExtensions = true;
+                    break;
+                }
+            }
+            if (!hasExtensions) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

@@ -49,7 +49,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <MultiSense/MultiSenseChannel.hh>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 

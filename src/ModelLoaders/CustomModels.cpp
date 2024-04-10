@@ -4,6 +4,8 @@
 
 #include "Viewer/ModelLoaders/CustomModels.h"
 
+#include "Viewer/Scripts/Private/ScriptUtils.h"
+
 CustomModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
 }
@@ -16,7 +18,6 @@ CustomModels::Model::~Model() {
         vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.indices.buffer, nullptr);
         vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.indices.memory, nullptr);
     }
-
 }
 
 
@@ -97,39 +98,40 @@ void CustomModels::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vert
 }
 
 void CustomModels::createDescriptorSetLayout() {
-    std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-
-    setLayoutBindings = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-    };
-    VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(setLayoutBindings.data(),
-                                                                                               static_cast<uint32_t>(setLayoutBindings.size()));
-    CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr,
-                                             &descriptorSetLayout));
-
+    for (auto &descriptorSetLayout: descriptorSetLayouts) {
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
+        setLayoutBindings = {
+                {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        };
+        VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
+                setLayoutBindings.data(),
+                static_cast<uint32_t>(setLayoutBindings.size()));
+        CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &layoutCreateInfo, nullptr,
+                                                 &descriptorSetLayout));
+    }
 }
 
 void CustomModels::createDescriptorPool() {
+    for (auto &descriptorPool: descriptorPools) {
+        uint32_t uniformDescriptorCount = renderer->UBCount;
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount},
+        };
+        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, renderer->UBCount);
 
-    uint32_t uniformDescriptorCount = renderer->UBCount;
-    std::vector<VkDescriptorPoolSize> poolSizes = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount},
-    };
-    VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, renderer->UBCount);
-
-    CHECK_RESULT(
-            vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+        CHECK_RESULT(
+                vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+    }
 }
 
 void CustomModels::createDescriptorSets() {
-
     descriptors.resize(renderer->UBCount);
-    for (size_t i = 0; i < renderer->UBCount; i++) {
 
+    for (size_t i = 0; i < descriptorSetLayouts.size(); ++i) {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+        descriptorSetAllocInfo.descriptorPool = descriptorPools[i];
+        descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayouts[i];
         descriptorSetAllocInfo.descriptorSetCount = 1;
         CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                               &descriptors[i]));
@@ -149,108 +151,131 @@ void CustomModels::createDescriptorSets() {
 }
 
 void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector) {
-    VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-    CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &info, nullptr, &pipelineLayout))
-
-    // Vertex bindings an attributes
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
-    inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
-    rasterizationStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-    rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizationStateCI.lineWidth = 1.0f;
-
-    VkPipelineColorBlendAttachmentState blendAttachmentState{};
-    blendAttachmentState.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    blendAttachmentState.blendEnable = VK_FALSE;
-
-    VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
-    colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlendStateCI.attachmentCount = 1;
-    colorBlendStateCI.pAttachments = &blendAttachmentState;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
-    depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilStateCI.depthTestEnable = VK_TRUE;
-    depthStencilStateCI.depthWriteEnable = VK_TRUE;
-    depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
-    depthStencilStateCI.stencilTestEnable = VK_FALSE;
-
-    VkPipelineViewportStateCreateInfo viewportStateCI{};
-    viewportStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportStateCI.viewportCount = 1;
-    viewportStateCI.scissorCount = 1;
-
-    VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
-    multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleStateCI.rasterizationSamples = renderer->msaaSamples;
+    for (size_t i = 0; i < pipelineLayouts.size(); ++i) {
 
 
-    std::vector<VkDynamicState> dynamicStateEnables = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-    };
-    VkPipelineDynamicStateCreateInfo dynamicStateCI{};
-    dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
-    dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+        VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(&descriptorSetLayouts[i], 1);
+        CHECK_RESULT(vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &info, nullptr, &pipelineLayouts[i]))
+
+        // Vertex bindings an attributes
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
+        inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+        VkPipelineRasterizationStateCreateInfo rasterizationStateCI{};
+        rasterizationStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
+        rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizationStateCI.lineWidth = 1.0f;
+
+        // Enable blending
+        VkPipelineColorBlendAttachmentState blendAttachmentState{};
+        blendAttachmentState.blendEnable = VK_TRUE;
+        blendAttachmentState.colorWriteMask =
+                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT;
+        blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+        blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
+        colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlendStateCI.attachmentCount = 1;
+        colorBlendStateCI.pAttachments = &blendAttachmentState;
+
+        VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
+        depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthStencilStateCI.depthTestEnable = VK_TRUE;
+        depthStencilStateCI.depthWriteEnable = VK_TRUE;
+        depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
+        depthStencilStateCI.stencilTestEnable = VK_FALSE;
+
+        VkPipelineViewportStateCreateInfo viewportStateCI{};
+        viewportStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportStateCI.viewportCount = 1;
+        viewportStateCI.scissorCount = 1;
+
+        VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
+        multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampleStateCI.rasterizationSamples = renderer->msaaSamples;
 
 
-    VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
-                                                          VK_VERTEX_INPUT_RATE_VERTEX};
-    std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-            {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-            {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
-            {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
-    };
-    VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
-    vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputStateCI.vertexBindingDescriptionCount = 1;
-    vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
-    vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-    vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
+        std::vector<VkDynamicState> dynamicStateEnables = {
+                VK_DYNAMIC_STATE_VIEWPORT,
+                VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicStateCI{};
+        dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
+        dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
-    // Pipelines
-    VkGraphicsPipelineCreateInfo pipelineCI{};
-    pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineCI.layout = pipelineLayout;
-    pipelineCI.renderPass = *renderer->renderPass;
-    pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
-    pipelineCI.pVertexInputState = &vertexInputStateCI;
-    pipelineCI.pRasterizationState = &rasterizationStateCI;
-    pipelineCI.pColorBlendState = &colorBlendStateCI;
-    pipelineCI.pMultisampleState = &multisampleStateCI;
-    pipelineCI.pViewportState = &viewportStateCI;
-    pipelineCI.pDepthStencilState = &depthStencilStateCI;
-    pipelineCI.pDynamicState = &dynamicStateCI;
-    pipelineCI.stageCount = static_cast<uint32_t>(vector.size());
-    pipelineCI.pStages = vector.data();
 
-    VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                             &pipeline);
-    if (res != VK_SUCCESS)
-        throw std::runtime_error("Failed to create graphics m_Pipeline");
+        VkVertexInputBindingDescription vertexInputBinding = {
+                0, sizeof(VkRender::Vertex),
+                VK_VERTEX_INPUT_RATE_VERTEX
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+                {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+                {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
+                {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
+        };
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
+        vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputStateCI.vertexBindingDescriptionCount = 1;
+        vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
+        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+        vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
+        // Pipelines
+        VkGraphicsPipelineCreateInfo pipelineCI{};
+        pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineCI.layout = pipelineLayouts[i];
+        pipelineCI.renderPass = *renderer->renderPass;
+        pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
+        pipelineCI.pVertexInputState = &vertexInputStateCI;
+        pipelineCI.pRasterizationState = &rasterizationStateCI;
+        pipelineCI.pColorBlendState = &colorBlendStateCI;
+        pipelineCI.pMultisampleState = &multisampleStateCI;
+        pipelineCI.pViewportState = &viewportStateCI;
+        pipelineCI.pDepthStencilState = &depthStencilStateCI;
+        pipelineCI.pDynamicState = &dynamicStateCI;
+        pipelineCI.stageCount = static_cast<uint32_t>(vector.size());
+        pipelineCI.pStages = vector.data();
+
+        VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                                 &pipelines[i]);
+        if (res != VK_SUCCESS)
+            throw std::runtime_error("Failed to create graphics m_Pipeline");
+
+        pipelineCI.renderPass = (*renderer->secondaryRenderPasses)[0].renderPass;
+        res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                        &pipelinesSecondary[i]);
+        if (res != VK_SUCCESS)
+            throw std::runtime_error("Failed to create graphics m_Pipeline");
+
+    }
 }
 
-void CustomModels::draw(CommandBuffer * commandBuffer, uint32_t cbIndex) {
-
+void CustomModels::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
     if (cbIndex >= renderer->UBCount)
         return;
-    vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+    vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts[cbIndex],
+                            0, 1,
                             &descriptors[cbIndex], 0, nullptr);
-    vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    if (commandBuffer->renderPassIndex == 0) {
+        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[cbIndex]);
+    } else {
+        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pipelinesSecondary[cbIndex]);
+    }
     const VkDeviceSize offsets[1] = {0};
 
     vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);
     vkCmdBindIndexBuffer(commandBuffer->buffers[cbIndex], model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(commandBuffer->buffers[cbIndex], model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
-
 }
-

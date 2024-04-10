@@ -71,7 +71,7 @@ void DoubleBot::setup() {
 }
 
 void DoubleBot::update() {
-    if (selectedPreviewTab != CRL_TAB_2D_PREVIEW)
+    if (selectedPreviewTab !=VkRender::CRL_TAB_2D_PREVIEW)
         return;
 
     auto tex = VkRender::TextureData(textureType, res);
@@ -115,7 +115,7 @@ void DoubleBot::update() {
 
     updateTransform();
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     VkRender::ScriptUtils::handleZoom(&zoom);
     d2->zoomCenter = glm::vec4(0.0f, zoom.offsetY, zoom.zoomValue, zoom.offsetX);
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
@@ -132,7 +132,7 @@ void DoubleBot::updateTransform(){
     mat.model = glm::translate(mat.model, glm::vec3(centerX, centerY, 0.0f));
     mat.model = glm::scale(mat.model, glm::vec3(scaleX, scaleY, 0.25f));
 
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
     d->model = mat.model;
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
@@ -142,17 +142,17 @@ void DoubleBot::updateTransform(){
 
 
 void DoubleBot::prepareDefaultTexture() {
-    m_NoDataModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
-    std::string vertexShaderFileName = "Scene/spv/color.vert";
-    std::string fragmentShaderFileName = "Scene/spv/color_default_sampler.frag";
+    m_NoDataModel->m_CameraDataType =VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight,VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
+    std::string vertexShaderFileName = "spv/color.vert";
+    std::string fragmentShaderFileName = "spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader(fragmentShaderFileName, VK_SHADER_STAGE_FRAGMENT_BIT);
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoDataModel.get(), &renderUtils);
-    auto defTex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
+    auto defTex = std::make_unique<VkRender::TextureData>(VkRender::CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
         if (m_NoDataModel->getTextureDataPointers(defTex.get(), i)) {
             std::memcpy(defTex->data, m_NoDataTex, texWidth * texHeight * texChannels);
@@ -160,11 +160,11 @@ void DoubleBot::prepareDefaultTexture() {
         }
     }
 
-    m_NoSourceModel->m_CameraDataType = CRL_COLOR_IMAGE_RGBA;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, CRL_COLOR_IMAGE_RGBA, false, 0);
+    m_NoSourceModel->m_CameraDataType =VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight,VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
-    auto tex = std::make_unique<VkRender::TextureData>(CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
+    auto tex = std::make_unique<VkRender::TextureData>(VkRender::CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
     for (uint32_t i = 0; i < renderUtils.UBCount; ++i) {
         if (m_NoSourceModel->getTextureDataPointers(tex.get(), i)) {
             std::memcpy(tex->data, m_NoSourceTex, texWidth * texHeight * texChannels);
@@ -177,18 +177,18 @@ void DoubleBot::prepareMultiSenseTexture() {
     std::string vertexShaderFileName;
     std::string fragmentShaderFileName;
     switch (textureType) {
-        case CRL_GRAYSCALE_IMAGE:
-            vertexShaderFileName = "Scene/spv/grayscale.vert";
-            fragmentShaderFileName = "Scene/spv/grayscale.frag";
+        case VkRender::CRL_GRAYSCALE_IMAGE:
+            vertexShaderFileName = "spv/grayscale.vert";
+            fragmentShaderFileName = "spv/grayscale.frag";
             break;
-        case CRL_COLOR_IMAGE_YUV420:
-            vertexShaderFileName = "Scene/spv/color.vert";
+        case VkRender::CRL_COLOR_IMAGE_YUV420:
+            vertexShaderFileName = "spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "Scene/spv/color_default_sampler.frag" :  "Scene/spv/color_ycbcr_sampler.frag";
+                                     "spv/color_default_sampler.frag" :  "spv/color_ycbcr_sampler.frag";
             break;
-        case CRL_DISPARITY_IMAGE:
-            vertexShaderFileName = "Scene/spv/disparity.vert";
-            fragmentShaderFileName = "Scene/spv/disparity.frag";
+        case VkRender::CRL_DISPARITY_IMAGE:
+            vertexShaderFileName = "spv/disparity.vert";
+            fragmentShaderFileName = "spv/disparity.frag";
             break;
         default:
             return;
@@ -215,11 +215,11 @@ void DoubleBot::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
 
 
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state !=VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
 
-        auto &preview = dev.win.at(CRL_PREVIEW_TWO);
+        auto &preview = dev.win.at(VkRender::CRL_PREVIEW_TWO);
         auto &currentRes = dev.channelInfo[preview.selectedRemoteHeadIndex].selectedResolutionMode;
         if (src == "Idle") {
             state = DRAW_NO_SOURCE;
@@ -242,10 +242,10 @@ void DoubleBot::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         options = &preview.effects;
         zoomEnabled = preview.enableZoom;
 
-        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, CRL_PREVIEW_TWO);
+        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom,VkRender::CRL_PREVIEW_TWO);
 
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
-        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, CRL_PREVIEW_TWO, deltaMouse,
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev,VkRender::CRL_PREVIEW_TWO, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,
                                                 preview.enableZoom);
 
@@ -256,8 +256,8 @@ void DoubleBot::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
     centerX = 2 * ((uiHandle->info->width - (uiHandle->info->viewingAreaWidth / 2)) / uiHandle->info->width) -
               1; // map between -1 to 1q
     centerY = 2 * (uiHandle->info->tabAreaHeight + uiHandle->accumulatedActiveScroll +
-                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.win.at(CRL_PREVIEW_TWO).row) * uiHandle->info->viewAreaElementSizeY) +
-                    ((dev.win.at(CRL_PREVIEW_TWO).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+                   ((uiHandle->info->viewAreaElementSizeY / 2) + ((dev.win.at(VkRender::CRL_PREVIEW_TWO).row) * uiHandle->info->viewAreaElementSizeY) +
+                    ((dev.win.at(VkRender::CRL_PREVIEW_TWO).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
 
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
              (1280.0f / uiHandle->info->width);
@@ -267,7 +267,7 @@ void DoubleBot::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, c
 
 
 void DoubleBot::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab == CRL_TAB_2D_PREVIEW) {
+    if (selectedPreviewTab ==VkRender::CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:
                 CRLCameraModels::draw(commandBuffer, i, m_NoSourceModel.get(), b);
@@ -284,7 +284,7 @@ void DoubleBot::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
 
 void DoubleBot::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state !=VkRender::CRL_STATE_ACTIVE)
             continue;
     }
 }

@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_LAYERFACTORY_H
 #define MULTISENSE_VIEWER_LAYERFACTORY_H
 
-#include "Layer.h" // assuming you have a base Layer class
+#include "Layer.h"
 #include <memory>
 #include <string>
 

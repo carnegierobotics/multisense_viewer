@@ -35,7 +35,7 @@ public:
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         for (auto &dev: handles->devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
             buildConfigurationTab3D(handles, dev);
 

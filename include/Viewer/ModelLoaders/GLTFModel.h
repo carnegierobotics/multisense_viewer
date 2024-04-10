@@ -98,7 +98,7 @@ public:
             bool specularGlossiness = false;
         } pbrWorkflows;
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-        bool doubleSided;
+
         Texture2D *metallicRoughnessTexture;
         Texture2D *emissiveTexture;
         Texture2D *occlusionTexture;
@@ -109,20 +109,6 @@ public:
             glm::vec4 diffuseFactor = glm::vec4(1.0f);
             glm::vec3 specularFactor = glm::vec3(0.0f);
         } extension;
-    };
-
-    struct TextureIndices{
-        int baseColor = -1;
-        int normalMap = -1;
-    } ;
-
-    struct BoundingBox {
-        glm::vec3 min;
-        glm::vec3 max;
-        bool valid = false;
-        BoundingBox();
-        BoundingBox(glm::vec3 min, glm::vec3 max);
-        BoundingBox getAABB(glm::mat4 m);
     };
 
     struct Primitive {
@@ -197,13 +183,6 @@ public:
         }
     };
 
-    struct Skin {
-        std::string name;
-        Node *skeletonRoot = nullptr;
-        std::vector<glm::mat4> inverseBindMatrices;
-        std::vector<Node*> joints;
-    };
-
     struct Model {
         VulkanDevice *vulkanDevice = nullptr;
         std::string m_FileName;
@@ -215,28 +194,20 @@ public:
             prefilterEnv = r->skybox.prefilterEnv;
             irradianceCube = r->skybox.irradianceCube;
             lutBrdf = r->skybox.lutBrdf;
-
         }
         ~Model();
 
-        std::vector<Skin*> skins;
+        std::shared_ptr<TextureCubeMap> irradianceCube;
+        std::shared_ptr<TextureCubeMap> prefilterEnv;
+        std::shared_ptr<Texture2D> lutBrdf;
+
         std::vector<std::string> extensions;
         std::vector<Texture2D> m_Textures;
         Texture2D emptyTexture;
 
-        TextureCubeMap *irradianceCube;
-        TextureCubeMap *prefilterEnv;
-        Texture2D *lutBrdf;
-
         std::vector<Material> materials;
         std::vector<Texture::TextureSampler> textureSamplers;
-        TextureIndices textureIndices;
-        bool useCustomTranslation = false;
-        glm::vec3 nodeTranslation{};
-        glm::vec3 nodeScale = glm::vec3(1.0f, 1.0f, 1.0f);
-
         bool gltfModelLoaded = false;
-
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory= VK_NULL_HANDLE;
@@ -250,30 +221,19 @@ public:
         std::vector<Node*> nodes{};
         std::vector<Node*> linearNodes{};
 
-        struct Dimensions {
-            glm::vec3 min = glm::vec3(FLT_MAX);
-            glm::vec3 max = glm::vec3(-FLT_MAX);
-        } dimensions{};
 
         std::vector<VkDescriptorSet> descriptors;
 
 
-        void destroy(VkDevice device);
         void loadNode(GLTFModel::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex,
                       const tinygltf::Model &_model, float globalscale, LoaderInfo &loaderInfo);
-        void loadSkins(tinygltf::Model& gltfModel);
+
         void loadTextures(tinygltf::Model& gltfModel, VulkanDevice* device, VkQueue transferQueue);
         VkSamplerAddressMode getVkWrapMode(int32_t wrapMode);
         VkFilter getVkFilterMode(int32_t filterMode);
         void loadTextureSamplers(tinygltf::Model& gltfModel);
         void loadMaterials(tinygltf::Model& gltfModel);
         void loadFromFile(std::string fileName, VulkanDevice *device, VkQueue transferQueue, float scale);
-        Node* findNode(Node* parent, uint32_t index);
-        Node* nodeFromIndex(uint32_t index);
-
-        void setTexture(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-        void setNormalMap(std::basic_string<char, std::char_traits<char>, std::allocator<char>> basicString);
-
 
 
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
@@ -293,26 +253,23 @@ public:
 
         void setupNodeDescriptorSet(Node *node);
 
-        void createPipeline(VkRenderPass renderPass, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+        void createPipeline(const VkRender::RenderUtils *utils, std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
                             VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT);
 
 
         void draw(CommandBuffer * commandBuffer, uint32_t i);
-        void drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
+        void drawNode(Node *node, CommandBuffer* commandBuffer, uint32_t cbIndex, Material::AlphaMode mode);
 
         void createRenderPipeline(const VkRender::RenderUtils &utils,
                                   const std::vector<VkPipelineShaderStageCreateInfo> &shaders);
 
-
-        void translate(const glm::vec3 &translation);
-        void scale(const glm::vec3 &scale);
 
         void createDescriptorsAdditionalBuffers(const std::vector<VkRender::RenderDescriptorBuffersData> &ubo);
 
         void
         createRenderPipeline(const VkRender::RenderUtils &utils,
                              const std::vector<VkPipelineShaderStageCreateInfo> &shaders,
-                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, ScriptTypeFlags flags);
+                             const std::vector<VkRender::RenderDescriptorBuffersData> &buffers, VkRender::ScriptTypeFlags flags);
 
         void createDescriptorSetLayoutAdditionalBuffers();
 

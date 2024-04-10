@@ -37,12 +37,7 @@
 
 #ifndef MULTISENSE_INTERACTIONMENU_H
 #define MULTISENSE_INTERACTIONMENU_H
-#ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
+
 #include <filesystem>
 
 #include "Viewer/ImGui/Custom/imgui_user.h"
@@ -54,10 +49,12 @@
 #include "Viewer/ImGui/MainLayerExt/SensorConfigurationExt.h"
 
 #ifdef WIN32
+#ifdef APIENTRY
+    #undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 #else
-
 #include <unistd.h>
-
 #endif
 
 
@@ -88,7 +85,7 @@ public:
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
         bool allUnavailable = true;
         for (auto &d: handles->devices) {
-            if (d.state == CRL_STATE_ACTIVE)
+            if (d.state == VkRender::CRL_STATE_ACTIVE)
                 allUnavailable = false;
         }
 
@@ -102,7 +99,7 @@ public:
         }
 
         for (auto &dev: handles->devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
             // Control page
 
@@ -111,7 +108,7 @@ public:
             createViewingArea(handles, dev);
 
             ImGui::BeginGroup();
-            if (dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW || !dev.extend3DArea)
+            if (dev.selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW || !dev.extend3DArea)
                 createControlArea(handles, dev);
 
             ImGui::EndGroup();
@@ -131,7 +128,7 @@ private:
                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
                 ImGuiWindowFlags_NoScrollWithMouse;
 
-        bool is3DAreaExtended = (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && dev.extend3DArea);
+        bool is3DAreaExtended = (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD && dev.extend3DArea);
 
         ImVec2 windowPos = is3DAreaExtended ?
                            ImVec2(handles->info->sidebarWidth, 0) :
@@ -154,12 +151,12 @@ private:
                              (handles->info->viewingAreaWidth / 2)) - 80.0f, 0.0f));
         ImGui::SameLine();
 
-        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW ?
+        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW ?
                                                VkRender::Colors::CRLRedActive :
                                                VkRender::Colors::CRLRed);
 
         if (ImGui::Button("2D", ImVec2(75.0f, 20.0f))) {
-            dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW;
+            dev.selectedPreviewTab = VkRender::CRL_TAB_2D_PREVIEW;
             Log::Logger::getInstance()->info("Profile {}: 2D preview pressed", dev.name.c_str());
             handles->clearColor[0] = VkRender::Colors::CRLCoolGray.x;
             handles->clearColor[1] = VkRender::Colors::CRLCoolGray.y;
@@ -170,14 +167,14 @@ private:
         }
         ImGui::PopStyleColor(); // Btn Color
 
-        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD ?
+        ImGui::PushStyleColor(ImGuiCol_Button, dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD ?
                                                VkRender::Colors::CRLRedActive :
                                                VkRender::Colors::CRLRed);
 
         ImGui::SameLine();
 
         if (ImGui::Button("3D", ImVec2(75.0f, 20.0f))) {
-            dev.selectedPreviewTab = CRL_TAB_3D_POINT_CLOUD;
+            dev.selectedPreviewTab = VkRender::CRL_TAB_3D_POINT_CLOUD;
             Log::Logger::getInstance()->info("Profile {}: 3D preview pressed", dev.name.c_str());
             handles->clearColor[0] = VkRender::Colors::CRL3DBackground.x;
             handles->clearColor[1] = VkRender::Colors::CRL3DBackground.y;
@@ -196,7 +193,7 @@ private:
                                                VkRender::Colors::CRLRed);
 
 
-        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+        if (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
             // Maintain position of buttons in viewing bar even if 3D area is extended
             ImGui::SameLine(0.0f, (is3DAreaExtended ?
                                    (handles->info->viewingAreaWidth) / 2 :
@@ -241,7 +238,7 @@ private:
         /// DRAW EITHER 2D or 3D Control TAB. ALSO TOP TAB BARS FOR CONTROLS OR SENSOR PARAM
         for (auto &d: handles->devices) {
             // Create dropdown
-            if (d.state == CRL_STATE_ACTIVE) {
+            if (d.state == VkRender::CRL_STATE_ACTIVE) {
 
                 ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
                 ImVec2 framePadding = ImGui::GetStyle().FramePadding;
@@ -264,8 +261,8 @@ private:
 
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
 
-                        dev.controlTabActive = CRL_TAB_PREVIEW_CONTROL;
-                        if (dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD)
+                        dev.controlTabActive = VkRender::CRL_TAB_PREVIEW_CONTROL;
+                        if (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD)
                             preview3DExt->onUIRender(handles);
                         else
                             buildPreviewControlTab(handles, dev);
@@ -288,7 +285,7 @@ private:
                         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
                         ImGui::PushFont(handles->info->font13);
 
-                        dev.controlTabActive = CRL_TAB_SENSOR_CONFIG;
+                        dev.controlTabActive = VkRender::CRL_TAB_SENSOR_CONFIG;
                         sensorConfigurationExt->onUIRender(handles);
                         ImGui::PopStyleVar();//Framepadding
                         ImGui::PopFont();
@@ -343,7 +340,7 @@ private:
                                uv1,
                                bg_col, tint_col)) {
             Log::Logger::getInstance()->info("Single Layout pressed.");
-            dev.layout = CRL_PREVIEW_LAYOUT_SINGLE;
+            dev.layout = VkRender::CRL_PREVIEW_LAYOUT_SINGLE;
             handles->usageMonitor->userClickAction("Single", "ImageButton", ImGui::GetCurrentWindow()->Name);
 
         }
@@ -351,7 +348,7 @@ private:
         if (ImGui::ImageButton("Double", handles->info->imageButtonTextureDescriptor[7], size, uv0,
                                uv1,
                                bg_col, tint_col)) {
-            dev.layout = CRL_PREVIEW_LAYOUT_DOUBLE;
+            dev.layout = VkRender::CRL_PREVIEW_LAYOUT_DOUBLE;
             handles->usageMonitor->userClickAction("Double", "ImageButton", ImGui::GetCurrentWindow()->Name);
 
         }
@@ -359,7 +356,7 @@ private:
         if (ImGui::ImageButton("Quad", handles->info->imageButtonTextureDescriptor[8], size, uv0,
                                uv1,
                                bg_col, tint_col)) {
-            dev.layout = CRL_PREVIEW_LAYOUT_QUAD;
+            dev.layout = VkRender::CRL_PREVIEW_LAYOUT_QUAD;
             handles->usageMonitor->userClickAction("Quad", "ImageButton", ImGui::GetCurrentWindow()->Name);
         }
 
@@ -382,7 +379,7 @@ private:
         ImGui::Dummy(ImVec2(00.0f, 7.0));
 
         for (size_t i = 0; i < dev.channelInfo.size(); ++i) {
-            if (dev.channelInfo[i].state != CRL_STATE_ACTIVE)
+            if (dev.channelInfo[i].state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             ImGui::Dummy(ImVec2(40.0f, 0.0));
@@ -399,7 +396,7 @@ private:
             }
 
             auto &chInfo = dev.channelInfo[i];
-            if (chInfo.state != CRL_STATE_ACTIVE)
+            if (chInfo.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
             if (ImGui::BeginCombo(resLabel.c_str(),
                                   Utils::cameraResolutionToString(chInfo.selectedResolutionMode).c_str(),

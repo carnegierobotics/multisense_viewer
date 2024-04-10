@@ -38,41 +38,35 @@
 #include "Viewer/ImGui/Widgets.h"
 
 void MultiSenseCamera::setup() {
-
     loadModelFuture = std::async(std::launch::async, &MultiSenseCamera::loadModelsAsync, this);
-    /*
-    Widgets::make()->text("Select other camera models");
-    Widgets::make()->slider("##Select model", &selection, 0, 2);
-    */
     deviceCopy = new VulkanDevice(renderUtils.device);
 
     Widgets::make()->text(WIDGET_PLACEMENT_IMU, "Set IMU smoothing");
     Widgets::make()->slider(WIDGET_PLACEMENT_IMU, "##IMU smoothing", &alpha, 0.5f, 0.999f);
-
-
 }
 
 void MultiSenseCamera::loadModelsAsync() {
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("Scene/spv/object.vert",
+    std::vector<VkPipelineShaderStageCreateInfo> shaders = {{loadShader("spv/object.vert",
                                                                         VK_SHADER_STAGE_VERTEX_BIT)},
-                                                            {loadShader("Scene/spv/object.frag",
+                                                            {loadShader("spv/object.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
-    S30 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    S30->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), deviceCopy,
-                      deviceCopy->m_TransferQueue, 1.0f);
-    S30->createRenderPipeline(renderUtils, shaders);
+    // Define a list of model names and corresponding unique pointers
+    std::vector<std::pair<std::string, std::unique_ptr<GLTFModel::Model>*>> models = {
+            {"Models/s30_pbr.gltf", &S30},
+            {"Models/s27_pbr.gltf", &S27},
+            {"Models/ks21_pbr.gltf", &KS21}
+    };
 
-    S27 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    S27->loadFromFile(Utils::getAssetsPath().append("Models/s27_pbr.gltf").string(), deviceCopy,
-                      deviceCopy->m_TransferQueue, 1.0f);
-    S27->createRenderPipeline(renderUtils, shaders);
+    for (auto& [modelPath, modelPtr] : models) {
+        *modelPtr = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
+        (*modelPtr)->loadFromFile(Utils::getAssetsPath().append(modelPath).string(), deviceCopy, deviceCopy->m_TransferQueue, 1.0f);
 
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, deviceCopy);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/ks21_pbr.gltf").string(), deviceCopy,
-                       deviceCopy->m_TransferQueue, 1.0f);
-    KS21->createRenderPipeline(renderUtils, shaders);
+        if (cancelLoadModels.load()) // Don't create render pipeline if our resources may be out of date
+            break;
+        (*modelPtr)->createRenderPipeline(renderUtils, shaders);
+    }
 
 }
 
@@ -80,7 +74,7 @@ void MultiSenseCamera::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (loadModelFuture.valid() &&
         loadModelFuture.wait_for(std::chrono::duration<float>(0)) != std::future_status::ready)
         return;
-    if (selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
+    if (selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD && b && !stopDraw) {
         if (Utils::checkRegexMatch(selectedModel, "s30"))
             S30->draw(commandBuffer, i);
         else if (Utils::checkRegexMatch(selectedModel, "s27"))
@@ -97,7 +91,7 @@ void MultiSenseCamera::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
 }
 
 void MultiSenseCamera::handleIMUUpdate() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
 
     if (imuRotationFuture.valid() &&
         imuRotationFuture.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready) {
@@ -135,7 +129,7 @@ void MultiSenseCamera::handleIMUUpdate() {
 }
 
 void MultiSenseCamera::update() {
-    auto &d = bufferOneData;
+    auto &d = ubo[0].mvp;
 
     if (!setImuConfigFuture.valid() ||
         setImuConfigFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
@@ -143,7 +137,7 @@ void MultiSenseCamera::update() {
                                         &MultiSenseCamera::setIMUSampleRate, this);
     }
 
-    if (imuEnabled && selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
+    if (imuEnabled && selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
         handleIMUUpdate();
     } else {
         d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -162,7 +156,7 @@ void MultiSenseCamera::update() {
             cos(static_cast<double>(glm::radians(renderData.camera->m_Rotation.x)))
     );
 
-    auto &d2 = bufferTwoData;
+    auto &d2 = ubo[0].fragShader;
     d2->lightDir = glm::vec4(
             static_cast<double>(sinf(glm::radians(lightSource.rotation.x))) * cos(
                     static_cast<double>(glm::radians(lightSource.rotation.y))),
@@ -178,7 +172,6 @@ void MultiSenseCamera::update() {
     d2->scaleIBLAmbient = ptr->scaleIBLAmbient;
     d2->debugViewInputs = ptr->debugViewInputs;
     d2->prefilteredCubeMipLevels = renderUtils.skybox.prefilteredCubeMipLevels;
-
 
 }
 
@@ -197,7 +190,7 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     bool noActiveDevice = true;
     for (const auto &d: uiHandle->devices) {
-        if (d.state != CRL_STATE_ACTIVE)
+        if (d.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = d.selectedPreviewTab;
         selectedModel = d.cameraName;
@@ -223,4 +216,9 @@ void MultiSenseCamera::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (noActiveDevice)
         stopDraw = true;
+}
+
+void MultiSenseCamera::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    cancelLoadModels = true;
+    Log::Logger::getInstance()->info("WindowResize triggered for {}, Renderer3D enabled: {}", GetFactoryName(), uiHandle->renderer3D);
 }

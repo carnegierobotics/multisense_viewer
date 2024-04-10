@@ -69,19 +69,19 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     /** @brief Get the type of script. This will determine how it interacts with the renderer **/
-    ScriptTypeFlags getType() override {return m_Type;}
-    DrawMethod getDrawMethod() override {return drawMethod;}
+    VkRender::ScriptTypeFlags getType() override {return m_Type;}
+    VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() override {return drawMethod;}
     /** @brief called after renderer has handled a window resize event **/
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief Method to enable/disable drawing of this script **/
-    void setDrawMethod(DrawMethod _drawMethod) override{ drawMethod = _drawMethod; }
+    void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ drawMethod = _drawMethod; }
 
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    ScriptTypeFlags m_Type = CRL_SCRIPT_TYPE_DEFAULT;
-    DrawMethod drawMethod = CRL_SCRIPT_DONT_DRAW;
+    VkRender::ScriptTypeFlags m_Type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
+    VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
     std::unique_ptr<CRLCameraModels::Model> m_Model;
     std::unique_ptr<CRLCameraModels::Model> m_ModelTestDevice; // For use with test device i.e. not a MultiSense camera debug version
     std::unique_ptr<CRLCameraModels::Model> m_NoDataModel;
@@ -98,7 +98,7 @@ public:
     unsigned char* m_TestDeviceTex{};
     unsigned char* m_NoSourceTex{};
 
-    Page selectedPreviewTab = CRL_TAB_NONE;
+    VkRender::Page selectedPreviewTab = VkRender::CRL_TAB_NONE;
     float posY = 0.0f;
     float scaleX = 0.25f;
     float scaleY = 0.25f;
@@ -106,9 +106,9 @@ public:
     float centerY = 0.0f;
     std::string src;
     int16_t remoteHeadIndex = 0;
-    CRLCameraResolution res = CRL_RESOLUTION_NONE;
+    VkRender::CRLCameraResolution res = VkRender::CRL_RESOLUTION_NONE;
     int texWidth = 0, texHeight = 0, texChannels = 0;
-    CRLCameraDataType textureType = CRL_CAMERA_IMAGE_NONE;
+    VkRender::CRLCameraDataType textureType = VkRender::CRL_CAMERA_IMAGE_NONE;
     int64_t lastPresentedFrameID = -1;
     std::chrono::steady_clock::time_point lastPresentTime;
 

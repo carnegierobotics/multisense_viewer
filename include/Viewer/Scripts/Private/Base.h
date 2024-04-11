@@ -57,6 +57,7 @@
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/ImGui/Layer.h"
+#include "Viewer/Core/RenderResource.h"
 
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000
@@ -319,43 +320,7 @@ namespace VkRender {
 
 
     private:
-        struct ResourceEntry {
-            // Resource handle (e.g., VkBuffer, VkImage, etc.)
-            VkPipeline pipeline = VK_NULL_HANDLE;
-            VkPipeline pipeline2 = VK_NULL_HANDLE;
-            VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-            VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory = VK_NULL_HANDLE;
 
-            bool cleanUpReady = false;
-
-            void destroyResources(const VkDevice &device) const {
-                // If not in use then destroy
-                if (descriptorSetLayout != VK_NULL_HANDLE)
-                    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-                if (descriptorPool != VK_NULL_HANDLE)
-                    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-                if (pipelineLayout != VK_NULL_HANDLE)
-                    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-                if (pipeline != VK_NULL_HANDLE)
-                    vkDestroyPipeline(device, pipeline, nullptr);
-                if (pipeline2 != VK_NULL_HANDLE)
-                    vkDestroyPipeline(device, pipeline2, nullptr);
-            }
-
-            bool cleanUp(const VkDevice &device, const VkFence &fence) {
-                if (vkGetFenceStatus(device, fence) == VK_SUCCESS) {
-                    // The command buffer has finished execution; safe to clean up resources
-                    // Perform cleanup operations here
-                    destroyResources(device);
-                    cleanUpReady = true;
-                    return cleanUpReady;
-                }
-                return false;
-            }
-        };
 
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
         std::chrono::steady_clock::time_point lastLogTime;
@@ -374,7 +339,7 @@ namespace VkRender {
         const Input *input{};
 
     protected:
-        std::vector<ResourceEntry> resourceTracker;
+        std::vector<RenderResource::ResourceEntry> resourceTracker;
     };
 }
 

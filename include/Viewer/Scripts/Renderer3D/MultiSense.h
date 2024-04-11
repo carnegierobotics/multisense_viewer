@@ -6,8 +6,6 @@
 #define MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
-#include "Viewer/ModelLoaders/GLTFModel.h"
-#include "Viewer/ModelLoaders/CustomModels.h"
 
 class MultiSense: public VkRender::Base, public VkRender::RegisteredInFactory<MultiSense>
 {
@@ -31,7 +29,6 @@ public:
     void update() override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
-        KS21.reset();
     }
     /** @brief set if this script should be drawn or not. */
     void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD _drawMethod) override{ this->drawMethod = _drawMethod; }
@@ -45,10 +42,11 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
-    std::unique_ptr<GLTFModel::Model> KS21;
+    std::shared_ptr<VkRender::GLTF::Model> model;
+    std::shared_ptr<VkRender::GLTF::Skybox> skybox;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

@@ -14,6 +14,7 @@ void Grid::setup() {
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
     resourceTracker.resize(renderUtils.UBCount);
+    // TODO REDO this is not the way to use a resourceTracker
     model = std::make_unique<CustomModels>(&renderUtils);
     VkRender::ScriptUtils::ImageData imgData{};
     model->model->uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);

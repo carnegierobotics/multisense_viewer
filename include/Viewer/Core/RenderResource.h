@@ -12,7 +12,10 @@
 
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Macros.h"
-#include "RenderDefinitions.h"
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/ModelLoaders/GLTFModel2.h"
+
 
 namespace RenderResource {
 
@@ -185,6 +188,62 @@ namespace RenderResource {
         std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
         std::vector<Texture2D> *textures{};
     };
+
+    template <class T>
+    class GLTFModel {
+    public:
+
+        explicit GLTFModel(VkRender::RenderUtils *renderUtils, std::shared_ptr<T> pPtr);
+
+
+        void draw();
+
+        T getComponent(){
+            T component = new T();
+            return component;
+        }
+
+    private:
+        VulkanDevice *vulkanDevice = nullptr;
+        VkRender::RenderUtils * renderUtils = nullptr;
+        std::shared_ptr<T> model;
+
+        struct Textures {
+            TextureCubeMap environmentCube;
+            Texture2D empty;
+            Texture2D lutBrdf;
+            TextureCubeMap irradianceCube;
+            TextureCubeMap prefilteredCube;
+        }textures;
+
+        struct DescriptorSetLayouts {
+            VkDescriptorSetLayout model;
+            VkDescriptorSetLayout material;
+            VkDescriptorSetLayout node;
+            VkDescriptorSetLayout materialBuffer;
+        } descriptorSetLayouts;
+
+        VkDescriptorSet descriptorSet;
+        VkPipelineLayout pipelineLayout;
+        std::vector<std::unordered_map<std::string, VkPipeline>> pipelines;
+
+        Buffer shaderMaterialBuffer;
+        VkDescriptorSet descriptorSetMaterials;
+
+        std::map<std::string, std::string> environments;
+        std::string selectedEnvironment = "papermill";
+
+
+        void loadAssets();
+        void generateBRDFLUT();
+        void setupDescriptors();
+        void setupRenderPipelines();
+    };
+
+    template<class T>
+    void GLTFModel<T>::draw() {
+
+    }
 
     class Pipeline {
     public:
@@ -383,6 +442,68 @@ namespace RenderResource {
                 throw std::runtime_error("Failed to create graphics m_Pipeline");
         }
     };
+
+    struct ResourceEntry {
+        // Resource handle (e.g., VkBuffer, VkImage, etc.)
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipeline pipeline2 = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+
+        bool cleanUpReady = false;
+
+        void destroyResources(const VkDevice &device) const {
+            // If not in use then destroy
+            if (descriptorSetLayout != VK_NULL_HANDLE)
+                vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+            if (descriptorPool != VK_NULL_HANDLE)
+                vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+            if (pipelineLayout != VK_NULL_HANDLE)
+                vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+            if (pipeline != VK_NULL_HANDLE)
+                vkDestroyPipeline(device, pipeline, nullptr);
+            if (pipeline2 != VK_NULL_HANDLE)
+                vkDestroyPipeline(device, pipeline2, nullptr);
+        }
+
+        bool cleanUp(const VkDevice &device, const VkFence &fence) {
+            if (vkGetFenceStatus(device, fence) == VK_SUCCESS) {
+                // The command buffer has finished execution; safe to clean up resources
+                // Perform cleanup operations here
+                destroyResources(device);
+                cleanUpReady = true;
+                return cleanUpReady;
+            }
+            return false;
+        }
+    };
+
+    /**
+ * Utility function to load shaders in scripts. Automatically creates and destroys shaderModule objects if a valid shader file is passed
+ * @param fileName
+ * @param stage
+ * @return
+ */
+    [[nodiscard]] static VkPipelineShaderStageCreateInfo
+    loadShader(VkDevice device, std::string fileName, VkShaderStageFlagBits stage, VkShaderModule* module) {
+        // Check if we have .spv extensions. If not then add it.
+        std::size_t extension = fileName.find(".spv");
+        if (extension == std::string::npos)
+            fileName.append(".spv");
+        Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
+                          device, module);
+        assert(module != VK_NULL_HANDLE);
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage = stage;
+        shaderStage.module = *module;
+        shaderStage.pName = "main";
+        Log::Logger::getInstance()->info("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
+        return shaderStage;
+    }
 }
 
 #endif //MULTISENSE_VIEWER_RENDERRESOURCE_H

@@ -3,7 +3,6 @@
 //
 
 #include "Viewer/Scripts/Renderer3D/MultiSense.h"
-#include "Viewer/ImGui/Widgets.h"
 
 void MultiSense::setup() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {
@@ -17,10 +16,22 @@ void MultiSense::setup() {
             }
     };
 
-    KS21 = std::make_unique<GLTFModel::Model>(&renderUtils, renderUtils.device);
-    KS21->loadFromFile(Utils::getAssetsPath().append("Models/s30_pbr.gltf").string(), renderUtils.device,
-                       renderUtils.device->m_TransferQueue, 1.0f);
-    KS21->createRenderPipeline(renderUtils, shaders);
+
+    // Load the gltf vertices/indices into vulkan
+    // Load a material info
+    // Load scene info
+    skybox = std::make_shared<VkRender::GLTF::Skybox>(Utils::getAssetsPath() / "Models" / "box.gltf", renderUtils.device);
+
+    model = std::make_shared<VkRender::GLTF::Model>(Utils::getAssetsPath() / "Models" / "humvee.gltf", renderUtils.device);
+    // Load vulkan render resources for gltf model
+    // pipelines
+    // bind renderpasses
+    // Also make sure to push resources to cleanup queue if we resize or exi
+    RenderResource::GLTFModel<VkRender::GLTF::Model> rrModel(&renderUtils, model);
+    RenderResource::GLTFModel<VkRender::GLTF::Skybox> rrSkybox(&renderUtils, skybox);
+
+    rrSkybox.getComponent<VkRender::GLTF::Skybox>()->draw();
+
 
     startPlay = std::chrono::steady_clock::now();
 }
@@ -79,7 +90,6 @@ void MultiSense::update() {
 }
 
 void MultiSense::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
-    if (b) {
-        KS21->draw(commandBuffer, i);
-    }
+
+
 }

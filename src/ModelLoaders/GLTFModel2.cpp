@@ -9,7 +9,7 @@
 
 #include "Viewer/Tools/Macros.h"
 
-namespace VkRender
+namespace VkRender::GLTF
 {
     // Bounding box
 
@@ -732,7 +732,7 @@ namespace VkRender
         }
     }
 
-    void Model::loadFromFile(std::string filename, VulkanDevice* device, VkQueue transferQueue, float scale)
+    void Model::loadFromFile(std::string filename, float scale)
     {
         tinygltf::Model gltfModel;
         tinygltf::TinyGLTF gltfContext;
@@ -740,7 +740,6 @@ namespace VkRender
         std::string error;
         std::string warning;
 
-        this->device = device;
 
         bool binary = false;
         size_t extpos = filename.rfind('.', filename.length());
@@ -756,7 +755,7 @@ namespace VkRender
 
         if (fileLoaded) {
             loadTextureSamplers(gltfModel);
-            loadTextures(gltfModel, device, transferQueue);
+            loadTextures(gltfModel, device, device->m_TransferQueue);
             loadMaterials(gltfModel);
 
             const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
@@ -858,7 +857,7 @@ namespace VkRender
             vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
         }
 
-        device->flushCommandBuffer(copyCmd, transferQueue, true);
+        device->flushCommandBuffer(copyCmd, device->m_TransferQueue, true);
 
         vkDestroyBuffer(device->m_LogicalDevice, vertexStaging.buffer, nullptr);
         vkFreeMemory(device->m_LogicalDevice, vertexStaging.memory, nullptr);

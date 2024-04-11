@@ -17,7 +17,7 @@
 
 #define MAX_NUM_JOINTS 128u
 
-namespace VkRender {
+namespace VkRender::GLTF {
     struct Node;
 
     struct BoundingBox {
@@ -150,7 +150,13 @@ namespace VkRender {
         float end = std::numeric_limits<float>::min();
     };
 
+
     struct Model {
+
+        Model(std::filesystem::path modelPath,  VulkanDevice *device){
+            this->device = device;
+            loadFromFile(modelPath);
+        }
 
         VulkanDevice *device;
 
@@ -208,7 +214,7 @@ namespace VkRender {
         void loadTextureSamplers(tinygltf::Model& gltfModel);
         void loadMaterials(tinygltf::Model& gltfModel);
         void loadAnimations(tinygltf::Model& gltfModel);
-        void loadFromFile(std::string filename, VulkanDevice* device, VkQueue transferQueue, float scale = 1.0f);
+        void loadFromFile(std::string filename, float scale = 1.0f);
         void drawNode(Node* node, VkCommandBuffer commandBuffer);
         void draw(VkCommandBuffer commandBuffer);
         void calculateBoundingBox(Node* node, Node* parent);

@@ -303,7 +303,8 @@ namespace Utils {
 
     /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
     inline void
-    cameraResolutionToValue(VkRender::CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height, uint32_t *_depth) {
+    cameraResolutionToValue(VkRender::CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height,
+                            uint32_t *_depth) {
         uint32_t width = 0, height = 0, depth = 0;
         switch (resolution) {
             case VkRender::CRL_RESOLUTION_NONE:
@@ -580,32 +581,14 @@ namespace Utils {
     }
 
 
-    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *
-
-    module) {
-        std::ifstream is(fileName, std::ios::binary
-
-                                   | std::ios::ate);
-
-        if (is.
-
-                is_open()
-
-                ) {
+    inline void loadShader(const char *fileName, const VkDevice &device, VkShaderModule *module) {
+        std::ifstream is(fileName, std::ios::binary | std::ios::ate);
+        if (is.is_open()) {
             std::streamsize size = is.tellg();
             is.seekg(0, std::ios::beg);
             std::vector<char> shaderCode(size);
-            is.
-                    read(shaderCode
-                                 .
-
-                                         data(), size
-
-            );
-            is.
-
-                    close();
-
+            is.read(shaderCode.data(), size);
+            is.close();
             assert(size > 0);
             VkShaderModuleCreateInfo moduleCreateInfo{};
             moduleCreateInfo.
@@ -619,7 +602,7 @@ namespace Utils {
             if (res != VK_SUCCESS)
                 throw std::runtime_error("Failed to create shader module");
         } else {
-            Log::Logger::getInstance()->info("Failed to open shader file {}", fileName);
+            Log::Logger::getInstance()->error("Failed to open shader file {}", fileName);
         }
     }
 

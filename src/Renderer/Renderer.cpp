@@ -77,7 +77,7 @@ namespace VkRender {
         usageMonitor->loadSettingsFromFile();
         usageMonitor->userStartSession(rendererStartTime);
 
-        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height,
+        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice, renderPass, m_Width, m_Height,
                                                             msaaSamples,
                                                             swapchain->imageCount);
         guiManager->handles.mouse = &mouseButtons;
@@ -103,27 +103,33 @@ namespace VkRender {
         // TODO Make dynamic
         VulkanRenderer::setupSecondaryRenderPasses();
         renderUtils.secondaryRenderPasses = &secondaryRenderPasses;
-        /*
-               std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
-               std::string line;
-               while (std::getline(infile, line)) {
-                   // Skip comment # line
-                   if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
-                       continue;
-                   availableScriptNames.emplace_back(line);
-               }
 
-               // Load Object Scripts from file
-               buildScript("Skybox");
-               for (const auto &name: availableScriptNames)
-                   buildScript(name);
+        std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
+        std::string line;
+        while (std::getline(infile, line)) {
+            // Skip comment # line
+            if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
+                continue;
+            availableScriptNames.emplace_back(line);
+        }
 
-               for (const auto &pair: scripts) {
-                   guiManager->handles.renderBlock.scripts[pair.first] = false;
-               }
-                */
+        // Load Object Scripts from file
+        buildScript("Skybox");
+        //for (const auto &name: availableScriptNames)
+        //    buildScript(name);
+//
+        //for (const auto &pair: scripts) {
+        //    guiManager->handles.renderBlock.scripts[pair.first] = false;
+        //}
 
-        createEntity("Default Entity");
+
+        auto e = createEntity("Default");
+        e.addComponent<GLTFModelComponent>(Utils::getAssetsPath() / "Models" / "humvee.gltf", vulkanDevice);
+        e.addComponent<CameraComponent>(&camera);
+
+        auto grid = createEntity("Grid");
+        grid.addComponent<CameraComponent>(&camera);
+        grid.addComponent<CustomModelComponent>(&renderUtils);
 
     }
 
@@ -172,7 +178,7 @@ namespace VkRender {
         builtScriptNames.emplace_back(scriptName);
 
         // Run Once
-        renderUtils.device = vulkanDevice.get();
+        renderUtils.device = vulkanDevice;
         renderUtils.instance = &instance;
         renderUtils.renderPass = &renderPass;
         renderUtils.msaaSamples = msaaSamples;
@@ -336,12 +342,15 @@ namespace VkRender {
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
         // Draw scripts that must be drawn first
+        /*
         for (auto &script: scripts) {
             if (script.second->getType() == VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
                 script.second->drawScript(&drawCmdBuffers, currentFrame, true);
         }
-
+        */
+        /*
         /** Generate Script draw commands **/
+        /*
         for (auto &script: scripts) {
             if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
                 script.second->getType() != VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
@@ -349,6 +358,13 @@ namespace VkRender {
                 script.second->drawScript(&drawCmdBuffers, currentFrame, true);
             }
         }
+        */
+        auto view = m_registry.view<CustomModelComponent>();
+        for (auto entity : view) {
+            auto& model = view.get<CustomModelComponent>(entity);
+            model.draw(&drawCmdBuffers, currentFrame);
+        }
+
         /** Generate UI draw commands **/
         guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
@@ -383,6 +399,16 @@ namespace VkRender {
         renderData.renderPassIndex = 0;
 
 
+        auto view = m_registry.view<CustomModelComponent>();
+        for (auto entity : view) {
+            auto& model = view.get<CustomModelComponent>(entity);
+            VkRender::UBOMatrix d;
+            d.model = glm::mat4(1.0f);
+            d.projection = renderData.camera->matrices.perspective;
+            d.view = renderData.camera->matrices.view;
+
+            model.update(renderData.index, &d);
+        }
 
         // Delete the requested scripts if resources are no longer busy in render pipeline
         std::vector<std::string> scriptsToDelete;
@@ -1094,18 +1120,16 @@ namespace VkRender {
         }
     }
 
-    Entity Renderer::createEntity(const std::string& name)
-    {
+    Entity Renderer::createEntity(const std::string &name) {
         return createEntityWithUUID(UUID(), name);
     }
 
 
-    Entity Renderer::createEntityWithUUID(UUID uuid, const std::string& name)
-    {
+    Entity Renderer::createEntityWithUUID(UUID uuid, const std::string &name) {
         Entity entity = {m_registry.create(), this};
         entity.addComponent<IDComponent>(uuid);
         entity.addComponent<TransformComponent>();
-        auto& tag = entity.addComponent<TagComponent>();
+        auto &tag = entity.addComponent<TagComponent>();
         tag.Tag = name.empty() ? "Entity" : name;
 
         m_entityMap[uuid] = entity;
@@ -1113,9 +1137,17 @@ namespace VkRender {
         return entity;
     }
 
+    Entity Renderer::findEntityByName(std::string_view name) {
+        auto view = m_registry.view<TagComponent>();
+        for (auto entity: view) {
+            const TagComponent &tc = view.get<TagComponent>(entity);
+            if (tc.Tag == name)
+                return Entity{entity, this};
+        }
+        return {};
+    }
 
-    void Renderer::destroyEntity(Entity entity)
-    {
+    void Renderer::destroyEntity(Entity entity) {
         m_entityMap.erase(entity.GetUUID());
         m_registry.destroy(entity);
     }
@@ -1135,8 +1167,7 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<CameraComponent>(Entity entity, CameraComponent &component) {
-        if (m_Width > 0 && m_Height > 0)
-           ;// component.Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+        if (m_Width > 0 && m_Height > 0);// component.Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
     }
 
     template<>
@@ -1144,19 +1175,7 @@ namespace VkRender {
     }
 
     template<>
-    void Renderer::onComponentAdded<SpriteRendererComponent>(Entity entity, SpriteRendererComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<CircleRendererComponent>(Entity entity, CircleRendererComponent &component) {
-    }
-
-    template<>
     void Renderer::onComponentAdded<TagComponent>(Entity entity, TagComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent &component) {
     }
 
     template<>
@@ -1164,14 +1183,13 @@ namespace VkRender {
     }
 
     template<>
-    void Renderer::onComponentAdded<BoxCollider2DComponent>(Entity entity, BoxCollider2DComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<CircleCollider2DComponent>(Entity entity, CircleCollider2DComponent &component) {
-    }
-
-    template<>
     void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<GLTFModelComponent>(Entity entity, GLTFModelComponent &component) {
+    }
+    template<>
+    void Renderer::onComponentAdded<CustomModelComponent>(Entity entity, CustomModelComponent &component) {
     }
 };

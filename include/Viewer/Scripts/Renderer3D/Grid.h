@@ -49,7 +49,6 @@ public:
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
-    std::unique_ptr<CustomModels> model;
     bool enable = true;
     bool hide = false;
 

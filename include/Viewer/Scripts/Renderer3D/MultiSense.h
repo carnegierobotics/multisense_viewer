@@ -45,9 +45,6 @@ public:
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
-    std::shared_ptr<VkRender::GLTF::Model> model;
-    //std::shared_ptr<VkRender::GLTF::Skybox> skybox;
-
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);

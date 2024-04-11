@@ -13,6 +13,7 @@ void Grid::setup() {
                                                             {loadShader("spv/grid.frag",
                                                                         VK_SHADER_STAGE_FRAGMENT_BIT)}};
 
+    /*
     resourceTracker.resize(renderUtils.UBCount);
     // TODO REDO this is not the way to use a resourceTracker
     model = std::make_unique<CustomModels>(&renderUtils);
@@ -32,20 +33,19 @@ void Grid::setup() {
     }
 
 
+     */
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Grid", &enable);
 }
 
 
 void Grid::update() {
     auto &d = ubo[0].mvp;
-    d->model = glm::mat4(1.0f);
-    d->projection = renderData.camera->matrices.perspective;
-    d->view = renderData.camera->matrices.view;
+
 }
 
 void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     if (b && enable) {
-        model->draw(commandBuffer, i);
+        //model->draw(commandBuffer, i);
     }
 }
 

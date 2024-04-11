@@ -93,7 +93,7 @@ namespace VkRender {
         uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
-        std::unique_ptr<VulkanDevice> vulkanDevice{};
+        VulkanDevice* vulkanDevice{};
 
         struct {
             VkImage image;

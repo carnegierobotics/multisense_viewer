@@ -6,17 +6,8 @@
 #include "Viewer/Core/RenderResource.h"
 
 
-RenderResource::GLTFModel::GLTFModel(VkRender::RenderUtils *_renderUtils, std::shared_ptr<VkRender::GLTF::Model> modelPtr) {
-    renderUtils = _renderUtils;
-    vulkanDevice = renderUtils->device;
-    model = modelPtr;
 
-    generateBRDFLUT();
-    setupDescriptors();
-    setupRenderPipelines();
-}
-
-
+/*
 void RenderResource::GLTFModel::generateBRDFLUT() {
     auto tStart = std::chrono::high_resolution_clock::now();
 
@@ -534,10 +525,12 @@ void RenderResource::GLTFModel::setupDescriptors() {
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
     }
-     */
+
 }
 
 
 void RenderResource::GLTFModel::setupRenderPipelines() {
 
 }
+
+*/

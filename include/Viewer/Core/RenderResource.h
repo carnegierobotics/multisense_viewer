@@ -18,190 +18,9 @@
 
 
 namespace RenderResource {
-
-    struct MeshConfig {
-        VulkanDevice *device = nullptr;
-        std::string type;
-
-    };
-
-    class Mesh {
-    public:
-        explicit Mesh(const RenderResource::MeshConfig &meshConf) : conf(meshConf) {
-            device = meshConf.device;
-            defaultCube(&model);
-            uploadMeshDeviceLocal(&model);
-        }
-
-        ~Mesh() {
-            if (model.vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(device->m_LogicalDevice, model.vertices.buffer, nullptr);
-                vkFreeMemory(device->m_LogicalDevice, model.vertices.memory, nullptr);
-                if (model.indexCount > 0) {
-                    vkDestroyBuffer(device->m_LogicalDevice, model.indices.buffer, nullptr);
-                    vkFreeMemory(device->m_LogicalDevice, model.indices.memory, nullptr);
-                }
-            }
-        }
-
-        VulkanDevice *device = nullptr;
-        MeshConfig conf;
-
-        struct Model {
-            uint32_t firstIndex = 0;
-            uint32_t indexCount = 0;
-            uint32_t vertexCount = 0;
-
-            struct Vertices {
-                VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory{};
-
-                std::vector<VkRender::Vertex> data;
-            } vertices{};
-            struct Indices {
-                VkBuffer buffer = VK_NULL_HANDLE;
-                VkDeviceMemory memory{};
-
-                std::vector<uint32_t> data;
-            } indices{};
-
-            Buffer uniformBuffer{};
-
-
-        } model;
-
-    private:
-        void defaultCube(RenderResource::Mesh::Model *mesh) {
-            // Define the vertices of the cube
-
-            std::vector<VkRender::Vertex> vertices{};
-            vertices.resize(4);
-            // Front face
-            vertices[0].pos = glm::vec3(-1.0f, -1.0f, 0.0f); // Bottom-left Top-left
-            vertices[0].uv0 = glm::vec2(0.0f, 0.0f);
-
-            vertices[1].pos = glm::vec3(1.0f, -1.0f, 0.0f); // Bottom-right
-            vertices[1].uv0 = glm::vec2(1.0f, 0.0f);
-
-            vertices[2].pos = glm::vec3(1.0f, 1.0f, 0.0f); // Top-right
-            vertices[2].uv0 = glm::vec2(1.0f, 1.0f);
-
-            vertices[3].pos = glm::vec3(-1.0f, 1.0f, 0.0f); // Top-left
-            vertices[3].uv0 = glm::vec2(0.0f, 1.0f);
-
-
-            // Define the indices for the cube
-            std::vector<uint32_t> indices = {
-                    0, 1, 2, // First triangle (bottom-right)
-                    2, 3, 0  // Second triangle (top-left)
-            };
-
-            mesh->firstIndex = 0;
-            mesh->indexCount = static_cast<uint32_t>(indices.size());
-            mesh->vertexCount = static_cast<uint32_t>(vertices.size());
-            mesh->vertices.data = vertices;
-            mesh->indices.data = indices;
-        }
-
-        void uploadMeshDeviceLocal(RenderResource::Mesh::Model *mesh) {
-            size_t vertexBufferSize = mesh->vertexCount * sizeof(VkRender::Vertex);
-            size_t indexBufferSize = mesh->indexCount * sizeof(uint32_t);
-
-            struct StagingBuffer {
-                VkBuffer buffer;
-                VkDeviceMemory memory;
-            } vertexStaging{}, indexStaging{};
-
-            // Create staging buffers
-            // Vertex m_DataPtr
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    vertexBufferSize,
-                    &vertexStaging.buffer,
-                    &vertexStaging.memory,
-                    reinterpret_cast<const void *>(mesh->vertices.data.data())))
-            // Index m_DataPtr
-            if (indexBufferSize > 0) {
-                CHECK_RESULT(device->createBuffer(
-                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        indexBufferSize,
-                        &indexStaging.buffer,
-                        &indexStaging.memory,
-                        reinterpret_cast<const void *>(mesh->indices.data.data())))
-            }
-            // Create m_Device local buffers
-            // Vertex buffer
-            if (mesh->vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(device->m_LogicalDevice, mesh->vertices.buffer, nullptr);
-                vkFreeMemory(device->m_LogicalDevice, mesh->vertices.memory, nullptr);
-                if (indexBufferSize > 0) {
-                    vkDestroyBuffer(device->m_LogicalDevice, mesh->indices.buffer, nullptr);
-                    vkFreeMemory(device->m_LogicalDevice, mesh->indices.memory, nullptr);
-                }
-            }
-            CHECK_RESULT(device->createBuffer(
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    vertexBufferSize,
-                    &mesh->vertices.buffer,
-                    &mesh->vertices.memory));
-            // Index buffer
-            if (indexBufferSize > 0) {
-                CHECK_RESULT(device->createBuffer(
-                        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                        indexBufferSize,
-                        &mesh->indices.buffer,
-                        &mesh->indices.memory));
-            }
-
-            // Copy from staging buffers
-            VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-            VkBufferCopy copyRegion = {};
-            copyRegion.size = vertexBufferSize;
-            vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, mesh->vertices.buffer, 1, &copyRegion);
-            if (indexBufferSize > 0) {
-                copyRegion.size = indexBufferSize;
-                vkCmdCopyBuffer(copyCmd, indexStaging.buffer, mesh->indices.buffer, 1, &copyRegion);
-            }
-            device->flushCommandBuffer(copyCmd, device->m_TransferQueue, true);
-            vkDestroyBuffer(device->m_LogicalDevice, vertexStaging.buffer, nullptr);
-            vkFreeMemory(device->m_LogicalDevice, vertexStaging.memory, nullptr);
-
-            if (indexBufferSize > 0) {
-                vkDestroyBuffer(device->m_LogicalDevice, indexStaging.buffer, nullptr);
-                vkFreeMemory(device->m_LogicalDevice, indexStaging.memory, nullptr);
-            }
-        }
-    };
-}
-
-namespace RenderResource {
-    struct PipelineConfig {
-        VulkanDevice *device = nullptr;
-        uint32_t UboCount = 0;
-        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-        VkRenderPass *renderPass{};
-        Buffer *ubo{};
-        std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
-        std::vector<Texture2D> *textures{};
-    };
-
-    class GLTFModel {
-    public:
-
-        explicit GLTFModel(VkRender::RenderUtils *renderUtils, std::shared_ptr<VkRender::GLTF::Model> pPtr);
-
-
-        void draw();
-
-
-    private:
+    struct SkyboxGraphicsPipelineComponent {
         VulkanDevice *vulkanDevice = nullptr;
         VkRender::RenderUtils * renderUtils = nullptr;
-        std::shared_ptr<VkRender::GLTF::Model> model;
 
         struct Textures {
             TextureCubeMap environmentCube;
@@ -233,6 +52,30 @@ namespace RenderResource {
         void generateBRDFLUT();
         void setupDescriptors();
         void setupRenderPipelines();
+    };
+
+}
+
+namespace RenderResource {
+    struct PipelineConfig {
+        VulkanDevice *device = nullptr;
+        uint32_t UboCount = 0;
+        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkRenderPass *renderPass{};
+        Buffer *ubo{};
+        std::vector<VkPipelineShaderStageCreateInfo> *shaders{};
+        std::vector<Texture2D> *textures{};
+    };
+
+    class GLTFModel {
+    public:
+
+
+        void draw();
+
+
+    private:
+
     };
 
 

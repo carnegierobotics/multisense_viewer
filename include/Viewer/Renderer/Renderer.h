@@ -93,6 +93,7 @@ namespace VkRender {
         Entity createEntity(const std::string &name);
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
+        Entity findEntityByName(std::string_view name);
 
     public:
         entt::registry m_registry;
@@ -168,7 +169,6 @@ namespace VkRender {
         VkMemoryRequirements m_MemReqs{};
 
         friend class Entity;
-
 
 
     };

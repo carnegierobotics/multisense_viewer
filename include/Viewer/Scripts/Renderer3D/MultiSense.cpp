@@ -26,8 +26,6 @@ void MultiSense::setup() {
     // pipelines
     // bind renderpasses
     // Also make sure to push resources to cleanup queue if we resize or exi
-    model = std::make_shared<VkRender::GLTF::Model>(Utils::getAssetsPath() / "Models" / "humvee.gltf", renderUtils.device);
-    RenderResource::GLTFModel rrModel(&renderUtils, model);
     //RenderResource::GLTFModel<VkRender::GLTF::Skybox> rrSkybox(&renderUtils, skybox);
 
     //rrSkybox.getComponent<VkRender::GLTF::Skybox>()->draw();

@@ -237,7 +237,7 @@ namespace VkRender {
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
-        vulkanDevice = std::make_unique<VulkanDevice>(physicalDevice, &queueSubmitMutex);
+        vulkanDevice = new VulkanDevice(physicalDevice, &queueSubmitMutex);
         err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
             throw std::runtime_error("Failed to create logical device");
@@ -316,7 +316,7 @@ namespace VkRender {
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 #endif
-        vulkanDevice.reset(); //Call to destructor for smart pointer destroy logical m_Device before instance
+        delete vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // CleanUp GLFW window
         glfwDestroyWindow(window);

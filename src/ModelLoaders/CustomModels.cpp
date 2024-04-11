@@ -6,11 +6,15 @@
 
 #include "Viewer/Scripts/Private/ScriptUtils.h"
 
-CustomModels::Model::Model(const VkRender::RenderUtils *renderUtils) {
+CustomModelComponent::Model::Model(const VkRender::RenderUtils *renderUtils) {
     this->vulkanDevice = renderUtils->device;
+
+    VkRender::ScriptUtils::ImageData imgData{};
+    uploadMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
+
 }
 
-CustomModels::Model::~Model() {
+CustomModelComponent::Model::~Model() {
     vkDestroyBuffer(vulkanDevice->m_LogicalDevice, mesh.vertices.buffer, nullptr);
     vkFreeMemory(vulkanDevice->m_LogicalDevice, mesh.vertices.memory, nullptr);
 
@@ -21,7 +25,7 @@ CustomModels::Model::~Model() {
 }
 
 
-void CustomModels::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
+void CustomModelComponent::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                                                 const std::vector<uint32_t> &indices) {
     size_t vertexBufferSize = vertices.size() * sizeof(VkRender::Vertex);
     size_t indexBufferSize = indices.size() * sizeof(uint32_t);
@@ -97,7 +101,7 @@ void CustomModels::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vert
     }
 }
 
-void CustomModels::createDescriptorSetLayout() {
+void CustomModelComponent::createDescriptorSetLayout() {
     for (auto &descriptorSetLayout: descriptorSetLayouts) {
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
         setLayoutBindings = {
@@ -111,7 +115,7 @@ void CustomModels::createDescriptorSetLayout() {
     }
 }
 
-void CustomModels::createDescriptorPool() {
+void CustomModelComponent::createDescriptorPool() {
     for (auto &descriptorPool: descriptorPools) {
         uint32_t uniformDescriptorCount = renderer->UBCount;
         std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -124,7 +128,7 @@ void CustomModels::createDescriptorPool() {
     }
 }
 
-void CustomModels::createDescriptorSets() {
+void CustomModelComponent::createDescriptorSets() {
     descriptors.resize(renderer->UBCount);
 
     for (size_t i = 0; i < descriptorSetLayouts.size(); ++i) {
@@ -142,7 +146,7 @@ void CustomModels::createDescriptorSets() {
         writeDescriptorSets[0].descriptorCount = 1;
         writeDescriptorSets[0].dstSet = descriptors[i];
         writeDescriptorSets[0].dstBinding = 0;
-        writeDescriptorSets[0].pBufferInfo = &renderer->uniformBuffers[i].bufferOne.m_DescriptorBufferInfo;
+        writeDescriptorSets[0].pBufferInfo = &UBOBuffers[i].m_DescriptorBufferInfo;
 
 
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -150,7 +154,7 @@ void CustomModels::createDescriptorSets() {
     }
 }
 
-void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector) {
+void CustomModelComponent::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector) {
     for (size_t i = 0; i < pipelineLayouts.size(); ++i) {
 
 
@@ -261,7 +265,7 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
     }
 }
 
-void CustomModels::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
+void CustomModelComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
     if (cbIndex >= renderer->UBCount)
         return;
     vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts[cbIndex],

@@ -33,7 +33,6 @@
  * Significant history (date, user, action):
  *   2021-10-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#define TINYGLTF_IMPLEMENTATION
 
 #include <utility>
 #include <stb_image.h>

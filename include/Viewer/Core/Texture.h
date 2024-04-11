@@ -43,8 +43,9 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-#include <tiny_gltf.h>
 #include <filesystem>
+
+#include <tiny_gltf.h>
 
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"

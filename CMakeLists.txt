@@ -71,6 +71,7 @@ set(ENGINE_SRC
         src/ModelLoaders/CRLCameraModels.cpp
         src/ModelLoaders/CustomModels.cpp
         src/ModelLoaders/GLTFModel.cpp
+        src/ModelLoaders/GLTFModel2.cpp
 
         src/Renderer/Renderer.cpp
         src/Tools/StbInclude.cpp

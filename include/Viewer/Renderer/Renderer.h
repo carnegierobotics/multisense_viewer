@@ -95,6 +95,8 @@ namespace VkRender {
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Entity findEntityByName(std::string_view name);
 
+        Camera* getCamera();
+
         VkRender::RenderUtils renderUtils{};
     public:
         entt::registry m_registry;

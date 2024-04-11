@@ -186,6 +186,7 @@ namespace VkRender {
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
         drawCmdBuffers.renderPassIndex = 1;
         /** Generate Script draw commands **/
+        /*
         for (auto &script: scripts) {
             if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
                 script.second->getType() != VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
@@ -194,6 +195,14 @@ namespace VkRender {
                 script.second->drawScript(&drawCmdBuffers, currentFrame, true);
             }
         }
+        */
+
+        auto view2 = m_registry.view<CustomModelComponent>();
+        for (auto entity : view2) {
+            auto& model = view2.get<CustomModelComponent>(entity);
+            model.draw(&drawCmdBuffers, currentFrame);
+        }
+
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
         VkImageMemoryBarrier barrier = {};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -304,8 +313,7 @@ namespace VkRender {
         renderData.height = m_Height;
         renderData.width = m_Width;
         renderData.crlCamera = &cameraConnection->camPtr;
-        renderData.renderPassIndex = 0;
-
+        renderUtils.swapchainIndex = currentFrame;
         // New version available?
         std::string versionRemote;
         if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
@@ -906,6 +914,10 @@ namespace VkRender {
     void Renderer::destroyEntity(Entity entity) {
         m_entityMap.erase(entity.getUUID());
         m_registry.destroy(entity);
+    }
+
+    Camera *Renderer::getCamera() {
+        return &camera;
     }
 
     template<typename T>

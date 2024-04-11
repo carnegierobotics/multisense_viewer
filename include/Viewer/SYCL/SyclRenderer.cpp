@@ -4,11 +4,12 @@
 
 #include "SyclRenderer.h"
 
-
+/*
 #include <fstream>
 #include "RT_IN_ONE_WEEKEND/kernels.h"
 #include "RT_IN_ONE_WEEKEND/camera.h"
 #include "RT_IN_ONE_WEEKEND/sphere.h"
+
 
 void SyclRenderer::save_image(vec3* fb_data, const std::string& filename, uint32_t width, uint32_t height) {
     std::ofstream file(filename);
@@ -117,3 +118,5 @@ SyclRenderer::SyclRenderer(int width, int height) {
 
 
 }
+
+*/

@@ -27,20 +27,17 @@ void Grid::update() {
     Log::Logger::getInstance()->traceWithFrequency("Tag", 5000, "Update from {}", GetFactoryName());
     // Update UBO data
     auto e = m_context->findEntityByName("3DViewerGrid");
+    if (!e)
+        return;
     auto id = e.getUUID();
-    auto& c = e.getComponent<CustomModelComponent>();
-
-    auto& camera = e.getComponent<VkRender::CameraComponent>();
-    camera.camera.type = VkRender::Camera::arcball;
-    camera.camera.setPerspective(60.0f, static_cast<float>(1280) / static_cast<float>(720), 0.01f, 100.0f);
-    camera.camera.resetPosition();
-    camera.camera.resetRotation();
+    auto camera = m_context->getCamera();
 
     VkRender::UBOMatrix d;
     d.model = glm::mat4(1.0f);
-    d.view = camera.camera.matrices.view;
-    d.projection = camera.camera.matrices.perspective;
+    d.view = camera->matrices.view;
+    d.projection = camera->matrices.perspective;
 
+    auto& c = e.getComponent<CustomModelComponent>();
     c.update(m_context->renderUtils.swapchainIndex, &d);
 
 }

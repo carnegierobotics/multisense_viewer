@@ -39,6 +39,7 @@ set(IMGUI_DIR external/imgui)
 set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
+set(ENTT_DIR external/entt)
 
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)
@@ -190,6 +191,13 @@ else ()
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF)
     set(OPENSSL_USE_STATIC_LIBS ON)
     add_subdirectory(${CPP_HTTPLIB})
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${ENTT_DIR}")
+    message(FATAL_ERROR "The submodules ${PROJECT_SOURCE_DIR}/${ENTT_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding ENTT_DIR from directory: ${ENTT_DIR}")
+    include_directories(${ENTT_DIR}/include/)
 endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.

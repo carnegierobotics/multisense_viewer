@@ -46,7 +46,7 @@ public:
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
 
     std::shared_ptr<VkRender::GLTF::Model> model;
-    std::shared_ptr<VkRender::GLTF::Skybox> skybox;
+    //std::shared_ptr<VkRender::GLTF::Skybox> skybox;
 
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);

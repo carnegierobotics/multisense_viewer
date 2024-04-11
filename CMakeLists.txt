@@ -66,6 +66,7 @@ set(ENGINE_SRC
         src/Core/VulkanRenderer.cpp
         src/Core/VulkanSwapchain.cpp
         src/Core/RenderResource.cpp
+        src/Core/UUID.cpp
         src/CRLCamera/CRLPhysicalCamera.cpp
         src/ImGui/GuiManager.cpp
         src/ModelLoaders/CRLCameraModels.cpp
@@ -74,6 +75,8 @@ set(ENGINE_SRC
         src/ModelLoaders/GLTFModel2.cpp
 
         src/Renderer/Renderer.cpp
+        src/Renderer/Entity.cpp
+
         src/Tools/StbInclude.cpp
         src/CRLCamera/CameraConnection.cpp
         src/ImGui/Widgets.cpp

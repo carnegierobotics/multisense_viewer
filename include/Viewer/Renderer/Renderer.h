@@ -42,10 +42,14 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
+
 #include <GLFW/glfw3.h>
+#include <entt/entt.hpp>
+#include <complex>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Scripts/Private/Base.h"
@@ -56,85 +60,119 @@
 #include "Viewer/Core/RendererConfig.h"
 
 #include "Generated/ScriptHeader.h"
+#include "Viewer/Core/UUID.h"
 
-class Renderer : VkRender::VulkanRenderer {
-
-public:
-
-    /**
-     * @brief Default constructor for renderer
-     * @param title Title of application
-     */
-    explicit Renderer(const std::string &title);
-
-    ~Renderer()= default;
-
-    /**
-     * @brief runs the renderer loop
-     */
-    void run() {
-        VulkanRenderer::renderLoop();
-    }
-
-    /**
-     * @brief cleans up resources on application exist
-     */
-    void cleanUp();
-
-private:
-
-    void recordCommands() override;
-    bool compute() override;
-    void updateUniformBuffers() override;
-
-    void prepareRenderer();
+namespace VkRender {
+    class Entity;
 
 
-    std::unique_ptr<VkRender::GuiManager> guiManager{};
-    std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
-    std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
-    std::vector<std::string> builtScriptNames;
-    std::vector<std::string> availableScriptNames;
-    std::shared_ptr<UsageMonitor> usageMonitor;
-    std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
-    VkRender::RenderData renderData{};
-    VkRender::RenderUtils renderUtils{};
-    VkRender::TopLevelScriptData topLevelScriptData{};
+    class Renderer : VulkanRenderer {
 
-    bool renderSelectionPass = true;
+    public:
 
-    // Create a host-visible staging buffer that contains the raw m_Image data
-    VkBuffer selectionBuffer{};
-    VkDeviceMemory selectionMemory{};
-    VkBufferImageCopy bufferCopyRegion{};
-    VkMemoryRequirements m_MemReqs{};
+        /**
+         * @brief Default constructor for renderer
+         * @param title Title of application
+         */
+        explicit Renderer(const std::string &title);
 
-    void windowResized() override;
-    void addDeviceFeatures() override;
-    void buildCommandBuffers() override;
-    void mouseMoved(float x, float y, bool&handled) override;
-    void mouseScroll(float change) override;
+        ~Renderer() = default;
 
-    void createSelectionFramebuffer();
-    void createSelectionImages();
-    void destroySelectionBuffer();
-    void createSelectionBuffer();
+        /**
+         * @brief runs the renderer loop
+         */
+        void run() {
+            VulkanRenderer::renderLoop();
+        }
 
-    /**
-     * @brief creates instances from classes located in src/Scripts/ directory.
-     * Usually each class here represents object(s) in the scene
-     */
-    void buildScript(const std::string &scriptName);
+        /**
+         * @brief cleans up resources on application exist
+         */
+        void cleanUp();
 
-    /**
-     * @brief deletes a script if stored in \refitem builtScriptNames
-     * @param scriptName m_Name of script to delete
-     */
-    void deleteScript(const std::string &scriptName);
+        Entity createEntity(const std::string &name);
+        void destroyEntity(Entity entity);
+        Entity createEntityWithUUID(UUID uuid, const std::string &name);
 
-    static void setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
-                              std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
-};
+    public:
+        entt::registry m_registry;
+        std::unordered_map<UUID, entt::entity> m_entityMap;
+
+    private:
+        template<typename T>
+        void onComponentAdded(Entity entity, T &component);
+
+
+        void recordCommands() override;
+
+        bool compute() override;
+
+        void updateUniformBuffers() override;
+
+        void prepareRenderer();
+
+
+        void windowResized() override;
+
+        void addDeviceFeatures() override;
+
+        void buildCommandBuffers() override;
+
+        void mouseMoved(float x, float y, bool &handled) override;
+
+        void mouseScroll(float change) override;
+
+        void createSelectionFramebuffer();
+
+        void createSelectionImages();
+
+        void destroySelectionBuffer();
+
+        void createSelectionBuffer();
+
+        /**
+         * @brief creates instances from classes located in src/Scripts/ directory.
+         * Usually each class here represents object(s) in the scene
+         */
+        void buildScript(const std::string &scriptName);
+
+        /**
+         * @brief deletes a script if stored in \refitem builtScriptNames
+         * @param scriptName m_Name of script to delete
+         */
+        void deleteScript(const std::string &scriptName);
+
+        static void
+        setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
+                             std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
+
+    private:
+
+        std::unique_ptr<VkRender::GuiManager> guiManager{};
+        std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
+        std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
+        std::vector<std::string> builtScriptNames;
+        std::vector<std::string> availableScriptNames;
+        std::shared_ptr<UsageMonitor> usageMonitor;
+        std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
+        VkRender::RenderData renderData{};
+        VkRender::RenderUtils renderUtils{};
+        VkRender::TopLevelScriptData topLevelScriptData{};
+
+        bool renderSelectionPass = true;
+
+        // Create a host-visible staging buffer that contains the raw m_Image data
+        VkBuffer selectionBuffer{};
+        VkDeviceMemory selectionMemory{};
+        VkBufferImageCopy bufferCopyRegion{};
+        VkMemoryRequirements m_MemReqs{};
+
+        friend class Entity;
+
+
+
+    };
+}
 
 
 #endif // MultiSense_Viewer_RENDERER_H

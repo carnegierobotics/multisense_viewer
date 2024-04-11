@@ -9,10 +9,11 @@
 #include <memory>
 #include <string>
 
-class LayerFactory {
-public:
-    static std::shared_ptr<VkRender::Layer> createLayer(const std::string& layerName);
+namespace VkRender {
+    class LayerFactory {
+    public:
+        static std::shared_ptr<VkRender::Layer> createLayer(const std::string &layerName);
+    };
 };
-
 
 #endif //MULTISENSE_VIEWER_LAYERFACTORY_H

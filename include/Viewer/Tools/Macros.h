@@ -94,12 +94,21 @@
     VkResult res = (f);                                                                                     \
     if (res != VK_SUCCESS)                                                                                  \
     {                                                                                                       \
-        std::cerr << "Fatal : VkResult is \"" << Macros::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
+        std::cerr << "Fatal : VkResult is \"" << VkRender::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
         assert(res == VK_SUCCESS);                                                                                \
     }                                                                                                             \
 }
 
-namespace Macros {
+#define VK_ASSERT(res, str) \
+{ \
+    if (res != true)                                                                                  \
+    {                                                                                                       \
+        std::cerr << "Fatal : VK_ASSERT is \"" << str << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
+        assert(res == true);                                                                                \
+    }                                                                                                             \
+}
+
+namespace VkRender {
 
 
     inline std::string errorString(VkResult errorCode) {

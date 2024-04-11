@@ -45,7 +45,7 @@
 int main() {
     Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
 
-    Renderer app("MultiSense Viewer");
+    VkRender::Renderer app("MultiSense Viewer");
     try{
         app.run();
         // Time cleanup

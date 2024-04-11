@@ -189,24 +189,19 @@ namespace RenderResource {
         std::vector<Texture2D> *textures{};
     };
 
-    template <class T>
     class GLTFModel {
     public:
 
-        explicit GLTFModel(VkRender::RenderUtils *renderUtils, std::shared_ptr<T> pPtr);
+        explicit GLTFModel(VkRender::RenderUtils *renderUtils, std::shared_ptr<VkRender::GLTF::Model> pPtr);
 
 
         void draw();
 
-        T getComponent(){
-            T component = new T();
-            return component;
-        }
 
     private:
         VulkanDevice *vulkanDevice = nullptr;
         VkRender::RenderUtils * renderUtils = nullptr;
-        std::shared_ptr<T> model;
+        std::shared_ptr<VkRender::GLTF::Model> model;
 
         struct Textures {
             TextureCubeMap environmentCube;
@@ -223,12 +218,12 @@ namespace RenderResource {
             VkDescriptorSetLayout materialBuffer;
         } descriptorSetLayouts;
 
-        VkDescriptorSet descriptorSet;
-        VkPipelineLayout pipelineLayout;
+        VkDescriptorSet descriptorSet{};
+        VkPipelineLayout pipelineLayout{};
         std::vector<std::unordered_map<std::string, VkPipeline>> pipelines;
 
         Buffer shaderMaterialBuffer;
-        VkDescriptorSet descriptorSetMaterials;
+        VkDescriptorSet descriptorSetMaterials{};
 
         std::map<std::string, std::string> environments;
         std::string selectedEnvironment = "papermill";
@@ -240,10 +235,6 @@ namespace RenderResource {
         void setupRenderPipelines();
     };
 
-    template<class T>
-    void GLTFModel<T>::draw() {
-
-    }
 
     class Pipeline {
     public:

@@ -6,8 +6,7 @@
 #include "Viewer/Core/RenderResource.h"
 
 
-template<typename T>
-RenderResource::GLTFModel<T>::GLTFModel(VkRender::RenderUtils *_renderUtils, std::shared_ptr<T> modelPtr) {
+RenderResource::GLTFModel::GLTFModel(VkRender::RenderUtils *_renderUtils, std::shared_ptr<VkRender::GLTF::Model> modelPtr) {
     renderUtils = _renderUtils;
     vulkanDevice = renderUtils->device;
     model = modelPtr;
@@ -17,8 +16,8 @@ RenderResource::GLTFModel<T>::GLTFModel(VkRender::RenderUtils *_renderUtils, std
     setupRenderPipelines();
 }
 
-template<typename T>
-void RenderResource::GLTFModel<T>::generateBRDFLUT() {
+
+void RenderResource::GLTFModel::generateBRDFLUT() {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     const VkFormat format = VK_FORMAT_R16G16_SFLOAT;
@@ -280,11 +279,13 @@ void RenderResource::GLTFModel<T>::generateBRDFLUT() {
 
 }
 
-template<typename T>
-void RenderResource::GLTFModel<T>::setupDescriptors() {
+
+void RenderResource::GLTFModel::setupDescriptors() {
+
+    /*
     /*
         Descriptor Pool
-    */
+
     uint32_t imageSamplerCount = 0;
     uint32_t materialCount = 0;
     uint32_t meshCount = 0;
@@ -320,7 +321,7 @@ void RenderResource::GLTFModel<T>::setupDescriptors() {
 
     /*
         Descriptor sets
-    */
+
 
     // Scene (matrices and environment maps)
     {
@@ -533,9 +534,10 @@ void RenderResource::GLTFModel<T>::setupDescriptors() {
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
     }
+     */
 }
 
-template<typename T>
-void RenderResource::GLTFModel<T>::setupRenderPipelines() {
+
+void RenderResource::GLTFModel::setupRenderPipelines() {
 
 }

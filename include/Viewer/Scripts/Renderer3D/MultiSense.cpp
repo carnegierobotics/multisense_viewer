@@ -20,17 +20,17 @@ void MultiSense::setup() {
     // Load the gltf vertices/indices into vulkan
     // Load a material info
     // Load scene info
-    skybox = std::make_shared<VkRender::GLTF::Skybox>(Utils::getAssetsPath() / "Models" / "box.gltf", renderUtils.device);
+    //skybox = std::make_shared<VkRender::GLTF::Skybox>(Utils::getAssetsPath() / "Models" / "box.gltf", renderUtils.device);
 
-    model = std::make_shared<VkRender::GLTF::Model>(Utils::getAssetsPath() / "Models" / "humvee.gltf", renderUtils.device);
     // Load vulkan render resources for gltf model
     // pipelines
     // bind renderpasses
     // Also make sure to push resources to cleanup queue if we resize or exi
-    RenderResource::GLTFModel<VkRender::GLTF::Model> rrModel(&renderUtils, model);
-    RenderResource::GLTFModel<VkRender::GLTF::Skybox> rrSkybox(&renderUtils, skybox);
+    model = std::make_shared<VkRender::GLTF::Model>(Utils::getAssetsPath() / "Models" / "humvee.gltf", renderUtils.device);
+    RenderResource::GLTFModel rrModel(&renderUtils, model);
+    //RenderResource::GLTFModel<VkRender::GLTF::Skybox> rrSkybox(&renderUtils, skybox);
 
-    rrSkybox.getComponent<VkRender::GLTF::Skybox>()->draw();
+    //rrSkybox.getComponent<VkRender::GLTF::Skybox>()->draw();
 
 
     startPlay = std::chrono::steady_clock::now();

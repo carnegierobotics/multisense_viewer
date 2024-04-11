@@ -48,8 +48,8 @@ public:
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
     VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_RENDERER3D;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
-    SyclRenderer syclRenderer;
 
+    std::unique_ptr<SyclRenderer>      syclRenderer;
     std::unique_ptr<ImageView> imageView;
     std::unique_ptr<ImageView> imageView2;
 

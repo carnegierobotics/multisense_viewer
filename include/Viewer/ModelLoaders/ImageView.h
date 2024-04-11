@@ -30,34 +30,39 @@ public:
         m_model->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
         // Load a default texture
         // Create texture m_Image if not created
-        unsigned char *pixels = stbi_load((Utils::getTexturePath().append("moon.png")).string().c_str(),
-                                          &width,
-                                          &height,
-                                          &channels,
-                                          STBI_rgb_alpha);
-        if (!pixels) {
-            Log::Logger::getInstance()->error("Failed to load texture image {}",
-                                             (Utils::getTexturePath().append("no_source_selected.png")).string());
-        }
+        if (width == 0) {
 
-        m_model->createEmptyTexture(width, height);
+            unsigned char *pixels = stbi_load((Utils::getTexturePath().append("moon.png")).string().c_str(),
+                                              &width,
+                                              &height,
+                                              &channels,
+                                              STBI_rgb_alpha);
+            if (!pixels) {
+                Log::Logger::getInstance()->error("Failed to load texture image {}",
+                                                  (Utils::getTexturePath().append("no_source_selected.png")).string());
+            }
+            m_model->createEmptyTexture(width, height);
+
+            for (uint32_t i = 0; i < renderUtils->UBCount; ++i) {
+                auto *dataPtr = m_model->resources[0].texture[i]->m_DataPtr;
+                std::memcpy(dataPtr, pixels, width * height * channels);
+                m_model->resources[0].texture[i]->updateTextureFromBuffer();
+
+                auto *dataPtr2 = m_model->resources[1].texture[i]->m_DataPtr;
+                std::memcpy(dataPtr2, pixels, width * height * channels);
+                m_model->resources[1].texture[i]->updateTextureFromBuffer();
+            }
+        } else
+            m_model->createEmptyTexture(width, height);
+
         createDescriptors(useOffScreenImageRender);
         createGraphicsPipeline();
-        for (uint32_t i = 0; i < renderUtils->UBCount; ++i) {
-            auto *dataPtr = m_model->resources[0].texture[i]->m_DataPtr;
-            std::memcpy(dataPtr, pixels, width * height * channels);
-            m_model->resources[0].texture[i]->updateTextureFromBuffer();
-
-            auto *dataPtr2 = m_model->resources[1].texture[i]->m_DataPtr;
-            std::memcpy(dataPtr2, pixels, width * height * channels);
-            m_model->resources[1].texture[i]->updateTextureFromBuffer();
-        }
-
     };
 
 
     void draw(CommandBuffer *commandBuffer, uint32_t i);
-    void updateTexture(uint32_t currentFrame, void* data, uint32_t size);
+
+    void updateTexture(uint32_t currentFrame, void *data, uint32_t size);
 
 private:
 
@@ -98,9 +103,12 @@ private:
             Buffer uniformBuffer{};
 
         } m_mesh{};
+
         void createMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                                    const std::vector<uint32_t> &indices = std::vector<uint32_t>());
+
         void createEmptyTexture(uint32_t width, uint32_t height);
+
         ~Model();
     };
 

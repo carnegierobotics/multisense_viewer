@@ -158,9 +158,9 @@ void ImageView::updateTexture(uint32_t currentFrame, void *data, uint32_t size) 
     // Convert and copy each pixel
     const double* floatData = static_cast<double*>(data);
     for (uint32_t i = 0; i < numPixels; ++i) {
-        tempBuffer[i * 4] = static_cast<uint8_t>(std::clamp(floatData[i * 3] * 255.0, 0.0, 255.0));
-        tempBuffer[i * 4 + 1] = static_cast<uint8_t>(std::clamp(floatData[i * 3 + 1] * 255.0, 0.0, 255.0));
-        tempBuffer[i * 4 + 2] = static_cast<uint8_t>(std::clamp(floatData[i * 3 + 2] * 255.0, 0.0, 255.0));
+        tempBuffer[i * 4] = static_cast<uint8_t>(floatData[i * 3] * 255.0);
+        tempBuffer[i * 4 + 1] = static_cast<uint8_t>(floatData[i * 3 + 1] * 255.0);
+        tempBuffer[i * 4 + 2] = static_cast<uint8_t>(floatData[i * 3 + 2] * 255.0);
         tempBuffer[i * 4 + 3] = 255; // Alpha channel
     }
 

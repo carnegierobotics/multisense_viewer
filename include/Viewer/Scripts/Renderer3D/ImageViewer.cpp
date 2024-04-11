@@ -10,7 +10,7 @@ void ImageViewer::setup() {
     // - Will change very often
     // - Determine where to display on the screen
     // - Very similar to CRLCameraModels but should be minimal
-    uint32_t width = 300, height = 300, channels = 4;
+    uint32_t width = 0, height = 0, channels = 4;
 
     std::string vertexShaderFileName = "spv/default.vert";
     std::string fragmentShaderFileName = "spv/default.frag";
@@ -22,8 +22,9 @@ void ImageViewer::setup() {
 
     imageView = std::make_unique<ImageView>(&renderUtils, width, height, channels, &shaders, true);
 
-    imageView2 = std::make_unique<ImageView>(&renderUtils, width, height, channels, &shaders, false);
+    imageView2 = std::make_unique<ImageView>(&renderUtils, renderData.width, renderData.height, channels, &shaders, false);
 
+    syclRenderer = std::make_unique<SyclRenderer>(renderData.width, renderData.height);
 
 }
 
@@ -66,7 +67,7 @@ void ImageViewer::update() {
     //}
 
 
-    imageView2->updateTexture(renderData.index, syclRenderer.fb.data(), syclRenderer.fb.size());
+    imageView2->updateTexture(renderData.index, syclRenderer->fb.data(), syclRenderer->fb.size());
 
 
     //free(pixels);

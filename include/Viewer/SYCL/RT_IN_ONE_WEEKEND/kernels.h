@@ -67,20 +67,22 @@ inline vec3 randomOnHemiSphere(const vec3& normal) {
         return -on_unit_sphere;
 }
 
-template <int width, int height, int num_spheres>
 class RenderKernel {
 public:
     RenderKernel(sycl::accessor<vec3, 1, sycl::access::mode::write, sycl::access::target::device> framePtr,
                  sycl::accessor<sphere, 1, sycl::access_mode::read, sycl::access::target::device> spherePtr,
-                 sycl::accessor<Camera, 1, sycl::access_mode::read, sycl::access::target::device> cameraPtr) :
+                 sycl::accessor<Camera, 1, sycl::access_mode::read, sycl::access::target::device> cameraPtr,
+                 int width, int height, int numSpheres) :
             m_framePtr(framePtr), m_spherePtr(spherePtr), m_cameraPtr(cameraPtr) {
+            this->width = width;
+            this->height = height;
+            this->numSpheres = numSpheres;
         /* initialize accessors */ }
-
-    void operator()(sycl::nd_item<3> item) const { // Marked as const
+    int width, height, numSpheres;
+    void operator()(sycl::nd_item<2> item) const { // Marked as const
         // get our Ids
         const auto x_coord = item.get_global_id(0);
         const auto y_coord = item.get_global_id(1);
-        const auto p_sample = item.get_global_id(2);
         // map the 2D indices to a single linear, 1D index
         const auto pixel_index = y_coord * width + x_coord;
 
@@ -117,7 +119,7 @@ private:
     }
 
     vec3 ray_color(const ray& r, const sycl::global_ptr<sphere>& spheres) const{
-        for (int i = 0; i < num_spheres; i++){
+        for (int i = 0; i < numSpheres; i++){
             auto t = hit_sphere(spheres[i].center, spheres[i].radius, r);
             if (t > 0.0) {
                 vec3 N = unit_vector(r.at(t) - vec3(0,0,-1));

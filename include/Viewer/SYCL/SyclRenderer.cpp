@@ -33,10 +33,8 @@ void SyclRenderer::save_image(vec3* fb_data, const std::string& filename, uint32
     std::cout << "Image saved to " << filename << std::endl;
 }
 
-template <int width, int height, int num_spheres, int samplesPerPixel>
-void render(sycl::queue &queue, vec3 *fb_data, const sphere *spheres, Camera* camera) {
-    constexpr auto num_pixels = width * height;
-
+void SyclRenderer::render(int width, int height, int num_spheres, sycl::queue &queue, vec3 *fb_data, const sphere *spheres, Camera* camera) {
+    auto num_pixels = width * height;
     auto frame_buf = sycl::buffer<vec3, 1>(fb_data, sycl::range<1>(num_pixels));
     sycl::buffer<sphere> spheres_buf(spheres, sycl::range<1>(num_spheres));
     sycl::buffer<Camera> cameraBuffer(camera, sycl::range<1>(1));
@@ -52,26 +50,21 @@ void render(sycl::queue &queue, vec3 *fb_data, const sphere *spheres, Camera* ca
         auto spherePtr = spheres_buf.get_access<sycl::access::mode::read>(cgh);
         auto cameraPtr = cameraBuffer.get_access<sycl::access::mode::read>(cgh);
         // setup kernel index space
-        const auto global = sycl::range<3>(width, height, samplesPerPixel);
-        const auto local = sycl::range<3>(TileX, TileY, TileZ);
-        const auto index_space = sycl::nd_range<3>(global, local);
+        const auto global = sycl::range<2>(width, height);
+        const auto local = sycl::range<2>(TileX, TileY);
+        const auto index_space = sycl::nd_range<2>(global, local);
         // construct kernel functor
-        const auto render_k = RenderKernel<width, height, num_spheres>(framePtr, spherePtr, cameraPtr);
+        const auto render_k = RenderKernel(framePtr, spherePtr, cameraPtr, width, height, num_spheres);
         // execute kernel
         cgh.parallel_for(index_space, render_k);
     });
 }
 
 
-SyclRenderer::SyclRenderer() {
+SyclRenderer::SyclRenderer(int width, int height) {
     // frame buffer dimensions
-    constexpr auto aspect_ratio = 16.0 / 9.0;
-    constexpr int width = 640;
 
-
-    // Calculate the image height, and ensure that it's at least 1.
-    constexpr int height = static_cast<int>(width / aspect_ratio);
-    constexpr auto num_pixels = width * height;
+    auto num_pixels = width * height;
 
     auto focal_length = 1.0;
     auto viewport_height = 2.0;
@@ -111,7 +104,7 @@ SyclRenderer::SyclRenderer() {
     spheres.emplace_back(sphere(vec3(0.0, -100.5, -1.0), 100.0)); // (large) ground sphere
 
     // run the SYCL render kenel
-    render<width, height, num_spheres, samplesPerPixel>(queue, fb.data(), spheres.data(), &camera);
+    render(width, height, num_spheres, queue, fb.data(), spheres.data(), &camera);
 
     // save the pixel data as an image file
     //save_image(fb.data(), "../output.ppm", width, height);

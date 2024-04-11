@@ -108,6 +108,9 @@ namespace VkRender {
             glm::mat4 view = glm::mat4(1.0f);
         } matrices{};
 
+        Camera(){
+
+        }
         struct {
             bool left = false;
             bool right = false;

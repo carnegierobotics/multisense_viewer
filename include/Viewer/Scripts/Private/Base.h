@@ -336,8 +336,6 @@ namespace VkRender {
             this->renderData.renderPassIndex = data->renderPassIndex;
         }
 
-        const Input *input{};
-
     protected:
         std::vector<RenderResource::ResourceEntry> resourceTracker;
     };

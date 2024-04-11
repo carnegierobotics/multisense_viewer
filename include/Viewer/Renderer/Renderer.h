@@ -95,6 +95,7 @@ namespace VkRender {
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Entity findEntityByName(std::string_view name);
 
+        VkRender::RenderUtils renderUtils{};
     public:
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
@@ -131,21 +132,6 @@ namespace VkRender {
 
         void createSelectionBuffer();
 
-        /**
-         * @brief creates instances from classes located in src/Scripts/ directory.
-         * Usually each class here represents object(s) in the scene
-         */
-        void buildScript(const std::string &scriptName);
-
-        /**
-         * @brief deletes a script if stored in \refitem builtScriptNames
-         * @param scriptName m_Name of script to delete
-         */
-        void deleteScript(const std::string &scriptName);
-
-        static void
-        setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
-                             std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
 
     private:
 
@@ -157,7 +143,6 @@ namespace VkRender {
         std::shared_ptr<UsageMonitor> usageMonitor;
         std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
         VkRender::RenderData renderData{};
-        VkRender::RenderUtils renderUtils{};
         VkRender::TopLevelScriptData topLevelScriptData{};
 
         bool renderSelectionPass = true;

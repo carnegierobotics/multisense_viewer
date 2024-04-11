@@ -14,6 +14,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "Viewer/Core/Camera.h"
+#include "Viewer/Core/UUID.h"
 
 namespace VkRender {
 
@@ -64,7 +65,7 @@ namespace VkRender {
 
 
     struct CameraComponent {
-        Camera *camera = nullptr;
+        Camera camera;
         bool primary = true; // TODO: think about moving to Scene
         bool fixedAspectRatio = false;
 
@@ -72,15 +73,25 @@ namespace VkRender {
 
         CameraComponent(const CameraComponent &) = default;
 
-        explicit CameraComponent(Camera *cam) : camera(cam) {}
+        explicit CameraComponent(Camera *cam) : camera(*cam) {}
     };
 
     struct ScriptComponent {
         std::string ClassName;
-
+        std::shared_ptr<Base2> script;
         ScriptComponent() = default;
 
         ScriptComponent(const ScriptComponent &) = default;
+
+        ScriptComponent(std::string scriptName, Renderer* m_context){
+            script = VkRender::ComponentMethodFactory::Create(scriptName);
+            script->m_context = m_context;
+            if (script.get() == nullptr) {
+                Log::Logger::getInstance()->error("Failed to register script {}.", scriptName);
+                return;
+            }
+            Log::Logger::getInstance()->info("Registered script: {} in factory", scriptName.c_str());
+        }
     };
 
 

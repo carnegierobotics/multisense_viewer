@@ -69,6 +69,7 @@
 #define DISABLE_WARNING_UNUSED_VARIABLE                           DISABLE_WARNING(-Wunused-value)
 #define DISABLE_WARNING_CAST_QUALIFIERS                           DISABLE_WARNING(-Wcast-qual)
 #define DISABLE_WARNING_DOUBLE_PROMOTION                          DISABLE_WARNING(-Wdouble-promotion)
+#define DISABLE_WARNING_OLD_STYLE_CAST                            DISABLE_WARNING(-Wold-style-cast)
 #define DISABLE_WARNING_IMPLICIT_FALLTHROUGH                      DISABLE_WARNING(-Wimplicit-fallthrough)
 #define DISABLE_WARNING_TYPE_LIMITS                               DISABLE_WARNING(-Wtype-limits)
 #define DISABLE_WARNING_MISSING_INITIALIZERS                      DISABLE_WARNING(-Wmissing-field-initializers)

@@ -48,7 +48,6 @@
 
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
-#include "Viewer/Renderer/Entity.h"
 
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Tools/Utils.h"
@@ -104,32 +103,26 @@ namespace VkRender {
         VulkanRenderer::setupSecondaryRenderPasses();
         renderUtils.secondaryRenderPasses = &secondaryRenderPasses;
 
-        std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
-        std::string line;
-        while (std::getline(infile, line)) {
-            // Skip comment # line
-            if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
-                continue;
-            availableScriptNames.emplace_back(line);
+        // Run Once
+        renderUtils.device = vulkanDevice;
+        renderUtils.instance = &instance;
+        renderUtils.renderPass = &renderPass;
+        renderUtils.msaaSamples = msaaSamples;
+        renderUtils.UBCount = swapchain->imageCount;
+        renderUtils.picking = &selection;
+        renderUtils.queueSubmitMutex = &queueSubmitMutex;
+        renderUtils.fence = &waitFences;
+        renderUtils.swapchainIndex = currentFrame;
+
+        auto e = createEntity("Grid");
+        e.addComponent<ScriptComponent>(e.getName(), this);
+
+        auto view = m_registry.view<ScriptComponent>();
+        for (auto entity : view) {
+            auto& script = view.get<ScriptComponent>(entity);
+            script.script->setup();
+
         }
-
-        // Load Object Scripts from file
-        buildScript("Skybox");
-        //for (const auto &name: availableScriptNames)
-        //    buildScript(name);
-//
-        //for (const auto &pair: scripts) {
-        //    guiManager->handles.renderBlock.scripts[pair.first] = false;
-        //}
-
-
-        auto e = createEntity("Default");
-        e.addComponent<GLTFModelComponent>(Utils::getAssetsPath() / "Models" / "humvee.gltf", vulkanDevice);
-        e.addComponent<CameraComponent>(&camera);
-
-        auto grid = createEntity("Grid");
-        grid.addComponent<CameraComponent>(&camera);
-        grid.addComponent<CustomModelComponent>(&renderUtils);
 
     }
 
@@ -145,91 +138,6 @@ namespace VkRender {
             }
         }
     }
-
-// Helper function to set draw methods safely
-    void
-    Renderer::setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
-                                   std::map<std::string, std::shared_ptr<VkRender::Base>> &scriptsRef) {
-        for (const auto &setting: scriptDrawSettings) {
-            auto script = scriptsRef.find(setting.first);
-            if (script != scriptsRef.end()) { // Check if the script exists
-                script->second->setDrawMethod(setting.second); // Safely set the draw method
-            }
-        }
-    }
-
-    void Renderer::buildScript(const std::string &scriptName) {
-        bool exists = Utils::isInVector(builtScriptNames, scriptName);
-        bool isInDeletionQueue = scriptsForDeletion.contains(scriptName);
-        if (exists || isInDeletionQueue) {
-            Log::Logger::getInstance()->warning(
-                    "Script {} Already exists or is in deletion, not pushing to render graphicsQueue",
-                    scriptName);
-            return;
-        }
-
-        scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
-        if (scripts[scriptName].get() == nullptr) {
-            pLogger->error("Failed to register script {}.", scriptName);
-            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
-            return;
-        }
-        pLogger->info("Registered script: {} in factory", scriptName.c_str());
-        builtScriptNames.emplace_back(scriptName);
-
-        // Run Once
-        renderUtils.device = vulkanDevice;
-        renderUtils.instance = &instance;
-        renderUtils.renderPass = &renderPass;
-        renderUtils.msaaSamples = msaaSamples;
-        renderUtils.UBCount = swapchain->imageCount;
-        renderUtils.picking = &selection;
-        renderUtils.queueSubmitMutex = &queueSubmitMutex;
-        renderUtils.vkDeviceUUID = vkDeviceUUID;
-        renderUtils.fence = &waitFences;
-        renderData.height = m_Height;
-        renderData.width = m_Width;
-        renderData.camera = &camera;
-
-        // Copy data generated from TOP OF PIPE scripts
-        renderUtils.skybox.irradianceCube = scripts["Skybox"]->skyboxTextures.irradianceCube;
-        renderUtils.skybox.lutBrdf = scripts["Skybox"]->skyboxTextures.lutBrdf;
-        renderUtils.skybox.prefilterEnv = scripts["Skybox"]->skyboxTextures.prefilterEnv;
-        renderUtils.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
-
-        scripts[scriptName]->createUniformBuffers(renderUtils, renderData, &topLevelScriptData);
-
-        auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-        conf.scripts.names = builtScriptNames;
-        VkRender::RendererConfig::getInstance().setUserSetting(conf);
-    }
-
-    void Renderer::deleteScript(const std::string &scriptName) {
-        if (scriptsForDeletion.contains(scriptName)) {
-            Log::Logger::getInstance()->warning(
-                    "Script name {} already requested deletion. Skipped deletion of script.",
-                    scriptName);
-            return;
-        }
-
-        if (builtScriptNames.empty())
-            return;
-        auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
-        if (it != builtScriptNames.end())
-            builtScriptNames.erase(it);
-        else
-            return;
-
-        pLogger->info("Pushing script to Delete queue: {}. Erased script from rendered list", scriptName.c_str());
-        scriptsForDeletion[scriptName] = scripts[scriptName];
-        scriptsForDeletion[scriptName]->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-        scripts.erase(scriptName);
-
-        auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-        conf.scripts.names = builtScriptNames;
-        VkRender::RendererConfig::getInstance().setUserSetting(conf);
-    }
-
 
     void Renderer::buildCommandBuffers() {
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
@@ -398,58 +306,6 @@ namespace VkRender {
         renderData.crlCamera = &cameraConnection->camPtr;
         renderData.renderPassIndex = 0;
 
-
-        auto view = m_registry.view<CustomModelComponent>();
-        for (auto entity : view) {
-            auto& model = view.get<CustomModelComponent>(entity);
-            VkRender::UBOMatrix d;
-            d.model = glm::mat4(1.0f);
-            d.projection = renderData.camera->matrices.perspective;
-            d.view = renderData.camera->matrices.view;
-
-            model.update(renderData.index, &d);
-        }
-
-        // Delete the requested scripts if resources are no longer busy in render pipeline
-        std::vector<std::string> scriptsToDelete;
-        // Reload scripts if requested
-        std::vector<std::string> scriptsToReload;
-
-        for (const auto &script: scriptsForDeletion) {
-            scriptsToDelete.push_back(script.first);
-        }
-        for (const auto &scriptName: scriptsToDelete) {
-            if (scriptsForDeletion[scriptName]->onDestroyScript()) {
-                scriptsForDeletion[scriptName].reset();
-                scriptsForDeletion.erase(scriptName);
-                scriptsToReload.emplace_back(scriptName);
-            }
-        }
-
-        for (const auto &script: scripts) {
-            if (script.second->getDrawMethod() == VkRender::CRL_SCRIPT_RELOAD) {
-                scriptsToReload.push_back(script.first);
-            }
-        }
-
-        for (const auto &scriptName: scriptsToReload) {
-            if (scriptName == "Skybox") {
-                // Clear script and scriptnames before rebuilding
-                for (const auto &name: builtScriptNames) {
-                    pLogger->info("Deleting Script: {}", name.c_str());
-                    scripts[name].get()->onDestroyScript();
-                    scripts[name].reset();
-                    scripts.erase(name);
-                }
-                builtScriptNames.clear();
-                buildScript("Skybox");
-                for (const auto &name: availableScriptNames)
-                    buildScript(name);
-            } else {
-                deleteScript(scriptName);
-                buildScript(scriptName);
-            }
-        }
         // New version available?
         std::string versionRemote;
         if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
@@ -463,6 +319,17 @@ namespace VkRender {
             camera.resetPosition();
             camera.resetRotation();
         }
+
+
+        auto view = m_registry.view<ScriptComponent>();
+        for (auto entity : view) {
+            auto& script = view.get<ScriptComponent>(entity);
+
+
+            script.script->update();
+
+        }
+
         guiManager->handles.camera.pos = glm::vec3(glm::inverse(camera.matrices.view)[3]);
         guiManager->handles.camera.up = camera.cameraUp;
         guiManager->handles.camera.target = camera.m_Target;
@@ -476,21 +343,6 @@ namespace VkRender {
         cameraConnection->onUIUpdate(guiManager->handles.devices, guiManager->handles.configureNetwork);
         // Enable/disable Renderer3D scripts and simulated camera
 
-        for (auto &script: scripts) {
-            if (!guiManager->handles.renderer3D) {
-                if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
-                    script.second->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
-                    guiManager->handles.renderBlock.scripts[script.first] = false;
-                }
-            } else {
-                if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
-                    script.second->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
-                    guiManager->handles.renderBlock.scripts[script.first] = true;
-                }
-            }
-            // TODO add simulated camera handling
-        }
-
 
         if (guiManager->handles.camera.type == 0)
             camera.type = VkRender::Camera::arcball;
@@ -501,78 +353,6 @@ namespace VkRender {
             camera.resetRotation();
         }
 
-        std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> scriptDrawSettings;
-        std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> specialScripts;
-        scriptDrawSettings = {
-                {"SingleLayout",     VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"DoubleTop",        VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"DoubleBot",        VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"One",              VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"Two",              VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"Three",            VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"Four",             VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"MultiSenseCamera", VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"PointCloud",       VkRender::CRL_SCRIPT_DONT_DRAW},
-                {"Skybox",           VkRender::CRL_SCRIPT_DONT_DRAW}
-        };
-
-        // Enable scripts depending on gui layout chosen
-        for (auto &dev: guiManager->handles.devices) {
-            if (dev.state != VkRender::CRL_STATE_ACTIVE)
-                continue;
-            switch (dev.layout) {
-                case VkRender::CRL_PREVIEW_LAYOUT_SINGLE:
-                    scriptDrawSettings["SingleLayout"] = VkRender::CRL_SCRIPT_DRAW;
-                    break;
-                case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE:
-                    scriptDrawSettings["DoubleTop"] = VkRender::CRL_SCRIPT_DRAW;
-                    scriptDrawSettings["DoubleBot"] = VkRender::CRL_SCRIPT_DRAW;
-                    break;
-                case VkRender::CRL_PREVIEW_LAYOUT_QUAD:
-                    scriptDrawSettings["One"] = VkRender::CRL_SCRIPT_DRAW;
-                    scriptDrawSettings["Two"] = VkRender::CRL_SCRIPT_DRAW;
-                    scriptDrawSettings["Three"] = VkRender::CRL_SCRIPT_DRAW;
-                    scriptDrawSettings["Four"] = VkRender::CRL_SCRIPT_DRAW;
-                    break;
-                default:
-                    break;
-            }
-
-            // Additional handling for special tabs
-            if (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
-                specialScripts["Skybox"] = VkRender::CRL_SCRIPT_DRAW;
-                specialScripts["MultiSenseCamera"] = VkRender::CRL_SCRIPT_DRAW;
-                specialScripts["PointCloud"] = VkRender::CRL_SCRIPT_DRAW;
-            }
-        }
-        setScriptDrawMethods(scriptDrawSettings, scripts);
-        setScriptDrawMethods(specialScripts, scripts);
-
-
-        // Run update function on active camera Scripts and build them if not built
-        for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
-            if (guiManager->handles.devices.at(i).state == VkRender::CRL_STATE_REMOVE_FROM_LIST)
-                guiManager->handles.devices.erase(guiManager->handles.devices.begin() + static_cast<int>(i));
-        }
-
-        // Scripts that share dataa
-        for (auto &script: scripts) {
-            if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-                if (!script.second->sharedData->destination.empty()) {
-                    // Send to destination script
-                    if (script.second->sharedData->destination == "All") {
-                        // Copy shared data to all
-                        auto &shared = script.second->sharedData;
-
-                        for (auto &s: scripts) {
-                            if (s == script)
-                                continue;
-                            memcpy(s.second->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
-                        }
-                    }
-                }
-            }
-        }
 
         // UIUpdateFunction on Scripts with const handle to GUI
         for (auto &script: scripts) {
@@ -585,26 +365,7 @@ namespace VkRender {
                 continue;
             cameraConnection->update(dev);
         }
-        // Update renderer with application settings
-        auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-        for (auto &script: conf.scripts.rebuildMap) {
-            if (script.second) {
-                // if rebuild
-                scripts.at(script.first)->setDrawMethod(VkRender::CRL_SCRIPT_RELOAD);
-                script.second = false;
-            }
-        }
-        VkRender::RendererConfig::getInstance().setUserSetting(conf);
-        int numRenderPasses = 2;
-        for (int i = 0; i < numRenderPasses; ++i) {
-            renderData.renderPassIndex = i;
-            // Run update function on Scripts
-            for (auto &script: scripts) {
-                if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-                    script.second->updateUniformBufferData(&renderData);
-                }
-            }
-        }
+
     }
 
 
@@ -876,11 +637,6 @@ namespace VkRender {
         }
         builtScriptNames.clear();
 
-        // Scripts. Start with skybox as usual
-        buildScript("Skybox");
-        for (const auto &name: availableScriptNames)
-            buildScript(name);
-
         // Recreate to fit new dimensions
         vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
         vkDestroyImage(device, selection.colorImage, nullptr);
@@ -1148,7 +904,7 @@ namespace VkRender {
     }
 
     void Renderer::destroyEntity(Entity entity) {
-        m_entityMap.erase(entity.GetUUID());
+        m_entityMap.erase(entity.getUUID());
         m_registry.destroy(entity);
     }
 

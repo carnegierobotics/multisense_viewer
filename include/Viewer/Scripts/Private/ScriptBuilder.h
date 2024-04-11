@@ -45,7 +45,7 @@
 #include <cassert>
 
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Scripts/Private/Base.h"
+#include "Viewer/Scripts/Private/Base2.h"
 #include "Viewer/Core/CommandBuffer.h"
 
 // Based of self registering factory
@@ -56,7 +56,7 @@ namespace VkRender {
 
 class ComponentMethodFactory {
 public:
-    using TCreateMethod = std::unique_ptr<Base>(*)();
+    using TCreateMethod = std::unique_ptr<Base2>(*)();
     TCreateMethod m_CreateFunc;
     std::string description;
 
@@ -72,7 +72,7 @@ public:
         return false;
     }
 
-    static std::shared_ptr<Base> Create(const std::string& name) {
+    static std::shared_ptr<Base2> Create(const std::string& name) {
         if (auto it = s_methods.find(name); it != s_methods.end()) {
             return it->second();
         }

@@ -15,7 +15,10 @@
 #include <codecvt>
 
 #else
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_OLD_STYLE_CAST
 #include <gtk/gtk.h>
+DISABLE_WARNING_POP
 #endif
 
 #include <imgui.h>

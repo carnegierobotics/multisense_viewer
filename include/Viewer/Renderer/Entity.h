@@ -64,8 +64,8 @@ namespace VkRender {
         operator uint32_t() const { return (uint32_t)m_entityHandle; }
 
 
-        const std::string& GetName() { return getComponent<TagComponent>().Tag; }
-        UUID GetUUID() { return getComponent<IDComponent>().ID; }
+        const std::string& getName() { return getComponent<TagComponent>().Tag; }
+        UUID getUUID() { return getComponent<IDComponent>().ID; }
 
 
         bool operator==(const Entity& other) const

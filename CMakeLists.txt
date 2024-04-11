@@ -89,19 +89,6 @@ set(ENGINE_SRC
 )
 
 set(SCRIPTS_LIB_SRC
-        include/Viewer/Scripts/MultiSenseRenderer/MultiSenseCamera.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Example.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Pointcloud/PointCloud.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Gizmos.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/RecordFrames.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Single/SingleLayout.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleTop.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Double/DoubleBot.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/One.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Two.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Three.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/Video/Previews/Quad/Four.cpp
-        include/Viewer/Scripts/MultiSenseRenderer/SceneGizmos/Skybox.cpp
 
         include/Viewer/Scripts/Private/ScriptUtils.h
         include/Viewer/Scripts/Private/RecordUtilities.h

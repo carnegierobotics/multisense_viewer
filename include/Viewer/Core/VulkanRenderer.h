@@ -113,7 +113,6 @@ namespace VkRender {
         std::chrono::system_clock::time_point rendererStartTime;
         float runTime = 0.0f;
 
-        VkRender::Camera camera;
         glm::vec2 mousePos{};
         VkSampleCountFlagBits msaaSamples{};
 
@@ -123,10 +122,6 @@ namespace VkRender {
         int keyPress = -1;
         int keyAction = -1;
         Input input;
-
-        /** @ physical device uuid */
-        uint8_t vkDeviceUUID[VK_UUID_SIZE] = {0};
-        PFN_vkGetPhysicalDeviceProperties2 fpGetPhysicalDeviceProperties2{};
 
         /** @brief Handle for Logging*/
         Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
@@ -187,6 +182,7 @@ namespace VkRender {
         /** @brief Presents the current m_Image to the swap chain */
         void submitFrame();
 
+        VkRender::Camera camera;
     protected:
         // Window instance GLFW
         GLFWwindow *window;

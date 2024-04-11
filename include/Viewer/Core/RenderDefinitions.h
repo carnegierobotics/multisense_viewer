@@ -321,7 +321,6 @@ namespace VkRender {
     struct RenderUtils {
         VulkanDevice *device{};
         VkInstance *instance{};
-        uint8_t *vkDeviceUUID = nullptr; // array with size VK_UUID_SIZE
         uint32_t UBCount = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
@@ -336,7 +335,7 @@ namespace VkRender {
         } skybox;
         std::mutex *queueSubmitMutex;
         const std::vector<VkFence> *fence;
-
+        uint32_t swapchainIndex = 0;
         // Multiple viewpoint (Off screen rendering)
         const std::vector<SecondaryRenderPasses>* secondaryRenderPasses;
 

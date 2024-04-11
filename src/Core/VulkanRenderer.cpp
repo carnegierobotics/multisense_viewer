@@ -201,30 +201,6 @@ namespace VkRender {
 
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
-        fpGetPhysicalDeviceProperties2 = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(
-                instance, "vkGetPhysicalDeviceProperties2"));
-
-        if (fpGetPhysicalDeviceProperties2 == nullptr) {
-            throw std::runtime_error(
-                    "Vulkan: Proc address for \"vkGetPhysicalDeviceProperties2KHR\" not "
-                    "found.\n");
-        }
-
-        // Physical Device UUID
-        VkPhysicalDeviceIDProperties vkPhysicalDeviceIDProperties = {};
-        vkPhysicalDeviceIDProperties.sType =
-                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
-        vkPhysicalDeviceIDProperties.pNext = nullptr;
-
-        VkPhysicalDeviceProperties2 vkPhysicalDeviceProperties2 = {};
-        vkPhysicalDeviceProperties2.sType =
-                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-        vkPhysicalDeviceProperties2.pNext = &vkPhysicalDeviceIDProperties;
-
-        fpGetPhysicalDeviceProperties2(physicalDevice,
-                                       &vkPhysicalDeviceProperties2);
-        size_t size = sizeof(vkDeviceUUID);
-        memcpy(vkDeviceUUID, vkPhysicalDeviceIDProperties.deviceUUID, size);
 
         // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {

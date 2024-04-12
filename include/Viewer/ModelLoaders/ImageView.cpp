@@ -226,14 +226,14 @@ void ImageView::createDescriptors(bool useOffScreenImageRender) {
             writeDescriptorSets[0].dstSet = m_model->resources[j].descriptors[i];
             writeDescriptorSets[0].dstBinding = 0;
             // TODO Make indices readable [j][i] is very confusing
-            writeDescriptorSets[0].pBufferInfo = &m_renderUtils->uboDevice[j][i].bufferOne.m_DescriptorBufferInfo;
+            //writeDescriptorSets[0].pBufferInfo = &m_renderUtils->uboDevice[j][i].bufferOne.m_DescriptorBufferInfo;
 
             writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             writeDescriptorSets[1].descriptorCount = 1;
             writeDescriptorSets[1].dstSet = m_model->resources[j].descriptors[i];
             writeDescriptorSets[1].dstBinding = 1;
-            writeDescriptorSets[1].pBufferInfo = &m_renderUtils->uboDevice[j][i].bufferTwo.m_DescriptorBufferInfo;
+            //writeDescriptorSets[1].pBufferInfo = &m_renderUtils->uboDevice[j][i].bufferTwo.m_DescriptorBufferInfo;
 
             if (useOffScreenImageRender) {
                 writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -266,15 +266,8 @@ void ImageView::createGraphicsPipeline() {
 
             VkPipelineLayoutCreateInfo info = Populate::pipelineLayoutCreateInfo(
                     &m_model->resources[j].descriptorSetLayout[i]);
-            VkPushConstantRange pushconstantRanges{};
-            pushconstantRanges.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            pushconstantRanges.offset = 0;
-            pushconstantRanges.size = sizeof(VkRender::MousePositionPushConstant);
-            info.pPushConstantRanges = &pushconstantRanges;
-            info.pushConstantRangeCount = 1;
-            CHECK_RESULT(
-                    vkCreatePipelineLayout(m_vulkanDevice->m_LogicalDevice, &info, nullptr,
-                                           &m_model->resources[j].pipelineLayout[i]))
+
+            CHECK_RESULT(vkCreatePipelineLayout(m_vulkanDevice->m_LogicalDevice, &info, nullptr, &m_model->resources[j].pipelineLayout[i]))
 
             // Vertex bindings an attributes
             VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};

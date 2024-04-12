@@ -2,14 +2,14 @@
 // Created by magnus on 10/3/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/Grid.h"
+#include "Viewer/Scripts/Renderer3D/DefaultScene.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/ModelLoaders/CustomModels.h"
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
 
-void Grid::setup() {
+void DefaultScene::setup() {
 
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Grid", &enable);
 
@@ -23,32 +23,31 @@ void Grid::setup() {
 }
 
 
-void Grid::update() {
+void DefaultScene::update() {
     Log::Logger::getInstance()->traceWithFrequency("Tag", 5000, "Update from {}", GetFactoryName());
     // Update UBO data
     auto e = m_context->findEntityByName("3DViewerGrid");
     if (!e)
         return;
     auto id = e.getUUID();
-    auto camera = m_context->getCamera();
+    auto& camera = m_context->getCamera();
 
     VkRender::UBOMatrix d;
     d.model = glm::mat4(1.0f);
-    d.view = camera->matrices.view;
-    d.projection = camera->matrices.perspective;
+    d.view = camera.matrices.view;
+    d.projection = camera.matrices.perspective;
 
-    auto& c = e.getComponent<CustomModelComponent>();
+    auto &c = e.getComponent<CustomModelComponent>();
     c.update(m_context->renderUtils.swapchainIndex, &d);
 
 }
 
-void Grid::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
+void DefaultScene::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
     Log::Logger::getInstance()->traceWithFrequency("Tag_Draw", 60, "Drawing from {}", GetFactoryName());
 
 }
 
 
-
-void Grid::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+void DefaultScene::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
 }

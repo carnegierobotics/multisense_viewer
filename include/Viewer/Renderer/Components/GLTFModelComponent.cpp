@@ -5,7 +5,7 @@
 #define STBI_MSC_SECURE_CRT
 
 #include <glm/gtc/type_ptr.hpp>
-#include "Viewer/ModelLoaders/GLTFModel2.h"
+#include "Viewer/Renderer/Components/GLTFModelComponent.h"
 
 #include "Viewer/Tools/Macros.h"
 

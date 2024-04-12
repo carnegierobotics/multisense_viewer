@@ -152,19 +152,6 @@ protected:
      */
     void createPipelineLayout(VkPipelineLayout *pT, VkDescriptorSetLayout *layout, uint32_t numDescriptorLayouts);
 
-    /**
-     * @brief Bind a default m_Descriptor layout to the pipeline for images
-     * @param model Which m_Model to configure
-     * @param ubo reference to uniform buffers
-     */
-    void createImageDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
-
-    /**
-     * Bind a default m_Descriptor layout fo the pipline for point clouds
-     * @param model Which m_Model to configure
-     * @param ubo reference to uniform buffers
-     */
-    void createPointCloudDescriptors(Model *model, const std::vector<VkRender::UniformBufferSet> &ubo);
 
     /**
      * Create render pipeline
@@ -177,13 +164,6 @@ protected:
     void createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderStageCreateInfo> vector, VkRender::CRLCameraDataType type,
                         VkPipeline *pPipelineT, VkPipelineLayout *pLayoutT, VkSampleCountFlagBits bits);
 
-    /**
-     * Create descriptors for this m_Model
-     * @param count number of descriptorsets needed
-     * @param ubo reference to uniform buffers
-     * @param model which m_Model to configure
-     */
-    void createDescriptors(uint32_t count, const std::vector<VkRender::UniformBufferSet> &ubo, Model *model);
 
     /**
      * Creates the render pipeline using helper functions from this class

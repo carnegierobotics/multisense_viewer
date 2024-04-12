@@ -6,12 +6,12 @@
 #define MULTISENSE_VIEWER_MULTISENSE_H
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
-#include "Viewer/ModelLoaders/GLTFModel.h"
+
 #include "Viewer/ModelLoaders/CustomModels.h"
 #include "Viewer/ModelLoaders/ImageView.h"
 #include "Viewer/SYCL/SyclRenderer.h"
 
-class ImageViewer: public VkRender::Base2, public VkRender::RegisteredInFactory<ImageViewer>
+class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -24,7 +24,7 @@ public:
         DISABLE_WARNING_POP
     }
     /** @brief Static method to create instance of this class, returns a unique ptr of ImageViewer **/
-    static std::unique_ptr<Base2> CreateMethod() { return std::make_unique<ImageViewer>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<ImageViewer>(); }
     /** @brief Name which is registered for this class. Same as 'ClassName' **/
     static std::string GetFactoryName() { return "ImageViewer"; }
     /** @brief Setup function called one during script creating prepare **/

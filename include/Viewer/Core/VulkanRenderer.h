@@ -254,11 +254,8 @@ namespace VkRender {
         uint32_t imageIndex = 0;
         // Pipeline cache object
         VkPipelineCache pipelineCache{};
-        VkRender::ObjectPicking selection{};
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
-
-
         std::vector<SecondaryRenderPasses> secondaryRenderPasses;
 
         int frameCounter = 0;

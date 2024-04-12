@@ -82,6 +82,10 @@ namespace Utils {
         return {"./Assets/Textures"};
     }
 
+    static std::filesystem::path getModelsPath() {
+        return {"./Assets/Models"};
+    }
+
     static std::filesystem::path getScriptsPath() {
         return {"Scripts/"};
     }

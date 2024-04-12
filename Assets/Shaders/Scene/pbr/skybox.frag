@@ -1,25 +1,21 @@
+/* Copyright (c) 2018-2023, Sascha Willems
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ */
+
 #version 450
 
-
 layout (location = 0) in vec3 inUVW;
-
 layout (location = 0) out vec4 outColor;
 
 layout (set = 0, binding = 1) uniform UBOParams {
-	vec4 lightDir;
-	vec4 zoom;
-	vec4 zoomTranslate;
+	vec4 _pad0;
 	float exposure;
 	float gamma;
-	float prefilteredCubeMipLevels;
-	float scaleIBLAmbient;
-	float debugViewInputs;
-	float lod;
-	vec2 pad;
 } uboParams;
 
 layout (binding = 2) uniform samplerCube samplerEnv;
-
 
 // From http://filmicworlds.com/blog/filmic-tonemapping-operators/
 vec3 Uncharted2Tonemap(vec3 color)
@@ -60,6 +56,6 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 
 void main()
 {
-	vec3 color = SRGBtoLINEAR(tonemap(textureLod(samplerEnv, inUVW, uboParams.lod))).rgb;
-	outColor = vec4(color + vec3(0.1f, 0.1f, 0.1f), 1.0);
+	vec3 color = SRGBtoLINEAR(tonemap(textureLod(samplerEnv, inUVW, 1.5))).rgb;
+	outColor = vec4(color * 1.0, 1.0);
 }

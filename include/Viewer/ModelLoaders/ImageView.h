@@ -9,10 +9,10 @@
 
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/MultiSenseDeviceDefinitions.h"
-#include "Viewer/Scripts/Private/ScriptUtils.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 class ImageView {
 

@@ -17,7 +17,7 @@ namespace VkRender {
         UUID(const UUID&) = default;
 
         operator uint64_t() const { return m_UUID; }
-        operator std::string() { return std::to_string(m_UUID); }
+        operator std::string() const { return std::to_string(m_UUID); }
     private:
         uint64_t m_UUID;
     };

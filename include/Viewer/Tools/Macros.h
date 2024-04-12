@@ -79,7 +79,21 @@
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
 // other warnings you want to deactivate...
 
-#define DISABLE_WARNING_ALL
+#define DISABLE_WARNING_ALL                                       \
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER;                \
+    DISABLE_WARNING_EMPTY_BODY;                                   \
+    DISABLE_WARNING_UNREFERENCED_VARIABLE;                        \
+    DISABLE_WARNING_UNUSED_VARIABLE;                              \
+    DISABLE_WARNING_CAST_QUALIFIERS;                              \
+    DISABLE_WARNING_DOUBLE_PROMOTION;                             \
+    DISABLE_WARNING_OLD_STYLE_CAST;                               \
+    DISABLE_WARNING_IMPLICIT_FALLTHROUGH;                         \
+    DISABLE_WARNING_TYPE_LIMITS;                                  \
+    DISABLE_WARNING_MISSING_INITIALIZERS;                         \
+    DISABLE_WARNING_UNREFERENCED_FUNCTION;                        \
+    DISABLE_WARNING_PEDANTIC;                                     \
+    DISABLE_WARNING_NULL_DEREFERENCE;                             \
+    // Add other warning disables here...
 
 #else
 #define DISABLE_WARNING_PUSH

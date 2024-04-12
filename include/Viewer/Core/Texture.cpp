@@ -448,7 +448,6 @@ void Texture2D::fromKtxFile(const std::string &filename, VkFormat format, Vulkan
                                           &kTex);
     if (kTex == nullptr) {
         throw std::runtime_error("Failed to load texture from ktx");
-        return;
     }
     m_Device = device;
     m_Width = kTex->baseWidth;
@@ -1159,10 +1158,10 @@ void TextureVideo::createDefaultSampler() {
     CHECK_RESULT(vkCreateSampler(m_Device->m_LogicalDevice, &samplerCreateInfo, nullptr, &m_Sampler))
 }
 
-void TextureCubeMap::loadFromFile(const std::filesystem::path &path,
-                                  VulkanDevice *device,
-                                  VkImageUsageFlags imageUsageFlags,
-                                  VkImageLayout imageLayout) {
+void TextureCubeMap::fromKtxFile(const std::filesystem::path &path,
+                                 VulkanDevice *device,
+                                 VkImageUsageFlags imageUsageFlags,
+                                 VkImageLayout imageLayout) {
     auto tStart = std::chrono::high_resolution_clock::now();
 
     m_Device = device;

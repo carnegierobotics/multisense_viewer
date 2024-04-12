@@ -2,8 +2,8 @@
 // Created by magnus on 4/11/24.
 //
 
-#ifndef MULTISENSE_VIEWER_GLTFMODEL2_H
-#define MULTISENSE_VIEWER_GLTFMODEL2_H
+#ifndef MULTISENSE_VIEWER_GLTFMODELCOMPONENT_H
+#define MULTISENSE_VIEWER_GLTFMODELCOMPONENT_H
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -19,8 +19,24 @@
 
 namespace VkRender {
     struct GLTFModelComponent {
-        struct Node;
+        struct Model;
+        std::unique_ptr<Model> model;
+        std::string memberVariable = "Hello";
 
+        struct Model;
+        GLTFModelComponent() = default;
+
+        GLTFModelComponent(const GLTFModelComponent &) = default;
+        GLTFModelComponent& operator=(const GLTFModelComponent& other) {
+            return *this;
+        }
+
+        GLTFModelComponent(const std::filesystem::path& modelPath, VulkanDevice *device){
+            model = std::make_unique<Model>(modelPath, device);
+        }
+
+
+        struct Node;
         struct BoundingBox {
             glm::vec3 min;
             glm::vec3 max;
@@ -262,16 +278,9 @@ namespace VkRender {
             Node *nodeFromIndex(uint32_t index);
         };
 
-        GLTFModelComponent() = default;
 
-        GLTFModelComponent(const GLTFModelComponent &) = default;
-
-        GLTFModelComponent(const std::filesystem::path& modelPath, VulkanDevice *device){
-            model = std::make_unique<Model>(modelPath, device);
-        }
-        std::unique_ptr<Model> model;
     };
 };
 
 
-#endif //MULTISENSE_VIEWER_GLTFMODEL2_H
+#endif //MULTISENSE_VIEWER_GLTFMODELCOMPONENT_H

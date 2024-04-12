@@ -225,7 +225,6 @@ namespace VkRender {
         bool askUserForNewVersion = true;
 
         const VkRender::MouseButtons *mouse;
-        VkRender::RenderBlock renderBlock;
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
             clearColor[0] = 0.870f;

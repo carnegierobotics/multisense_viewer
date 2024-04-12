@@ -56,44 +56,43 @@ ExportScriptIncludes()
 GenerateVersionFile()
 
 set(LOGGER_SRC
-        src/Tools/Logger.cpp
+        include/Viewer/Tools/Logger.cpp
 )
 
 set(ENGINE_SRC
-        src/Core/Buffer.cpp
-        src/Core/Texture.cpp
-        src/Core/VulkanDevice.cpp
-        src/Core/VulkanRenderer.cpp
-        src/Core/VulkanSwapchain.cpp
-        src/Core/RenderResource.cpp
-        src/Core/UUID.cpp
-        src/CRLCamera/CRLPhysicalCamera.cpp
-        src/ImGui/GuiManager.cpp
-        src/ModelLoaders/CRLCameraModels.cpp
-        src/ModelLoaders/CustomModels.cpp
-        src/ModelLoaders/GLTFModel.cpp
-        src/ModelLoaders/GLTFModel2.cpp
+        include/Viewer/Core/Buffer.cpp
+        include/Viewer/Core/Texture.cpp
+        include/Viewer/Core/VulkanDevice.cpp
+        include/Viewer/Core/VulkanRenderer.cpp
+        include/Viewer/Core/VulkanSwapchain.cpp
+        include/Viewer/Core/UUID.cpp
+        include/Viewer/CRLCamera/CRLPhysicalCamera.cpp
+        include/Viewer/ImGui/GuiManager.cpp
 
-        src/Renderer/Renderer.cpp
-        src/Renderer/Entity.cpp
+        include/Viewer/ModelLoaders/CRLCameraModels.cpp
+        include/Viewer/ModelLoaders/CustomModels.cpp
 
-        src/Tools/StbInclude.cpp
-        src/CRLCamera/CameraConnection.cpp
-        src/ImGui/Widgets.cpp
-        src/ImGui/LayerFactory.cpp
-        src/Renderer/UsageMonitor.cpp
-        src/Core/RendererConfig.cpp
-        src/Core/ServerConnection.cpp
-        src/Core/CommandBuffer.cpp
-        src/ModelLoaders/ImageView.cpp
+        include/Viewer/Renderer/Renderer.cpp
+        include/Viewer/Renderer/Entity.cpp
+        include/Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.cpp
+        include/Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
+        include/Viewer/Renderer/Components/GLTFModelComponent.cpp
+
+        include/Viewer/Tools/StbInclude.cpp
+        include/Viewer/CRLCamera/CameraConnection.cpp
+        include/Viewer/ImGui/Widgets.cpp
+        include/Viewer/ImGui/LayerFactory.cpp
+        include/Viewer/Renderer/UsageMonitor.cpp
+        include/Viewer/Core/RendererConfig.cpp
+        include/Viewer/Core/ServerConnection.cpp
+        include/Viewer/Core/CommandBuffer.cpp
+        include/Viewer/ModelLoaders/ImageView.cpp
 )
 
 set(SCRIPTS_LIB_SRC
-
         include/Viewer/Scripts/Private/ScriptUtils.h
-        include/Viewer/Scripts/Private/RecordUtilities.h
 
-        include/Viewer/Scripts/Renderer3D/Grid.cpp
+        include/Viewer/Scripts/Renderer3D/DefaultScene.cpp
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
         include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
@@ -140,9 +139,8 @@ if (UNIX) ## Linux
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
-    set_target_properties(ScriptLibrary PROPERTIES UNITY_BUILD ON)
 
-    add_executable(MultiSense-Viewer src/main.cpp)
+    add_executable(MultiSense-Viewer include/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer )
 
@@ -212,7 +210,7 @@ if (WIN32)
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)
 
-    add_executable(MultiSense-Viewer WIN32 src/main.cpp)
+    add_executable(MultiSense-Viewer WIN32 include/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary CustomLoggerInterface)
     add_dependencies(MultiSense-Viewer AutoConnect)
 

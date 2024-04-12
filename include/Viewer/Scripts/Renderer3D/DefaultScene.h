@@ -2,19 +2,18 @@
 // Created by magnus on 10/3/23.
 //
 
-#ifndef MULTISENSE_VIEWER_GRID_H
-#define MULTISENSE_VIEWER_GRID_H
+#ifndef MULTISENSE_VIEWER_DEFAULTSCENE_H
+#define MULTISENSE_VIEWER_DEFAULTSCENE_H
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
-#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
-class Grid: public VkRender::Base2, public VkRender::RegisteredInFactory<Grid>
+class DefaultScene: public VkRender::Base, public VkRender::RegisteredInFactory<DefaultScene>
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
-    Grid() {
+    DefaultScene() {
         DISABLE_WARNING_PUSH
                 DISABLE_WARNING_UNREFERENCED_VARIABLE
         DISABLE_WARNING_UNUSED_VARIABLE
@@ -22,9 +21,9 @@ public:
         DISABLE_WARNING_POP
     }
     /** @brief Static method to create instance of this class, returns a unique ptr of Grid **/
-    static std::unique_ptr<Base2> CreateMethod() { return std::make_unique<Grid>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<DefaultScene>(); }
     /** @brief Name which is registered for this class. Same as 'ClassName' **/
-    static std::string GetFactoryName() { return "Grid"; }
+    static std::string GetFactoryName() { return "DefaultScene"; }
     /** @brief Setup function called one during script creating prepare **/
     void setup() override;
     /** @brief update function called once per frame **/
@@ -41,4 +40,4 @@ public:
 
 };
 
-#endif //MULTISENSE_VIEWER_GRID_H
+#endif //MULTISENSE_VIEWER_DEFAULTSCENE_H

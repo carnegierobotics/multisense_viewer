@@ -196,9 +196,9 @@ class TextureCubeMap : public Texture {
 public:
     TextureCubeMap() = default;
 
-    void loadFromFile(const std::filesystem::path &path, VulkanDevice *device,
-                      VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-                      VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    void fromKtxFile(const std::filesystem::path &path, VulkanDevice *device,
+                     VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+                     VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };
 
 class Texture3D : public Texture {

@@ -52,7 +52,6 @@
 #include <complex>
 
 #include "Viewer/Core/VulkanRenderer.h"
-#include "Viewer/Scripts/Private/Base.h"
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/CRLCamera/CameraConnection.h"
@@ -91,11 +90,12 @@ namespace VkRender {
         void cleanUp();
 
         Entity createEntity(const std::string &name);
+        std::shared_ptr<Entity> createEntitySharedPtr(const std::string &name, UUID uuid = UUID());
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Entity findEntityByName(std::string_view name);
 
-        Camera* getCamera();
+        Camera& getCamera();
 
         VkRender::RenderUtils renderUtils{};
     public:
@@ -106,7 +106,6 @@ namespace VkRender {
         template<typename T>
         void onComponentAdded(Entity entity, T &component);
 
-
         void recordCommands() override;
 
         bool compute() override;
@@ -114,7 +113,6 @@ namespace VkRender {
         void updateUniformBuffers() override;
 
         void prepareRenderer();
-
 
         void windowResized() override;
 
@@ -126,26 +124,13 @@ namespace VkRender {
 
         void mouseScroll(float change) override;
 
-        void createSelectionFramebuffer();
-
-        void createSelectionImages();
-
-        void destroySelectionBuffer();
-
-        void createSelectionBuffer();
-
-
     private:
 
         std::unique_ptr<VkRender::GuiManager> guiManager{};
-        std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
-        std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
-        std::vector<std::string> builtScriptNames;
         std::vector<std::string> availableScriptNames;
         std::shared_ptr<UsageMonitor> usageMonitor;
         std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
         VkRender::RenderData renderData{};
-        VkRender::TopLevelScriptData topLevelScriptData{};
 
         bool renderSelectionPass = true;
 

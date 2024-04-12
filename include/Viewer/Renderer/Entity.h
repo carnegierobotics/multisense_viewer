@@ -61,7 +61,7 @@ namespace VkRender {
 
         operator bool() const { return m_entityHandle != entt::null; }
         operator entt::entity() const { return m_entityHandle; }
-        operator uint32_t() const { return (uint32_t)m_entityHandle; }
+        operator uint32_t() const { return static_cast<uint32_t>(m_entityHandle); }
 
 
         const std::string& getName() { return getComponent<TagComponent>().Tag; }

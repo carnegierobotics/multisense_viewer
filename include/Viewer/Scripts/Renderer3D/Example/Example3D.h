@@ -6,10 +6,9 @@
 #define MULTISENSE_VIEWER_EXAMPLE_3D_H
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
-#include "Viewer/ModelLoaders/GLTFModel.h"
 
 
-class Example3D: public VkRender::Base2, public VkRender::RegisteredInFactory<Example3D>
+class Example3D: public VkRender::Base, public VkRender::RegisteredInFactory<Example3D>
 {
 public:
     /** @brief Constructor. Just run s_bRegistered variable such that the class is
@@ -22,7 +21,7 @@ public:
         DISABLE_WARNING_POP
     }
     /** @brief Static method to create instance of this class, returns a unique ptr of Example3D **/
-    static std::unique_ptr<Base2> CreateMethod() { return std::make_unique<Example3D>(); }
+    static std::unique_ptr<Base> CreateMethod() { return std::make_unique<Example3D>(); }
     /** @brief Name which is registered for this class. Same as 'ClassName' **/
     static std::string GetFactoryName() { return "Example3D"; }
     /** @brief Setup function called one during script creating prepare **/

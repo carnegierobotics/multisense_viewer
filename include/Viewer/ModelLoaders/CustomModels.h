@@ -9,7 +9,6 @@
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/CommandBuffer.h"
-#include "Viewer/Scripts/Private/ScriptUtils.h"
 
 
 struct CustomModelComponent {
@@ -133,6 +132,19 @@ public:
 
         vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, vertModule, nullptr);
         vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, fragModule, nullptr);
+    }
+
+    ~CustomModelComponent(){
+
+        for (size_t i = 0; i < renderer->UBCount; ++i){
+            vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelines[i], nullptr);
+            vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelinesSecondary[i], nullptr);
+            vkDestroyPipelineLayout(renderer->device->m_LogicalDevice, pipelineLayouts[i], nullptr);
+            vkDestroyDescriptorSetLayout(renderer->device->m_LogicalDevice, descriptorSetLayouts[i], nullptr);
+            vkDestroyDescriptorPool(renderer->device->m_LogicalDevice, descriptorPools[i], nullptr);
+
+        }
+
     }
 
 

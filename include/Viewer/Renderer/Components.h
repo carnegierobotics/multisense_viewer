@@ -27,7 +27,10 @@ namespace VkRender {
 
         explicit IDComponent(const UUID &uuid) : ID(uuid) {}
 
-        IDComponent &operator=(const IDComponent &other) = default;
+        // Explicitly define the copy assignment operator
+        IDComponent& operator=(const IDComponent& other) {
+            return *this;
+        }
 
     };
 
@@ -74,11 +77,16 @@ namespace VkRender {
         CameraComponent(const CameraComponent &) = default;
 
         explicit CameraComponent(Camera *cam) : camera(*cam) {}
+
+        // Explicitly define the copy assignment operator
+        CameraComponent& operator=(const CameraComponent& other) {
+            return *this;
+        }
     };
 
     struct ScriptComponent {
         std::string ClassName;
-        std::shared_ptr<Base2> script;
+        std::shared_ptr<Base> script;
         ScriptComponent() = default;
 
         ScriptComponent(const ScriptComponent &) = default;

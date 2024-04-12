@@ -24,7 +24,7 @@ DISABLE_WARNING_POP
 #include <imgui.h>
 
 #include "Viewer/ImGui/Widgets.h"
-
+#include "Viewer/Tools/Macros.h"
 namespace VkRender::LayerUtils {
 
     #ifdef WIN32
@@ -113,7 +113,8 @@ namespace VkRender::LayerUtils {
     }
 
 #else
-
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_ALL
     static inline std::string selectYamlFile() {
         std::string filename = "";
 
@@ -177,6 +178,8 @@ namespace VkRender::LayerUtils {
 
         return folderPath;
     }
+
+    DISABLE_WARNING_POP
 #endif
 
     struct WidgetPosition {

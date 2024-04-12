@@ -45,7 +45,7 @@
 #include <cassert>
 
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Scripts/Private/Base2.h"
+#include "Viewer/Scripts/Private/Base.h"
 #include "Viewer/Core/CommandBuffer.h"
 
 // Based of self registering factory
@@ -53,46 +53,47 @@
 
 namespace VkRender {
 
+    class Entity; // Predeclare here for easy use in scripts
 
-class ComponentMethodFactory {
-public:
-    using TCreateMethod = std::unique_ptr<Base2>(*)();
-    TCreateMethod m_CreateFunc;
-    std::string description;
+    class ComponentMethodFactory {
+    public:
+        using TCreateMethod = std::unique_ptr<Base>(*)();
+        TCreateMethod m_CreateFunc;
+        std::string description;
 
-public:
-    ComponentMethodFactory() = delete;
+    public:
+        ComponentMethodFactory() = delete;
 
-    static bool Register(const std::string name, TCreateMethod createFunc) {
+        static bool Register(const std::string name, TCreateMethod createFunc) {
 
-        if (auto it = s_methods.find(name); it == s_methods.end()) {
-            s_methods[name] = createFunc;
-            return true;
+            if (auto it = s_methods.find(name); it == s_methods.end()) {
+                s_methods[name] = createFunc;
+                return true;
+            }
+            return false;
         }
-        return false;
-    }
 
-    static std::shared_ptr<Base2> Create(const std::string& name) {
-        if (auto it = s_methods.find(name); it != s_methods.end()) {
-            return it->second();
+        static std::shared_ptr<Base> Create(const std::string &name) {
+            if (auto it = s_methods.find(name); it != s_methods.end()) {
+                return it->second();
+            }
+            return nullptr;
         }
-        return nullptr;
-    }
 
-private:
-    static std::map<std::string, TCreateMethod> s_methods;
-};
+    private:
+        static std::map<std::string, TCreateMethod> s_methods;
+    };
 
-inline std::map<std::string, ComponentMethodFactory::TCreateMethod> ComponentMethodFactory::s_methods;
+    inline std::map<std::string, ComponentMethodFactory::TCreateMethod> ComponentMethodFactory::s_methods;
 
-template<typename T>
-class RegisteredInFactory {
-protected:
-    static bool s_bRegistered;
-};
+    template<typename T>
+    class RegisteredInFactory {
+    protected:
+        static bool s_bRegistered;
+    };
 
-template<typename T >
-bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
+    template<typename T>
+    bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
 }
 
 #endif //MULTISENSE_SCRIPTBUILDER_H

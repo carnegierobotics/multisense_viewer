@@ -84,34 +84,6 @@ namespace VkRender {
 
 namespace VkRender {
 
-    /**
- * @brief Defines draw behaviour of a script
- */
-    typedef enum ScriptType {
-        /** Do not draw script at all */
-        CRL_SCRIPT_TYPE_DISABLED = 0x00,
-        /** Draw script since first frame and allocate additional MVP buffers */ //TODO Delete if possible
-        CRL_SCRIPT_TYPE_ADDITIONAL_BUFFERS = 0x01,
-        /** Draw script after crl camera connect */
-        CRL_SCRIPT_TYPE_DEFAULT = 0x02,
-        /** Draw script since application startup in the Renderer3D. No particular order */
-        CRL_SCRIPT_TYPE_RENDERER3D = 0x04,
-        /** Create this script before default and always render this type first. No internal ordering amongst scripts */
-        CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE = 0x08,
-        /** Draw script since application startup in the Simulated camera. No particular order */
-        CRL_SCRIPT_TYPE_SIMULATED_CAMERA = 0x10,
-
-    } ScriptType;
-    typedef VkRenderFlags ScriptTypeFlags;
-
-    typedef enum DrawMethod {
-
-        CRL_SCRIPT_DONT_DRAW,
-        CRL_SCRIPT_DRAW,
-        /** CRL_SCRIPT_TYPE_RELOAD This script is set to reload (run onDestroy and Create funcs) next frame after this is set*/
-        CRL_SCRIPT_RELOAD,
-    } CRL_SCRIPT_DRAW_METHOD;
-
 /**
  * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
  */
@@ -167,13 +139,6 @@ namespace VkRender {
             float y = 0.0f;
         } pos;
     };
-    /**
-     * @brief MouseButtons user input
-     */
-    struct RenderBlock {
-        std::map<std::string, bool> scripts{};
-
-    };
 
     /**
      * @brief Default MVP matrices
@@ -182,13 +147,7 @@ namespace VkRender {
         glm::mat4 projection{};
         glm::mat4 view{};
         glm::mat4 model{};
-        glm::vec3 camPos;
-    };
-
-    struct Particle {
-        glm::vec2 position;
-        glm::vec2 velocity;
-        glm::vec4 color;
+        glm::vec3 camPos{};
     };
 
     /**
@@ -210,89 +169,8 @@ namespace VkRender {
         float dt = 0.0f;
     };
 
-    struct SkyboxTextures {
-        std::shared_ptr<TextureCubeMap> environmentMap{};
-        std::shared_ptr<TextureCubeMap> irradianceCube{};
-        std::shared_ptr<TextureCubeMap> prefilterEnv{};
-        std::shared_ptr<Texture2D> lutBrdf{};
-        float prefilteredCubeMipLevels = 0;
-    };
-
-    /**
-     * @brief Memory block for point clouds
-     */
-    struct PointCloudParam {
-        /** @brief Q Matrix. See PointCloudUtility in LibMultiSense for calculation of this */
-        glm::mat4 Q{};
-        /** @brief Width of depth image*/
-        float width{};
-        /** @brief Height of depth image*/
-        float height{};
-        /** @brief Max disparity of image*/
-        float disparity{};
-        /** @brief Distance between left and right camera (tx)*/
-        float focalLength{};
-        /** @brief Scaling factor used when operating in cropped mode assuming uniform scaling in x- and y direction */
-        float scale{};
-        /** @brief Point size to view the point cloud. Larger for more distant points and smaller for closer points */
-        float pointSize{};
-    };
-
-    struct ColorPointCloudParams {
-        glm::mat4 instrinsics{};
-        glm::mat4 extrinsics{};
-        float useColor = true;
-        float hasSampler = false;
-    };
-
-    /** @brief Additional default buffers for rendering mulitple models with distrinct MVP */
-    struct RenderDescriptorBuffers {
-        UBOMatrix mvp{};
-        FragShaderParams light{};
-    };
-
-    /**@brief A standard set of uniform buffers. All current shaders can get away with using a combination of these two */
-    struct RenderDescriptorBuffersData {
-        Buffer mvp{};
-        Buffer light{};
-    };
-    /**
-     * @brief TODO: Unfinished. Put mouse cursor position information into shader. Meant for zoom feature
-     */
-    struct MousePositionPushConstant {
-        glm::vec2 position{};
-    };
 
 
-    /**
-     * @brief Vulkan resources for the cursor information pipeline
-     */
-    struct ObjectPicking {
-        // Global render pass for frame buffer writes
-        VkRenderPass renderPass{};
-        // List of available frame buffers (same as number of swap chain images)
-        VkFramebuffer frameBuffer{};
-        VkImage colorImage{};
-        VkImage depthImage{};
-        VkImageView colorView{};
-        VkImageView depthView{};
-        VkDeviceMemory colorMem{};
-        VkDeviceMemory depthMem{};
-    };
-
-
-    /**@brief A standard set of uniform buffers. Each script is initialized with these */
-    struct UniformBufferSet {
-        Buffer bufferOne{};
-        Buffer bufferTwo{};
-        Buffer bufferThree{};
-    };
-
-    struct ScriptBufferSet {
-        std::unique_ptr<VkRender::UBOMatrix> mvp{};
-        std::unique_ptr<VkRender::FragShaderParams> fragShader{};
-        std::unique_ptr<VkRender::PointCloudParam> pointCloudData{};
-    };
 
     struct SecondaryRenderPasses {
         std::vector<VkFramebuffer> frameBuffers{};
@@ -324,15 +202,13 @@ namespace VkRender {
         uint32_t UBCount = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
-        std::vector<UniformBufferSet> uniformBuffers{};
-        std::vector<std::vector<UniformBufferSet>> uboDevice{};
-        const VkRender::ObjectPicking *picking = nullptr;
         struct {
             std::shared_ptr<TextureCubeMap> irradianceCube = nullptr;
             std::shared_ptr<TextureCubeMap> prefilterEnv = nullptr;
             std::shared_ptr<Texture2D> lutBrdf = nullptr;
             float prefilteredCubeMipLevels = 0.0f;
         } skybox;
+
         std::mutex *queueSubmitMutex;
         const std::vector<VkFence> *fence;
         uint32_t swapchainIndex = 0;
@@ -356,7 +232,6 @@ namespace VkRender {
         int scriptDrawCount = 0;
         std::string scriptName;
         MultiSense::CRLPhysicalCamera *crlCamera{};
-        ScriptTypeFlags type{};
         uint32_t height = 0;
         uint32_t width = 0;
         bool additionalBuffers = false;

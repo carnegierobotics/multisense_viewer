@@ -17,7 +17,7 @@ void MultiSense::setup() {
         auto &modelComponent = humvee->addComponent<VkRender::GLTFModelComponent>(
                 Utils::getModelsPath() / "Box" / "Box.gltf", m_context->renderUtils.device);
         humvee->addComponent<RenderResource::SkyboxGraphicsPipelineComponent>(&m_context->renderUtils, modelComponent);
-        auto uuid = humvee->getUUID();
+        //auto uuid = humvee->getUUID();
     }
 
     {
@@ -25,7 +25,7 @@ void MultiSense::setup() {
         ent.addComponent<VkRender::CameraComponent>();
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(
                 Utils::getModelsPath() / "humvee.gltf", m_context->renderUtils.device);
-
+//
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component);
 
     }

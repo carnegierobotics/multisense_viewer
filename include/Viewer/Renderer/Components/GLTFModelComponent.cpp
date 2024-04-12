@@ -13,36 +13,35 @@ namespace VkRender
 {
     // Bounding box
 
-    GLTFModelComponent::BoundingBox::BoundingBox() {
+    GLTFModelComponent::BoundingBox::BoundingBox() = default;
+
+    GLTFModelComponent::BoundingBox::BoundingBox(glm::vec3 minimum, glm::vec3 maximum) : min(minimum), max(maximum) {
     };
 
-    GLTFModelComponent::BoundingBox::BoundingBox(glm::vec3 min, glm::vec3 max) : min(min), max(max) {
-    };
-
-    GLTFModelComponent::BoundingBox GLTFModelComponent::BoundingBox::getAABB(glm::mat4 m) {
-        glm::vec3 min = glm::vec3(m[3]);
-        glm::vec3 max = min;
+    GLTFModelComponent::BoundingBox GLTFModelComponent::BoundingBox::getAABB(glm::mat4 m) const {
+        auto minimum = glm::vec3(m[3]);
+        glm::vec3 maximum = minimum;
         glm::vec3 v0, v1;
 
-        glm::vec3 right = glm::vec3(m[0]);
+        auto right = glm::vec3(m[0]);
         v0 = right * this->min.x;
         v1 = right * this->max.x;
-        min += glm::min(v0, v1);
-        max += glm::max(v0, v1);
+        minimum += glm::min(v0, v1);
+        maximum += glm::max(v0, v1);
 
-        glm::vec3 up = glm::vec3(m[1]);
+        auto up = glm::vec3(m[1]);
         v0 = up * this->min.y;
         v1 = up * this->max.y;
-        min += glm::min(v0, v1);
-        max += glm::max(v0, v1);
+        minimum += glm::min(v0, v1);
+        maximum += glm::max(v0, v1);
 
-        glm::vec3 back = glm::vec3(m[2]);
+        auto back = glm::vec3(m[2]);
         v0 = back * this->min.z;
         v1 = back * this->max.z;
-        min += glm::min(v0, v1);
-        max += glm::max(v0, v1);
+        minimum += glm::min(v0, v1);
+        maximum += glm::max(v0, v1);
 
-        return BoundingBox(min, max);
+        return BoundingBox(minimum, maximum);
     }
 
     // Primitive
@@ -464,7 +463,7 @@ namespace VkRender
             }
             Texture2D texture;
             texture.fromglTfImage(image, textureSampler, device, transferQueue);
-            textures.push_back(texture);
+            textures.push_back(std::move(texture));
         }
     }
 
@@ -589,14 +588,14 @@ namespace VkRender
                     auto factor = ext->second.Get("diffuseFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                         auto val = factor.Get(i);
-                        material.extension.diffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                        material.extension.diffuseFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                     }
                 }
                 if (ext->second.Has("specularFactor")) {
                     auto factor = ext->second.Get("specularFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++) {
                         auto val = factor.Get(i);
-                        material.extension.specularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                        material.extension.specularFactor[i] = val.IsNumber() ? static_cast<float>(val.Get<double>()) : static_cast<float>(val.Get<int>());
                     }
                 }
             }
@@ -609,15 +608,15 @@ namespace VkRender
                 auto ext = mat.extensions.find("KHR_materials_emissive_strength");
                 if (ext->second.Has("emissiveStrength")) {
                     auto value = ext->second.Get("emissiveStrength");
-                    material.emissiveStrength = (float)value.Get<double>();
+                    material.emissiveStrength = static_cast<float>(value.Get<double>());
                 }
             }
 
-            material.index = static_cast<uint32_t>(materials.size());
+            material.index = static_cast<int>(materials.size());
             materials.push_back(material);
         }
         // Push a default material at the end of the list for meshes with no material assigned
-        materials.push_back(Material());
+        materials.emplace_back();
     }
 
     void GLTFModelComponent::Model::loadAnimations(tinygltf::Model &gltfModel)

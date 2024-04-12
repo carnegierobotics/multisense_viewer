@@ -17,6 +17,8 @@
 #include "Viewer/Core/UUID.h"
 
 namespace VkRender {
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
     struct IDComponent {
         UUID ID{};
@@ -136,6 +138,7 @@ namespace VkRender {
                     CameraComponent, ScriptComponent,
                     Rigidbody2DComponent, TextComponent>;
 
+    DISABLE_WARNING_POP
 }
 
 #endif //MULTISENSE_VIEWER_COMPONENTS_H

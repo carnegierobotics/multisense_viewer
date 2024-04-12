@@ -35,8 +35,7 @@ namespace RenderResource {
             vulkanDevice = utils->device;
 
 
-            textures.empty.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
-                                       vulkanDevice->m_TransferQueue);
+            textures.empty.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
             textures.environmentCube.fromKtxFile(Utils::getTexturePath() / "Environments" / "skies.ktx2", vulkanDevice);
 
             generateCubemaps(modelComponent);
@@ -46,6 +45,14 @@ namespace RenderResource {
             setupPipelines();
         }
 
+        ~SkyboxGraphicsPipelineComponent(){
+
+            vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, setLayout, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout, nullptr);
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+
+        };
         VulkanDevice *vulkanDevice = nullptr;
         VkRender::RenderUtils *renderUtils = nullptr;
 

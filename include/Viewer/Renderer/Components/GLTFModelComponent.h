@@ -38,15 +38,15 @@ namespace VkRender {
 
         struct Node;
         struct BoundingBox {
-            glm::vec3 min;
-            glm::vec3 max;
+            glm::vec3 min{};
+            glm::vec3 max{};
             bool valid = false;
 
             BoundingBox();
 
             BoundingBox(glm::vec3 min, glm::vec3 max);
 
-            BoundingBox getAABB(glm::mat4 m);
+            BoundingBox getAABB(glm::mat4 m) const;
         };
 
 
@@ -191,6 +191,10 @@ namespace VkRender {
             Model(std::filesystem::path modelPath, VulkanDevice *device) {
                 this->device = device;
                 loadFromFile(modelPath);
+            }
+
+            ~Model(){
+                destroy(device->m_LogicalDevice);
             }
 
             VulkanDevice *device;

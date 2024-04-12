@@ -485,6 +485,8 @@ namespace VkRender {
         return camera;
     }
 
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
     template<typename T>
     void Renderer::onComponentAdded(Entity entity, T &component) {
         static_assert(sizeof(T) == 0);
@@ -536,4 +538,5 @@ namespace VkRender {
     void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
                                                                                       RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
     }
+    DISABLE_WARNING_POP
 };

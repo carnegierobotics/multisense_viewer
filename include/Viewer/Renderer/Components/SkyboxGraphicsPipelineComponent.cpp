@@ -17,6 +17,7 @@ namespace RenderResource {
         const int32_t dim = 512;
 
         // Image
+
         VkImageCreateInfo imageCI{};
         imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -288,7 +289,7 @@ namespace RenderResource {
 
         for (uint32_t target = 0; target < PREFILTEREDENV + 1; target++) {
 
-            TextureCubeMap cubemap;
+            TextureCubeMap cubeMap;
 
             auto tStart = std::chrono::high_resolution_clock::now();
 
@@ -310,7 +311,10 @@ namespace RenderResource {
 
             // Create target cubemap
             {
+                cubeMap.m_Width = dim;
+                cubeMap.m_Height = dim;
                 // Image
+
                 VkImageCreateInfo imageCI{};
                 imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
                 imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -324,9 +328,9 @@ namespace RenderResource {
                 imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
                 imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                 imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-                CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &cubemap.m_Image));
+                CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &cubeMap.m_Image));
                 VkMemoryRequirements memReqs;
-                vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, cubemap.m_Image, &memReqs);
+                vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, cubeMap.m_Image, &memReqs);
                 VkMemoryAllocateInfo memAllocInfo{};
                 memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
                 memAllocInfo.allocationSize = memReqs.size;
@@ -334,9 +338,9 @@ namespace RenderResource {
                                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 CHECK_RESULT(
                         vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr,
-                                         &cubemap.m_DeviceMemory));
+                                         &cubeMap.m_DeviceMemory));
                 CHECK_RESULT(
-                        vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubemap.m_Image, cubemap.m_DeviceMemory, 0));
+                        vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubeMap.m_Image, cubeMap.m_DeviceMemory, 0));
 
                 // View
                 VkImageViewCreateInfo viewCI{};
@@ -347,8 +351,8 @@ namespace RenderResource {
                 viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 viewCI.subresourceRange.levelCount = numMips;
                 viewCI.subresourceRange.layerCount = 6;
-                viewCI.image = cubemap.m_Image;
-                CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubemap.m_View));
+                viewCI.image = cubeMap.m_Image;
+                CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubeMap.m_View));
 
                 // Sampler
                 VkSamplerCreateInfo samplerCI{};
@@ -363,7 +367,7 @@ namespace RenderResource {
                 samplerCI.maxLod = static_cast<float>(numMips);
                 samplerCI.maxAnisotropy = 1.0f;
                 samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-                CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubemap.m_Sampler));
+                CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubeMap.m_Sampler));
             }
 
             // FB, Att, RP, Pipe, etc.
@@ -656,10 +660,10 @@ namespace RenderResource {
                                                  &fragModule);
                     break;
             };
-            VkPipeline pipeline;
+            VkPipeline tmpPipeline;
             CHECK_RESULT(
                     vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                              &pipeline));
+                                              &tmpPipeline));
             for (auto shaderStage: shaderStages) {
                 vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
             }
@@ -711,7 +715,7 @@ namespace RenderResource {
                 vulkanDevice->beginCommandBuffer(cmdBuf);
                 VkImageMemoryBarrier imageMemoryBarrier{};
                 imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                imageMemoryBarrier.image = cubemap.m_Image;
+                imageMemoryBarrier.image = cubeMap.m_Image;
                 imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 imageMemoryBarrier.srcAccessMask = 0;
@@ -740,27 +744,26 @@ namespace RenderResource {
                     switch (target) {
                         case IRRADIANCE:
                             pushBlockIrradiance.mvp =
-                                    glm::perspective((float) (M_PI / 2.0), 1.0f, 0.1f, 512.0f) * matrices[f];
+                                    glm::perspective(static_cast<float>((M_PI / 2.0)), 1.0f, 0.1f, 512.0f) * matrices[f];
                             vkCmdPushConstants(cmdBuf, pipelinelayout,
                                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                                sizeof(PushBlockIrradiance), &pushBlockIrradiance);
                             break;
                         case PREFILTEREDENV:
                             pushBlockPrefilterEnv.mvp =
-                                    glm::perspective((float) (M_PI / 2.0), 1.0f, 0.1f, 512.0f) * matrices[f];
-                            pushBlockPrefilterEnv.roughness = (float) m / (float) (numMips - 1);
+                                    glm::perspective(static_cast<float>((M_PI / 2.0)), 1.0f, 0.1f, 512.0f) * matrices[f];
+                            pushBlockPrefilterEnv.roughness = static_cast<float>(m) / static_cast<float>(numMips - 1);
                             vkCmdPushConstants(cmdBuf, pipelinelayout,
                                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                                sizeof(PushBlockPrefilterEnv), &pushBlockPrefilterEnv);
                             break;
                     };
 
-                    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, tmpPipeline);
                     vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelinelayout, 0, 1,
                                             &descriptorset,
                                             0, NULL);
 
-                    VkDeviceSize offsets[1] = {0};
 
                     cube.model->draw(cmdBuf); // TODO
 
@@ -809,7 +812,7 @@ namespace RenderResource {
                             cmdBuf,
                             offscreen.image,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                            cubemap.m_Image,
+                            cubeMap.m_Image,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             1,
                             &copyRegion);
@@ -836,7 +839,7 @@ namespace RenderResource {
                 vulkanDevice->beginCommandBuffer(cmdBuf);
                 VkImageMemoryBarrier imageMemoryBarrier{};
                 imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                imageMemoryBarrier.image = cubemap.m_Image;
+                imageMemoryBarrier.image = cubeMap.m_Image;
                 imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -856,20 +859,20 @@ namespace RenderResource {
             vkDestroyImage(vulkanDevice->m_LogicalDevice, offscreen.image, nullptr);
             vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorpool, nullptr);
             vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorsetlayout, nullptr);
-            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline, nullptr);
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, tmpPipeline, nullptr);
             vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelinelayout, nullptr);
 
-            cubemap.m_Descriptor.imageView = cubemap.m_View;
-            cubemap.m_Descriptor.sampler = cubemap.m_Sampler;
-            cubemap.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            cubemap.m_Device = vulkanDevice;
+            cubeMap.m_Descriptor.imageView = cubeMap.m_View;
+            cubeMap.m_Descriptor.sampler = cubeMap.m_Sampler;
+            cubeMap.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            cubeMap.m_Device = vulkanDevice;
 
             switch (target) {
                 case IRRADIANCE:
-                    textures.irradianceCube = cubemap;
+                    textures.irradianceCube = std::move(cubeMap);
                     break;
                 case PREFILTEREDENV:
-                    textures.prefilteredCube = cubemap;
+                    textures.prefilteredCube = std::move(cubeMap);
                     shaderValuesParams.prefilteredCubeMipLevels = static_cast<float>(numMips);
                     break;
             };
@@ -1034,7 +1037,6 @@ namespace RenderResource {
         dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
         dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> setLayouts = {
                 setLayout
@@ -1058,7 +1060,6 @@ namespace RenderResource {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
                 {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
-                {3, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 8},
         };
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
         vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1108,9 +1109,7 @@ namespace RenderResource {
     }
 
     void SkyboxGraphicsPipelineComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
-
-        vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                                &descriptorSets[cbIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,&descriptorSets[cbIndex], 0, nullptr);
         vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     }
 

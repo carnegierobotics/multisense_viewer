@@ -49,20 +49,21 @@
 
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
+#include "Viewer/Tools/Macros.h"
 
 class Texture {
 public:
     VulkanDevice *m_Device = nullptr;
-    VkImage m_Image{};
+    VkImage m_Image = VK_NULL_HANDLE;
     VkImageLayout m_ImageLayout{};
-    VkDeviceMemory m_DeviceMemory{};
-    VkImageView m_View{};
+    VkDeviceMemory m_DeviceMemory = VK_NULL_HANDLE;
+    VkImageView m_View = VK_NULL_HANDLE;
     uint32_t m_Width = 0, m_Height = 0, m_Depth = 0;
     uint32_t m_MipLevels = 0;
     uint32_t m_LayerCount = 0;
     VkDescriptorImageInfo m_Descriptor{};
-    VkSampler m_Sampler{};
-    VkSamplerYcbcrConversion m_YUVSamplerToRGB{};
+    VkSampler m_Sampler = VK_NULL_HANDLE;
+    VkSamplerYcbcrConversion m_YUVSamplerToRGB = VK_NULL_HANDLE;
     VkFormat m_Format{};
     VkImageType m_Type{};
     VkImageViewType m_ViewType{};
@@ -79,12 +80,22 @@ public:
 
     Texture() = default;
 
-    void updateDescriptor();
+    // Move constructor
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+    Texture(Texture &&other) noexcept {
+        // Transfer ownership of other resources if necessary
+    }
 
 
-    ~Texture() {
+    // Move assignment operator
+    Texture &operator=(Texture &&other) noexcept {
+        return *this;
+    }
+    DISABLE_WARNING_POP
+    virtual ~Texture() {
 
-        if (m_Width != 0 && m_Height != 0) {
+        if (m_Device != nullptr) {
             vkDestroyImageView(m_Device->m_LogicalDevice, m_View, nullptr);
             vkDestroyImage(m_Device->m_LogicalDevice, m_Image, nullptr);
             if (m_Sampler) {
@@ -93,6 +104,9 @@ public:
             vkFreeMemory(m_Device->m_LogicalDevice, m_DeviceMemory, nullptr);
         }
     }
+
+    void updateDescriptor();
+
 };
 
 
@@ -100,7 +114,18 @@ class Texture2D : public Texture {
 public:
     Texture2D() = default;
 
-    ~Texture2D() = default;
+    // Move constructor
+    Texture2D(Texture2D &&other) noexcept: Texture(std::move(other)) {
+        // Move constructor logic specific to Texture2D
+    }
+
+    // Move assignment operator
+    Texture2D &operator=(Texture2D &&other) noexcept {
+        Texture::operator=(std::move(other)); // Invoke base class move assignment
+        return *this;
+    }
+
+    ~Texture2D() override = default; // Destructor, ensures virtual destruction
 
     Texture2D(void *buffer,
               VkDeviceSize bufferSize,
@@ -135,7 +160,7 @@ public:
     void
     fromglTfImage(tinygltf::Image &gltfimage, TextureSampler textureSampler, VulkanDevice *device, VkQueue copyQueue);
 
-    void fromKtxFile(const std::string& filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
+    void fromKtxFile(const std::string &filename, VkFormat format, VulkanDevice *device, VkQueue copyQueue,
                      VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
                      VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bool forceLinear = false);
 };
@@ -157,7 +182,7 @@ public:
 
     TextureVideo() = default;
 
-    ~TextureVideo() {
+    ~TextureVideo() override {
 
         switch (m_Format) {
             case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
@@ -184,7 +209,8 @@ public:
 
     void createDefaultSampler();
 
-    void updateTextureFromBuffer(VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, VkImageLayout finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    void updateTextureFromBuffer(VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                 VkImageLayout finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     void updateTextureFromBufferYUV();
 
@@ -195,6 +221,38 @@ public:
 class TextureCubeMap : public Texture {
 public:
     TextureCubeMap() = default;
+
+    // Move constructor
+    TextureCubeMap(TextureCubeMap &&other) noexcept: Texture(std::move(other)) {
+        // Move constructor logic specific to TextureCubeMap
+    }
+
+    // Move assignment operator
+// Move assignment operator
+    TextureCubeMap &operator=(TextureCubeMap &&other) noexcept {
+        if (this != &other) {
+            // Proper cleanup of existing resources
+            // Move all resources from 'other' to 'this'
+            m_Device = std::exchange(other.m_Device, nullptr);
+            m_Image = std::exchange(other.m_Image, {});
+            m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
+            m_View = std::exchange(other.m_View, {});
+            m_Sampler = std::exchange(other.m_Sampler, {});
+            m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+            // Copy simple types
+            m_ImageLayout = other.m_ImageLayout;
+            m_Width = other.m_Width;
+            m_Height = other.m_Height;
+            m_Depth = other.m_Depth;
+            m_MipLevels = other.m_MipLevels;
+            m_LayerCount = other.m_LayerCount;
+            m_Descriptor = other.m_Descriptor;
+            m_Format = other.m_Format;
+            m_Type = other.m_Type;
+            m_ViewType = other.m_ViewType;
+        }
+        return *this;
+    }
 
     void fromKtxFile(const std::filesystem::path &path, VulkanDevice *device,
                      VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,

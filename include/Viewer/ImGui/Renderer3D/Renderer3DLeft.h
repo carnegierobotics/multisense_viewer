@@ -12,6 +12,8 @@
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Entity.h"
+#include "Viewer/Renderer/Components/GLTFModelComponent.h"
+#include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
@@ -35,8 +37,51 @@ namespace VkRender {
 
         }
 
+        void processEntities(GuiObjectHandles *handles) {
+            // Create a view for entities with a GLTFModelComponent and a TagComponent
+            auto gltfView = handles->m_context->m_registry.view<VkRender::GLTFModelComponent, TagComponent>(entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
+
+            // Iterate over entities that have a GLTFModelComponent and a TagComponent
+            for (auto entity : gltfView) {
+                auto& model = gltfView.get<VkRender::GLTFModelComponent>(entity);
+                auto& tag = gltfView.get<TagComponent>(entity);
+
+                // Process each entity here
+                processEntity(handles, entity, model, tag);
+            }
+
+            // Create a view for entities with a CustomModelComponent and a TagComponent
+            auto customView = handles->m_context->m_registry.view<VkRender::CustomModelComponent, TagComponent>();
+
+            // Iterate over entities that have a CustomModelComponent and a TagComponent
+            for (auto entity : customView) {
+                // To avoid processing entities with both components twice, check if they were already processed
+                if (!gltfView.contains(entity)) {
+                    auto& model = customView.get<VkRender::CustomModelComponent>(entity);
+                    auto& tag = customView.get<TagComponent>(entity);
+
+                    // Process each entity here
+                    processEntity(handles, entity, model, tag);
+                }
+            }
+        }
+
+        void processEntity(GuiObjectHandles *handles, entt::entity entity, auto& model, TagComponent& tag) {
+            // Your processing logic here
+            // This function is called for both component types
+            if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Text("Some description");
+                ImGui::SameLine();
+                if (ImGui::SmallButton(("button ##" + tag.Tag).c_str())) {
+                    Entity entity2(entity, handles->m_context);
+                    handles->m_context->destroyEntity(entity2);
+                }
+                ImGui::TreePop();
+            }
+        }
+
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        void onUIRender(GuiObjectHandles *handles) override {
             if (!handles->renderer3D)
                 return;
             bool pOpen = true;
@@ -73,20 +118,7 @@ namespace VkRender {
             if (ImGui::SmallButton("Add entity")) {
                 handles->m_context->createEntity("New Standard Entity");
             }
-            int i = 0;
-            for (auto [entity, id, text]: handles->m_context->m_registry.view<VkRender::IDComponent, VkRender::TagComponent>().each()) {
-                if (ImGui::TreeNode(std::to_string(i).c_str(), "%s ##%s", text.Tag.c_str(),
-                                    std::to_string(i).c_str())) {
-                    ImGui::Text("Some description");
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton(("button ##" + std::to_string(i)).c_str())) {
-                        Entity entity2(entity, handles->m_context);
-                        handles->m_context->destroyEntity(entity2);
-                    }
-                    ImGui::TreePop();
-                }
-                i++;
-            }
+            processEntities(handles);
             ImGui::EndChild();
             ImGui::PopStyleColor(); // Reset to previous style color
 

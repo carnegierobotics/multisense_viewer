@@ -80,19 +80,6 @@ public:
 
     Texture() = default;
 
-    // Move constructor
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
-    Texture(Texture &&other) noexcept {
-        // Transfer ownership of other resources if necessary
-    }
-
-
-    // Move assignment operator
-    Texture &operator=(Texture &&other) noexcept {
-        return *this;
-    }
-    DISABLE_WARNING_POP
     virtual ~Texture() {
 
         if (m_Device != nullptr) {
@@ -113,6 +100,7 @@ public:
 class Texture2D : public Texture {
 public:
     Texture2D() = default;
+
 
     // Move constructor
     Texture2D(Texture2D &&other) : Texture(std::move(other)) {
@@ -160,6 +148,7 @@ public:
         }
         return *this;
     }
+
 
     Texture2D(void *buffer,
               VkDeviceSize bufferSize,

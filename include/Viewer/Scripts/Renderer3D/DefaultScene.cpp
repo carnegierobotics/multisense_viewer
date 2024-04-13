@@ -4,7 +4,7 @@
 
 #include "Viewer/Scripts/Renderer3D/DefaultScene.h"
 #include "Viewer/ImGui/Widgets.h"
-#include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/Renderer/Components/CustomModels.h"
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
@@ -15,7 +15,7 @@ void DefaultScene::setup() {
 
     auto grid = m_context->createEntity("3DViewerGrid");
     grid.addComponent<VkRender::CameraComponent>();
-    grid.addComponent<CustomModelComponent>(&m_context->renderUtils);
+    grid.addComponent<VkRender::CustomModelComponent>(&m_context->renderUtils);
     auto uuid = grid.getUUID();
 
     Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());
@@ -37,7 +37,7 @@ void DefaultScene::update() {
     d.view = camera.matrices.view;
     d.projection = camera.matrices.perspective;
 
-    auto &c = e.getComponent<CustomModelComponent>();
+    auto &c = e.getComponent<VkRender::CustomModelComponent>();
     c.update(m_context->renderUtils.swapchainIndex, &d);
 
 }

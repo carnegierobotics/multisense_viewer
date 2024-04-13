@@ -27,54 +27,73 @@ namespace RenderResource {
                                             const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
             renderUtils = utils;
             vulkanDevice = utils->device;
-            emptyTexture.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
-                                     vulkanDevice->m_TransferQueue);
 
-            createMaterialBuffer(modelComponent);
-            setupUniformBuffers();
-            setupDescriptors(modelComponent, skyboxComponent);
-            setupPipelines();
-            shaderValuesParams = skyboxComponent.shaderValuesParams;
+            resources.resize(renderUtils->UBCount);
+
+            emptyTexture.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
+
+            for(size_t i = 0; i < resources.size(); ++i){
+
+            createMaterialBuffer(resources[i], modelComponent);
+            setupUniformBuffers(resources[i]);
+            setupDescriptors(resources[i], modelComponent, skyboxComponent);
+            setupPipelines(resources[i]);
+            resources[i].shaderValuesParams = skyboxComponent.shaderValuesParams;
+
+            }
 
         }
 
         ~DefaultPBRGraphicsPipelineComponent() {
-            for (auto &pipeline: pipelines)
-                vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
 
-            for (auto &pipelineLayout: pipelineLayouts)
-                vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout.second, nullptr);
+            for(auto& res : resources) {
 
-            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayouts.scene, nullptr);
-            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayouts.material, nullptr);
-            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayouts.node, nullptr);
-            vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorSetLayouts.materialBuffer, nullptr);
-            vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, descriptorPool, nullptr);
+                for (auto &pipeline: res.pipelines)
+                    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
+
+                for (auto &pipelineLayout: res.pipelineLayouts)
+                    vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelineLayout.second, nullptr);
+
+                vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayouts.scene, nullptr);
+                vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayouts.material, nullptr);
+                vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayouts.node, nullptr);
+                vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayouts.materialBuffer,
+                                             nullptr);
+                vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, res.descriptorPool, nullptr);
+            }
         };
 
         VkRender::RenderUtils *renderUtils;
         VulkanDevice *vulkanDevice;
 
-        std::unordered_map<std::string, VkPipeline> pipelines;
-        std::unordered_map<std::string, VkPipelineLayout> pipelineLayouts;
-        VkPipeline boundPipeline = VK_NULL_HANDLE;
         struct DescriptorSetLayouts {
             VkDescriptorSetLayout scene;
             VkDescriptorSetLayout material;
             VkDescriptorSetLayout node;
             VkDescriptorSetLayout materialBuffer;
-        } descriptorSetLayouts;
+        };
 
-        std::vector<VkDescriptorSet> descriptorSets;
-        VkDescriptorPool descriptorPool;
-        std::vector<Buffer> bufferParams;
-        std::vector<Buffer> bufferScene;
+        struct Resource {
 
-        VkRender::UBOMatrix uboMatrix;
-        VkRender::ShaderValuesParams shaderValuesParams;
+            Buffer bufferParams;
+            Buffer bufferScene;
+            Buffer shaderMaterialBuffer;
 
-        Texture2D emptyTexture;
+            VkDescriptorPool descriptorPool;
+            std::vector<VkDescriptorSet> descriptorSets;
+            DescriptorSetLayouts descriptorSetLayouts;
 
+            VkPipeline boundPipeline = VK_NULL_HANDLE;
+            std::unordered_map<std::string, VkPipeline> pipelines;
+            std::unordered_map<std::string, VkPipelineLayout> pipelineLayouts;
+
+            VkDescriptorSet descriptorSetMaterials;
+
+            VkRender::UBOMatrix uboMatrix;
+            VkRender::ShaderValuesParams shaderValuesParams;
+        };
+        Texture2D emptyTexture; // TODO Possibly make more empty textures to match our triple buffering?
+        std::vector<Resource> resources;
         // We use a material buffer to pass material data ind image indices to the shader
         struct alignas(16) ShaderMaterial {
             glm::vec4 baseColorFactor;
@@ -93,27 +112,26 @@ namespace RenderResource {
             float alphaMaskCutoff;
             float emissiveStrength;
         };
-        Buffer shaderMaterialBuffer;
-        VkDescriptorSet descriptorSetMaterials;
+
 
         enum PBRWorkflows {
             PBR_WORKFLOW_METALLIC_ROUGHNESS = 0, PBR_WORKFLOW_SPECULAR_GLOSINESS = 1
         };
 
-        void setupUniformBuffers();
+        void setupUniformBuffers(Resource& res);
 
-        void setupPipelines();
+        void setupPipelines(Resource& res);
 
         void draw(CommandBuffer *commandBuffer, uint32_t cbIndex, const VkRender::GLTFModelComponent &component);
 
-        void createMaterialBuffer(const VkRender::GLTFModelComponent &component);
+        void createMaterialBuffer(Resource& res, const VkRender::GLTFModelComponent &component);
 
-        void setupNodeDescriptorSet(VkRender::Node *pNode);
+        void setupNodeDescriptorSet(VkRender::Node *pNode, VkDescriptorPool pool, VkDescriptorSetLayout* layout);
 
-        void addPipelineSet(std::string prefix, std::string vertexShader, std::string fragmentShader);
+        void addPipelineSet(Resource& resource, std::string prefix, std::string vertexShader, std::string fragmentShader);
 
         void
-        setupDescriptors(const VkRender::GLTFModelComponent &component,
+        setupDescriptors(Resource& res, const VkRender::GLTFModelComponent &component,
                          const SkyboxGraphicsPipelineComponent &skyboxComponent);
 
         void renderNode(CommandBuffer *commandBuffer, uint32_t cbIndex, VkRender::Node *node,

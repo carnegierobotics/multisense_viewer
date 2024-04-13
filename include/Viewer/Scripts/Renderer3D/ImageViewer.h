@@ -7,7 +7,7 @@
 
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 
-#include "Viewer/ModelLoaders/CustomModels.h"
+#include "Viewer/Renderer/Components/CustomModels.h"
 #include "Viewer/ModelLoaders/ImageView.h"
 #include "Viewer/SYCL/SyclRenderer.h"
 

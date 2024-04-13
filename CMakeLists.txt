@@ -70,13 +70,13 @@ set(ENGINE_SRC
         include/Viewer/ImGui/GuiManager.cpp
 
         include/Viewer/ModelLoaders/CRLCameraModels.cpp
-        include/Viewer/ModelLoaders/CustomModels.cpp
 
         include/Viewer/Renderer/Renderer.cpp
         include/Viewer/Renderer/Entity.cpp
         include/Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.cpp
         include/Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
         include/Viewer/Renderer/Components/GLTFModelComponent.cpp
+        include/Viewer/Renderer/Components/CustomModels.cpp
 
         include/Viewer/Tools/StbInclude.cpp
         include/Viewer/CRLCamera/CameraConnection.cpp

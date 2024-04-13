@@ -31,25 +31,25 @@ namespace RenderResource {
                         }
                     }
 
-                    const VkPipeline pipeline = pipelines[pipelineName + pipelineVariant];
+                    const VkPipeline pipeline = resources[cbIndex].pipelines[pipelineName + pipelineVariant];
 
-                    if (pipeline != boundPipeline) {
+                    if (pipeline != resources[cbIndex].boundPipeline) {
                         vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-                        boundPipeline = pipeline;
+                        resources[cbIndex].boundPipeline = pipeline;
                     }
 
                     const std::vector<VkDescriptorSet> descriptors = {
-                            descriptorSets[cbIndex],
+                            resources[cbIndex].descriptorSets[cbIndex],
                             primitive->material.descriptorSet,
                             node->mesh->uniformBuffer.descriptorSet,
-                            descriptorSetMaterials
+                            resources[cbIndex].descriptorSetMaterials
                     };
                     vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                            pipelineLayouts[pipelineName], 0, static_cast<uint32_t>(descriptors.size()),
+                                            resources[cbIndex].pipelineLayouts[pipelineName], 0, static_cast<uint32_t>(descriptors.size()),
                                             descriptors.data(), 0, NULL);
 
                     // Pass material index for this primitive using a push constant, the shader uses this to index into the material buffer
-                    vkCmdPushConstants(commandBuffer->buffers[cbIndex], pipelineLayouts[pipelineName], VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                    vkCmdPushConstants(commandBuffer->buffers[cbIndex], resources[cbIndex].pipelineLayouts[pipelineName], VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                        sizeof(uint32_t), &primitive->material.index);
 
                     if (primitive->hasIndices) {
@@ -77,7 +77,7 @@ namespace RenderResource {
                                  VK_INDEX_TYPE_UINT32);
         }
 
-        boundPipeline = VK_NULL_HANDLE;
+        resources[cbIndex].boundPipeline = VK_NULL_HANDLE;
 
         // Opaque primitives first
         for (auto node : component.model->nodes) {
@@ -94,31 +94,27 @@ namespace RenderResource {
         }
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupUniformBuffers() {
-        bufferParams.resize(renderUtils->UBCount);
-        bufferScene.resize(renderUtils->UBCount);
-
-        for (size_t i = 0; i < renderUtils->UBCount; ++i) {
+    void DefaultPBRGraphicsPipelineComponent::setupUniformBuffers(Resource& resource) {
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                       &bufferParams[i], sizeof(VkRender::ShaderValuesParams));
+                                       &resource.bufferParams, sizeof(VkRender::ShaderValuesParams));
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                       &bufferScene[i], sizeof(VkRender::UBOMatrix));
+                                       &resource.bufferScene, sizeof(VkRender::UBOMatrix));
 
-            bufferParams[i].map();
-            bufferScene[i].map();
+            resource.bufferScene.map();
+            resource.bufferParams.map();
 
-        }
     }
 
     void DefaultPBRGraphicsPipelineComponent::update(){
-        memcpy(bufferParams[renderUtils->swapchainIndex].mapped, &shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
-        memcpy(bufferScene[renderUtils->swapchainIndex].mapped, &uboMatrix, sizeof(VkRender::UBOMatrix));
+
+        memcpy(resources[renderUtils->swapchainIndex].bufferParams.mapped, &resources[renderUtils->swapchainIndex].shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
+        memcpy(resources[renderUtils->swapchainIndex].bufferScene.mapped, &resources[renderUtils->swapchainIndex].uboMatrix, sizeof(VkRender::UBOMatrix));
 
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupDescriptors(const VkRender::GLTFModelComponent &component,
+    void DefaultPBRGraphicsPipelineComponent::setupDescriptors(Resource& resource, const VkRender::GLTFModelComponent &component,
                                                                const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
 /*
 			Descriptor Pool
@@ -153,7 +149,7 @@ namespace RenderResource {
         descriptorPoolCI.pPoolSizes = poolSizes.data();
         descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * renderUtils->UBCount;
         CHECK_RESULT(
-                vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
+                vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &resource.descriptorPool));
 
         /*
             Descriptor sets
@@ -175,52 +171,52 @@ namespace RenderResource {
             descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
             descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
             CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                                     &descriptorSetLayouts.scene));
+                                                     &resource.descriptorSetLayouts.scene));
 
-            descriptorSets.resize(renderUtils->UBCount);
-            for (size_t i = 0; i < descriptorSets.size(); i++) {
+            resource.descriptorSets.resize(renderUtils->UBCount);
+            for (size_t i = 0; i < resource.descriptorSets.size(); i++) {
                 VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                 descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptorSetAllocInfo.descriptorPool = descriptorPool;
-                descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayouts.scene;
+                descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
+                descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayouts.scene;
                 descriptorSetAllocInfo.descriptorSetCount = 1;
                 CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                                      &descriptorSets[i]));
+                                                      &resource.descriptorSets[i]));
 
                 std::array<VkWriteDescriptorSet, 5> writeDescriptorSets{};
 
                 writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 writeDescriptorSets[0].descriptorCount = 1;
-                writeDescriptorSets[0].dstSet = descriptorSets[i];
+                writeDescriptorSets[0].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[0].dstBinding = 0;
-                writeDescriptorSets[0].pBufferInfo = &bufferScene[i].m_DescriptorBufferInfo;
+                writeDescriptorSets[0].pBufferInfo = &resource.bufferScene.m_DescriptorBufferInfo;
 
                 writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 writeDescriptorSets[1].descriptorCount = 1;
-                writeDescriptorSets[1].dstSet = descriptorSets[i];
+                writeDescriptorSets[1].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[1].dstBinding = 1;
-                writeDescriptorSets[1].pBufferInfo = &bufferParams[i].m_DescriptorBufferInfo;
+                writeDescriptorSets[1].pBufferInfo = &resource.bufferParams.m_DescriptorBufferInfo;
 
                 writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[2].descriptorCount = 1;
-                writeDescriptorSets[2].dstSet = descriptorSets[i];
+                writeDescriptorSets[2].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[2].dstBinding = 2;
                 writeDescriptorSets[2].pImageInfo = &skyboxComponent.textures.irradianceCube.m_Descriptor;
 
                 writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[3].descriptorCount = 1;
-                writeDescriptorSets[3].dstSet = descriptorSets[i];
+                writeDescriptorSets[3].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[3].dstBinding = 3;
                 writeDescriptorSets[3].pImageInfo = &skyboxComponent.textures.prefilteredCube.m_Descriptor;
 
                 writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[4].descriptorCount = 1;
-                writeDescriptorSets[4].dstSet = descriptorSets[i];
+                writeDescriptorSets[4].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[4].dstBinding = 4;
                 writeDescriptorSets[4].pImageInfo = &skyboxComponent.textures.lutBrdf.m_Descriptor;
 
@@ -243,14 +239,14 @@ namespace RenderResource {
             descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
             descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
             CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
-                                                     &descriptorSetLayouts.material));
+                                                     &resource.descriptorSetLayouts.material));
 
             // Per-Material descriptor sets
             for (auto &material: component.model->materials) {
                 VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                 descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptorSetAllocInfo.descriptorPool = descriptorPool;
-                descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayouts.material;
+                descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
+                descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayouts.material;
                 descriptorSetAllocInfo.descriptorSetCount = 1;
                 CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                                       &material.descriptorSet));
@@ -307,11 +303,11 @@ namespace RenderResource {
                 nodeSetLayoutCreateInfo.pBindings = nodeSetLayoutBindings.data();
                 nodeSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(nodeSetLayoutBindings.size());
                 CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &nodeSetLayoutCreateInfo, nullptr,
-                                                         &descriptorSetLayouts.node));
+                                                         &resource.descriptorSetLayouts.node));
 
                 // Per-Node descriptor set
                 for (auto &node: component.model->nodes) {
-                    setupNodeDescriptorSet(node);
+                    setupNodeDescriptorSet(node, resource.descriptorPool, &resource.descriptorSetLayouts.node);
                 }
             }
 
@@ -325,35 +321,35 @@ namespace RenderResource {
                 descriptorSetLayoutMaterialCreateInfo.pBindings = materialSetLayout.data();
                 descriptorSetLayoutMaterialCreateInfo.bindingCount = static_cast<uint32_t>(materialSetLayout.size());
                 CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutMaterialCreateInfo, nullptr,
-                                                         &descriptorSetLayouts.materialBuffer));
+                                                         &resource.descriptorSetLayouts.materialBuffer));
 
                 VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                 descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptorSetAllocInfo.descriptorPool = descriptorPool;
-                descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayouts.materialBuffer;
+                descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
+                descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayouts.materialBuffer;
                 descriptorSetAllocInfo.descriptorSetCount = 1;
                 CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                                      &descriptorSetMaterials));
+                                                      &resource.descriptorSetMaterials));
 
                 VkWriteDescriptorSet writeDescriptorSet{};
                 writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 writeDescriptorSet.descriptorCount = 1;
-                writeDescriptorSet.dstSet = descriptorSetMaterials;
+                writeDescriptorSet.dstSet = resource.descriptorSetMaterials;
                 writeDescriptorSet.dstBinding = 0;
-                writeDescriptorSet.pBufferInfo = &shaderMaterialBuffer.m_DescriptorBufferInfo;
+                writeDescriptorSet.pBufferInfo = &resource.shaderMaterialBuffer.m_DescriptorBufferInfo;
                 vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
             }
 
         }
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupNodeDescriptorSet(VkRender::Node *node) {
+    void DefaultPBRGraphicsPipelineComponent::setupNodeDescriptorSet(VkRender::Node *node, VkDescriptorPool pool, VkDescriptorSetLayout* layout) {
         if (node->mesh) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            descriptorSetAllocInfo.descriptorPool = descriptorPool;
-            descriptorSetAllocInfo.pSetLayouts = &descriptorSetLayouts.node;
+            descriptorSetAllocInfo.descriptorPool = pool;
+            descriptorSetAllocInfo.pSetLayouts = layout;
             descriptorSetAllocInfo.descriptorSetCount = 1;
             CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                                   &node->mesh->uniformBuffer.descriptorSet));
@@ -369,17 +365,17 @@ namespace RenderResource {
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
         }
         for (auto &child: node->children) {
-            setupNodeDescriptorSet(child);
+            setupNodeDescriptorSet(child, pool, layout);
         }
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupPipelines() {
-        addPipelineSet("pbr", "pbr.vert.spv", "material_pbr.frag.spv");
+    void DefaultPBRGraphicsPipelineComponent::setupPipelines(Resource& resource) {
+        addPipelineSet(resource, "pbr", "pbr.vert.spv", "material_pbr.frag.spv");
         // KHR_materials_unlit
-        addPipelineSet("unlit", "pbr.vert.spv", "material_unlit.frag.spv");
+        addPipelineSet(resource, "unlit", "pbr.vert.spv", "material_unlit.frag.spv");
     }
 
-    void DefaultPBRGraphicsPipelineComponent::addPipelineSet(std::string prefix, std::string vertexShader,
+    void DefaultPBRGraphicsPipelineComponent::addPipelineSet(Resource& resource, std::string prefix, std::string vertexShader,
                                                              std::string fragmentShader) {
 
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
@@ -433,8 +429,8 @@ namespace RenderResource {
 
         // Pipeline layout
         const std::vector<VkDescriptorSetLayout> setLayouts = {
-                descriptorSetLayouts.scene, descriptorSetLayouts.material, descriptorSetLayouts.node,
-                descriptorSetLayouts.materialBuffer
+                resource.descriptorSetLayouts.scene, resource.descriptorSetLayouts.material, resource.descriptorSetLayouts.node,
+                resource.descriptorSetLayouts.materialBuffer
         };
         VkPipelineLayoutCreateInfo pipelineLayoutCI{};
         pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -446,7 +442,7 @@ namespace RenderResource {
         pipelineLayoutCI.pushConstantRangeCount = 1;
         pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
         CHECK_RESULT(
-                vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &pipelineLayouts[prefix]));
+                vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &resource.pipelineLayouts[prefix]));
 
         // Vertex bindings an attributes
         VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
@@ -471,7 +467,7 @@ namespace RenderResource {
 
         VkGraphicsPipelineCreateInfo pipelineCI{};
         pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineCI.layout = pipelineLayouts[prefix];
+        pipelineCI.layout = resource.pipelineLayouts[prefix];
         pipelineCI.renderPass = *renderUtils->renderPass;
         pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
         pipelineCI.pVertexInputState = &vertexInputStateCI;
@@ -497,12 +493,12 @@ namespace RenderResource {
         // Default pipeline with back-face culling
         CHECK_RESULT(
                 vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
-        pipelines[prefix] = pipeline;
+        resource.pipelines[prefix] = pipeline;
         // Double sided
         rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
         CHECK_RESULT(
                 vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
-        pipelines[prefix + "_double_sided"] = pipeline;
+        resource.pipelines[prefix + "_double_sided"] = pipeline;
         // Alpha blending
         rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
         blendAttachmentState.blendEnable = VK_TRUE;
@@ -517,7 +513,7 @@ namespace RenderResource {
         blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
         CHECK_RESULT(
                 vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &pipeline));
-        pipelines[prefix + "_alpha_blending"] = pipeline;
+        resource.pipelines[prefix + "_alpha_blending"] = pipeline;
 
         for (auto shaderStage: shaderStages) {
             vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
@@ -525,7 +521,7 @@ namespace RenderResource {
     }
 
 
-    void DefaultPBRGraphicsPipelineComponent::createMaterialBuffer(const VkRender::GLTFModelComponent &component) {
+    void DefaultPBRGraphicsPipelineComponent::createMaterialBuffer(Resource& resource, const VkRender::GLTFModelComponent &component) {
         std::vector<ShaderMaterial> shaderMaterials{};
         for (auto &material: component.model->materials) {
             ShaderMaterial shaderMaterial{};
@@ -572,8 +568,8 @@ namespace RenderResource {
             shaderMaterials.push_back(shaderMaterial);
         }
 
-        if (shaderMaterialBuffer.m_Buffer != VK_NULL_HANDLE) {
-            shaderMaterialBuffer.destroy();
+        if (resource.shaderMaterialBuffer.m_Buffer != VK_NULL_HANDLE) {
+            resource.shaderMaterialBuffer.destroy();
         }
         VkDeviceSize bufferSize = shaderMaterials.size() * sizeof(ShaderMaterial);
         Buffer stagingBuffer;
@@ -581,22 +577,23 @@ namespace RenderResource {
                                                                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                                 bufferSize, &stagingBuffer.m_Buffer, &stagingBuffer.m_Memory,
                                                 shaderMaterials.data()));
+
         CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferSize,
-                                                &shaderMaterialBuffer.m_Buffer, &shaderMaterialBuffer.m_Memory));
+                                                &resource.shaderMaterialBuffer.m_Buffer, &resource.shaderMaterialBuffer.m_Memory));
 
         // Copy from staging buffers
         VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         VkBufferCopy copyRegion{};
         copyRegion.size = bufferSize;
-        vkCmdCopyBuffer(copyCmd, stagingBuffer.m_Buffer, shaderMaterialBuffer.m_Buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(copyCmd, stagingBuffer.m_Buffer, resource.shaderMaterialBuffer.m_Buffer, 1, &copyRegion);
         vulkanDevice->flushCommandBuffer(copyCmd, vulkanDevice->m_TransferQueue, true);
         stagingBuffer.m_Device = vulkanDevice->m_LogicalDevice;
 
         // Update descriptor
-        shaderMaterialBuffer.m_DescriptorBufferInfo.buffer = shaderMaterialBuffer.m_Buffer;
-        shaderMaterialBuffer.m_DescriptorBufferInfo.offset = 0;
-        shaderMaterialBuffer.m_DescriptorBufferInfo.range = bufferSize;
-        shaderMaterialBuffer.m_Device = vulkanDevice->m_LogicalDevice;
+        resource.shaderMaterialBuffer.m_DescriptorBufferInfo.buffer = resource.shaderMaterialBuffer.m_Buffer;
+        resource.shaderMaterialBuffer.m_DescriptorBufferInfo.offset = 0;
+        resource.shaderMaterialBuffer.m_DescriptorBufferInfo.range = bufferSize;
+        resource.shaderMaterialBuffer.m_Device = vulkanDevice->m_LogicalDevice;
     }
 };

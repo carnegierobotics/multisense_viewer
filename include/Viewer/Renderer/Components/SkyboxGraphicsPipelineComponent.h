@@ -35,9 +35,6 @@ namespace RenderResource {
             renderUtils = utils;
             vulkanDevice = utils->device;
 
-
-            textures.empty.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
-
             // Setup random number generation
             std::random_device rd;  // Obtain a random number from hardware
             std::mt19937 gen(rd()); // Seed the generator
@@ -74,12 +71,10 @@ namespace RenderResource {
 
         struct Textures {
             TextureCubeMap environmentCube;
-            Texture2D empty;
             Texture2D lutBrdf;
             TextureCubeMap irradianceCube;
             TextureCubeMap prefilteredCube;
         } textures;
-
 
         VkPipeline pipeline = VK_NULL_HANDLE;
 

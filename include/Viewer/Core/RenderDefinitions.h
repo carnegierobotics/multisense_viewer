@@ -150,6 +150,16 @@ namespace VkRender {
         glm::vec3 camPos{};
     };
 
+    struct ShaderValuesParams {
+        glm::vec4 lightDir{};
+        float exposure = 4.5f;
+        float gamma = 2.2f;
+        float prefilteredCubeMipLevels;
+        float scaleIBLAmbient = 1.0f;
+        float debugViewInputs = 0;
+        float debugViewEquation = 0;
+    };
+
     /**
      * @brief Basic lighting params for simple light calculation
      */

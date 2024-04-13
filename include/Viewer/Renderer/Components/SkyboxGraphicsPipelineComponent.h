@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
+#include <random>
 
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
@@ -36,7 +37,22 @@ namespace RenderResource {
 
 
             textures.empty.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
-            textures.environmentCube.fromKtxFile(Utils::getTexturePath() / "Environments" / "skies.ktx2", vulkanDevice);
+
+            // Setup random number generation
+            std::random_device rd;  // Obtain a random number from hardware
+            std::mt19937 gen(rd()); // Seed the generator
+
+            // List of texture file names
+            std::vector<std::string> textureFiles = {
+                    //"kloppenheim.ktx2",
+                    //"skies.ktx2",
+                    "snow_forest.ktx2",
+                    //"papermill.ktx"
+            };
+            std::uniform_int_distribution<> distr(0, textureFiles.size() - 1); // Define the range
+            std::string selectedTexture = textureFiles[distr(gen)];
+
+            textures.environmentCube.fromKtxFile(Utils::getTexturePath() / "Environments" / selectedTexture, vulkanDevice);
 
             generateCubemaps(modelComponent);
             generateBRDFLUT();
@@ -73,17 +89,8 @@ namespace RenderResource {
         VkDescriptorPool descriptorPool{};
         std::string selectedEnvironment = "papermill";
 
-        struct ShaderValuesParams {
-            glm::vec4 lightDir{};
-            float exposure = 4.5f;
-            float gamma = 2.2f;
-            float prefilteredCubeMipLevels;
-            float scaleIBLAmbient = 1.0f;
-            float debugViewInputs = 0;
-            float debugViewEquation = 0;
-        } shaderValuesParams;
-
         VkRender::UBOMatrix uboMatrix;
+        VkRender::ShaderValuesParams shaderValuesParams;
 
         std::vector<Buffer> bufferSkyboxVert{};
         std::vector<Buffer> bufferSkyboxFrag{};
@@ -102,24 +109,7 @@ namespace RenderResource {
 
         void setupPipelines();
 
-        VkPipelineShaderStageCreateInfo
-        loadShader(std::string fileName, VkShaderStageFlagBits stage, VkShaderModule *module) {
-            // Check if we have .spv extensions. If not then add it.
-            std::size_t extension = fileName.find(".spv");
-            if (extension == std::string::npos)
-                fileName.append(".spv");
-            Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
-                              renderUtils->device->m_LogicalDevice, module);
-            assert(module != VK_NULL_HANDLE);
 
-            VkPipelineShaderStageCreateInfo shaderStage = {};
-            shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            shaderStage.stage = stage;
-            shaderStage.module = *module;
-            shaderStage.pName = "main";
-            Log::Logger::getInstance()->info("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
-            return shaderStage;
-        }
 
     };
 };

@@ -115,17 +115,51 @@ public:
     Texture2D() = default;
 
     // Move constructor
-    Texture2D(Texture2D &&other) noexcept: Texture(std::move(other)) {
+    Texture2D(Texture2D &&other) : Texture(std::move(other)) {
         // Move constructor logic specific to Texture2D
+        m_Device = std::exchange(other.m_Device, nullptr);
+        m_Image = std::exchange(other.m_Image, {});
+        m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
+        m_View = std::exchange(other.m_View, {});
+        m_Sampler = std::exchange(other.m_Sampler, {});
+        m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+        m_ImageLayout = other.m_ImageLayout;
+        m_Width = other.m_Width;
+        m_Height = other.m_Height;
+        m_Depth = other.m_Depth;
+        m_MipLevels = other.m_MipLevels;
+        m_LayerCount = other.m_LayerCount;
+        m_Descriptor = other.m_Descriptor;
+        m_Format = other.m_Format;
+        m_Type = other.m_Type;
+        m_ViewType = other.m_ViewType;
     }
 
     // Move assignment operator
     Texture2D &operator=(Texture2D &&other) noexcept {
-        Texture::operator=(std::move(other)); // Invoke base class move assignment
+        if (this != &other) {
+            // Proper cleanup of existing resources
+            // Move all resources from 'other' to 'this'
+            m_Device = std::exchange(other.m_Device, nullptr);
+            m_Image = std::exchange(other.m_Image, {});
+            m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
+            m_View = std::exchange(other.m_View, {});
+            m_Sampler = std::exchange(other.m_Sampler, {});
+            m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+            // Copy simple types
+            m_ImageLayout = other.m_ImageLayout;
+            m_Width = other.m_Width;
+            m_Height = other.m_Height;
+            m_Depth = other.m_Depth;
+            m_MipLevels = other.m_MipLevels;
+            m_LayerCount = other.m_LayerCount;
+            m_Descriptor = other.m_Descriptor;
+            m_Format = other.m_Format;
+            m_Type = other.m_Type;
+            m_ViewType = other.m_ViewType;
+        }
         return *this;
     }
-
-    ~Texture2D() override = default; // Destructor, ensures virtual destruction
 
     Texture2D(void *buffer,
               VkDeviceSize bufferSize,
@@ -137,11 +171,6 @@ public:
               VkFilter filter = VK_FILTER_LINEAR,
               VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
               VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-
-    explicit Texture2D(VulkanDevice *const pDevice) {
-        m_Device = pDevice;
-    }
 
     void fromBuffer(
             void *buffer,
@@ -228,7 +257,6 @@ public:
     }
 
     // Move assignment operator
-// Move assignment operator
     TextureCubeMap &operator=(TextureCubeMap &&other) noexcept {
         if (this != &other) {
             // Proper cleanup of existing resources

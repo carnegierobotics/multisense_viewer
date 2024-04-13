@@ -95,11 +95,8 @@ namespace VkRender {
         glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
 
-        glm::vec3 arcBallTranslate = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 arcballFront = glm::vec3(1.0f, 0.0f, 0.0f);
-
         float m_RotationSpeed = 0.20f;
-        float m_MovementSpeed = 3.0f;
+        float m_MovementSpeed = 0.50f;
         glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
         float zoomVal = 1.0f;

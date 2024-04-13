@@ -227,19 +227,7 @@ namespace VkRender {
 
         /**@brief Record commandbuffers for gltf models */
         for (auto [entity, resources, gltfComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent>().each()) {
-            resources.draw(&drawCmdBuffers, currentFrame);
-            gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
-        }
-
-        auto skyboxView = m_registry.view<RenderResource::SkyboxGraphicsPipelineComponent>();
-        for (auto entity: skyboxView) {
-
-            // Draw
-        }
-        auto gltfView = m_registry.view<VkRender::GLTFModelComponent>();
-        for (auto entity: gltfView) {
-
-            // Draw
+            resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
         }
 
         auto view = m_registry.view<CustomModelComponent>();
@@ -502,7 +490,6 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<CameraComponent>(Entity entity, CameraComponent &component) {
-        if (m_Width > 0 && m_Height > 0);// component.Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
     }
 
     template<>

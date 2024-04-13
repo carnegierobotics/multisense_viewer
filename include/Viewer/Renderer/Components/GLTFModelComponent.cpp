@@ -13,12 +13,12 @@ namespace VkRender
 {
     // Bounding box
 
-    GLTFModelComponent::BoundingBox::BoundingBox() = default;
+    BoundingBox::BoundingBox() = default;
 
-    GLTFModelComponent::BoundingBox::BoundingBox(glm::vec3 minimum, glm::vec3 maximum) : min(minimum), max(maximum) {
+    BoundingBox::BoundingBox(glm::vec3 minimum, glm::vec3 maximum) : min(minimum), max(maximum) {
     };
 
-    GLTFModelComponent::BoundingBox GLTFModelComponent::BoundingBox::getAABB(glm::mat4 m) const {
+    BoundingBox BoundingBox::getAABB(glm::mat4 m) const {
         auto minimum = glm::vec3(m[3]);
         glm::vec3 maximum = minimum;
         glm::vec3 v0, v1;
@@ -45,18 +45,18 @@ namespace VkRender
     }
 
     // Primitive
-    GLTFModelComponent::Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, GLTFModelComponent::Material &material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
+    Primitive::Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount, Material &material) : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount), material(material) {
         hasIndices = indexCount > 0;
     };
 
-    void GLTFModelComponent::Primitive::setBoundingBox(glm::vec3 min, glm::vec3 max) {
+    void Primitive::setBoundingBox(glm::vec3 min, glm::vec3 max) {
         bb.min = min;
         bb.max = max;
         bb.valid = true;
     }
 
     // Mesh
-    GLTFModelComponent::Mesh::Mesh(VulkanDevice *device, glm::mat4 matrix) {
+    Mesh::Mesh(VulkanDevice *device, glm::mat4 matrix) {
         this->device = device;
         this->uniformBlock.matrix = matrix;
         CHECK_RESULT(device->createBuffer(
@@ -70,25 +70,25 @@ namespace VkRender
         uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
     };
 
-    GLTFModelComponent::Mesh::~Mesh() {
+    Mesh::~Mesh() {
         vkDestroyBuffer(device->m_LogicalDevice, uniformBuffer.buffer, nullptr);
         vkFreeMemory(device->m_LogicalDevice, uniformBuffer.memory, nullptr);
         for (Primitive* p : primitives)
             delete p;
     }
 
-    void GLTFModelComponent::Mesh::setBoundingBox(glm::vec3 min, glm::vec3 max) {
+    void Mesh::setBoundingBox(glm::vec3 min, glm::vec3 max) {
         bb.min = min;
         bb.max = max;
         bb.valid = true;
     }
 
     // Node
-    glm::mat4 GLTFModelComponent::Node::localMatrix() {
+    glm::mat4 Node::localMatrix() {
         return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
     }
 
-    glm::mat4 GLTFModelComponent::Node::getMatrix() {
+    glm::mat4 Node::getMatrix() {
         glm::mat4 m = localMatrix();
         Node *p = parent;
         while (p) {
@@ -98,7 +98,7 @@ namespace VkRender
         return m;
     }
 
-    void GLTFModelComponent::Node::update() {
+    void Node::update() {
         if (mesh) {
             glm::mat4 m = getMatrix();
             if (skin) {
@@ -124,7 +124,7 @@ namespace VkRender
         }
     }
 
-    GLTFModelComponent::Node::~Node() {
+    Node::~Node() {
         if (mesh) {
             delete mesh;
         }
@@ -135,7 +135,7 @@ namespace VkRender
 
     // Model
 
-    void GLTFModelComponent::Model::destroy(VkDevice device)
+    void Model::destroy(VkDevice device)
     {
         if (vertices.buffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(device, vertices.buffer, nullptr);
@@ -164,7 +164,7 @@ namespace VkRender
         skins.resize(0);
     };
 
-    void GLTFModelComponent::Model::loadNode(Node *parent, const tinygltf::Node &node, uint32_t nodeIndex, const tinygltf::Model &model, LoaderInfo& loaderInfo, float globalscale)
+    void Model::loadNode(Node *parent, const tinygltf::Node &node, uint32_t nodeIndex, const tinygltf::Model &model, LoaderInfo& loaderInfo, float globalscale)
     {
         Node *newNode = new Node{};
         newNode->index = nodeIndex;
@@ -394,7 +394,7 @@ namespace VkRender
         linearNodes.push_back(newNode);
     }
 
-    void GLTFModelComponent::Model::getNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, size_t& vertexCount, size_t& indexCount)
+    void Model::getNodeProps(const tinygltf::Node& node, const tinygltf::Model& model, size_t& vertexCount, size_t& indexCount)
     {
         if (node.children.size() > 0) {
             for (size_t i = 0; i < node.children.size(); i++) {
@@ -413,7 +413,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::loadSkins(tinygltf::Model &gltfModel)
+    void Model::loadSkins(tinygltf::Model &gltfModel)
     {
         for (tinygltf::Skin &source : gltfModel.skins) {
             Skin *newSkin = new Skin{};
@@ -445,7 +445,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *device, VkQueue transferQueue)
+    void Model::loadTextures(tinygltf::Model &gltfModel, VulkanDevice *dev, VkQueue transferQueue)
     {
         for (tinygltf::Texture &tex : gltfModel.textures) {
             tinygltf::Image image = gltfModel.images[tex.source];
@@ -462,12 +462,12 @@ namespace VkRender
                 textureSampler = textureSamplers[tex.sampler];
             }
             Texture2D texture;
-            texture.fromglTfImage(image, textureSampler, device, transferQueue);
+            texture.fromglTfImage(image, textureSampler, dev, transferQueue);
             textures.push_back(std::move(texture));
         }
     }
 
-    VkSamplerAddressMode GLTFModelComponent::Model::getVkWrapMode(int32_t wrapMode)
+    VkSamplerAddressMode Model::getVkWrapMode(int32_t wrapMode)
     {
         switch (wrapMode) {
             case -1:
@@ -483,7 +483,7 @@ namespace VkRender
         return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     }
 
-    VkFilter GLTFModelComponent::Model::getVkFilterMode(int32_t filterMode)
+    VkFilter Model::getVkFilterMode(int32_t filterMode)
     {
         switch (filterMode) {
             case -1:
@@ -505,7 +505,7 @@ namespace VkRender
         return VK_FILTER_NEAREST;
     }
 
-    void GLTFModelComponent::Model::loadTextureSamplers(tinygltf::Model &gltfModel)
+    void Model::loadTextureSamplers(tinygltf::Model &gltfModel)
     {
         for (tinygltf::Sampler smpl : gltfModel.samplers) {
             Texture::TextureSampler sampler{};
@@ -518,7 +518,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::loadMaterials(tinygltf::Model &gltfModel)
+    void Model::loadMaterials(tinygltf::Model &gltfModel)
     {
         for (tinygltf::Material &mat : gltfModel.materials) {
             Material material{};
@@ -619,7 +619,7 @@ namespace VkRender
         materials.emplace_back();
     }
 
-    void GLTFModelComponent::Model::loadAnimations(tinygltf::Model &gltfModel)
+    void Model::loadAnimations(tinygltf::Model &gltfModel)
     {
         for (tinygltf::Animation &anim : gltfModel.animations) {
             Animation animation{};
@@ -731,7 +731,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::loadFromFile(std::string filename, float scale)
+    void Model::loadFromFile(std::string filename, float scale)
     {
         tinygltf::Model gltfModel;
         tinygltf::TinyGLTF gltfContext;
@@ -871,7 +871,7 @@ namespace VkRender
         getSceneDimensions();
     }
 
-    void GLTFModelComponent::Model::drawNode(Node *node, VkCommandBuffer commandBuffer)
+    void Model::drawNode(Node *node, VkCommandBuffer commandBuffer)
     {
         if (node->mesh) {
             for (Primitive *primitive : node->mesh->primitives) {
@@ -883,7 +883,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::draw(VkCommandBuffer commandBuffer)
+    void Model::draw(VkCommandBuffer commandBuffer)
     {
         const VkDeviceSize offsets[1] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
@@ -893,7 +893,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::calculateBoundingBox(Node *node, Node *parent) {
+    void Model::calculateBoundingBox(Node *node, Node *parent) {
         BoundingBox parentBvh = parent ? parent->bvh : BoundingBox(dimensions.min, dimensions.max);
 
         if (node->mesh) {
@@ -915,7 +915,7 @@ namespace VkRender
         }
     }
 
-    void GLTFModelComponent::Model::getSceneDimensions()
+    void Model::getSceneDimensions()
     {
         // Calculate binary volume hierarchy for all nodes in the scene
         for (auto node : linearNodes) {
@@ -939,7 +939,7 @@ namespace VkRender
         aabb[3][2] = dimensions.min[2];
     }
 
-    void GLTFModelComponent::Model::updateAnimation(uint32_t index, float time)
+    void Model::updateAnimation(uint32_t index, float time)
     {
         if (animations.empty()) {
             std::cout << ".glTF does not contain animation." << std::endl;
@@ -1000,7 +1000,7 @@ namespace VkRender
         }
     }
 
-    GLTFModelComponent::Node* GLTFModelComponent::Model::findNode(Node *parent, uint32_t index) {
+    Node* Model::findNode(Node *parent, uint32_t index) {
         Node* nodeFound = nullptr;
         if (parent->index == index) {
             return parent;
@@ -1014,7 +1014,7 @@ namespace VkRender
         return nodeFound;
     }
 
-    GLTFModelComponent::Node* GLTFModelComponent::Model::nodeFromIndex(uint32_t index) {
+    Node* Model::nodeFromIndex(uint32_t index) {
         Node* nodeFound = nullptr;
         for (auto &node : nodes) {
             nodeFound = findNode(node, index);

@@ -498,7 +498,7 @@ namespace VkRender {
 
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};
-            gifTexture[i] = std::make_unique<Texture2D>(device);
+            gifTexture[i] = std::make_unique<Texture2D>();
 
             gifTexture[i]->fromBuffer(pixelPointer, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                       handles.info->gif.width, handles.info->gif.height, device,

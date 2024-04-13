@@ -220,8 +220,8 @@ namespace RenderResource {
         VkShaderModule fragModule{};
         // Look-up-table (from BRDF) pipeline
         shaderStages = {
-                loadShader("spv/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule),
-                loadShader("spv/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule)
+                Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/genbrdflut.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule),
+                Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/genbrdflut.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule)
         };
         VkPipeline pipeline;
         CHECK_RESULT(
@@ -649,14 +649,14 @@ namespace RenderResource {
             VkShaderModule vertModule{};
             VkShaderModule fragModule{};
 
-            shaderStages[0] = loadShader("spv/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
+            shaderStages[0] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/filtercube.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
             switch (target) {
                 case IRRADIANCE:
-                    shaderStages[1] = loadShader("spv/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT,
+                    shaderStages[1] = Utils::loadShader(vulkanDevice->m_LogicalDevice ,"spv/irradiancecube.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT,
                                                  &fragModule);
                     break;
                 case PREFILTEREDENV:
-                    shaderStages[1] = loadShader("spv/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT,
+                    shaderStages[1] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/prefilterenvmap.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT,
                                                  &fragModule);
                     break;
             };
@@ -890,7 +890,7 @@ namespace RenderResource {
         for (size_t i = 0; i < renderUtils->UBCount; ++i) {
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                       &bufferSkyboxFrag[i], sizeof(ShaderValuesParams));
+                                       &bufferSkyboxFrag[i], sizeof(VkRender::ShaderValuesParams));
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                        &bufferSkyboxVert[i], sizeof(VkRender::UBOMatrix));
@@ -950,7 +950,7 @@ namespace RenderResource {
 
         descriptorSets.resize(renderUtils->UBCount);
         // Skybox (fixed set)
-        for (auto i = 0; i < renderUtils->UBCount; i++) {
+        for (size_t i = 0; i < renderUtils->UBCount; i++) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             descriptorSetAllocInfo.descriptorPool = descriptorPool;
@@ -1088,8 +1088,8 @@ namespace RenderResource {
 
         VkShaderModule vertModule, fragModule;
 
-        shaderStages[0] = loadShader("spv/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
-        shaderStages[1] = loadShader("spv/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
+        shaderStages[0] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/skybox.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
+        shaderStages[1] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/skybox.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         // Default pipeline with back-face culling
         CHECK_RESULT(
@@ -1103,7 +1103,7 @@ namespace RenderResource {
     }
 
     void SkyboxGraphicsPipelineComponent::update() {
-        memcpy(bufferSkyboxFrag[renderUtils->swapchainIndex].mapped, &shaderValuesParams, sizeof(ShaderValuesParams));
+        memcpy(bufferSkyboxFrag[renderUtils->swapchainIndex].mapped, &shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
         memcpy(bufferSkyboxVert[renderUtils->swapchainIndex].mapped, &uboMatrix, sizeof(VkRender::UBOMatrix));
 
     }

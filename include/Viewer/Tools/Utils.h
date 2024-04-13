@@ -610,6 +610,24 @@ namespace Utils {
         }
     }
 
+    inline VkPipelineShaderStageCreateInfo
+    loadShader(VkDevice device, std::string fileName, VkShaderStageFlagBits stage, VkShaderModule *module) {
+        // Check if we have .spv extensions. If not then add it.
+        std::size_t extension = fileName.find(".spv");
+        if (extension == std::string::npos)
+            fileName.append(".spv");
+        Utils::loadShader((Utils::getShadersPath().append(fileName)).string().c_str(),
+                          device, module);
+        assert(module != VK_NULL_HANDLE);
+
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage = stage;
+        shaderStage.module = *module;
+        shaderStage.pName = "main";
+        Log::Logger::getInstance()->info("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
+        return shaderStage;
+    }
 
     template<typename T>
     size_t getIndexOf(const std::vector<T> &vecOfElements, const T &element) {

@@ -94,6 +94,7 @@ namespace VkRender {
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Entity findEntityByName(std::string_view name);
+        void markEntityForDestruction(Entity entity);
 
         Camera& getCamera();
 
@@ -143,6 +144,7 @@ namespace VkRender {
         friend class Entity;
 
 
+        void processDeletions();
     };
 }
 

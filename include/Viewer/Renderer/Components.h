@@ -128,6 +128,9 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
+    struct DeleteComponent {
+        bool now = true;
+    };
 
     template<typename... Component>
     struct ComponentGroup {

@@ -216,7 +216,7 @@ namespace VkRender {
 
         /** @brief Open the popup window */
         bool openAddDevicePopup = false;
-        bool renderer3D = false;
+        bool renderer3D = true;
 
 
         std::shared_ptr<UsageMonitor> usageMonitor;

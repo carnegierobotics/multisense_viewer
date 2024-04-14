@@ -91,7 +91,10 @@ namespace RenderResource {
 
             VkRender::UBOMatrix uboMatrix;
             VkRender::ShaderValuesParams shaderValuesParams;
+
+            bool busy = false;
         };
+        bool markedForDeletion = false;
         Texture2D emptyTexture; // TODO Possibly make more empty textures to match our triple buffering?
         std::vector<Resource> resources;
         // We use a material buffer to pass material data ind image indices to the shader

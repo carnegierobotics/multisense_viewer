@@ -70,11 +70,10 @@ namespace VkRender {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("Some description");
+                ImGui::Text("Features coming..");
                 ImGui::SameLine();
-                if (ImGui::SmallButton(("button ##" + tag.Tag).c_str())) {
-                    Entity entity2(entity, handles->m_context);
-                    handles->m_context->destroyEntity(entity2);
+                if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
+                    handles->m_context->markEntityForDestruction(Entity(entity, handles->m_context));
                 }
                 ImGui::TreePop();
             }
@@ -115,9 +114,7 @@ namespace VkRender {
             ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424Main); // Example: Dark grey
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
             ImGui::BeginChild("MyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
-            if (ImGui::SmallButton("Add entity")) {
-                handles->m_context->createEntity("New Standard Entity");
-            }
+
             processEntities(handles);
             ImGui::EndChild();
             ImGui::PopStyleColor(); // Reset to previous style color

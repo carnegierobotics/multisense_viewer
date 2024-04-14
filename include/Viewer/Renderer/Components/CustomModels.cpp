@@ -284,5 +284,7 @@ namespace VkRender {
         vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);
         vkCmdBindIndexBuffer(commandBuffer->buffers[cbIndex], model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer->buffers[cbIndex], model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
+
+        resourcesInUse[cbIndex] = true;
     }
 };

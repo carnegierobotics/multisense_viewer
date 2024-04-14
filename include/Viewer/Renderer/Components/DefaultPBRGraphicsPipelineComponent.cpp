@@ -78,7 +78,6 @@ namespace RenderResource {
         }
 
         resources[cbIndex].boundPipeline = VK_NULL_HANDLE;
-
         // Opaque primitives first
         for (auto node : component.model->nodes) {
             renderNode(commandBuffer, cbIndex, node, VkRender::Material::ALPHAMODE_OPAQUE);
@@ -92,6 +91,8 @@ namespace RenderResource {
         for (auto node : component.model->nodes) {
             renderNode(commandBuffer, cbIndex, node, VkRender::Material::ALPHAMODE_BLEND);
         }
+
+        resources[cbIndex].busy = true;
     }
 
     void DefaultPBRGraphicsPipelineComponent::setupUniformBuffers(Resource& resource) {

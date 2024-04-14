@@ -41,10 +41,10 @@ namespace RenderResource {
 
             // List of texture file names
             std::vector<std::string> textureFiles = {
-                    //"kloppenheim.ktx2",
-                    //"skies.ktx2",
+                    "kloppenheim.ktx2",
+                    "skies.ktx2",
                     "snow_forest.ktx2",
-                    //"papermill.ktx"
+                    "papermill.ktx"
             };
             std::uniform_int_distribution<> distr(0, textureFiles.size() - 1); // Define the range
             std::string selectedTexture = textureFiles[distr(gen)];

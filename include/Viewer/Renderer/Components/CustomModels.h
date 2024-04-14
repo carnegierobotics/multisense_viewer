@@ -79,8 +79,9 @@ namespace VkRender {
         std::vector<VkPipeline> pipelines{};
         std::vector<VkPipeline> pipelinesSecondary{};
         std::vector<VkPipelineLayout> pipelineLayouts{};
+        std::vector<bool> resourcesInUse = {false};
 
-        bool initializedPipeline = false;
+        bool markedForDeletion = false;
         const VulkanDevice *vulkanDevice = nullptr;
         const VkRender::RenderUtils *renderer;
 

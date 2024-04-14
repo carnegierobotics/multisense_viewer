@@ -139,7 +139,36 @@ namespace VkRender {
         }
     }
 
+    void Renderer::processDeletions(){
+        // Check for PBR elements and if we should delay deletion
+        for (auto [entity, gltfModel, deleteComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, DeleteComponent>().each()) {
+            gltfModel.markedForDeletion = true;
+            bool readyForDeletion = true;
+            for (const auto& resource : gltfModel.resources){
+                if (resource.busy)
+                    readyForDeletion = false;
+            }
+            if (readyForDeletion){
+                destroyEntity(Entity(entity, this));
+            }
+        }
+
+        for (auto [entity, customModel, deleteComponent]: m_registry.view<VkRender::CustomModelComponent, DeleteComponent>().each()) {
+            customModel.markedForDeletion = true;
+            bool readyForDeletion = true;
+            for (const auto& inUse : customModel.resourcesInUse){
+                if (inUse)
+                    readyForDeletion = false;
+            }
+            if (readyForDeletion){
+                destroyEntity(Entity(entity, this));
+            }
+        }
+    }
+
     void Renderer::buildCommandBuffers() {
+        processDeletions();
+        /**@brief Record command buffers for skybox */
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
         cmdBufInfo.flags = 0;
         cmdBufInfo.pInheritanceInfo = nullptr;
@@ -227,14 +256,20 @@ namespace VkRender {
 
         /**@brief Record commandbuffers for gltf models */
         for (auto [entity, resources, gltfComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent>().each()) {
-            resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+            if (!resources.markedForDeletion)
+                resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+            else
+                resources.resources[currentFrame].busy = false;
         }
 
-        auto view = m_registry.view<CustomModelComponent>();
-        for (auto entity: view) {
-            auto &model = view.get<CustomModelComponent>(entity);
-            model.draw(&drawCmdBuffers, currentFrame);
+        /**@brief Record commandbuffers for Custom models */
+        for (auto [entity, resource]: m_registry.view<CustomModelComponent>().each()) {
+            if (!resource.markedForDeletion)
+                resource.draw(&drawCmdBuffers, currentFrame);
+            else
+                resource.resourcesInUse[currentFrame] = false;
         }
+
 
         /** Generate UI draw commands **/
         guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
@@ -464,6 +499,12 @@ namespace VkRender {
         return {};
     }
 
+    // Destroy when render resources are no longer in use
+    void Renderer::markEntityForDestruction(Entity entity){
+        if (!entity.hasComponent<DeleteComponent>())
+            entity.addComponent<DeleteComponent>();
+    }
+
     void Renderer::destroyEntity(Entity entity) {
         m_entityMap.erase(entity.getUUID());
         m_registry.destroy(entity);
@@ -475,6 +516,7 @@ namespace VkRender {
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
     template<typename T>
     void Renderer::onComponentAdded(Entity entity, T &component) {
         static_assert(sizeof(T) == 0);
@@ -507,6 +549,9 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
     }
+    template<>
+    void Renderer::onComponentAdded<DeleteComponent>(Entity entity, DeleteComponent &component) {
+    }
 
     template<>
     void Renderer::onComponentAdded<GLTFModelComponent>(Entity entity, GLTFModelComponent &component) {
@@ -523,7 +568,8 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
-                                                                                      RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
+                                                                                         RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
     }
+
     DISABLE_WARNING_POP
 };

@@ -71,7 +71,7 @@ void MultiSense::update() {
             obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f),
                                                            glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
             obj.resources[i].uboMatrix.model = glm::translate(obj.resources[i].uboMatrix.model,
-                                                              glm::vec3(1.0f, 0.0f, 1.0f));
+                                                              glm::vec3(0.25f, 0.0f, 0.25f));
             //obj.resources[i].uboMatrix.model = glm::scale(obj.resources[i].uboMatrix.model, glm::vec3(0.5f, 0.5f, 0.5f));
             obj.resources[i].uboMatrix.camPos = cameraWorldPosition;
             obj.resources[i].shaderValuesParams.lightDir = glm::vec4(

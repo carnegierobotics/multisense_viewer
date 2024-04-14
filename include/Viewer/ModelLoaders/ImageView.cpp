@@ -374,14 +374,14 @@ void ImageView::draw(CommandBuffer *commandBuffer, uint32_t i) {
         return;
     }
 
+    /*
     vkCmdBindDescriptorSets(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_model->resources[commandBuffer->renderPassIndex].pipelineLayout[i], 0,
                             1,
                             &m_model->resources[commandBuffer->renderPassIndex].descriptors[i], 0, nullptr);
 
-    vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      m_model->resources[commandBuffer->renderPassIndex].pipeline[i]);
-
+    vkCmdBindPipeline(commandBuffer->buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,m_model->resources[commandBuffer->renderPassIndex].pipeline[i]);
+    */
 
     const VkDeviceSize offsets[1] = {0};
     vkCmdBindVertexBuffers(commandBuffer->buffers[i], 0, 1, &m_model->m_mesh.vertices[i].buffer, offsets);

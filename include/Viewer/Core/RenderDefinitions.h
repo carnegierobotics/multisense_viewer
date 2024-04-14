@@ -201,6 +201,7 @@ namespace VkRender {
             VkSampler sampler;
         } colorImage{};
 
+        bool idle = true;
         VkDescriptorImageInfo imageInfo{};
     };
 

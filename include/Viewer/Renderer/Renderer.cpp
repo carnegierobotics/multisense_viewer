@@ -139,28 +139,28 @@ namespace VkRender {
         }
     }
 
-    void Renderer::processDeletions(){
+    void Renderer::processDeletions() {
         // Check for PBR elements and if we should delay deletion
         for (auto [entity, gltfModel, deleteComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, DeleteComponent>().each()) {
             gltfModel.markedForDeletion = true;
             bool readyForDeletion = true;
-            for (const auto& resource : gltfModel.resources){
+            for (const auto &resource: gltfModel.resources) {
                 if (resource.busy)
                     readyForDeletion = false;
             }
-            if (readyForDeletion){
+            if (readyForDeletion) {
                 destroyEntity(Entity(entity, this));
             }
         }
-
+        // Check deletion for custom models
         for (auto [entity, customModel, deleteComponent]: m_registry.view<VkRender::CustomModelComponent, DeleteComponent>().each()) {
             customModel.markedForDeletion = true;
             bool readyForDeletion = true;
-            for (const auto& inUse : customModel.resourcesInUse){
+            for (const auto &inUse: customModel.resourcesInUse) {
                 if (inUse)
                     readyForDeletion = false;
             }
-            if (readyForDeletion){
+            if (readyForDeletion) {
                 destroyEntity(Entity(entity, this));
             }
         }
@@ -183,6 +183,60 @@ namespace VkRender {
                                 guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
         }
         clearValues[1].depthStencil = {1.0f, 0};
+
+        const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
+                                                       1.0f);
+        const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
+        // Render secondary viewpoints
+        for (const auto &render: secondaryRenderPasses) {
+            if (render.idle)
+                continue;
+
+            vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+            VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
+            secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            secondaryRenderPassBeginInfo.renderPass = render.renderPass; // The second render pass
+            secondaryRenderPassBeginInfo.framebuffer = render.frameBuffers[imageIndex];
+            secondaryRenderPassBeginInfo.renderArea.offset = {0, 0};
+            secondaryRenderPassBeginInfo.renderArea.extent = {m_Width,
+                                                              m_Height}; // Set to your off-screen image dimensions
+            secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
+
+            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
+                                 VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+            vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+
+
+            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+            VkImageMemoryBarrier barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = render.colorImage.resolvedImage;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+
+            // Syncrhonization before main renderpass
+            vkCmdPipelineBarrier(
+                    drawCmdBuffers.buffers[currentFrame],
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+            );
+        }
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
         renderPassBeginInfo.renderArea.offset.x = 0;
@@ -191,59 +245,7 @@ namespace VkRender {
         renderPassBeginInfo.renderArea.extent.height = m_Height;
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
-
-        const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
-                                                       1.0f);
-        const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
-
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
-        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
-
-        // Record secondary stuff:
-        VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
-        secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        secondaryRenderPassBeginInfo.renderPass = secondaryRenderPasses[0].renderPass; // The second render pass
-        secondaryRenderPassBeginInfo.framebuffer = secondaryRenderPasses[0].frameBuffers[imageIndex];
-        secondaryRenderPassBeginInfo.renderArea.offset = {0, 0};
-        secondaryRenderPassBeginInfo.renderArea.extent = {m_Width, m_Height}; // Set to your off-screen image dimensions
-        secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-        drawCmdBuffers.renderPassIndex = 1;
-        /** Generate Script draw commands **/
-
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-        VkImageMemoryBarrier barrier = {};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = secondaryRenderPasses[0].colorImage.resolvedImage;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
-
-        // Syncrhonization before main renderpass
-        vkCmdPipelineBarrier(
-                drawCmdBuffers.buffers[currentFrame],
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
-        );
-
-        drawCmdBuffers.renderPassIndex = 0;
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
@@ -500,7 +502,7 @@ namespace VkRender {
     }
 
     // Destroy when render resources are no longer in use
-    void Renderer::markEntityForDestruction(Entity entity){
+    void Renderer::markEntityForDestruction(Entity entity) {
         if (!entity.hasComponent<DeleteComponent>())
             entity.addComponent<DeleteComponent>();
     }
@@ -549,6 +551,7 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
     }
+
     template<>
     void Renderer::onComponentAdded<DeleteComponent>(Entity entity, DeleteComponent &component) {
     }

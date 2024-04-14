@@ -73,6 +73,12 @@ namespace VkRender {
         Camera camera;
         bool primary = true; // TODO: think about moving to Scene
         bool fixedAspectRatio = false;
+        struct ViewPoints {
+            VkRenderPass renderPass;
+            bool saveViewPoint = false;
+        };
+
+        std::vector<ViewPoints> viewPoints;
 
         CameraComponent() = default;
 

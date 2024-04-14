@@ -77,7 +77,6 @@ namespace VkRender {
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{};
         std::vector<VkDescriptorPool> descriptorPools{};
         std::vector<VkPipeline> pipelines{};
-        std::vector<VkPipeline> pipelinesSecondary{};
         std::vector<VkPipelineLayout> pipelineLayouts{};
         std::vector<bool> resourcesInUse = {false};
 
@@ -114,7 +113,6 @@ namespace VkRender {
             descriptorSetLayouts.resize(renderUtils->UBCount);
             descriptorPools.resize(renderUtils->UBCount);
             pipelines.resize(renderUtils->UBCount);
-            pipelinesSecondary.resize(renderUtils->UBCount);
             pipelineLayouts.resize(renderUtils->UBCount);
 
 
@@ -143,7 +141,6 @@ namespace VkRender {
 
             for (size_t i = 0; i < renderer->UBCount; ++i) {
                 vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelines[i], nullptr);
-                vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelinesSecondary[i], nullptr);
                 vkDestroyPipelineLayout(renderer->device->m_LogicalDevice, pipelineLayouts[i], nullptr);
                 vkDestroyDescriptorSetLayout(renderer->device->m_LogicalDevice, descriptorSetLayouts[i], nullptr);
                 vkDestroyDescriptorPool(renderer->device->m_LogicalDevice, descriptorPools[i], nullptr);

@@ -14,14 +14,6 @@
 
 struct CommandBuffer {
     std::vector<VkCommandBuffer> buffers{};
-    std::vector<bool> hasWork{};
-
-    // Owner --> Description?
-    std::string description = "RenderCommandBuffer";
-
-    std::vector<bool> busy{};
-
-    int renderPassIndex = 0; // TODO update
 };
 
 

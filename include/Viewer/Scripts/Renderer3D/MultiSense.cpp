@@ -30,6 +30,7 @@ void MultiSense::setup() {
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
     }
+
     {
         auto ent = m_context->createEntity("Coordinates");
         ent.addComponent<VkRender::CameraComponent>();
@@ -38,6 +39,7 @@ void MultiSense::setup() {
 
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
+
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
     }
 }

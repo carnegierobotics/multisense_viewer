@@ -188,11 +188,12 @@ namespace VkRender {
                                                        1.0f);
         const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
         // Render secondary viewpoints
+        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+
         for (const auto &render: secondaryRenderPasses) {
             if (render.idle)
                 continue;
 
-            vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
             VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
             secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             secondaryRenderPassBeginInfo.renderPass = render.renderPass; // The second render pass

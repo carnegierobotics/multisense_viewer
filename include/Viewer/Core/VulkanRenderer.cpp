@@ -599,6 +599,7 @@ namespace VkRender {
         info.pWindow = window;
         info.physicalDevice = physicalDevice;
         info.device = device;
+        info.vsync = true;
         swapchain = std::make_unique<VulkanSwapchain>(info, &m_Width, &m_Height);
 
         createCommandPool();

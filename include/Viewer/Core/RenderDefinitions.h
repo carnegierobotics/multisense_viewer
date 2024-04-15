@@ -104,7 +104,7 @@ namespace VkRender {
      */
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
-        bool vsync = false;
+        bool vsync = true;
         VkInstance instance{};
         VkPhysicalDevice physicalDevice{};
         VkDevice device{};

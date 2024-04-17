@@ -170,16 +170,6 @@ namespace VkRender {
                        sizeof(VkRender::PointCloudParam));
             }
 
-
-                VkRender::UniformBufferSet &currUBO = renderUtils.uboDevice[renderData.renderPassIndex][renderData.index];
-                if (renderData.type != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-                    memcpy(currUBO.bufferOne.mapped, ubo[renderData.renderPassIndex].mvp.get(), sizeof(VkRender::UBOMatrix));
-                    memcpy(currUBO.bufferTwo.mapped, ubo[renderData.renderPassIndex].fragShader.get(),
-                           sizeof(VkRender::FragShaderParams));
-                    memcpy(currUBO.bufferThree.mapped, ubo[renderData.renderPassIndex].pointCloudData.get(),
-                           sizeof(VkRender::PointCloudParam));
-
-            }
         }
 
         void createUniformBuffers(const RenderUtils& utils, RenderData rData, TopLevelScriptData* topLevelPtr) {

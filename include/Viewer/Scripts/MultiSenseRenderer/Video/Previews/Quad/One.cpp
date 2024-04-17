@@ -51,14 +51,16 @@ void One::setup() {
     m_NoSourceModel->createMeshDeviceLocal(imgData.quad.vertices, imgData.quad.indices);
 
     // Create texture m_Image if not created
-    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth, &texHeight, &texChannels,
+    m_NoDataTex = stbi_load((Utils::getTexturePath().append("no_image_tex.png")).string().c_str(), &texWidth,
+                            &texHeight, &texChannels,
                             STBI_rgb_alpha);
     if (!m_NoDataTex) {
         Log::Logger::getInstance()->info("Failed to load texture image {}",
                                          (Utils::getTexturePath().append("no_image_tex.png")).string());
     }
     // Create texture m_Image if not created
-    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth, &texHeight,
+    m_NoSourceTex = stbi_load((Utils::getTexturePath().append("no_source_selected.png")).string().c_str(), &texWidth,
+                              &texHeight,
                               &texChannels,
                               STBI_rgb_alpha);
     if (!m_NoSourceTex) {
@@ -71,7 +73,7 @@ void One::setup() {
 }
 
 void One::update() {
-    if (selectedPreviewTab !=VkRender::CRL_TAB_2D_PREVIEW)
+    if (selectedPreviewTab != VkRender::CRL_TAB_2D_PREVIEW)
         return;
 
     auto tex = VkRender::TextureData(textureType, res);
@@ -90,7 +92,7 @@ void One::update() {
             return;
         }
 
-        if (lastPresentedFrameID != tex.m_Id){
+        if (lastPresentedFrameID != tex.m_Id) {
             lastPresentTime = std::chrono::steady_clock::now();
         }
 
@@ -127,14 +129,15 @@ void One::update() {
     d2->zoomTranslate = glm::vec4(zoom.translateX, zoom.translateY, 0.0f, 0.0f);
     d2->disparityNormalizer = glm::vec4(options->normalize, options->data.minDisparityValue,
                                         options->data.maxDisparityValue, options->interpolation);
-    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);    d2->pad.x = options->depthColorMap;
+    d2->kernelFilters = glm::vec4(options->edgeDetection, options->blur, options->emboss, options->sharpening);
+    d2->pad.x = options->depthColorMap;
 
 }
 
 
 void One::prepareDefaultTexture() {
-    m_NoDataModel->m_CameraDataType =VkRender::CRL_COLOR_IMAGE_RGBA;
-    m_NoDataModel->createEmptyTexture(texWidth, texHeight,VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
+    m_NoDataModel->m_CameraDataType = VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoDataModel->createEmptyTexture(texWidth, texHeight, VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
     std::string vertexShaderFileName = "spv/color.vert";
     std::string fragmentShaderFileName = "spv/color_default_sampler.frag";
     VkPipelineShaderStageCreateInfo vs = loadShader(vertexShaderFileName, VK_SHADER_STAGE_VERTEX_BIT);
@@ -151,8 +154,8 @@ void One::prepareDefaultTexture() {
         }
     }
 
-    m_NoSourceModel->m_CameraDataType =VkRender::CRL_COLOR_IMAGE_RGBA;
-    m_NoSourceModel->createEmptyTexture(texWidth, texHeight,VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
+    m_NoSourceModel->m_CameraDataType = VkRender::CRL_COLOR_IMAGE_RGBA;
+    m_NoSourceModel->createEmptyTexture(texWidth, texHeight, VkRender::CRL_COLOR_IMAGE_RGBA, false, 0);
     // Create graphics render pipeline
     CRLCameraModels::createRenderPipeline(shaders, m_NoSourceModel.get(), &renderUtils);
     auto tex = std::make_unique<VkRender::TextureData>(VkRender::CRL_COLOR_IMAGE_RGBA, texWidth, texHeight);
@@ -175,15 +178,11 @@ void One::prepareMultiSenseTexture() {
         case VkRender::CRL_COLOR_IMAGE_YUV420:
             vertexShaderFileName = "spv/color.vert";
             fragmentShaderFileName = vulkanDevice->extensionSupported(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) ?
-                                     "spv/color_default_sampler.frag" :  "spv/color_ycbcr_sampler.frag";
+                                     "spv/color_default_sampler.frag" : "spv/color_ycbcr_sampler.frag";
             break;
         case VkRender::CRL_DISPARITY_IMAGE:
             vertexShaderFileName = "spv/disparity.vert";
             fragmentShaderFileName = "spv/disparity.frag";
-            break;
-        case VkRender::CRL_COMPUTE_SHADER:
-            vertexShaderFileName = "spv/grayscale.vert";
-            fragmentShaderFileName = "spv/compute.frag";
             break;
         default:
             return;
@@ -194,24 +193,17 @@ void One::prepareMultiSenseTexture() {
                                                             {fs}};
 
     m_Model->m_CameraDataType = textureType;
-    if (VkRender::CRL_COMPUTE_SHADER != textureType) {
-        uint32_t width = 0, height = 0, depth = 0;
-        Utils::cameraResolutionToValue(res, &width, &height, &depth);
-        if (width == 0 || height == 0) {
-            Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
-            return;
-        }
-
-        m_Model->createEmptyTexture(width, height, textureType, false, 0);
-        // Create graphics render pipeline
-        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
-        return;
-    } else if (topLevelData->compute.valid) {
-        m_Model->m_TextureComputeTarget = topLevelData->compute.textureComputeTarget;
-        m_Model->m_TextureComputeTarget3D = topLevelData->compute.textureComputeTarget3D;
-        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+    uint32_t width = 0, height = 0, depth = 0;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
+    if (width == 0 || height == 0) {
+        Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
+
+    m_Model->createEmptyTexture(width, height, textureType, false, 0);
+    // Create graphics render pipeline
+    CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+
 }
 
 void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
@@ -219,7 +211,7 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
 
 
-        if (dev.state !=VkRender::CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         selectedPreviewTab = dev.selectedPreviewTab;
 
@@ -256,29 +248,35 @@ void One::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         transformToUISpace(uiHandle, dev);
         options = &preview.effects;
         zoomEnabled = preview.enableZoom;
-        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom,VkRender::CRL_PREVIEW_ONE);
+        VkRender::ScriptUtils::setZoomValue(zoom, &uiHandle->previewZoom, VkRender::CRL_PREVIEW_ONE);
         glm::vec2 deltaMouse(uiHandle->mouse->dx, uiHandle->mouse->dy);
-        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev,VkRender::CRL_PREVIEW_ONE, deltaMouse,
+        VkRender::ScriptUtils::handleZoomUiLoop(&zoom, dev, VkRender::CRL_PREVIEW_ONE, deltaMouse,
                                                 (uiHandle->mouse->left && preview.isHovered), options->magnifyZoomMode,
                                                 preview.enableZoom);
 
     }
 }
 
-void One::transformToUISpace(const VkRender::GuiObjectHandles * uiHandle, const VkRender::Device& dev) {
+void One::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle, const VkRender::Device &dev) {
     float row = dev.win.at(VkRender::CRL_PREVIEW_ONE).row;
     float col = dev.win.at(VkRender::CRL_PREVIEW_ONE).col;
-    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding)/ 1280.0f) * (1280.0f / uiHandle->info->width);
-    scaleY = ((uiHandle->info->viewAreaElementSizeY  - uiHandle->info->previewBorderPadding )/ 720.0f) * (720 / uiHandle->info->height);
+    scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
+             (1280.0f / uiHandle->info->width);
+    scaleY = ((uiHandle->info->viewAreaElementSizeY - uiHandle->info->previewBorderPadding) / 720.0f) *
+             (720 / uiHandle->info->height);
     float offsetX = (uiHandle->info->controlAreaWidth + uiHandle->info->sidebarWidth + 5.0f);
-    float viewAreaElementPosX = offsetX + (uiHandle->info->viewAreaElementSizeX/2) + (col * uiHandle->info->viewAreaElementSizeX) + (col * 10.0f);
+    float viewAreaElementPosX =
+            offsetX + (uiHandle->info->viewAreaElementSizeX / 2) + (col * uiHandle->info->viewAreaElementSizeX) +
+            (col * 10.0f);
     centerX = 2 * (viewAreaElementPosX) / uiHandle->info->width - 1; // map between -1 to 1q
-    centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY/2.0f)  + ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height - 1; // map between -1 to 1
+    centerY = 2 * (uiHandle->info->tabAreaHeight + (uiHandle->info->viewAreaElementSizeY / 2.0f) +
+                   ((row) * uiHandle->info->viewAreaElementSizeY) + ((row) * 10.0f)) / uiHandle->info->height -
+              1; // map between -1 to 1
 }
 
 
-void One::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-    if (selectedPreviewTab ==VkRender::CRL_TAB_2D_PREVIEW) {
+void One::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
+    if (selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:
                 CRLCameraModels::draw(commandBuffer, i, m_NoSourceModel.get(), b);
@@ -295,7 +293,7 @@ void One::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
 
 void One::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     for (auto &dev: uiHandle->devices) {
-        if (dev.state !=VkRender::CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
     }
 }

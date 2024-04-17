@@ -559,14 +559,10 @@ void Renderer::updateUniformBuffers() {
         }
     }
     VkRender::RendererConfig::getInstance().setUserSetting(conf);
-    int numRenderPasses = 2;
-    for (int i = 0; i < numRenderPasses; ++i) {
-        renderData.renderPassIndex = i;
-        // Run update function on Scripts
-        for (auto &script: scripts) {
-            if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
-                script.second->updateUniformBufferData(&renderData);
-            }
+
+    for (auto &script: scripts) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
+            script.second->updateUniformBufferData(&renderData);
         }
     }
 }

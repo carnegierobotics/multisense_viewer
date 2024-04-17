@@ -228,8 +228,8 @@ namespace VkRender {
 
         // If available then: Add KHR_SAMPLER_YCBCR For Color camera data m_Format.
         if (features.samplerYcbcrConversion) {
-            enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-            VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+            //enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+            //VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         } else {
             pLogger->error("YCBCR Sampler Extension support not found!");
         }

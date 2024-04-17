@@ -196,10 +196,6 @@ void SingleLayout::prepareMultiSenseTexture() {
             vertexShaderFileName = "spv/disparity.vert";
             fragmentShaderFileName = "spv/disparity.frag";
             break;
-        case VkRender::CRL_COMPUTE_SHADER:
-            vertexShaderFileName = "spv/grayscale.vert";
-            fragmentShaderFileName = "spv/compute.frag";
-            break;
         default:
             return;
     }
@@ -211,24 +207,18 @@ void SingleLayout::prepareMultiSenseTexture() {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     m_Model->m_CameraDataType = textureType;
-    if (VkRender::CRL_COMPUTE_SHADER != textureType) {
-        uint32_t width = 0, height = 0, depth = 0;
-        Utils::cameraResolutionToValue(res, &width, &height, &depth);
-        if (width == 0 || height == 0) {
-            Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
-            return;
-        }
-
-        m_Model->createEmptyTexture(width, height, textureType, false, 0);
-        // Create graphics render pipeline
-        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
-        return;
-    } else if (topLevelData->compute.valid) {
-        m_Model->m_TextureComputeTarget = topLevelData->compute.textureComputeTarget;
-        m_Model->m_TextureComputeTarget3D = topLevelData->compute.textureComputeTarget3D;
-        CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+    uint32_t width = 0, height = 0, depth = 0;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
+    if (width == 0 || height == 0) {
+        Log::Logger::getInstance()->error("Attempted to create texture with dimmensions {}x{}", width, height);
         return;
     }
+
+    m_Model->createEmptyTexture(width, height, textureType, false, 0);
+    // Create graphics render pipeline
+    CRLCameraModels::createRenderPipeline(shaders, m_Model.get(), &renderUtils);
+    return;
+
 }
 
 void SingleLayout::prepareTestDeviceTexture() {
@@ -342,7 +332,8 @@ void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle
     centerY = 2 * (uiHandle->info->tabAreaHeight +
                    ((uiHandle->info->viewAreaElementSizeY / 2) +
                     ((dev.win.at(VkRender::CRL_PREVIEW_ONE).row) * uiHandle->info->viewAreaElementSizeY) +
-                    ((dev.win.at(VkRender::CRL_PREVIEW_ONE).row) * 10.0f))) / uiHandle->info->height - 1; // map between -1 to 1
+                    ((dev.win.at(VkRender::CRL_PREVIEW_ONE).row) * 10.0f))) / uiHandle->info->height -
+              1; // map between -1 to 1
 
     scaleX = ((uiHandle->info->viewAreaElementSizeX - uiHandle->info->previewBorderPadding) / 1280.0f) *
              (1280.0f / uiHandle->info->width);
@@ -351,7 +342,7 @@ void SingleLayout::transformToUISpace(const VkRender::GuiObjectHandles *uiHandle
 }
 
 
-void SingleLayout::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
+void SingleLayout::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
     if (selectedPreviewTab == VkRender::CRL_TAB_2D_PREVIEW) {
         switch (state) {
             case DRAW_NO_SOURCE:

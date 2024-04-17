@@ -206,8 +206,6 @@ bool CRLCameraModels::Model::updateTexture(VkRender::TextureData *tex, uint32_t 
             break;
         case VkRender::CRL_POINT_CLOUD:
             break;
-        case VkRender::CRL_COMPUTE_SHADER:
-            break;
     }
 
     return true;
@@ -268,7 +266,6 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
                 }
                 break;
             case VkRender::CRL_GRAYSCALE_IMAGE:
-            case VkRender::CRL_COMPUTE_SHADER:
                 format = VK_FORMAT_R8_UNORM;
                 break;
             case VkRender::CRL_DISPARITY_IMAGE:
@@ -331,7 +328,6 @@ void CRLCameraModels::createDescriptors(uint32_t count, const std::vector<VkRend
         case VkRender::CRL_GRAYSCALE_IMAGE:
         case VkRender::CRL_COLOR_IMAGE_YUV420:
         case VkRender::CRL_COLOR_IMAGE_RGBA:
-        case VkRender::CRL_COMPUTE_SHADER:
             createImageDescriptors(model, ubo);
             break;
         case VkRender::CRL_POINT_CLOUD:
@@ -413,32 +409,8 @@ CRLCameraModels::createImageDescriptors(CRLCameraModels::Model *model,
             writeDescriptorSet.descriptorCount = 1;
             writeDescriptorSet.dstSet = model->m_Descriptors[i];
             writeDescriptorSet.dstBinding = 2;
-            if (model->m_CameraDataType == VkRender::CRL_COMPUTE_SHADER) {
-                writeDescriptorSet.pImageInfo = &(*model->m_TextureComputeTarget)[i + (ubo.size() * 2)].m_Descriptor;
-            } else {
-                writeDescriptorSet.pImageInfo = &model->m_TextureVideo[i]->m_Descriptor;
-            }
+            writeDescriptorSet.pImageInfo = &model->m_TextureVideo[i]->m_Descriptor;
             writeDescriptorSets.emplace_back(writeDescriptorSet);
-
-            if (model->m_CameraDataType == VkRender::CRL_COMPUTE_SHADER) {
-                VkWriteDescriptorSet writeDescriptorSet2 = {};
-                writeDescriptorSet2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSet2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                writeDescriptorSet2.descriptorCount = 1;
-                writeDescriptorSet2.dstSet = model->m_Descriptors[i];
-                writeDescriptorSet2.dstBinding = 3;
-                writeDescriptorSet2.pImageInfo = &(*model->m_TextureComputeTarget3D)[i + (ubo.size() * 2)].m_Descriptor;
-                writeDescriptorSets.emplace_back(writeDescriptorSet2);
-
-                VkWriteDescriptorSet writeDescriptorSet3 = {};
-                writeDescriptorSet3.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSet3.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                writeDescriptorSet3.descriptorCount = 1;
-                writeDescriptorSet3.dstSet = model->m_Descriptors[i];
-                writeDescriptorSet3.dstBinding = 4;
-                writeDescriptorSet3.pImageInfo = &(*model->m_TextureComputeTarget)[i + (ubo.size() * 3)].m_Descriptor;
-                writeDescriptorSets.emplace_back(writeDescriptorSet3);
-            }
 
         }
         vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -565,7 +537,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
 
             case VkRender::CRL_GRAYSCALE_IMAGE:
             case VkRender::CRL_COLOR_IMAGE_RGBA:
-            case VkRender::CRL_COMPUTE_SHADER:
                 setLayoutBindings = {
                         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                         {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -581,15 +552,14 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
         }
 
 
-        // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-        if (model->m_CameraDataType != VkRender::CRL_COMPUTE_SHADER) {
-            if (VK_NULL_HANDLE != model->m_TextureVideo[i]->m_Sampler && hasYcbcrSampler) {
-                setLayoutBindings[2].pImmutableSamplers = &model->m_TextureVideo[i]->m_Sampler;
-            }
-            if (model->m_PointCloudTexture[i] && model->m_PointCloudTexture[i]->m_Sampler && hasYcbcrSampler) {
-                setLayoutBindings[3].pImmutableSamplers = &model->m_PointCloudTexture[i]->m_Sampler;
-            }
+// ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
+        if (VK_NULL_HANDLE != model->m_TextureVideo[i]->m_Sampler && hasYcbcrSampler && model->m_CameraDataType == VkRender::CRL_COLOR_IMAGE_YUV420) {
+            setLayoutBindings[2].pImmutableSamplers = &model->m_TextureVideo[i]->m_Sampler;
         }
+        if (model->m_PointCloudTexture[i] && model->m_PointCloudTexture[i]->m_Sampler && hasYcbcrSampler) {
+            setLayoutBindings[3].pImmutableSamplers = &model->m_PointCloudTexture[i]->m_Sampler;
+        }
+
 
         VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),

@@ -9,6 +9,7 @@
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
+#include "Viewer/Renderer/Components/SecondaryCameraComponent.h"
 
 void MultiSense::setup() {
     {
@@ -17,7 +18,6 @@ void MultiSense::setup() {
         auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(
                 Utils::getModelsPath() / "Box" / "Box.gltf", m_context->renderUtils.device);
         skybox.addComponent<RenderResource::SkyboxGraphicsPipelineComponent>(&m_context->renderUtils, modelComponent);
-        //auto uuid = skybox->getUUID();
     }
 
     {
@@ -29,6 +29,9 @@ void MultiSense::setup() {
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
+
+
+
     }
 
     {
@@ -36,10 +39,8 @@ void MultiSense::setup() {
         ent.addComponent<VkRender::CameraComponent>();
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
                                                                          m_context->renderUtils.device);
-
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
-
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
     }
 }

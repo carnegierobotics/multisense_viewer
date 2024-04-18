@@ -37,8 +37,9 @@ namespace RenderResource {
             createMaterialBuffer(resources[i], modelComponent);
             setupUniformBuffers(resources[i]);
             setupDescriptors(resources[i], modelComponent, skyboxComponent);
-            setupPipelines(resources[i]);
             resources[i].shaderValuesParams = skyboxComponent.shaderValuesParams;
+
+                setupPipelines(resources[i]);
 
             }
 

@@ -78,9 +78,13 @@ namespace VkRender {
             bool saveViewPoint = false;
         };
 
+        std::string tag = "Default";
+
         std::vector<ViewPoints> viewPoints;
 
         CameraComponent() = default;
+
+        CameraComponent(std::string _tag) : tag(_tag) {}
 
         CameraComponent(const CameraComponent &) = default;
 

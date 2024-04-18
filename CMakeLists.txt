@@ -77,6 +77,8 @@ set(ENGINE_SRC
         include/Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
         include/Viewer/Renderer/Components/GLTFModelComponent.cpp
         include/Viewer/Renderer/Components/CustomModels.cpp
+        include/Viewer/Renderer/Components/GLTFDefines.h
+        include/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
 
         include/Viewer/Tools/StbInclude.cpp
         include/Viewer/CRLCamera/CameraConnection.cpp
@@ -87,7 +89,6 @@ set(ENGINE_SRC
         include/Viewer/Core/ServerConnection.cpp
         include/Viewer/Core/CommandBuffer.cpp
         include/Viewer/ModelLoaders/ImageView.cpp
-        include/Viewer/Renderer/Components/GLTFDefines.h
 )
 
 set(SCRIPTS_LIB_SRC
@@ -97,6 +98,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/MultiSense.cpp
         include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
         include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
+        include/Viewer/Scripts/Renderer3D/DataCapture.cpp
 
         include/Viewer/SYCL/SyclRenderer.cpp ## TODO MOVE out of here and into separate library
 )

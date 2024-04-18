@@ -48,6 +48,7 @@
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/SecondaryCameraComponent.h"
 
 namespace VkRender {
 
@@ -210,6 +211,13 @@ namespace VkRender {
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
 
+            /**@brief Record commandbuffers for gltf models */
+            for (auto [entity, resources, gltfComponent, secondary]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent, VkRender::SecondaryCameraComponent>().each()) {
+                if (!resources.markedForDeletion)
+                    resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+                else
+                    resources.resources[currentFrame].busy = false;
+            }
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
             VkImageMemoryBarrier barrier = {};
@@ -509,8 +517,12 @@ namespace VkRender {
     }
 
     void Renderer::destroyEntity(Entity entity) {
-        m_entityMap.erase(entity.getUUID());
-        m_registry.destroy(entity);
+        if (entity){
+            m_entityMap.erase(entity.getUUID());
+            m_registry.destroy(entity);
+        } else
+            Log::Logger::getInstance()->warning("Attempted to delete entity that doesn't exists");
+
     }
 
     Camera &Renderer::getCamera() {
@@ -573,6 +585,10 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
                                                                                          RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
+    }
+    template<>
+    void Renderer::onComponentAdded<VkRender::SecondaryCameraComponent>(Entity entity,
+                                                                                         VkRender::SecondaryCameraComponent &component) {
     }
 
     DISABLE_WARNING_POP

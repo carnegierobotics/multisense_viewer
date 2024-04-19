@@ -40,21 +40,22 @@ public:
 
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
 
-        ImGui::Text("Camera: ");
+        const std::string& tag = handles->m_cameraSelection.tag;
+        ImGui::Text("Camera: %s", tag.c_str());
         ImGui::Text("Position: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->camera.pos.x),
-                    static_cast<double>(handles->camera.pos.y),
-                    static_cast<double>(handles->camera.pos.z));
+                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.x),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.y),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.z));
 
         ImGui::Text("Up: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->camera.up.x),
-                    static_cast<double>(handles->camera.up.y),
-                    static_cast<double>(handles->camera.up.z));
+                    static_cast<double>(handles->m_cameraSelection.info[tag].up.x),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].up.y),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].up.z));
 
         ImGui::Text("Target: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->camera.target.x),
-                    static_cast<double>(handles->camera.target.y),
-                    static_cast<double>(handles->camera.target.z));
+                    static_cast<double>(handles->m_cameraSelection.info[tag].target.x),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].target.y),
+                    static_cast<double>(handles->m_cameraSelection.info[tag].target.z));
         ImGui::PopStyleColor();
 
 

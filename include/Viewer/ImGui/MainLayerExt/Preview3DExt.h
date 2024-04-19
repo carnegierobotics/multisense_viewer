@@ -37,25 +37,7 @@ public:
         for (auto &dev: handles->devices) {
             if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
-            buildConfigurationTab3D(handles, dev);
 
-            ImGui::Dummy(ImVec2(0.0f, 5.0));
-            ImGui::Separator();
-            ImGui::Dummy(ImVec2(0.0f, 10.0f));
-            // Draw Recording options
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
-            ImGui::PushStyleColor(ImGuiCol_Header, VkRender::Colors::CRLRedTransparent);
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive, VkRender::Colors::CRLRedActive);
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, VkRender::Colors::CRLRedHover);
-            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
-
-            createIMUHeader(handles, dev);
-            ImGui::Dummy(ImVec2());
-            createPointCloudHeader(handles, dev);
-
-
-            ImGui::PopStyleColor(4);
-            ImGui::PopStyleVar();
         }
     }
 
@@ -102,57 +84,14 @@ public:
             }
         }
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::PopStyleColor();
 
-        // Section 2
-        {            // Check if mouse hover a window
-            ImGui::Dummy(ImVec2(0.0f, 15.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::PushFont(handles->info->font15);
-            ImGui::Text("Camera type");
-            ImGui::PopFont();
-            ImGui::PopStyleColor();
-            ImGui::Dummy(ImVec2(40.0f, 10.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            handles->camera.reset = false;
-            if (ImGui::RadioButton("Arcball", &handles->camera.type, 0)) {
-                handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->camera.reset = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::RadioButton("Flycam", &handles->camera.type, 1)) {
-                handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->camera.reset = true;
-            }
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
-            ImGui::HelpMarker(
-                    "Select between arcball or flycam type. Flycam uses Arrow/WASD keys to move camera and mouse + click to rotate");
-            ImGui::PopStyleVar();
-            ImGui::Dummy(ImVec2(0.0f, 3.0));
-            ImGui::Dummy(ImVec2(40.0f, 0.0));
-            ImGui::SameLine();
-            handles->camera.reset |= ImGui::Button(
-                    "Reset camera position"); // OR true due to resetCamera may be set by clicking radio buttons above
-            if (handles->camera.reset) {
-                handles->usageMonitor->userClickAction("Reset camera position", "Button",
-                                                       ImGui::GetCurrentWindow()->Name);
-            }
-            ImGui::PopStyleColor(2);
-        }
-        /*
 
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
 
         ImGui::Dummy(ImVec2(0.0f, 5.0));
 
 
-
-         */
     }
 
 

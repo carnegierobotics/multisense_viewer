@@ -259,16 +259,17 @@ public:
                 ImGui::Text("Frame: %lu", handles->info->frameID);
 
             #ifdef MULTISENSE_VIEWER_DEBUG
+                const std::string& cameraTag = handles->m_cameraSelection.tag;
                     ImGui::Text("Camera: ");
                 ImGui::Text("Position: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->camera.pos.x),
-                            static_cast<double>(handles->camera.pos.y),
-                            static_cast<double>(handles->camera.pos.z));
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.x),
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.y),
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.z));
 
                 ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->camera.target.x),
-                            static_cast<double>(handles->camera.target.y),
-                            static_cast<double>(handles->camera.target.z));
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.x),
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.y),
+                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.z));
             #endif
 
             }
@@ -391,8 +392,6 @@ public:
                     handles->devices.emplace_back(testDevice);
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
-                handles->simulator.enabled = true;
-
             }
 #endif
 

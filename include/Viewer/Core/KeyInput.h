@@ -76,6 +76,13 @@ struct Input {
     int action;
     int lastKeyPress;
 
+    struct keys{
+        bool up = false;
+        bool down = false;
+        bool left = false;
+        bool right = false;
+    }keys;
+
 };
 
 

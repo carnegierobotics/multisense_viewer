@@ -186,9 +186,21 @@ namespace VkRender {
     };
 
     /** @brief block for simulated camera, Mostly used for testing  */
-    struct CameraSimulator {
+    struct CameraSelection {
+        std::string tag = "Default";
         bool enabled = false;
 
+        struct Info {
+            /** @brief 3D view camera type for this device. Arcball or first person view controls) */
+            int type = 0;
+            /** @brief Reset 3D view camera position and rotation */
+            bool reset = false;
+            glm::vec3 pos;
+            glm::vec3 up;
+            glm::vec3 target;
+            glm::vec3 cameraFront;
+        };
+        std::unordered_map<std::string, Info> info;
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
@@ -225,6 +237,7 @@ namespace VkRender {
         bool askUserForNewVersion = true;
 
         const VkRender::MouseButtons *mouse;
+
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
             clearColor[0] = 0.870f;
@@ -241,10 +254,8 @@ namespace VkRender {
 
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
-
-        CameraUIBlock camera{};
-        CameraSimulator simulator{}; // TODO REMOVE
-        Renderer* m_context;
+        CameraSelection m_cameraSelection{};
+        Renderer *m_context;
     };
 
     /**
@@ -295,6 +306,7 @@ namespace VkRender {
 
         std::string cameraName;
         bool isRemoteHead = false;
+
         EntryConnectDevice() = default;
 
         EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx, std::string desc) : IP(
@@ -352,7 +364,8 @@ namespace VkRender {
             return ready;
         }
 
-        std::vector<std::string> getNotReadyReasons(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry){
+        std::vector<std::string>
+        getNotReadyReasons(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) {
             std::vector<std::string> errors;
             bool profileNameEmpty = entry.profileName.empty();
             bool IPEmpty = entry.IP.empty();

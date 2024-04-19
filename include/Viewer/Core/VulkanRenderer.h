@@ -145,6 +145,8 @@ namespace VkRender {
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseMoved(float x, float y, bool &handled);
+        /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
+        virtual void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) = 0;
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseScroll(float change);
@@ -182,7 +184,7 @@ namespace VkRender {
         /** @brief Presents the current m_Image to the swap chain */
         void submitFrame();
 
-        VkRender::Camera camera;
+
     protected:
         // Window instance GLFW
         GLFWwindow *window;

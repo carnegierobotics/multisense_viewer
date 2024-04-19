@@ -56,24 +56,25 @@ namespace VkRender {
             VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_RENDERER3D);
 
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-            handles->camera.reset = false;
-            if (ImGui::RadioButton("Arcball", &handles->camera.type, 0)) {
+            const std::string &cameraTag = handles->m_cameraSelection.tag;
+            handles->m_cameraSelection.info[cameraTag].reset = false;
+            if (ImGui::RadioButton("Arcball", &handles->m_cameraSelection.info[cameraTag].type, 0)) {
                 handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->camera.reset = true;
+                handles->m_cameraSelection.info[cameraTag].reset = true;
             }
             ImGui::SameLine();
-            if (ImGui::RadioButton("Flycam", &handles->camera.type, 1)) {
+            if (ImGui::RadioButton("Flycam", &handles->m_cameraSelection.info[cameraTag].type, 1)) {
                 handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->camera.reset = true;
+                handles->m_cameraSelection.info[cameraTag].reset = true;
             }
             ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
             ImGui::HelpMarker(
                     "Select between arcball or flycam type. Flycam uses Arrow/WASD keys to move camera and mouse + click to rotate");
             ImGui::PopStyleVar();
-            handles->camera.reset |= ImGui::Button(
+            handles->m_cameraSelection.info[cameraTag].reset |= ImGui::Button(
                     "Reset camera position"); // OR true due to resetCamera may be set by clicking radio buttons above
-            if (handles->camera.reset) {
+            if (handles->m_cameraSelection.info[cameraTag].reset) {
                 handles->usageMonitor->userClickAction("Reset camera position", "Button",
                                                        ImGui::GetCurrentWindow()->Name);
             }
@@ -84,16 +85,17 @@ namespace VkRender {
             std::vector<std::string> cameras;
             for (auto entity: cameraView) {
                 auto &camera = cameraView.get<VkRender::CameraComponent>(entity);
-                if (!Utils::isInVector(cameras, camera.tag))
-                    cameras.emplace_back(camera.tag);
+                    cameras.emplace_back(camera.cameraTag);
             }
             ImGui::SetNextItemWidth(100.0f);
             static int item_current_idx = 0; // Here we store our selection data as an index.
             if (ImGui::BeginListBox("Cameras")) {
                 for (int n = 0; n < cameras.size(); n++) {
                     const bool is_selected = (item_current_idx == n);
-                    if (ImGui::Selectable(cameras[n].c_str(), is_selected))
+                    if (ImGui::Selectable(cameras[n].c_str(), is_selected)) {
                         item_current_idx = n;
+                        handles->m_cameraSelection.tag = cameras[n];
+                    }
 
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
@@ -103,13 +105,18 @@ namespace VkRender {
             }
             setCusorToColumn(2);
             if (ImGui::Button("Add Camera", ImVec2(150.0f, 25.0f))) {
-                auto e = handles->m_context->createEntity("New Entity");
-                e.addComponent<CameraComponent>("Camera #" + std::to_string(cameras.size() + 1));
+                std::string tag = "Camera #" + std::to_string(cameras.size() + 1);
+
+                auto e = handles->m_context->createEntity(tag);
+                e.addComponent<CameraComponent>(tag);
+                handles->m_context->cameras[tag] = Camera(handles->info->width, handles->info->height);
+                handles->m_cameraSelection.tag = tag;
             }
             setCusorToColumn(2, ImGui::GetCursorPosY());
 
             if (ImGui::Button("Remove Camera", ImVec2(150.0f, 25.0f))) {
-                handles->m_context->destroyEntity(handles->m_context->findEntityByName("New Entity"));
+                std::string tag = handles->m_cameraSelection.tag;
+                handles->m_context->destroyEntity(handles->m_context->findEntityByName(tag));
             }
 
             ImGui::PopStyleColor(); // text white

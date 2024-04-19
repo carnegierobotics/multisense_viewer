@@ -105,8 +105,12 @@ namespace VkRender {
             glm::mat4 view = glm::mat4(1.0f);
         } matrices{};
 
-        Camera(){
-
+        Camera() = default;
+        Camera(uint32_t width, uint32_t height){
+            type = VkRender::Camera::arcball;
+            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height), 0.01f, 100.0f);
+            resetPosition();
+            resetRotation();
         }
         struct {
             bool left = false;

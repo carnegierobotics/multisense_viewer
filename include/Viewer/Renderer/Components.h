@@ -12,6 +12,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/gtx/quaternion.hpp>
+#include <utility>
 
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/UUID.h"
@@ -78,13 +79,13 @@ namespace VkRender {
             bool saveViewPoint = false;
         };
 
-        std::string tag = "Default";
+        std::string cameraTag = "Default";
 
         std::vector<ViewPoints> viewPoints;
 
         CameraComponent() = default;
 
-        CameraComponent(std::string _tag) : tag(_tag) {}
+        CameraComponent(std::string tag) : cameraTag(std::move(tag)) {}
 
         CameraComponent(const CameraComponent &) = default;
 

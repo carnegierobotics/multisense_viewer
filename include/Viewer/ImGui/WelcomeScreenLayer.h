@@ -82,7 +82,6 @@ public:
                     handles->devices.emplace_back(testDevice);
                     Log::Logger::getInstance()->info("Adding a test device to the profile section");
                 }
-                handles->simulator.enabled = true;
         }
 
         ImGui::PopFont();

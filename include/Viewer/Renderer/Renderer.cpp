@@ -63,6 +63,8 @@ namespace VkRender {
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
         backendInitialized = true;
+        // Create default camera object
+        cameras["Default"] = Camera();
         pLogger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 
@@ -76,7 +78,7 @@ namespace VkRender {
                                                             swapchain->imageCount);
         guiManager->handles.mouse = &mouseButtons;
         guiManager->handles.usageMonitor = usageMonitor;
-        guiManager->handles.camera.type = camera.type;
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag].type;
 
         guiManager->handles.m_context = this;
         prepareRenderer();
@@ -85,10 +87,10 @@ namespace VkRender {
 
 
     void Renderer::prepareRenderer() {
-        camera.type = VkRender::Camera::arcball;
-        camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
-        camera.resetPosition();
-        camera.resetRotation();
+        cameras[selectedCameraTag].type = VkRender::Camera::arcball;
+        cameras[selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
+        cameras[selectedCameraTag].resetPosition();
+        cameras[selectedCameraTag].resetRotation();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
         // TODO Make dynamic
@@ -303,7 +305,10 @@ namespace VkRender {
     }
 
     void Renderer::updateUniformBuffers() {
-        renderData.camera = &camera;
+        cameras[selectedCameraTag].update(frameTimer);
+
+        selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
+        renderData.camera = &cameras[selectedCameraTag];
         renderData.deltaT = frameTimer;
         renderData.index = currentFrame;
         renderData.height = m_Height;
@@ -320,8 +325,8 @@ namespace VkRender {
         }
         pLogger->frameNumber = frameID;
         if (keyPress == GLFW_KEY_SPACE) {
-            camera.resetPosition();
-            camera.resetRotation();
+            cameras[selectedCameraTag].resetPosition();
+            cameras[selectedCameraTag].resetRotation();
         }
 
 
@@ -331,10 +336,10 @@ namespace VkRender {
             script.script->update();
         }
 
-        guiManager->handles.camera.pos = glm::vec3(glm::inverse(camera.matrices.view)[3]);
-        guiManager->handles.camera.up = camera.cameraUp;
-        guiManager->handles.camera.target = camera.m_Target;
-        guiManager->handles.camera.cameraFront = camera.cameraFront;
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].pos = glm::vec3(glm::inverse(cameras[selectedCameraTag].matrices.view)[3]);
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].up = cameras[selectedCameraTag].cameraUp;
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].target = cameras[selectedCameraTag].m_Target;
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].cameraFront = cameras[selectedCameraTag].cameraFront;
 
         // Update GUI
         guiManager->handles.info->frameID = frameID;
@@ -345,13 +350,13 @@ namespace VkRender {
         // Enable/disable Renderer3D scripts and simulated camera
 
 
-        if (guiManager->handles.camera.type == 0)
-            camera.type = VkRender::Camera::arcball;
-        if (guiManager->handles.camera.type == 1)
-            camera.type = VkRender::Camera::flycam;
-        if (guiManager->handles.camera.reset) {
-            camera.resetPosition();
-            camera.resetRotation();
+        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 0)
+            cameras[selectedCameraTag].type = VkRender::Camera::arcball;
+        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 1)
+            cameras[selectedCameraTag].type = VkRender::Camera::flycam;
+        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].reset) {
+            cameras[selectedCameraTag].resetPosition();
+            cameras[selectedCameraTag].resetRotation();
         }
 
 
@@ -374,13 +379,17 @@ namespace VkRender {
     }
 
     void Renderer::windowResized() {
-        renderData.camera = &camera;
+        renderData.camera = &cameras[selectedCameraTag];
         renderData.deltaT = frameTimer;
         renderData.index = currentFrame;
         renderData.height = m_Height;
         renderData.width = m_Width;
         renderData.crlCamera = &cameraConnection->camPtr;
 
+        if ((m_Width > 0.0) && (m_Height > 0.0)) {
+            for (auto& camera : cameras)
+                camera.second.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
+        }
         Widgets::clear();
         // Update gui with new res
         guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
@@ -437,20 +446,20 @@ namespace VkRender {
         if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
             is3DViewSelected) {
             // && !mouseButtons.middle) {
-            camera.rotate(dx, dy);
+            cameras[selectedCameraTag].rotate(dx, dy);
         }
         if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
-            camera.rotate(dx, dy);
+            cameras[selectedCameraTag].rotate(dx, dy);
 
         if (mouseButtons.right) {
-            if (camera.type == VkRender::Camera::arcball)
-                camera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
+            if (cameras[selectedCameraTag].type == VkRender::Camera::arcball)
+                cameras[selectedCameraTag].translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
             else
-                camera.translate(-dx * 0.01f, -dy * 0.01f);
+                cameras[selectedCameraTag].translate(-dx * 0.01f, -dy * 0.01f);
         }
-        if (mouseButtons.middle && camera.type == VkRender::Camera::flycam) {
-            camera.translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        } else if (mouseButtons.middle && camera.type == VkRender::Camera::arcball) {
+        if (mouseButtons.middle && cameras[selectedCameraTag].type == VkRender::Camera::flycam) {
+            cameras[selectedCameraTag].translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+        } else if (mouseButtons.middle && cameras[selectedCameraTag].type == VkRender::Camera::arcball) {
             //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
         }
         mousePos = glm::vec2(x, y);
@@ -463,11 +472,11 @@ namespace VkRender {
             if (item.state == VkRender::CRL_STATE_ACTIVE &&
                 item.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD &&
                 guiManager->handles.info->isViewingAreaHovered) {
-                camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+                cameras[selectedCameraTag].setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
             }
         }
         if (guiManager->handles.renderer3D) {
-            camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+            cameras[selectedCameraTag].setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
     }
 
@@ -482,7 +491,7 @@ namespace VkRender {
         entity.addComponent<TransformComponent>();
         auto &tag = entity.addComponent<TagComponent>();
         tag.Tag = name.empty() ? "Entity" : name;
-
+        Log::Logger::getInstance()->info("Created Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
         m_entityMap[uuid] = entity;
 
         return entity;
@@ -518,6 +527,7 @@ namespace VkRender {
 
     void Renderer::destroyEntity(Entity entity) {
         if (entity){
+            Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
             m_entityMap.erase(entity.getUUID());
             m_registry.destroy(entity);
         } else
@@ -526,7 +536,15 @@ namespace VkRender {
     }
 
     Camera &Renderer::getCamera() {
-        return camera;
+        return cameras[guiManager->handles.m_cameraSelection.tag];
+    }
+
+    void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+
+        cameras[selectedCameraTag].keys.up = input.keys.up;
+        cameras[selectedCameraTag].keys.down = input.keys.down;
+        cameras[selectedCameraTag].keys.left = input.keys.left;
+        cameras[selectedCameraTag].keys.right = input.keys.right;
     }
 
     DISABLE_WARNING_PUSH

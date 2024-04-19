@@ -99,6 +99,9 @@ namespace VkRender {
         Camera& getCamera();
 
         VkRender::RenderUtils renderUtils{};
+
+        std::unordered_map<std::string, Camera> cameras;
+        std::string selectedCameraTag = "Default";
     public:
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
@@ -106,6 +109,8 @@ namespace VkRender {
     private:
         template<typename T>
         void onComponentAdded(Entity entity, T &component);
+
+        void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) override;
 
         void recordCommands() override;
 

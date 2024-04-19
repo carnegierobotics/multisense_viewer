@@ -83,6 +83,8 @@ namespace VkRender {
         }
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
+
+
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -1027,9 +1029,6 @@ namespace VkRender {
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
 
-        if ((m_Width > 0.0) && (m_Height > 0.0)) {
-            camera.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
-        }
         pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
 
         // Notify derived class
@@ -1089,7 +1088,6 @@ namespace VkRender {
             auto tDiff = std::chrono::duration<double, std::milli>(
                     std::chrono::high_resolution_clock::now() - tStart).count();
             frameTimer = static_cast<float>(tDiff) / 1000.0f;
-            camera.update(frameTimer);
         }
         // Flush m_Device to make sure all resources can be freed before we start cleanup
         if (device != VK_NULL_HANDLE) {
@@ -1246,6 +1244,7 @@ namespace VkRender {
         myApp->keyPress = key;
         myApp->keyAction = action;
 
+
 #ifdef WIN32
         if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V) {
             myApp->clipboard();
@@ -1256,19 +1255,19 @@ namespace VkRender {
             switch (key) {
                 case GLFW_KEY_W:
                 case GLFW_KEY_UP:
-                    myApp->camera.keys.up = true;
+                    myApp->input.keys.up = true;
                     break;
                 case GLFW_KEY_S:
                 case GLFW_KEY_DOWN:
-                    myApp->camera.keys.down = true;
+                    myApp->input.keys.down = true;
                     break;
                 case GLFW_KEY_A:
                 case GLFW_KEY_LEFT:
-                    myApp->camera.keys.left = true;
+                    myApp->input.keys.left = true;
                     break;
                 case GLFW_KEY_D:
                 case GLFW_KEY_RIGHT:
-                    myApp->camera.keys.right = true;
+                    myApp->input.keys.right = true;
                 default:
                     break;
             }
@@ -1277,23 +1276,25 @@ namespace VkRender {
             switch (key) {
                 case GLFW_KEY_W:
                 case GLFW_KEY_UP:
-                    myApp->camera.keys.up = false;
+                    myApp->input.keys.up = false;
                     break;
                 case GLFW_KEY_S:
                 case GLFW_KEY_DOWN:
-                    myApp->camera.keys.down = false;
+                    myApp->input.keys.down = false;
                     break;
                 case GLFW_KEY_A:
                 case GLFW_KEY_LEFT:
-                    myApp->camera.keys.left = false;
+                    myApp->input.keys.left = false;
                     break;
                 case GLFW_KEY_D:
                 case GLFW_KEY_RIGHT:
-                    myApp->camera.keys.right = false;
+                    myApp->input.keys.right = false;
                 default:
                     break;
             }
         }
+
+        myApp->keyboardCallback(window, key, scancode, action, mods);
     }
 
     void VulkanRenderer::handleMouseMove(float x, float y) {

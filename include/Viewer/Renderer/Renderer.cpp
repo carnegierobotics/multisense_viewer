@@ -66,7 +66,7 @@ namespace VkRender {
         // Create default camera object
         cameras["Default"] = Camera();
         auto e = createEntity("Default");
-        e.addComponent<CameraComponent>("Default");
+        e.addComponent<CameraComponent>();
         pLogger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 

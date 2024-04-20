@@ -109,7 +109,7 @@ namespace VkRender {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto e = handles->m_context->createEntity(tag);
-                e.addComponent<CameraComponent>(tag);
+                e.addComponent<CameraComponent>();
                 handles->m_context->cameras[tag] = Camera(handles->info->width, handles->info->height);
                 handles->m_cameraSelection.tag = tag;
             }
@@ -123,9 +123,9 @@ namespace VkRender {
                     handles->m_context->destroyEntity(entity);
                     // Update the cameras list immediately after deletion
                     cameras.clear();
-                    for (auto [entity, camera, tag]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
-                        if (!Utils::isInVector(cameras, tag.Tag))
-                            cameras.emplace_back(tag.Tag);
+                    for (auto [entity, camera, tagComponent]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                        if (!Utils::isInVector(cameras, tagComponent.Tag))
+                            cameras.emplace_back(tagComponent.Tag);
                     }
                     // Check if the currently selected camera was deleted
                     if (std::find(cameras.begin(), cameras.end(), tag) == cameras.end()) {

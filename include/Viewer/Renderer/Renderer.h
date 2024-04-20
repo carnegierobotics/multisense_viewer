@@ -93,7 +93,7 @@ namespace VkRender {
         std::shared_ptr<Entity> createEntitySharedPtr(const std::string &name, UUID uuid = UUID());
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
-        Entity findEntityByName(std::string_view name);
+        VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
 
         Camera& getCamera();

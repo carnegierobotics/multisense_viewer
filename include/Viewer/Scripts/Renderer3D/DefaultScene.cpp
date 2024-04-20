@@ -14,7 +14,6 @@ void DefaultScene::setup() {
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Grid", &enable);
 
     auto grid = m_context->createEntity("3DViewerGrid");
-    grid.addComponent<VkRender::CameraComponent>();
     grid.addComponent<VkRender::CustomModelComponent>(&m_context->renderUtils);
     auto uuid = grid.getUUID();
 

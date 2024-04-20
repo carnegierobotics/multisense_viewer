@@ -14,7 +14,6 @@
 void MultiSense::setup() {
     {
         auto skybox = m_context->createEntity("Skybox");
-        skybox.addComponent<VkRender::CameraComponent>();
         auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(
                 Utils::getModelsPath() / "Box" / "Box.gltf", m_context->renderUtils.device);
         skybox.addComponent<RenderResource::SkyboxGraphicsPipelineComponent>(&m_context->renderUtils, modelComponent);
@@ -22,7 +21,6 @@ void MultiSense::setup() {
 
     {
         auto ent = m_context->createEntity("KS21");
-        ent.addComponent<VkRender::CameraComponent>();
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
                                                                          m_context->renderUtils.device);
 
@@ -36,7 +34,6 @@ void MultiSense::setup() {
 
     {
         auto ent = m_context->createEntity("Coordinates");
-        ent.addComponent<VkRender::CameraComponent>();
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
                                                                          m_context->renderUtils.device);
         auto &sky = m_context->findEntityByName(

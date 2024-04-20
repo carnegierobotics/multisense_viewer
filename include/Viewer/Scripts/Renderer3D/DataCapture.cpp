@@ -12,7 +12,6 @@
 void DataCapture::setup() {
 
     auto grid = m_context->createEntity("3DGSModel");
-    grid.addComponent<VkRender::CameraComponent>();
 
     auto uuid = grid.getUUID();
     Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());

@@ -65,6 +65,8 @@ namespace VkRender {
         backendInitialized = true;
         // Create default camera object
         cameras["Default"] = Camera();
+        auto e = createEntity("Default");
+        e.addComponent<CameraComponent>("Default");
         pLogger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 
@@ -166,6 +168,13 @@ namespace VkRender {
             if (readyForDeletion) {
                 destroyEntity(Entity(entity, this));
             }
+        }
+
+        // Other Entities:
+        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude < CustomModelComponent,
+                                                                              RenderResource::DefaultPBRGraphicsPipelineComponent > ).each()) {
+            destroyEntity(Entity(entity, this));
+
         }
     }
 
@@ -509,7 +518,7 @@ namespace VkRender {
         return entity;
     }
 
-    Entity Renderer::findEntityByName(std::string_view name) {
+    VkRender::Entity Renderer::findEntityByName(std::string_view name) {
         auto view = m_registry.view<TagComponent>();
         for (auto entity: view) {
             const TagComponent &tc = view.get<TagComponent>(entity);
@@ -521,18 +530,36 @@ namespace VkRender {
 
     // Destroy when render resources are no longer in use
     void Renderer::markEntityForDestruction(Entity entity) {
-        if (!entity.hasComponent<DeleteComponent>())
+        if (!entity.hasComponent<DeleteComponent>()) {
             entity.addComponent<DeleteComponent>();
+            Log::Logger::getInstance()->info("Marked Entity for destruction UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
+        }
     }
 
     void Renderer::destroyEntity(Entity entity) {
-        if (entity){
+        if (!entity) {
+            Log::Logger::getInstance()->warning("Attempted to delete an entity that doesn't exist");
+            return;
+        }
+
+        // Checking if the entity is still valid before attempting to delete
+        if (m_registry.valid(entity)) {
             Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
+
+            // Log details about components or other statistics before deletion
+            auto cameraCount = m_registry.view<VkRender::CameraComponent>().size(); // Adjust component type as necessary
+            Log::Logger::getInstance()->info("Camera component count before deletion: {}", cameraCount);
+
+            // Perform the deletion
             m_entityMap.erase(entity.getUUID());
             m_registry.destroy(entity);
-        } else
-            Log::Logger::getInstance()->warning("Attempted to delete entity that doesn't exists");
 
+            // Verify deletion by checking components count again
+            cameraCount = m_registry.view<VkRender::CameraComponent>().size(); // Adjust component type as necessary
+            Log::Logger::getInstance()->info("Camera component count after deletion: {}", cameraCount);
+        } else {
+            Log::Logger::getInstance()->warning("Attempted to delete an invalid or already deleted entity with UUID: {}", entity.getUUID().operator std::string());
+        }
     }
 
     Camera &Renderer::getCamera() {

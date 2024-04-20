@@ -80,13 +80,14 @@ namespace VkRender {
             }
 
             setCusorToColumn(1);
-            auto cameraView = handles->m_context->m_registry.view<VkRender::CameraComponent>();
-
+            // use a range-for
             std::vector<std::string> cameras;
-            for (auto entity: cameraView) {
-                auto &camera = cameraView.get<VkRender::CameraComponent>(entity);
-                    cameras.emplace_back(camera.cameraTag);
+            for (auto [entity, camera, tag]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                if (!Utils::isInVector(cameras, tag.Tag))
+                    cameras.emplace_back(tag.Tag);
+
             }
+
             ImGui::SetNextItemWidth(100.0f);
             static int item_current_idx = 0; // Here we store our selection data as an index.
             if (ImGui::BeginListBox("Cameras")) {
@@ -105,7 +106,7 @@ namespace VkRender {
             }
             setCusorToColumn(2);
             if (ImGui::Button("Add Camera", ImVec2(150.0f, 25.0f))) {
-                std::string tag = "Camera #" + std::to_string(cameras.size() + 1);
+                std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto e = handles->m_context->createEntity(tag);
                 e.addComponent<CameraComponent>(tag);
@@ -116,12 +117,33 @@ namespace VkRender {
 
             if (ImGui::Button("Remove Camera", ImVec2(150.0f, 25.0f))) {
                 std::string tag = handles->m_cameraSelection.tag;
-                handles->m_context->destroyEntity(handles->m_context->findEntityByName(tag));
+                VkRender::Entity entity = handles->m_context->findEntityByName(tag);
+
+                if (entity) {
+                    handles->m_context->destroyEntity(entity);
+                    // Update the cameras list immediately after deletion
+                    cameras.clear();
+                    for (auto [entity, camera, tag]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                        if (!Utils::isInVector(cameras, tag.Tag))
+                            cameras.emplace_back(tag.Tag);
+                    }
+                    // Check if the currently selected camera was deleted
+                    if (std::find(cameras.begin(), cameras.end(), tag) == cameras.end()) {
+                        // The selected camera was deleted, update the selection
+                        if (cameras.size() == 0) {
+                            // No cameras left
+                            item_current_idx = -1;
+                            handles->m_cameraSelection.tag.clear();
+                        } else {
+                            // Select a new camera, preferably the one after the deleted one, or the last if deleted was the last
+                            item_current_idx = std::min(item_current_idx, int(cameras.size() - 1));
+                            handles->m_cameraSelection.tag = cameras[item_current_idx];
+                        }
+                    }
+                }
             }
 
             ImGui::PopStyleColor(); // text white
-
-
             ImGui::End();
             ImGui::PopStyleColor();
 

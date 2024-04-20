@@ -8,12 +8,15 @@
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
+#include "Viewer/Renderer/Components/OBJModelComponent.h"
 
 void DataCapture::setup() {
 
-    auto grid = m_context->createEntity("3DGSModel");
+    auto entity = m_context->createEntity("3DGSModel");
+    auto &component = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
+                                                                     m_context->renderUtils.device);
 
-    auto uuid = grid.getUUID();
+    auto uuid = entity.getUUID();
     Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());
 
 }

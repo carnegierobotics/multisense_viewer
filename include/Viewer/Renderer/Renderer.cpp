@@ -541,22 +541,14 @@ namespace VkRender {
             Log::Logger::getInstance()->warning("Attempted to delete an entity that doesn't exist");
             return;
         }
-
         // Checking if the entity is still valid before attempting to delete
         if (m_registry.valid(entity)) {
             Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
-
-            // Log details about components or other statistics before deletion
-            auto cameraCount = m_registry.view<VkRender::CameraComponent>().size(); // Adjust component type as necessary
-            Log::Logger::getInstance()->info("Camera component count before deletion: {}", cameraCount);
 
             // Perform the deletion
             m_entityMap.erase(entity.getUUID());
             m_registry.destroy(entity);
 
-            // Verify deletion by checking components count again
-            cameraCount = m_registry.view<VkRender::CameraComponent>().size(); // Adjust component type as necessary
-            Log::Logger::getInstance()->info("Camera component count after deletion: {}", cameraCount);
         } else {
             Log::Logger::getInstance()->warning("Attempted to delete an invalid or already deleted entity with UUID: {}", entity.getUUID().operator std::string());
         }

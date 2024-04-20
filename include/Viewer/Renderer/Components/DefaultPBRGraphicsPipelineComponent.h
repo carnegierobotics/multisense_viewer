@@ -27,22 +27,15 @@ namespace RenderResource {
                                             const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
             renderUtils = utils;
             vulkanDevice = utils->device;
-
             resources.resize(renderUtils->UBCount);
-
             emptyTexture.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
-
             for(size_t i = 0; i < resources.size(); ++i){
-
             createMaterialBuffer(resources[i], modelComponent);
             setupUniformBuffers(resources[i]);
             setupDescriptors(resources[i], modelComponent, skyboxComponent);
             resources[i].shaderValuesParams = skyboxComponent.shaderValuesParams;
-
                 setupPipelines(resources[i]);
-
             }
-
         }
 
         ~DefaultPBRGraphicsPipelineComponent() {

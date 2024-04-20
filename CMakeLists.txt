@@ -80,6 +80,7 @@ set(ENGINE_SRC
         include/Viewer/Renderer/Components/GLTFDefines.h
         include/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
         include/Viewer/Renderer/Components/OBJModelComponent.cpp
+        include/Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.cpp
 
         include/Viewer/Tools/StbInclude.cpp
         include/Viewer/CRLCamera/CameraConnection.cpp
@@ -105,7 +106,7 @@ set(SCRIPTS_LIB_SRC
 )
 
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

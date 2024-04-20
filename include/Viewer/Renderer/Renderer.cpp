@@ -45,10 +45,13 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/UUID.h"
+
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/SecondaryCameraComponent.h"
+#include "Viewer/Renderer/Components/OBJModelComponent.h"
+#include "Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.h"
 
 namespace VkRender {
 
@@ -90,7 +93,8 @@ namespace VkRender {
 
     void Renderer::prepareRenderer() {
         cameras[selectedCameraTag].type = VkRender::Camera::arcball;
-        cameras[selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
+        cameras[selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height),
+                                                  0.01f, 100.0f);
         cameras[selectedCameraTag].resetPosition();
         cameras[selectedCameraTag].resetRotation();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
@@ -171,8 +175,8 @@ namespace VkRender {
         }
 
         // Other Entities:
-        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude < CustomModelComponent,
-                                                                              RenderResource::DefaultPBRGraphicsPipelineComponent > ).each()) {
+        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
+                RenderResource::DefaultPBRGraphicsPipelineComponent>).each()) {
             destroyEntity(Entity(entity, this));
 
         }
@@ -284,6 +288,21 @@ namespace VkRender {
                 resources.resources[currentFrame].busy = false;
         }
 
+        /**@brief Record commandbuffers for obj models */
+        // Accessing components in a non-copying manner
+        for (auto entity : m_registry.view<VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
+            auto& resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
+            auto& objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
+
+            if (!resources.markedForDeletion) {
+                resources.draw(&drawCmdBuffers, currentFrame);
+                objModel.draw(&drawCmdBuffers, currentFrame);
+            }
+            else {
+                resources.resources[currentFrame].busy = false;
+            }
+        }
+
         /**@brief Record commandbuffers for Custom models */
         for (auto [entity, resource]: m_registry.view<CustomModelComponent>().each()) {
             if (!resource.markedForDeletion)
@@ -345,7 +364,8 @@ namespace VkRender {
             script.script->update();
         }
 
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].pos = glm::vec3(glm::inverse(cameras[selectedCameraTag].matrices.view)[3]);
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].pos = glm::vec3(
+                glm::inverse(cameras[selectedCameraTag].matrices.view)[3]);
         guiManager->handles.m_cameraSelection.info[selectedCameraTag].up = cameras[selectedCameraTag].cameraUp;
         guiManager->handles.m_cameraSelection.info[selectedCameraTag].target = cameras[selectedCameraTag].m_Target;
         guiManager->handles.m_cameraSelection.info[selectedCameraTag].cameraFront = cameras[selectedCameraTag].cameraFront;
@@ -396,7 +416,7 @@ namespace VkRender {
         renderData.crlCamera = &cameraConnection->camPtr;
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
-            for (auto& camera : cameras)
+            for (auto &camera: cameras)
                 camera.second.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
         }
         Widgets::clear();
@@ -500,7 +520,8 @@ namespace VkRender {
         entity.addComponent<TransformComponent>();
         auto &tag = entity.addComponent<TagComponent>();
         tag.Tag = name.empty() ? "Entity" : name;
-        Log::Logger::getInstance()->info("Created Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
+        Log::Logger::getInstance()->info("Created Entity with UUID: {} and Tag: {}",
+                                         entity.getUUID().operator std::string(), entity.getName());
         m_entityMap[uuid] = entity;
 
         return entity;
@@ -532,7 +553,8 @@ namespace VkRender {
     void Renderer::markEntityForDestruction(Entity entity) {
         if (!entity.hasComponent<DeleteComponent>()) {
             entity.addComponent<DeleteComponent>();
-            Log::Logger::getInstance()->info("Marked Entity for destruction UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
+            Log::Logger::getInstance()->info("Marked Entity for destruction UUID: {} and Tag: {}",
+                                             entity.getUUID().operator std::string(), entity.getName());
         }
     }
 
@@ -543,14 +565,17 @@ namespace VkRender {
         }
         // Checking if the entity is still valid before attempting to delete
         if (m_registry.valid(entity)) {
-            Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}", entity.getUUID().operator std::string(), entity.getName());
+            Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}",
+                                             entity.getUUID().operator std::string(), entity.getName());
 
             // Perform the deletion
             m_entityMap.erase(entity.getUUID());
             m_registry.destroy(entity);
 
         } else {
-            Log::Logger::getInstance()->warning("Attempted to delete an invalid or already deleted entity with UUID: {}", entity.getUUID().operator std::string());
+            Log::Logger::getInstance()->warning(
+                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
+                    entity.getUUID().operator std::string());
         }
     }
 
@@ -622,10 +647,19 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
                                                                                          RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
+    }    template<>
+    void Renderer::onComponentAdded<VkRender::DefaultGraphicsPipelineComponent>(Entity entity,
+                                                                                         VkRender::DefaultGraphicsPipelineComponent &component) {
     }
+
     template<>
     void Renderer::onComponentAdded<VkRender::SecondaryCameraComponent>(Entity entity,
-                                                                                         VkRender::SecondaryCameraComponent &component) {
+                                                                        VkRender::SecondaryCameraComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<VkRender::OBJModelComponent>(Entity entity,
+                                                                 VkRender::OBJModelComponent &component) {
     }
 
     DISABLE_WARNING_POP

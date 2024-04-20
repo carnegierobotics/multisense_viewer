@@ -10,6 +10,8 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/fwd.hpp>
 
+#include "Viewer/Core/RenderDefinitions.h"
+
 #define MAX_NUM_JOINTS 128u
 
 namespace VkRender {
@@ -176,16 +178,6 @@ namespace VkRender {
 
         VulkanDevice *device;
 
-        struct Vertex {
-            glm::vec3 pos;
-            glm::vec3 normal;
-            glm::vec2 uv0;
-            glm::vec2 uv1;
-            glm::vec4 joint0;
-            glm::vec4 weight0;
-            glm::vec4 color;
-        };
-
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory;
@@ -215,7 +207,7 @@ namespace VkRender {
 
         struct LoaderInfo {
             uint32_t *indexBuffer;
-            Vertex *vertexBuffer;
+            VkRender::Vertex *vertexBuffer;
             size_t indexPos = 0;
             size_t vertexPos = 0;
         };

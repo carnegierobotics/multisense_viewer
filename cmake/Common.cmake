@@ -40,6 +40,7 @@ set(KTX_DIR external/KTX-Software)
 set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
 set(ENTT_DIR external/entt)
+set(TINY_OBJ_LOADER_DIR external/tinyobjloader)
 
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)
@@ -73,6 +74,17 @@ else ()
     set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
     set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
     include_directories(SYSTEM ${TINYGLFT_DIR})
+endif ()
+
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${TINY_OBJ_LOADER_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${TINY_OBJ_LOADER_DIR}/ not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding TINY_OBJ_LOADER_DIR from directory: ${TINY_OBJ_LOADER_DIR}")
+
+    add_subdirectory(${TINY_OBJ_LOADER_DIR})
+    include_directories(${TINY_OBJ_LOADER_DIR})
+
 endif ()
 
 

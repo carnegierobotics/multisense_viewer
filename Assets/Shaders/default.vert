@@ -13,10 +13,13 @@ layout (binding = 0) uniform UBO
 } ubo;
 
 layout(location = 0) out vec2 outUV;
+layout(location = 1) out vec4 fragPos;
 
 void main() {
-    //gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
-    gl_Position = ubo.model * vec4(inPos, 1.0);
+	vec4 pos = ubo.model * vec4(inPos, 1.0);
+	fragPos = ubo.view * pos; // Transform vertex position to camera space
+	gl_Position = ubo.projection * fragPos;
+    //gl_Position = ubo.model * vec4(inPos, 1.0);
     outUV = inUV0;
 }
 

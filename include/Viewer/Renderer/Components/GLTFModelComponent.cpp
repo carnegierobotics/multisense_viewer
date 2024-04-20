@@ -8,6 +8,7 @@
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 
 #include "Viewer/Tools/Macros.h"
+#include "Viewer/Core/RenderDefinitions.h"
 
 namespace VkRender
 {
@@ -763,7 +764,7 @@ namespace VkRender
             for (size_t i = 0; i < scene.nodes.size(); i++) {
                 getNodeProps(gltfModel.nodes[scene.nodes[i]], gltfModel, vertexCount, indexCount);
             }
-            loaderInfo.vertexBuffer = new Vertex[vertexCount];
+            loaderInfo.vertexBuffer = new VkRender::Vertex[vertexCount];
             loaderInfo.indexBuffer = new uint32_t[indexCount];
 
             // TODO: scene handling with no default scene
@@ -795,7 +796,7 @@ namespace VkRender
 
         extensions = gltfModel.extensionsUsed;
 
-        size_t vertexBufferSize = vertexCount * sizeof(Vertex);
+        size_t vertexBufferSize = vertexCount * sizeof(VkRender::Vertex);
         size_t indexBufferSize = indexCount * sizeof(uint32_t);
 
         assert(vertexBufferSize > 0);

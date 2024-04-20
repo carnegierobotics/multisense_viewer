@@ -39,5 +39,5 @@ void main()
 
     // Visualize disparity as grayscale (normalized based on expected disparity range)
     float disparityVisualization = clamp(disparity, 0.0, 1.0); // Adjust multiplier as needed
-    outColor = vec4(vec3(disparityVisualization), 1.0);
+    outColor = texture(samplerColorMap, inUV);
 }

@@ -151,7 +151,10 @@ void Renderer::buildScript(const std::string &scriptName) {
     scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
     if (scripts[scriptName].get() == nullptr) {
         pLogger->error("Failed to register script {}.", scriptName);
-        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+        scripts.erase(scriptName);
+
+        if (Utils::isInVector(builtScriptNames, scriptName))
+            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
         return;
     }
     pLogger->info("Registered script: {} in factory", scriptName.c_str());

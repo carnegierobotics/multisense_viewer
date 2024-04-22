@@ -206,8 +206,6 @@ bool CRLCameraModels::Model::updateTexture(VkRender::TextureData *tex, uint32_t 
             break;
         case VkRender::CRL_POINT_CLOUD:
             break;
-        case VkRender::CRL_COMPUTE_SHADER:
-            break;
     }
 
     return true;
@@ -268,7 +266,6 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
                 }
                 break;
             case VkRender::CRL_GRAYSCALE_IMAGE:
-            case VkRender::CRL_COMPUTE_SHADER:
                 format = VK_FORMAT_R8_UNORM;
                 break;
             case VkRender::CRL_DISPARITY_IMAGE:
@@ -355,7 +352,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
 
             case VkRender::CRL_GRAYSCALE_IMAGE:
             case VkRender::CRL_COLOR_IMAGE_RGBA:
-            case VkRender::CRL_COMPUTE_SHADER:
                 setLayoutBindings = {
                         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT,   nullptr},
                         {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -371,15 +367,6 @@ void CRLCameraModels::createDescriptorSetLayout(Model *model) {
         }
 
 
-        // ADD YCBCR SAMPLER TO DESCRIPTORS IF NEEDED
-        if (model->m_CameraDataType != VkRender::CRL_COMPUTE_SHADER) {
-            if (VK_NULL_HANDLE != model->m_TextureVideo[i]->m_Sampler && hasYcbcrSampler) {
-                setLayoutBindings[2].pImmutableSamplers = &model->m_TextureVideo[i]->m_Sampler;
-            }
-            if (model->m_PointCloudTexture[i] && model->m_PointCloudTexture[i]->m_Sampler && hasYcbcrSampler) {
-                setLayoutBindings[3].pImmutableSamplers = &model->m_PointCloudTexture[i]->m_Sampler;
-            }
-        }
 
         VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
                 setLayoutBindings.data(),

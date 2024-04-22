@@ -254,22 +254,12 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
         // If the m_Device will be used for presenting to a display via a swapchain we need to request the swapchain extension
         deviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     }
-    // Nvidia CUDA stuff
 
-    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
-    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
-
-#ifdef _WIN64
-    //deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
-    //deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
-#else
-    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
-    deviceExtensions.emplace_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
-#endif
 
     // Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+
     }
 
     if (!deviceExtensions.empty()) {

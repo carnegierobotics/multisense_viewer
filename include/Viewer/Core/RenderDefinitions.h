@@ -95,7 +95,6 @@ namespace VkRender {
         CRL_CAMERA_IMAGE_NONE,
         CRL_DISPARITY_IMAGE,
         CRL_POINT_CLOUD,
-        CRL_COMPUTE_SHADER,
     } CRLCameraDataType;
 
 

@@ -28,12 +28,12 @@ public:
 
     /** Called once per frame **/
     void onUIRender(VkRender::GuiObjectHandles *handles) override {
-        bool shouldDraw = true; //
+        bool shouldDraw = false; //
         for (const auto& dev: handles->devices){
             if (dev.state == VkRender::CRL_STATE_ACTIVE)
                 shouldDraw = false;
         }
-        if (!shouldDraw || handles->renderer3D)
+        if (!shouldDraw)
             return;
 
         bool pOpen = true;

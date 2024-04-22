@@ -119,7 +119,7 @@ namespace VkRender {
         VkPipelineRasterizationStateCreateInfo rasterStateCI{};
         rasterStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterStateCI.cullMode = VK_CULL_MODE_FRONT_BIT;
+        rasterStateCI.cullMode = VK_CULL_MODE_NONE;
         rasterStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterStateCI.lineWidth = 1.0f;
 

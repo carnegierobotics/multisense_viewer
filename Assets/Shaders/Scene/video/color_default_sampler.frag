@@ -23,7 +23,7 @@ layout(binding = 1, set = 0) uniform Info {
     vec4 kernelFilters;
 } info;
 
-layout (set = 0, binding = 2) uniform sampler2D samplerColorMap;
+layout(set = 0, binding = 2) uniform sampler2D samplerYcbcr;
 
 // https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
 vec4 cubic(float x)
@@ -193,22 +193,22 @@ void main()
 
     bool useInterpolation = info.normalizeVal.w == 1.0f;
     if (useInterpolation){
-        outColor = textureBicubic(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = textureBicubic(samplerYcbcr, vec2(uvSampleX, uvSampleY));
     } else {
-        outColor = texture(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = texture(samplerYcbcr, vec2(uvSampleX, uvSampleY), 0);
     }
 
     if (info.kernelFilters.x == 1.0f){
-        outColor = edgeDetect(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = edgeDetect(samplerYcbcr, vec2(uvSampleX, uvSampleY));
     }
     if (info.kernelFilters.y == 1.0f){
-        outColor = blurKernel(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = blurKernel(samplerYcbcr, vec2(uvSampleX, uvSampleY));
     }
     if (info.kernelFilters.z == 1.0f){
-        outColor = emboss(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = emboss(samplerYcbcr, vec2(uvSampleX, uvSampleY));
     }
     if (info.kernelFilters.w == 1.0f){
-        outColor = sharpening(samplerColorMap, vec2(uvSampleX, uvSampleY));
+        outColor = sharpening(samplerYcbcr, vec2(uvSampleX, uvSampleY));
     }
 
 }

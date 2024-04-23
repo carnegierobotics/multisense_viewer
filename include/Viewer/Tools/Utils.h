@@ -196,8 +196,6 @@ namespace Utils {
         if (d == "Compressed Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
         if (d == "Compressed Rectified Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
 
-        if (d == "Compute") return VkRender::CRL_COMPUTE_SHADER;
-
         return VkRender::CRL_CAMERA_IMAGE_NONE;
     }
 

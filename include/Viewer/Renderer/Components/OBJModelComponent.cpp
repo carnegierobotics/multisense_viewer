@@ -39,7 +39,7 @@ namespace VkRender {
         auto &shapes = reader.GetShapes();
         auto &materials = reader.GetMaterials();
 
-// Loop over shapes
+        // Loop over shapes
         size_t totalVertexCount = attrib.vertices.size() / 3; // Each vertex has three components (x, y, z)
         size_t totalIndexCount = 0;
 

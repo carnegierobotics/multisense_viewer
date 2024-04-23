@@ -52,6 +52,8 @@ namespace VkRender {
 
         void draw(CommandBuffer *commandBuffer, uint32_t cbIndex);
         void update();
+        void updateGraphicsPipeline();
+
         bool markedForDeletion = false;
         struct Resource {
 
@@ -70,6 +72,7 @@ namespace VkRender {
             VkRender::ShaderValuesParams shaderValuesParams;
 
             bool busy = false;
+            bool requestIdle = false;
         };
 
         std::vector<Resource> resources;

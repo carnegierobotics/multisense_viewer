@@ -149,6 +149,7 @@ namespace VkRender {
     }
 
     void Renderer::processDeletions() {
+        // TODO Specify cleanup routine for each component individually. Let the component manage the deletion itself
         // Check for PBR elements and if we should delay deletion
         for (auto [entity, gltfModel, deleteComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, DeleteComponent>().each()) {
             gltfModel.markedForDeletion = true;
@@ -173,10 +174,22 @@ namespace VkRender {
                 destroyEntity(Entity(entity, this));
             }
         }
+        // Check deletion for obj models
+        for (auto [entity, resources, deleteComponent]: m_registry.view<VkRender::DefaultGraphicsPipelineComponent, DeleteComponent>().each()) {
+            resources.markedForDeletion = true;
+            bool readyForDeletion = true;
+            for (const auto &resource: resources.resources) {
+                if (resource.busy)
+                    readyForDeletion = false;
+            }
+            if (readyForDeletion) {
+                destroyEntity(Entity(entity, this));
+            }
+        }
 
         // Other Entities:
         for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
-                RenderResource::DefaultPBRGraphicsPipelineComponent>).each()) {
+                RenderResource::DefaultPBRGraphicsPipelineComponent, OBJModelComponent>).each()) {
             destroyEntity(Entity(entity, this));
 
         }
@@ -294,7 +307,7 @@ namespace VkRender {
             auto& resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
             auto& objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
 
-            if (!resources.markedForDeletion) {
+            if (!resources.markedForDeletion && !resources.resources[currentFrame].requestIdle) {
                 resources.draw(&drawCmdBuffers, currentFrame);
                 objModel.draw(&drawCmdBuffers, currentFrame);
             }

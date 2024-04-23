@@ -21,7 +21,7 @@ namespace VkRender {
     }
 
     void DefaultGraphicsPipelineComponent::setupDescriptors(DefaultGraphicsPipelineComponent::Resource &resource,
-                                                            const OBJModelComponent& modelComponent) {
+                                                            const OBJModelComponent &modelComponent) {
 
         /*setupDescriptors(Resource& resource, const VkRender::GLTFModelComponent &component,
         const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
@@ -175,14 +175,15 @@ namespace VkRender {
         pipelineLayoutCI.pushConstantRangeCount = 1;
         pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
         CHECK_RESULT(
-                vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &resource.pipelineLayout));
+                vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr,
+                                       &resource.pipelineLayout));
 
         // Vertex bindings an attributes
         VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
         std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-                {0, 0, VK_FORMAT_R32G32B32_SFLOAT,    0},
-                {1, 0, VK_FORMAT_R32G32B32_SFLOAT,    sizeof(float) * 3},
-                {2, 0, VK_FORMAT_R32G32_SFLOAT,       sizeof(float) * 6},
+                {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+                {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
+                {2, 0, VK_FORMAT_R32G32_SFLOAT,    sizeof(float) * 6},
         };
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
         vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -221,31 +222,51 @@ namespace VkRender {
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         // Default pipeline with back-face culling
-        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr, &resource.pipeline));
+        CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                               &resource.pipeline));
 
         for (auto shaderStage: shaderStages) {
             vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
         }
+        // If the pipeline was updated and we had previously requested it to be idle
+        resource.requestIdle = false;
     }
 
     void DefaultGraphicsPipelineComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
 
 
-        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, resources[cbIndex].pipeline);
+        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          resources[cbIndex].pipeline);
 
 
         vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 resources[cbIndex].pipelineLayout, 0, static_cast<uint32_t>(1),
                                 &resources[cbIndex].descriptorSets[cbIndex], 0, nullptr);
 
+        resources[cbIndex].busy = true;
+
 
     }
 
     void DefaultGraphicsPipelineComponent::update() {
+        if (!resources[renderUtils->swapchainIndex].busy && resources[renderUtils->swapchainIndex].requestIdle) {
+            vkDestroyPipeline(vulkanDevice->m_LogicalDevice, resources[renderUtils->swapchainIndex].pipeline, nullptr);
+            vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, resources[renderUtils->swapchainIndex].pipelineLayout, nullptr);
+            setupPipeline(resources[renderUtils->swapchainIndex]);
+        }
 
-        memcpy(resources[renderUtils->swapchainIndex].bufferParams.mapped, &resources[renderUtils->swapchainIndex].shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
-        memcpy(resources[renderUtils->swapchainIndex].bufferScene.mapped, &resources[renderUtils->swapchainIndex].uboMatrix, sizeof(VkRender::UBOMatrix));
+        memcpy(resources[renderUtils->swapchainIndex].bufferParams.mapped,
+               &resources[renderUtils->swapchainIndex].shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
+        memcpy(resources[renderUtils->swapchainIndex].bufferScene.mapped,
+               &resources[renderUtils->swapchainIndex].uboMatrix, sizeof(VkRender::UBOMatrix));
 
+    }
+
+    void DefaultGraphicsPipelineComponent::updateGraphicsPipeline() {
+        // Recreate pipeline if not in use.
+        for (auto &resource: resources) {
+            resource.requestIdle = true;
+        }
     }
 
 

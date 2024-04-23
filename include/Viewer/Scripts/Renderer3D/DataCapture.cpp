@@ -13,7 +13,7 @@
 
 void DataCapture::setup() {
 
-    auto entity = m_context->createEntity("3DGSModel");
+    auto entity = m_context->createEntity("viking_room");
     auto &component = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj",
                                                                      m_context->renderUtils.device);
 
@@ -28,7 +28,7 @@ void DataCapture::setup() {
 
 
 void DataCapture::update() {
-    auto gsMesh = m_context->findEntityByName("3DGSModel");
+    auto gsMesh = m_context->findEntityByName("viking_room");
     if (gsMesh) {
         auto &camera = m_context->getCamera();
 
@@ -39,7 +39,7 @@ void DataCapture::update() {
             obj.resources[i].uboMatrix.view = camera.matrices.view;
             obj.resources[i].uboMatrix.model = glm::mat4(1.0f);
 
-            obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+            //obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
 
         }
         obj.update();

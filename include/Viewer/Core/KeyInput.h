@@ -38,10 +38,9 @@
 #ifndef MULTISENSE_VIEWER_KEYINPUT_H
 #define MULTISENSE_VIEWER_KEYINPUT_H
 
-#ifdef WIN32
-    #ifdef APIENTRY
-        #undef APIENTRY
-    #endif
+
+#ifdef APIENTRY
+#undef APIENTRY
 #endif
 #include <GLFW/glfw3.h>
 

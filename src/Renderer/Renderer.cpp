@@ -36,7 +36,6 @@
 
 
 #ifdef WIN32
-//#include <WinRegEditor.h>
 #else
 
 #include <sys/socket.h>
@@ -71,9 +70,11 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
     usageMonitor->loadSettingsFromFile();
     usageMonitor->userStartSession(rendererStartTime);
 
-    guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height, msaaSamples, swapchain->imageCount);
+    guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice.get(), renderPass, m_Width, m_Height, msaaSamples,
+                                                        swapchain->imageCount);
     guiManager->handles.mouse = &mouseButtons;
     guiManager->handles.usageMonitor = usageMonitor;
+    guiManager->handles.camera.type = camera.type;
 
     prepareRenderer();
     pLogger->info("Prepared Renderer");
@@ -82,7 +83,7 @@ Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
 
 void Renderer::prepareRenderer() {
     camera.type = VkRender::Camera::arcball;
-    camera.setPerspective(60.0f, static_cast<float> (m_Width) / static_cast<float> (m_Height), 0.01f, 100.0f);
+    camera.setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height), 0.01f, 100.0f);
     camera.resetPosition();
     camera.resetRotation();
     createSelectionImages();
@@ -90,8 +91,26 @@ void Renderer::prepareRenderer() {
     createSelectionBuffer();
     cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
+    // TODO Make dynamic
+    VulkanRenderer::setupSecondaryRenderPasses();
+    renderUtils.secondaryRenderPasses = &secondaryRenderPasses;
+
+    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
+    std::string line;
+    while (std::getline(infile, line)) {
+        // Skip comment # line
+        if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
+            continue;
+        availableScriptNames.emplace_back(line);
+    }
     // Load Object Scripts from file
-    buildScripts();
+    buildScript("Skybox");
+    for (const auto &name: availableScriptNames)
+        buildScript(name);
+
+    for (const auto &pair: scripts) {
+        guiManager->handles.renderBlock.scripts[pair.first] = false;
+    }
 
 }
 
@@ -108,105 +127,60 @@ void Renderer::addDeviceFeatures() {
     }
 }
 
-
-void Renderer::buildScripts() {
-    std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
-    std::string scriptName;
-    while (std::getline(infile, scriptName)) {
-        // Skip comment # line
-        if (scriptName.find('#') != std::string::npos)
-            continue;
-        // Do not recreate script if already created
-        auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
-        if (it != builtScriptNames.end())
-            return;
-        scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
-
-        if (scripts[scriptName].get() == nullptr) {
-            pLogger->error("Failed to register script {}.", scriptName);
-            scripts.erase(scriptName);
-            return;
-        }
-        pLogger->info("Registered script: {} in factory", scriptName.c_str());
-        builtScriptNames.emplace_back(scriptName);
-    }
-
-    // Run Once
-    VkRender::RenderUtils vars{};
-    vars.device = vulkanDevice.get();
-    vars.renderPass = &renderPass;
-    vars.msaaSamples = msaaSamples;
-    vars.UBCount = swapchain->imageCount;
-    vars.picking = &selection;
-    vars.queueSubmitMutex = &queueSubmitMutex;
-    renderData.height = m_Height;
-    renderData.width = m_Width;
-    // create first set of scripts for TOP OF PIPE
-    for (auto &script: scripts) {
-        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-            script.second->createUniformBuffers(vars, renderData, &topLevelScriptData);
+// Helper function to set draw methods safely
+void Renderer::setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
+                                    std::map<std::string, std::shared_ptr<VkRender::Base>> &scriptsRef) {
+    for (const auto &setting: scriptDrawSettings) {
+        auto script = scriptsRef.find(setting.first);
+        if (script != scriptsRef.end()) { // Check if the script exists
+            script->second->setDrawMethod(setting.second); // Safely set the draw method
         }
     }
-    // Copy data generated from TOP OF PIPE scripts
-    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
-    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
-    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
-    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
-
-    // Run script setup function
-    for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-            script.second->createUniformBuffers(vars, renderData, &topLevelScriptData);
-        }
-    }
-
-    auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
-    conf.scripts.names = builtScriptNames;
-    VkRender::RendererConfig::getInstance().setUserSetting(conf);
 }
 
 void Renderer::buildScript(const std::string &scriptName) {
     bool exists = Utils::isInVector(builtScriptNames, scriptName);
-    if (exists) {
-        Log::Logger::getInstance()->warning("Script {} Already exists, not pushing to render graphicsQueue",
-                                            scriptName);
+    bool isInDeletionQueue = scriptsForDeletion.contains(scriptName);
+    if (exists || isInDeletionQueue) {
+        Log::Logger::getInstance()->warning(
+                "Script {} Already exists or is in deletion, not pushing to render graphicsQueue",
+                scriptName);
         return;
     }
 
     scripts[scriptName] = VkRender::ComponentMethodFactory::Create(scriptName);
     if (scripts[scriptName].get() == nullptr) {
         pLogger->error("Failed to register script {}.", scriptName);
-        builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
+        scripts.erase(scriptName);
+
+        if (Utils::isInVector(builtScriptNames, scriptName))
+            builtScriptNames.erase(std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName));
         return;
     }
     pLogger->info("Registered script: {} in factory", scriptName.c_str());
     builtScriptNames.emplace_back(scriptName);
 
     // Run Once
-    VkRender::RenderUtils vars{};
-    vars.device = vulkanDevice.get();
-    vars.renderPass = &renderPass;
-    vars.msaaSamples = msaaSamples;
-    vars.UBCount = swapchain->imageCount;
-    vars.picking = &selection;
-    vars.queueSubmitMutex = &queueSubmitMutex;
+    renderUtils.device = vulkanDevice.get();
+    renderUtils.instance = &instance;
+    renderUtils.renderPass = &renderPass;
+    renderUtils.msaaSamples = msaaSamples;
+    renderUtils.UBCount = swapchain->imageCount;
+    renderUtils.picking = &selection;
+    renderUtils.queueSubmitMutex = &queueSubmitMutex;
+    renderUtils.vkDeviceUUID = vkDeviceUUID;
+    renderUtils.fence = &waitFences;
     renderData.height = m_Height;
     renderData.width = m_Width;
-    // create first set of scripts for TOP OF PIPE
-    if (scripts[scriptName]->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-        scripts[scriptName]->createUniformBuffers(vars, renderData, &topLevelScriptData);
-    }
+    renderData.camera = &camera;
 
     // Copy data generated from TOP OF PIPE scripts
-    vars.skybox.irradianceCube = &scripts["Skybox"]->skyboxTextures.irradianceCube;
-    vars.skybox.lutBrdf = &scripts["Skybox"]->skyboxTextures.lutBrdf;
-    vars.skybox.prefilterEnv = &scripts["Skybox"]->skyboxTextures.prefilterEnv;
-    vars.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
+    renderUtils.skybox.irradianceCube = scripts["Skybox"]->skyboxTextures.irradianceCube;
+    renderUtils.skybox.lutBrdf = scripts["Skybox"]->skyboxTextures.lutBrdf;
+    renderUtils.skybox.prefilterEnv = scripts["Skybox"]->skyboxTextures.prefilterEnv;
+    renderUtils.skybox.prefilteredCubeMipLevels = scripts["Skybox"]->skyboxTextures.prefilteredCubeMipLevels;
 
-
-    if (scripts[scriptName]->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE) {
-        scripts[scriptName]->createUniformBuffers(vars, renderData, &topLevelScriptData);
-    }
+    scripts[scriptName]->createUniformBuffers(renderUtils, renderData, &topLevelScriptData);
 
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
     conf.scripts.names = builtScriptNames;
@@ -214,6 +188,12 @@ void Renderer::buildScript(const std::string &scriptName) {
 }
 
 void Renderer::deleteScript(const std::string &scriptName) {
+    if (scriptsForDeletion.contains(scriptName)) {
+        Log::Logger::getInstance()->warning("Script name {} already requested deletion. Skipped deletion of script.",
+                                            scriptName);
+        return;
+    }
+
     if (builtScriptNames.empty())
         return;
     auto it = std::find(builtScriptNames.begin(), builtScriptNames.end(), scriptName);
@@ -221,9 +201,10 @@ void Renderer::deleteScript(const std::string &scriptName) {
         builtScriptNames.erase(it);
     else
         return;
-    pLogger->info("Deleting Script: {}", scriptName.c_str());
-    scripts[scriptName].get()->onDestroyScript();
-    scripts[scriptName].reset();
+
+    pLogger->info("Pushing script to Delete queue: {}. Erased script from rendered list", scriptName.c_str());
+    scriptsForDeletion[scriptName] = scripts[scriptName];
+    scriptsForDeletion[scriptName]->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
     scripts.erase(scriptName);
 
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
@@ -240,10 +221,8 @@ void Renderer::buildCommandBuffers() {
     std::array<VkClearValue, 3> clearValues{};
 
     if (guiManager->handles.renderer3D) {
-        clearValues[0] = {{{0.0f, 0.0f,
-                            0.0f, 1.0f}}};
-        clearValues[2] = {{{0.0f, 0.0f,
-                            0.0f, 1.0f}}};
+        clearValues[0] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        clearValues[2] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     } else {
         clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
                             guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
@@ -268,30 +247,84 @@ void Renderer::buildCommandBuffers() {
     renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
     vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
-    // Syncrhonization before renderpass
 
-    // Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
-    if (topLevelScriptData.compute.valid){
-    VkImageMemoryBarrier imageMemoryBarrier = {};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    // We won't be changing the layout of the image
-    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-    imageMemoryBarrier.image = (*topLevelScriptData.compute.textureComputeTarget)[currentFrame].m_Image;
-    imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-    imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    // Record secondary stuff:
+    VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
+    secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    secondaryRenderPassBeginInfo.renderPass = secondaryRenderPasses[0].renderPass; // The second render pass
+    secondaryRenderPassBeginInfo.framebuffer = secondaryRenderPasses[0].frameBuffers[imageIndex];
+    secondaryRenderPassBeginInfo.renderArea.offset = {0, 0};
+    secondaryRenderPassBeginInfo.renderArea.extent = {m_Width, m_Height}; // Set to your off-screen image dimensions
+    secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
+
+
+    vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+    vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+    drawCmdBuffers.renderPassIndex = 1;
+    /** Generate Script draw commands **/
+    for (auto &script: scripts) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
+            script.second->getType() == VkRender::CRL_SCRIPT_TYPE_RENDERER3D &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
+            script.second->drawScript(&drawCmdBuffers, currentFrame, true);
+        }
+    }
+    vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = secondaryRenderPasses[0].colorImage.resolvedImage;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    // Syncrhonization before main renderpass
     vkCmdPipelineBarrier(
             drawCmdBuffers.buffers[currentFrame],
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
             0,
             0, nullptr,
             0, nullptr,
-            1, &imageMemoryBarrier);
+            1, &barrier
+    );
+
+    // Image memory barrier to make sure that compute shader writes are finished before sampling from the texture
+    if (topLevelScriptData.compute.valid) {
+        VkImageMemoryBarrier imageMemoryBarrier = {};
+        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        // We won't be changing the layout of the image
+        imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        imageMemoryBarrier.image = (*topLevelScriptData.compute.textureComputeTarget)[currentFrame].m_Image;
+        imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        vkCmdPipelineBarrier(
+                drawCmdBuffers.buffers[currentFrame],
+                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &imageMemoryBarrier);
     }
+    drawCmdBuffers.renderPassIndex = 0;
 
     vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
@@ -299,22 +332,23 @@ void Renderer::buildCommandBuffers() {
 
     // Draw scripts that must be drawn first
     for (auto &script: scripts) {
-        if (script.second->getType() == CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
+        if (script.second->getType() == VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE)
             script.second->drawScript(&drawCmdBuffers, currentFrame, true);
     }
 
     /** Generate Script draw commands **/
     for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED &&
-            script.second->getType() != CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
-            script.second->getType() != CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_RENDER_TOP_OF_PIPE &&
+            script.second->getType() != VkRender::CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
             script.second->drawScript(&drawCmdBuffers, currentFrame, true);
         }
     }
     /** Generate UI draw commands **/
     guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
     vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-    CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]));
+
+    CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
 }
 
 bool Renderer::compute() {
@@ -324,7 +358,7 @@ bool Renderer::compute() {
         throw std::runtime_error("failed to begin recording compute command buffer!");
     }
     for (auto &script: scripts) {
-        if (script.second->getType() & CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
+        if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_SIMULATED_CAMERA) {
             script.second->drawScript(&computeCommand, currentFrame, true);
         }
     }
@@ -340,13 +374,27 @@ void Renderer::updateUniformBuffers() {
     renderData.index = currentFrame;
     renderData.height = m_Height;
     renderData.width = m_Width;
-    renderData.input = &input;
     renderData.crlCamera = &cameraConnection->camPtr;
+    renderData.renderPassIndex = 0;
 
+    // Delete the requested scripts if resources are no longer busy in render pipeline
+    std::vector<std::string> scriptsToDelete;
     // Reload scripts if requested
     std::vector<std::string> scriptsToReload;
+
+    for (const auto &script: scriptsForDeletion) {
+        scriptsToDelete.push_back(script.first);
+    }
+    for (const auto &scriptName: scriptsToDelete) {
+        if (scriptsForDeletion[scriptName]->onDestroyScript()) {
+            scriptsForDeletion[scriptName].reset();
+            scriptsForDeletion.erase(scriptName);
+            scriptsToReload.emplace_back(scriptName);
+        }
+    }
+
     for (const auto &script: scripts) {
-        if (script.second->getDrawMethod() == CRL_SCRIPT_RELOAD) {
+        if (script.second->getDrawMethod() == VkRender::CRL_SCRIPT_RELOAD) {
             scriptsToReload.push_back(script.first);
         }
     }
@@ -361,8 +409,9 @@ void Renderer::updateUniformBuffers() {
                 scripts.erase(name);
             }
             builtScriptNames.clear();
-            buildScripts();
-
+            buildScript("Skybox");
+            for (const auto &name: availableScriptNames)
+                buildScript(name);
         } else {
             deleteScript(scriptName);
             buildScript(scriptName);
@@ -381,8 +430,9 @@ void Renderer::updateUniformBuffers() {
         camera.resetPosition();
         camera.resetRotation();
     }
-    guiManager->handles.camera.pos = camera.m_Position;
-    guiManager->handles.camera.rot = camera.m_Rotation;
+    guiManager->handles.camera.pos = glm::vec3(glm::inverse(camera.matrices.view)[3]);
+    guiManager->handles.camera.up = camera.cameraUp;
+    guiManager->handles.camera.target = camera.m_Target;
     guiManager->handles.camera.cameraFront = camera.cameraFront;
 
     // Update GUI
@@ -395,11 +445,15 @@ void Renderer::updateUniformBuffers() {
 
     for (auto &script: scripts) {
         if (!guiManager->handles.renderer3D) {
-            if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D)
-                script.second->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
+                script.second->setDrawMethod(VkRender::CRL_SCRIPT_DONT_DRAW);
+                guiManager->handles.renderBlock.scripts[script.first] = false;
+            }
         } else {
-            if (script.second->getType() & CRL_SCRIPT_TYPE_RENDERER3D)
-                script.second->setDrawMethod(CRL_SCRIPT_DRAW);
+            if (script.second->getType() & VkRender::CRL_SCRIPT_TYPE_RENDERER3D) {
+                script.second->setDrawMethod(VkRender::CRL_SCRIPT_DRAW);
+                guiManager->handles.renderBlock.scripts[script.first] = true;
+            }
         }
         // TODO add simulated camera handling
     }
@@ -414,88 +468,63 @@ void Renderer::updateUniformBuffers() {
         camera.resetRotation();
     }
 
+    std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> scriptDrawSettings;
+    std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> specialScripts;
+    scriptDrawSettings = {
+            {"SingleLayout",     VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"DoubleTop",        VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"DoubleBot",        VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"One",              VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Two",              VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Three",            VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Four",             VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"MultiSenseCamera", VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"PointCloud",       VkRender::CRL_SCRIPT_DONT_DRAW},
+            {"Skybox",           VkRender::CRL_SCRIPT_DONT_DRAW}
+    };
+
     // Enable scripts depending on gui layout chosen
-    bool noActivePreview = true;
     for (auto &dev: guiManager->handles.devices) {
-        if (dev.state == CRL_STATE_ACTIVE) {
-            noActivePreview = false;
-            switch (dev.layout) {
-                case CRL_PREVIEW_LAYOUT_SINGLE:
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    break;
-                case CRL_PREVIEW_LAYOUT_DOUBLE:
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DRAW);
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
+            continue;
+        switch (dev.layout) {
+            case VkRender::CRL_PREVIEW_LAYOUT_SINGLE:
+                scriptDrawSettings["SingleLayout"] = VkRender::CRL_SCRIPT_DRAW;
+                break;
+            case VkRender::CRL_PREVIEW_LAYOUT_DOUBLE:
+                scriptDrawSettings["DoubleTop"] = VkRender::CRL_SCRIPT_DRAW;
+                scriptDrawSettings["DoubleBot"] = VkRender::CRL_SCRIPT_DRAW;
+                break;
+            case VkRender::CRL_PREVIEW_LAYOUT_QUAD:
+                scriptDrawSettings["One"] = VkRender::CRL_SCRIPT_DRAW;
+                scriptDrawSettings["Two"] = VkRender::CRL_SCRIPT_DRAW;
+                scriptDrawSettings["Three"] = VkRender::CRL_SCRIPT_DRAW;
+                scriptDrawSettings["Four"] = VkRender::CRL_SCRIPT_DRAW;
+                break;
+            default:
+                break;
+        }
 
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    break;
-                case CRL_PREVIEW_LAYOUT_QUAD:
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DRAW);
-
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    break;
-                default:
-                    scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    break;
-            }
-
-            switch (dev.selectedPreviewTab) {
-                case CRL_TAB_3D_POINT_CLOUD:
-                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DRAW);
-                    break;
-                default:
-                    scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("Skybox")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-                    break;
-            }
-
+        // Additional handling for special tabs
+        if (dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
+            specialScripts["Skybox"] = VkRender::CRL_SCRIPT_DRAW;
+            specialScripts["MultiSenseCamera"] = VkRender::CRL_SCRIPT_DRAW;
+            specialScripts["PointCloud"] = VkRender::CRL_SCRIPT_DRAW;
         }
     }
-    if (noActivePreview) {
-        scripts.at("SingleLayout")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("DoubleTop")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("DoubleBot")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("One")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Two")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Three")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("Four")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("PointCloud")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
-        scripts.at("MultiSenseCamera")->setDrawMethod(CRL_SCRIPT_DONT_DRAW);
+    setScriptDrawMethods(scriptDrawSettings, scripts);
+    setScriptDrawMethods(specialScripts, scripts);
 
-    }
+
     // Run update function on active camera Scripts and build them if not built
     for (size_t i = 0; i < guiManager->handles.devices.size(); ++i) {
-        if (guiManager->handles.devices.at(i).state == CRL_STATE_REMOVE_FROM_LIST)
-            guiManager->handles.devices.erase(guiManager->handles.devices.begin() + i);
+        if (guiManager->handles.devices.at(i).state == VkRender::CRL_STATE_REMOVE_FROM_LIST)
+            guiManager->handles.devices.erase(guiManager->handles.devices.begin() + static_cast<int>(i));
     }
 
     // Scripts that share dataa
     for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
             if (!script.second->sharedData->destination.empty()) {
                 // Send to destination script
                 if (script.second->sharedData->destination == "All") {
@@ -506,7 +535,6 @@ void Renderer::updateUniformBuffers() {
                         if (s == script)
                             continue;
                         memcpy(s.second->sharedData->data, shared->data, SHARED_MEMORY_SIZE_1MB);
-
                     }
                 }
             }
@@ -515,32 +543,28 @@ void Renderer::updateUniformBuffers() {
 
     // UIUpdateFunction on Scripts with const handle to GUI
     for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED)
             script.second->uiUpdate(&guiManager->handles);
     }
     // run update function for camera connection
     for (auto &dev: guiManager->handles.devices) {
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
         cameraConnection->update(dev);
-
     }
-
-
     // Update renderer with application settings
     auto conf = VkRender::RendererConfig::getInstance().getUserSetting();
     for (auto &script: conf.scripts.rebuildMap) {
-        if (script.second) { // if rebuild
-            scripts.at(script.first)->setDrawMethod(CRL_SCRIPT_RELOAD);
+        if (script.second) {
+            // if rebuild
+            scripts.at(script.first)->setDrawMethod(VkRender::CRL_SCRIPT_RELOAD);
             script.second = false;
         }
     }
     VkRender::RendererConfig::getInstance().setUserSetting(conf);
 
-
-    // Run update function on Scripts
     for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
             script.second->updateUniformBufferData(&renderData);
         }
     }
@@ -548,22 +572,34 @@ void Renderer::updateUniformBuffers() {
 
 
 void Renderer::recordCommands() {
-
     /** Generate Draw Commands **/
     buildCommandBuffers();
-    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation) **/
+    /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation)
+     *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
     if (renderSelectionPass) {
         CommandBuffer cmdBuffer{};
         cmdBuffer.buffers.emplace_back(vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true));
         std::array<VkClearValue, 3> clearValues{};
-        clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
-        clearValues[2] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                            guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
+        clearValues[0] = {
+                {
+                        {
+                                guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]
+                        }
+                }
+        };
+        clearValues[2] = {
+                {
+                        {
+                                guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
+                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]
+                        }
+                }
+        };
         clearValues[1].depthStencil = {1.0f, 0};
         const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
                                                        1.0f);
-        const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>( m_Width), static_cast<int32_t>( m_Height), 0,
+        const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0,
                                                   0);
 
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
@@ -580,7 +616,7 @@ void Renderer::recordCommands() {
         vkCmdSetViewport(cmdBuffer.buffers.front(), 0, 1, &viewport);
         vkCmdSetScissor(cmdBuffer.buffers.front(), 0, 1, &scissor);
         for (auto &script: scripts) {
-            if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED) {
+            if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 script.second->drawScript(&cmdBuffer, 0, false);
             }
         }
@@ -590,17 +626,18 @@ void Renderer::recordCommands() {
         VkMemoryBarrier memoryBarrier = {
                 VK_STRUCTURE_TYPE_MEMORY_BARRIER,
                 nullptr,
-                VK_ACCESS_SHADER_READ_BIT,   // srcAccessMask
-                VK_ACCESS_HOST_READ_BIT};     // dstAccessMask
+                VK_ACCESS_SHADER_READ_BIT, // srcAccessMask
+                VK_ACCESS_HOST_READ_BIT
+        }; // dstAccessMask
         vkCmdPipelineBarrier(
                 copyCmd,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,          // srcStageMask
-                VK_PIPELINE_STAGE_HOST_BIT,                     // dstStageMask
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // srcStageMask
+                VK_PIPELINE_STAGE_HOST_BIT, // dstStageMask
                 VK_DEPENDENCY_BY_REGION_BIT,
-                1,                                    // memoryBarrierCount
+                1, // memoryBarrierCount
                 &memoryBarrier,
                 0, nullptr,
-                0, nullptr);                     // pMemoryBarriers);
+                0, nullptr); // pMemoryBarriers);
 
         // Copy mip levels from staging buffer
         vkCmdCopyImageToBuffer(
@@ -616,17 +653,17 @@ void Renderer::recordCommands() {
         uint8_t *data = nullptr;
         CHECK_RESULT(
                 vkMapMemory(vulkanDevice->m_LogicalDevice, selectionMemory, 0, m_MemReqs.size, 0,
-                            reinterpret_cast<void **>(&data)));
+                            reinterpret_cast<void **>(&data)))
         vkUnmapMemory(vulkanDevice->m_LogicalDevice, selectionMemory);
         for (auto &dev: guiManager->handles.devices) {
-            if (dev.state != CRL_STATE_ACTIVE)
+            if (dev.state != VkRender::CRL_STATE_ACTIVE)
                 continue;
 
             if (dev.simulatedDevice) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
                     if (!win.second.isHovered ||
-                        win.first == CRL_PREVIEW_POINT_CLOUD)
+                        win.first == VkRender::CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;
@@ -642,7 +679,6 @@ void Renderer::recordCommands() {
                                         guiManager->handles.info->previewBorderPadding;
                     if (imGuiPosX > 0 && imGuiPosX < maxInRangeX
                         && imGuiPosY > 0 && imGuiPosY < maxInRangeY) {
-
                         auto x = static_cast<uint32_t>(static_cast<float>(1920) * (imGuiPosX) / maxInRangeX);
                         auto y = static_cast<uint32_t>(static_cast<float>(1080) * (imGuiPosY) / maxInRangeY);
                         // Add one since we are not counting from zero anymore :)
@@ -658,20 +694,21 @@ void Renderer::recordCommands() {
                 }
                 continue;
             }
-            auto idx = static_cast<uint32_t>((mousePos.x + (m_Width * mousePos.y)) * 4);
+            auto idx = static_cast<uint32_t>((mousePos.x + (static_cast<float>(m_Width) * mousePos.y)) * 4);
             if (idx > m_Width * m_Height * 4)
                 continue;
 
-            if (dev.state == CRL_STATE_ACTIVE) {
+            if (dev.state == VkRender::CRL_STATE_ACTIVE) {
                 for (auto &win: dev.win) {
                     // Skip second render pass if we dont have a source selected or if the source is point cloud related
                     if (!win.second.isHovered || win.second.selectedSource == "Idle" ||
-                        win.first == CRL_PREVIEW_POINT_CLOUD)
+                        win.first == VkRender::CRL_PREVIEW_POINT_CLOUD)
                         continue;
 
                     auto windowIndex = win.first;
                     auto tex = VkRender::TextureData(Utils::CRLSourceToTextureType(win.second.selectedSource),
-                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].selectedResolutionMode,
+                                                     dev.channelInfo[win.second.selectedRemoteHeadIndex].
+                                                             selectedResolutionMode,
                                                      true);
 
                     if (renderData.crlCamera->getCameraStream(win.second.selectedSource, &tex,
@@ -699,8 +736,8 @@ void Renderer::recordCommands() {
                                     &h,
                                     &d);
 
-                            auto x = static_cast<uint32_t>(static_cast<float>( w) * (imGuiPosX) / maxInRangeX);
-                            auto y = static_cast<uint32_t>(static_cast<float>( h) * (imGuiPosY) / maxInRangeY);
+                            auto x = static_cast<uint32_t>(static_cast<float>(w) * (imGuiPosX) / maxInRangeX);
+                            auto y = static_cast<uint32_t>(static_cast<float>(h) * (imGuiPosY) / maxInRangeY);
                             // Add one since we are not counting from zero anymore :)
                             dev.pixelInfo[windowIndex].x = x + 1;
                             dev.pixelInfo[windowIndex].y = y + 1;
@@ -712,7 +749,7 @@ void Renderer::recordCommands() {
                                 dev.pixelInfoZoomed[windowIndex].x = 0;
 
                             switch (Utils::CRLSourceToTextureType(win.second.selectedSource)) {
-                                case CRL_GRAYSCALE_IMAGE: {
+                                case VkRender::CRL_GRAYSCALE_IMAGE: {
                                     Log::Logger::getInstance()->traceWithFrequency("Selection_grayscale_tag", 10,
                                                                                    "Calculating hovered pixel intensity, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
                                                                                    w, h, d,
@@ -729,10 +766,10 @@ void Renderer::recordCommands() {
                                     dev.pixelInfoZoomed[windowIndex].intensity = intensity;
                                 }
                                     break;
-                                case CRL_DISPARITY_IMAGE: {
+                                case VkRender::CRL_DISPARITY_IMAGE: {
                                     float disparity = 0;
                                     auto *p = reinterpret_cast<uint16_t *>(tex.data);
-                                    disparity = p[(w * y) + x] / 16.0f;
+                                    disparity = static_cast<float>(p[(w * y) + x]) / 16.0f;
                                     Log::Logger::getInstance()->traceWithFrequency("Selection_disparity_tag", 10,
                                                                                    "Calculating hovered pixel distance, res: {}x{}x{}, pos: {},{} posZoomed: {}, {}",
                                                                                    w, h, d,
@@ -745,7 +782,7 @@ void Renderer::recordCommands() {
                                             win.second.selectedRemoteHeadIndex).calibration.left.P[0][0];
                                     float tx = cameraConnection->camPtr.getCameraInfo(
                                             win.second.selectedRemoteHeadIndex).calibration.right.P[0][3] /
-                                               (fx * (1920.0f / static_cast<float>( w)));
+                                               (fx * (1920.0f / static_cast<float>(w)));
                                     if (disparity > 0) {
                                         float dist = (fx * abs(tx)) / disparity;
                                         dev.pixelInfo[windowIndex].depth = dist;
@@ -753,8 +790,8 @@ void Renderer::recordCommands() {
                                         dev.pixelInfo[windowIndex].depth = 0;
                                     }
                                     auto disparityDisplayed =
-                                            p[(w * dev.pixelInfoZoomed[windowIndex].y) +
-                                              dev.pixelInfoZoomed[windowIndex].x] /
+                                            static_cast<float>(p[(w * dev.pixelInfoZoomed[windowIndex].y) +
+                                                                 dev.pixelInfoZoomed[windowIndex].x]) /
                                             16.0f;
                                     if (disparityDisplayed > 0) {
                                         float dist = (fx * abs(tx)) / disparityDisplayed;
@@ -773,10 +810,24 @@ void Renderer::recordCommands() {
             }
         }
     }
-
 }
 
 void Renderer::windowResized() {
+    renderData.camera = &camera;
+    renderData.deltaT = frameTimer;
+    renderData.index = currentFrame;
+    renderData.height = m_Height;
+    renderData.width = m_Width;
+    renderData.crlCamera = &cameraConnection->camPtr;
+
+    Widgets::clear();
+    // Update gui with new res
+    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
+    // Update general Scripts with handle to GUI
+    for (auto &script: scripts) {
+        if (script.second->getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED)
+            script.second->windowResize(&renderData, &guiManager->handles);
+    }
 
     // Clear script and scriptnames before rebuilding
     for (const auto &scriptName: builtScriptNames) {
@@ -786,6 +837,11 @@ void Renderer::windowResized() {
         scripts.erase(scriptName);
     }
     builtScriptNames.clear();
+
+    // Scripts. Start with skybox as usual
+    buildScript("Skybox");
+    for (const auto &name: availableScriptNames)
+        buildScript(name);
 
     // Recreate to fit new dimensions
     vkDestroyFramebuffer(device, selection.frameBuffer, nullptr);
@@ -799,25 +855,6 @@ void Renderer::windowResized() {
     createSelectionFramebuffer();
     destroySelectionBuffer();
     createSelectionBuffer();
-
-    renderData.camera = &camera;
-    renderData.deltaT = frameTimer;
-    renderData.index = currentFrame;
-    renderData.height = m_Height;
-    renderData.width = m_Width;
-    renderData.crlCamera = &cameraConnection->camPtr;
-
-    Widgets::clear();
-    // Update gui with new res
-    guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
-    // Update general Scripts with handle to GUI
-    for (auto &script: scripts) {
-        if (script.second->getType() != CRL_SCRIPT_TYPE_DISABLED)
-            script.second->windowResize(&renderData, &guiManager->handles);
-    }
-
-
-    buildScripts();
 }
 
 
@@ -830,7 +867,7 @@ void Renderer::cleanUp() {
         VkRender::RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
         usageMonitor->sendUsageLog();
 
-    auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+    auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
             std::chrono::steady_clock::now() - startTime);
     Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
 
@@ -842,7 +879,7 @@ void Renderer::cleanUp() {
     startTime = std::chrono::steady_clock::now();
     // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
     guiManager.reset();
-    timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+    timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
             std::chrono::steady_clock::now() - startTime);
     Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
 
@@ -856,10 +893,9 @@ void Renderer::cleanUp() {
     }
     builtScriptNames.clear();
     destroySelectionBuffer();
-    timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
+    timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
             std::chrono::steady_clock::now() - startTime);
     Log::Logger::getInstance()->trace("Deleting scripts on exit took {}s", timeSpan.count());
-
 }
 
 
@@ -892,15 +928,15 @@ void Renderer::createSelectionImages() {
         colorImageCreateInfo.extent = {m_Width, m_Height, 1};
         colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        CHECK_RESULT(vkCreateImage(device, &colorImageCreateInfo, nullptr, &selection.colorImage));
+        CHECK_RESULT(vkCreateImage(device, &colorImageCreateInfo, nullptr, &selection.colorImage))
         VkMemoryRequirements memReqs;
         vkGetImageMemoryRequirements(device, selection.colorImage, &memReqs);
         VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
         memAlloc.allocationSize = memReqs.size;
         memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &selection.colorMem));
-        CHECK_RESULT(vkBindImageMemory(device, selection.colorImage, selection.colorMem, 0));
+        CHECK_RESULT(vkAllocateMemory(device, &memAlloc, nullptr, &selection.colorMem))
+        CHECK_RESULT(vkBindImageMemory(device, selection.colorImage, selection.colorMem, 0))
 
         VkImageViewCreateInfo colorAttachmentView = {};
         colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -976,7 +1012,7 @@ void Renderer::createSelectionBuffer() {
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_Width * m_Height * 4,
             &selectionBuffer,
-            &selectionMemory));
+            &selectionMemory))
 
     // Create the memory backing up the buffer handle
     vkGetBufferMemoryRequirements(vulkanDevice->m_LogicalDevice, selectionBuffer, &m_MemReqs);
@@ -1005,12 +1041,13 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
     bool is3DViewSelected = false;
     for (const auto &dev: guiManager->handles.devices) {
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
-        is3DViewSelected = dev.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD;
+        is3DViewSelected = dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD;
     }
     if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
-        is3DViewSelected) { // && !mouseButtons.middle) {
+        is3DViewSelected) {
+        // && !mouseButtons.middle) {
         camera.rotate(dx, dy);
     }
     if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
@@ -1034,7 +1071,7 @@ void Renderer::mouseMoved(float x, float y, bool &handled) {
 
 void Renderer::mouseScroll(float change) {
     for (const auto &item: guiManager->handles.devices) {
-        if (item.state == CRL_STATE_ACTIVE && item.selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD &&
+        if (item.state == VkRender::CRL_STATE_ACTIVE && item.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD &&
             guiManager->handles.info->isViewingAreaHovered) {
             camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
@@ -1042,6 +1079,4 @@ void Renderer::mouseScroll(float change) {
     if (guiManager->handles.renderer3D) {
         camera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
-
 }
-

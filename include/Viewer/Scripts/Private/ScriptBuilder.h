@@ -72,13 +72,12 @@ public:
         return false;
     }
 
-    static std::unique_ptr<Base> Create(const std::string& name) {
+    static std::shared_ptr<Base> Create(const std::string& name) {
         if (auto it = s_methods.find(name); it != s_methods.end()) {
             return it->second();
         }
         return nullptr;
     }
-
 
 private:
     static std::map<std::string, TCreateMethod> s_methods;
@@ -95,7 +94,5 @@ protected:
 template<typename T >
 bool RegisteredInFactory<T>::s_bRegistered = ComponentMethodFactory::Register(T::GetFactoryName(), T::CreateMethod);
 }
-
-
 
 #endif //MULTISENSE_SCRIPTBUILDER_H

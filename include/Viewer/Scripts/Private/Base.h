@@ -36,17 +36,15 @@
 
 #ifndef MULTISENSE_BASE_H
 #define MULTISENSE_BASE_H
-#ifdef WIN32
-    #ifdef APIENTRY
-    #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
 
 #include <filesystem>
 #include <utility>
 #include <stb_image.h>
 #include <stb_image_write.h>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Core/Camera.h"
@@ -61,25 +59,13 @@
 #define TOLERATE_FRAME_NUM_SKIP 10 // 10 frames means 2.5 for remote head. Should probably bet set based on remote head or not
 #define SHARED_MEMORY_SIZE_1MB 1000000
 
-// forward declarations
-class CameraConnection; // forward declaration of this class to speed up compile time. Separate Scripts/model_loaders from ImGui source recompile
-
 namespace VkRender {
-
     /**
      * @brief Base class for scripts that can be attached to renderer. See @refitem Example for how to implement a script.
      */
     class Base {
     public:
-
-        std::unique_ptr<VkRender::UBOMatrix> bufferOneData{};
-        std::unique_ptr<VkRender::FragShaderParams> bufferTwoData{};
-        std::unique_ptr<VkRender::PointCloudParam> bufferThreeData{};
-        std::vector<std::unique_ptr<VkRender::RenderDescriptorBuffers>> additionalBuffers{};
-        std::vector<std::vector<VkRender::RenderDescriptorBuffersData>> additionalBuffersData{};
-
-        std::unique_ptr<VkRender::Particle> particleIn{};
-        std::unique_ptr<VkRender::Particle> particleOut{};
+        std::vector<ScriptBufferSet> ubo;
 
         std::vector<VkShaderModule> shaderModules{};
         VkRender::SkyboxTextures skyboxTextures;
@@ -105,14 +91,14 @@ namespace VkRender {
         }
 
         /**@brief Pure virtual function called each frame*/
-        virtual void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+        virtual void onUIUpdate(VkRender::GuiObjectHandles* uiHandle) {
         }
 
         /**@brief Pure virtual function called to enable/disable drawing of this script*/
-        virtual void setDrawMethod(DrawMethod drawMethod) = 0;
+        virtual void setDrawMethod(VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod) = 0;
 
         /**@brief Virtual function called when resize event is triggered from the platform os*/
-        virtual void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+        virtual void onWindowResize(const VkRender::GuiObjectHandles* uiHandle) {
         }
 
         /**@brief Called once script is requested for deletion */
@@ -121,38 +107,35 @@ namespace VkRender {
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
         virtual ScriptTypeFlags getType() {
-            return CRL_SCRIPT_TYPE_DISABLED;
+            return VkRender::CRL_SCRIPT_TYPE_DISABLED;
         }
 
         /**@brief Which script type this is. Can be used to flashing/disable rendering of this script */
-        virtual DrawMethod getDrawMethod() {
-            return CRL_SCRIPT_DONT_DRAW;
+        virtual VkRender::CRL_SCRIPT_DRAW_METHOD getDrawMethod() {
+            return VkRender::CRL_SCRIPT_DONT_DRAW;
         }
 
         /**@brief Record draw command into a VkCommandBuffer */
         virtual void draw(CommandBuffer* commandBuffer, uint32_t i, bool b) {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
-
         }
 
         DISABLE_WARNING_POP
 
-        void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
+        void windowResize(VkRender::RenderData* data, const VkRender::GuiObjectHandles* uiHandle) {
             updateRenderData(data);
             onWindowResize(uiHandle);
         }
 
-        void uiUpdate(VkRender::GuiObjectHandles *uiHandle) {
+        void uiUpdate(VkRender::GuiObjectHandles* uiHandle) {
             if (!this->renderData.drawThisScript)
                 return;
             if (renderData.crlCamera != nullptr)
                 onUIUpdate(uiHandle);
-
         }
 
         void drawScript(CommandBuffer* commandBuffer, uint32_t i, bool b) {
-
-            if (!renderData.drawThisScript || getDrawMethod() == CRL_SCRIPT_DONT_DRAW)
+            if (!renderData.drawThisScript || getDrawMethod() == VkRender::CRL_SCRIPT_DONT_DRAW)
                 return;
 
             /*
@@ -167,11 +150,10 @@ namespace VkRender {
             draw(commandBuffer, i, b);
             if (i == 0)
                 renderData.scriptDrawCount++;
-
         }
 
 
-        void updateUniformBufferData(VkRender::RenderData *data) {
+        void updateUniformBufferData(VkRender::RenderData* data) {
             updateRenderData(data);
 
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
@@ -180,38 +162,37 @@ namespace VkRender {
                 update();
 
             VkRender::UniformBufferSet &currentUB = renderUtils.uniformBuffers[renderData.index];
-            if (renderData.type != CRL_SCRIPT_TYPE_DISABLED) {
-                memcpy(currentUB.bufferOne.mapped, bufferOneData.get(), sizeof(VkRender::UBOMatrix));
-                memcpy(currentUB.bufferTwo.mapped, bufferTwoData.get(), sizeof(VkRender::FragShaderParams));
-                memcpy(currentUB.bufferThree.mapped, bufferThreeData.get(), sizeof(VkRender::PointCloudParam));
-
-                // TODO Future optimization could be to copy blocks of data instead of for for loops.
-                if (renderData.additionalBuffers) {
-                    for (size_t i = 0; i < additionalBuffers.size(); ++i) {
-                        memcpy(additionalBuffersData[i][renderData.index].mvp.mapped, &additionalBuffers[i]->mvp,
-                               sizeof(VkRender::UBOMatrix));
-
-                        memcpy(additionalBuffersData[i][renderData.index].light.mapped,
-                               &additionalBuffers[i]->light,
-                               sizeof(VkRender::FragShaderParams));
-                    }
-                }
+            if (renderData.type != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
+                memcpy(currentUB.bufferOne.mapped, ubo[0].mvp.get(), sizeof(VkRender::UBOMatrix));
+                memcpy(currentUB.bufferTwo.mapped, ubo[0].fragShader.get(),
+                       sizeof(VkRender::FragShaderParams));
+                memcpy(currentUB.bufferThree.mapped, ubo[0].pointCloudData.get(),
+                       sizeof(VkRender::PointCloudParam));
             }
-
 
         }
 
-        void createUniformBuffers(const RenderUtils &utils, RenderData rData, TopLevelScriptData *topLevelPtr) {
+        void createUniformBuffers(const RenderUtils& utils, RenderData rData, TopLevelScriptData* topLevelPtr) {
             topLevelData = topLevelPtr;
             renderData = std::move(rData);
             renderUtils = utils;
             renderUtils.uniformBuffers.resize(renderUtils.UBCount);
             startTime = std::chrono::steady_clock::now();
             lastLogTime = std::chrono::steady_clock::now();
-            bufferOneData = std::make_unique<VkRender::UBOMatrix>();
-            bufferTwoData = std::make_unique<VkRender::FragShaderParams>();
-            bufferThreeData = std::make_unique<VkRender::PointCloudParam>();
-            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+            int renderPassCount = 2; // TODO make adjustable
+            ubo.resize(renderPassCount);
+            renderUtils.uboDevice.resize(renderPassCount);
+            for (int i = 0; i < renderPassCount; ++i){
+                ubo[i].mvp = std::make_unique<VkRender::UBOMatrix>();
+                ubo[i].fragShader = std::make_unique<VkRender::FragShaderParams>();
+                ubo[i].pointCloudData = std::make_unique<VkRender::PointCloudParam>();
+
+                renderUtils.uboDevice[i].resize(renderUtils.UBCount);
+
+            }
+
+
+            for (auto& uniformBuffer : renderUtils.uniformBuffers) {
                 renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -229,34 +210,71 @@ namespace VkRender {
                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                                  &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
                 uniformBuffer.bufferThree.map();
+            }
+            for (int i = 0; i < renderPassCount; ++i) {
 
-                // Particle buffers
+                for (auto &uniformBuffer: renderUtils.uboDevice[i]) {
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferOne, sizeof(VkRender::UBOMatrix));
+                    uniformBuffer.bufferOne.map();
 
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferTwo, sizeof(VkRender::FragShaderParams));
+                    uniformBuffer.bufferTwo.map();
 
+                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                     &uniformBuffer.bufferThree, sizeof(VkRender::PointCloudParam));
+                    uniformBuffer.bufferThree.map();
+                }
             }
             renderData.scriptRuntime = (std::chrono::steady_clock::now() - startTime).count();
 
             sharedData = std::make_unique<SharedData>(SHARED_MEMORY_SIZE_1MB);
 
-            if (getType() != CRL_SCRIPT_TYPE_DISABLED) {
+            if (getType() != VkRender::CRL_SCRIPT_TYPE_DISABLED) {
                 setup();
                 renderData.drawThisScript = true;
             }
         }
 
         /**@brief Call to delete the attached script. */
-        void onDestroyScript() {
+        bool onDestroyScript() {
             onDestroy();
 
-            for (auto &shaderModule: shaderModules) {
+            for (auto& shaderModule : shaderModules) {
                 vkDestroyShaderModule(renderUtils.device->m_LogicalDevice, shaderModule, nullptr);
             }
+            shaderModules.clear();
 
-            for (auto &uniformBuffer: renderUtils.uniformBuffers) {
+            for (auto& uniformBuffer : renderUtils.uniformBuffers) {
                 uniformBuffer.bufferOne.unmap();
                 uniformBuffer.bufferTwo.unmap();
                 uniformBuffer.bufferThree.unmap();
             }
+            bool allCleanedUp = true;
+            if (resourceTracker.empty())
+                return true;
+
+            for (size_t i = 0; i < renderUtils.UBCount; ++i) {
+                if (!resourceTracker[i].cleanUpReady) {
+                    if(resourceTracker[i].cleanUp(renderUtils.device->m_LogicalDevice, (*renderUtils.fence)[i]))
+                        Log::Logger::getInstance()->trace("Resources cleaned up for frame: {}", i);
+
+                }
+
+                if (!resourceTracker[i].cleanUpReady) {
+                    allCleanedUp = false;
+                    Log::Logger::getInstance()->trace("Resources busy in frame: {}, postponing..", i);
+                }
+            }
+
+            return allCleanedUp;
         }
 
         /**
@@ -287,40 +305,49 @@ namespace VkRender {
         }
 
 
-        void requestAdditionalBuffers(size_t numBuffers) {
-            // Num buffers for each object
-            additionalBuffers.resize(numBuffers);
-            additionalBuffersData.resize(numBuffers);
+    private:
+        struct ResourceEntry {
+            // Resource handle (e.g., VkBuffer, VkImage, etc.)
+            VkPipeline pipeline = VK_NULL_HANDLE;
+            VkPipeline pipeline2 = VK_NULL_HANDLE;
+            VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+            VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+            VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+            VkBuffer buffer = VK_NULL_HANDLE;
+            VkDeviceMemory memory = VK_NULL_HANDLE;
 
+            bool cleanUpReady = false;
 
-            for (size_t i = 0; i < numBuffers; ++i) {
-                additionalBuffers[i] = std::make_unique<VkRender::RenderDescriptorBuffers>();
-                // Buffers for each swapchain image
-                additionalBuffersData[i].resize(renderUtils.uniformBuffers.size());
-                for (auto &uniformBuffer: additionalBuffersData[i]) {
-                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer.mvp, sizeof(VkRender::UBOMatrix));
-                    uniformBuffer.mvp.map();
-
-                    renderUtils.device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                     &uniformBuffer.light, sizeof(VkRender::FragShaderParams));
-                    uniformBuffer.light.map();
-                }
+            void destroyResources(const VkDevice& device) const {
+                // If not in use then destroy
+                if (descriptorSetLayout != VK_NULL_HANDLE)
+                    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+                if (descriptorPool != VK_NULL_HANDLE)
+                    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+                if (pipelineLayout != VK_NULL_HANDLE)
+                    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+                if (pipeline != VK_NULL_HANDLE)
+                    vkDestroyPipeline(device, pipeline, nullptr);
+                if (pipeline2 != VK_NULL_HANDLE)
+                    vkDestroyPipeline(device, pipeline2, nullptr);
             }
 
-            renderData.additionalBuffers = true;
+            bool cleanUp(const VkDevice& device, const VkFence& fence) {
+                if (vkGetFenceStatus(device, fence) == VK_SUCCESS) {
+                    // The command buffer has finished execution; safe to clean up resources
+                    // Perform cleanup operations here
+                    destroyResources(device);
+                    cleanUpReady = true;
+                    return cleanUpReady;
+                }
+                return false;
+            }
+        };
 
-        }
-
-    private:
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> startTime;
         std::chrono::steady_clock::time_point lastLogTime;
 
-        void updateRenderData(VkRender::RenderData *data) {
+        void updateRenderData(VkRender::RenderData* data) { // TODO get rid of this function
             this->renderData.camera = data->camera;
             this->renderData.crlCamera = data->crlCamera;
             this->renderData.deltaT = data->deltaT;
@@ -328,10 +355,13 @@ namespace VkRender {
             this->renderData.height = data->height;
             this->renderData.width = data->width;
             this->renderData.type = getType();
-            input = data->input;
+            this->renderData.renderPassIndex = data->renderPassIndex;
         }
 
-        const Input *input{};
+        const Input* input{};
+
+    protected:
+        std::vector<ResourceEntry> resourceTracker;
     };
 }
 

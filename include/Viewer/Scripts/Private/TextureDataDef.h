@@ -40,7 +40,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
@@ -132,8 +132,8 @@ namespace VkRender {
      * Radians
      */
     struct IMUData{
-        double roll = 0.0f;
-        double pitch = 0.0f;
+        double roll = 0.0;
+        double pitch = 0.0;
     };
 
     struct Shared{

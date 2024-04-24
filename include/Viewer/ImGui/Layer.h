@@ -48,9 +48,11 @@
 #include <string>
 #include <memory>
 
-#include "Viewer/Core/Definitions.h"
-#include "Viewer/Core/KeyInput.h"
 #include "Viewer/Renderer/UsageMonitor.h"
+#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/Core/KeyInput.h"
+#include "Viewer/Core/MultiSenseDeviceDefinitions.h"
+#include "Viewer/Tools/ThreadPool.h"
 
 namespace VkRender {
 
@@ -92,6 +94,8 @@ namespace VkRender {
         float width{};
         /** @brief Height of window surface */
         float height{};
+        /** @brief aspect ratio of window surface */
+        float aspect{};
         /**@brief Width of sidebar*/
         float sidebarWidth = 200.0f;
         /**@brief Size of elements in sidebar */
@@ -173,7 +177,8 @@ namespace VkRender {
         bool reset = false;
 
         glm::vec3 pos;
-        glm::vec3 rot;
+        glm::vec3 up;
+        glm::vec3 target;
         glm::vec3 cameraFront;
 
     };
@@ -218,7 +223,7 @@ namespace VkRender {
         bool askUserForNewVersion = true;
 
         const VkRender::MouseButtons *mouse;
-
+        VkRender::RenderBlock renderBlock;
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
             clearColor[0] = 0.870f;
@@ -237,7 +242,7 @@ namespace VkRender {
         std::shared_ptr<ThreadPool> pool{};
 
         CameraUIBlock camera{};
-        CameraSimulator simulator{};
+        CameraSimulator simulator{}; // TODO REMOVE
     };
 
     /**

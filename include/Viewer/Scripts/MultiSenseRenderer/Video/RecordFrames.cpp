@@ -133,7 +133,7 @@ void RecordFrames::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     for (VkRender::Device &dev: uiHandle->devices) {
 
 
-        if (dev.state != CRL_STATE_ACTIVE)
+        if (dev.state != VkRender::CRL_STATE_ACTIVE)
             continue;
 
         sources.clear();
@@ -261,15 +261,15 @@ void RecordFrames::saveIMUDataToFile() {
 
 void RecordFrames::savePointCloudToFile() {
     const auto &conf = renderData.crlCamera->getCameraInfo(0).imgConf;
-    auto disparityTex = std::make_shared<VkRender::TextureData>(CRL_DISPARITY_IMAGE, conf.width(), conf.height(),
+    auto disparityTex = std::make_shared<VkRender::TextureData>(VkRender::CRL_DISPARITY_IMAGE, conf.width(), conf.height(),
                                                                 false, true);
 
     std::shared_ptr<VkRender::TextureData> colorTex;
-    CRLCameraDataType texType = CRL_GRAYSCALE_IMAGE;
+    VkRender::CRLCameraDataType texType = VkRender::CRL_GRAYSCALE_IMAGE;
     std::string source = "Luma Rectified Left";
     if (useAuxColor) {
         source = "Color Rectified Aux";
-        texType = CRL_COLOR_IMAGE_YUV420;
+        texType = VkRender::CRL_COLOR_IMAGE_YUV420;
     }
     colorTex = std::make_shared<VkRender::TextureData>(texType, conf.width(), conf.height(), false, true);
 
@@ -430,7 +430,7 @@ void RecordFrames::savePointCloudToPlyFile(const std::filesystem::path &saveDire
     ply << ss.str();
 }
 
-void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::string &path, std::string &stringSrc,
+void RecordFrames::saveImageToFileAsync(VkRender::CRLCameraDataType type, const std::string &path, std::string &stringSrc,
                                         std::shared_ptr<VkRender::TextureData> &ptr,
                                         std::string &fileFormat,
                                         std::shared_ptr<CRLRosWriter::RosbagWriter> rosbagWriter,
@@ -438,7 +438,7 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
     // Create folders. One for each Source
     std::filesystem::path saveDirectory{};
     std::replace(stringSrc.begin(), stringSrc.end(), ' ', '_');
-    if (type == CRL_COLOR_IMAGE_YUV420 && fileFormat == "tiff") {
+    if (type == VkRender::CRL_COLOR_IMAGE_YUV420 && fileFormat == "tiff") {
         fileFormat = "ppm";
     }
     saveDirectory = path + "/" + stringSrc + "/" + fileFormat + "/";
@@ -454,19 +454,19 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
     // Create file
     if (fileFormat == "tiff" || fileFormat == "ppm") {
         switch (type) {
-            case CRL_POINT_CLOUD:
+            case VkRender::CRL_POINT_CLOUD:
                 break;
-            case CRL_GRAYSCALE_IMAGE:
+            case VkRender::CRL_GRAYSCALE_IMAGE:
                 RecordUtility::writeTIFFImage(fileLocation, ptr, 8);
                 break;
-            case CRL_DISPARITY_IMAGE:
+            case VkRender::CRL_DISPARITY_IMAGE:
                 RecordUtility::writeTIFFImage(fileLocation, ptr, 16);
                 break;
-            case CRL_COLOR_IMAGE_YUV420:
+            case VkRender::CRL_COLOR_IMAGE_YUV420:
                 RecordUtility::writePPMImage(fileLocation, ptr);
                 break;
-            case CRL_CAMERA_IMAGE_NONE:
-            case CRL_COLOR_IMAGE_RGBA:
+            case VkRender::CRL_CAMERA_IMAGE_NONE:
+            case VkRender::CRL_COLOR_IMAGE_RGBA:
                 break;
             default:
                 Log::Logger::getInstance()->info("Recording not specified for this format");
@@ -474,15 +474,15 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
         }
     } else if (fileFormat == "png") {
         switch (type) {
-            case CRL_POINT_CLOUD:
+            case VkRender::CRL_POINT_CLOUD:
                 break;
-            case CRL_GRAYSCALE_IMAGE:
+            case VkRender::CRL_GRAYSCALE_IMAGE:
                 RecordUtility::writePNGImageGrayscale(fileLocation, ptr);
                 break;
-            case CRL_DISPARITY_IMAGE:
+            case VkRender::CRL_DISPARITY_IMAGE:
                 RecordUtility::writePNGImageGrayscale(fileLocation, ptr, true);
                 break;
-            case CRL_COLOR_IMAGE_YUV420:
+            case VkRender::CRL_COLOR_IMAGE_YUV420:
                 RecordUtility::writePNGImageColor(fileLocation, ptr);
                 break;
             default:
@@ -512,17 +512,17 @@ void RecordFrames::saveImageToFileAsync(CRLCameraDataType type, const std::strin
         uint32_t imageSize = ptr->m_Width * ptr->m_Height;
         // convert color to rgb
         switch (type) {
-            case CRL_GRAYSCALE_IMAGE:
+            case VkRender::CRL_GRAYSCALE_IMAGE:
                 data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
                                                     imageSize,
                                                     encoding, step);
                 break;
-            case CRL_DISPARITY_IMAGE:
+            case VkRender::CRL_DISPARITY_IMAGE:
                 data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
                                                     imageSize * 2,
                                                     encoding, step * 2);
                 break;
-            case CRL_COLOR_IMAGE_YUV420: {
+            case VkRender::CRL_COLOR_IMAGE_YUV420: {
                 std::vector<uint8_t> output(imageSize * 3);
                 RecordUtility::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
                 data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, output.data(),

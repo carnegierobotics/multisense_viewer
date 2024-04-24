@@ -7,6 +7,7 @@
 
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <vulkan/vulkan_core.h>
@@ -18,6 +19,9 @@ struct CommandBuffer {
     // Owner --> Description?
     std::string description = "RenderCommandBuffer";
 
+    std::vector<bool> busy{};
+
+    int renderPassIndex = 0; // TODO update
 };
 
 

@@ -11,15 +11,19 @@
 #include <random>
 
 #ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 
 #include <windows.h>
 
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <cstdlib>
-
 #pragma comment(lib, "IPHLPAPI.lib")
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
 #else
 #include <sys/utsname.h>
 #include <sys/ioctl.h>

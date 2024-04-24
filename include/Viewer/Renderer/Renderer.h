@@ -35,12 +35,6 @@
  **/
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
-#ifdef WIN32
-    #ifdef APIENTRY
-    #undef APIENTRY
-    #endif
-#endif
-#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,6 +42,10 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+#include <GLFW/glfw3.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Scripts/Private/Base.h"
@@ -93,11 +91,14 @@ private:
 
 
     std::unique_ptr<VkRender::GuiManager> guiManager{};
-    std::map<std::string, std::unique_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scripts{};
+    std::map<std::string, std::shared_ptr<VkRender::Base>> scriptsForDeletion{};
     std::vector<std::string> builtScriptNames;
+    std::vector<std::string> availableScriptNames;
     std::shared_ptr<UsageMonitor> usageMonitor;
     std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
     VkRender::RenderData renderData{};
+    VkRender::RenderUtils renderUtils{};
     VkRender::TopLevelScriptData topLevelScriptData{};
 
     bool renderSelectionPass = true;
@@ -113,11 +114,17 @@ private:
     void buildCommandBuffers() override;
     void mouseMoved(float x, float y, bool&handled) override;
     void mouseScroll(float change) override;
+
+    void createSelectionFramebuffer();
+    void createSelectionImages();
+    void destroySelectionBuffer();
+    void createSelectionBuffer();
+
     /**
-     * @brief creates instances from classes located in src/Scripts/Objects directory.
+     * @brief creates instances from classes located in src/Scripts/ directory.
      * Usually each class here represents object(s) in the scene
      */
-    void buildScripts();
+    void buildScript(const std::string &scriptName);
 
     /**
      * @brief deletes a script if stored in \refitem builtScriptNames
@@ -125,12 +132,8 @@ private:
      */
     void deleteScript(const std::string &scriptName);
 
-    void createSelectionFramebuffer();
-    void createSelectionImages();
-    void destroySelectionBuffer();
-    void createSelectionBuffer();
-
-    void buildScript(const std::string &scriptName);
+    static void setScriptDrawMethods(const std::map<std::string, VkRender::CRL_SCRIPT_DRAW_METHOD> &scriptDrawSettings,
+                              std::map<std::string, std::shared_ptr<VkRender::Base>> &scripts);
 };
 
 

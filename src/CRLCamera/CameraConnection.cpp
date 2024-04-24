@@ -892,8 +892,10 @@ namespace VkRender::MultiSense {
     }
 
     void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev) {
-        Log::Logger::getInstance()->info("Creating connection to camera. Ip: {}, ifName {}", dev->IP,
-                                         dev->interfaceDescription);
+        auto *app = reinterpret_cast<CameraConnection *>(context);
+
+        Log::Logger::getInstance()->info("Creating Fake connection to camera. Ip: {}, ifName {}, devInfo.name: {}", dev->IP,
+                                         dev->interfaceDescription, app->camPtr.getCameraInfo(0).devInfo.name);
         // If we successfully connect
         //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
         Utils::initializeUIDataBlockWithTestData(*dev);

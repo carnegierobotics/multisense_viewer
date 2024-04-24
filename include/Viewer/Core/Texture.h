@@ -99,9 +99,7 @@ class Texture2D : public Texture {
 public:
     Texture2D() = default;
 
-    ~Texture2D() {
-
-    }
+    ~Texture2D() = default;
 
     Texture2D(void *buffer,
               VkDeviceSize bufferSize,

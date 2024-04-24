@@ -57,6 +57,12 @@ void main()
     coords = coords / coords.w * matrix.scale;
     vec3 outCoordinates = vec3(coords.x, coords.y, coords.z);
 
+
+    // Replace ubo.viewMatrix with viewMatrix in your gl_Position calculation
+    gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outCoordinates, 1.0f);
+
+
     outCoords = outCoordinates;
-    gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
+    //gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
+    //gl_Position = ubo.viewMatrix * ubo.modelMatrix  * vec4(outCoordinates, 1.0f);
 }

@@ -266,9 +266,9 @@ public:
                             static_cast<double>(handles->camera.pos.z));
 
                 ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->camera.rot.x),
-                            static_cast<double>(handles->camera.rot.y),
-                            static_cast<double>(handles->camera.rot.z));
+                            static_cast<double>(handles->camera.target.x),
+                            static_cast<double>(handles->camera.target.y),
+                            static_cast<double>(handles->camera.target.z));
             #endif
 
             }
@@ -445,6 +445,8 @@ public:
 
 
             static size_t scriptSelectionIndex = 0; // Here we store our selection data as an index.
+            if (scriptSelectionIndex >= user.scripts.names.size())
+                scriptSelectionIndex = user.scripts.names.size() - 1;
             std::string scriptPreviewValue = user.scripts.names.empty() ? ""
                                                                         : user.scripts.names[scriptSelectionIndex].c_str();
 #ifdef MULTISENSE_VIEWER_DEBUG

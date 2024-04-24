@@ -38,37 +38,27 @@
 #ifndef MULTISENSE_VULKANRENDERER_H
 #define MULTISENSE_VULKANRENDERER_H
 
-
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#ifdef WIN32
-#ifdef APIENTRY
-#undef APIENTRY
-#endif
-#endif
-
-#include <GLFW/glfw3.h>
-
-#include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
 #include <vector>
 #include <cstring>
 #include <iostream>
-#include <glm/vec2.hpp>
 #include <chrono>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-
 #include <imgui.h>
+#ifdef APIENTRY
+    #undef APIENTRY
+#endif
+
 
 #include "Viewer/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Core/VulkanSwapchain.h"
-#include "Viewer/Core/Validation.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/CommandBuffer.h"
+
 
 namespace VkRender {
 
@@ -125,7 +115,7 @@ namespace VkRender {
 
         VkRender::Camera camera;
         glm::vec2 mousePos{};
-        VkSampleCountFlagBits msaaSamples;
+        VkSampleCountFlagBits msaaSamples{};
 
         VkRender::MouseButtons mouseButtons{};
         float mouseScrollSpeed = 0.1f;
@@ -134,9 +124,12 @@ namespace VkRender {
         int keyAction = -1;
         Input input;
 
+        /** @ physical device uuid */
+        uint8_t vkDeviceUUID[VK_UUID_SIZE] = {0};
+        PFN_vkGetPhysicalDeviceProperties2 fpGetPhysicalDeviceProperties2{};
+
         /** @brief Handle for Logging*/
         Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
-
 
         /** @brief Handle for UI updates and overlay */
 
@@ -181,6 +174,9 @@ namespace VkRender {
 
         /** @brief Prepares all Vulkan resources and functions required to run the sample */
         virtual void prepare();
+
+        /** @brief Prepares secondary render passes. Can be added during runtime TODO Test */
+        void setupSecondaryRenderPasses();
 
         /** @brief Entry point for the main render loop */
         void renderLoop();
@@ -230,6 +226,7 @@ namespace VkRender {
             VkSemaphore renderComplete;
             // compute submission
             VkSemaphore computeComplete;
+            // Cuda semaphore handle
         };
         std::vector<Semaphores> semaphores;
 
@@ -259,23 +256,24 @@ namespace VkRender {
         uint32_t currentFrame = 0;
         // Active image index in swapchain
         uint32_t imageIndex = 0;
-        // Descriptor set pool
         // Pipeline cache object
         VkPipelineCache pipelineCache{};
         VkRender::ObjectPicking selection{};
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 
+
+        std::vector<SecondaryRenderPasses> secondaryRenderPasses;
+
         int frameCounter = 0;
         int frameID = 0;
-
+        bool recreateResourcesNextFrame = false;
         void setMultiSampling(VkSampleCountFlagBits samples);
 
     private:
         uint32_t destWidth{};
         uint32_t destHeight{};
         float lastFPS{};
-
 
         VkSampleCountFlagBits getMaxUsableSampleCount();
 
@@ -321,6 +319,8 @@ namespace VkRender {
         void createColorResources();
 
         void computePipeline();
+
+        static bool checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions);
 
     };
 }

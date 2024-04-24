@@ -44,7 +44,6 @@
 #include <functional>
 #include <glm/vec2.hpp>
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui_internal.h>
 
@@ -52,7 +51,7 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Core/Definitions.h"
+#include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/ImGui/Layer.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/ImGui/LayerFactory.h"

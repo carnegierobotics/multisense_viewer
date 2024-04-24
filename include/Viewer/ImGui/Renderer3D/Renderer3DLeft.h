@@ -16,6 +16,7 @@
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 #include "Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
@@ -40,6 +41,7 @@ namespace VkRender {
         }
 
         void processEntities(GuiObjectHandles *handles) {
+            // TODO We should do better sorting here
             // Create a view for entities with a GLTFModelComponent and a TagComponent
             auto gltfView = handles->m_context->m_registry.view<GLTFModelComponent, TagComponent>(
                     entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
@@ -55,10 +57,21 @@ namespace VkRender {
             auto objView = handles->m_context->m_registry.view<OBJModelComponent, TagComponent>(
                     entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
 
-            // Iterate over entities that have a GLTFModelComponent and a TagComponent
+            // Iterate over entities that have a OBJModelComponent and a TagComponent
             for (auto entity: objView) {
                 auto &model = objView.get<OBJModelComponent>(entity);
                 auto &tag = objView.get<TagComponent>(entity);
+
+                // Process each entity here
+                processEntity(handles, entity, model, tag);
+            }
+            // Iterate over entities that have a OBJModelComponent and a TagComponent
+            auto cameraView = handles->m_context->m_registry.view<CameraGraphicsPipelineComponent, TagComponent>(
+                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
+
+            for (auto entity: cameraView) {
+                auto &model = cameraView.get<CameraGraphicsPipelineComponent>(entity);
+                auto &tag = cameraView.get<TagComponent>(entity);
 
                 // Process each entity here
                 processEntity(handles, entity, model, tag);
@@ -90,6 +103,10 @@ namespace VkRender {
                 if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<DefaultGraphicsPipelineComponent>().updateGraphicsPipeline();
+                    }
+                } else if(e.hasComponent<CameraGraphicsPipelineComponent>()){
+                    if (ImGui::SmallButton("Reload Shader")) {
+                        e.getComponent<CameraGraphicsPipelineComponent>().updateGraphicsPipeline();
                     }
                 }
 

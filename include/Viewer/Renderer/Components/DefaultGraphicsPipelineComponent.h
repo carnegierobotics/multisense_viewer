@@ -62,8 +62,6 @@ namespace VkRender {
                 for (auto &res: resource.res) {
                     vkDestroyPipeline(vulkanDevice->m_LogicalDevice, res.pipeline, nullptr);
                     vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, res.pipelineLayout, nullptr);
-                    //vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayout, nullptr);
-                    //vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, res.descriptorPool, nullptr);
                 }
             }
 

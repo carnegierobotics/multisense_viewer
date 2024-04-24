@@ -90,7 +90,7 @@ namespace VkRender {
             }
 
             ImGui::SetNextItemWidth(100.0f);
-            static int item_current_idx = 0; // Here we store our selection data as an index.
+            static int item_current_idx = 0; // todo fix according to how many cameras we are initializing, we might not always start at 0
             if (ImGui::BeginListBox("Cameras")) {
                 for (int n = 0; n < cameras.size(); n++) {
                     const bool is_selected = (item_current_idx == n);
@@ -110,8 +110,8 @@ namespace VkRender {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto e = handles->m_context->createEntity(tag);
-                e.addComponent<CameraComponent>();
-                handles->m_context->cameras[tag] = Camera(handles->info->width, handles->info->height);
+                auto& c = e.addComponent<CameraComponent>( Camera(handles->info->width, handles->info->height));
+                handles->m_context->cameras[tag] = &c.camera;
                 handles->m_cameraSelection.tag = tag;
             }
             setCusorToColumn(2, ImGui::GetCursorPosY());
@@ -164,6 +164,8 @@ namespace VkRender {
 
                         Log::Logger::getInstance()->info("Selected folder {}", selectedFolder);
                         RendererConfig::getInstance().getUserSetting().lastOpenedFolderPath = selectedFolder;
+                        handles->m_loadColmapCameras = true;
+                        handles->m_loadColmapPosesPath = selectedFolder;
                     }
                 }
             }

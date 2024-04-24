@@ -256,6 +256,8 @@ namespace VkRender {
         std::shared_ptr<ThreadPool> pool{};
         CameraSelection m_cameraSelection{};
         Renderer *m_context;
+        bool m_loadColmapCameras = false;
+        std::filesystem::path m_loadColmapPosesPath;
     };
 
     /**

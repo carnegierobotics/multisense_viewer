@@ -101,7 +101,7 @@ namespace VkRender {
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
 
-        std::unordered_map<std::string, Camera> cameras;
+        std::unordered_map<std::string, Camera*> cameras;
         std::string selectedCameraTag = "Default";
     public:
         entt::registry m_registry;

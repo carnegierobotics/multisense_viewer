@@ -74,9 +74,7 @@ namespace VkRender {
         Camera camera;
         bool drawGizmo = true;
 
-        CameraComponent(){
-            
-        }
+        explicit CameraComponent(Camera cam): camera(cam){}
 
         CameraComponent(const CameraComponent &) = default;
 

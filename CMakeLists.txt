@@ -81,6 +81,7 @@ set(ENGINE_SRC
         include/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
         include/Viewer/Renderer/Components/OBJModelComponent.cpp
         include/Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.cpp
+        include/Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h
 
         include/Viewer/Tools/StbInclude.cpp
         include/Viewer/CRLCamera/CameraConnection.cpp

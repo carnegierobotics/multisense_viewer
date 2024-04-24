@@ -91,9 +91,11 @@ namespace VkRender {
         bool backendInitialized = false;
         uint32_t m_Width = 1920;      // Default values - Actual values set in constructor
         uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
+        Camera m_Camera;
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
         VulkanDevice* vulkanDevice{};
+
 
         struct {
             VkImage image;

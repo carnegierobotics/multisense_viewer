@@ -149,6 +149,10 @@ namespace VkRender {
         glm::vec3 camPos{};
     };
 
+    struct UBOCamera {
+        std::array<glm::vec4, 21> positions;
+    };
+
     struct ShaderValuesParams {
         glm::vec4 lightDir{};
         float exposure = 4.5f;
@@ -214,12 +218,6 @@ namespace VkRender {
         uint32_t UBCount = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
-        struct {
-            std::shared_ptr<TextureCubeMap> irradianceCube = nullptr;
-            std::shared_ptr<TextureCubeMap> prefilterEnv = nullptr;
-            std::shared_ptr<Texture2D> lutBrdf = nullptr;
-            float prefilteredCubeMipLevels = 0.0f;
-        } skybox;
 
         std::mutex *queueSubmitMutex;
         const std::vector<VkFence> *fence;

@@ -35,9 +35,21 @@ public:
     /** @brief draw function called once per frame **/
     void draw(CommandBuffer * commandBufobjectfer, uint32_t i, bool b) override;
 
+    struct ImageData {
+        int imageID;
+        double qw, qx, qy, qz; // Quaternion components
+        double tx, ty, tz;     // Translation vector
+        int cameraID;
+        std::string imageName;
+    };
+    std::vector<ImageData> images;
+
     bool enable = true;
     bool hide = false;
 
+    std::vector<ImageData> loadPoses(std::filesystem::path path);
+
+    glm::mat4 quaternionToMatrix(double qw, double qx, double qy, double qz, double tx, double ty, double tz);
 };
 
 #endif //MULTISENSE_VIEWER_DATACAPTURE_H

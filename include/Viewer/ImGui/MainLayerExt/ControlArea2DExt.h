@@ -171,7 +171,7 @@ public:
 
                     if (ImGui::Button("Record Location", btnSize)) {
                         if (!folderFuture.valid())
-                            folderFuture = std::async(VkRender::LayerUtils::selectFolder);
+                            folderFuture = std::async(VkRender::LayerUtils::selectFolder, "");
                         handles->usageMonitor->userClickAction("Choose Location", "Button",
                                                                ImGui::GetCurrentWindow()->Name);
                     }

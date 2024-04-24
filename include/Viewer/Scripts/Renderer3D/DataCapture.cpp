@@ -14,7 +14,7 @@
 void DataCapture::setup() {
 
     auto entity = m_context->createEntity("viking_room");
-    auto &component = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj",
+    auto &component = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "Test" / "viking_room.obj",
                                                                      m_context->renderUtils.device);
 
 

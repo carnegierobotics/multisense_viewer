@@ -150,7 +150,7 @@ namespace VkRender::LayerUtils {
     }
 
 
-    static inline std::string selectFolder() {
+    static inline std::string selectFolder(std::string openLocation = "") {
         std::string folderPath = "";
 
         gtk_init(0, NULL);
@@ -163,7 +163,8 @@ namespace VkRender::LayerUtils {
                 ("_Open"), GTK_RESPONSE_ACCEPT,
                 NULL
         );
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSystemHomePath().c_str());
+        std::string openLoc = openLocation.empty() ? Utils::getSystemHomePath().string() : openLocation;
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), openLoc.c_str());
 
         if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
             char *selected_folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -269,7 +270,7 @@ namespace VkRender::LayerUtils {
 
                     if(ImGui::Button(elem.label.c_str())) {
                         if (!elem.future->valid())
-                            *elem.future = std::async(selectFolder);
+                            *elem.future = std::async(selectFolder, "");
                     }
 
                     ImGui::PopStyleColor();

@@ -14,6 +14,7 @@
 
 struct CommandBuffer {
     std::vector<VkCommandBuffer> buffers{};
+    VkRenderPass boundRenderPass = VK_NULL_HANDLE;
 };
 
 

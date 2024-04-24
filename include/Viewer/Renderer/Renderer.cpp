@@ -179,8 +179,9 @@ namespace VkRender {
             resources.markedForDeletion = true;
             bool readyForDeletion = true;
             for (const auto &resource: resources.resources) {
-                if (resource.busy)
-                    readyForDeletion = false;
+                for (const auto &res: resource.res)
+                    if (res.busy)
+                        readyForDeletion = false;
             }
             if (readyForDeletion) {
                 destroyEntity(Entity(entity, this));
@@ -220,8 +221,6 @@ namespace VkRender {
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
         for (const auto &render: secondaryRenderPasses) {
-            if (render.idle)
-                continue;
 
             VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
             secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -235,16 +234,18 @@ namespace VkRender {
 
             vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
                                  VK_SUBPASS_CONTENTS_INLINE);
+            drawCmdBuffers.boundRenderPass = secondaryRenderPassBeginInfo.renderPass;
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
 
-            /**@brief Record commandbuffers for gltf models */
-            for (auto [entity, resources, gltfComponent, secondary]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent, VkRender::SecondaryCameraComponent>().each()) {
-                if (!resources.markedForDeletion)
-                    resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
-                else
-                    resources.resources[currentFrame].busy = false;
+            /**@brief Record commandbuffers for obj models */
+            // Accessing components in a non-copying manner
+            for (auto entity: m_registry.view<VkRender::SecondaryRenderPassComponent, VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
+                auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
+                auto &objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
+                if (resources.draw(&drawCmdBuffers, currentFrame, 1))
+                    objModel.draw(&drawCmdBuffers, currentFrame);
             }
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
@@ -273,6 +274,35 @@ namespace VkRender {
                     0, nullptr,
                     1, &barrier
             );
+
+            // Define the depth image layout transition barrier
+            barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = secondaryRenderPasses[0].depthStencil.image;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+
+            VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(
+                    drawCmdBuffers.buffers[currentFrame],
+                    sourceStage, destinationStage,
+                    0, // Dependency flags
+                    0, nullptr, // No memory barriers
+                    0, nullptr, // No buffer barriers
+                    1, &barrier // Image barrier
+            );
         }
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
@@ -284,6 +314,7 @@ namespace VkRender {
         renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
@@ -303,17 +334,12 @@ namespace VkRender {
 
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
-        for (auto entity : m_registry.view<VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
-            auto& resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
-            auto& objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
-
-            if (!resources.markedForDeletion && !resources.resources[currentFrame].requestIdle) {
-                resources.draw(&drawCmdBuffers, currentFrame);
+        for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
+            auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
+            auto &objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
+            if (resources.draw(&drawCmdBuffers, currentFrame, 0))
                 objModel.draw(&drawCmdBuffers, currentFrame);
-            }
-            else {
-                resources.resources[currentFrame].busy = false;
-            }
+
         }
 
         /**@brief Record commandbuffers for Custom models */
@@ -660,9 +686,11 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
                                                                                          RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
-    }    template<>
+    }
+
+    template<>
     void Renderer::onComponentAdded<VkRender::DefaultGraphicsPipelineComponent>(Entity entity,
-                                                                                         VkRender::DefaultGraphicsPipelineComponent &component) {
+                                                                                VkRender::DefaultGraphicsPipelineComponent &component) {
     }
 
     template<>
@@ -673,6 +701,11 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<VkRender::OBJModelComponent>(Entity entity,
                                                                  VkRender::OBJModelComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<VkRender::SecondaryRenderPassComponent>(Entity entity,
+                                                                            VkRender::SecondaryRenderPassComponent &component) {
     }
 
     DISABLE_WARNING_POP

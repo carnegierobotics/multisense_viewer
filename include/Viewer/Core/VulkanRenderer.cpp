@@ -245,6 +245,7 @@ namespace VkRender {
             vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
             vkDestroyImageView(device, pass.depthStencil.view, nullptr);
             vkDestroyImage(device, pass.depthStencil.image, nullptr);
+            vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
 
             for (auto & frameBuffer : pass.frameBuffers) {
                 vkDestroyFramebuffer(device, frameBuffer, nullptr);
@@ -634,7 +635,7 @@ namespace VkRender {
         depthImageCI.arrayLayers = 1;
         depthImageCI.samples = msaaSamples;
         depthImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
         VkResult result = vkCreateImage(device, &depthImageCI, nullptr, &secondaryRenderPasses[0].depthStencil.image);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
@@ -761,6 +762,10 @@ namespace VkRender {
             VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
+        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses[0].depthStencil.sampler) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
 
         //// RenderPass setup ////
         std::vector<VkAttachmentDescription> attachments;
@@ -786,9 +791,9 @@ namespace VkRender {
         depthAttachment.format = depthFormat;
         depthAttachment.samples = msaaSamples;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -815,13 +820,13 @@ namespace VkRender {
 
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &colorReference;
-        subpassDescription.pDepthStencilAttachment = &depthReference;
+        subpassDescription.pColorAttachments = &colorReference;  // Color attachment that is multisampled
+        subpassDescription.pResolveAttachments = &colorAttachmentResolveRef; // Where to resolve the multisampled color attachment
+        subpassDescription.pDepthStencilAttachment = &depthReference; // Depth attachment (no resolving)
         subpassDescription.inputAttachmentCount = 0;
         subpassDescription.pInputAttachments = nullptr;
         subpassDescription.preserveAttachmentCount = 0;
         subpassDescription.pPreserveAttachments = nullptr;
-        subpassDescription.pResolveAttachments = &colorAttachmentResolveRef;
 
         // Subpass dependencies for layout transitions
         std::array<VkSubpassDependency, 2> dependencies{};
@@ -855,13 +860,13 @@ namespace VkRender {
             throw std::runtime_error("failed to create second render pass!");
         }
         //// FrameBuffer setup ////
-        std::array<VkImageView, 3> framebufeerAttachments{};
-        framebufeerAttachments[0] = secondaryRenderPasses[0].colorImage.view;
-        framebufeerAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
-        framebufeerAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
+        std::array<VkImageView, 3> framebufferAttachments{};
+        framebufferAttachments[0] = secondaryRenderPasses[0].colorImage.view;
+        framebufferAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
+        framebufferAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                                                                                        framebufeerAttachments.data(),
-                                                                                        framebufeerAttachments.size(),
+                                                                                        framebufferAttachments.data(),
+                                                                                        framebufferAttachments.size(),
                                                                                         secondaryRenderPasses[0].renderPass);
         secondaryRenderPasses[0].frameBuffers.resize(swapchain->imageCount);
         for (auto &frameBuffer: secondaryRenderPasses[0].frameBuffers) {
@@ -882,12 +887,26 @@ namespace VkRender {
                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
                               VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
+        VkImageSubresourceRange depthRange = {};
+        depthRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthRange.levelCount = 1;
+        depthRange.layerCount = 1;
+
+        Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, depthRange,
+                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+
+
         vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
 
 
         secondaryRenderPasses[0].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
         secondaryRenderPasses[0].imageInfo.sampler = secondaryRenderPasses[0].colorImage.sampler; // The sampler you've just created
+
+        secondaryRenderPasses[0].depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        secondaryRenderPasses[0].depthImageInfo.imageView = secondaryRenderPasses[0].depthStencil.view; // Your off-screen image view
+        secondaryRenderPasses[0].depthImageInfo.sampler = secondaryRenderPasses[0].depthStencil.sampler; // The sampler you've just created
 
     }
 
@@ -992,6 +1011,7 @@ namespace VkRender {
             vkDestroyImageView(device, pass.depthStencil.view, nullptr);
             vkDestroyImage(device, pass.depthStencil.image, nullptr);
             vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
+            vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
 
             for (auto & frameBuffer : pass.frameBuffers) {
                 vkDestroyFramebuffer(device, frameBuffer, nullptr);

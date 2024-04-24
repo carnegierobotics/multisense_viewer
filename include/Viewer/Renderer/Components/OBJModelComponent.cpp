@@ -6,6 +6,7 @@
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/Tools/Utils.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT
@@ -174,7 +175,8 @@ namespace VkRender {
         stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels){
             Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.c_str());
-            throw std::runtime_error(std::string("Failed to load texture: ") + texturePath.string());
+            pixels = stbi_load((Utils::getTexturePath() / "moon.png").c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
         }
         VkDeviceSize size = 4 * texHeight * texWidth;
         objTexture.fromBuffer(pixels, size, VK_FORMAT_R8G8B8A8_SRGB,

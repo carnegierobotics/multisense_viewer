@@ -99,6 +99,7 @@ namespace VkRender {
         Camera& getCamera();
 
         VkRender::RenderUtils renderUtils{};
+        VkRender::RenderData renderData{};
 
         std::unordered_map<std::string, Camera> cameras;
         std::string selectedCameraTag = "Default";
@@ -136,7 +137,6 @@ namespace VkRender {
         std::vector<std::string> availableScriptNames;
         std::shared_ptr<UsageMonitor> usageMonitor;
         std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
-        VkRender::RenderData renderData{};
 
         bool renderSelectionPass = true;
 

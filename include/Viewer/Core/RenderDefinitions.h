@@ -189,6 +189,7 @@ namespace VkRender {
             VkImage image;
             VkDeviceMemory mem;
             VkImageView view;
+            VkSampler sampler;
         } depthStencil{};
         struct {
             VkImage image;
@@ -202,6 +203,7 @@ namespace VkRender {
 
         bool idle = true;
         VkDescriptorImageInfo imageInfo{};
+        VkDescriptorImageInfo depthImageInfo{};
     };
 
 

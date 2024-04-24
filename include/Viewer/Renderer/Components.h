@@ -130,6 +130,10 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
+    struct SecondaryRenderPassComponent {
+        bool render = true;
+    };
+
     struct DeleteComponent {
         bool now = true;
     };

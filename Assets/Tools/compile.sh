@@ -38,6 +38,8 @@ mkdir -p ${sceneOutDir}
 
 $glslc ${sceneDir}/../default.frag -o ${sceneOutDir}default.frag.spv
 $glslc ${sceneDir}/../default.vert -o ${sceneOutDir}default.vert.spv
+$glslc ${sceneDir}/../default2D.frag -o ${sceneOutDir}default2D.frag.spv
+$glslc ${sceneDir}/../default2D.vert -o ${sceneOutDir}default2D.vert.spv
 echo "Compiled Default shaders"
 
 #$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv

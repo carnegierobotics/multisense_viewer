@@ -16,6 +16,7 @@ namespace VkRender {
     class Renderer3DBottom : public VkRender::Layer {
     public:
 
+        std::future<std::string> folderFuture;
 
         /** Called once upon this object creation**/
         void onAttach() override {
@@ -139,6 +140,30 @@ namespace VkRender {
                             item_current_idx = std::min(item_current_idx, int(cameras.size() - 1));
                             handles->m_cameraSelection.tag = cameras[item_current_idx];
                         }
+                    }
+                }
+            }
+            setCusorToColumn(2, ImGui::GetCursorPosY());
+
+            if (ImGui::Button("Load Cameras", ImVec2(150.0f, 25.0f))) {
+                if (!folderFuture.valid()) {
+                    auto &opts = RendererConfig::getInstance().getUserSetting();
+                    std::string openLoc = Utils::getSystemHomePath();
+                    if (!opts.lastOpenedFolderPath.empty()) {
+                        openLoc = opts.lastOpenedFolderPath;
+                    }
+                    folderFuture = std::async(VkRender::LayerUtils::selectFolder, openLoc);
+                }
+            }
+
+            if (folderFuture.valid()) {
+                if (folderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    std::string selectedFolder = folderFuture.get(); // This will also make the future invalid
+                    if (!selectedFolder.empty()) {
+                        // Do something with the selected folder
+
+                        Log::Logger::getInstance()->info("Selected folder {}", selectedFolder);
+                        RendererConfig::getInstance().getUserSetting().lastOpenedFolderPath = selectedFolder;
                     }
                 }
             }

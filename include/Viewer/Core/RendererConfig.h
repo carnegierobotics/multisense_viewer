@@ -25,6 +25,7 @@
 #undef APIENTRY
 #endif
 #else
+
 #include <sys/utsname.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -35,6 +36,8 @@
 #endif
 
 #include "Viewer/Tools/Logger.h"
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/Renderer/ApplicationUserSetting.h"
 
 namespace VkRender {
     class RendererConfig {
@@ -44,24 +47,6 @@ namespace VkRender {
             std::string protocol;
             std::string destination;
             std::string versionInfoDestination;
-        };
-
-        /**
-         * Settings that are changeable by the user
-         */
-        struct ApplicationUserSetting{
-            Log::LogLevel logLevel = Log::LOG_LEVEL_INFO;
-            bool sendUsageLogOnExit = true;
-            /** @brief Set by user in pop up modal */
-            bool userConsentToSendLogs = true;
-            /** @brief If there is no prior registered consent from the user */
-            bool askForUsageLoggingPermissions = true;
-
-            struct {
-                std::vector<std::string> names;
-                std::unordered_map<std::string, bool> rebuildMap;
-            }scripts;
-
         };
 
         static RendererConfig &getInstance() {
@@ -85,9 +70,9 @@ namespace VkRender {
 
         [[nodiscard]] const std::vector<std::string> &getEnabledExtensions() const;
 
-        [[nodiscard]] bool hasEnabledExtension(const std::string& extensionName) const;
+        [[nodiscard]] bool hasEnabledExtension(const std::string &extensionName) const;
 
-        void addEnabledExtension(const std::string& extensionName);
+        void addEnabledExtension(const std::string &extensionName);
 
         void setGpuDevice(const VkPhysicalDevice &physicalDevice);
 
@@ -112,15 +97,15 @@ namespace VkRender {
          * usageMonitor.setSetting("log_level", items[n]);
          * @param setting
          */
-        void setUserSetting(const ApplicationUserSetting& setting) {
+        void setUserSetting(const AppConfig::ApplicationUserSetting &setting) {
             m_UserSetting = setting;
             Log::Logger::getInstance()->setLogLevel(setting.logLevel);
 
         }
 
-        const ApplicationUserSetting &getUserSetting() const;
+        AppConfig::ApplicationUserSetting &getUserSetting();
 
-        RendererConfig::ApplicationUserSetting* getUserSettingRef();
+        AppConfig::ApplicationUserSetting *getUserSettingRef();
 
     private:
         RendererConfig() {
@@ -178,20 +163,19 @@ namespace VkRender {
             ifc.ifc_buf = buf;
             if (ioctl(sock, SIOCGIFCONF, &ifc) == -1) { /* handle error */ }
 
-            struct ifreq* it = ifc.ifc_req;
-            const struct ifreq* const end = it + (ifc.ifc_len / sizeof(struct ifreq));
+            struct ifreq *it = ifc.ifc_req;
+            const struct ifreq *const end = it + (ifc.ifc_len / sizeof(struct ifreq));
 
             for (; it != end; ++it) {
                 strcpy(ifr.ifr_name, it->ifr_name);
                 if (ioctl(sock, SIOCGIFFLAGS, &ifr) == 0) {
-                    if (! (ifr.ifr_flags & IFF_LOOPBACK)) { // don't count loopback
+                    if (!(ifr.ifr_flags & IFF_LOOPBACK)) { // don't count loopback
                         if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
                             success = 1;
                             break;
                         }
                     }
-                }
-                else { /* handle error */ }
+                } else { /* handle error */ }
             }
 
             std::string macAddress;
@@ -211,10 +195,52 @@ namespace VkRender {
             }
             m_Identifier = random_string;
             Log::Logger::getInstance()->info("Generated Random Identifier: {}", m_Identifier);
+
+            // LOAD APPLICATION SETTINGS
+            // Deserialize settings
+            // Read JSON from file
+            std::filesystem::path settingsFilePath = Utils::getSystemCachePath() / "AppRuntimeConfig.json";
+            if (std::filesystem::exists(settingsFilePath)) {
+
+                std::ifstream inFile(settingsFilePath);
+                nlohmann::json j_in;
+                inFile >> j_in;
+                inFile.close();
+                m_UserSetting = j_in.template get<AppConfig::ApplicationUserSetting>();
+                Log::Logger::getInstance()->info("Loaded application settings from {}",
+                                                 settingsFilePath.c_str());
+            } else {
+                Log::Logger::getInstance()->info("No application settings file at {}",
+                                                 settingsFilePath.c_str());
+            }
+
+        }
+        ~RendererConfig() {
+            // Save application settings to file
+            // Save application settings to file
+            try {
+                // Serialize settings
+                nlohmann::json j_out = m_UserSetting;
+
+                // Path where settings will be saved
+                std::filesystem::path settingsFilePath = Utils::getSystemCachePath() / "AppRuntimeConfig.json";
+
+                // Write JSON to file
+                std::ofstream outFile(settingsFilePath);
+                if (outFile.is_open()) {
+                    outFile << std::setw(4) << j_out << std::endl;
+                    outFile.close();
+                    Log::Logger::getInstance()->info("Saved application settings to {}", settingsFilePath.c_str());
+                } else {
+                    Log::Logger::getInstance()->info("Failed to open settings file at {}", settingsFilePath.c_str());
+                }
+            } catch (const std::exception& e) {
+                Log::Logger::getInstance()->error("Exception while saving settings: {}", e.what());
+            }
         }
 
         CRLServerInfo m_ServerInfo{};
-        ApplicationUserSetting m_UserSetting{};
+        AppConfig::ApplicationUserSetting m_UserSetting{};
         std::string m_Architecture;
         std::string m_OSVersion;
         std::string m_OS;

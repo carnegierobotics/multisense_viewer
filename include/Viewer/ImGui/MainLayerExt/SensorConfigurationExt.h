@@ -848,7 +848,7 @@ public:
 
                 if (ImGui::Button("Choose Dir", btnSize)) {
                     if (!setCalibrationFolderFuture.valid())
-                        setCalibrationFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
+                        setCalibrationFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "");
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }

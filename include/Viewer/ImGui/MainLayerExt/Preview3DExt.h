@@ -168,7 +168,7 @@ public:
 
                 if (ImGui::Button("Set Dir##imu", btnSize)) {
                     if (!saveIMUFolderFuture.valid())
-                        saveIMUFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
+                        saveIMUFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "");
                     handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 
                 }
@@ -270,7 +270,7 @@ public:
 
             if (ImGui::Button("Choose Dir##pointcloud", btnSize)) {
                 if (!savePointCloudFolderFuture.valid())
-                    savePointCloudFolderFuture = std::async(VkRender::LayerUtils::selectFolder);
+                    savePointCloudFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "");
 
                 handles->usageMonitor->userClickAction("Choose Dir", "Button", ImGui::GetCurrentWindow()->Name);
 

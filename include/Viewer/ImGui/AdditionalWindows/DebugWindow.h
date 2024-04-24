@@ -442,44 +442,7 @@ public:
                 ImGui::EndCombo();
             }
 
-
-            static size_t scriptSelectionIndex = 0; // Here we store our selection data as an index.
-            if (scriptSelectionIndex >= user.scripts.names.size())
-                scriptSelectionIndex = user.scripts.names.size() - 1;
-            std::string scriptPreviewValue = user.scripts.names.empty() ? ""
-                                                                        : user.scripts.names[scriptSelectionIndex].c_str();
-#ifdef MULTISENSE_VIEWER_DEBUG
-
-            if (ImGui::Button("Rebuild script: ")) {
-                handles->usageMonitor->userClickAction("Rebuild script: ", "Button", ImGui::GetCurrentWindow()->Name);
-
-                if (!scriptPreviewValue.empty())
-                    user.scripts.rebuildMap[user.scripts.names[scriptSelectionIndex]] = true;
-                update |= true;
-            }
-            ImGui::SameLine();
-            // Set log level
-
-            if (ImGui::BeginCombo("##rebuildScripts", scriptPreviewValue.c_str(), 0)) {
-                for (size_t n = 0; n < user.scripts.names.size(); n++) {
-                    const bool is_selected = (scriptSelectionIndex == n);
-                    if (ImGui::Selectable(user.scripts.names[n].c_str(), is_selected)) {
-                        scriptSelectionIndex = n;
-                        update |= true;
-                        handles->usageMonitor->userClickAction("RebuildScripts", "Combo",
-                                                               ImGui::GetCurrentWindow()->Name);
-
-                    }
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-#endif
-
             ImGui::PopStyleVar(); //Item spacing
-
 
             ImGui::Text("Anonymous ID: %s", VkRender::RendererConfig::getInstance().getAnonymousIdentifier().c_str());
 

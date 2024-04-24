@@ -3,6 +3,8 @@
 //
 
 #include <random>
+#include <nlohmann/json.hpp>
+
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Tools/Utils.h"
 
@@ -186,11 +188,11 @@ namespace VkRender {
         m_GPUDevice = properties.deviceName;
     }
 
-    const RendererConfig::ApplicationUserSetting &RendererConfig::getUserSetting() const {
+    AppConfig::ApplicationUserSetting &RendererConfig::getUserSetting() {
         return m_UserSetting;
     }
 
-    RendererConfig::ApplicationUserSetting* RendererConfig::getUserSettingRef() {
+    AppConfig::ApplicationUserSetting* RendererConfig::getUserSettingRef() {
         return &m_UserSetting;
     }
 
@@ -217,5 +219,14 @@ namespace VkRender {
     bool RendererConfig::hasEnabledExtension(const std::string &extensionName) const {
         return Utils::isInVector(m_EnabledExtensions, extensionName);
     }
+
+    // Convert LogLevel enum to string and vice versa
+    NLOHMANN_JSON_SERIALIZE_ENUM( Log::LogLevel, {
+        {Log::LOG_LEVEL_INFO, "info"},
+        {Log::LOG_LEVEL_TRACE, "trace"},
+        {Log::LOG_LEVEL_DEBUG, "debug"}
+    })
+    // Provide to_json and from_json functions
+
 
 }

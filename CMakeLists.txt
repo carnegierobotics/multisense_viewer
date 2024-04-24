@@ -91,6 +91,7 @@ set(ENGINE_SRC
         include/Viewer/Core/ServerConnection.cpp
         include/Viewer/Core/CommandBuffer.cpp
         include/Viewer/ModelLoaders/ImageView.cpp
+        include/Viewer/Renderer/ApplicationUserSetting.h
 )
 
 set(SCRIPTS_LIB_SRC

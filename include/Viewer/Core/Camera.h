@@ -119,29 +119,11 @@ namespace VkRender {
             bool down = false;
         } keys;
 
-        struct Focal {
-            float htanx = 0.0f;
-            float htany = 0.0f;
-            float focal = 0.0f;
-        };
-        Focal getFocalParams(float w, float h){
-            float htany = glm::radians(m_Fov) / 2;
-            float htanx = htany / h * w;
-            float focal = h / (2 * htany);
-            return {htanx, htany, focal};
-        }
 
         bool moving() {
             return keys.left || keys.right || keys.up || keys.down;
         }
 
-        float getNearClip() {
-            return m_Znear;
-        }
-
-        float getFarClip() {
-            return m_Zfar;
-        }
 
         void setPerspective(float fov, float aspect, float zNear, float zFar) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
@@ -154,8 +136,6 @@ namespace VkRender {
             float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);
             float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
-
-
             matrices.perspective = glm::mat4(
             x,    0.0f,  0.0f, 0.0f,
             0.0f,    y,  0.0f, 0.0f,
@@ -170,7 +150,6 @@ namespace VkRender {
             float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);
             float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
-
 
             matrices.perspective = glm::mat4(
             x,    0.0f,  0.0f, 0.0f,
@@ -216,7 +195,6 @@ namespace VkRender {
             if (type == flycam) {
                 // On mouse move:
                 // Calculate yaw rotation
-
                 glm::quat yawRotation = glm::angleAxis(glm::radians(dx / 2.0f),
                                                        cameraUp); // Rotate around Z-axis
 

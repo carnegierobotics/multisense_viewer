@@ -258,19 +258,6 @@ public:
                 ImGui::Text("Frame time: %.5f",static_cast<double>( handles->info->frameTimer));
                 ImGui::Text("Frame: %lu", handles->info->frameID);
 
-            #ifdef MULTISENSE_VIEWER_DEBUG
-                const std::string& cameraTag = handles->m_cameraSelection.tag;
-                    ImGui::Text("Camera: ");
-                ImGui::Text("Position: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.x),
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.y),
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].pos.z));
-
-                ImGui::Text("Rotation: (%.3f, %.3f, %.3f)",
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.x),
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.y),
-                            static_cast<double>(handles->m_cameraSelection.info[cameraTag].target.z));
-            #endif
 
             }
             ImGui::Separator();

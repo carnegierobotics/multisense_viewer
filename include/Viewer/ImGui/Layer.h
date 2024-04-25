@@ -195,10 +195,6 @@ namespace VkRender {
             int type = 0;
             /** @brief Reset 3D view camera position and rotation */
             bool reset = false;
-            glm::vec3 pos;
-            glm::vec3 up;
-            glm::vec3 target;
-            glm::vec3 cameraFront;
         };
         std::unordered_map<std::string, Info> info;
     };

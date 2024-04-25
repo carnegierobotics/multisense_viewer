@@ -43,19 +43,15 @@ public:
         const std::string& tag = handles->m_cameraSelection.tag;
         ImGui::Text("Camera: %s", tag.c_str());
         ImGui::Text("Position: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.x),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.y),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].pos.z));
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.pos.x),
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.pos.y),
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.pos.z));
 
-        ImGui::Text("Up: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->m_cameraSelection.info[tag].up.x),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].up.y),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].up.z));
-
-        ImGui::Text("Target: (%.3f, %.3f, %.3f)",
-                    static_cast<double>(handles->m_cameraSelection.info[tag].target.x),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].target.y),
-                    static_cast<double>(handles->m_cameraSelection.info[tag].target.z));
+        ImGui::Text("Q: (%.3f, %.3f, %.3f, %.3f)",
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.q.w),
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.q.x),
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.q.y),
+                    static_cast<double>(handles->m_context->cameras[tag]->pose.q.z));
         ImGui::PopStyleColor();
 
 

@@ -47,71 +47,144 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/gtx/string_cast.hpp>
+
 namespace VkRender {
     class Camera {
     private:
-        float m_Fov = 0;
-        float m_Znear = 0, m_Zfar = 100;
+        float m_Fov = 60.0f;
+        float m_Znear = 0.01f;
+        float m_Zfar = 100.0f;
 
-        void updateViewMatrix() {
-            if (type == CameraType::flycam) {
-                m_Target = m_Position + cameraFront;
-
-                matrices.view = glm::lookAt(m_Position, m_Target, cameraUp);
-                // Convert to direction vector (assuming initial direction is along X-axis)
-
-                // matrices.view = glm::rotate(matrices.view, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-                // m_ViewPos = glm::vec4(m_Position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-            } else if (type == CameraType::arcball) {
-                // 1. Translate the scene so that the camera's position becomes the origin
-                // 2. Apply rotations
-                glm::mat4 rotM = glm::mat4(1.0f);
-                rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
-                rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
-
-                // 4. Translate the camera based on the zoom value
-
-                glm::mat4 transM = glm::translate(glm::mat4(1.0f), -zoomVal * m_Position);
-                glm::mat4 transMat = glm::translate(glm::mat4(1.0f), m_Translate);
-
-                matrices.view = transM * rotM * transMat;
-
-            }
-
-        };
     public:
         enum CameraType {
             arcball, flycam
         };
-        CameraType type = CameraType::arcball;
-
-        glm::vec3 m_Rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 m_Position = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        glm::vec3 m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 m_Target =  glm::vec3(0.0f, 0.0f, 0.0f);
-
-        glm::vec3 cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
-        glm::vec3 cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        glm::vec3 cameraRight = glm::vec3(1.0f, 0.0f, 0.0f);
+        CameraType m_type = CameraType::arcball;
 
         float m_RotationSpeed = 0.20f;
         float m_MovementSpeed = 5.0f;
-        glm::quat orientation = glm::angleAxis(glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
         float zoomVal = 1.0f;
+        glm::vec2 rot = glm::vec2(0.0f, 0.0f);
         struct {
             glm::mat4 perspective = glm::mat4(1.0f);
             glm::mat4 view = glm::mat4(1.0f);
         } matrices{};
 
         Camera() = default;
-        Camera(uint32_t width, uint32_t height){
-            type = VkRender::Camera::arcball;
+
+        Camera(uint32_t width, uint32_t height) {
+            m_type = VkRender::Camera::arcball;
             setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height), 0.01f, 100.0f);
             resetPosition();
-            resetRotation();
+            // Initialize quaternion to have a forward looking x-axis
+            //rotateQuaternion(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         }
+
+        void updateViewMatrix() {
+            if (m_type == CameraType::flycam) {
+                matrices.view = glm::inverse(getFlyCameraTransMat());
+            } else if (m_type == CameraType::arcball) {
+                matrices.view = glm::inverse(getArcBallCameraTransMat());
+            }
+
+        };
+
+        void setType(CameraType type){
+            m_type = type;
+        }
+
+        struct Pose {
+            glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
+            glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f); // default starting location
+            glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f); // Default Vulkan is negative-z is forward
+            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
+            void updateVectors() {
+                // Rotate the base vectors according to the current orientation
+                front = glm::normalize(glm::mat3_cast(q) * glm::vec3(0.0f, 0.0f, -1.0f));
+                up = glm::normalize(glm::mat3_cast(q) * glm::vec3(0.0f, 1.0f, 0.0f));
+                right = glm::normalize(glm::mat3_cast(q) * glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+            void reset(){
+                q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f);
+                pos = glm::vec3(0.0f, 0.0f, 3.0f);
+                front = glm::vec3(0.0f, 0.0f, -1.0f);
+                up = glm::vec3(0.0f, 1.0f, 0.0f);
+                right = glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+        } pose;
+
+        glm::mat4 getFlyCameraTransMat() {
+            // This function constructs a 4x4 matrix from a quaternion.
+            glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
+            glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), pose.pos);
+            glm::mat4 transformationMatrix = transMatrix * rotMatrix;
+
+            // Adjust front vector i.e. the direction vector we are looking "down" with
+            pose.front = glm::normalize(glm::vec3(rotMatrix * glm::vec4(0, 0, -1, 0)));
+            pose.up = glm::normalize(glm::vec3(rotMatrix * glm::vec4(0, 1, 0, 0)));
+            pose.right = glm::normalize(glm::vec3(rotMatrix * glm::vec4(1, 0, 0, 0)));
+            return transformationMatrix;
+        }
+
+        glm::mat4 getArcBallCameraTransMat() {
+
+            glm::mat4 transMatrix2 = glm::translate(glm::mat4(1.0f), pose.pos * zoomVal);
+
+            // Convert quaternion to rotation matrix
+            glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
+
+            // Combine rotation and translation to form the camera transformation matrix
+            return rotMatrix * transMatrix2;
+
+        }
+
+        /**
+         * @brief normalizes the axis before performing rotation to orientation quat
+         * @param angle
+         * @param axis
+         */
+        void rotateQuaternion(float angle, glm::vec3 axis) {
+            auto R = glm::quat(glm::angleAxis(glm::radians(angle), glm::normalize(axis)));
+            pose.q = glm::normalize(R * pose.q);
+        }
+
+        void rotateArcBall(float dx, float dy) {
+            pose.q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f);
+            // Adjust rotation based on the mouse movement
+            glm::quat rotX = glm::angleAxis(glm::radians(dx), glm::vec3(0.0f, 0.0f, 1.0f));
+            glm::quat rotY = glm::angleAxis(glm::radians(dy), glm::vec3(1.0f, 0.0f, 0.0f));
+
+            // Combine rotations in a specific order
+            pose.q = rotX * pose.q;
+            pose.q = pose.q * rotY;
+
+            // Normalize the pose.q quaternion to avoid floating-point drift
+            pose.q = glm::normalize(pose.q);
+
+            pose.updateVectors();
+        }
+
+        void rotate(float dx, float dy) {
+            dx *= m_RotationSpeed;
+            dy *= m_RotationSpeed;
+
+            if (m_type == arcball) {
+                rot.x += dx;
+                rot.y += dy;
+                rotateArcBall(rot.x, rot.y);
+            } else {
+                rotateQuaternion(dy, pose.right);
+                rotateQuaternion(dx, glm::vec3(0.0f, 0.0f, 1.0f));
+            }
+
+            updateViewMatrix();
+            translate(glm::vec3(0.0f));
+        }
+
         struct {
             bool left = false;
             bool right = false;
@@ -131,17 +204,17 @@ namespace VkRender {
             m_Fov = fov;
             m_Znear = zNear;
             m_Zfar = zFar;
-            float focal_length = 1.0f / tanf(glm::radians(m_Fov)* 0.5f) ;
+            float focal_length = 1.0f / tanf(glm::radians(m_Fov) * 0.5f);
             float x = focal_length / aspect;
             float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);
-            float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
+            float B = -m_Zfar * m_Znear / (m_Zfar - m_Znear);
             matrices.perspective = glm::mat4(
-            x,    0.0f,  0.0f, 0.0f,
-            0.0f,    y,  0.0f, 0.0f,
-            0.0f, 0.0f,     A,    -1.0f,
-            0.0f, 0.0f, B, 0.0f
-        );
+                    x, 0.0f, 0.0f, 0.0f,
+                    0.0f, y, 0.0f, 0.0f,
+                    0.0f, 0.0f, A, -1.0f,
+                    0.0f, 0.0f, B, 0.0f
+            );
         };
 
         void updateAspectRatio(float aspect) {
@@ -149,113 +222,67 @@ namespace VkRender {
             float x = focal_length / aspect;
             float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);
-            float B = -m_Zfar * m_Znear / (m_Zfar -m_Znear);
+            float B = -m_Zfar * m_Znear / (m_Zfar - m_Znear);
 
             matrices.perspective = glm::mat4(
-            x,    0.0f,  0.0f, 0.0f,
-            0.0f,    y,  0.0f, 0.0f,
-            0.0f, 0.0f,     A,    -1.0f,
-            0.0f, 0.0f, B, 0.0f
-        );
+                    x, 0.0f, 0.0f, 0.0f,
+                    0.0f, y, 0.0f, 0.0f,
+                    0.0f, 0.0f, A, -1.0f,
+                    0.0f, 0.0f, B, 0.0f
+            );
         }
 
         void resetPosition() {
-            glm::vec3 pos(-3.0f, 0.0f, 1.50f);
-            m_Translate = glm::vec3(0.0f, 0.0f, 0.0f);
-
-            if (type == arcball) {
-                this->m_Position = pos * glm::vec3(0.0f, 0.0f, 1.0f); // Setting for arcball we just want a Z value
-            } else
-                this->m_Position = pos;
-
-            updateViewMatrix();
-        }
-
-
-        void resetRotation() {
-            m_Rotation = glm::vec3(-65.0f, 0.0f, 90.0f);
-            orientation = glm::angleAxis(glm::radians(181.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            rotate(0, 0);
+            pose.reset();
+            rot = glm::vec2(0.0f);
             updateViewMatrix();
         }
 
         void setArcBallPosition(float f) {
-            if (type == arcball) {
-
+            if (m_type == arcball) {
                 zoomVal *= std::abs((f));
                 updateViewMatrix();
             }
         }
 
-        void rotate(float dx, float dy) {
-            dx *= m_RotationSpeed;
-            dy *= m_RotationSpeed;
-
-
-            if (type == flycam) {
-                // On mouse move:
-                // Calculate yaw rotation
-                glm::quat yawRotation = glm::angleAxis(glm::radians(dx / 2.0f),
-                                                       cameraUp); // Rotate around Z-axis
-
-                // Apply yaw rotation to the current orientation
-                orientation = yawRotation * orientation;
-
-                // Extract the camera's local right (X) axis after yaw rotation
-                // glm::vec3 localRight = glm::mat3_cast(orientation) * glm::vec3(1.0f, 0.0f, 0.0f);
-                cameraRight = glm::cross(cameraUp, cameraFront);
-                glm::quat pitchRotation = glm::angleAxis(glm::radians(-dy / 2.0f), cameraRight);
-
-                // Combine the rotations
-                orientation = pitchRotation * orientation;
-                orientation = glm::normalize(orientation);  // Ensure it stays normalized
-
-                //Log::Logger::getInstance()->info("Orientation {},{},{},{}", orientation.x, orientation.y, orientation.z, orientation.w);
-
-                // Extract the camera's front direction
-                glm::vec3 dir = glm::mat3_cast(orientation) * glm::vec3(1.0f, 0.0f, 0.0f);
-                cameraFront = dir;
-            } else {
-                m_Rotation.x += dy;
-                m_Rotation.z += dx;
-            }
-            updateViewMatrix();
-            translate(glm::vec3(0.0f));
-        }
-
         void translate(glm::vec3 delta) {
             delta.y *= -1;
             glm::mat4 rotM = glm::mat4(1.0f);
-            rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
-            rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
-            glm::vec4 rot = glm::vec4(delta, 1.0f) * rotM;
-            m_Translate -= glm::vec3(rot);
+            //rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
+            //rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
+            //glm::vec4 rot = glm::vec4(delta, 1.0f) * rotM;
+            //m_Translate -= glm::vec3(rot);
 
             updateViewMatrix();
         }
 
         void translate(float dx, float dy) {
-            glm::vec3 right = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 0.0f, 1.0f)));  // Assuming Z is up
-            glm::vec3 up = glm::normalize(glm::cross(right, cameraFront));
+            glm::vec3 right = glm::normalize(
+                    glm::cross(pose.front, glm::vec3(0.0f, 0.0f, 1.0f)));  // Assuming Z is up
+            glm::vec3 up = glm::normalize(glm::cross(right, pose.front));
 
-            m_Position += right * dx;  // Pan right/left based on mouse x-delta
-            m_Position += up * (-dy);     // Pan up/down based on mouse y-delta
+            pose.pos += right * dx;  // Pan right/left based on mouse x-delta
+            pose.pos += up * (-dy);     // Pan up/down based on mouse y-delta
 
             updateViewMatrix();
         }
 
         void update(float deltaTime) {
-            if (type == CameraType::flycam) {
+            if (m_type == CameraType::flycam) {
                 if (moving()) {
                     float moveSpeed = deltaTime * m_MovementSpeed;
-                    if (keys.up)
-                        m_Position += cameraFront * moveSpeed;
-                    if (keys.down)
-                        m_Position -= cameraFront * moveSpeed;
-                    if (keys.left)
-                        m_Position -= glm::normalize(glm::cross(cameraFront, cameraUp)) * moveSpeed;
-                    if (keys.right)
-                        m_Position += glm::normalize(glm::cross(cameraFront, cameraUp)) * moveSpeed;
+                    if (keys.up) {
+                        pose.pos += pose.front * moveSpeed;
+                    }
+                    if (keys.down) {
+                        pose.pos -= pose.front * moveSpeed;
+                    }
+                    if (keys.left) {
+                        pose.pos -= glm::normalize(glm::cross(pose.front, pose.up)) * moveSpeed;
+                    }
+                    if (keys.right) {
+                        pose.pos += glm::normalize(glm::cross(pose.front, pose.up)) * moveSpeed;
+                    }
 
                     updateViewMatrix();
                 }

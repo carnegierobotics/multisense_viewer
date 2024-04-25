@@ -88,7 +88,7 @@ namespace VkRender {
                                                             swapchain->imageCount);
         guiManager->handles.mouse = &mouseButtons;
         guiManager->handles.usageMonitor = usageMonitor;
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag]->type;
+        guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag]->m_type;
 
         guiManager->handles.m_context = this;
         prepareRenderer();
@@ -97,11 +97,10 @@ namespace VkRender {
 
 
     void Renderer::prepareRenderer() {
-        cameras[selectedCameraTag]->type = VkRender::Camera::arcball;
+        cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
         cameras[selectedCameraTag]->setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height),
                                                   0.01f, 100.0f);
         cameras[selectedCameraTag]->resetPosition();
-        cameras[selectedCameraTag]->resetRotation();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
         // TODO Make dynamic
@@ -406,7 +405,6 @@ namespace VkRender {
         pLogger->frameNumber = frameID;
         if (keyPress == GLFW_KEY_SPACE) {
             cameras[selectedCameraTag]->resetPosition();
-            cameras[selectedCameraTag]->resetRotation();
         }
 
 
@@ -415,12 +413,6 @@ namespace VkRender {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->update();
         }
-
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].pos = glm::vec3(
-                glm::inverse(cameras[selectedCameraTag]->matrices.view)[3]);
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].up = cameras[selectedCameraTag]->cameraUp;
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].target = cameras[selectedCameraTag]->m_Target;
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].cameraFront = cameras[selectedCameraTag]->cameraFront;
 
         // Update GUI
         guiManager->handles.info->frameID = frameID;
@@ -433,12 +425,11 @@ namespace VkRender {
 
 
         if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 0)
-            cameras[selectedCameraTag]->type = VkRender::Camera::arcball;
+            cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
         if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 1)
-            cameras[selectedCameraTag]->type = VkRender::Camera::flycam;
+            cameras[selectedCameraTag]->setType(VkRender::Camera::flycam);
         if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].reset) {
             cameras[selectedCameraTag]->resetPosition();
-            cameras[selectedCameraTag]->resetRotation();
         }
 
     }
@@ -526,14 +517,14 @@ namespace VkRender {
             cameras[selectedCameraTag]->rotate(dx, dy);
 
         if (mouseButtons.right) {
-            if (cameras[selectedCameraTag]->type == VkRender::Camera::arcball)
+            if (cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball)
                 cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
             else
                 cameras[selectedCameraTag]->translate(-dx * 0.01f, -dy * 0.01f);
         }
-        if (mouseButtons.middle && cameras[selectedCameraTag]->type == VkRender::Camera::flycam) {
+        if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::flycam) {
             cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        } else if (mouseButtons.middle && cameras[selectedCameraTag]->type == VkRender::Camera::arcball) {
+        } else if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball) {
             //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
         }
         mousePos = glm::vec2(x, y);

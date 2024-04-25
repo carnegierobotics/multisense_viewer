@@ -63,7 +63,7 @@ void DataCapture::update() {
 
             i.mvp.projection = camera.matrices.perspective;
             i.mvp.view = camera.matrices.view;
-            auto model = glm::translate(glm::mat4(1.0f), glm::vec3(objCamera.camera.m_Position));
+            auto model = glm::translate(glm::mat4(1.0f), glm::vec3(objCamera.camera.pose.pos));
             model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
             i.mvp.model = model;
 

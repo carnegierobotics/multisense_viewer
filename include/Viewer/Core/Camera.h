@@ -98,7 +98,7 @@ namespace VkRender {
 
         struct Pose {
             glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
-            glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f); // default starting location
+            glm::vec3 pos = glm::vec3(-3.0f, 0.0f, 2.0f); // default starting location
             glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f); // Default Vulkan is negative-z is forward
             glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
             glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -131,14 +131,12 @@ namespace VkRender {
         }
 
         glm::mat4 getArcBallCameraTransMat() {
-
-            glm::mat4 transMatrix2 = glm::translate(glm::mat4(1.0f), pose.pos * zoomVal);
-
+            glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f) * zoomVal);
             // Convert quaternion to rotation matrix
             glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
-
-            // Combine rotation and translation to form the camera transformation matrix
-            return rotMatrix * transMatrix2;
+            auto trans = rotMatrix * transMatrix;
+            pose.pos = glm::vec3(trans[3]); // update actual position of camera
+            return trans;
 
         }
 

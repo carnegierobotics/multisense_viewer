@@ -51,6 +51,10 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+#define DEFAULT_FRONT glm::vec3(0.0f, 0.0f, -1.0f)
+#define DEFAULT_UP glm::vec3(0.0f, 1.0f, 0.0f)
+#define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
+
 namespace VkRender {
     class Camera {
     private:
@@ -67,6 +71,7 @@ namespace VkRender {
         float m_RotationSpeed = 0.20f;
         float m_MovementSpeed = 5.0f;
         float zoomVal = 1.0f;
+        bool flipZ = false;
         glm::vec2 rot = glm::vec2(0.0f, 0.0f);
         struct {
             glm::mat4 perspective = glm::mat4(1.0f);
@@ -96,24 +101,25 @@ namespace VkRender {
             m_type = type;
         }
 
+
         struct Pose {
             glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
             glm::vec3 pos = glm::vec3(-3.0f, 0.0f, 2.0f); // default starting location
-            glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f); // Default Vulkan is negative-z is forward
-            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-            glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 front = DEFAULT_FRONT; // Default Vulkan is negative-z is forward
+            glm::vec3 up = DEFAULT_UP;
+            glm::vec3 right = DEFAULT_RIGHT;
             void updateVectors() {
                 // Rotate the base vectors according to the current orientation
-                front = glm::normalize(glm::mat3_cast(q) * glm::vec3(0.0f, 0.0f, -1.0f));
-                up = glm::normalize(glm::mat3_cast(q) * glm::vec3(0.0f, 1.0f, 0.0f));
-                right = glm::normalize(glm::mat3_cast(q) * glm::vec3(1.0f, 0.0f, 0.0f));
+                front = glm::normalize(glm::mat3_cast(q) * DEFAULT_FRONT);
+                up = glm::normalize(glm::mat3_cast(q) * DEFAULT_UP);
+                right = glm::normalize(glm::mat3_cast(q) * DEFAULT_RIGHT);
             }
             void reset(){
                 q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f);
                 pos = glm::vec3(0.0f, 0.0f, 3.0f);
-                front = glm::vec3(0.0f, 0.0f, -1.0f);
-                up = glm::vec3(0.0f, 1.0f, 0.0f);
-                right = glm::vec3(1.0f, 0.0f, 0.0f);
+                front = DEFAULT_FRONT;
+                up = DEFAULT_UP;
+                right = DEFAULT_RIGHT;
             }
         } pose;
 
@@ -122,11 +128,6 @@ namespace VkRender {
             glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
             glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), pose.pos);
             glm::mat4 transformationMatrix = transMatrix * rotMatrix;
-
-            // Adjust front vector i.e. the direction vector we are looking "down" with
-            pose.front = glm::normalize(glm::vec3(rotMatrix * glm::vec4(0, 0, -1, 0)));
-            pose.up = glm::normalize(glm::vec3(rotMatrix * glm::vec4(0, 1, 0, 0)));
-            pose.right = glm::normalize(glm::vec3(rotMatrix * glm::vec4(1, 0, 0, 0)));
             return transformationMatrix;
         }
 

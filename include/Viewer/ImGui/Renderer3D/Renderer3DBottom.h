@@ -110,7 +110,7 @@ namespace VkRender {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto e = handles->m_context->createEntity(tag);
-                auto& c = e.addComponent<CameraComponent>( Camera(handles->info->width, handles->info->height));
+                auto& c = e.addComponent<CameraComponent>(Camera(handles->info->width, handles->info->height));
                 handles->m_context->cameras[tag] = &c.camera;
                 handles->m_cameraSelection.tag = tag;
             }

@@ -14,9 +14,9 @@
 
 void DataCapture::setup() {
 
-    auto entity = m_context->createEntity("viking_room");
+    auto entity = m_context->createEntity("3dgs_object");
     auto &component = entity.addComponent<VkRender::OBJModelComponent>(
-            Utils::getModelsPath() / "obj" / "viking_room.obj",
+            Utils::getModelsPath() / "obj" / "3dgs.obj",
             m_context->renderUtils.device);
     entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(&m_context->renderUtils, component, true);
     entity.addComponent<VkRender::SecondaryRenderPassComponent>();
@@ -32,17 +32,6 @@ void DataCapture::setup() {
                                                                       "default2D.vert.spv", "default2D.frag.spv");
     }
 
-    {
-        std::string tag = "Test camera #2";
-
-        auto e = m_context->createEntity(tag);
-        e.addComponent<VkRender::CameraComponent>(VkRender::Camera(m_context->renderData.width, m_context->renderData.height));
-        m_context->cameras[tag] = &e.getComponent<VkRender::CameraComponent>().camera;
-        m_context->cameras[tag]->setArcBallPosition(0.5);
-        e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
-
-
-    }
     auto uuid = entity.getUUID();
     Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());
 
@@ -50,36 +39,52 @@ void DataCapture::setup() {
 
 
 void DataCapture::update() {
-    auto &camera = m_context->getCamera();
-    glm::mat4 invView = glm::inverse(camera.matrices.view);
+    for (auto entity: m_context->m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
+        auto &resources = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
+        auto &objCamera = m_context->m_registry.get<VkRender::CameraComponent>(entity);
+        auto &tag = m_context->m_registry.get<VkRender::TagComponent>(entity);
+        for (auto &i: resources.renderData) {
+
+            for (const auto &img: images) {
+                if (tag.Tag == "Camera: " + std::to_string(img.imageID)) {
+                    glm::quat orientation(img.qw, img.qx, -img.qy, -img.qz);
+                    glm::mat4 rotMatrix = glm::mat4_cast(orientation);
+                    glm::vec3 pos = -glm::transpose(glm::mat3_cast(orientation)) * glm::vec3(img.tx, -img.ty, -img.tz);
+
+                    objCamera.camera.pose.q = orientation;
+                    objCamera.camera.pose.pos = pos;
+                    //objCamera.camera.flipZ = true;
+                    objCamera.camera.m_type = VkRender::Camera::flycam;
+                    objCamera.camera.updateViewMatrix();
+
+                    glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), pos);
+                    glm::mat4 transformationMatrix = transMatrix * rotMatrix;
+                    transformationMatrix = glm::scale(transformationMatrix, glm::vec3(0.25f, 0.25f, 0.25f));
+
+                    i.mvp.projection = objCamera.camera.matrices.perspective;
+                    i.mvp.view = objCamera.camera.matrices.view;
+                    i.mvp.model = transformationMatrix;
+                    break;
+                }
+            }
+        }
+        resources.update();
+    }
+
+    auto &defaultCamera = m_context->getCamera();
+    glm::mat4 invView = glm::inverse(defaultCamera.matrices.view);
     glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     auto cameraWorldPosition = glm::vec3(cameraPos4);
 
-    auto cameraObjModel = m_context->findEntityByName("Test camera #2");
-    if (cameraObjModel) {
-        auto &obj = cameraObjModel.getComponent<VkRender::CameraGraphicsPipelineComponent>();
-        auto &objCamera = cameraObjModel.getComponent<VkRender::CameraComponent>();
-        for (auto & i : obj.renderData) {
 
-            i.mvp.projection = camera.matrices.perspective;
-            i.mvp.view = camera.matrices.view;
-            auto model = glm::translate(glm::mat4(1.0f), glm::vec3(objCamera.camera.pose.pos));
-            model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            i.mvp.model = model;
-
-            i.mvp.camPos = cameraWorldPosition;
-        }
-        obj.update();
-    }
-
-    auto gsMesh = m_context->findEntityByName("viking_room");
+    auto gsMesh = m_context->findEntityByName("3dgs_object");
     if (gsMesh) {
         auto &obj = gsMesh.getComponent<VkRender::DefaultGraphicsPipelineComponent>();
-        for (auto & i : obj.renderData) {
+        for (auto &i: obj.renderData) {
 
-            i.uboMatrix.projection = camera.matrices.perspective;
-            i.uboMatrix.view = camera.matrices.view;
-            i.uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            i.uboMatrix.projection = defaultCamera.matrices.perspective;
+            i.uboMatrix.view = defaultCamera.matrices.view;
+            i.uboMatrix.model = glm::mat4(1.0f);
             i.uboMatrix.camPos = cameraWorldPosition;
         }
         obj.update();
@@ -89,8 +94,8 @@ void DataCapture::update() {
         auto &obj = quad.getComponent<VkRender::DefaultGraphicsPipelineComponent>();
         for (size_t i = 0; i < obj.renderData.size(); ++i) {
 
-            obj.renderData[i].uboMatrix.projection = camera.matrices.perspective;
-            obj.renderData[i].uboMatrix.view = camera.matrices.view;
+            obj.renderData[i].uboMatrix.projection = defaultCamera.matrices.perspective;
+            obj.renderData[i].uboMatrix.view = defaultCamera.matrices.view;
             obj.renderData[i].uboMatrix.camPos = cameraWorldPosition;
 
             auto model = glm::mat4(1.0f);
@@ -125,29 +130,31 @@ glm::mat4 DataCapture::quaternionToMatrix(double qw, double qx, double qy, doubl
 }
 
 void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
-    if (uiHandle->m_loadColmapCameras){
+    if (uiHandle->m_loadColmapCameras) {
 
         images = loadPoses(uiHandle->m_loadColmapPosesPath);
-        for (const auto& img : images) {
+        for (const auto &img: images) {
             std::cout << "Image ID: " << img.imageID << ", Image Name: " << img.imageName << std::endl;
-            std::cout << "Quaternion: (" << img.qw << ", " << img.qx << ", " << img.qy << ", " << img.qz << ")" << std::endl;
+            std::cout << "Quaternion: (" << img.qw << ", " << img.qx << ", " << img.qy << ", " << img.qz << ")"
+                      << std::endl;
             std::cout << "Translation: (" << img.tx << ", " << img.ty << ", " << img.tz << ")" << std::endl;
 
-            std::string tag = img.imageName;
+            std::string tag = "Camera: " + std::to_string(img.imageID);
             auto camera = VkRender::Camera(uiHandle->info->width, uiHandle->info->height);
             // Set the camera at the colmap image position:
-            glm::mat4 camMatrix = quaternionToMatrix(img.qw, img.qx, img.qy, img.qz, img.tx, img.ty, img.tz);
-            camera.matrices.view = glm::inverse(camMatrix);
-
+            camera.flipZ = true;
             auto e = uiHandle->m_context->createEntity(tag);
-            auto cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+            auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+            auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
             uiHandle->m_context->cameras[tag] = &cameraComponent.camera;
             uiHandle->m_cameraSelection.tag = tag;
         }
+
         uiHandle->m_loadColmapCameras = false;
     }
 }
-std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path path){
+
+std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path path) {
 
     std::vector<ImageData> images;
     std::ifstream file(path / "images.txt");
@@ -163,7 +170,8 @@ std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path
         }
         std::istringstream iss(line);
         ImageData data;
-        if (!(iss >> data.imageID >> data.qw >> data.qx >> data.qy >> data.qz >> data.tx >> data.ty >> data.tz >> data.cameraID >> data.imageName)) {
+        if (!(iss >> data.imageID >> data.qw >> data.qx >> data.qy >> data.qz >> data.tx >> data.ty >> data.tz
+                  >> data.cameraID >> data.imageName)) {
             std::cerr << "Failed to parse line: " << line << std::endl;
             continue;
         }

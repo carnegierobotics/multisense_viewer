@@ -346,7 +346,7 @@ namespace VkRender {
 
         }
 
-        /**@brief Record commandbuffers for obj models */
+        /**@brief Record commandbuffers for camera models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);

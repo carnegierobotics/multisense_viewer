@@ -196,9 +196,9 @@ namespace VkRender {
                         glm::vec4(-a, -a, 0, 1.0), // A
 
                         // Top indicator
-                        glm::vec4(-0.4, -0.6, 0, 1.0), // D
-                        glm::vec4(0.4, -0.6, 0, 1.0), // E
-                        glm::vec4(0, -1.0, 0, 1.0) // A
+                        glm::vec4(-0.4, 0.6, 0, 1.0), // D
+                        glm::vec4(0.4, 0.6, 0, 1.0), // E
+                        glm::vec4(0, 1.0, 0, 1.0) // A
                 };
 
             }

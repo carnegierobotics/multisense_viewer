@@ -88,11 +88,15 @@ namespace VkRender {
                     cameras.emplace_back(tag.Tag);
 
             }
-
+// Iterating in reverse
+for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
+    std::string cameraTag = *it;
+    // Process cameraTag as needed
+}
             ImGui::SetNextItemWidth(100.0f);
             static int item_current_idx = 0; // todo fix according to how many cameras we are initializing, we might not always start at 0
             if (ImGui::BeginListBox("Cameras")) {
-                for (int n = 0; n < cameras.size(); n++) {
+                for (int n = cameras.size() - 1; n >= 0; n--) {
                     const bool is_selected = (item_current_idx == n);
                     if (ImGui::Selectable(cameras[n].c_str(), is_selected)) {
                         item_current_idx = n;

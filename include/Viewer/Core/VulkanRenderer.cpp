@@ -61,8 +61,8 @@ namespace VkRender {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_Width = 1280;
-        m_Height = 720;
+        m_Width = 4640;
+        m_Height = 2088;
         window = glfwCreateWindow(static_cast<int>(m_Width), static_cast<int>(m_Height), title.c_str(), nullptr,
                                   nullptr);
         glfwMakeContextCurrent(window);

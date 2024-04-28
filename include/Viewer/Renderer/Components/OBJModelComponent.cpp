@@ -14,8 +14,24 @@
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+namespace std {
+    template<> struct hash<VkRender::Vertex> {
+        size_t operator()(VkRender::Vertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                     (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.uv0) << 1);
+        }
+    };
+};
+
 namespace VkRender {
+
+
+
     void OBJModelComponent::loadModel(std::filesystem::path modelPath) {
+
 
         tinyobj::ObjReaderConfig reader_config;
         reader_config.mtl_search_path = "./"; // Path to material files
@@ -38,68 +54,50 @@ namespace VkRender {
 
         auto &attrib = reader.GetAttrib();
         auto &shapes = reader.GetShapes();
-        auto &materials = reader.GetMaterials();
+        auto &materials = reader.GetMaterials();0;
 
-        // Loop over shapes
-        size_t totalVertexCount = attrib.vertices.size() / 3; // Each vertex has three components (x, y, z)
-        size_t totalIndexCount = 0;
 
-        for (const auto & shape : shapes) {
-            for (unsigned int num_face_vertice : shape.mesh.num_face_vertices) {
-                auto fv = size_t(num_face_vertice);
-                totalIndexCount += fv; // Each vertex in the face adds an index
-            }
+// Pre-allocate memory for vertices and indices vectors
+        size_t estimatedVertexCount = attrib.vertices.size() / 3;
+        size_t estimatedIndexCount = 0;
+        for (const auto& shape : shapes) {
+            estimatedIndexCount += shape.mesh.indices.size();
         }
 
-        std::vector<VkRender::Vertex> vertexBuffer(totalVertexCount * 3);
-        std::vector<uint32_t> indexBuffer(totalIndexCount);
+        std::unordered_map<VkRender::Vertex, uint32_t> uniqueVertices{};
+        uniqueVertices.reserve(estimatedVertexCount);  // Reserve space for unique vertices
 
-        vertices.vertexCount = totalVertexCount;
-        indices.indexCount = totalIndexCount;
+        std::vector<VkRender::Vertex> verts;
+        std::vector<uint32_t> idx;
+        verts.reserve(estimatedVertexCount);  // Reserve space to avoid resizing
+        idx.reserve(estimatedIndexCount);     // Reserve space to avoid resizing
 
+        // Using range-based loop to process vertices and indices
+        for (const auto& shape : shapes) {
+            for (const auto& index : shape.mesh.indices) {
+                Vertex vertex{};
+                vertex.pos = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2]
+                };
 
-        size_t indexIndex = 0;
-        for (const auto &shape : shapes) {
-            size_t index_offset = 0;
-            for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
-                auto fv = size_t(shape.mesh.num_face_vertices[f]);
+                vertex.uv0 = {
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
 
-                // Loop over vertices in the face.
-                for (size_t v = 0; v < fv; v++) {
-                    tinyobj::index_t idx = shape.mesh.indices[index_offset + v];
-
-                    // Ensure the index points to a valid position in the vertex array.
-                    if (idx.vertex_index >= 0 && idx.vertex_index < totalVertexCount) {
-                        indexBuffer[indexIndex++] = idx.vertex_index; // Store the vertex index directly
-
-                        // Access and store vertex position
-                        tinyobj::real_t vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
-                        tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
-                        tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
-                        vertexBuffer[idx.vertex_index].pos = glm::vec3(vx, vy, vz);
-
-                        // Similarly handle normals and texture coordinates if available
-                        if (idx.normal_index >= 0) {
-                            tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
-                            tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
-                            tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
-                            vertexBuffer[idx.vertex_index].normal = glm::vec3(nx, ny, nz);
-                        }
-
-                        if (idx.texcoord_index >= 0) {
-                            tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
-                            tinyobj::real_t ty = 1.0f - attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
-                            vertexBuffer[idx.vertex_index].uv0 = glm::vec2(tx, ty);
-                        }
-                    }
+                auto [it, inserted] = uniqueVertices.try_emplace(vertex, verts.size());
+                if (inserted) {
+                    verts.push_back(vertex);
                 }
-                index_offset += fv;
+
+                idx.push_back(it->second);
             }
         }
-
-
-        size_t vertexBufferSize = totalVertexCount * sizeof(VkRender::Vertex);
-        size_t indexBufferSize = totalIndexCount * sizeof(uint32_t);
+        size_t vertexBufferSize = verts.size() * sizeof(VkRender::Vertex);
+        size_t indexBufferSize = idx.size() * sizeof(uint32_t);
+        indices.indexCount = idx.size();
 
         assert(vertexBufferSize > 0);
 
@@ -116,7 +114,7 @@ namespace VkRender {
                 vertexBufferSize,
                 &vertexStaging.buffer,
                 &vertexStaging.memory,
-                vertexBuffer.data()));
+                verts.data()));
         // Index data
         if (indexBufferSize > 0) {
             CHECK_RESULT(device->createBuffer(
@@ -125,7 +123,7 @@ namespace VkRender {
                     indexBufferSize,
                     &indexStaging.buffer,
                     &indexStaging.memory,
-                    indexBuffer.data()));
+                    idx.data()));
         }
 
         // Create device local buffers
@@ -172,10 +170,11 @@ namespace VkRender {
     void OBJModelComponent::loadTexture(std::filesystem::path texturePath) {
         int texWidth = 0, texHeight = 0, texChannels = 0;
         auto path = texturePath.replace_extension(".png");
-        stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        if (!pixels){
+        stbi_uc *pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        if (!pixels) {
             Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.c_str());
-            pixels = stbi_load((Utils::getTexturePath() / "moon.png").c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            pixels = stbi_load((Utils::getTexturePath() / "moon.png").c_str(), &texWidth, &texHeight, &texChannels,
+                               STBI_rgb_alpha);
 
         }
         VkDeviceSize size = 4 * texHeight * texWidth;
@@ -187,8 +186,8 @@ namespace VkRender {
 
     }
 
-    void OBJModelComponent::draw(CommandBuffer* commandBuffer, uint32_t cbIndex){
-        VkDeviceSize offsets[1] = { 0 };
+    void OBJModelComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
+        VkDeviceSize offsets[1] = {0};
 
         vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
         if (indices.buffer != VK_NULL_HANDLE) {

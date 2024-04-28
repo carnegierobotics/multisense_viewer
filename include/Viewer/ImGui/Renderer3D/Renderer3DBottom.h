@@ -88,21 +88,23 @@ namespace VkRender {
                     cameras.emplace_back(tag.Tag);
 
             }
-// Iterating in reverse
-for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
-    std::string cameraTag = *it;
-    // Process cameraTag as needed
-}
+            // Iterating in reverse
+
+            for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
+                std::string cameraTag = *it;
+                // Process cameraTag as needed
+            }
+
+            handles->m_cameraSelection.selected = false;
             ImGui::SetNextItemWidth(100.0f);
-            static int item_current_idx = 0; // todo fix according to how many cameras we are initializing, we might not always start at 0
             if (ImGui::BeginListBox("Cameras")) {
                 for (int n = cameras.size() - 1; n >= 0; n--) {
-                    const bool is_selected = (item_current_idx == n);
+                    const bool is_selected = (handles->m_cameraSelection.currentItemSelected == n);
                     if (ImGui::Selectable(cameras[n].c_str(), is_selected)) {
-                        item_current_idx = n;
+                        handles->m_cameraSelection.currentItemSelected = n;
                         handles->m_cameraSelection.tag = cameras[n];
+                        handles->m_cameraSelection.selected = true;
                     }
-
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected)
                         ImGui::SetItemDefaultFocus();
@@ -114,7 +116,7 @@ for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto e = handles->m_context->createEntity(tag);
-                auto& c = e.addComponent<CameraComponent>(Camera(handles->info->width, handles->info->height));
+                auto &c = e.addComponent<CameraComponent>(Camera(handles->info->width, handles->info->height));
                 handles->m_context->cameras[tag] = &c.camera;
                 handles->m_cameraSelection.tag = tag;
             }
@@ -135,14 +137,15 @@ for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
                     // Check if the currently selected camera was deleted
                     if (std::find(cameras.begin(), cameras.end(), tag) == cameras.end()) {
                         // The selected camera was deleted, update the selection
-                        if (cameras.size() == 0) {
+                        if (cameras.empty()) {
                             // No cameras left
-                            item_current_idx = -1;
+                            handles->m_cameraSelection.currentItemSelected = -1;
                             handles->m_cameraSelection.tag.clear();
                         } else {
                             // Select a new camera, preferably the one after the deleted one, or the last if deleted was the last
-                            item_current_idx = std::min(item_current_idx, int(cameras.size() - 1));
-                            handles->m_cameraSelection.tag = cameras[item_current_idx];
+                            handles->m_cameraSelection.currentItemSelected = std::min(
+                                    handles->m_cameraSelection.currentItemSelected, int(cameras.size() - 1));
+                            handles->m_cameraSelection.tag = cameras[handles->m_cameraSelection.currentItemSelected];
                         }
                     }
                 }

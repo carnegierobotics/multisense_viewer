@@ -165,7 +165,7 @@ namespace VkRender {
                 resource.uboVertices.map();
                 resource.ubo.map();
                 float a = 0.5;
-                float h = 1.0;
+                float h = 2.0;
                 resource.vertices.positions = {
                         // Base (CCW from top)
                         glm::vec4(-a, a, 0, 1.0), // D

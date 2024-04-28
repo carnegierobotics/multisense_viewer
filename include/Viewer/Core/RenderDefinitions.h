@@ -120,6 +120,10 @@ namespace VkRender {
         glm::vec4 joint0{};
         glm::vec4 weight0{};
         glm::vec4 color{};
+
+        bool operator==(const Vertex& other) const {
+            return pos == other.pos && color == other.color && uv0 == other.uv0;
+        }
     };
 
     /**

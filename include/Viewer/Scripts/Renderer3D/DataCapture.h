@@ -42,6 +42,14 @@ public:
         int cameraID;
         std::string imageName;
     };
+    struct CameraData {
+        int cameraID;
+        std::string model;
+        int width;
+        int height;
+        std::vector<double> parameters; // To store variable-length camera parameters.
+    };
+
     std::vector<ImageData> images;
 
     bool enable = true;
@@ -50,6 +58,10 @@ public:
     std::vector<ImageData> loadPoses(std::filesystem::path path);
 
     glm::mat4 quaternionToMatrix(double qw, double qx, double qy, double qz, double tx, double ty, double tz);
+
+    static bool compareImageID(const ImageData &img1, const ImageData &img2);
+
+    std::vector<CameraData> loadCameraParams(const std::filesystem::path &path);
 };
 
 #endif //MULTISENSE_VIEWER_DATACAPTURE_H

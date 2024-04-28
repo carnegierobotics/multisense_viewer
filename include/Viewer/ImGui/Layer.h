@@ -189,7 +189,8 @@ namespace VkRender {
     struct CameraSelection {
         std::string tag = "Default";
         bool enabled = false;
-
+        bool selected = false;
+        int currentItemSelected = 0;
         struct Info {
             /** @brief 3D view camera type for this device. Arcball or first person view controls) */
             int type = 0;

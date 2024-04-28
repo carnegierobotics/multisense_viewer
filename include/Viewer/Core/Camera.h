@@ -54,12 +54,13 @@
 #define DEFAULT_FRONT glm::vec3(0.0f, 0.0f, -1.0f)
 #define DEFAULT_UP glm::vec3(0.0f, 1.0f, 0.0f)
 #define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
+#define DEFAULT_QUATERNION glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
 
 namespace VkRender {
     class Camera {
     private:
         float m_Fov = 60.0f;
-        float m_Znear = 0.01f;
+        float m_Znear = 0.1f;
         float m_Zfar = 100.0f;
 
     public:
@@ -81,7 +82,7 @@ namespace VkRender {
 
         Camera(uint32_t width, uint32_t height) {
             m_type = VkRender::Camera::arcball;
-            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height), 0.01f, 100.0f);
+            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
             resetPosition();
             // Initialize quaternion to have a forward looking x-axis
             //rotateQuaternion(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -96,25 +97,28 @@ namespace VkRender {
 
         };
 
-        void setType(CameraType type){
+        void setType(CameraType type) {
             m_type = type;
         }
 
 
         struct Pose {
-            glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
+            //glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
+            glm::quat q = DEFAULT_QUATERNION; // We start by having a orientation facing positive x
             glm::vec3 pos = glm::vec3(-3.0f, 0.0f, 2.0f); // default starting location
             glm::vec3 front = DEFAULT_FRONT; // Default Vulkan is negative-z is forward
             glm::vec3 up = DEFAULT_UP;
             glm::vec3 right = DEFAULT_RIGHT;
+
             void updateVectors() {
                 // Rotate the base vectors according to the current orientation
                 front = glm::normalize(glm::mat3_cast(q) * DEFAULT_FRONT);
                 up = glm::normalize(glm::mat3_cast(q) * DEFAULT_UP);
                 right = glm::normalize(glm::mat3_cast(q) * DEFAULT_RIGHT);
             }
-            void reset(){
-                q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f);
+
+            void reset() {
+                q = DEFAULT_QUATERNION;
                 pos = glm::vec3(0.0f, 0.0f, 3.0f);
                 front = DEFAULT_FRONT;
                 up = DEFAULT_UP;
@@ -151,7 +155,7 @@ namespace VkRender {
         }
 
         void rotateArcBall(float dx, float dy) {
-            pose.q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f);
+            pose.q = DEFAULT_QUATERNION;
             // Adjust rotation based on the mouse movement
             glm::quat rotX = glm::angleAxis(glm::radians(dx), glm::vec3(0.0f, 0.0f, 1.0f));
             glm::quat rotY = glm::angleAxis(glm::radians(dy), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -179,9 +183,7 @@ namespace VkRender {
                 rotateQuaternion(dx, glm::vec3(0.0f, 0.0f, 1.0f));
                 pose.updateVectors();
             }
-
             updateViewMatrix();
-            translate(glm::vec3(0.0f));
         }
 
         struct {
@@ -214,6 +216,22 @@ namespace VkRender {
                     0.0f, 0.0f, A, -1.0f,
                     0.0f, 0.0f, B, 0.0f
             );
+            /*
+            float right = 1;
+            float left = -1;
+            float rightMinusLeft = right - left;
+            float top = -1;
+            float bottom = 1;
+            float bottomMinusTop = bottom - top;
+            float twoNear = 2 * m_Znear;
+            glm::mat4 m = {
+                    twoNear / rightMinusLeft, 0.0f, 0.0f, 0.0f,
+                    0.0f, -twoNear / bottomMinusTop, 0.0f, 0.0f,
+                    0.0f, 0.0f, A, -1.0f,
+                    0.0f, 0.0f, B, 0.0f
+            };
+            matrices.perspective = m;
+             */
         };
 
         void updateAspectRatio(float aspect) {

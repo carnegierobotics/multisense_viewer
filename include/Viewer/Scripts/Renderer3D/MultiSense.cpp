@@ -55,8 +55,8 @@ void MultiSense::update() {
         // Skybox
         obj.uboMatrix.projection = camera.matrices.perspective;
         obj.uboMatrix.model = glm::mat4(glm::mat3(camera.matrices.view));
-        obj.uboMatrix.model = glm::rotate(obj.uboMatrix.model, glm::radians(90.0f),
-                                          glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+        //obj.uboMatrix.model = glm::rotate(obj.uboMatrix.model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+
         obj.update();
     }
 
@@ -68,8 +68,7 @@ void MultiSense::update() {
         for (size_t i = 0; i < m_context->renderUtils.UBCount; ++i) {
             obj.resources[i].uboMatrix.projection = camera.matrices.perspective;
             obj.resources[i].uboMatrix.view = camera.matrices.view;
-            obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f),
-                                                           glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+            obj.resources[i].uboMatrix.model = glm::mat4(1.0f); //glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
             obj.resources[i].uboMatrix.model = glm::translate(obj.resources[i].uboMatrix.model,
                                                               glm::vec3(0.25f, 0.0f, 0.25f));
             //obj.resources[i].uboMatrix.model = glm::scale(obj.resources[i].uboMatrix.model, glm::vec3(0.5f, 0.5f, 0.5f));
@@ -91,8 +90,7 @@ void MultiSense::update() {
 
             obj.resources[i].uboMatrix.projection = camera.matrices.perspective;
             obj.resources[i].uboMatrix.view = camera.matrices.view;
-            obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f),
-                                                           glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+            obj.resources[i].uboMatrix.model = glm::mat4(1.0f); // glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
             obj.resources[i].uboMatrix.model = glm::scale(obj.resources[i].uboMatrix.model,
                                                           glm::vec3(0.2f, 0.2f, 0.2f)); // z-up rotation
 

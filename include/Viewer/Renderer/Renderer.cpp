@@ -99,7 +99,7 @@ namespace VkRender {
     void Renderer::prepareRenderer() {
         cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
         cameras[selectedCameraTag]->setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height),
-                                                  0.01f, 100.0f);
+                                                  0.1f, 100.0f);
         cameras[selectedCameraTag]->resetPosition();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 

@@ -71,7 +71,6 @@ namespace VkRender {
         float m_RotationSpeed = 0.20f;
         float m_MovementSpeed = 5.0f;
         float zoomVal = 1.0f;
-        bool flipZ = false;
         glm::vec2 rot = glm::vec2(0.0f, 0.0f);
         struct {
             glm::mat4 perspective = glm::mat4(1.0f);
@@ -178,6 +177,7 @@ namespace VkRender {
             } else {
                 rotateQuaternion(dy, pose.right);
                 rotateQuaternion(dx, glm::vec3(0.0f, 0.0f, 1.0f));
+                pose.updateVectors();
             }
 
             updateViewMatrix();

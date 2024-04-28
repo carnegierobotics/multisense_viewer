@@ -14,13 +14,14 @@
 
 void DataCapture::setup() {
 
+    /*
     auto entity = m_context->createEntity("3dgs_object");
     auto &component = entity.addComponent<VkRender::OBJModelComponent>(
             Utils::getModelsPath() / "obj" / "3dgs.obj",
             m_context->renderUtils.device);
     entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(&m_context->renderUtils, component, true);
     entity.addComponent<VkRender::SecondaryRenderPassComponent>();
-
+*/
     {
         auto quad = m_context->createEntity("quad");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
@@ -32,13 +33,19 @@ void DataCapture::setup() {
                                                                       "default2D.vert.spv", "default2D.frag.spv");
     }
 
-    auto uuid = entity.getUUID();
-    Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());
+    std::string tag = "Camera: Test";
+    auto camera = VkRender::Camera(m_context->renderData.width, m_context->renderData.height);
+    // Set the camera at the colmap image position:
+    auto e = m_context->createEntity(tag);
+    auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+    auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
+    m_context->cameras[tag] = &cameraComponent.camera; // TODO I should't have to set this for the app not to crash
 
 }
 
 
 void DataCapture::update() {
+
     for (auto entity: m_context->m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
         auto &resources = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
         auto &objCamera = m_context->m_registry.get<VkRender::CameraComponent>(entity);
@@ -47,14 +54,13 @@ void DataCapture::update() {
 
             for (const auto &img: images) {
                 if (tag.Tag == "Camera: " + std::to_string(img.imageID)) {
-                    glm::quat orientation(img.qw, img.qx, -img.qy, -img.qz);
+                    glm::quat orientation(img.qw, img.qx, img.qy, img.qz);
                     glm::mat4 rotMatrix = glm::mat4_cast(orientation);
-                    glm::vec3 pos = -glm::transpose(glm::mat3_cast(orientation)) * glm::vec3(img.tx, -img.ty, -img.tz);
+                    glm::vec3 pos = -glm::transpose(glm::mat3_cast(orientation)) * glm::vec3(img.tx, img.ty, img.tz);
 
                     objCamera.camera.pose.q = orientation;
                     objCamera.camera.pose.pos = pos;
-                    //objCamera.camera.flipZ = true;
-                    objCamera.camera.m_type = VkRender::Camera::flycam;
+
                     objCamera.camera.updateViewMatrix();
 
                     glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), pos);
@@ -89,14 +95,33 @@ void DataCapture::update() {
         }
         obj.update();
     }
+    auto test_camera = m_context->findEntityByName("Camera: Test");
+    if (test_camera) {
+        auto &obj = test_camera.getComponent<VkRender::CameraGraphicsPipelineComponent>();
+        auto &objCamera = test_camera.getComponent<VkRender::CameraComponent>();
+
+        for (auto &i: obj.renderData) {
+
+            i.mvp.projection = defaultCamera.matrices.perspective;
+            i.mvp.view = defaultCamera.matrices.view;
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), objCamera.camera.pose.pos);
+
+            model = model * glm::mat4_cast(objCamera.camera.pose.q);
+            model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
+            i.mvp.model = model;
+            i.mvp.camPos = cameraWorldPosition;
+        }
+        obj.update();
+    }
+
     auto quad = m_context->findEntityByName("quad");
     if (quad) {
         auto &obj = quad.getComponent<VkRender::DefaultGraphicsPipelineComponent>();
-        for (size_t i = 0; i < obj.renderData.size(); ++i) {
+        for (auto & i : obj.renderData) {
 
-            obj.renderData[i].uboMatrix.projection = defaultCamera.matrices.perspective;
-            obj.renderData[i].uboMatrix.view = defaultCamera.matrices.view;
-            obj.renderData[i].uboMatrix.camPos = cameraWorldPosition;
+            i.uboMatrix.projection = defaultCamera.matrices.perspective;
+            i.uboMatrix.view = defaultCamera.matrices.view;
+            i.uboMatrix.camPos = cameraWorldPosition;
 
             auto model = glm::mat4(1.0f);
 
@@ -113,7 +138,7 @@ void DataCapture::update() {
             model = glm::scale(model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
             //model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)); // Uniform scaling in x and y
 
-            obj.renderData[i].uboMatrix.model = model;
+            i.uboMatrix.model = model;
 
         }
         obj.update();
@@ -142,12 +167,16 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             std::string tag = "Camera: " + std::to_string(img.imageID);
             auto camera = VkRender::Camera(uiHandle->info->width, uiHandle->info->height);
             // Set the camera at the colmap image position:
-            camera.flipZ = true;
             auto e = uiHandle->m_context->createEntity(tag);
             auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
             auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
-            uiHandle->m_context->cameras[tag] = &cameraComponent.camera;
+            m_context->cameras[tag] = &cameraComponent.camera;
             uiHandle->m_cameraSelection.tag = tag;
+            glm::quat orientation(img.qw, img.qx, img.qy, img.qz);
+            glm::mat4 rotMatrix = glm::mat4_cast(orientation);
+            glm::vec3 pos = -glm::transpose(glm::mat3_cast(orientation)) * glm::vec3(img.tx, img.ty, img.tz);
+            cameraComponent.camera.pose.q = orientation;
+            cameraComponent.camera.pose.pos = pos;
         }
 
         uiHandle->m_loadColmapCameras = false;

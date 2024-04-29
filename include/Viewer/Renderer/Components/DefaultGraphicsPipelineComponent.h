@@ -26,7 +26,7 @@ namespace VkRender {
                                          const std::string& fragmentShader = "default.frag.spv") {
             renderUtils = utils;
             vulkanDevice = utils->device;
-            emptyTexture.fromKtxFile(Utils::getTexturePath() / "empty.ktx", VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
+            emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
                                      vulkanDevice->m_TransferQueue);
 
             uint32_t numSwapChainImages = renderUtils->UBCount;

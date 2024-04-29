@@ -32,7 +32,7 @@ namespace VkRender::LayerUtils {
 
 #ifdef WIN32
 
-    static inline std::string selectFolder() {
+    static inline std::string selectFolder(std::string openLocation = "") {
         PWSTR path = NULL;
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {

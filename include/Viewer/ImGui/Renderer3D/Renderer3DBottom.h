@@ -155,9 +155,9 @@ namespace VkRender {
             if (ImGui::Button("Load Cameras", ImVec2(150.0f, 25.0f))) {
                 if (!folderFuture.valid()) {
                     auto &opts = RendererConfig::getInstance().getUserSetting();
-                    std::string openLoc = Utils::getSystemHomePath();
+                    std::string openLoc = Utils::getSystemHomePath().string();
                     if (!opts.lastOpenedFolderPath.empty()) {
-                        openLoc = opts.lastOpenedFolderPath;
+                        openLoc = opts.lastOpenedFolderPath.string();
                     }
                     folderFuture = std::async(VkRender::LayerUtils::selectFolder, openLoc);
                 }

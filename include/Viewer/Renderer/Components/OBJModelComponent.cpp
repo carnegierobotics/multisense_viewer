@@ -39,17 +39,17 @@ namespace VkRender {
         tinyobj::ObjReader reader;
 
 
-        if (!reader.ParseFromFile(modelPath, reader_config)) {
+        if (!reader.ParseFromFile(modelPath.string(), reader_config)) {
             if (!reader.Error().empty()) {
                 std::cerr << "TinyObjReader: " << reader.Error();
-                Log::Logger::getInstance()->error("Failed to load .OBJ file {}", modelPath.c_str());
+                Log::Logger::getInstance()->error("Failed to load .OBJ file {}", modelPath.string());
             }
             return;
         }
 
 
         if (!reader.Warning().empty()) {
-            Log::Logger::getInstance()->warning(".OBJ file empty {}", modelPath.c_str());
+            Log::Logger::getInstance()->warning(".OBJ file empty {}", modelPath.string());
         }
 
         auto &attrib = reader.GetAttrib();
@@ -170,10 +170,10 @@ namespace VkRender {
     void OBJModelComponent::loadTexture(std::filesystem::path texturePath) {
         int texWidth = 0, texHeight = 0, texChannels = 0;
         auto path = texturePath.replace_extension(".png");
-        stbi_uc *pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc *pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) {
-            Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.c_str());
-            pixels = stbi_load((Utils::getTexturePath() / "moon.png").c_str(), &texWidth, &texHeight, &texChannels,
+            Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.string());
+            pixels = stbi_load((Utils::getTexturePath() / "moon.png").string().c_str(), &texWidth, &texHeight, &texChannels,
                                STBI_rgb_alpha);
 
         }

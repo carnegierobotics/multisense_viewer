@@ -169,7 +169,7 @@ namespace VkRender {
 
         Model(std::filesystem::path modelPath, VulkanDevice *_device) {
             device = _device;
-            loadFromFile(modelPath);
+            loadFromFile(modelPath.string());
         }
 
         ~Model(){

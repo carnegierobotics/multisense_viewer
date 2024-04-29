@@ -208,10 +208,10 @@ namespace VkRender {
                 inFile.close();
                 m_UserSetting = j_in.template get<AppConfig::ApplicationUserSetting>();
                 Log::Logger::getInstance()->info("Loaded application settings from {}",
-                                                 settingsFilePath.c_str());
+                                                 settingsFilePath.string().c_str());
             } else {
                 Log::Logger::getInstance()->info("No application settings file at {}",
-                                                 settingsFilePath.c_str());
+                                                 settingsFilePath.string().c_str());
             }
 
         }
@@ -230,9 +230,9 @@ namespace VkRender {
                 if (outFile.is_open()) {
                     outFile << std::setw(4) << j_out << std::endl;
                     outFile.close();
-                    Log::Logger::getInstance()->info("Saved application settings to {}", settingsFilePath.c_str());
+                    Log::Logger::getInstance()->info("Saved application settings to {}", settingsFilePath.string().c_str());
                 } else {
-                    Log::Logger::getInstance()->info("Failed to open settings file at {}", settingsFilePath.c_str());
+                    Log::Logger::getInstance()->info("Failed to open settings file at {}", settingsFilePath.string().c_str());
                 }
             } catch (const std::exception& e) {
                 Log::Logger::getInstance()->error("Exception while saving settings: {}", e.what());

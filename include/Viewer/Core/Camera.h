@@ -54,7 +54,9 @@
 #define DEFAULT_FRONT glm::vec3(0.0f, 0.0f, -1.0f)
 #define DEFAULT_UP glm::vec3(0.0f, 1.0f, 0.0f)
 #define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
-#define DEFAULT_QUATERNION glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
+//#define DEFAULT_ORIENTATION glm::quat(0.780483f, 0.483536f, 0.208704f, 0.336872f)
+#define DEFAULT_ORIENTATION glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+#define DEFAULT_POSITION glm::vec3(7.35f, -6.9f, 4.9f)
 
 namespace VkRender {
     class Camera {
@@ -104,7 +106,7 @@ namespace VkRender {
 
         struct Pose {
             //glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
-            glm::quat q = DEFAULT_QUATERNION; // We start by having a orientation facing positive x
+            glm::quat q = DEFAULT_ORIENTATION; // We start by having a orientation facing positive x
             glm::vec3 pos = glm::vec3(-3.0f, 0.0f, 2.0f); // default starting location
             glm::vec3 front = DEFAULT_FRONT; // Default Vulkan is negative-z is forward
             glm::vec3 up = DEFAULT_UP;
@@ -118,8 +120,8 @@ namespace VkRender {
             }
 
             void reset() {
-                q = DEFAULT_QUATERNION;
-                pos = glm::vec3(0.0f, 0.0f, 3.0f);
+                q = DEFAULT_ORIENTATION;
+                pos = DEFAULT_POSITION;
                 front = DEFAULT_FRONT;
                 up = DEFAULT_UP;
                 right = DEFAULT_RIGHT;
@@ -155,7 +157,7 @@ namespace VkRender {
         }
 
         void rotateArcBall(float dx, float dy) {
-            pose.q = DEFAULT_QUATERNION;
+            pose.q = DEFAULT_ORIENTATION;
             // Adjust rotation based on the mouse movement
             glm::quat rotX = glm::angleAxis(glm::radians(dx), glm::vec3(0.0f, 0.0f, 1.0f));
             glm::quat rotY = glm::angleAxis(glm::radians(dy), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -251,6 +253,7 @@ namespace VkRender {
 
         void resetPosition() {
             pose.reset();
+            pose.updateVectors();
             rot = glm::vec2(0.0f);
             updateViewMatrix();
         }

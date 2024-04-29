@@ -17,7 +17,9 @@
 #else
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_OLD_STYLE_CAST
+
 #include <gtk/gtk.h>
+
 DISABLE_WARNING_POP
 #endif
 
@@ -25,9 +27,10 @@ DISABLE_WARNING_POP
 
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Tools/Macros.h"
+
 namespace VkRender::LayerUtils {
 
-    #ifdef WIN32
+#ifdef WIN32
 
     static inline std::string selectFolder() {
         PWSTR path = NULL;
@@ -115,6 +118,7 @@ namespace VkRender::LayerUtils {
 #else
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
+
     static inline std::string selectYamlFile() {
         std::string filename = "";
 
@@ -192,91 +196,94 @@ namespace VkRender::LayerUtils {
     };
 
     static inline void
-    createWidgets(VkRender::GuiObjectHandles* handles, const ScriptWidgetPlacement& area,
+    createWidgets(VkRender::GuiObjectHandles *handles, const ScriptWidgetPlacement &area,
                   WidgetPosition pos = WidgetPosition()) {
-        for (auto& elem : Widgets::make()->elements[area]) {
+        for (auto &elem: Widgets::make()->elements[area]) {
             if (pos.paddingX != -1) {
                 ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
                 ImGui::SameLine();
             }
 
             switch (elem.type) {
-            case WIDGET_CHECKBOX:
-                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
-                    ImGui::IsItemActivated()) {
-                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
-                                                           ImGui::GetCurrentWindow()->Name);
-                }
-                ImGui::PopStyleColor();
-                break;
+                case WIDGET_CHECKBOX:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
+                    ImGui::PopStyleColor();
+                    break;
 
-            case WIDGET_FLOAT_SLIDER:
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SetNextItemWidth(pos.maxElementWidth);
-                if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
-                    ImGui::IsItemActivated()) {
-                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
-                                                           ImGui::GetCurrentWindow()->Name);
-                }
-                ImGui::PopStyleColor();
-                break;
-            case WIDGET_INT_SLIDER:
-                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                ImGui::SetNextItemWidth(pos.maxElementWidth);
-                *elem.active = false;
-                ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
-                                                           ImGui::GetCurrentWindow()->Name);
-                    *elem.active = true;
-                }
-                ImGui::PopStyleColor();
-                break;
-            case WIDGET_TEXT:
-                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                ImGui::Text("%s", elem.label.c_str());
-                ImGui::PopStyleColor();
+                case WIDGET_FLOAT_SLIDER:
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SetNextItemWidth(pos.maxElementWidth);
+                    if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
+                        ImGui::IsItemActivated()) {
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
+                                                               ImGui::GetCurrentWindow()->Name);
+                    }
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_INT_SLIDER:
+                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                    ImGui::SetNextItemWidth(pos.maxElementWidth);
+                    *elem.active = false;
+                    ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) {
+                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
+                                                               ImGui::GetCurrentWindow()->Name);
+                        *elem.active = true;
+                    }
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_TEXT:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    ImGui::Text("%s", elem.label.c_str());
+                    ImGui::PopStyleColor();
 
-                break;
-            case WIDGET_INPUT_TEXT:
-                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                ImGui::SetNextItemWidth(pos.maxElementWidth);
-                ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
-                ImGui::PopStyleColor();
-                break;
-            case WIDGET_BUTTON:
-                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                *elem.button = ImGui::Button(elem.label.c_str());
-                ImGui::PopStyleColor();
-                break;
-            case WIDGET_GLM_VEC_3:
-                ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                ImGui::InputText(("x: " + elem.label).c_str(), elem.glm.xBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                ImGui::InputText(("y: " + elem.label).c_str(), elem.glm.yBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                ImGui::InputText(("z: " + elem.label).c_str(), elem.glm.zBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                try {
-                    elem.glm.vec3->x = std::stof(elem.glm.xBuf);
-                    elem.glm.vec3->y = std::stof(elem.glm.yBuf);
-                    elem.glm.vec3->z = std::stof(elem.glm.zBuf);
-                }
-                catch (...) {
-                }
+                    break;
+                case WIDGET_INPUT_TEXT:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    ImGui::SetNextItemWidth(pos.maxElementWidth);
+                    ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_BUTTON:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    *elem.button = ImGui::Button(elem.label.c_str());
+                    ImGui::PopStyleColor();
+                    break;
+                case WIDGET_GLM_VEC_3:
+                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                    ImGui::SetNextItemWidth(35.0f);
+                    ImGui::InputText(("x: " + elem.label).c_str(), elem.glm.xBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::SetNextItemWidth(35.0f);
+                    ImGui::InputText(("y: " + elem.label).c_str(), elem.glm.yBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                    ImGui::SetNextItemWidth(35.0f);
+                    ImGui::InputText(("z: " + elem.label).c_str(), elem.glm.zBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                    try {
+                        elem.glm.vec3->x = std::stof(elem.glm.xBuf);
+                        elem.glm.vec3->y = std::stof(elem.glm.yBuf);
+                        elem.glm.vec3->z = std::stof(elem.glm.zBuf);
+                    }
+                    catch (...) {
+                    }
 
-                ImGui::PopStyleColor();
-                break;
+                    ImGui::PopStyleColor();
+                    break;
                 case WIDGET_SELECT_DIR_DIALOG:
                     ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
 
-                    if(ImGui::Button(elem.label.c_str())) {
+                    if (ImGui::Button(elem.label.c_str())) {
                         if (!elem.future->valid())
                             *elem.future = std::async(selectFolder, "");
                     }
 
                     ImGui::PopStyleColor();
-                break;
-            default:
-                break;
+                    break;
+                default:
+                    break;
             }
             if (pos.sameLine)
                 ImGui::SameLine();

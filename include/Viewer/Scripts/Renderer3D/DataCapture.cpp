@@ -11,6 +11,8 @@
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 #include "Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
+
 
 void DataCapture::setup() {
 
@@ -41,6 +43,19 @@ void DataCapture::setup() {
     auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
     m_context->cameras[tag] = &cameraComponent.camera; // TODO I should't have to set this for the app not to crash
 
+    {
+        auto ent = m_context->createEntity("Coordinates_TestCamera");
+        auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
+                                                                         m_context->renderUtils.device);
+        auto &sky = m_context->findEntityByName(
+                "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
+        ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
+
+    }
+    flipVector = glm::vec3(1.0f, -1.0f, -1.0f);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Apply flip: ", &flip);
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip vector: ", &flipVector);
+
 }
 
 
@@ -56,33 +71,36 @@ void DataCapture::update() {
 
             for (const auto &img: images) {
                 if (tag.Tag == "Camera: " + std::to_string(img.imageID)) {
-                    glm::quat orientation(img.qw, img.qx, img.qy, img.qz);
-                    orientation = glm::normalize(orientation);
-                    glm::mat4 rotMatrix = glm::mat4_cast(orientation);
-                    glm::vec3 cameraCenterProjection = -glm::transpose(glm::mat3_cast(orientation)) * glm::vec3(img.tx, img.ty, img.tz);
+                    glm::quat colmapRotation(img.qw, img.qx, img.qy, img.qz);
+                    colmapRotation = glm::normalize(colmapRotation);
+                    glm::mat3 rotMatrix = glm::mat3_cast(colmapRotation);
 
-                    auto worldToCameraColmap = glm::translate(rotMatrix, cameraCenterProjection);
+                    glm::mat3 rotX(1.0f);
+                    if (flip){
+                        rotX[0][0] = flipVector.x;
+                        rotX[1][1] = flipVector.y;
+                        rotX[2][2] = flipVector.z;
+                    }
 
-                    // Adjust matrix for Blender
-                    glm::mat4 blenderAdjustment = glm::mat4(
-                            glm::vec4(1, 0, 0, 0),
-                            glm::vec4(0, 0, -1, 0),  // Swap Y and Z, negate new Y
-                            glm::vec4(0, 1, 0, 0),
-                            glm::vec4(0, 0, 0, 1)
-                    );
-                    glm::mat4 worldToCameraBlender = blenderAdjustment * worldToCameraColmap;
+                    glm::vec3 cameraCenterProjectionColmap = glm::transpose(glm::mat3_cast(colmapRotation)) * glm::vec3(img.tx, img.ty, img.tz);
+                    glm::vec3 cameraCenterProjectionVulkan = rotX * cameraCenterProjectionColmap;
 
-                    worldToCameraBlender = glm::scale(worldToCameraBlender, glm::vec3(0.25f, 0.25f, 0.25f));
+                    // objCamera.camera.pose.q is the original quaternion in a different coordinate system
+                    glm::quat originalQuaternion = objCamera.camera.pose.q;
+                    glm::mat4 originalMatrix = glm::mat4_cast(originalQuaternion);
+
+                    glm::mat3 finalRotation = rotMatrix * rotX;
+                    glm::mat4 outRotation = originalMatrix * glm::mat4(finalRotation);
+
+                    glm::mat4 worldToCamera = glm::translate(outRotation, cameraCenterProjectionVulkan);
+
                     i.mvp.projection = defaultCamera.matrices.perspective;
                     i.mvp.view = defaultCamera.matrices.view;
-                    i.mvp.model = worldToCameraBlender;
-                    objCamera.camera.matrices.view = glm::inverse(worldToCameraBlender);
-                    /*
-                    glm::quat q = glm::quat_cast(worldToCameraColmap);
-                    objCamera.camera.pose.q = q;
-                    objCamera.camera.pose.pos = cameraCenterProjection;
-                    objCamera.camera.updateViewMatrix();
-                    */
+                    i.mvp.model = glm::scale(worldToCamera, glm::vec3(0.25f, 0.25f, 0.25f));
+                    objCamera.camera.matrices.view = glm::inverse(worldToCamera);
+                    objCamera.camera.matrices.view = glm::inverse(worldToCamera);
+                    objCamera.camera.pose.pos = glm::vec3(img.tx, img.ty, img.tz);
+
                     break;
                 }
             }
@@ -103,17 +121,49 @@ void DataCapture::update() {
             i.uboMatrix.projection = defaultCamera.matrices.perspective;
             i.uboMatrix.view = defaultCamera.matrices.view;
             auto model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            i.uboMatrix.model = model;
-            //i.uboMatrix.model = glm::mat4(1.0f);
+            //i.uboMatrix.model = model;
+            i.uboMatrix.model = glm::mat4(1.0f);
             i.uboMatrix.camPos = cameraWorldPosition;
         }
         obj.update();
     }
     auto test_camera = m_context->findEntityByName("Camera: Test");
-    if (test_camera) {
+    auto test_camera_coordinates = m_context->findEntityByName("Coordinates_TestCamera");
+    if (test_camera && test_camera_coordinates) {
         auto &obj = test_camera.getComponent<VkRender::CameraGraphicsPipelineComponent>();
         auto &objCamera = test_camera.getComponent<VkRender::CameraComponent>();
 
+        auto &objCoords = test_camera_coordinates.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
+
+        for (auto &i: objCoords.resources) {
+            i.uboMatrix.projection = defaultCamera.matrices.perspective;
+            i.uboMatrix.view = defaultCamera.matrices.view;
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), objCamera.camera.pose.pos);
+
+            model = model * glm::mat4_cast(objCamera.camera.pose.q);
+            model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+
+            model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
+            i.uboMatrix.model = model;
+            i.uboMatrix.camPos = cameraWorldPosition;
+
+            struct LightSource {
+                glm::vec3 color = glm::vec3(1.0f);
+                glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
+            } lightSource;
+
+
+            i.shaderValuesParams.lightDir = glm::vec4(
+                    sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
+                    sin(glm::radians(lightSource.rotation.y)),
+                    cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
+                    0.0f);
+
+            i.shaderValuesParams.gamma += 6.0f;
+            i.shaderValuesParams.exposure += 12.0f;
+
+        }
+        objCoords.update();
         for (auto &i: obj.renderData) {
 
             i.mvp.projection = defaultCamera.matrices.perspective;

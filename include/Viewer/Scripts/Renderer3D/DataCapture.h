@@ -56,6 +56,7 @@ public:
     bool hide = false;
     bool flip = true;
     glm::vec3 flipVector;
+    glm::vec3 flipTrans;
 
     std::vector<ImageData> loadPoses(std::filesystem::path path);
 

@@ -42,8 +42,8 @@ namespace VkRender {
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
             window_flags =
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
-                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse |
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                    ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoResize;
             ImGui::SetNextWindowPos(ImVec2(300.0f, handles->info->height - 150.0f), ImGuiCond_Always);
             ImGui::SetNextWindowSize(ImVec2(handles->info->width - (300.0f * 2), 150.0f));

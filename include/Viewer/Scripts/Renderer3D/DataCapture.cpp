@@ -13,6 +13,8 @@
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 
+#include <glm/gtx/matrix_decompose.hpp>
+
 
 void DataCapture::setup() {
 
@@ -52,9 +54,10 @@ void DataCapture::setup() {
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
 
     }
-    flipVector = glm::vec3(1.0f, -1.0f, -1.0f);
-    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Apply flip: ", &flip);
-    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip vector: ", &flipVector);
+    flipVector = glm::vec3(1.0f, 1.0f, 1.0f);
+    flipTrans = glm::vec3(1.0f, 1.0f, 1.0f);
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip rot: ", &flipVector);
+    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip trans: ", &flipTrans);
 
 }
 
@@ -75,51 +78,62 @@ void DataCapture::update() {
                     colmapRotation = glm::normalize(colmapRotation);
                     glm::mat3 rotMatrix = glm::mat3_cast(colmapRotation);
 
-                    glm::mat3 rot180X = {
-                            1.0f, 0.0f, 0.0f,
-                            0.0f, -1.0f, 0.0f,
-                            0.0f, 0.0f, -1.0f
-                    };
-                    rotMatrix = rotMatrix;
+                    // Extract camera coordinate system vectors
+                    glm::vec3 colmapRight = glm::vec3(rotMatrix[0][0], rotMatrix[1][0], rotMatrix[2][0]);
+                    glm::vec3 colmapUp = -glm::vec3(rotMatrix[0][1], rotMatrix[1][1], rotMatrix[2][1]); // Negating for COLMAP's Y-axis downward
+                    glm::vec3 colmapFront = glm::vec3(rotMatrix[0][2], rotMatrix[1][2], rotMatrix[2][2]);
 
-                    // compare rotMatriz
-                    glm::vec3 cameraCenterProjectionColmap =
-                            -glm::transpose(rotMatrix) * glm::vec3(img.tx, img.ty, img.tz);
-
-                    glm::vec3 cameraCenterProjectionVulkan = cameraCenterProjectionColmap;
+                    // Adjust for Vulkan view space
+                    glm::vec3 vulkanRight = glm::normalize(colmapRight);     // Same as COLMAP
+                    glm::vec3 vulkanUp = glm::normalize(-colmapUp);         // Flip Y-axis to point up
+                    glm::vec3 vulkanFront = glm::normalize(-colmapFront);   // Negate Z-axis to match Vulkan's forward direction
 
 
-                    glm::mat4 rotationMatrix = glm::mat4_cast(colmapRotation);
+                    std::cout << "vectors: ----------" << img.imageID << "---------" << std::endl;
+                    std::cout << glm::to_string(vulkanRight) << std::endl;
+                    std::cout << glm::to_string(vulkanUp) << std::endl;
+                    std::cout << glm::to_string(vulkanFront) << std::endl << std::endl;
+
+                    glm::mat3 r = glm::mat3_cast(colmapRotation);
+                    glm::vec3 t = glm::vec3(img.tx, img.ty, img.tz);
+                    glm::vec3 correctPos = glm::transpose(r) * t;
+                    std::cout << glm::to_string(correctPos) << std::endl;
+
+                    // Construct the view matrix
+                    glm::mat4 viewMatrix = glm::mat4(1.0f);
+                    viewMatrix[0][0] = vulkanRight.x;
+                    viewMatrix[1][0] = vulkanRight.y;
+                    viewMatrix[2][0] = vulkanRight.z;
+                    viewMatrix[0][1] = vulkanUp.x;
+                    viewMatrix[1][1] = vulkanUp.y;
+                    viewMatrix[2][1] = vulkanUp.z;
+                    viewMatrix[0][2] = vulkanFront.x;
+                    viewMatrix[1][2] = vulkanFront.y;
+                    viewMatrix[2][2] = vulkanFront.z;
+                    viewMatrix = glm::translate(viewMatrix, correctPos);
+                    i.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
+                    objCamera.camera.matrices.view = viewMatrix;
+
+                    glm::mat4 transformationMatrix = glm::mat4_cast(colmapRotation);
 
                     glm::mat4 rot180Xhomog = {
-                            1.0f, 0.0f, 0.0f, 0.0f,
-                            0.0f, -1.0f, 0.0f, 0.0f,
-                            0.0f, 0.0f, -1.0f, 0.0f,
+                            flipVector.x, 0.0f, 0.0f, 0.0f,
+                            0.0f, flipVector.y, 0.0f, 0.0f,
+                            0.0f, 0.0f, flipVector.z, 0.0f,
                             0.0f, 0.0f, 0.0f, 1.0f,
                     };
-                    rotationMatrix = rot180Xhomog * rotationMatrix;
+                    transformationMatrix = rot180Xhomog * transformationMatrix;
 
-                    auto combined2 = glm::mat4(1.0f);
-                    rotationMatrix[3][0] = cameraCenterProjectionColmap.x;
-                    rotationMatrix[3][1] = cameraCenterProjectionColmap.y;
-                    rotationMatrix[3][2] = cameraCenterProjectionColmap.z;
-
-                    combined2[1][1] = -combined2[1][1k];
-                    combined2[2][2] = -combined2[2][2];
-
-                    combined2 = combined2 * (glm::mat4_cast(colmapRotation));
 
                     std::cout << "----------" << img.imageID << "---------" << std::endl;
                     std::cout << glm::to_string(glm::mat4_cast(colmapRotation)) << std::endl;
-                    std::cout << glm::to_string(rotationMatrix) << std::endl;
-                    std::cout << glm::to_string(cameraCenterProjectionColmap) << std::endl;
-                    std::cout << glm::to_string(combined2) << std::endl << std::endl;
+                    std::cout << glm::to_string(transformationMatrix) << std::endl;
 
 
                     i.mvp.projection = defaultCamera.matrices.perspective;
                     i.mvp.view = defaultCamera.matrices.view;
-                    i.mvp.model = glm::scale(rotationMatrix, glm::vec3(0.25f, 0.25f, 0.25f));
-                    objCamera.camera.matrices.view = glm::inverse(rotationMatrix);
+                    //i.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
+                    //objCamera.camera.matrices.view = viewMatrix;
                     objCamera.camera.pose.pos = glm::vec3(img.tx, img.ty, img.tz);
                     objCamera.camera.pose.q = glm::quat(img.qw, img.qx, img.qy, img.qz);
 
@@ -143,7 +157,7 @@ void DataCapture::update() {
             i.uboMatrix.projection = defaultCamera.matrices.perspective;
             i.uboMatrix.view = defaultCamera.matrices.view;
             auto model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            //i.uboMatrix.model = model;
+            i.uboMatrix.model = model;
             i.uboMatrix.model = glm::mat4(1.0f);
             i.uboMatrix.camPos = cameraWorldPosition;
         }

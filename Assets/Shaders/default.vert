@@ -18,8 +18,10 @@ layout(location = 1) out vec4 fragPos;
 void main() {
 	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	fragPos = pos;
+	mat4 v = ubo.view;
+	mat4 p = ubo.projection;
 
-    gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
+	gl_Position = p * v * pos;
     outUV = inUV0;
 }
 

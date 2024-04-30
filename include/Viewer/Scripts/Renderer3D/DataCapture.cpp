@@ -104,7 +104,7 @@ void DataCapture::update() {
                     rotationMatrix[3][1] = cameraCenterProjectionColmap.y;
                     rotationMatrix[3][2] = cameraCenterProjectionColmap.z;
 
-                    combined2[1][1] = -combined2[1][1];
+                    combined2[1][1] = -combined2[1][1k];
                     combined2[2][2] = -combined2[2][2];
 
                     combined2 = combined2 * (glm::mat4_cast(colmapRotation));

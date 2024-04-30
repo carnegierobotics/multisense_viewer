@@ -75,31 +75,53 @@ void DataCapture::update() {
                     colmapRotation = glm::normalize(colmapRotation);
                     glm::mat3 rotMatrix = glm::mat3_cast(colmapRotation);
 
-                    glm::mat3 rotX(1.0f);
-                    if (flip){
-                        rotX[0][0] = flipVector.x;
-                        rotX[1][1] = flipVector.y;
-                        rotX[2][2] = flipVector.z;
-                    }
+                    glm::mat3 rot180X = {
+                            1.0f, 0.0f, 0.0f,
+                            0.0f, -1.0f, 0.0f,
+                            0.0f, 0.0f, -1.0f
+                    };
+                    rotMatrix = rotMatrix;
 
-                    glm::vec3 cameraCenterProjectionColmap = glm::transpose(glm::mat3_cast(colmapRotation)) * glm::vec3(img.tx, img.ty, img.tz);
-                    glm::vec3 cameraCenterProjectionVulkan = rotX * cameraCenterProjectionColmap;
+                    // compare rotMatriz
+                    glm::vec3 cameraCenterProjectionColmap =
+                            -glm::transpose(rotMatrix) * glm::vec3(img.tx, img.ty, img.tz);
 
-                    // objCamera.camera.pose.q is the original quaternion in a different coordinate system
-                    glm::quat originalQuaternion = objCamera.camera.pose.q;
-                    glm::mat4 originalMatrix = glm::mat4_cast(originalQuaternion);
+                    glm::vec3 cameraCenterProjectionVulkan = cameraCenterProjectionColmap;
 
-                    glm::mat3 finalRotation = rotMatrix * rotX;
-                    glm::mat4 outRotation = originalMatrix * glm::mat4(finalRotation);
 
-                    glm::mat4 worldToCamera = glm::translate(outRotation, cameraCenterProjectionVulkan);
+                    glm::mat4 rotationMatrix = glm::mat4_cast(colmapRotation);
+
+                    glm::mat4 rot180Xhomog = {
+                            1.0f, 0.0f, 0.0f, 0.0f,
+                            0.0f, -1.0f, 0.0f, 0.0f,
+                            0.0f, 0.0f, -1.0f, 0.0f,
+                            0.0f, 0.0f, 0.0f, 1.0f,
+                    };
+                    rotationMatrix = rot180Xhomog * rotationMatrix;
+
+                    auto combined2 = glm::mat4(1.0f);
+                    rotationMatrix[3][0] = cameraCenterProjectionColmap.x;
+                    rotationMatrix[3][1] = cameraCenterProjectionColmap.y;
+                    rotationMatrix[3][2] = cameraCenterProjectionColmap.z;
+
+                    combined2[1][1] = -combined2[1][1];
+                    combined2[2][2] = -combined2[2][2];
+
+                    combined2 = combined2 * (glm::mat4_cast(colmapRotation));
+
+                    std::cout << "----------" << img.imageID << "---------" << std::endl;
+                    std::cout << glm::to_string(glm::mat4_cast(colmapRotation)) << std::endl;
+                    std::cout << glm::to_string(rotationMatrix) << std::endl;
+                    std::cout << glm::to_string(cameraCenterProjectionColmap) << std::endl;
+                    std::cout << glm::to_string(combined2) << std::endl << std::endl;
+
 
                     i.mvp.projection = defaultCamera.matrices.perspective;
                     i.mvp.view = defaultCamera.matrices.view;
-                    i.mvp.model = glm::scale(worldToCamera, glm::vec3(0.25f, 0.25f, 0.25f));
-                    objCamera.camera.matrices.view = glm::inverse(worldToCamera);
-                    objCamera.camera.matrices.view = glm::inverse(worldToCamera);
+                    i.mvp.model = glm::scale(rotationMatrix, glm::vec3(0.25f, 0.25f, 0.25f));
+                    objCamera.camera.matrices.view = glm::inverse(rotationMatrix);
                     objCamera.camera.pose.pos = glm::vec3(img.tx, img.ty, img.tz);
+                    objCamera.camera.pose.q = glm::quat(img.qw, img.qx, img.qy, img.qz);
 
                     break;
                 }

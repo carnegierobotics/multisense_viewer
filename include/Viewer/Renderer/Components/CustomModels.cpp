@@ -257,6 +257,8 @@ namespace VkRender {
             if (res != VK_SUCCESS)
                 throw std::runtime_error("Failed to create graphics m_Pipeline");
         }
+
+        resourcesInUse.resize(renderer->UBCount); // TODO remove
     }
 
     void CustomModelComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {

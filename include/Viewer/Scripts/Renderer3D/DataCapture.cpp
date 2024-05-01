@@ -244,6 +244,7 @@ void DataCapture::update() {
 
 void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     if (saveDepthImage){
+        m_context->saveFileName = images.rbegin()[uiHandle->m_cameraSelection.currentItemSelected].imageID;
         m_context->saveDepthPassToFile = true;
     }
     if (uiHandle->m_cameraSelection.selected) {

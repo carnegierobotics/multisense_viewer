@@ -106,7 +106,9 @@ namespace VkRender {
     public:
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
-        bool saveDepthPassToFile = false;
+
+        bool saveDepthPassToFile = false; // TODO move to appropriate place
+        std::string saveFileName;
 
     private:
         template<typename T>

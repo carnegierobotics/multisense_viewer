@@ -416,7 +416,7 @@ namespace VkRender {
 
             // Here you can use an external library to write the depth data
             // For example, using stb_image_write to write a PNG
-            Utils::writeTIFFImage("../Depth.tiff", m_Width, m_Height, reinterpret_cast<float *> (data));
+            Utils::writeTIFFImage(std::string("../" + saveFileName + ".tiff"), m_Width, m_Height, reinterpret_cast<float *> (data));
             vkUnmapMemory(device, stagingBufferMemory);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
             vkDestroyBuffer(device, stagingBuffer, nullptr);

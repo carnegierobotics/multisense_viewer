@@ -70,7 +70,7 @@ namespace VkRender {
         // Create default camera object
         m_Camera = Camera(m_Width, m_Height);
         auto e = createEntity("Default");
-        auto& c = e.addComponent<CameraComponent>(m_Camera);
+        auto &c = e.addComponent<CameraComponent>(m_Camera);
         cameras[selectedCameraTag] = &c.camera;
 
         pLogger->info("Initialized Backend");
@@ -99,7 +99,7 @@ namespace VkRender {
     void Renderer::prepareRenderer() {
         cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
         cameras[selectedCameraTag]->setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height),
-                                                  0.1f, 100.0f);
+                                                   0.1f, 100.0f);
         cameras[selectedCameraTag]->resetPosition();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
@@ -384,7 +384,11 @@ namespace VkRender {
     }
 
     void Renderer::updateUniformBuffers() {
-        cameras[selectedCameraTag]->update(frameTimer);
+        if (!selectedCameraTag.empty()) {
+            auto it = cameras.find(selectedCameraTag);
+            if (it != cameras.end())
+                cameras[selectedCameraTag]->update(frameTimer);
+        }
 
         selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
         renderData.camera = cameras[selectedCameraTag];
@@ -422,16 +426,6 @@ namespace VkRender {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->uiUpdate(&guiManager->handles);
         }
-
-
-        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 0)
-            cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
-        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].type == 1)
-            cameras[selectedCameraTag]->setType(VkRender::Camera::flycam);
-        if (guiManager->handles.m_cameraSelection.info[selectedCameraTag].reset) {
-            cameras[selectedCameraTag]->resetPosition();
-        }
-
     }
 
 
@@ -508,24 +502,31 @@ namespace VkRender {
                 continue;
             is3DViewSelected = dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD;
         }
-        if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
-            is3DViewSelected) {
-            // && !mouseButtons.middle) {
-            cameras[selectedCameraTag]->rotate(dx, dy);
-        }
-        if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
-            cameras[selectedCameraTag]->rotate(dx, dy);
 
-        if (mouseButtons.right) {
-            if (cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball)
-                cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
-            else
-                cameras[selectedCameraTag]->translate(-dx * 0.01f, -dy * 0.01f);
-        }
-        if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::flycam) {
-            cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        } else if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball) {
-            //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
+        // UPdate camera if we have one selected
+        if (!selectedCameraTag.empty()) {
+            auto it = cameras.find(selectedCameraTag);
+            if (it != cameras.end()) {
+                if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
+                    is3DViewSelected) {
+                    // && !mouseButtons.middle) {
+                    cameras[selectedCameraTag]->rotate(dx, dy);
+                }
+                if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
+                    cameras[selectedCameraTag]->rotate(dx, dy);
+
+                if (mouseButtons.right) {
+                    if (cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball)
+                        cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
+                    else
+                        cameras[selectedCameraTag]->translate(-dx * 0.01f, -dy * 0.01f);
+                }
+                if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::flycam) {
+                    cameras[selectedCameraTag]->translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+                } else if (mouseButtons.middle && cameras[selectedCameraTag]->m_type == VkRender::Camera::arcball) {
+                    //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
+                }
+            }
         }
         mousePos = glm::vec2(x, y);
 
@@ -615,8 +616,14 @@ namespace VkRender {
         }
     }
 
-    Camera &Renderer::getCamera() {
-        return *cameras[guiManager->handles.m_cameraSelection.tag];
+    const VkRender::Camera Renderer::getCamera() {
+        if (!selectedCameraTag.empty()) {
+            auto it = cameras.find(selectedCameraTag);
+            if (it != cameras.end()) {
+                return *cameras[selectedCameraTag];
+            }
+        }
+        return Camera(m_Width, m_Height); // Return a non-initialized camera if we dont have any active cameras
     }
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -699,6 +706,7 @@ namespace VkRender {
     void Renderer::onComponentAdded<VkRender::OBJModelComponent>(Entity entity,
                                                                  VkRender::OBJModelComponent &component) {
     }
+
     template<>
     void Renderer::onComponentAdded<VkRender::SecondaryRenderPassComponent>(Entity entity,
                                                                             VkRender::SecondaryRenderPassComponent &component) {
@@ -706,7 +714,7 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<VkRender::CameraGraphicsPipelineComponent>(Entity entity,
-                                                                            VkRender::CameraGraphicsPipelineComponent &component) {
+                                                                               VkRender::CameraGraphicsPipelineComponent &component) {
     }
 
     DISABLE_WARNING_POP

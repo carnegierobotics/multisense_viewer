@@ -200,6 +200,14 @@ namespace VkRender {
         std::unordered_map<std::string, Info> info;
     };
 
+    /** @Brief Holds paths to various UI inpits stuff */
+    struct Paths {
+        std::filesystem::path loadColMapPosesPath;
+        std::filesystem::path importObjFilePath;
+
+        bool updateObjPath = false;
+    };
+
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
@@ -254,7 +262,7 @@ namespace VkRender {
         CameraSelection m_cameraSelection{};
         Renderer *m_context;
         bool m_loadColmapCameras = false;
-        std::filesystem::path m_loadColmapPosesPath;
+        Paths m_paths;
     };
 
     /**

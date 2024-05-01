@@ -89,7 +89,7 @@ void Widgets::inputText(ScriptWidgetPlacement window, const char *label, char *b
     elements[window].emplace_back(label, buf);
 }
 
-void Widgets::fileDialog(ScriptWidgetPlacement window, const char *label, std::future<std::string> *future) {
+void Widgets::fileDialog(ScriptWidgetPlacement window, const char *label, std::future<std::filesystem::path> *future) {
     if (labelExists(label, window))
         return;
     elements[window].emplace_back(label, future, WIDGET_SELECT_DIR_DIALOG);

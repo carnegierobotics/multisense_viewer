@@ -58,7 +58,7 @@ private:
     };
 public:
 
-    std::future<std::string> folderFuture;
+    std::future<std::filesystem::path> folderFuture;
 
 
     /** Called once upon this object creation**/

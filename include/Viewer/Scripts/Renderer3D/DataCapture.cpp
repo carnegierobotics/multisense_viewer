@@ -20,9 +20,7 @@ void DataCapture::setup() {
 
 
     auto entity = m_context->createEntity("3dgs_object");
-    auto &component = entity.addComponent<VkRender::OBJModelComponent>(
-            Utils::getModelsPath() / "obj" / "3dgs.obj",
-            m_context->renderUtils.device);
+    auto &component = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj",m_context->renderUtils.device);
     entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(&m_context->renderUtils, component, true);
     entity.addComponent<VkRender::SecondaryRenderPassComponent>();
 
@@ -54,11 +52,8 @@ void DataCapture::setup() {
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
 
     }
-    flipVector = glm::vec3(1.0f, 1.0f, 1.0f);
-    flipTrans = glm::vec3(1.0f, 1.0f, 1.0f);
-    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip rot: ", &flipVector);
-    Widgets::make()->vec3(WIDGET_PLACEMENT_RENDERER3D, "Flip trans: ", &flipTrans);
 
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Reset Data Capture", &resetDataCapture);
 }
 
 
@@ -89,15 +84,9 @@ void DataCapture::update() {
                     glm::vec3 vulkanFront = glm::normalize(-colmapFront);   // Negate Z-axis to match Vulkan's forward direction
 
 
-                    std::cout << "vectors: ----------" << img.imageID << "---------" << std::endl;
-                    std::cout << glm::to_string(vulkanRight) << std::endl;
-                    std::cout << glm::to_string(vulkanUp) << std::endl;
-                    std::cout << glm::to_string(vulkanFront) << std::endl << std::endl;
-
                     glm::mat3 r = glm::mat3_cast(colmapRotation);
                     glm::vec3 t = glm::vec3(img.tx, img.ty, img.tz);
                     glm::vec3 correctPos = glm::transpose(r) * t;
-                    std::cout << glm::to_string(correctPos) << std::endl;
 
                     // Construct the view matrix
                     glm::mat4 viewMatrix = glm::mat4(1.0f);
@@ -111,29 +100,12 @@ void DataCapture::update() {
                     viewMatrix[1][2] = vulkanFront.y;
                     viewMatrix[2][2] = vulkanFront.z;
                     viewMatrix = glm::translate(viewMatrix, correctPos);
+
                     i.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
                     objCamera.camera.matrices.view = viewMatrix;
-
-                    glm::mat4 transformationMatrix = glm::mat4_cast(colmapRotation);
-
-                    glm::mat4 rot180Xhomog = {
-                            flipVector.x, 0.0f, 0.0f, 0.0f,
-                            0.0f, flipVector.y, 0.0f, 0.0f,
-                            0.0f, 0.0f, flipVector.z, 0.0f,
-                            0.0f, 0.0f, 0.0f, 1.0f,
-                    };
-                    transformationMatrix = rot180Xhomog * transformationMatrix;
-
-
-                    std::cout << "----------" << img.imageID << "---------" << std::endl;
-                    std::cout << glm::to_string(glm::mat4_cast(colmapRotation)) << std::endl;
-                    std::cout << glm::to_string(transformationMatrix) << std::endl;
-
-
                     i.mvp.projection = defaultCamera.matrices.perspective;
                     i.mvp.view = defaultCamera.matrices.view;
-                    //i.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
-                    //objCamera.camera.matrices.view = viewMatrix;
+
                     objCamera.camera.pose.pos = glm::vec3(img.tx, img.ty, img.tz);
                     objCamera.camera.pose.q = glm::quat(img.qw, img.qx, img.qy, img.qz);
 
@@ -156,8 +128,6 @@ void DataCapture::update() {
 
             i.uboMatrix.projection = defaultCamera.matrices.perspective;
             i.uboMatrix.view = defaultCamera.matrices.view;
-            auto model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            i.uboMatrix.model = model;
             i.uboMatrix.model = glm::mat4(1.0f);
             i.uboMatrix.camPos = cameraWorldPosition;
         }
@@ -244,6 +214,56 @@ void DataCapture::update() {
         obj.update();
     }
 
+    for (const auto& entName : entities){
+        if (m_context->findEntityByName(entName)) {
+            auto &obj = m_context->findEntityByName(entName).getComponent<VkRender::DefaultGraphicsPipelineComponent>();
+            for (auto &i: obj.renderData) {
+
+                i.uboMatrix.projection = defaultCamera.matrices.perspective;
+                i.uboMatrix.view = defaultCamera.matrices.view;
+                i.uboMatrix.model = glm::mat4(1.0f);
+                i.uboMatrix.camPos = cameraWorldPosition;
+            }
+            obj.update();
+        }
+    }
+
+    if (resetDataCapture) {
+        for (const auto &img: images) {
+            std::string tag = "Camera: " + std::to_string(img.imageID);
+            m_context->markEntityForDestruction(m_context->findEntityByName(tag));
+        }
+
+        for (const std::string& entityName : entities){
+            m_context->markEntityForDestruction(m_context->findEntityByName(entityName));
+        }
+    }
+}
+
+
+void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+    if (uiHandle->m_cameraSelection.selected) {
+        if (!images.empty() && uiHandle->m_cameraSelection.currentItemSelected < images.size())
+            Log::Logger::getInstance()->info("Selected camera {}, Image Filename: {}",
+                                             images.rbegin()[uiHandle->m_cameraSelection.currentItemSelected].imageID,
+                                             images.rbegin()[uiHandle->m_cameraSelection.currentItemSelected].imageName.c_str());
+    }
+    if (uiHandle->m_loadColmapCameras) {
+        loadColmapPoses(uiHandle);
+    }
+
+    if (uiHandle->m_paths.updateObjPath){
+        // Load new obj file
+        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importObjFilePath.string());
+        std::string entityName = uiHandle->m_paths.importObjFilePath.filename().string();
+        entities.push_back(entityName);
+        auto entity = m_context->createEntity(entityName);
+        auto &component = entity.addComponent<VkRender::OBJModelComponent>(uiHandle->m_paths.importObjFilePath,m_context->renderUtils.device);
+        entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(&m_context->renderUtils, component, true);
+        entity.addComponent<VkRender::SecondaryRenderPassComponent>();
+
+    }
+
 }
 
 
@@ -286,67 +306,48 @@ std::vector<DataCapture::CameraData> DataCapture::loadCameraParams(const std::fi
     return cameras;
 }
 
-void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
-    if (uiHandle->m_cameraSelection.selected) {
-        if (!images.empty() && uiHandle->m_cameraSelection.currentItemSelected < images.size())
-            Log::Logger::getInstance()->info("Selected camera {}, Image Filename: {}",
-                                             images.rbegin()[uiHandle->m_cameraSelection.currentItemSelected].imageID,
-                                             images.rbegin()[uiHandle->m_cameraSelection.currentItemSelected].imageName.c_str());
+void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
+    // Load camera params
+    std::vector<DataCapture::CameraData> cameras = loadCameraParams(uiHandle->m_paths.loadColMapPosesPath);
+
+    // Load poses
+    images = loadPoses(uiHandle->m_paths.loadColMapPosesPath);
+    std::sort(images.begin(), images.end(), DataCapture::compareImageID);
+    CameraData cameraData = cameras.front();
+    for (const auto &img: images) {
+
+        std::string tag = "Camera: " + std::to_string(img.imageID);
+
+        float fov_x = 2.0f * atan(cameraData.width / (2.0f * cameraData.parameters[0]));
+        float fov_y = 2.0f * atan(cameraData.height / (2.0f * cameraData.parameters[1]));
+
+        // Convert to degrees
+        float fov_x_deg = glm::degrees(fov_x);
+        float fov_y_deg = glm::degrees(fov_y);
+
+        // Usually, we select the smaller FOV to avoid distortion
+        float fov = std::min(fov_x_deg, fov_y_deg);
+
+        // Aspect ratio
+        float aspect = static_cast<float>(cameraData.width) / static_cast<float>(cameraData.height);
+
+        auto camera = VkRender::Camera(cameraData.width, cameraData.height);
+
+        // Update the perspective of the camera
+        camera.setPerspective(fov, aspect, 0.1f, 100.0f);
+
+        // Set the camera at the colmap image position:
+        auto e = uiHandle->m_context->createEntity(tag);
+        auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+        auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
+        m_context->cameras[tag] = &cameraComponent.camera;
+        uiHandle->m_cameraSelection.tag = tag;
     }
-    if (uiHandle->m_loadColmapCameras) {
-        // Load camera params
-        std::vector<DataCapture::CameraData> cameras = loadCameraParams(uiHandle->m_loadColmapPosesPath);
 
-        for (const auto &cam: cameras) {
-            std::cout << "Camera ID: " << cam.cameraID << ", Model: " << cam.model
-                      << ", Width: " << cam.width << ", Height: " << cam.height << std::endl;
-            std::cout << "Parameters: ";
-            for (auto param: cam.parameters) {
-                std::cout << param << " ";
-            }
-            std::cout << std::endl;
-        }
-        // Load poses
-        images = loadPoses(uiHandle->m_loadColmapPosesPath);
-        std::sort(images.begin(), images.end(), DataCapture::compareImageID);
-        CameraData cameraData = cameras.front();
-        for (const auto &img: images) {
-            std::cout << "Image ID: " << img.imageID << ", Image Name: " << img.imageName << std::endl;
-            std::cout << "Quaternion: (" << img.qw << ", " << img.qx << ", " << img.qy << ", " << img.qz << ")"
-                      << std::endl;
-            std::cout << "Translation: (" << img.tx << ", " << img.ty << ", " << img.tz << ")" << std::endl;
-
-            std::string tag = "Camera: " + std::to_string(img.imageID);
-
-            float fov_x = 2.0f * atan(cameraData.width / (2.0f * cameraData.parameters[0]));
-            float fov_y = 2.0f * atan(cameraData.height / (2.0f * cameraData.parameters[1]));
-
-            // Convert to degrees
-            float fov_x_deg = glm::degrees(fov_x);
-            float fov_y_deg = glm::degrees(fov_y);
-
-            // Usually, we select the smaller FOV to avoid distortion
-            float fov = std::min(fov_x_deg, fov_y_deg);
-
-            // Aspect ratio
-            float aspect = static_cast<float>(cameraData.width) / static_cast<float>(cameraData.height);
-
-            auto camera = VkRender::Camera(cameraData.width, cameraData.height);
-
-            // Update the perspective of the camera
-            camera.setPerspective(fov, aspect, 0.1f, 100.0f);
-
-            // Set the camera at the colmap image position:
-            auto e = uiHandle->m_context->createEntity(tag);
-            auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
-            auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
-            m_context->cameras[tag] = &cameraComponent.camera;
-            uiHandle->m_cameraSelection.tag = tag;
-        }
-
-        uiHandle->m_loadColmapCameras = false;
-    }
+    uiHandle->m_loadColmapCameras = false;
 }
+
+
 
 std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path path) {
 

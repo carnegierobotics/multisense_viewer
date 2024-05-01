@@ -20,9 +20,9 @@ private:
     std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> showSetTimer;
     std::string setCalibrationFeedbackText;
 
-    std::future<std::string> setIntrinsicsFuture;
-    std::future<std::string> setExtrinsicsFuture;
-    std::future<std::string> setCalibrationFolderFuture;
+    std::future<std::filesystem::path> setIntrinsicsFuture;
+    std::future<std::filesystem::path> setExtrinsicsFuture;
+    std::future<std::filesystem::path> setCalibrationFolderFuture;
 
 public:
 
@@ -932,7 +932,7 @@ public:
 
                 if (ImGui::Button("Choose File##1", btnSize)) {
                     if (!setIntrinsicsFuture.valid())
-                        setIntrinsicsFuture = std::async(VkRender::LayerUtils::selectYamlFile);
+                        setIntrinsicsFuture = std::async(VkRender::LayerUtils::selectFile, "Select YAML file", "yml", Utils::getSystemHomePath());
                     handles->usageMonitor->userClickAction("Choose File##1", "Button", ImGui::GetCurrentWindow()->Name);
                 }
 
@@ -970,7 +970,7 @@ public:
                 ImGui::SameLine();
                 if (ImGui::Button("Choose File##2", btnSize)) {
                     if (!setExtrinsicsFuture.valid())
-                        setExtrinsicsFuture = std::async(VkRender::LayerUtils::selectYamlFile);
+                        setExtrinsicsFuture = std::async(VkRender::LayerUtils::selectFile, "Select YAML file", "yml", Utils::getSystemHomePath());
                     handles->usageMonitor->userClickAction("Choose File##2", "Button", ImGui::GetCurrentWindow()->Name);
                 }
 

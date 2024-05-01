@@ -51,20 +51,16 @@ public:
     };
 
     std::vector<ImageData> images;
-
-    bool enable = true;
-    bool hide = false;
-    bool flip = true;
-    glm::vec3 flipVector;
-    glm::vec3 flipTrans;
+    std::vector<std::string> entities;
+    bool resetDataCapture = true;
 
     std::vector<ImageData> loadPoses(std::filesystem::path path);
-
-    glm::mat4 quaternionToMatrix(double qw, double qx, double qy, double qz, double tx, double ty, double tz);
 
     static bool compareImageID(const ImageData &img1, const ImageData &img2);
 
     std::vector<CameraData> loadCameraParams(const std::filesystem::path &path);
+
+    void loadColmapPoses(VkRender::GuiObjectHandles *uiHandle);
 };
 
 #endif //MULTISENSE_VIEWER_DATACAPTURE_H

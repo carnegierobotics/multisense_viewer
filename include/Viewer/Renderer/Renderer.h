@@ -96,7 +96,7 @@ namespace VkRender {
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
 
-        Camera& getCamera();
+        const Camera getCamera();
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};

@@ -23,15 +23,17 @@ namespace VkRender::AppConfig {
         bool askForUsageLoggingPermissions = true;
 
         std::filesystem::path lastOpenedFolderPath;
+        std::filesystem::path lastOpenedImportModelFolderPath;
     };
 
     static void to_json(nlohmann::json &j, const ApplicationUserSetting &settings) {
         j = nlohmann::json{
-                {"logLevel",                      settings.logLevel},
-                {"sendUsageLogOnExit",            settings.sendUsageLogOnExit},
-                {"userConsentToSendLogs",         settings.userConsentToSendLogs},
-                {"askForUsageLoggingPermissions", settings.askForUsageLoggingPermissions},
-                {"lastOpenedFolderPath",          settings.lastOpenedFolderPath.string()}
+                {"logLevel",                        settings.logLevel},
+                {"sendUsageLogOnExit",              settings.sendUsageLogOnExit},
+                {"userConsentToSendLogs",           settings.userConsentToSendLogs},
+                {"askForUsageLoggingPermissions",   settings.askForUsageLoggingPermissions},
+                {"lastOpenedFolderPath",            settings.lastOpenedFolderPath.string()},
+                {"lastOpenedImportModelFolderPath", settings.lastOpenedImportModelFolderPath.string()}
         };
     }
 
@@ -41,6 +43,7 @@ namespace VkRender::AppConfig {
         j.at("userConsentToSendLogs").get_to(settings.userConsentToSendLogs);
         j.at("askForUsageLoggingPermissions").get_to(settings.askForUsageLoggingPermissions);
         settings.lastOpenedFolderPath = j.at("lastOpenedFolderPath").get<std::string>();
+        settings.lastOpenedImportModelFolderPath = j.at("lastOpenedImportModelFolderPath").get<std::string>();
     }
 }
 #endif //MULTISENSE_VIEWER_APPLICATIONUSERSETTING_H

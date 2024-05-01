@@ -16,8 +16,8 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 class Preview3DExt : public VkRender::Layer {
 private:
 
-    std::future<std::string> savePointCloudFolderFuture;
-    std::future<std::string> saveIMUFolderFuture;
+    std::future<std::filesystem::path> savePointCloudFolderFuture;
+    std::future<std::filesystem::path> saveIMUFolderFuture;
 
 public:
 

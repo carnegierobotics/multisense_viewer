@@ -44,7 +44,7 @@ public:
     void checkbox(ScriptWidgetPlacement window, const char* label, bool* val);
     void button(ScriptWidgetPlacement window, const char* label, bool* val);
     void inputText(ScriptWidgetPlacement window, const char* label, char* buf);
-    void fileDialog(ScriptWidgetPlacement window, const char* label, std::future<std::string>* future);
+    void fileDialog(ScriptWidgetPlacement window, const char* label, std::future<std::filesystem::path>* future);
 
     struct Element {
         std::string label;
@@ -59,7 +59,7 @@ public:
         char *buf = nullptr;
         bool *active = nullptr;
         std::string id;
-        std::future<std::string> *future{};
+        std::future<std::filesystem::path> *future{};
         ScriptWidgetType type{};
 
         struct {
@@ -102,7 +102,7 @@ public:
                                                     buf(_buf),
                                                     type(WIDGET_INPUT_TEXT) {}
         /** FILE DIALOG WIDGET **/
-        Element(const char *labelVal, std::future<std::string> *_future, ScriptWidgetType _type) : label(labelVal),
+        Element(const char *labelVal, std::future<std::filesystem::path> *_future, ScriptWidgetType _type) : label(labelVal),
                                                                                                    future(_future),
                                                                                                    type(_type) {}
     };

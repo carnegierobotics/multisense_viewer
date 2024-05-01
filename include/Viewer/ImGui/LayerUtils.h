@@ -32,7 +32,7 @@ namespace VkRender::LayerUtils {
 
 #ifdef WIN32
 
-    static inline std::string selectFolder(std::string openLocation = "") {
+    static inline std::filesystem::path selectFolder(std::string openLocation = "") {
         PWSTR path = NULL;
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
@@ -71,7 +71,7 @@ namespace VkRender::LayerUtils {
         return std::string();
     }
 
-    static inline std::string selectYamlFile() {
+    static inline std::filesystem::path selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
         PWSTR path = NULL;
         std::string filePath;
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -119,13 +119,13 @@ namespace VkRender::LayerUtils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
 
-    static inline std::string selectYamlFile() {
-        std::string filename = "";
+    static inline std::filesystem::path selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
+        std::string filename;
 
         gtk_init(0, NULL);
 
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
-                "Open YAML File",
+                dialogName.c_str(),
                 NULL,
                 GTK_FILE_CHOOSER_ACTION_OPEN,
                 ("_Cancel"), GTK_RESPONSE_CANCEL,
@@ -134,10 +134,10 @@ namespace VkRender::LayerUtils {
         );
 
         GtkFileFilter *filter = gtk_file_filter_new();
-        gtk_file_filter_set_name(filter, "YML Files");
-        gtk_file_filter_add_pattern(filter, "*.yml");
+        gtk_file_filter_set_name(filter, (fileType + " Files").c_str()); // Set filter name dynamically based on fileType
+        gtk_file_filter_add_pattern(filter, ("*." + fileType).c_str()); // Set filter pattern dynamically
         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), Utils::getSystemHomePath().c_str());
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), setCurrentFolder.c_str());
 
         if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
             char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -154,8 +154,8 @@ namespace VkRender::LayerUtils {
     }
 
 
-    static inline std::string selectFolder(std::string openLocation = "") {
-        std::string folderPath = "";
+    static inline std::filesystem::path selectFolder(std::string openLocation) {
+        std::string folderPath;
 
         gtk_init(0, NULL);
 

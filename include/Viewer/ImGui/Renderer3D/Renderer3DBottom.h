@@ -16,7 +16,7 @@ namespace VkRender {
     class Renderer3DBottom : public VkRender::Layer {
     public:
 
-        std::future<std::string> folderFuture;
+        std::future<std::filesystem::path> folderFuture;
 
         /** Called once upon this object creation**/
         void onAttach() override {
@@ -172,7 +172,7 @@ namespace VkRender {
                         Log::Logger::getInstance()->info("Selected folder {}", selectedFolder);
                         RendererConfig::getInstance().getUserSetting().lastOpenedFolderPath = selectedFolder;
                         handles->m_loadColmapCameras = true;
-                        handles->m_loadColmapPosesPath = selectedFolder;
+                        handles->m_paths.loadColMapPosesPath = selectedFolder;
                     }
                 }
             }

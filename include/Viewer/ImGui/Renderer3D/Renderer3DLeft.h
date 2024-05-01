@@ -28,6 +28,7 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 namespace VkRender {
     class Renderer3DLeft : public Layer {
     public:
+        std::future<std::filesystem::path> loadFileFuture;
 
 
         /** Called once upon this object creation**/
@@ -104,7 +105,7 @@ namespace VkRender {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<DefaultGraphicsPipelineComponent>().updateGraphicsPipeline();
                     }
-                } else if(e.hasComponent<CameraGraphicsPipelineComponent>()){
+                } else if (e.hasComponent<CameraGraphicsPipelineComponent>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<CameraGraphicsPipelineComponent>().updateGraphicsPipeline();
                     }
@@ -115,6 +116,39 @@ namespace VkRender {
                 }
                 ImGui::TreePop();
             }
+        }
+
+        // Example function to handle file import (you'll need to implement the actual logic)
+        void openImportFileDialog(const std::string &fileDescription, const std::string &type) {
+            if (!loadFileFuture.valid()) {
+                auto &opts = RendererConfig::getInstance().getUserSetting();
+                std::string openLoc = Utils::getSystemHomePath().string();
+                if (!opts.lastOpenedImportModelFolderPath.empty()) {
+                    openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+                }
+                loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file", type, openLoc);
+            }
+        }
+
+        void rightClickPopup() {
+            ImGui::SetNextWindowSize(ImVec2(250.0f, 0));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30.0f,
+                                                                    15.0f)); // 20 pixels padding on the left and right, 10 pixels top and bottom
+
+            if (ImGui::BeginPopupContextWindow("right click menu", ImGuiPopupFlags_MouseButtonRight)) {
+
+                // Menu options for loading files
+                if (ImGui::MenuItem("Load Wavefront (.obj)")) {
+                    openImportFileDialog("Wavefront", "obj");
+                }
+                if (ImGui::MenuItem("Load glTF 2.0 (.gltf)")) {
+                    openImportFileDialog("glTF 2.0", "gltf");
+                }
+
+                ImGui::EndPopup();
+            }
+            ImGui::PopStyleVar();  // Reset the padding to previous value
+
         }
 
         /** Called once per frame **/
@@ -144,6 +178,8 @@ namespace VkRender {
                 handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::Dummy(ImVec2(0.0f, 50.0f));
+
+            ImGui::Text("Scene hierarchy");
             // Calculate 90% of the available width
             float width = ImGui::GetContentRegionAvail().x * 0.9f;
             // Set a dynamic height based on content, starting with a minimum of 150px
@@ -153,6 +189,9 @@ namespace VkRender {
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
             ImGui::BeginChild("MyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
 
+
+            rightClickPopup();
+
             processEntities(handles);
             ImGui::EndChild();
             ImGui::PopStyleColor(); // Reset to previous style color
@@ -160,6 +199,21 @@ namespace VkRender {
             ImGui::End();
             ImGui::PopStyleColor();
 
+            if (loadFileFuture.valid()) {
+                if (loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    std::string selectedFile = loadFileFuture.get(); // This will also make the future invalid
+                    if (!selectedFile.empty()) {
+                        // Do something with the selected folder
+
+                        Log::Logger::getInstance()->info("Selected folder {}", selectedFile);
+                        RendererConfig::getInstance().getUserSetting().lastOpenedImportModelFolderPath = selectedFile;
+                        handles->m_paths.importObjFilePath = selectedFile;
+                        handles->m_paths.updateObjPath = true;
+                    }
+                }
+            } else {
+                handles->m_paths.updateObjPath = false;
+            }
         }
 
         /** Called once upon this object destruction **/

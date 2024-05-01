@@ -233,7 +233,7 @@ namespace VkRender {
 
     VulkanRenderer::~VulkanRenderer() {
 
-        for (auto & pass : secondaryRenderPasses) {
+        for (auto &pass: secondaryRenderPasses) {
             vkFreeMemory(device, pass.depthStencil.mem, nullptr);
             vkFreeMemory(device, pass.colorImage.mem, nullptr);
             vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
@@ -247,7 +247,7 @@ namespace VkRender {
             vkDestroyImage(device, pass.depthStencil.image, nullptr);
             vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
 
-            for (auto & frameBuffer : pass.frameBuffers) {
+            for (auto &frameBuffer: pass.frameBuffers) {
                 vkDestroyFramebuffer(device, frameBuffer, nullptr);
             }
             vkDestroyRenderPass(device, pass.renderPass, nullptr);
@@ -619,12 +619,13 @@ namespace VkRender {
         rendererStartTime = std::chrono::system_clock::now();
     }
 
-    void VulkanRenderer::setupSecondaryRenderPasses() {
+    void VulkanRenderer::setupSecondaryRenderPasses(bool useMSAA) {
         secondaryRenderPasses.resize(1);
         // Color image resource
         // Depth stencil resource
         // Render Pass
         // Frame Buffer
+        VkSampleCountFlagBits sampleCount = useMSAA ? msaaSamples : VK_SAMPLE_COUNT_1_BIT;
 
         //// DEPTH STENCIL RESOURCE /////
         VkImageCreateInfo depthImageCI = Populate::imageCreateInfo();
@@ -633,9 +634,14 @@ namespace VkRender {
         depthImageCI.extent = {m_Width, m_Height, 1};
         depthImageCI.mipLevels = 1;
         depthImageCI.arrayLayers = 1;
-        depthImageCI.samples = msaaSamples;
+        depthImageCI.samples = sampleCount;
         depthImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                             VK_IMAGE_USAGE_SAMPLED_BIT;
+        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        if (!useMSAA) {
+            depthImageCI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // Add sampled bit if not using MSAA, useful for certain post-processing effects
+        }
 
         VkResult result = vkCreateImage(device, &depthImageCI, nullptr, &secondaryRenderPasses[0].depthStencil.image);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
@@ -677,18 +683,25 @@ namespace VkRender {
         colorImageCI.extent = {m_Width, m_Height, 1};
         colorImageCI.mipLevels = 1;
         colorImageCI.arrayLayers = 1;
-        colorImageCI.samples = msaaSamples;
+        colorImageCI.samples = sampleCount;
         colorImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         colorImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.image);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
 
-        colorImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedImage);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
+        if (useMSAA) {
+            // Create an additional resolved image if MSAA is used
+            VkImageCreateInfo resolvedImageCI = colorImageCI; // Copy from colorImageCI for basic settings
+            resolvedImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            resolvedImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            result = vkCreateImage(device, &resolvedImageCI, nullptr,
+                                   &secondaryRenderPasses[0].colorImage.resolvedImage);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
+        }
+
+
         {
             VkMemoryRequirements colorMemReqs{};
             vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.image, &colorMemReqs);
@@ -704,7 +717,7 @@ namespace VkRender {
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
 
         }
-        {
+        if (useMSAA) {
             VkMemoryRequirements colorMemReqs{};
             vkGetImageMemoryRequirements(device, secondaryRenderPasses[0].colorImage.resolvedImage, &colorMemReqs);
 
@@ -712,7 +725,8 @@ namespace VkRender {
             colorMemAllloc.allocationSize = colorMemReqs.size;
             colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses[0].colorImage.resolvedMem);
+            result = vkAllocateMemory(device, &colorMemAllloc, nullptr,
+                                      &secondaryRenderPasses[0].colorImage.resolvedMem);
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
             result = vkBindImageMemory(device, secondaryRenderPasses[0].colorImage.resolvedImage,
                                        secondaryRenderPasses[0].colorImage.resolvedMem, 0);
@@ -733,12 +747,16 @@ namespace VkRender {
         if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
-        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
 
-        colorImageViewCI.image = secondaryRenderPasses[0].colorImage.resolvedImage;
-        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.resolvedView);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
+        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses[0].colorImage.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage view");
+
+        if (useMSAA) {
+            colorImageViewCI.image = secondaryRenderPasses[0].colorImage.resolvedImage;
+            result = vkCreateImageView(device, &colorImageViewCI, nullptr,
+                                       &secondaryRenderPasses[0].colorImage.resolvedView);
+            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedVie");
+        }
         //// SAMPLER SETUP ////
         VkSamplerCreateInfo samplerInfo = {};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -779,7 +797,7 @@ namespace VkRender {
         VkAttachmentDescription colorAttachment{};
         // Color attachment
         colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
-        colorAttachment.samples = msaaSamples;
+        colorAttachment.samples = sampleCount;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -789,7 +807,7 @@ namespace VkRender {
         // Depth attachment
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = depthFormat;
-        depthAttachment.samples = msaaSamples;
+        depthAttachment.samples = sampleCount;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -807,26 +825,31 @@ namespace VkRender {
         colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
-
-        colorAttachmentResolveRef.attachment = 2;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
         colorReference.attachment = 0;
         colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
         depthReference.attachment = 1;
         depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &colorReference;  // Color attachment that is multisampled
-        subpassDescription.pResolveAttachments = &colorAttachmentResolveRef; // Where to resolve the multisampled color attachment
-        subpassDescription.pDepthStencilAttachment = &depthReference; // Depth attachment (no resolving)
+        subpassDescription.pColorAttachments = &colorReference;  // Color attachment
+        subpassDescription.pDepthStencilAttachment = &depthReference; // Depth attachment
         subpassDescription.inputAttachmentCount = 0;
         subpassDescription.pInputAttachments = nullptr;
         subpassDescription.preserveAttachmentCount = 0;
         subpassDescription.pPreserveAttachments = nullptr;
+
+        if (useMSAA){
+            attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
+
+            colorAttachmentResolveRef.attachment = 2;
+            colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            subpassDescription.pResolveAttachments = &colorAttachmentResolveRef; // Where to resolve the multisampled color attachment
+
+        } else {
+            attachments = {{colorAttachment, depthAttachment}};
+        }
+
+
 
         // Subpass dependencies for layout transitions
         std::array<VkSubpassDependency, 2> dependencies{};
@@ -834,16 +857,24 @@ namespace VkRender {
         dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
         dependencies[0].dstSubpass = 0;
         dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;;
+        dependencies[0].dstStageMask =
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;;
         dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR; // Adjusted to reflect completion of writes
-        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
         dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         dependencies[1].srcSubpass = 0;
         dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].srcStageMask =
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
         dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted if necessary
-        dependencies[1].srcAccessMask =VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
+        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
         dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; // Adjusted if subsequent operations are general
         dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -860,10 +891,18 @@ namespace VkRender {
             throw std::runtime_error("failed to create second render pass!");
         }
         //// FrameBuffer setup ////
-        std::array<VkImageView, 3> framebufferAttachments{};
-        framebufferAttachments[0] = secondaryRenderPasses[0].colorImage.view;
-        framebufferAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
-        framebufferAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
+        std::vector<VkImageView> framebufferAttachments{};
+        if (useMSAA){
+            framebufferAttachments.resize(3);
+            framebufferAttachments[0] = secondaryRenderPasses[0].colorImage.view;
+            framebufferAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
+            framebufferAttachments[2] = secondaryRenderPasses[0].colorImage.resolvedView;
+        } else {
+            framebufferAttachments.resize(2);
+            framebufferAttachments[0] = secondaryRenderPasses[0].colorImage.view;
+            framebufferAttachments[1] = secondaryRenderPasses[0].depthStencil.view;
+        }
+
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
                                                                                         framebufferAttachments.data(),
                                                                                         framebufferAttachments.size(),
@@ -878,14 +917,22 @@ namespace VkRender {
 
         VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
+
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         subresourceRange.levelCount = 1;
         subresourceRange.layerCount = 1;
 
-        Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        if (useMSAA){
+            Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        } else {
+            Utils::setImageLayout(copyCmd, secondaryRenderPasses[0].colorImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        }
+
 
         VkImageSubresourceRange depthRange = {};
         depthRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -901,8 +948,12 @@ namespace VkRender {
 
 
         secondaryRenderPasses[0].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
+        secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.view; // Your off-screen image view
         secondaryRenderPasses[0].imageInfo.sampler = secondaryRenderPasses[0].colorImage.sampler; // The sampler you've just created
+        if (useMSAA){
+            secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
+
+        }
 
         secondaryRenderPasses[0].depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         secondaryRenderPasses[0].depthImageInfo.imageView = secondaryRenderPasses[0].depthStencil.view; // Your off-screen image view
@@ -999,7 +1050,7 @@ namespace VkRender {
         vkFreeMemory(device, colorImage.mem, nullptr);
 
         // Destroy the secondary renderpasses
-        for (auto & pass : secondaryRenderPasses) {
+        for (auto &pass: secondaryRenderPasses) {
             vkFreeMemory(device, pass.depthStencil.mem, nullptr);
             vkFreeMemory(device, pass.colorImage.mem, nullptr);
             vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
@@ -1013,7 +1064,7 @@ namespace VkRender {
             vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
             vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
 
-            for (auto & frameBuffer : pass.frameBuffers) {
+            for (auto &frameBuffer: pass.frameBuffers) {
                 vkDestroyFramebuffer(device, frameBuffer, nullptr);
             }
             vkDestroyRenderPass(device, pass.renderPass, nullptr);
@@ -1040,7 +1091,7 @@ namespace VkRender {
         setupMainFramebuffer();
 
         // Maybe resize overlay too
-        setupSecondaryRenderPasses();
+        setupSecondaryRenderPasses(false);
 
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer
@@ -1125,7 +1176,6 @@ namespace VkRender {
             throw std::runtime_error("Failed to wait for compute fence");
 
 
-
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
 
         vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -1146,7 +1196,7 @@ namespace VkRender {
         if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for render fence");
 
-        if (recreateResourcesNextFrame){
+        if (recreateResourcesNextFrame) {
             Log::Logger::getInstance()->info("Attempting to launch resize window to solve vkSubmit Issue");
             windowResize();
             recreateResourcesNextFrame = false;
@@ -1206,7 +1256,8 @@ namespace VkRender {
                                                   semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
-            Log::Logger::getInstance()->warning("SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
+            Log::Logger::getInstance()->warning(
+                    "SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
             recreateResourcesNextFrame = true;
         } else if (result != VK_SUCCESS) {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",

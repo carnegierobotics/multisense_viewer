@@ -117,7 +117,7 @@ namespace VkRender {
     void DefaultGraphicsPipelineComponent::setupPipeline(Resource &resource, const std::string &vertexShader,
                                                          const std::string &fragmentShader,
                                                          VkDescriptorSetLayout &descriptorSetLayout,
-                                                         VkRenderPass renderPass) {
+                                                         VkRenderPass renderPass, VkSampleCountFlagBits sampleCount) {
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
         inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -155,7 +155,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = renderUtils->msaaSamples;
+        multisampleStateCI.rasterizationSamples = sampleCount;
 
 
         std::vector<VkDynamicState> dynamicStateEnables = {
@@ -265,7 +265,7 @@ namespace VkRender {
                                             resource.res[i].pipelineLayout, nullptr);
 
                     setupPipeline(resource.res[i], resource.vertexShader, resource.fragmentShader,
-                                  renderData[i].descriptorSetLayout, resource.renderPass);
+                                  renderData[i].descriptorSetLayout, resource.renderPass, VK_SAMPLE_COUNT_64_BIT);
                 }
             }
         }

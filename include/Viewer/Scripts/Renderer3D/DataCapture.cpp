@@ -54,6 +54,7 @@ void DataCapture::setup() {
     }
 
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Reset Data Capture", &resetDataCapture);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Save Depth", &saveDepthImage);
 }
 
 
@@ -242,6 +243,9 @@ void DataCapture::update() {
 
 
 void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+    if (saveDepthImage){
+        m_context->saveDepthPassToFile = true;
+    }
     if (uiHandle->m_cameraSelection.selected) {
         if (!images.empty() && uiHandle->m_cameraSelection.currentItemSelected < images.size())
             Log::Logger::getInstance()->info("Selected camera {}, Image Filename: {}",
@@ -334,7 +338,7 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
         auto camera = VkRender::Camera(cameraData.width, cameraData.height);
 
         // Update the perspective of the camera
-        camera.setPerspective(fov, aspect, 0.1f, 100.0f);
+        camera.setPerspective(fov, aspect);
 
         // Set the camera at the colmap image position:
         auto e = uiHandle->m_context->createEntity(tag);

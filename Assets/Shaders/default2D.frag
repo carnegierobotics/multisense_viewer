@@ -17,11 +17,11 @@ layout(binding = 1) uniform Info {
 
 } info;
 
-layout (binding = 2) uniform sampler2DMS samplerColorMap;
+layout (binding = 2) uniform sampler2D samplerColorMap;
 
 layout (location = 0) out vec4 outColor;
 
-double map(double value, double inMin, double inMax, double outMin, double outMax) {
+float map(float value, float inMin, float inMax, float outMin, float outMax) {
     return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
 }
 
@@ -39,14 +39,13 @@ float restoreDepth(float z) {
 
 void main() {
 
-    ivec2 texCoord = ivec2(inUV.x * 1280, inUV.y * 720);  // Transform normalized UVs to pixel coordinates
-    vec4 depth = texelFetch(samplerColorMap, texCoord, 0);  // Fetch from sample 0
+    vec4 depth = texture(samplerColorMap, inUV);  // Fetch from sample 0
 
     float viewSpaceDepth = restoreDepth(depth.r);
     // Convert view space Z to actual distance
-    double actualDistance = -viewSpaceDepth; // Since view space Z is typically negative going into the screen
+    float actualDistance = -viewSpaceDepth; // Since view space Z is typically negative going into the screen
 
-    double outVal = actualDistance;
+    float outVal = actualDistance;
     outVal = map(outVal, 0.8, 1, 0, 1);
-    outColor = vec4(vec3(outVal), 1.0f);
+    outColor = vec4(vec3(depth), 1.0f);
 }

@@ -106,6 +106,7 @@ namespace VkRender {
     public:
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
+        bool saveDepthPassToFile = false;
 
     private:
         template<typename T>
@@ -150,6 +151,7 @@ namespace VkRender {
 
 
         void processDeletions();
+
     };
 }
 

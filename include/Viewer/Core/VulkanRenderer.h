@@ -175,7 +175,7 @@ namespace VkRender {
         virtual void prepare();
 
         /** @brief Prepares secondary render passes. Can be added during runtime TODO Test */
-        void setupSecondaryRenderPasses();
+        void setupSecondaryRenderPasses(bool useSingleSample);
 
         /** @brief Entry point for the main render loop */
         void renderLoop();

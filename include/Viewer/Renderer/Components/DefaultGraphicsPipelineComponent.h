@@ -32,9 +32,11 @@ namespace VkRender {
             uint32_t numSwapChainImages = renderUtils->UBCount;
             uint32_t numResourcesToAllocate = 1;
             std::vector<VkRenderPass> passes = {{*renderUtils->renderPass}};
+            std::vector<VkSampleCountFlagBits> sampleCounts = {{renderUtils->msaaSamples}};
             if (secondaryAvailable) {
                 numResourcesToAllocate++;
                 passes = {{*renderUtils->renderPass, renderUtils->secondaryRenderPasses->front().renderPass}};
+                sampleCounts = { {renderUtils->msaaSamples}, {VK_SAMPLE_COUNT_1_BIT}};
             }
 
             resources.resize(numResourcesToAllocate);
@@ -45,11 +47,13 @@ namespace VkRender {
             for (size_t i = 0; i < resources.size(); ++i) {
                 resources[i].res.resize(numSwapChainImages);
                 resources[i].renderPass = passes[i];
+                resources[i].samples = sampleCounts[i];
+
                 resources[i].vertexShader = vertexShader;
                 resources[i].fragmentShader = fragmentShader;
                 for (size_t j = 0; j < resources[i].res.size(); ++j) {
                     setupPipeline(resources[i].res[j], vertexShader, fragmentShader,
-                                  renderData[j].descriptorSetLayout, resources[i].renderPass);
+                                  renderData[j].descriptorSetLayout, resources[i].renderPass, resources[i].samples);
                 }
             }
         }
@@ -91,6 +95,7 @@ namespace VkRender {
         struct RenderResource {
             std::vector<Resource> res{};
             VkRenderPass renderPass = VK_NULL_HANDLE;
+            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
             std::string vertexShader;
             std::string fragmentShader;
         };
@@ -119,7 +124,7 @@ namespace VkRender {
         VulkanDevice *vulkanDevice;
 
         void setupPipeline(Resource &resource, const std::string &vertexShader, const std::string &fragmentShader,
-                           VkDescriptorSetLayout &pT, VkRenderPass pPassT);
+                           VkDescriptorSetLayout &pT, VkRenderPass pPassT, VkSampleCountFlagBits bits);
     };
 
 

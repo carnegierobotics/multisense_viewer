@@ -53,6 +53,7 @@ public:
     std::vector<ImageData> images;
     std::vector<std::string> entities;
     bool resetDataCapture = true;
+    bool saveDepthImage = false;
 
     std::vector<ImageData> loadPoses(std::filesystem::path path);
 

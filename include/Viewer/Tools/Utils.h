@@ -58,6 +58,7 @@
 #else
 
 #include <sys/stat.h>
+#include <tiffio.h>
 
 #endif
 
@@ -956,6 +957,36 @@ namespace Utils {
         return dev->record.metadata.parsed;
     }
 
+    static void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float* data) {
+        int samplesPerPixel = 1;
+        TIFF *out = TIFFOpen(fileName.string().c_str(), "w");
+        if (!out) {
+            throw std::runtime_error("Failed to open TIFF file for writing.");
+        }
+        TIFFSetField(out, TIFFTAG_IMAGEWIDTH, width);  // set the width of the image
+        TIFFSetField(out, TIFFTAG_IMAGELENGTH, height);    // set the height of the image
+        TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
+        TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 32);    // set the size of the channels
+        TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
+        //   Some other essential fields to set that you do not have to understand for now.
+        TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+        TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+
+        // We set the strip size of the file to be size of one row of pixels
+        TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(out, 0));
+        //Now writing image to the file one strip at a time
+        uint32_t row;
+        for (row = 0; row < height; row++) {
+            // Write each row as a strip
+            if (TIFFWriteScanline(out, &data[row * width], row, 0) < 0) {
+                TIFFClose(out);
+                throw std::runtime_error("Failed to write a scanline to the TIFF file.");
+            }
+        }
+        TIFFClose(out);
+    }
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

@@ -16,10 +16,9 @@ namespace VkRender {
     struct CameraGraphicsPipelineComponent {
         CameraGraphicsPipelineComponent() = default;
 
-        CameraGraphicsPipelineComponent(const CameraGraphicsPipelineComponent &) = default;
+        CameraGraphicsPipelineComponent(const CameraGraphicsPipelineComponent &) = delete;
 
-        CameraGraphicsPipelineComponent &
-        operator=(const CameraGraphicsPipelineComponent &other) { return *this; }
+        CameraGraphicsPipelineComponent& operator=(const CameraGraphicsPipelineComponent&) = delete;
 
         explicit CameraGraphicsPipelineComponent(VkRender::RenderUtils *utils) {
             renderUtils = utils;
@@ -49,7 +48,7 @@ namespace VkRender {
 
         ~CameraGraphicsPipelineComponent() {
 
-
+            Log::Logger::getInstance()->trace("Calling Destructor on CameraGraphicsPipelineComponent");
             for (auto &resource: resources) {
                 for (auto &res: resource.res) {
                     vkDestroyPipeline(vulkanDevice->m_LogicalDevice, res.pipeline, nullptr);
@@ -138,6 +137,9 @@ namespace VkRender {
                 }
             }
 
+            if (markedForDeletion){
+                return;
+            }
             memcpy(renderData[renderUtils->swapchainIndex].ubo.mapped,
                    &renderData[renderUtils->swapchainIndex].mvp, sizeof(VkRender::UBOMatrix));
             memcpy(renderData[renderUtils->swapchainIndex].uboVertices.mapped,

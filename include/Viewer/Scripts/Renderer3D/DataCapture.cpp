@@ -13,9 +13,6 @@
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 
-#include <glm/gtx/matrix_decompose.hpp>
-
-
 void DataCapture::setup() {
 
 

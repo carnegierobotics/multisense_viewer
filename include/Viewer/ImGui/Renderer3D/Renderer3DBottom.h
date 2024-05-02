@@ -127,7 +127,7 @@ namespace VkRender {
                 VkRender::Entity entity = handles->m_context->findEntityByName(tag);
 
                 if (entity) {
-                    handles->m_context->destroyEntity(entity);
+                    handles->m_context->markEntityForDestruction(entity);
                     // Update the cameras list immediately after deletion
                     cameras.clear();
                     for (auto [entity, camera, tagComponent]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {

@@ -14,10 +14,9 @@ namespace VkRender {
     struct DefaultGraphicsPipelineComponent {
         DefaultGraphicsPipelineComponent() = default;
 
-        DefaultGraphicsPipelineComponent(const DefaultGraphicsPipelineComponent &) = default;
+        DefaultGraphicsPipelineComponent(const DefaultGraphicsPipelineComponent &) = delete;
 
-        DefaultGraphicsPipelineComponent &
-        operator=(const DefaultGraphicsPipelineComponent &other) { return *this; }
+        DefaultGraphicsPipelineComponent& operator=(const DefaultGraphicsPipelineComponent&) = delete;
 
         DefaultGraphicsPipelineComponent(VkRender::RenderUtils *utils,
                                          const OBJModelComponent &modelComponent,
@@ -26,8 +25,6 @@ namespace VkRender {
                                          const std::string& fragmentShader = "default.frag.spv") {
             renderUtils = utils;
             vulkanDevice = utils->device;
-            emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice,
-                                     vulkanDevice->m_TransferQueue);
 
             uint32_t numSwapChainImages = renderUtils->UBCount;
             uint32_t numResourcesToAllocate = 1;
@@ -61,6 +58,7 @@ namespace VkRender {
 
         ~DefaultGraphicsPipelineComponent() {
 
+            Log::Logger::getInstance()->trace("Calling Destructor on DefaultGraphicsPipelineComponent");
 
             for (auto &resource: resources) {
                 for (auto &res: resource.res) {
@@ -119,7 +117,6 @@ namespace VkRender {
 
         void setupDescriptors(const OBJModelComponent &modelComponent);
 
-        Texture2D emptyTexture; // TODO Possibly make more empty textures to match our triple buffering?
         VkRender::RenderUtils *renderUtils;
         VulkanDevice *vulkanDevice;
 

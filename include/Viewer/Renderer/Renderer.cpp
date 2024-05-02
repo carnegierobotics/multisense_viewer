@@ -190,11 +190,25 @@ namespace VkRender {
             if (readyForDeletion) {
                 destroyEntity(Entity(entity, this));
             }
+        }        // Check deletion for custom camera  models
+
+        for (auto [entity, resources, deleteComponent]: m_registry.view<VkRender::CameraGraphicsPipelineComponent, DeleteComponent>().each()) {
+            resources.markedForDeletion = true;
+            bool readyForDeletion = true;
+            for (const auto &resource: resources.resources) {
+                for (const auto &res: resource.res)
+                    if (res.busy)
+                        readyForDeletion = false;
+            }
+            if (readyForDeletion) {
+                destroyEntity(Entity(entity, this));
+            }
         }
 
         // Other Entities:
         for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
-                RenderResource::DefaultPBRGraphicsPipelineComponent, OBJModelComponent>).each()) {
+                RenderResource::DefaultPBRGraphicsPipelineComponent, OBJModelComponent, CameraGraphicsPipelineComponent>).each()) {
+
             destroyEntity(Entity(entity, this));
 
         }
@@ -450,11 +464,13 @@ namespace VkRender {
 
         /**@brief Record commandbuffers for camera models */
         // Accessing components in a non-copying manner
+
         for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
             resources.draw(&drawCmdBuffers, currentFrame, 0);
 
         }
+
 
         /**@brief Record commandbuffers for Custom models */
         for (auto [entity, resource]: m_registry.view<CustomModelComponent>().each()) {

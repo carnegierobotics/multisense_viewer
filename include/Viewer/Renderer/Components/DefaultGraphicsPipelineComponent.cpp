@@ -270,6 +270,8 @@ namespace VkRender {
             }
         }
 
+        if (markedForDeletion)
+            return;
 
         memcpy(renderData[renderUtils->swapchainIndex].bufferParams.mapped,
                &renderData[renderUtils->swapchainIndex].shaderValuesParams, sizeof(VkRender::ShaderValuesParams));

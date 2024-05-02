@@ -430,7 +430,19 @@ namespace VkRender {
 
             // Here you can use an external library to write the depth data
             // For example, using stb_image_write to write a PNG
-            Utils::writeTIFFImage(std::string("../" + saveFileName + ".tiff"), m_Width, m_Height, reinterpret_cast<float *> (data));
+
+            float zNear = 0.1f;
+            float zFar = 25.0f;
+            float *ptr = reinterpret_cast<float *>(data);
+            for (size_t i = 0; i < m_Width * m_Height; ++i) {
+                float z_n = 2.0f * ptr[i] - 1.0f; // Back to NDC
+                float z_cam = (2.0f * zNear * zFar) / (zFar + zNear - z_n * (zFar - zNear));
+                ptr[i] = z_cam;
+            }
+
+            if (!std::filesystem::exists(std::filesystem::path(saveFileName.parent_path())))
+                std::filesystem::create_directories(std::filesystem::path(saveFileName.parent_path()));
+            Utils::writeTIFFImage(saveFileName, m_Width, m_Height, reinterpret_cast<float *> (data));
             vkUnmapMemory(device, stagingBufferMemory);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
             vkDestroyBuffer(device, stagingBuffer, nullptr);
@@ -511,11 +523,12 @@ namespace VkRender {
         selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
         renderData.camera = cameras[selectedCameraTag];
         renderData.deltaT = frameTimer;
-        renderData.index = currentFrame;
+        renderData.frameID = frameID;
         renderData.height = m_Height;
         renderData.width = m_Width;
         renderData.crlCamera = &cameraConnection->camPtr;
         renderUtils.swapchainIndex = currentFrame;
+        renderUtils.input = &input;
         // New version available?
         std::string versionRemote;
         if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
@@ -558,10 +571,11 @@ namespace VkRender {
     void Renderer::windowResized() {
         renderData.camera = cameras[selectedCameraTag];
         renderData.deltaT = frameTimer;
-        renderData.index = currentFrame;
+        renderData.frameID = frameID;
         renderData.height = m_Height;
         renderData.width = m_Width;
         renderData.crlCamera = &cameraConnection->camPtr;
+        renderData.renderPassIndex = currentFrame;
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
             for (auto &camera: cameras)
@@ -750,6 +764,121 @@ namespace VkRender {
         cameras[selectedCameraTag]->keys.down = input.keys.down;
         cameras[selectedCameraTag]->keys.left = input.keys.left;
         cameras[selectedCameraTag]->keys.right = input.keys.right;
+    }
+
+    void Renderer::postRenderActions() {
+        if (saveDepthPassToFile) {
+            auto &secondaryRenderPass = secondaryRenderPasses.front();
+
+            VkBufferCreateInfo bufferInfo = {};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = m_Width * m_Height * 4; // Adjust the size based on your depth format
+            bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+
+            VkBuffer stagingBuffer;
+            VkDeviceMemory stagingBufferMemory;
+            vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
+            VkMemoryRequirements memReqs;
+            vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
+
+
+            VkMemoryAllocateInfo memAllocInfo{};
+            memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            memAllocInfo.allocationSize = memReqs.size;
+            memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
+                                                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingBufferMemory);
+
+            vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
+
+            VkImageMemoryBarrier barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = secondaryRenderPass.depthStencil.image;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+
+            VkCommandBuffer commandBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+            vkCmdPipelineBarrier(
+                    commandBuffer,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+            );
+
+
+            VkBufferImageCopy copyRegion = {};
+            copyRegion.bufferOffset = 0;
+            copyRegion.bufferRowLength = 0;
+            copyRegion.bufferImageHeight = 0;
+            copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            copyRegion.imageSubresource.mipLevel = 0;
+            copyRegion.imageSubresource.baseArrayLayer = 0;
+            copyRegion.imageSubresource.layerCount = 1;
+            copyRegion.imageOffset = {0, 0, 0};
+            copyRegion.imageExtent = {m_Width, m_Height, 1};
+
+            vkCmdCopyImageToBuffer(
+                    commandBuffer,
+                    secondaryRenderPass.depthStencil.image,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    stagingBuffer,
+                    1,
+                    &copyRegion
+            );
+
+            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+            vkCmdPipelineBarrier(
+                    commandBuffer,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+            );
+
+            vulkanDevice->flushCommandBuffer(commandBuffer, graphicsQueue);
+
+            // Now copy it to file
+            void *data;
+            vkMapMemory(device, stagingBufferMemory, 0, VK_WHOLE_SIZE, 0, &data);
+
+            // Here you can use an external library to write the depth data
+            // For example, using stb_image_write to write a PNG
+
+            float zNear = 0.1f;
+            float zFar = 25.0f;
+            float *ptr = reinterpret_cast<float *>(data);
+            for (size_t i = 0; i < m_Width * m_Height; ++i) {
+                float z_n = 2.0f * ptr[i] - 1.0f; // Back to NDC
+                float z_cam = (2.0f * zNear * zFar) / (zFar + zNear - z_n * (zFar - zNear));
+                ptr[i] = z_cam;
+            }
+
+            if (!std::filesystem::exists(std::filesystem::path(saveFileName.parent_path())))
+                std::filesystem::create_directories(std::filesystem::path(saveFileName.parent_path()));
+            Utils::writeTIFFImage(saveFileName, m_Width, m_Height, reinterpret_cast<float *> (data));
+            vkUnmapMemory(device, stagingBufferMemory);
+            vkFreeMemory(device, stagingBufferMemory, nullptr);
+            vkDestroyBuffer(device, stagingBuffer, nullptr);
+
+            saveDepthPassToFile = false;
+        }
+
     }
 
     DISABLE_WARNING_PUSH

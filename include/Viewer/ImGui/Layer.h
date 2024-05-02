@@ -263,6 +263,12 @@ namespace VkRender {
         Renderer *m_context;
         bool m_loadColmapCameras = false;
         Paths m_paths;
+
+        // datarecording 3dgs
+        bool startDataCapture = false;
+        bool stopDataCapture = false;
+        int startScene = 0;
+        int imagesPerScene = 100;
     };
 
     /**

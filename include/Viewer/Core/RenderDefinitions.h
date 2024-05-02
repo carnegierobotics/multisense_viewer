@@ -63,6 +63,7 @@
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
+#include "KeyInput.h"
 
 #define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
@@ -222,6 +223,7 @@ namespace VkRender {
         uint32_t UBCount = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
+        Input* input;
 
         std::mutex *queueSubmitMutex;
         const std::vector<VkFence> *fence;
@@ -235,7 +237,7 @@ namespace VkRender {
     /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
     struct RenderData {
 
-        uint32_t index = 0;
+        uint32_t frameID = 0;
         Camera *camera = nullptr;
         float deltaT = 0.0f;
         bool drawThisScript = false;

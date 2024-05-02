@@ -14,15 +14,19 @@ namespace VkRender {
     struct DefaultGraphicsPipelineComponent {
         DefaultGraphicsPipelineComponent() = default;
 
+        /** @brief
+        // Delete copy constructors, we dont want to perform shallow copied of vulkan resources leading to double deletion.
+        // If copy is necessary define custom copy constructor and use move semantics or references
+        */
         DefaultGraphicsPipelineComponent(const DefaultGraphicsPipelineComponent &) = delete;
 
-        DefaultGraphicsPipelineComponent& operator=(const DefaultGraphicsPipelineComponent&) = delete;
+        DefaultGraphicsPipelineComponent &operator=(const DefaultGraphicsPipelineComponent &) = delete;
 
         DefaultGraphicsPipelineComponent(VkRender::RenderUtils *utils,
                                          const OBJModelComponent &modelComponent,
                                          bool secondaryAvailable = false,
-                                         const std::string& vertexShader = "default.vert.spv",
-                                         const std::string& fragmentShader = "default.frag.spv") {
+                                         const std::string &vertexShader = "default.vert.spv",
+                                         const std::string &fragmentShader = "default.frag.spv") {
             renderUtils = utils;
             vulkanDevice = utils->device;
 
@@ -33,7 +37,8 @@ namespace VkRender {
             if (secondaryAvailable) {
                 numResourcesToAllocate++;
                 passes = {{*renderUtils->renderPass, renderUtils->secondaryRenderPasses->front().renderPass}};
-                sampleCounts = { {renderUtils->msaaSamples}, {VK_SAMPLE_COUNT_1_BIT}};
+                sampleCounts = {{renderUtils->msaaSamples},
+                                {VK_SAMPLE_COUNT_1_BIT}};
             }
 
             resources.resize(numResourcesToAllocate);
@@ -117,8 +122,8 @@ namespace VkRender {
 
         void setupDescriptors(const OBJModelComponent &modelComponent);
 
-        VkRender::RenderUtils *renderUtils;
-        VulkanDevice *vulkanDevice;
+        VkRender::RenderUtils *renderUtils{};
+        VulkanDevice *vulkanDevice{};
 
         void setupPipeline(Resource &resource, const std::string &vertexShader, const std::string &fragmentShader,
                            VkDescriptorSetLayout &pT, VkRenderPass pPassT, VkSampleCountFlagBits bits);

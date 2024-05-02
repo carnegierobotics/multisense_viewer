@@ -108,7 +108,8 @@ namespace VkRender {
         std::unordered_map<UUID, entt::entity> m_entityMap;
 
         bool saveDepthPassToFile = false; // TODO move to appropriate place
-        std::string saveFileName;
+        std::filesystem::path saveFileName;
+        std::unique_ptr<VkRender::GuiManager> guiManager{};
 
     private:
         template<typename T>
@@ -134,9 +135,10 @@ namespace VkRender {
 
         void mouseScroll(float change) override;
 
+        void postRenderActions() override;
+
     private:
 
-        std::unique_ptr<VkRender::GuiManager> guiManager{};
         std::vector<std::string> availableScriptNames;
         std::shared_ptr<UsageMonitor> usageMonitor;
         std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};

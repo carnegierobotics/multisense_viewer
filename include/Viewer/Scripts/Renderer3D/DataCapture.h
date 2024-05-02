@@ -41,6 +41,7 @@ public:
         double tx, ty, tz;     // Translation vector
         int cameraID;
         std::string imageName;
+        bool savedToFile = false;
     };
     struct CameraData {
         int cameraID;
@@ -50,6 +51,19 @@ public:
         std::vector<double> parameters; // To store variable-length camera parameters.
     };
 
+    struct Scene {
+        std::vector<ImageData> poses;
+        std::filesystem::path objPath;
+        std::string scene;
+        CameraData camera;
+        bool loaded = false;
+        bool posesReady = false;
+    };
+    bool recordNextScene = false;
+    uint32_t sceneIndex = 0;
+    uint32_t poseIndex = 0;
+    uint32_t frameCount = 1;
+    std::vector<Scene> scenes;
     std::vector<ImageData> images;
     std::vector<std::string> entities;
     bool resetDataCapture = true;
@@ -62,6 +76,12 @@ public:
     std::vector<CameraData> loadCameraParams(const std::filesystem::path &path);
 
     void loadColmapPoses(VkRender::GuiObjectHandles *uiHandle);
+
+    void setCOLMAPPose();
+
+    void deleteDataCaptureScenes();
+
+    static bool compareSceneNumber(const Scene &s1, const Scene &s2);
 };
 
 #endif //MULTISENSE_VIEWER_DATACAPTURE_H

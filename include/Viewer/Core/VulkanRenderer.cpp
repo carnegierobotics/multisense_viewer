@@ -61,8 +61,10 @@ namespace VkRender {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_Width = 4640 / 2;
-        m_Height = 2088 / 2;
+        m_Width = 4640 / 4;
+        m_Height = 2088 / 4;
+        m_Width = 1200;
+        m_Height = 540;
         window = glfwCreateWindow(static_cast<int>(m_Width), static_cast<int>(m_Height), title.c_str(), nullptr,
                                   nullptr);
         glfwMakeContextCurrent(window);
@@ -73,7 +75,7 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
-        glfwSetWindowSizeLimits(window, 1280, 720, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwSetWindowSizeLimits(window, m_Width, m_Height, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -1196,6 +1198,8 @@ namespace VkRender {
         if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for render fence");
 
+        // Post render actions, should only be called after our first frame
+
         if (recreateResourcesNextFrame) {
             Log::Logger::getInstance()->info("Attempting to launch resize window to solve vkSubmit Issue");
             windowResize();
@@ -1227,6 +1231,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::submitFrame() {
+
         std::unique_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
                 //semaphores[currentFrame].computeComplete,
@@ -1263,6 +1268,7 @@ namespace VkRender {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
                                               std::to_string(result));
         }
+
 
         currentFrame = (currentFrame + 1) % swapchain->imageCount;
     }

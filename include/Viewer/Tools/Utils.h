@@ -957,7 +957,7 @@ namespace Utils {
         return dev->record.metadata.parsed;
     }
 
-    static void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float* data) {
+    static void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
         int samplesPerPixel = 1;
         TIFF *out = TIFFOpen(fileName.string().c_str(), "w");
         if (!out) {
@@ -982,7 +982,9 @@ namespace Utils {
             // Write each row as a strip
             if (TIFFWriteScanline(out, &data[row * width], row, 0) < 0) {
                 TIFFClose(out);
-                throw std::runtime_error("Failed to write a scanline to the TIFF file.");
+                if (std::filesystem::exists(fileName)) {
+                    std::filesystem::remove(fileName);
+                }
             }
         }
         TIFFClose(out);

@@ -156,6 +156,8 @@ namespace VkRender {
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
         virtual void windowResized();
 
+        virtual void postRenderActions() = 0; // TODO test
+
         /** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
         virtual void buildCommandBuffers();
 

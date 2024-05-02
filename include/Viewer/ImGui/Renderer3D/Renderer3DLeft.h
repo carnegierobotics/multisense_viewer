@@ -196,6 +196,10 @@ namespace VkRender {
             ImGui::EndChild();
             ImGui::PopStyleColor(); // Reset to previous style color
 
+            ImGui::Dummy(ImVec2(50.0f, 50.0f));
+            handles->startDataCapture = ImGui::Button("Start recording", ImVec2(150.0f, 25.0f));
+            handles->stopDataCapture = ImGui::Button("Stop recording", ImVec2(150.0f, 25.0f));
+
             ImGui::End();
             ImGui::PopStyleColor();
 

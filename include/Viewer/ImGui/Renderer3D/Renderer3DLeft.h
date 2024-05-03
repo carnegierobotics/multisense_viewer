@@ -99,8 +99,6 @@ namespace VkRender {
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles->m_context);
-                ImGui::Text("Features coming..");
-
                 if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<DefaultGraphicsPipelineComponent>().updateGraphicsPipeline();

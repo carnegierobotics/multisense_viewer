@@ -63,6 +63,7 @@ public:
     uint32_t sceneIndex = 0;
     uint32_t poseIndex = 0;
     uint32_t frameCount = 1;
+    uint32_t skipFrames = 5;
     std::vector<Scene> scenes;
     std::vector<ImageData> images;
     std::vector<std::string> entities;

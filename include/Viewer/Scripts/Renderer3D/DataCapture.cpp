@@ -69,7 +69,7 @@ void DataCapture::update() {
         if (poseIndex >= scenes[sceneIndex].poses.size()) {
             //if (poseIndex >= 5) {
             poseIndex = 0;
-            frameCount = 0;
+            frameCount = 1;
             sceneIndex++;
             deleteDataCaptureScenes();
         }
@@ -141,7 +141,7 @@ void DataCapture::update() {
 
         std::string tag = "Camera: " + std::to_string(scenes[sceneIndex].poses[poseIndex].imageID);
         defaultCamera = *m_context->cameras[tag];
-        if (!scenes[sceneIndex].poses[poseIndex].savedToFile && frameCount % 30 > 25) {
+        if (!scenes[sceneIndex].poses[poseIndex].savedToFile && frameCount % skipFrames > (skipFrames - 2)) {
             m_context->saveDepthPassToFile = true;
             scenes[sceneIndex].poses[poseIndex].savedToFile = true;
             Log::Logger::getInstance()->info("Saving image pose: {} to file as {}",
@@ -172,7 +172,7 @@ void DataCapture::update() {
             scenes[sceneIndex].loaded = true;
         }
 
-        if (frameCount % 30 == 0)
+        if (frameCount % skipFrames == 0)
             poseIndex++;
 
         frameCount++;

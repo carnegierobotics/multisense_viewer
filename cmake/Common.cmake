@@ -29,6 +29,7 @@ endif ()
 # Include Submodules into project.
 # Check if exists or display fatal error
 set(GLM_DIR external/glm)
+set(VULKAN_MEMORY_ALLOCATOR_DIR external/VulkanMemoryAllocator)
 set(GLFW_DIR external/glfw)
 set(TINYGLFT_DIR external/tinygltf)
 set(FMT_DIR external/fmt)
@@ -52,6 +53,15 @@ else ()
     message("[INFO] Adding GLM from directory: ${GLM_DIR}")
 
     include_directories(SYSTEM ${GLM_DIR})
+
+endif ()
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${VULKAN_MEMORY_ALLOCATOR_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${VULKAN_MEMORY_ALLOCATOR_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding VULKAN_MEMORY_ALLOCATOR_DIR from directory: ${VULKAN_MEMORY_ALLOCATOR_DIR}")
+
+    add_subdirectory(SYSTEM ${VULKAN_MEMORY_ALLOCATOR_DIR})
 
 endif ()
 

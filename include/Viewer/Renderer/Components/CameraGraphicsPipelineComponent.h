@@ -22,151 +22,136 @@ namespace VkRender {
         CameraGraphicsPipelineComponent& operator=(const CameraGraphicsPipelineComponent&) = delete;
 
         explicit CameraGraphicsPipelineComponent(VkRender::RenderUtils *utils) {
-            renderUtils = utils;
-            vulkanDevice = utils->device;
+            m_numSwapChainImages = utils->swapchainImages;
+            m_vulkanDevice = utils->device;
+            // Number of resources per render pass
+            m_renderData.resize(m_numSwapChainImages);
 
-            uint32_t numSwapChainImages = renderUtils->swapchainImages;
-            uint32_t numResourcesToAllocate = 1;
-            std::vector<VkRenderPass> passes = {*renderUtils->renderPass};
-
-            resources.resize(numResourcesToAllocate);
-            renderData.resize(numSwapChainImages);
+            // Assume we get a modelComponent that has vertex and index buffers in gpu memory. We need to create graphics resources which are:
+            // Descriptor sets: pool, layout, sets
+            // Uniform Buffers:
             setupUniformBuffers();
             setupDescriptors();
+            // First create normal render pass resources
+            // Graphics pipelines
+            for (auto &data: m_renderData) {
 
-            for (size_t i = 0; i < resources.size(); ++i) {
-                resources[i].res.resize(numSwapChainImages);
-                resources[i].renderPass = passes[i];
-                resources[i].vertexShader = "CameraGizmo.vert.spv";
-                resources[i].fragmentShader = "CameraGizmo.frag.spv";
-                for (size_t j = 0; j < resources[i].res.size(); ++j) {
-                    setupPipeline(resources[i].res[j], resources[i],
-                                  renderData[j].descriptorSetLayout);
-                }
+                setupPipeline(data, RENDER_PASS_COLOR, "CameraGizmo.vert.spv", "CameraGizmo.frag.spv", utils->msaaSamples,
+                              *utils->renderPass);
             }
+
         }
 
 
+        VkRender::UBOMatrix mvp{};
+        VkRender::UBOCamera vertices{};
+
+        std::vector<DefaultRenderData> m_renderData;
+        VulkanDevice *m_vulkanDevice = nullptr;
+        uint32_t m_numSwapChainImages = 0;
+        bool resourcesDeleted = false;
+
         ~CameraGraphicsPipelineComponent() {
-
-            Log::Logger::getInstance()->trace("Calling Destructor on CameraGraphicsPipelineComponent");
-            for (auto &resource: resources) {
-                for (auto &res: resource.res) {
-                    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, res.pipeline, nullptr);
-                    vkDestroyPipeline(vulkanDevice->m_LogicalDevice, res.pipelineFill, nullptr);
-                    vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, res.pipelineLayout, nullptr);
-                }
-            }
-
-            for (auto &res: renderData) {
-                vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, res.descriptorSetLayout, nullptr);
-                vkDestroyDescriptorPool(vulkanDevice->m_LogicalDevice, res.descriptorPool, nullptr);
-            }
-
+            if (!resourcesDeleted)
+                cleanUp(0, true);
         };
 
+        void draw(CommandBuffer *cmdBuffers) override {
+            uint32_t cbIndex = cmdBuffers->currentFrame;
+            auto renderPassType = cmdBuffers->renderPassType;
 
-        bool markedForDeletion = false;
-        struct Resource {
-
-            VkPipeline pipeline{};
-            VkPipeline pipelineFill{};
-            VkPipelineLayout pipelineLayout{};
-
-            bool busy = false;
-            bool requestIdle = false;
-        };
-
-        struct RenderResource {
-            std::vector<Resource> res{};
-            VkRenderPass renderPass = VK_NULL_HANDLE;
-            std::string vertexShader;
-            std::string fragmentShader;
-        };
-
-        struct RenderData {
-            Buffer uboVertices;
-            Buffer ubo;
-            VkDescriptorPool descriptorPool{};
-            std::vector<VkDescriptorSet> descriptorSets;
-            VkDescriptorSetLayout descriptorSetLayout{};
-
-        };
-        VkRender::UBOMatrix mvp;
-        VkRender::UBOCamera vertices;
-        std::vector<RenderResource> resources;
-        std::vector<RenderData> renderData;
-
-
-        void draw(CommandBuffer *commandBuffer, uint32_t cbIndex, uint32_t renderPassIndex = 0) {
-            if (markedForDeletion || resources[renderPassIndex].res[cbIndex].requestIdle) {
-                resources[renderPassIndex].res[cbIndex].busy = false;
+            if (stopRendering || m_renderData[cbIndex].requestIdle[renderPassType]) {
+                //resources[renderPassIndex].res[cbIndex].busy = false;
                 return;
             }
 
-            vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              resources[renderPassIndex].res[cbIndex].pipeline);
+            vkCmdBindPipeline(cmdBuffers->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_renderData[cbIndex].pipeline[renderPassType]);
 
             // TODO Make dynamic with amount of renderpassess allocated
-            vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    resources[renderPassIndex].res[cbIndex].pipelineLayout, 0, static_cast<uint32_t>(1),
-                                    &renderData[cbIndex].descriptorSets[cbIndex], 0, nullptr);
-
-            vkCmdDraw(commandBuffer->buffers[cbIndex], 18, 1, 0, 0);
-
-            vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              resources[renderPassIndex].res[cbIndex].pipelineFill);
-
-            vkCmdDraw(commandBuffer->buffers[cbIndex], 3, 1, 18, 0);
+            vkCmdBindDescriptorSets(cmdBuffers->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    m_renderData[cbIndex].pipelineLayout[renderPassType], 0, static_cast<uint32_t>(1),
+                                    &m_renderData[cbIndex].descriptorSets[cbIndex], 0, nullptr);
 
 
-            resources[renderPassIndex].res[cbIndex].busy = true;
+            vkCmdDraw(cmdBuffers->buffers[cbIndex], 21, 1, 0, 0);
+
+            /*
+            vkCmdBindPipeline(cmdBuffers->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_renderData[cbIndex].pipeline[renderPassType]);
+
+            vkCmdDraw(cmdBuffers->buffers[cbIndex], 3, 1, 18, 0);
+            */
+
+
+            m_renderData[cbIndex].busy[renderPassType] = true;
         }
 
-        void update() {
-            for (auto &resource: resources) {
-                for (size_t i = 0; i < resource.res.size(); ++i) {
-                    if (!resource.res[i].busy && resource.res[i].requestIdle) {
-                        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, resource.res[i].pipeline, nullptr);
-                        vkDestroyPipeline(vulkanDevice->m_LogicalDevice, resource.res[i].pipelineFill, nullptr);
-                        vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice,
-                                                resource.res[i].pipelineLayout, nullptr);
+        bool cleanUp(uint32_t currentFrame, bool force=false) override {
 
-                        setupPipeline(resource.res[i], resource,
-                                      renderData[i].descriptorSetLayout);
+            pauseRendering();
+            bool cleanUp = true;
+
+            for (auto &data: m_renderData) {
+                for (const auto &busy: data.busy) {
+                    if (busy.second) {
+                        cleanUp = false;
                     }
                 }
             }
+            if (cleanUp || force)  {
+                Log::Logger::getInstance()->trace("Cleaning up vulkan resources for DefaultGraphicsPipeline");
+                for (auto &data: m_renderData) {
+                    vkDestroyDescriptorSetLayout(m_vulkanDevice->m_LogicalDevice, data.descriptorSetLayout, nullptr);
+                    vkDestroyDescriptorPool(m_vulkanDevice->m_LogicalDevice, data.descriptorPool, nullptr);
 
-            if (markedForDeletion){
-                return;
-            }
-            memcpy(renderData[renderUtils->swapchainIndex].ubo.mapped,
-                   &mvp, sizeof(VkRender::UBOMatrix));
-            memcpy(renderData[renderUtils->swapchainIndex].uboVertices.mapped,
-                   &vertices, sizeof(VkRender::UBOCamera));
-        }
-
-        void updateGraphicsPipeline() {
-            for (auto &resource: resources) {
-                for (auto &res: resource.res) {
-                    res.requestIdle = true;
+                    for (const auto &pipeline: data.pipeline) {
+                        vkDestroyPipeline(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
+                    }
+                    for (const auto &pipeline: data.pipelineLayout) {
+                        vkDestroyPipelineLayout(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
+                    }
+                }
+                resourcesDeleted = true;
+            } else {
+                Log::Logger::getInstance()->trace("Waiting to clean up vulkan resources for DefaultGraphicsPipeline");
+                for (auto &busy: m_renderData[currentFrame].busy) {
+                    busy.second = false;
                 }
             }
+
+            return cleanUp;
+        }
+
+        void pauseRendering() override {
+
+        }
+
+        void update(uint32_t currentFrame) override {
+            memcpy(m_renderData[currentFrame].mvpBuffer.mapped,
+                   &mvp, sizeof(VkRender::UBOMatrix));
+            memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
+                   &vertices, sizeof(VkRender::UBOCamera));
+
+        }
+
+        void update() {
+
+
         }
 
     private:
         void setupUniformBuffers() {
-            for (auto &resource: renderData) {
-                vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            for (auto &resource: m_renderData) {
+                m_vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                           &resource.uboVertices, sizeof(VkRender::UBOCamera));
-                vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                             &resource.fragShaderParamsBuffer, sizeof(VkRender::UBOCamera));
+                m_vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                           &resource.ubo, sizeof(VkRender::UBOMatrix));
+                                             &resource.mvpBuffer, sizeof(VkRender::UBOMatrix));
 
-                resource.uboVertices.map();
-                resource.ubo.map();
+                resource.mvpBuffer.map();
+                resource.fragShaderParamsBuffer.map();
                 float a = 0.5;
                 float h = 2.0;
                 vertices.positions = {
@@ -208,19 +193,19 @@ namespace VkRender {
         }
 
         void setupDescriptors() {
-            for (auto &resource: renderData) {
+            for (auto &resource: m_renderData) {
 
                 std::vector<VkDescriptorPoolSize> poolSizes = {
-                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->swapchainImages},
-                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->swapchainImages}
+                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_numSwapChainImages},
+                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_numSwapChainImages}
                 };
                 VkDescriptorPoolCreateInfo descriptorPoolCI{};
                 descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
                 descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
                 descriptorPoolCI.pPoolSizes = poolSizes.data();
-                descriptorPoolCI.maxSets = renderUtils->swapchainImages;
+                descriptorPoolCI.maxSets = m_numSwapChainImages;
                 CHECK_RESULT(
-                        vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr,
+                        vkCreateDescriptorPool(m_vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr,
                                                &resource.descriptorPool));
 
                 // Scene (matrices and environment maps)
@@ -235,17 +220,17 @@ namespace VkRender {
                     descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
                     descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
                     CHECK_RESULT(
-                            vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
+                            vkCreateDescriptorSetLayout(m_vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                                         &resource.descriptorSetLayout));
 
-                    resource.descriptorSets.resize(renderUtils->swapchainImages);
+                    resource.descriptorSets.resize(m_numSwapChainImages);
                     for (size_t i = 0; i < resource.descriptorSets.size(); i++) {
                         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
                         descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
                         descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayout;
                         descriptorSetAllocInfo.descriptorSetCount = 1;
-                        CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                        CHECK_RESULT(vkAllocateDescriptorSets(m_vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
                                                               &resource.descriptorSets[i]));
 
                         std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
@@ -255,16 +240,16 @@ namespace VkRender {
                         writeDescriptorSets[0].descriptorCount = 1;
                         writeDescriptorSets[0].dstSet = resource.descriptorSets[i];
                         writeDescriptorSets[0].dstBinding = 0;
-                        writeDescriptorSets[0].pBufferInfo = &resource.ubo.m_DescriptorBufferInfo;
+                        writeDescriptorSets[0].pBufferInfo = &resource.mvpBuffer.m_DescriptorBufferInfo;
 
                         writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                         writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                         writeDescriptorSets[1].descriptorCount = 1;
                         writeDescriptorSets[1].dstSet = resource.descriptorSets[i];
                         writeDescriptorSets[1].dstBinding = 1;
-                        writeDescriptorSets[1].pBufferInfo = &resource.uboVertices.m_DescriptorBufferInfo;
+                        writeDescriptorSets[1].pBufferInfo = &resource.fragShaderParamsBuffer.m_DescriptorBufferInfo;
 
-                        vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice,
+                        vkUpdateDescriptorSets(m_vulkanDevice->m_LogicalDevice,
                                                static_cast<uint32_t>(writeDescriptorSets.size()),
                                                writeDescriptorSets.data(), 0, nullptr);
                     }
@@ -272,10 +257,13 @@ namespace VkRender {
             }
         }
 
-        VkRender::RenderUtils *renderUtils;
-        VulkanDevice *vulkanDevice;
 
-        void setupPipeline(Resource &resource, RenderResource &rr, VkDescriptorSetLayout &pT) {
+
+        void setupPipeline(DefaultRenderData &data, RenderPassType type,
+                                                              const std::string &vertexShader,
+                                                              const std::string &fragmentShader,
+                                                              VkSampleCountFlagBits sampleCountFlagBits,
+                                                              VkRenderPass renderPass) {
             VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
             inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
             inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -313,7 +301,7 @@ namespace VkRender {
 
             VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
             multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-            multisampleStateCI.rasterizationSamples = renderUtils->msaaSamples;
+            multisampleStateCI.rasterizationSamples = sampleCountFlagBits;
 
 
             std::vector<VkDynamicState> dynamicStateEnables = {
@@ -327,7 +315,7 @@ namespace VkRender {
 
             // Pipeline layout
             const std::vector<VkDescriptorSetLayout> setLayouts = {
-                    pT
+                    data.descriptorSetLayout
             };
             VkPipelineLayoutCreateInfo pipelineLayoutCI{};
             pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -339,13 +327,10 @@ namespace VkRender {
             pipelineLayoutCI.pushConstantRangeCount = 1;
             pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
             CHECK_RESULT(
-                    vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr,
-                                           &resource.pipelineLayout));
+                    vkCreatePipelineLayout(m_vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr,
+                                           &data.pipelineLayout[type]));
 
-            // Vertex bindings an attributes
 
-            std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-            };
             VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
             vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
             vertexInputStateCI.vertexBindingDescriptionCount = 0;
@@ -356,8 +341,8 @@ namespace VkRender {
 
             VkGraphicsPipelineCreateInfo pipelineCI{};
             pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            pipelineCI.layout = resource.pipelineLayout;
-            pipelineCI.renderPass = rr.renderPass;
+            pipelineCI.layout = data.pipelineLayout[type];
+            pipelineCI.renderPass = renderPass;
             pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
             pipelineCI.pVertexInputState = &vertexInputStateCI;
             pipelineCI.pRasterizationState = &rasterStateCI;
@@ -373,25 +358,21 @@ namespace VkRender {
             VkShaderModule fragModule{};
 
 
-            shaderStages[0] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/" + rr.vertexShader,
+            shaderStages[0] = Utils::loadShader(m_vulkanDevice->m_LogicalDevice, "spv/" + vertexShader,
                                                 VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
-            shaderStages[1] = Utils::loadShader(vulkanDevice->m_LogicalDevice, "spv/" + rr.fragmentShader,
+            shaderStages[1] = Utils::loadShader(m_vulkanDevice->m_LogicalDevice, "spv/" + fragmentShader,
                                                 VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
             // Default pipeline with back-face culling
-            CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                                   &resource.pipeline));
-
-            // Default pipeline with back-face culling
-            rasterStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-            CHECK_RESULT(vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                                   &resource.pipelineFill));
+            CHECK_RESULT(vkCreateGraphicsPipelines(m_vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                                   &data.pipeline[type]));
 
             for (auto shaderStage: shaderStages) {
-                vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
+                vkDestroyShaderModule(m_vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
             }
             // If the pipeline was updated and we had previously requested it to be idle
-            resource.requestIdle = false;
+            data.requestIdle[type] = false;
+
         }
     };
 

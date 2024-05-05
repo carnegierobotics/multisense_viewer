@@ -253,6 +253,51 @@ void DataCapture::update() {
         obj.update();
     }
 
+    for (const auto &img: images) {
+
+        std::string tag = "Camera: " + std::to_string(img.imageID);
+        auto entity = m_context->findEntityByName(tag);
+        auto &obj = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
+        auto &camComponent = m_context->m_registry.get<VkRender::CameraComponent>(entity);
+        obj.mvp.projection = defaultCamera.matrices.perspective;
+        obj.mvp.view = defaultCamera.matrices.view;
+
+        glm::quat colmapRotation(img.qw, img.qx, img.qy, img.qz);
+        colmapRotation = glm::normalize(colmapRotation);
+        glm::mat3 rotMatrix = glm::mat3_cast(colmapRotation);
+
+        // Extract camera coordinate system vectors
+        glm::vec3 colmapRight = glm::vec3(rotMatrix[0][0], rotMatrix[1][0], rotMatrix[2][0]);
+        glm::vec3 colmapUp = -glm::vec3(rotMatrix[0][1], rotMatrix[1][1],
+                                        rotMatrix[2][1]); // Negating for COLMAP's Y-axis downward
+        glm::vec3 colmapFront = glm::vec3(rotMatrix[0][2], rotMatrix[1][2], rotMatrix[2][2]);
+
+        // Adjust for Vulkan view space
+        glm::vec3 vulkanRight = glm::normalize(colmapRight);     // Same as COLMAP
+        glm::vec3 vulkanUp = glm::normalize(-colmapUp);         // Flip Y-axis to point up
+        glm::vec3 vulkanFront = glm::normalize(
+                -colmapFront);   // Negate Z-axis to match Vulkan's forward direction
+
+        glm::mat3 r = glm::mat3_cast(colmapRotation);
+        glm::vec3 t = glm::vec3(img.tx, img.ty, img.tz);
+        glm::vec3 correctPos = glm::transpose(r) * t;
+        // Construct the view matrix
+        glm::mat4 viewMatrix = glm::mat4(1.0f);
+        viewMatrix[0][0] = vulkanRight.x;
+        viewMatrix[1][0] = vulkanRight.y;
+        viewMatrix[2][0] = vulkanRight.z;
+        viewMatrix[0][1] = vulkanUp.x;
+        viewMatrix[1][1] = vulkanUp.y;
+        viewMatrix[2][1] = vulkanUp.z;
+        viewMatrix[0][2] = vulkanFront.x;
+        viewMatrix[1][2] = vulkanFront.y;
+        viewMatrix[2][2] = vulkanFront.z;
+        viewMatrix = glm::translate(viewMatrix, correctPos);
+        camComponent.camera.matrices.view = viewMatrix;
+
+        obj.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
+    }
+
 
     for (const auto &entName: entities) {
         if (m_context->findEntityByName(entName)) {
@@ -488,13 +533,6 @@ std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path
         }
     }
     file.close();
-
     std::sort(images.begin(), images.end(), DataCapture::compareImageID);
-
     return images;
-
-}
-
-
-void DataCapture::draw(CommandBuffer *cb, uint32_t i, bool b) {
 }

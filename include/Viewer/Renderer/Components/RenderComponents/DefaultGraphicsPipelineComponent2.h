@@ -60,13 +60,14 @@ namespace VkRender {
         }
 
         ~DefaultGraphicsPipelineComponent2() override {
-
+            if (!resourcesDeleted)
+                cleanUp(0, true);
         };
 
 
         void draw(CommandBuffer *cmdBuffers) override;
 
-        bool cleanUp(uint32_t currentFrame) override;
+        bool cleanUp(uint32_t currentFrame, bool force = false) override;
 
         void pauseRendering() override;
 
@@ -79,6 +80,7 @@ namespace VkRender {
 
     public:
         UBOMatrix mvp;
+        FragShaderParams fragShaderParams;
 
     private:
 
@@ -108,9 +110,8 @@ namespace VkRender {
         Texture2D m_emptyTexture;
         Texture2D m_objTexture;
         std::vector<DefaultRenderData> m_renderData;
-        FragShaderParams fragShaderParams;
         bool boundToModel = false;
-
+        bool resourcesDeleted = false;
         Indices indices{};
         Vertices vertices{};
 

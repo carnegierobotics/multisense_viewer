@@ -51,7 +51,6 @@ namespace VkRender {
             //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
         }
 
-        DISABLE_WARNING_POP
 
         void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
             onWindowResize(uiHandle);
@@ -64,6 +63,7 @@ namespace VkRender {
         void drawScript(CommandBuffer *commandBuffer, uint32_t i, bool b) {
             draw(commandBuffer, i, b);
         }
+        DISABLE_WARNING_POP
 
 
         void updateUniformBufferData() {

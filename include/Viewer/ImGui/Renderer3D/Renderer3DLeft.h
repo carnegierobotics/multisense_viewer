@@ -97,7 +97,7 @@ namespace VkRender {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
-                auto e = Entity(entity, handles->m_context);
+                //auto e = Entity(entity, handles->m_context);
                 //if (e.hasComponent<CameraGraphicsPipelineComponent2>()) {
                 //    if (ImGui::SmallButton("Reload Shader")) {
                         //e.getComponent<CameraGraphicsPipelineComponent2>().updateGraphicsPipeline();

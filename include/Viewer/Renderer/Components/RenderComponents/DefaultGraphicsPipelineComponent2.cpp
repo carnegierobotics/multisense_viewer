@@ -12,18 +12,18 @@ namespace VkRender {
         stopRendering = true;
     }
 
-    bool DefaultGraphicsPipelineComponent2::cleanUp(uint32_t currentFrame) {
+    bool DefaultGraphicsPipelineComponent2::cleanUp(uint32_t currentFrame, bool force) {
         pauseRendering();
-        bool cleanUp = true;
+        bool resourcesIdle = true;
 
         for (auto &data: m_renderData) {
             for (const auto &busy: data.busy) {
                 if (busy.second) {
-                    cleanUp = false;
+                    resourcesIdle = false;
                 }
             }
         }
-        if (cleanUp) {
+        if (resourcesIdle || force) {
             Log::Logger::getInstance()->trace("Cleaning up vulkan resources for DefaultGraphicsPipeline");
             for (auto &data: m_renderData) {
                 vkDestroyDescriptorSetLayout(m_vulkanDevice->m_LogicalDevice, data.descriptorSetLayout, nullptr);
@@ -49,6 +49,7 @@ namespace VkRender {
             if (indices.memory != VK_NULL_HANDLE) {
                 vkFreeMemory(m_vulkanDevice->m_LogicalDevice, indices.memory, nullptr);
             }
+            resourcesDeleted = true;
         } else {
             Log::Logger::getInstance()->trace("Waiting to clean up vulkan resources for DefaultGraphicsPipeline");
             for (auto &busy: m_renderData[currentFrame].busy) {
@@ -56,7 +57,7 @@ namespace VkRender {
             }
         }
 
-        return cleanUp;
+        return resourcesIdle;
     }
 
 

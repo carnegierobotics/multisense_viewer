@@ -179,18 +179,6 @@ namespace VkRender {
             }
         }
 
-        for (auto [entity, resources, deleteComponent]: m_registry.view<VkRender::CameraGraphicsPipelineComponent, DeleteComponent>().each()) {
-            resources.markedForDeletion = true;
-            bool readyForDeletion = true;
-            for (const auto &resource: resources.resources) {
-                for (const auto &res: resource.res)
-                    if (res.busy)
-                        readyForDeletion = false;
-            }
-            if (readyForDeletion) {
-                destroyEntity(Entity(entity, this));
-            }
-        }
 
         // Other Entities:
         for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
@@ -198,16 +186,20 @@ namespace VkRender {
             destroyEntity(Entity(entity, this));
 
         }
-        // Other Entities:
+        // Delete Entities:
         for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>().each()) {
             auto e = Entity(entity, this);
             // Wait until resources are idle before we delete
             if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
-                auto& res = e.getComponent<DefaultGraphicsPipelineComponent2>();
+                auto &res = e.getComponent<DefaultGraphicsPipelineComponent2>();
                 if (res.cleanUp(currentFrame)) {
                     destroyEntity(Entity(entity, this));
                 }
-
+            } else if (e.hasComponent<CameraGraphicsPipelineComponent>()) {
+                auto &res = e.getComponent<CameraGraphicsPipelineComponent>();
+                if (res.cleanUp(currentFrame)) {
+                    destroyEntity(Entity(entity, this));
+                }
 
             } else {
                 destroyEntity(Entity(entity, this));
@@ -445,8 +437,8 @@ namespace VkRender {
                 ptr[i] = z_cam;
             }
 
-            if (!std::filesystem::exists(std::filesystem::path(saveFileName.parent_path())))
-                std::filesystem::create_directories(std::filesystem::path(saveFileName.parent_path()));
+            if (!std::filesystem::exists(saveFileName.parent_path()))
+                std::filesystem::create_directories(saveFileName.parent_path());
             Utils::writeTIFFImage(saveFileName, m_Width, m_Height, reinterpret_cast<float *> (data));
             vkUnmapMemory(device, stagingBufferMemory);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -485,7 +477,7 @@ namespace VkRender {
 
         for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
-            resources.draw(&drawCmdBuffers, currentFrame, 0);
+            resources.draw(&drawCmdBuffers);
 
         }
 
@@ -561,11 +553,16 @@ namespace VkRender {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.update(currentFrame);
         }
+        /**@brief Record commandbuffers for obj models */
+        // Accessing components in a non-copying manner
+        for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
+            auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
+            resources.update(currentFrame);
+        }
 
         // Update GUI
         guiManager->handles.info->frameID = frameID;
         guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
-        auto onUiUpdateView = m_registry.view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->uiUpdate(&guiManager->handles);
@@ -628,9 +625,17 @@ namespace VkRender {
 
         startTime = std::chrono::steady_clock::now();
 
+        auto view = m_registry.view<entt::any>();
+        // Step 3: Destroy entities
+        for (auto entity : view) {
+            m_registry.destroy(entity);
+        }
+
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
-        Log::Logger::getInstance()->trace("Deleting scripts on exit took {}s", timeSpan.count());
+        Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
+
+
     }
 
 
@@ -882,8 +887,8 @@ namespace VkRender {
                 ptr[i] = z_cam;
             }
 
-            if (!std::filesystem::exists(std::filesystem::path(saveFileName.parent_path())))
-                std::filesystem::create_directories(std::filesystem::path(saveFileName.parent_path()));
+            if (!std::filesystem::exists(saveFileName.parent_path()))
+                std::filesystem::create_directories(saveFileName.parent_path());
             Utils::writeTIFFImage(saveFileName, m_Width, m_Height, reinterpret_cast<float *> (data));
             vkUnmapMemory(device, stagingBufferMemory);
             vkFreeMemory(device, stagingBufferMemory, nullptr);

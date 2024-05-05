@@ -8,7 +8,7 @@
 #include "Viewer/Core/CommandBuffer.h"
 
 namespace VkRender{
-    class RenderBase{
+    class RenderBase {
     public:
         RenderBase() = default;
 
@@ -20,9 +20,9 @@ namespace VkRender{
 
         RenderBase &operator=(const RenderBase &) = delete;
 
-        virtual void draw(CommandBuffer* cmdBuffer) = 0;
+        virtual void draw(CommandBuffer *cmdBuffer) = 0;
 
-        virtual bool cleanUp(uint32_t currentFrame) = 0;
+        virtual bool cleanUp(uint32_t currentFrame, bool force = false) = 0;
 
         virtual void pauseRendering() = 0;
 

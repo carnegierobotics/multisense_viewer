@@ -55,7 +55,7 @@
 #define DEFAULT_UP glm::vec3(0.0f, 1.0f, 0.0f)
 #define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
 //#define DEFAULT_ORIENTATION glm::quat(0.780483f, 0.483536f, 0.208704f, 0.336872f)
-#define DEFAULT_ORIENTATION glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+#define DEFAULT_ORIENTATION glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
 #define DEFAULT_POSITION glm::vec3(7.35f, -6.9f, 4.9f)
 
 namespace VkRender {
@@ -152,7 +152,7 @@ namespace VkRender {
          * @param axis
          */
         void rotateQuaternion(float angle, glm::vec3 axis) {
-            auto R = glm::quat(glm::angleAxis(glm::radians(angle), glm::normalize(axis)));
+            auto R = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
             pose.q = glm::normalize(R * pose.q);
         }
 
@@ -209,7 +209,7 @@ namespace VkRender {
             m_Zfar = zFar;
             float focal_length = 1.0f / tanf(glm::radians(m_Fov) * 0.5f);
             float x = focal_length / aspect;
-            float y = focal_length;
+            float y = -focal_length;
             float A = -m_Zfar / (m_Zfar - m_Znear);
             float B = (-m_Zfar * m_Znear) / (m_Zfar - m_Znear);
             matrices.perspective = glm::mat4(
@@ -267,7 +267,7 @@ namespace VkRender {
 
         void translate(glm::vec3 delta) {
             delta.y *= -1;
-            glm::mat4 rotM = glm::mat4(1.0f);
+            //glm::mat4 rotM = glm::mat4(1.0f);
             //rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));  // X-axis rotation
             //rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));  // Z-axis rotation
             //glm::vec4 rot = glm::vec4(delta, 1.0f) * rotM;

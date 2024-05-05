@@ -86,13 +86,6 @@ namespace VkRender {
             for (auto [entity, camera, tag]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                 if (!Utils::isInVector(cameras, tag.Tag))
                     cameras.emplace_back(tag.Tag);
-
-            }
-            // Iterating in reverse
-
-            for (auto it = cameras.rbegin(); it != cameras.rend(); ++it) {
-                std::string cameraTag = *it;
-                // Process cameraTag as needed
             }
 
             handles->m_cameraSelection.selected = false;
@@ -117,6 +110,8 @@ namespace VkRender {
 
                 auto e = handles->m_context->createEntity(tag);
                 auto &c = e.addComponent<CameraComponent>(Camera(handles->info->width, handles->info->height));
+                e.addComponent<CameraGraphicsPipelineComponent>(&handles->m_context->renderUtils);
+
                 handles->m_context->cameras[tag] = &c.camera;
                 handles->m_cameraSelection.tag = tag;
             }

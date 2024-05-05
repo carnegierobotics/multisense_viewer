@@ -957,7 +957,7 @@ namespace Utils {
         return dev->record.metadata.parsed;
     }
 
-    static void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
+    static inline void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
         int samplesPerPixel = 1;
         TIFF *out = TIFFOpen(fileName.string().c_str(), "w");
         if (!out) {

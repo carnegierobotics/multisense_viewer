@@ -39,9 +39,9 @@ float restoreDepth(float z) {
 
 void main() {
 
-    vec4 depth = texture(samplerColorMap, inUV);  // Fetch from sample 0
+    float depth = texture(samplerColorMap, inUV).r;  // Fetch from sample 0
 
-    float viewSpaceDepth = restoreDepth(depth.r);
+    float viewSpaceDepth = restoreDepth(depth);
     // Convert view space Z to actual distance
     float actualDistance = -viewSpaceDepth; // Since view space Z is typically negative going into the screen
 

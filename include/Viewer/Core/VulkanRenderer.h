@@ -44,6 +44,7 @@
 #include <cstring>
 #include <iostream>
 #include <chrono>
+#include <vk_mem_alloc.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
@@ -79,7 +80,7 @@ namespace VkRender {
             /** @brief Set to true if fullscreen mode has been requested via command line */
             bool fullscreen = false;
             /** @brief Set to true if v-sync will be forced for the swapchain */
-            bool vsync = true;
+            bool vsync = false;
             /** @brief Enable UI overlay */
             bool overlay = true;
         } settings;
@@ -208,6 +209,9 @@ namespace VkRender {
 
         std::vector<const char *> enabledDeviceExtensions;
         std::vector<const char *> enabledInstanceExtensions;
+        /** @brief vma allocator */
+        VmaAllocator allocator{};
+
         /** @brief Logical m_Device, application's m_View of the physical m_Device (GPU) */
         VkDevice device{};
         // Handle to the m_Device graphics queue that command buffers are submitted to

@@ -63,16 +63,11 @@
 #include "Viewer/Core/Buffer.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
+#include "Viewer/Core/CommandBuffer.h"
 #include "KeyInput.h"
 
-#define INTERVAL_10_SECONDS 10
 #define INTERVAL_1_SECOND 1
-#define INTERVAL_2_SECONDS 2
 #define INTERVAL_5_SECONDS 5
-#define MAX_IMAGES_IN_QUEUE 5
-
-
-typedef uint32_t VkRenderFlags;
 
 
 // Predeclare to speed up compile times
@@ -187,7 +182,21 @@ namespace VkRender {
         float dt = 0.0f;
     };
 
+    /** @brief RenderData which are shared across render passes */
+    struct DefaultRenderData {
+        Buffer fragShaderParamsBuffer;                 // GPU Accessible
+        Buffer mvpBuffer;                              // GPU Accessible
 
+        std::vector<VkDescriptorSet> descriptorSets;
+        VkDescriptorPool descriptorPool{};
+        VkDescriptorSetLayout descriptorSetLayout{};
+
+        std::unordered_map<RenderPassType, VkPipeline> pipeline{};
+        std::unordered_map<RenderPassType, VkPipelineLayout> pipelineLayout{};
+
+        std::unordered_map<RenderPassType, bool> busy{};
+        std::unordered_map<RenderPassType, bool> requestIdle{};
+    };
 
 
     struct SecondaryRenderPasses {
@@ -220,16 +229,16 @@ namespace VkRender {
     struct RenderUtils {
         VulkanDevice *device{};
         VkInstance *instance{};
-        uint32_t UBCount = 0; // TODO rename to swapchain images
+        uint32_t swapchainImages = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
-        Input* input;
+        Input* input{};
 
-        std::mutex *queueSubmitMutex;
-        const std::vector<VkFence> *fence;
+        std::mutex *queueSubmitMutex{};
+        const std::vector<VkFence> *fence{};
         uint32_t swapchainIndex = 0;
         // Multiple viewpoint (Off screen rendering)
-        const std::vector<SecondaryRenderPasses>* secondaryRenderPasses;
+        const std::vector<SecondaryRenderPasses>* secondaryRenderPasses{};
 
 
     };

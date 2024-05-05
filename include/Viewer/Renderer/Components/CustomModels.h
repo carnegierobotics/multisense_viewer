@@ -99,7 +99,7 @@ namespace VkRender {
             vulkanDevice = renderUtils->device;
             model = std::make_unique<Model>(renderUtils);
 
-            UBOBuffers.resize(renderUtils->UBCount);
+            UBOBuffers.resize(renderUtils->swapchainImages);
 
             for (auto &uniformBuffer: UBOBuffers) {
                 renderUtils->device->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -109,11 +109,11 @@ namespace VkRender {
                 uniformBuffer.map();
             }
 
-            descriptors.resize(renderUtils->UBCount);
-            descriptorSetLayouts.resize(renderUtils->UBCount);
-            descriptorPools.resize(renderUtils->UBCount);
-            pipelines.resize(renderUtils->UBCount);
-            pipelineLayouts.resize(renderUtils->UBCount);
+            descriptors.resize(renderUtils->swapchainImages);
+            descriptorSetLayouts.resize(renderUtils->swapchainImages);
+            descriptorPools.resize(renderUtils->swapchainImages);
+            pipelines.resize(renderUtils->swapchainImages);
+            pipelineLayouts.resize(renderUtils->swapchainImages);
 
 
             VkShaderModule vertModule, fragModule;
@@ -139,7 +139,7 @@ namespace VkRender {
 
         ~CustomModelComponent() {
 
-            for (size_t i = 0; i < renderer->UBCount; ++i) {
+            for (size_t i = 0; i < renderer->swapchainImages; ++i) {
                 vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelines[i], nullptr);
                 vkDestroyPipelineLayout(renderer->device->m_LogicalDevice, pipelineLayouts[i], nullptr);
                 vkDestroyDescriptorSetLayout(renderer->device->m_LogicalDevice, descriptorSetLayouts[i], nullptr);

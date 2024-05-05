@@ -12,9 +12,16 @@
 
 #include <vulkan/vulkan_core.h>
 
+enum RenderPassType {
+    RENDER_PASS_COLOR       = 0x00000001,
+    RENDER_PASS_DEPTH_ONLY  = 0x00000002,
+};
+
 struct CommandBuffer {
     std::vector<VkCommandBuffer> buffers{};
     VkRenderPass boundRenderPass = VK_NULL_HANDLE;
+    uint32_t currentFrame = 0;
+    RenderPassType renderPassType = RENDER_PASS_COLOR;
 };
 
 

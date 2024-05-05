@@ -80,7 +80,7 @@ set(ENGINE_SRC
         include/Viewer/Renderer/Components/GLTFDefines.h
         include/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
         include/Viewer/Renderer/Components/OBJModelComponent.cpp
-        include/Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.cpp
+        include/Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
         include/Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h
 
         include/Viewer/Tools/StbInclude.cpp
@@ -108,7 +108,7 @@ set(SCRIPTS_LIB_SRC
 )
 
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader;GPUOpen::VulkanMemoryAllocator;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -141,15 +141,15 @@ if (UNIX) ## Linux
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger)
-    add_dependencies(VulkanRenderer rosbag_cpp_writer GPUOpen::VulkanMemoryAllocator)
+    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger )
+    add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
 
     add_executable(MultiSense-Viewer include/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
-    add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer )
+    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary )
+    add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)
     set_project_warnings(VulkanRenderer)

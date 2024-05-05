@@ -61,7 +61,7 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${VULKAN_MEMORY_ALLOCATOR_DIR}/CMakeLists.
 else ()
     message("[INFO] Adding VULKAN_MEMORY_ALLOCATOR_DIR from directory: ${VULKAN_MEMORY_ALLOCATOR_DIR}")
 
-    add_subdirectory(SYSTEM ${VULKAN_MEMORY_ALLOCATOR_DIR})
+    add_subdirectory(${VULKAN_MEMORY_ALLOCATOR_DIR})
 
 endif ()
 

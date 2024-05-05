@@ -52,7 +52,7 @@
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/SecondaryCameraComponent.h"
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
-#include "Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 
 namespace VkRender {
@@ -112,7 +112,7 @@ namespace VkRender {
         renderUtils.instance = &instance;
         renderUtils.renderPass = &renderPass;
         renderUtils.msaaSamples = msaaSamples;
-        renderUtils.UBCount = swapchain->imageCount;
+        renderUtils.swapchainImages = swapchain->imageCount;
         renderUtils.queueSubmitMutex = &queueSubmitMutex;
         renderUtils.fence = &waitFences;
         renderUtils.swapchainIndex = currentFrame;
@@ -178,19 +178,6 @@ namespace VkRender {
                 destroyEntity(Entity(entity, this));
             }
         }
-        // Check deletion for obj models
-        for (auto [entity, resources, deleteComponent]: m_registry.view<VkRender::DefaultGraphicsPipelineComponent, DeleteComponent>().each()) {
-            resources.markedForDeletion = true;
-            bool readyForDeletion = true;
-            for (const auto &resource: resources.resources) {
-                for (const auto &res: resource.res)
-                    if (res.busy)
-                        readyForDeletion = false;
-            }
-            if (readyForDeletion) {
-                destroyEntity(Entity(entity, this));
-            }
-        }        // Check deletion for custom camera  models
 
         for (auto [entity, resources, deleteComponent]: m_registry.view<VkRender::CameraGraphicsPipelineComponent, DeleteComponent>().each()) {
             resources.markedForDeletion = true;
@@ -208,8 +195,23 @@ namespace VkRender {
         // Other Entities:
         for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
                 RenderResource::DefaultPBRGraphicsPipelineComponent, OBJModelComponent, CameraGraphicsPipelineComponent>).each()) {
-
             destroyEntity(Entity(entity, this));
+
+        }
+        // Other Entities:
+        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>().each()) {
+            auto e = Entity(entity, this);
+            // Wait until resources are idle before we delete
+            if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
+                auto& res = e.getComponent<DefaultGraphicsPipelineComponent2>();
+                if (res.cleanUp(currentFrame)) {
+                    destroyEntity(Entity(entity, this));
+                }
+
+
+            } else {
+                destroyEntity(Entity(entity, this));
+            }
 
         }
     }
@@ -239,8 +241,8 @@ namespace VkRender {
         // Render secondary viewpoints
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
+        drawCmdBuffers.renderPassType = RENDER_PASS_DEPTH_ONLY;
         for (const auto &render: secondaryRenderPasses) {
-
             VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
             secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             secondaryRenderPassBeginInfo.renderPass = render.renderPass; // The second render pass
@@ -260,68 +262,70 @@ namespace VkRender {
 
             /**@brief Record commandbuffers for obj models */
             // Accessing components in a non-copying manner
-            for (auto entity: m_registry.view<VkRender::SecondaryRenderPassComponent, VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
-                auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
-                auto &objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
-                if (resources.draw(&drawCmdBuffers, currentFrame, 1))
-                    objModel.draw(&drawCmdBuffers, currentFrame);
+            for (auto entity: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+                resources.draw(&drawCmdBuffers);
             }
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-            VkImageMemoryBarrier barrier = {};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = render.colorImage.image; // TODO type depending on we are using multisample or not
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
 
-            // Syncrhonization before main renderpass
-            vkCmdPipelineBarrier(
-                    drawCmdBuffers.buffers[currentFrame],
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
-                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &barrier
-            );
+            // Depth pass pipeline barrier before next render pass
+            {
+                VkImageMemoryBarrier barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = render.colorImage.image; // TODO type depending on we are using multisample or not
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = 1;
 
-            // Define the depth image layout transition barrier
-            barrier = {};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = secondaryRenderPasses[0].depthStencil.image;
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
+                // Syncrhonization before main renderpass
+                vkCmdPipelineBarrier(
+                        drawCmdBuffers.buffers[currentFrame],
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
+                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
+                        0,
+                        0, nullptr,
+                        0, nullptr,
+                        1, &barrier
+                );
 
-            VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-            VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                // Define the depth image layout transition barrier
+                barrier = {};
+                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.image = secondaryRenderPasses[0].depthStencil.image;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                barrier.subresourceRange.baseMipLevel = 0;
+                barrier.subresourceRange.levelCount = 1;
+                barrier.subresourceRange.baseArrayLayer = 0;
+                barrier.subresourceRange.layerCount = 1;
 
-            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
-            vkCmdPipelineBarrier(
-                    drawCmdBuffers.buffers[currentFrame],
-                    sourceStage, destinationStage,
-                    0, // Dependency flags
-                    0, nullptr, // No memory barriers
-                    0, nullptr, // No buffer barriers
-                    1, &barrier // Image barrier
-            );
+                barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+                vkCmdPipelineBarrier(
+                        drawCmdBuffers.buffers[currentFrame],
+                        sourceStage, destinationStage,
+                        0, // Dependency flags
+                        0, nullptr, // No memory barriers
+                        0, nullptr, // No buffer barriers
+                        1, &barrier // Image barrier
+                );
+            }
         }
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
@@ -334,6 +338,7 @@ namespace VkRender {
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
+        drawCmdBuffers.renderPassType = RENDER_PASS_COLOR;
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
@@ -451,33 +456,34 @@ namespace VkRender {
         }
 
         /**@brief Record command buffers for skybox */
-        for (auto [entity, skybox, gltfComponent]: m_registry.view<RenderResource::SkyboxGraphicsPipelineComponent, VkRender::GLTFModelComponent>().each()) {
+        for (auto [entity, skybox, gltfComponent]: m_registry.view<RenderResource::SkyboxGraphicsPipelineComponent, VkRender::GLTFModelComponent>(
+                entt::exclude<DeleteComponent>).each()) {
             skybox.draw(&drawCmdBuffers, currentFrame);
             gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
         }
 
         /**@brief Record commandbuffers for gltf models */
-        for (auto [entity, resources, gltfComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent>().each()) {
+        for (auto [entity, resources, gltfComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, VkRender::GLTFModelComponent>(
+                entt::exclude<DeleteComponent>).each()) {
             if (!resources.markedForDeletion)
                 resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
             else
                 resources.resources[currentFrame].busy = false;
         }
 
+
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
-        for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent, VkRender::OBJModelComponent>()) {
-            auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent>(entity);
-            auto &objModel = m_registry.get<VkRender::OBJModelComponent>(entity);
-            if (resources.draw(&drawCmdBuffers, currentFrame, 0))
-                objModel.draw(&drawCmdBuffers, currentFrame);
-
+        for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent2>(
+                entt::exclude<DeleteComponent>)) {
+            auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+            resources.draw(&drawCmdBuffers);
         }
 
         /**@brief Record commandbuffers for camera models */
         // Accessing components in a non-copying manner
 
-        for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {
+        for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
             resources.draw(&drawCmdBuffers, currentFrame, 0);
 
@@ -485,7 +491,7 @@ namespace VkRender {
 
 
         /**@brief Record commandbuffers for Custom models */
-        for (auto [entity, resource]: m_registry.view<CustomModelComponent>().each()) {
+        for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
             if (!resource.markedForDeletion)
                 resource.draw(&drawCmdBuffers, currentFrame);
             else
@@ -547,6 +553,13 @@ namespace VkRender {
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->update();
+        }
+
+        /**@brief Record commandbuffers for obj models */
+        // Accessing components in a non-copying manner
+        for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent2>()) {
+            auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+            resources.update(currentFrame);
         }
 
         // Update GUI
@@ -939,10 +952,6 @@ namespace VkRender {
                                                                                          RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
     }
 
-    template<>
-    void Renderer::onComponentAdded<VkRender::DefaultGraphicsPipelineComponent>(Entity entity,
-                                                                                VkRender::DefaultGraphicsPipelineComponent &component) {
-    }
 
     template<>
     void Renderer::onComponentAdded<VkRender::SecondaryCameraComponent>(Entity entity,
@@ -962,6 +971,11 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<VkRender::CameraGraphicsPipelineComponent>(Entity entity,
                                                                                VkRender::CameraGraphicsPipelineComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<VkRender::DefaultGraphicsPipelineComponent2>(Entity entity,
+                                                                                 VkRender::DefaultGraphicsPipelineComponent2 &component) {
     }
 
     DISABLE_WARNING_POP

@@ -53,20 +53,20 @@
 
 class Texture {
 public:
-    VulkanDevice *m_Device = nullptr;
-    VkImage m_Image = VK_NULL_HANDLE;
-    VkImageLayout m_ImageLayout{};
-    VkDeviceMemory m_DeviceMemory = VK_NULL_HANDLE;
-    VkImageView m_View = VK_NULL_HANDLE;
-    uint32_t m_Width = 0, m_Height = 0, m_Depth = 0;
-    uint32_t m_MipLevels = 0;
-    uint32_t m_LayerCount = 0;
-    VkDescriptorImageInfo m_Descriptor{};
-    VkSampler m_Sampler = VK_NULL_HANDLE;
+    VulkanDevice *m_device = nullptr;
+    VkImage m_image = VK_NULL_HANDLE;
+    VkImageLayout m_imageLayout{};
+    VkDeviceMemory m_deviceMemory = VK_NULL_HANDLE;
+    VkImageView m_view = VK_NULL_HANDLE;
+    uint32_t m_width = 0, m_height = 0, m_depth = 0;
+    uint32_t m_mipLevels = 0;
+    uint32_t m_layerCount = 0;
+    VkDescriptorImageInfo m_descriptor{};
+    VkSampler m_sampler = VK_NULL_HANDLE;
     VkSamplerYcbcrConversion m_YUVSamplerToRGB = VK_NULL_HANDLE;
-    VkFormat m_Format{};
-    VkImageType m_Type{};
-    VkImageViewType m_ViewType{};
+    VkFormat m_format{};
+    VkImageType m_type{};
+    VkImageViewType m_viewType{};
 
 
     struct TextureSampler {
@@ -82,13 +82,13 @@ public:
 
     virtual ~Texture() {
 
-        if (m_Device != nullptr) {
-            vkDestroyImageView(m_Device->m_LogicalDevice, m_View, nullptr);
-            vkDestroyImage(m_Device->m_LogicalDevice, m_Image, nullptr);
-            if (m_Sampler) {
-                vkDestroySampler(m_Device->m_LogicalDevice, m_Sampler, nullptr);
+        if (m_device != nullptr) {
+            vkDestroyImageView(m_device->m_LogicalDevice, m_view, nullptr);
+            vkDestroyImage(m_device->m_LogicalDevice, m_image, nullptr);
+            if (m_sampler) {
+                vkDestroySampler(m_device->m_LogicalDevice, m_sampler, nullptr);
             }
-            vkFreeMemory(m_Device->m_LogicalDevice, m_DeviceMemory, nullptr);
+            vkFreeMemory(m_device->m_LogicalDevice, m_deviceMemory, nullptr);
         }
     }
 
@@ -103,24 +103,24 @@ public:
 
 
     // Move constructor
-    Texture2D(Texture2D &&other) : Texture(std::move(other)) {
+    Texture2D(Texture2D &&other)  noexcept : Texture(std::move(other)) {
         // Move constructor logic specific to Texture2D
-        m_Device = std::exchange(other.m_Device, nullptr);
-        m_Image = std::exchange(other.m_Image, {});
-        m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
-        m_View = std::exchange(other.m_View, {});
-        m_Sampler = std::exchange(other.m_Sampler, {});
+        m_device = std::exchange(other.m_device, nullptr);
+        m_image = std::exchange(other.m_image, {});
+        m_deviceMemory = std::exchange(other.m_deviceMemory, {});
+        m_view = std::exchange(other.m_view, {});
+        m_sampler = std::exchange(other.m_sampler, {});
         m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
-        m_ImageLayout = other.m_ImageLayout;
-        m_Width = other.m_Width;
-        m_Height = other.m_Height;
-        m_Depth = other.m_Depth;
-        m_MipLevels = other.m_MipLevels;
-        m_LayerCount = other.m_LayerCount;
-        m_Descriptor = other.m_Descriptor;
-        m_Format = other.m_Format;
-        m_Type = other.m_Type;
-        m_ViewType = other.m_ViewType;
+        m_imageLayout = other.m_imageLayout;
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_depth = other.m_depth;
+        m_mipLevels = other.m_mipLevels;
+        m_layerCount = other.m_layerCount;
+        m_descriptor = other.m_descriptor;
+        m_format = other.m_format;
+        m_type = other.m_type;
+        m_viewType = other.m_viewType;
     }
 
     // Move assignment operator
@@ -128,23 +128,23 @@ public:
         if (this != &other) {
             // Proper cleanup of existing resources
             // Move all resources from 'other' to 'this'
-            m_Device = std::exchange(other.m_Device, nullptr);
-            m_Image = std::exchange(other.m_Image, {});
-            m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
-            m_View = std::exchange(other.m_View, {});
-            m_Sampler = std::exchange(other.m_Sampler, {});
+            m_device = std::exchange(other.m_device, nullptr);
+            m_image = std::exchange(other.m_image, {});
+            m_deviceMemory = std::exchange(other.m_deviceMemory, {});
+            m_view = std::exchange(other.m_view, {});
+            m_sampler = std::exchange(other.m_sampler, {});
             m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
             // Copy simple types
-            m_ImageLayout = other.m_ImageLayout;
-            m_Width = other.m_Width;
-            m_Height = other.m_Height;
-            m_Depth = other.m_Depth;
-            m_MipLevels = other.m_MipLevels;
-            m_LayerCount = other.m_LayerCount;
-            m_Descriptor = other.m_Descriptor;
-            m_Format = other.m_Format;
-            m_Type = other.m_Type;
-            m_ViewType = other.m_ViewType;
+            m_imageLayout = other.m_imageLayout;
+            m_width = other.m_width;
+            m_height = other.m_height;
+            m_depth = other.m_depth;
+            m_mipLevels = other.m_mipLevels;
+            m_layerCount = other.m_layerCount;
+            m_descriptor = other.m_descriptor;
+            m_format = other.m_format;
+            m_type = other.m_type;
+            m_viewType = other.m_viewType;
         }
         return *this;
     }
@@ -202,21 +202,21 @@ public:
 
     ~TextureVideo() override {
 
-        switch (m_Format) {
+        switch (m_format) {
             case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
             case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMemSecondary);
-                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMemSecondary, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBufferSecondary, nullptr);
-                vkDestroySamplerYcbcrConversion(m_Device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
-                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMem);
-                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMem, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBuffer, nullptr);
+                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMemSecondary);
+                vkFreeMemory(m_device->m_LogicalDevice, m_TexMemSecondary, nullptr);
+                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBufferSecondary, nullptr);
+                vkDestroySamplerYcbcrConversion(m_device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
+                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
+                vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
+                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
                 break;
             default:
-                vkUnmapMemory(m_Device->m_LogicalDevice, m_TexMem);
-                vkFreeMemory(m_Device->m_LogicalDevice, m_TexMem, nullptr);
-                vkDestroyBuffer(m_Device->m_LogicalDevice, m_TexBuffer, nullptr);
+                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
+                vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
+                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
         }
     }
 
@@ -250,23 +250,23 @@ public:
         if (this != &other) {
             // Proper cleanup of existing resources
             // Move all resources from 'other' to 'this'
-            m_Device = std::exchange(other.m_Device, nullptr);
-            m_Image = std::exchange(other.m_Image, {});
-            m_DeviceMemory = std::exchange(other.m_DeviceMemory, {});
-            m_View = std::exchange(other.m_View, {});
-            m_Sampler = std::exchange(other.m_Sampler, {});
+            m_device = std::exchange(other.m_device, nullptr);
+            m_image = std::exchange(other.m_image, {});
+            m_deviceMemory = std::exchange(other.m_deviceMemory, {});
+            m_view = std::exchange(other.m_view, {});
+            m_sampler = std::exchange(other.m_sampler, {});
             m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
             // Copy simple types
-            m_ImageLayout = other.m_ImageLayout;
-            m_Width = other.m_Width;
-            m_Height = other.m_Height;
-            m_Depth = other.m_Depth;
-            m_MipLevels = other.m_MipLevels;
-            m_LayerCount = other.m_LayerCount;
-            m_Descriptor = other.m_Descriptor;
-            m_Format = other.m_Format;
-            m_Type = other.m_Type;
-            m_ViewType = other.m_ViewType;
+            m_imageLayout = other.m_imageLayout;
+            m_width = other.m_width;
+            m_height = other.m_height;
+            m_depth = other.m_depth;
+            m_mipLevels = other.m_mipLevels;
+            m_layerCount = other.m_layerCount;
+            m_descriptor = other.m_descriptor;
+            m_format = other.m_format;
+            m_type = other.m_type;
+            m_viewType = other.m_viewType;
         }
         return *this;
     }

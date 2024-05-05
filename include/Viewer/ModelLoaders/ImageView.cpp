@@ -250,7 +250,7 @@ void ImageView::createDescriptors(bool useOffScreenImageRender) {
                 writeDescriptorSets[2].descriptorCount = 1;
                 writeDescriptorSets[2].dstSet = m_model->resources[j].descriptors[i];
                 writeDescriptorSets[2].dstBinding = 2;
-                writeDescriptorSets[2].pImageInfo = &m_model->resources[j].texture[i]->m_Descriptor;
+                writeDescriptorSets[2].pImageInfo = &m_model->resources[j].texture[i]->m_descriptor;
             }
             vkUpdateDescriptorSets(m_vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                    writeDescriptorSets.data(), 0, nullptr);

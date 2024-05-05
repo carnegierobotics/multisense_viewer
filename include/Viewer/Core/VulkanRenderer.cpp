@@ -36,12 +36,12 @@
 
 
 #include <stb_image.h>
+#include <vk_mem_alloc.h>
 
 #include "Viewer/Core/VulkanRenderer.h"
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Core/RendererConfig.h"
 
 #ifndef MULTISENSE_VIEWER_PRODUCTION
 
@@ -230,6 +230,21 @@ namespace VkRender {
         // Find a suitable depth m_Format
         depthFormat = Utils::findDepthFormat(physicalDevice);
 
+        // Initialize vulkan memory allocator (VMA)
+        VmaVulkanFunctions vulkanFunctions = {};
+        vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+        vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+        VmaAllocatorCreateInfo allocatorCreateInfo = {};
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_1;
+        allocatorCreateInfo.physicalDevice = physicalDevice;
+        allocatorCreateInfo.device = device;
+        allocatorCreateInfo.instance = instance;
+        allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+        vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+
         return true;
     }
 
@@ -288,6 +303,8 @@ namespace VkRender {
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 #endif
+        vmaDestroyAllocator(allocator);
+
         delete vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // CleanUp GLFW window
@@ -604,7 +621,7 @@ namespace VkRender {
         info.pWindow = window;
         info.physicalDevice = physicalDevice;
         info.device = device;
-        info.vsync = true;
+        info.vsync = settings.vsync;
         swapchain = std::make_unique<VulkanSwapchain>(info, &m_Width, &m_Height);
 
         createCommandPool();
@@ -956,7 +973,6 @@ namespace VkRender {
             secondaryRenderPasses[0].imageInfo.imageView = secondaryRenderPasses[0].colorImage.resolvedView; // Your off-screen image view
 
         }
-
         secondaryRenderPasses[0].depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         secondaryRenderPasses[0].depthImageInfo.imageView = secondaryRenderPasses[0].depthStencil.view; // Your off-screen image view
         secondaryRenderPasses[0].depthImageInfo.sampler = secondaryRenderPasses[0].depthStencil.sampler; // The sampler you've just created
@@ -1134,6 +1150,7 @@ namespace VkRender {
             io.MouseDown[1] = mouseButtons.right;
             input.lastKeyPress = keyPress;
             input.action = keyAction;
+            drawCmdBuffers.currentFrame = currentFrame;
             /** Compute pipeline command recording and submission **/
             //computePipeline(); // TODO Either implement or remove
             updateUniformBuffers();

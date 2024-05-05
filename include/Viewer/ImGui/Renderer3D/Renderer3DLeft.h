@@ -15,7 +15,6 @@
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
-#include "Viewer/Renderer/Components/DefaultGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 
 DISABLE_WARNING_PUSH
@@ -99,15 +98,11 @@ namespace VkRender {
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles->m_context);
-                if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
-                    if (ImGui::SmallButton("Reload Shader")) {
-                        e.getComponent<DefaultGraphicsPipelineComponent>().updateGraphicsPipeline();
-                    }
-                } else if (e.hasComponent<CameraGraphicsPipelineComponent>()) {
-                    if (ImGui::SmallButton("Reload Shader")) {
-                        e.getComponent<CameraGraphicsPipelineComponent>().updateGraphicsPipeline();
-                    }
-                }
+                //if (e.hasComponent<CameraGraphicsPipelineComponent2>()) {
+                //    if (ImGui::SmallButton("Reload Shader")) {
+                        //e.getComponent<CameraGraphicsPipelineComponent2>().updateGraphicsPipeline();
+                //    }
+                //}
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
                     handles->m_context->markEntityForDestruction(Entity(entity, handles->m_context));

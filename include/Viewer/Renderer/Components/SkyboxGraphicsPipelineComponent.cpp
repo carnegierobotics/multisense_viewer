@@ -30,9 +30,9 @@ namespace RenderResource {
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &textures.lutBrdf.m_Image));
+        CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &textures.lutBrdf.m_image));
         VkMemoryRequirements memReqs;
-        vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, textures.lutBrdf.m_Image, &memReqs);
+        vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, textures.lutBrdf.m_image, &memReqs);
         VkMemoryAllocateInfo memAllocInfo{};
         memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         memAllocInfo.allocationSize = memReqs.size;
@@ -40,10 +40,10 @@ namespace RenderResource {
                                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         CHECK_RESULT(
                 vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr,
-                                 &textures.lutBrdf.m_DeviceMemory));
+                                 &textures.lutBrdf.m_deviceMemory));
         CHECK_RESULT(
-                vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures.lutBrdf.m_Image,
-                                  textures.lutBrdf.m_DeviceMemory,
+                vkBindImageMemory(vulkanDevice->m_LogicalDevice, textures.lutBrdf.m_image,
+                                  textures.lutBrdf.m_deviceMemory,
                                   0));
 
         // View
@@ -55,8 +55,8 @@ namespace RenderResource {
         viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         viewCI.subresourceRange.levelCount = 1;
         viewCI.subresourceRange.layerCount = 1;
-        viewCI.image = textures.lutBrdf.m_Image;
-        CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &textures.lutBrdf.m_View));
+        viewCI.image = textures.lutBrdf.m_image;
+        CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &textures.lutBrdf.m_view));
 
         // Sampler
         VkSamplerCreateInfo samplerCI{};
@@ -71,7 +71,7 @@ namespace RenderResource {
         samplerCI.maxLod = 1.0f;
         samplerCI.maxAnisotropy = 1.0f;
         samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-        CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &textures.lutBrdf.m_Sampler));
+        CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &textures.lutBrdf.m_sampler));
 
         // FB, Att, RP, Pipe, etc.
         VkAttachmentDescription attDesc{};
@@ -125,7 +125,7 @@ namespace RenderResource {
         framebufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferCI.renderPass = renderpass;
         framebufferCI.attachmentCount = 1;
-        framebufferCI.pAttachments = &textures.lutBrdf.m_View;
+        framebufferCI.pAttachments = &textures.lutBrdf.m_view;
         framebufferCI.width = dim;
         framebufferCI.height = dim;
         framebufferCI.layers = 1;
@@ -271,10 +271,10 @@ namespace RenderResource {
         vkDestroyFramebuffer(vulkanDevice->m_LogicalDevice, framebuffer, nullptr);
         vkDestroyDescriptorSetLayout(vulkanDevice->m_LogicalDevice, descriptorsetlayout, nullptr);
 
-        textures.lutBrdf.m_Descriptor.imageView = textures.lutBrdf.m_View;
-        textures.lutBrdf.m_Descriptor.sampler = textures.lutBrdf.m_Sampler;
-        textures.lutBrdf.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        textures.lutBrdf.m_Device = vulkanDevice;
+        textures.lutBrdf.m_descriptor.imageView = textures.lutBrdf.m_view;
+        textures.lutBrdf.m_descriptor.sampler = textures.lutBrdf.m_sampler;
+        textures.lutBrdf.m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        textures.lutBrdf.m_device = vulkanDevice;
 
         auto tEnd = std::chrono::high_resolution_clock::now();
         auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -311,8 +311,8 @@ namespace RenderResource {
 
             // Create target cubemap
             {
-                cubeMap.m_Width = dim;
-                cubeMap.m_Height = dim;
+                cubeMap.m_width = dim;
+                cubeMap.m_height = dim;
                 // Image
 
                 VkImageCreateInfo imageCI{};
@@ -328,9 +328,9 @@ namespace RenderResource {
                 imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
                 imageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                 imageCI.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-                CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &cubeMap.m_Image));
+                CHECK_RESULT(vkCreateImage(vulkanDevice->m_LogicalDevice, &imageCI, nullptr, &cubeMap.m_image));
                 VkMemoryRequirements memReqs;
-                vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, cubeMap.m_Image, &memReqs);
+                vkGetImageMemoryRequirements(vulkanDevice->m_LogicalDevice, cubeMap.m_image, &memReqs);
                 VkMemoryAllocateInfo memAllocInfo{};
                 memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
                 memAllocInfo.allocationSize = memReqs.size;
@@ -338,9 +338,9 @@ namespace RenderResource {
                                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 CHECK_RESULT(
                         vkAllocateMemory(vulkanDevice->m_LogicalDevice, &memAllocInfo, nullptr,
-                                         &cubeMap.m_DeviceMemory));
+                                         &cubeMap.m_deviceMemory));
                 CHECK_RESULT(
-                        vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubeMap.m_Image, cubeMap.m_DeviceMemory, 0));
+                        vkBindImageMemory(vulkanDevice->m_LogicalDevice, cubeMap.m_image, cubeMap.m_deviceMemory, 0));
 
                 // View
                 VkImageViewCreateInfo viewCI{};
@@ -351,8 +351,8 @@ namespace RenderResource {
                 viewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 viewCI.subresourceRange.levelCount = numMips;
                 viewCI.subresourceRange.layerCount = 6;
-                viewCI.image = cubeMap.m_Image;
-                CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubeMap.m_View));
+                viewCI.image = cubeMap.m_image;
+                CHECK_RESULT(vkCreateImageView(vulkanDevice->m_LogicalDevice, &viewCI, nullptr, &cubeMap.m_view));
 
                 // Sampler
                 VkSamplerCreateInfo samplerCI{};
@@ -367,7 +367,7 @@ namespace RenderResource {
                 samplerCI.maxLod = static_cast<float>(numMips);
                 samplerCI.maxAnisotropy = 1.0f;
                 samplerCI.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-                CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubeMap.m_Sampler));
+                CHECK_RESULT(vkCreateSampler(vulkanDevice->m_LogicalDevice, &samplerCI, nullptr, &cubeMap.m_sampler));
             }
 
             // FB, Att, RP, Pipe, etc.
@@ -532,7 +532,7 @@ namespace RenderResource {
             writeDescriptorSet.descriptorCount = 1;
             writeDescriptorSet.dstSet = descriptorset;
             writeDescriptorSet.dstBinding = 0;
-            writeDescriptorSet.pImageInfo = &textures.environmentCube.m_Descriptor;
+            writeDescriptorSet.pImageInfo = &textures.environmentCube.m_descriptor;
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
 
             struct PushBlockIrradiance {
@@ -715,7 +715,7 @@ namespace RenderResource {
                 vulkanDevice->beginCommandBuffer(cmdBuf);
                 VkImageMemoryBarrier imageMemoryBarrier{};
                 imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                imageMemoryBarrier.image = cubeMap.m_Image;
+                imageMemoryBarrier.image = cubeMap.m_image;
                 imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 imageMemoryBarrier.srcAccessMask = 0;
@@ -812,7 +812,7 @@ namespace RenderResource {
                             cmdBuf,
                             offscreen.image,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                            cubeMap.m_Image,
+                            cubeMap.m_image,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             1,
                             &copyRegion);
@@ -839,7 +839,7 @@ namespace RenderResource {
                 vulkanDevice->beginCommandBuffer(cmdBuf);
                 VkImageMemoryBarrier imageMemoryBarrier{};
                 imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                imageMemoryBarrier.image = cubeMap.m_Image;
+                imageMemoryBarrier.image = cubeMap.m_image;
                 imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -862,10 +862,10 @@ namespace RenderResource {
             vkDestroyPipeline(vulkanDevice->m_LogicalDevice, tmpPipeline, nullptr);
             vkDestroyPipelineLayout(vulkanDevice->m_LogicalDevice, pipelinelayout, nullptr);
 
-            cubeMap.m_Descriptor.imageView = cubeMap.m_View;
-            cubeMap.m_Descriptor.sampler = cubeMap.m_Sampler;
-            cubeMap.m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            cubeMap.m_Device = vulkanDevice;
+            cubeMap.m_descriptor.imageView = cubeMap.m_view;
+            cubeMap.m_descriptor.sampler = cubeMap.m_sampler;
+            cubeMap.m_descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            cubeMap.m_device = vulkanDevice;
 
             switch (target) {
                 case IRRADIANCE:
@@ -885,9 +885,9 @@ namespace RenderResource {
     }
 
     void SkyboxGraphicsPipelineComponent::setupUniformBuffers() {
-        bufferSkyboxVert.resize(renderUtils->UBCount);
-        bufferSkyboxFrag.resize(renderUtils->UBCount);
-        for (size_t i = 0; i < renderUtils->UBCount; ++i) {
+        bufferSkyboxVert.resize(renderUtils->swapchainImages);
+        bufferSkyboxFrag.resize(renderUtils->swapchainImages);
+        for (size_t i = 0; i < renderUtils->swapchainImages; ++i) {
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                        &bufferSkyboxFrag[i], sizeof(VkRender::ShaderValuesParams));
@@ -920,8 +920,8 @@ namespace RenderResource {
         }
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * renderUtils->UBCount},
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * renderUtils->UBCount},
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * renderUtils->swapchainImages},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * renderUtils->swapchainImages},
                 // One SSBO for the shader material buffer
                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1}
         };
@@ -929,7 +929,7 @@ namespace RenderResource {
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * renderUtils->UBCount;
+        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * renderUtils->swapchainImages;
         CHECK_RESULT(
                 vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &descriptorPool));
 
@@ -948,9 +948,9 @@ namespace RenderResource {
                 vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                             &setLayout));
 
-        descriptorSets.resize(renderUtils->UBCount);
+        descriptorSets.resize(renderUtils->swapchainImages);
         // Skybox (fixed set)
-        for (size_t i = 0; i < renderUtils->UBCount; i++) {
+        for (size_t i = 0; i < renderUtils->swapchainImages; i++) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             descriptorSetAllocInfo.descriptorPool = descriptorPool;
@@ -981,7 +981,7 @@ namespace RenderResource {
             writeDescriptorSets[2].descriptorCount = 1;
             writeDescriptorSets[2].dstSet = descriptorSets[i];
             writeDescriptorSets[2].dstBinding = 2;
-            writeDescriptorSets[2].pImageInfo = &textures.prefilteredCube.m_Descriptor;
+            writeDescriptorSets[2].pImageInfo = &textures.prefilteredCube.m_descriptor;
 
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                    writeDescriptorSets.data(), 0, nullptr);

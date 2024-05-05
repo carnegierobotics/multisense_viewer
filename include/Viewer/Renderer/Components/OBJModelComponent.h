@@ -11,6 +11,7 @@
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
 #include <cfloat>
+#include <stb_image.h>
 
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
@@ -30,55 +31,24 @@ namespace VkRender {
 
 
         OBJModelComponent(const std::filesystem::path &modelPath, VulkanDevice *dev) {
-            device = dev;
             loadModel(modelPath);
             loadTexture(modelPath);
         }
 
-        ~OBJModelComponent() {
-            if (vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(device->m_LogicalDevice, vertices.buffer, nullptr);
-            }
-            if (vertices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(device->m_LogicalDevice, vertices.memory, nullptr);
-            }
-            if (indices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(device->m_LogicalDevice, indices.buffer, nullptr);
-            }
-            if (indices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(device->m_LogicalDevice, indices.memory, nullptr);
-            }
-        }
-
         Texture2D objTexture; // TODO Possibly make more empty textures to match our triple buffering?
-        void draw(CommandBuffer *commandBuffer, uint32_t cbIndex);
 
     private:
         void loadModel(std::filesystem::path modelPath);
 
         void loadTexture(std::filesystem::path texturePath);
 
-        struct Vertices {
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory = VK_NULL_HANDLE;
-            uint32_t vertexCount = 0;
-        };
-        struct Indices {
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory = VK_NULL_HANDLE;
-            uint32_t indexCount = 0;
-        };
-
-        struct LoaderInfo {
-            uint32_t *indexBuffer;
-            VkRender::Vertex *vertexBuffer;
-        };
-
-    private:
-        VulkanDevice *device;
-        Indices indices{};
-        Vertices vertices{};
-
+    public:
+        std::vector<VkRender::Vertex> m_vertices;
+        std::vector<uint32_t> m_indices;
+        stbi_uc *m_pixels;
+        VkDeviceSize m_texSize = 0;
+        uint32_t m_texWidth = 0;
+        uint32_t m_texHeight = 0;
     };
 };
 

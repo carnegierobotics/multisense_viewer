@@ -27,7 +27,7 @@ namespace RenderResource {
                                             const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
             renderUtils = utils;
             vulkanDevice = utils->device;
-            resources.resize(renderUtils->UBCount);
+            resources.resize(renderUtils->swapchainImages);
             emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, vulkanDevice, vulkanDevice->m_TransferQueue);
             for(size_t i = 0; i < resources.size(); ++i){
             createMaterialBuffer(resources[i], modelComponent);

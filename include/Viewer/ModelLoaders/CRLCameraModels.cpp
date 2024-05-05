@@ -481,7 +481,7 @@ void CRLCameraModels::createRenderPipeline(const std::vector<VkPipelineShaderSta
                                            const VkRender::RenderUtils *renderUtils) {
 
     vulkanDevice = renderUtils->device;
-    m_SwapChainImageCount = renderUtils->UBCount;
+    m_SwapChainImageCount = renderUtils->swapchainImages;
     m_Shaders = vector;
 
 }

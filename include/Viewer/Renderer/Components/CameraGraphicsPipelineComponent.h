@@ -10,10 +10,11 @@
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
 
 namespace VkRender {
 
-    struct CameraGraphicsPipelineComponent {
+    struct CameraGraphicsPipelineComponent : RenderBase {
         CameraGraphicsPipelineComponent() = default;
 
         CameraGraphicsPipelineComponent(const CameraGraphicsPipelineComponent &) = delete;
@@ -24,7 +25,7 @@ namespace VkRender {
             renderUtils = utils;
             vulkanDevice = utils->device;
 
-            uint32_t numSwapChainImages = renderUtils->UBCount;
+            uint32_t numSwapChainImages = renderUtils->swapchainImages;
             uint32_t numResourcesToAllocate = 1;
             std::vector<VkRenderPass> passes = {*renderUtils->renderPass};
 
@@ -89,10 +90,10 @@ namespace VkRender {
             VkDescriptorPool descriptorPool{};
             std::vector<VkDescriptorSet> descriptorSets;
             VkDescriptorSetLayout descriptorSetLayout{};
-            VkRender::UBOMatrix mvp;
-            VkRender::UBOCamera vertices;
-        };
 
+        };
+        VkRender::UBOMatrix mvp;
+        VkRender::UBOCamera vertices;
         std::vector<RenderResource> resources;
         std::vector<RenderData> renderData;
 
@@ -141,9 +142,9 @@ namespace VkRender {
                 return;
             }
             memcpy(renderData[renderUtils->swapchainIndex].ubo.mapped,
-                   &renderData[renderUtils->swapchainIndex].mvp, sizeof(VkRender::UBOMatrix));
+                   &mvp, sizeof(VkRender::UBOMatrix));
             memcpy(renderData[renderUtils->swapchainIndex].uboVertices.mapped,
-                   &renderData[renderUtils->swapchainIndex].vertices, sizeof(VkRender::UBOCamera));
+                   &vertices, sizeof(VkRender::UBOCamera));
         }
 
         void updateGraphicsPipeline() {
@@ -168,7 +169,7 @@ namespace VkRender {
                 resource.ubo.map();
                 float a = 0.5;
                 float h = 2.0;
-                resource.vertices.positions = {
+                vertices.positions = {
                         // Base (CCW from top)
                         glm::vec4(-a, a, 0, 1.0), // D
                         glm::vec4(-a, -a, 0, 1.0), // A
@@ -210,14 +211,14 @@ namespace VkRender {
             for (auto &resource: renderData) {
 
                 std::vector<VkDescriptorPoolSize> poolSizes = {
-                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->UBCount},
-                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->UBCount}
+                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->swapchainImages},
+                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, renderUtils->swapchainImages}
                 };
                 VkDescriptorPoolCreateInfo descriptorPoolCI{};
                 descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
                 descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
                 descriptorPoolCI.pPoolSizes = poolSizes.data();
-                descriptorPoolCI.maxSets = renderUtils->UBCount;
+                descriptorPoolCI.maxSets = renderUtils->swapchainImages;
                 CHECK_RESULT(
                         vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr,
                                                &resource.descriptorPool));
@@ -237,7 +238,7 @@ namespace VkRender {
                             vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                                         &resource.descriptorSetLayout));
 
-                    resource.descriptorSets.resize(renderUtils->UBCount);
+                    resource.descriptorSets.resize(renderUtils->swapchainImages);
                     for (size_t i = 0; i < resource.descriptorSets.size(); i++) {
                         VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                         descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

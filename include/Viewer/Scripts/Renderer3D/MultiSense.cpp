@@ -65,7 +65,7 @@ void MultiSense::update() {
     if (model) {
         auto &obj = model.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
 
-        for (size_t i = 0; i < m_context->renderUtils.UBCount; ++i) {
+        for (size_t i = 0; i < m_context->renderUtils.swapchainImages; ++i) {
             obj.resources[i].uboMatrix.projection = camera.matrices.perspective;
             obj.resources[i].uboMatrix.view = camera.matrices.view;
             obj.resources[i].uboMatrix.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
@@ -86,7 +86,7 @@ void MultiSense::update() {
     auto coordinates = m_context->findEntityByName("Coordinates");
     if (coordinates) {
         auto &obj = coordinates.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
-        for (size_t i = 0; i < m_context->renderUtils.UBCount; ++i) {
+        for (size_t i = 0; i < m_context->renderUtils.swapchainImages; ++i) {
 
             obj.resources[i].uboMatrix.projection = camera.matrices.perspective;
             obj.resources[i].uboMatrix.view = camera.matrices.view;

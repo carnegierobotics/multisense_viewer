@@ -139,8 +139,8 @@ namespace RenderResource {
 
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * renderUtils->UBCount},
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * renderUtils->UBCount},
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * renderUtils->swapchainImages},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * renderUtils->swapchainImages},
                 // One SSBO for the shader material buffer
                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1}
         };
@@ -148,7 +148,7 @@ namespace RenderResource {
         descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * renderUtils->UBCount;
+        descriptorPoolCI.maxSets = (2 + materialCount + meshCount) * renderUtils->swapchainImages;
         CHECK_RESULT(
                 vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &resource.descriptorPool));
 
@@ -174,7 +174,7 @@ namespace RenderResource {
             CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice->m_LogicalDevice, &descriptorSetLayoutCI, nullptr,
                                                      &resource.descriptorSetLayouts.scene));
 
-            resource.descriptorSets.resize(renderUtils->UBCount);
+            resource.descriptorSets.resize(renderUtils->swapchainImages);
             for (size_t i = 0; i < resource.descriptorSets.size(); i++) {
                 VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
                 descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -205,21 +205,21 @@ namespace RenderResource {
                 writeDescriptorSets[2].descriptorCount = 1;
                 writeDescriptorSets[2].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[2].dstBinding = 2;
-                writeDescriptorSets[2].pImageInfo = &skyboxComponent.textures.irradianceCube.m_Descriptor;
+                writeDescriptorSets[2].pImageInfo = &skyboxComponent.textures.irradianceCube.m_descriptor;
 
                 writeDescriptorSets[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[3].descriptorCount = 1;
                 writeDescriptorSets[3].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[3].dstBinding = 3;
-                writeDescriptorSets[3].pImageInfo = &skyboxComponent.textures.prefilteredCube.m_Descriptor;
+                writeDescriptorSets[3].pImageInfo = &skyboxComponent.textures.prefilteredCube.m_descriptor;
 
                 writeDescriptorSets[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[4].descriptorCount = 1;
                 writeDescriptorSets[4].dstSet = resource.descriptorSets[i];
                 writeDescriptorSets[4].dstBinding = 4;
-                writeDescriptorSets[4].pImageInfo = &skyboxComponent.textures.lutBrdf.m_Descriptor;
+                writeDescriptorSets[4].pImageInfo = &skyboxComponent.textures.lutBrdf.m_descriptor;
 
                 vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                        writeDescriptorSets.data(), 0, NULL);
@@ -253,30 +253,30 @@ namespace RenderResource {
                                                       &material.descriptorSet));
 
                 std::vector<VkDescriptorImageInfo> imageDescriptors = {
-                        emptyTexture.m_Descriptor,
-                        emptyTexture.m_Descriptor,
-                        material.normalTexture ? material.normalTexture->m_Descriptor : emptyTexture.m_Descriptor,
-                        material.occlusionTexture ? material.occlusionTexture->m_Descriptor : emptyTexture.m_Descriptor,
-                        material.emissiveTexture ? material.emissiveTexture->m_Descriptor : emptyTexture.m_Descriptor
+                        emptyTexture.m_descriptor,
+                        emptyTexture.m_descriptor,
+                        material.normalTexture ? material.normalTexture->m_descriptor : emptyTexture.m_descriptor,
+                        material.occlusionTexture ? material.occlusionTexture->m_descriptor : emptyTexture.m_descriptor,
+                        material.emissiveTexture ? material.emissiveTexture->m_descriptor : emptyTexture.m_descriptor
                 };
 
                 // TODO: glTF specs states that metallic roughness should be preferred, even if specular glosiness is present
 
                 if (material.pbrWorkflows.metallicRoughness) {
                     if (material.baseColorTexture) {
-                        imageDescriptors[0] = material.baseColorTexture->m_Descriptor;
+                        imageDescriptors[0] = material.baseColorTexture->m_descriptor;
                     }
                     if (material.metallicRoughnessTexture) {
-                        imageDescriptors[1] = material.metallicRoughnessTexture->m_Descriptor;
+                        imageDescriptors[1] = material.metallicRoughnessTexture->m_descriptor;
                     }
                 }
 
                 if (material.pbrWorkflows.specularGlossiness) {
                     if (material.extension.diffuseTexture) {
-                        imageDescriptors[0] = material.extension.diffuseTexture->m_Descriptor;
+                        imageDescriptors[0] = material.extension.diffuseTexture->m_descriptor;
                     }
                     if (material.extension.specularGlossinessTexture) {
-                        imageDescriptors[1] = material.extension.specularGlossinessTexture->m_Descriptor;
+                        imageDescriptors[1] = material.extension.specularGlossinessTexture->m_descriptor;
                     }
                 }
 

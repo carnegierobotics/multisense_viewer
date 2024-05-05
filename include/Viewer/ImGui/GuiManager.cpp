@@ -522,7 +522,7 @@ namespace VkRender {
             write_desc[0].dstSet = dSet;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &gifTexture[i]->m_Descriptor;
+            write_desc[0].pImageInfo = &gifTexture[i]->m_descriptor;
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
 
             handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
@@ -562,7 +562,7 @@ namespace VkRender {
             write_desc[0].dstSet = imageIconDescriptors[i];
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTextures[i].m_Descriptor;
+            write_desc[0].pImageInfo = &iconTextures[i].m_descriptor;
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
 
@@ -608,7 +608,7 @@ namespace VkRender {
             write_desc[0].dstSet = descriptor;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &fontTexture.back().m_Descriptor;
+            write_desc[0].pImageInfo = &fontTexture.back().m_descriptor;
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
 

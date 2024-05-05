@@ -117,12 +117,12 @@ namespace VkRender {
 
     void CustomModelComponent::createDescriptorPool() {
         for (auto &descriptorPool: descriptorPools) {
-            uint32_t uniformDescriptorCount = renderer->UBCount;
+            uint32_t uniformDescriptorCount = renderer->swapchainImages;
             std::vector<VkDescriptorPoolSize> poolSizes = {
                     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformDescriptorCount},
             };
             VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes,
-                                                                                           renderer->UBCount);
+                                                                                           renderer->swapchainImages);
 
             CHECK_RESULT(
                     vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
@@ -130,7 +130,7 @@ namespace VkRender {
     }
 
     void CustomModelComponent::createDescriptorSets() {
-        descriptors.resize(renderer->UBCount);
+        descriptors.resize(renderer->swapchainImages);
 
         for (size_t i = 0; i < descriptorSetLayouts.size(); ++i) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
@@ -258,11 +258,11 @@ namespace VkRender {
                 throw std::runtime_error("Failed to create graphics m_Pipeline");
         }
 
-        resourcesInUse.resize(renderer->UBCount); // TODO remove
+        resourcesInUse.resize(renderer->swapchainImages); // TODO remove
     }
 
     void CustomModelComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
-        if (cbIndex >= renderer->UBCount)
+        if (cbIndex >= renderer->swapchainImages)
             return;
         vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayouts[cbIndex],

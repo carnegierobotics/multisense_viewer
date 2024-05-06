@@ -61,12 +61,14 @@ namespace VkRender {
             handles->m_cameraSelection.info[cameraTag].reset = false;
             if (ImGui::RadioButton("Arcball", &handles->m_cameraSelection.info[cameraTag].type, 0)) {
                 handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->m_cameraSelection.info[cameraTag].reset = true;
+                handles->m_context->cameras[cameraTag]->setType(Camera::arcball);
+                handles->m_context->cameras[cameraTag]->resetPosition();
             }
             ImGui::SameLine();
             if (ImGui::RadioButton("Flycam", &handles->m_cameraSelection.info[cameraTag].type, 1)) {
                 handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->m_cameraSelection.info[cameraTag].reset = true;
+                handles->m_context->cameras[cameraTag]->setType(Camera::flycam);
+                handles->m_context->cameras[cameraTag]->resetPosition();
             }
             ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));

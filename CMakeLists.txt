@@ -199,12 +199,12 @@ if (WIN32)
     add_library(libsll STATIC IMPORTED GLOBAL)
     set_target_properties(libsll PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.lib")
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.a")
 
     add_library(libcrypto STATIC IMPORTED GLOBAL)
     set_target_properties(libcrypto PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.a")
 
     add_library(CustomLoggerInterface INTERFACE)
     target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)
@@ -213,7 +213,7 @@ if (WIN32)
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface )
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger)
+    target_link_libraries(VulkanRenderer ${LIBRARIES} CustomLogger libsll libcrypto)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
     target_link_libraries(ScriptLibrary VulkanRenderer avutil swscale libsll libcrypto rosbag_cpp_writer)

@@ -29,6 +29,8 @@ public:
     /** @brief update function called once per frame **/
     void update() override;
     void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
+
+    void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
     }
@@ -37,6 +39,7 @@ public:
 
     bool enable = true;
     bool hide = false;
+    bool showDepthView = true;
 
 };
 

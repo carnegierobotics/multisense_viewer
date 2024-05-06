@@ -1111,18 +1111,18 @@ namespace VkRender {
         // Maybe resize overlay too
         setupSecondaryRenderPasses(false);
 
+        pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
+
+        // Notify derived class
+        windowResized();
+        viewChanged();
+
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer
         destroyCommandBuffers();
         createCommandBuffers();
         buildCommandBuffers();
         vkDeviceWaitIdle(device);
-
-        pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
-
-        // Notify derived class
-        windowResized();
-        viewChanged();
 
         backendInitialized = true;
     }

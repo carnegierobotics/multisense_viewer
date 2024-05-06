@@ -8,10 +8,6 @@
 namespace VkRender {
 
 
-    void DefaultGraphicsPipelineComponent2::pauseRendering() {
-        stopRendering = true;
-    }
-
     bool DefaultGraphicsPipelineComponent2::cleanUp(uint32_t currentFrame, bool force) {
         pauseRendering();
         bool resourcesIdle = true;
@@ -77,7 +73,7 @@ namespace VkRender {
             }
         }
 */
-        if (stopRendering)
+        if (shouldStopRendering())
             return;
 
         memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
@@ -92,7 +88,7 @@ namespace VkRender {
         uint32_t cbIndex = cmdBuffers->currentFrame;
         auto renderPassType = cmdBuffers->renderPassType;
 
-        if (stopRendering || m_renderData[cbIndex].requestIdle[renderPassType]) {
+        if (shouldStopRendering() || m_renderData[cbIndex].requestIdle[renderPassType]) {
             //resources[renderPassIndex].res[cbIndex].busy = false;
             return;
         }

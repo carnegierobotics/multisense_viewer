@@ -52,7 +52,7 @@ namespace VkRender {
         }
 
 
-        void windowResize(VkRender::RenderData *data, const VkRender::GuiObjectHandles *uiHandle) {
+        void windowResize(const VkRender::GuiObjectHandles *uiHandle) {
             onWindowResize(uiHandle);
         }
 

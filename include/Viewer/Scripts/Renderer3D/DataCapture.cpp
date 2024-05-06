@@ -15,34 +15,6 @@
 
 void DataCapture::setup() {
 
-    {
-        auto entity = m_context->createEntity("viking_room");
-        auto &component = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "viking_room.obj", m_context->renderUtils.device);
-        entity.addComponent<VkRender::SecondaryRenderPassComponent>();
-
-        auto &renderResource = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(
-                &m_context->renderUtils);
-        renderResource.bind(component);
-
-    }
-    {
-        auto quad = m_context->createEntity("quad");
-        auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "quad.obj",
-                m_context->renderUtils.device);
-
-
-        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
-                                                                                   "default2D.vert.spv",
-                                                                                   "default2D.frag.spv");
-        res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.secondaryRenderPasses->front().depthImageInfo);
-
-
-    }
-
-
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Reset Data Capture", &resetDataCapture);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Save Depth", &saveDepthImage);
 }
@@ -173,88 +145,8 @@ void DataCapture::update() {
         Log::Logger::getInstance()->info("Current image is now: {}", scenes[sceneIndex].poses[poseIndex].imageName);
     }
 
-    glm::mat4 invView = glm::inverse(defaultCamera.matrices.view);
-    glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    auto cameraWorldPosition = glm::vec3(cameraPos4);
-
-
-    auto gsMesh = m_context->findEntityByName("viking_room");
-    if (gsMesh) {
-        auto &obj = gsMesh.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
-        obj.mvp.projection = defaultCamera.matrices.perspective;
-        obj.mvp.view = defaultCamera.matrices.view;
-        obj.mvp.model = glm::mat4(1.0f);
-        obj.mvp.camPos = cameraWorldPosition;
-    }
-
-
-    auto quad = m_context->findEntityByName("quad");
-    if (quad) {
-        auto &obj = quad.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
-        obj.mvp.projection = defaultCamera.matrices.perspective;
-        obj.mvp.view = defaultCamera.matrices.view;
-        obj.mvp.camPos = cameraWorldPosition;
-        auto model = glm::mat4(1.0f);
-        float xOffsetPx = (m_context->renderData.width - 150.0) / m_context->renderData.width;
-        float translationX = xOffsetPx * 2 - 1;
-        float translationY = xOffsetPx * 2 - 1;
-        model = glm::translate(model, glm::vec3(translationX, translationY, 0.0f));
-        float scaleX = 300.0f / m_context->renderData.width;
-        model = glm::scale(model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
-        obj.mvp.model = model;
-    }
-
-    auto test_camera = m_context->findEntityByName("Camera: Test");
-    auto test_camera_coordinates = m_context->findEntityByName("Coordinates_TestCamera");
-    if (test_camera && test_camera_coordinates) {
-        auto &obj = test_camera.getComponent<VkRender::CameraGraphicsPipelineComponent>();
-        auto &objCamera = test_camera.getComponent<VkRender::CameraComponent>();
-
-        auto &objCoords = test_camera_coordinates.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
-
-        for (auto &i: objCoords.resources) {
-            i.uboMatrix.projection = defaultCamera.matrices.perspective;
-            i.uboMatrix.view = defaultCamera.matrices.view;
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), objCamera.camera.pose.pos);
-
-            model = model * glm::mat4_cast(objCamera.camera.pose.q);
-            model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
-
-            model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
-            i.uboMatrix.model = model;
-            i.uboMatrix.camPos = cameraWorldPosition;
-
-            struct LightSource {
-                glm::vec3 color = glm::vec3(1.0f);
-                glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);
-            } lightSource;
-
-
-            i.shaderValuesParams.lightDir = glm::vec4(
-                    sin(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
-                    sin(glm::radians(lightSource.rotation.y)),
-                    cos(glm::radians(lightSource.rotation.x)) * cos(glm::radians(lightSource.rotation.y)),
-                    0.0f);
-
-            i.shaderValuesParams.gamma += 6.0f;
-            i.shaderValuesParams.exposure += 12.0f;
-
-        }
-        objCoords.update();
-        obj.mvp.projection = defaultCamera.matrices.perspective;
-        obj.mvp.view = defaultCamera.matrices.view;
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), objCamera.camera.pose.pos);
-
-        model = model * glm::mat4_cast(objCamera.camera.pose.q);
-        model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
-        obj.mvp.model = model;
-        obj.mvp.camPos = cameraWorldPosition;
-
-        obj.update();
-    }
-
+    // Manual load set images gizmo
     for (const auto &img: images) {
-
         std::string tag = "Camera: " + std::to_string(img.imageID);
         auto entity = m_context->findEntityByName(tag);
         auto &obj = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
@@ -307,7 +199,6 @@ void DataCapture::update() {
             obj.mvp.projection = defaultCamera.matrices.perspective;
             obj.mvp.view = defaultCamera.matrices.view;
             obj.mvp.model = glm::mat4(1.0f);
-            obj.mvp.camPos = cameraWorldPosition;
         }
     }
 

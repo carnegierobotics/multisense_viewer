@@ -69,8 +69,6 @@ namespace VkRender {
 
         bool cleanUp(uint32_t currentFrame, bool force = false) override;
 
-        void pauseRendering() override;
-
         void update(uint32_t currentFrame) override;
 
         template <typename T>

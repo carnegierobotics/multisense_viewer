@@ -261,21 +261,58 @@ namespace VkRender {
         resourcesInUse.resize(renderer->swapchainImages); // TODO remove
     }
 
-    void CustomModelComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex) {
-        if (cbIndex >= renderer->swapchainImages)
+
+    void CustomModelComponent::draw(CommandBuffer *cmdBuffer) {
+        uint32_t cbIndex = cmdBuffer->currentFrame;
+
+        if (shouldStopRendering())
             return;
-        vkCmdBindDescriptorSets(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+
+        vkCmdBindDescriptorSets(cmdBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayouts[cbIndex],
                                 0, 1,
                                 &descriptors[cbIndex], 0, nullptr);
-        vkCmdBindPipeline(commandBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[cbIndex]);
+        vkCmdBindPipeline(cmdBuffer->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[cbIndex]);
 
         const VkDeviceSize offsets[1] = {0};
 
-        vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer->buffers[cbIndex], model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer->buffers[cbIndex], model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
+        vkCmdBindVertexBuffers(cmdBuffer->buffers[cbIndex], 0, 1, &model->mesh.vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(cmdBuffer->buffers[cbIndex], model->mesh.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmdBuffer->buffers[cbIndex], model->mesh.indexCount, 1, model->mesh.firstIndex, 0, 0);
 
         resourcesInUse[cbIndex] = true;
     }
+
+    bool CustomModelComponent::cleanUp(uint32_t currentFrame, bool force) {
+
+        pauseRendering();
+        bool resourcesIdle = true;
+
+        for (auto busy: resourcesInUse) {
+            if (busy) {
+                resourcesIdle = false;
+            }
+        }
+        if (resourcesIdle || force) {
+            for (size_t i = 0; i < renderer->swapchainImages; ++i) {
+                vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelines[i], nullptr);
+                vkDestroyPipelineLayout(renderer->device->m_LogicalDevice, pipelineLayouts[i], nullptr);
+                vkDestroyDescriptorSetLayout(renderer->device->m_LogicalDevice, descriptorSetLayouts[i], nullptr);
+                vkDestroyDescriptorPool(renderer->device->m_LogicalDevice, descriptorPools[i], nullptr);
+
+                resourcesDeleted = true;
+            }
+        } else {
+            Log::Logger::getInstance()->trace("Waiting to clean up vulkan resources for CustomModelComponent");
+            resourcesInUse[currentFrame] = false;
+        }
+        return resourcesIdle;
+    }
+
+
+    void CustomModelComponent::update(uint32_t currentFrame) {
+        Buffer &currentUB = UBOBuffers[currentFrame];
+        memcpy(currentUB.mapped, &mvp, sizeof(VkRender::UBOMatrix));
+    }
+
 };

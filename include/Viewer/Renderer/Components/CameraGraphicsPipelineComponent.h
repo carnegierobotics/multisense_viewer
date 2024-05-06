@@ -60,7 +60,7 @@ namespace VkRender {
             uint32_t cbIndex = cmdBuffers->currentFrame;
             auto renderPassType = cmdBuffers->renderPassType;
 
-            if (stopRendering || m_renderData[cbIndex].requestIdle[renderPassType]) {
+            if (shouldStopRendering() || m_renderData[cbIndex].requestIdle[renderPassType]) {
                 //resources[renderPassIndex].res[cbIndex].busy = false;
                 return;
             }

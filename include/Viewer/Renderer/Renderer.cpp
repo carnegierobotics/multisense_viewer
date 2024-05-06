@@ -152,6 +152,21 @@ namespace VkRender {
         }
     }
 
+    // Helper function to attempt cleanup and destroy the entity if successful
+    template<typename T>
+    bool Renderer::tryCleanupAndDestroy(Entity& entity, int currentFrame) {
+        if (entity.hasComponent<T>()) {
+            auto& res = entity.getComponent<T>();
+            if (res.cleanUp(currentFrame)) {
+                destroyEntity(Entity(entity, this));
+                return true; // Entity was deleted from register
+            }
+            return true; // We found the component and notified we want to delete vulkan resources -- Try again entity not deleted from register
+        }
+        return false; // No render component -- just delete entity
+    }
+
+
     void Renderer::processDeletions() {
         // TODO Specify cleanup routine for each component individually. Let the component manage the deletion itself
         // Check for PBR elements and if we should delay deletion
@@ -166,44 +181,20 @@ namespace VkRender {
                 destroyEntity(Entity(entity, this));
             }
         }
-        // Check deletion for custom models
-        for (auto [entity, customModel, deleteComponent]: m_registry.view<VkRender::CustomModelComponent, DeleteComponent>().each()) {
-            customModel.markedForDeletion = true;
-            bool readyForDeletion = true;
-            for (const auto &inUse: customModel.resourcesInUse) {
-                if (inUse)
-                    readyForDeletion = false;
-            }
-            if (readyForDeletion) {
-                destroyEntity(Entity(entity, this));
-            }
-        }
 
-
-        // Other Entities:
-        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>(entt::exclude<CustomModelComponent,
-                RenderResource::DefaultPBRGraphicsPipelineComponent, OBJModelComponent, CameraGraphicsPipelineComponent>).each()) {
-            destroyEntity(Entity(entity, this));
-
-        }
         // Delete Entities:
-        for (auto [entity, deleteComponent]: m_registry.view<DeleteComponent>().each()) {
-            auto e = Entity(entity, this);
-            // Wait until resources are idle before we delete
-            if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
-                auto &res = e.getComponent<DefaultGraphicsPipelineComponent2>();
-                if (res.cleanUp(currentFrame)) {
-                    destroyEntity(Entity(entity, this));
-                }
-            } else if (e.hasComponent<CameraGraphicsPipelineComponent>()) {
-                auto &res = e.getComponent<CameraGraphicsPipelineComponent>();
-                if (res.cleanUp(currentFrame)) {
-                    destroyEntity(Entity(entity, this));
-                }
+        for (auto [entity_id, deleteComponent]: m_registry.view<DeleteComponent>().each()) {
+            Entity entity(entity_id, this);
 
-            } else {
-                destroyEntity(Entity(entity, this));
+            // Simplify the cleanup check using a templated helper function
+            if (tryCleanupAndDestroy<DefaultGraphicsPipelineComponent2>(entity, currentFrame) ||
+                tryCleanupAndDestroy<CameraGraphicsPipelineComponent>(entity, currentFrame) ||
+                tryCleanupAndDestroy<CustomModelComponent>(entity, currentFrame)) {
+                continue;
             }
+
+            // If no specific components were found or needed cleanup, destroy the entity
+            destroyEntity(entity);
 
         }
     }
@@ -472,22 +463,17 @@ namespace VkRender {
             resources.draw(&drawCmdBuffers);
         }
 
-        /**@brief Record commandbuffers for camera models */
+        /**@brief Record commandbuffers for custom camera models */
         // Accessing components in a non-copying manner
-
         for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
             resources.draw(&drawCmdBuffers);
 
         }
 
-
-        /**@brief Record commandbuffers for Custom models */
+        /**@brief Record commandbuffers for Custom models (GRID) */
         for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
-            if (!resource.markedForDeletion)
-                resource.draw(&drawCmdBuffers, currentFrame);
-            else
-                resource.resourcesInUse[currentFrame] = false;
+            resource.draw(&drawCmdBuffers);
         }
 
 
@@ -595,6 +581,13 @@ namespace VkRender {
         // Update gui with new res
         guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
 
+        // Notify scripts
+        auto view = m_registry.view<ScriptComponent>();
+        for (auto entity: view) {
+            auto &script = view.get<ScriptComponent>(entity);
+            script.script->windowResize(&guiManager->handles);
+        }
+
     }
 
 
@@ -627,7 +620,7 @@ namespace VkRender {
 
         auto view = m_registry.view<entt::any>();
         // Step 3: Destroy entities
-        for (auto entity : view) {
+        for (auto entity: view) {
             m_registry.destroy(entity);
         }
 

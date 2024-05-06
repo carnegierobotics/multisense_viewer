@@ -7,7 +7,7 @@
 
 #include "Viewer/Core/CommandBuffer.h"
 
-namespace VkRender{
+namespace VkRender {
     class RenderBase {
     public:
         RenderBase() = default;
@@ -24,12 +24,18 @@ namespace VkRender{
 
         virtual bool cleanUp(uint32_t currentFrame, bool force = false) = 0;
 
-        virtual void pauseRendering() = 0;
+        virtual void pauseRendering() {
+            stopRendering = true;
+        };
+        virtual bool shouldStopRendering(){
+            return stopRendering;
+        }
 
         virtual void update(uint32_t currentFrame) = 0;
 
         virtual ~RenderBase() = default;
 
+    private:
         bool stopRendering = false;
     };
 }

@@ -9,9 +9,10 @@
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
 
 namespace VkRender {
-    struct CustomModelComponent {
+    struct CustomModelComponent : RenderBase {
 
         static VkPipelineShaderStageCreateInfo
         loadShader(VkDevice device, std::string fileName, VkShaderStageFlagBits stage, VkShaderModule *module) {
@@ -31,6 +32,12 @@ namespace VkRender {
             return shaderStage;
         }
 
+
+        void draw(CommandBuffer *cmdBuffer) override;
+
+        bool cleanUp(uint32_t currentFrame, bool force = false) override;
+
+        void update(uint32_t currentFrame) override;
 
         struct Model {
             explicit Model(const VkRender::RenderUtils *renderUtils);
@@ -80,19 +87,14 @@ namespace VkRender {
         std::vector<VkPipelineLayout> pipelineLayouts{};
         std::vector<bool> resourcesInUse = {false};
 
-        bool markedForDeletion = false;
         const VulkanDevice *vulkanDevice = nullptr;
         const VkRender::RenderUtils *renderer;
+        bool resourcesDeleted = false;
 
         std::unique_ptr<Model> model;
         std::vector<Buffer> UBOBuffers{};
+        UBOMatrix mvp{};
 
-        void update(uint32_t index, void *data) {
-
-            Buffer &currentUB = UBOBuffers[index];
-            memcpy(currentUB.mapped, data, sizeof(VkRender::UBOMatrix));
-
-        }
 
         explicit CustomModelComponent(const VkRender::RenderUtils *renderUtils) {
             renderer = renderUtils;
@@ -137,15 +139,10 @@ namespace VkRender {
             vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, fragModule, nullptr);
         }
 
-        ~CustomModelComponent() {
+        ~CustomModelComponent() override {
+            if (!resourcesDeleted)
+                cleanUp(0, true);
 
-            for (size_t i = 0; i < renderer->swapchainImages; ++i) {
-                vkDestroyPipeline(renderer->device->m_LogicalDevice, pipelines[i], nullptr);
-                vkDestroyPipelineLayout(renderer->device->m_LogicalDevice, pipelineLayouts[i], nullptr);
-                vkDestroyDescriptorSetLayout(renderer->device->m_LogicalDevice, descriptorSetLayouts[i], nullptr);
-                vkDestroyDescriptorPool(renderer->device->m_LogicalDevice, descriptorPools[i], nullptr);
-
-            }
 
         }
 
@@ -158,7 +155,6 @@ namespace VkRender {
 
         void createGraphicsPipeline(std::vector<VkPipelineShaderStageCreateInfo> vector);
 
-        void draw(CommandBuffer *commandBuffer, uint32_t cbIndex);
     };
 
 };

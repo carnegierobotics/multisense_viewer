@@ -156,6 +156,9 @@ namespace VkRender {
 
         void processDeletions();
 
+        template<typename T>
+        bool tryCleanupAndDestroy(Entity &entity, int currentFrame);
+
     };
 }
 

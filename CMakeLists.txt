@@ -122,6 +122,16 @@ if (UNIX) ## Linux
     endif ()
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+    add_library(libsll STATIC IMPORTED GLOBAL)
+    set_target_properties(libsll PROPERTIES
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.a")
+
+    add_library(libcrypto STATIC IMPORTED GLOBAL)
+    set_target_properties(libcrypto PROPERTIES
+            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.a")
+
     # GTK for native file dialog
     # Locate pkg-config
     find_package(PkgConfig REQUIRED)
@@ -130,7 +140,7 @@ if (UNIX) ## Linux
     # Add GTK+ include directories
     include_directories(${GTK3_INCLUDE_DIRS})
     # Add GTK+ linking directories
-    link_directories(${GTK3_LIBRARY_DIRS})
+    link_directories(${GTK3_STATIC_LIBRARY_DIRS})
     # Add GTK+ compiler flags
     add_definitions(${GTK3_CFLAGS_OTHER})
 
@@ -141,15 +151,15 @@ if (UNIX) ## Linux
     target_link_libraries(CustomLogger PRIVATE CustomLoggerInterface)
 
     add_library(VulkanRenderer STATIC ${ENGINE_SRC})
-    target_link_libraries(VulkanRenderer ${LIBRARIES}  ${GTK3_LIBRARIES} CustomLogger)
+    target_link_libraries(VulkanRenderer  PRIVATE ${LIBRARIES} ${GTK3_STATIC_LIBRARIES} CustomLogger libsll libcrypto)
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
+    target_link_libraries(ScriptLibrary PRIVATE VulkanRenderer ${LIBRARIES} -lavutil -lswscale rosbag_cpp_writer)
     set_target_properties(ScriptLibrary PROPERTIES UNITY_BUILD ON)
 
     add_executable(MultiSense-Viewer src/main.cpp)
-    target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary)
+    target_link_libraries(MultiSense-Viewer PRIVATE MultiSense httplib::httplib rosbag_cpp_writer VulkanRenderer ScriptLibrary)
     add_dependencies(MultiSense-Viewer AutoConnect rosbag_cpp_writer)
 
     set_project_warnings(ScriptLibrary)
@@ -199,12 +209,12 @@ if (WIN32)
     add_library(libsll STATIC IMPORTED GLOBAL)
     set_target_properties(libsll PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.a")
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.lib")
 
     add_library(libcrypto STATIC IMPORTED GLOBAL)
     set_target_properties(libcrypto PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.a")
+            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
     add_library(CustomLoggerInterface INTERFACE)
     target_link_libraries(CustomLoggerInterface INTERFACE fmt::fmt)

@@ -132,6 +132,10 @@ namespace VkRender {
         bool render = true;
     };
 
+    struct RenderOnTopOfUIComponent {
+        bool render = true;
+    };
+
     struct DeleteComponent {
         bool now = true;
     };

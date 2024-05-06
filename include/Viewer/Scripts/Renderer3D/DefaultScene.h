@@ -34,8 +34,6 @@ public:
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
     }
-    /** @brief draw function called once per frame **/
-    void draw(CommandBuffer * commandBufobjectfer, uint32_t i, bool b) override;
 
     bool enable = true;
     bool hide = false;

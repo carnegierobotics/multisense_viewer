@@ -458,7 +458,7 @@ namespace VkRender {
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent2>(
-                entt::exclude<DeleteComponent>)) {
+                entt::exclude<DeleteComponent, RenderOnTopOfUIComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
@@ -475,10 +475,16 @@ namespace VkRender {
         for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
             resource.draw(&drawCmdBuffers);
         }
-
-
         /** Generate UI draw commands **/
         guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
+
+        /**@brief Record commandbuffers for obj models */
+        for (auto entity: m_registry.view<VkRender::RenderOnTopOfUIComponent>(
+                entt::exclude<DeleteComponent>)) {
+            auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+            resources.draw(&drawCmdBuffers);
+        }
+
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
@@ -964,6 +970,11 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<VkRender::SecondaryRenderPassComponent>(Entity entity,
                                                                             VkRender::SecondaryRenderPassComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<VkRender::RenderOnTopOfUIComponent>(Entity entity,
+                                                                            VkRender::RenderOnTopOfUIComponent &component) {
     }
 
     template<>

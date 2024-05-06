@@ -411,16 +411,9 @@ namespace VkRender {
 
     void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
         // Need to update buffers
-
         updateBuffers(currentFrame);
-
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        //VkViewport viewport = Populate
-        // ::viewport(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y, 0.0f, 1.0f);
-        //vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        // UI scale and translate via push constants
         ImGuiIO *io = &ImGui::GetIO();
         pushConstBlock.scale = glm::vec2(2.0f / io->DisplaySize.x, 2.0f / io->DisplaySize.y);
         pushConstBlock.translate = glm::vec2(-1.0f);
@@ -464,7 +457,12 @@ namespace VkRender {
                 indexOffset += cmd_list->IdxBuffer.Size;
                 vertexOffset += cmd_list->VtxBuffer.Size;
             }
-        }
+
+            // Reset the scissors
+            VkRect2D scissorRectFull;
+            scissorRectFull.offset = {0, 0};
+            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width), static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);        }
     }
 
 

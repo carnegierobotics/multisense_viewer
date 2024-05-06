@@ -206,7 +206,7 @@ jobs:
 
     - name: Package
       working-directory: ${{github.workspace}}/build
-      run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}
+      run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}_ubuntu20_04.deb
 
     - name: Upload Release Asset
       id: upload-release-asset
@@ -215,8 +215,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-        asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}.deb
-        asset_name: ${{ needs.VersionJob.outputs.install_path  }}.deb
+        asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}_ubuntu20_04.deb
+        asset_name: ${{ needs.VersionJob.outputs.install_path  }}_ubuntu20_04.deb
         asset_content_type: application/zip
 
   BuildUbuntu22:
@@ -272,7 +272,7 @@ jobs:
 
       - name: Package
         working-directory: ${{github.workspace}}/build
-        run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}
+        run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}_ubuntu22_04.deb
 
       - name: Upload Release Asset
         id: upload-release-asset
@@ -281,8 +281,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}.deb
-          asset_name: ${{ needs.VersionJob.outputs.install_path  }}.deb
+          asset_path: ./build/${{ needs.VersionJob.outputs.install_path  }}_ubuntu22_04.deb
+          asset_name: ${{ needs.VersionJob.outputs.install_path  }}_ubuntu22_04.deb
           asset_content_type: application/zip
 
 

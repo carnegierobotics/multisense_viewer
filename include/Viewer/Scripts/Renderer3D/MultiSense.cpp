@@ -36,6 +36,8 @@ void MultiSense::setup() {
         auto ent = m_context->createEntity("Coordinates");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
                                                                          m_context->renderUtils.device);
+        ent.addComponent<VkRender::SecondaryRenderPassComponent>();
+
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
         ent.addComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);

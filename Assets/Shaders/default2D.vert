@@ -19,8 +19,7 @@ void main() {
 	vec4 pos = ubo.model * vec4(inPos, 1.0);
 	fragPos = pos;
 
-    gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPos, 1.0);
-    gl_Position = ubo.model * vec4(inPos, 1.0);
+	gl_Position =  ubo.model * vec4(inPos.xyz, 1.0);
     outUV = inUV0;
 }
 

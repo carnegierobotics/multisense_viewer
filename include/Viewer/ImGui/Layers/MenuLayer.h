@@ -30,9 +30,6 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles *handles) override {
 
-            float menuBarHeight = 25.0f;
-
-
             // Push style variables
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));

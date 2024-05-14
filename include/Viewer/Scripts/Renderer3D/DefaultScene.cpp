@@ -73,6 +73,7 @@ void DefaultScene::update() {
             auto &obj = depthImageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
             obj.mvp.projection = camera.matrices.perspective;
             obj.mvp.view = camera.matrices.view;
+
             auto model = glm::mat4(1.0f);
             float xOffsetPx = (m_context->renderData.width - 150.0) / m_context->renderData.width;
             float translationX = xOffsetPx * 2 - 1;
@@ -80,6 +81,7 @@ void DefaultScene::update() {
             model = glm::translate(model, glm::vec3(translationX, translationY, 0.0f));
             float scaleX = 300.0f / m_context->renderData.width;
             model = glm::scale(model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
+
             obj.mvp.model = model;
         }
     }

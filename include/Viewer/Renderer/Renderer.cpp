@@ -154,9 +154,9 @@ namespace VkRender {
 
     // Helper function to attempt cleanup and destroy the entity if successful
     template<typename T>
-    bool Renderer::tryCleanupAndDestroy(Entity& entity, int currentFrame) {
+    bool Renderer::tryCleanupAndDestroy(Entity &entity, int currentFrame) {
         if (entity.hasComponent<T>()) {
-            auto& res = entity.getComponent<T>();
+            auto &res = entity.getComponent<T>();
             if (res.cleanUp(currentFrame)) {
                 destroyEntity(Entity(entity, this));
                 return true; // Entity was deleted from register
@@ -218,31 +218,48 @@ namespace VkRender {
         }
         clearValues[1].depthStencil = {1.0f, 0};
 
-        // Original aspect ratio
-        float mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
-        // Sub-window dimensions (initial)
-        float subWindowWidth = m_Width - guiManager->handles.info->sidebarWidth;
-        float subWindowHeight = static_cast<float>(m_Height);
-        // Calculate sub-window aspect ratio
-        float subWindowAspectRatio = subWindowWidth / subWindowHeight;
-        // Adjust sub-window dimensions to maintain the original aspect ratio
-        if (subWindowAspectRatio > mainAspectRatio) {
-            // Sub-window is wider than the main viewport
-            subWindowWidth = subWindowHeight * mainAspectRatio;
-        } else {
-            // Sub-window is taller than the main viewport
-            subWindowHeight = subWindowWidth / mainAspectRatio;
-        }
         // Define the viewport with the adjusted dimensions
-        VkViewport viewport = Populate::viewport(subWindowWidth, subWindowHeight, 0.0f, 1.0f);
+        VkViewport viewport{};
+        VkRect2D scissor;
+        VkRect2D scissorDepth;
+        if (guiManager->handles.fixAspectRatio) {
+            // Original aspect ratio
+            float mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
+            // Sub-window dimensions (initial)
+            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+            auto subWindowHeight = static_cast<float>(m_Height);
+            // Calculate sub-window aspect ratio
+            float subWindowAspectRatio = subWindowWidth / subWindowHeight;
+            // Adjust sub-window dimensions to maintain the original aspect ratio
+            if (subWindowAspectRatio > mainAspectRatio) {
+                // Sub-window is wider than the main viewport
+                subWindowWidth = subWindowHeight * mainAspectRatio;
+            } else {
+                // Sub-window is taller than the main viewport
+                subWindowHeight = subWindowWidth / mainAspectRatio;
+            }
+
+            viewport = Populate::viewport(subWindowWidth, subWindowHeight, 0.0f, 1.0f);
+            scissor = Populate::rect2D(static_cast<int32_t>(subWindowWidth),
+                                       static_cast<int32_t>(subWindowHeight), 0, 0);
+        } else {
+            viewport = Populate::viewport(static_cast<float>(m_Width),
+                                          m_Height, 0.0f, 1.0f);
+            scissor = Populate::rect2D(m_Width, m_Height, 0, 0);
+        }
+
+
         // Define the scissor rectangle for the sub-window
-        VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(subWindowWidth), static_cast<int32_t>(subWindowHeight), 0, 0);
-        VkViewport uiViewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f, 1.0f);
+        VkViewport uiViewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
+                                                   1.0f);
 
         // Render secondary viewpoints
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
         drawCmdBuffers.renderPassType = RENDER_PASS_DEPTH_ONLY;
         for (const auto &render: secondaryRenderPasses) {
+            if (!guiManager->handles.enableDepthView)
+                continue;
+
             VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
             secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             secondaryRenderPassBeginInfo.renderPass = render.renderPass; // The second render pass
@@ -262,9 +279,26 @@ namespace VkRender {
 
             /**@brief Record commandbuffers for obj models */
             // Accessing components in a non-copying manner
-            for (auto entity: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
-                auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
-                resources.draw(&drawCmdBuffers);
+            for (auto ent: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
+                auto entity = Entity(ent, this);
+
+                if (entity.hasComponent<DefaultGraphicsPipelineComponent2>()) {
+                    auto &resources = entity.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
+                    resources.draw(&drawCmdBuffers);
+                }
+
+                /*
+                if (entity.hasComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>()) {
+                    auto &resources =  entity.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
+                    auto &gltfComponent =  entity.getComponent<VkRender::GLTFModelComponent>();
+
+                    if (!resources.markedForDeletion)
+                        resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+                    else
+                        resources.resources[currentFrame].busy = false;
+
+                }
+                 */
             }
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
@@ -494,16 +528,18 @@ namespace VkRender {
             resource.draw(&drawCmdBuffers);
         }
 
+
+        /** Generate UI draw commands **/
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &uiViewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
+
         /**@brief Record commandbuffers for obj models */
         for (auto entity: m_registry.view<VkRender::ImageViewComponent>(
                 entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
-
-        /** Generate UI draw commands **/
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &uiViewport);
-        guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
 
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 

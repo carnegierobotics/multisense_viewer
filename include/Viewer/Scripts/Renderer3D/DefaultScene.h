@@ -37,7 +37,7 @@ public:
 
     bool enable = true;
     bool hide = false;
-    bool showDepthView = false;
+    bool showDepthView = true;
 
 };
 

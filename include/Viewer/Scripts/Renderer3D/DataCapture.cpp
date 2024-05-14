@@ -369,6 +369,8 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
 
     // Load poses
     images = loadPoses(uiHandle->m_paths.loadColMapPosesPath);
+    if (images.empty())
+        return;
     std::sort(images.begin(), images.end(), DataCapture::compareImageID);
     CameraData cameraData = cameras.front();
     for (const auto &img: images) {

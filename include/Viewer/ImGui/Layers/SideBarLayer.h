@@ -175,7 +175,7 @@ namespace VkRender {
         }
 
 
-            void cameraTab(GuiObjectHandles *handles) {
+        void cameraTab(GuiObjectHandles *handles) {
             // Set a dynamic height based on content, starting with a minimum of 150px
             float height = 250.0f; // Start with your minimum height
             float maxHeight = 600.0f;
@@ -372,11 +372,14 @@ namespace VkRender {
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse |
                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse |
                     ImGuiWindowFlags_NoResize;
-            ImGui::SetNextWindowPos(ImVec2(handles->info->width - handles->info->sidebarWidth, 0.0f), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
+            ImGui::SetNextWindowPos(
+                    ImVec2(handles->info->width - handles->info->sidebarWidth, handles->info->menuBarHeight),
+                    ImGuiCond_Always);
+            ImGui::SetNextWindowSize(
+                    ImVec2(handles->info->sidebarWidth, handles->info->height - handles->info->menuBarHeight));
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
 
-            ImGui::Begin("Renderer3DRight", &pOpen, window_flags);
+            ImGui::Begin("SideBarLayer", &pOpen, window_flags);
 
             createSceneHierarchy(handles);
             createTabBar(handles);
@@ -387,9 +390,10 @@ namespace VkRender {
             handles->startDataCapture = ImGui::Button("Start recording", ImVec2(150.0f, 25.0f));
             handles->stopDataCapture = ImGui::Button("Stop recording", ImVec2(150.0f, 25.0f));
 
-            ImGui::SetCursorPosY(handles->info->height - 20.0f);
+            ImGui::SetCursorPosY(handles->info->height - handles->info->menuBarHeight - 20.0f);
 
-            if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth - (ImGui::GetStyle().FramePadding.x * 2), 20.0f))) {
+            if (ImGui::Button("Settings",
+                              ImVec2(handles->info->sidebarWidth - (ImGui::GetStyle().FramePadding.x * 2), 20.0f))) {
                 handles->showDebugWindow = !handles->showDebugWindow;
                 handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
             }

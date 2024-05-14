@@ -272,8 +272,8 @@ namespace VkRender {
         bool stopDataCapture = false;
         int startScene = 0;
         int imagesPerScene = 100;
-        bool enableDepthView = false;
-        bool fixAspectRatio = true;
+        bool enableDepthView = true;
+        bool fixAspectRatio = false;
     };
 
     /**

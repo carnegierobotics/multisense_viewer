@@ -38,7 +38,7 @@
 #ifndef MULTISENSE_VIEWER_NEWVERSIONAVAILABLE_H
 #define MULTISENSE_VIEWER_NEWVERSIONAVAILABLE_H
 
-#include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/Layers/Layer.h"
 
 
 void openURL(const std::string &url) {

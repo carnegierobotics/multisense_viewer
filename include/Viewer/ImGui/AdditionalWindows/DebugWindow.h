@@ -38,7 +38,7 @@
 
 #include <future>
 
-#include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/Layers/Layer.h"
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 

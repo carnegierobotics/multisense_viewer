@@ -52,9 +52,9 @@
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/RenderDefinitions.h"
-#include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/Layers/Layer.h"
 #include "Viewer/ImGui/Widgets.h"
-#include "Viewer/ImGui/LayerFactory.h"
+#include "Viewer/ImGui/Layers/LayerFactory.h"
 
 namespace VkRender {
     class GuiManager {

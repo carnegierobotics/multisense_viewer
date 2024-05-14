@@ -86,7 +86,7 @@ set(ENGINE_SRC
         include/Viewer/Tools/StbInclude.cpp
         include/Viewer/CRLCamera/CameraConnection.cpp
         include/Viewer/ImGui/Widgets.cpp
-        include/Viewer/ImGui/LayerFactory.cpp
+        include/Viewer/ImGui/Layers/LayerFactory.cpp
         include/Viewer/Renderer/UsageMonitor.cpp
         include/Viewer/Core/RendererConfig.cpp
         include/Viewer/Core/ServerConnection.cpp

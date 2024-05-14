@@ -2,10 +2,18 @@
 // Created by magnus on 4/7/24.
 //
 
-#ifndef MULTISENSE_VIEWER_RENDERER3DRIGHT_H
-#define MULTISENSE_VIEWER_RENDERER3DRIGHT_H
+#ifndef MULTISENSE_VIEWER_SIDEBARLAYER_H
+#define MULTISENSE_VIEWER_SIDEBARLAYER_H
 
-#include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerUtils.h"
+
+#include "Viewer/Renderer/Components/GLTFModelComponent.h"
+#include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Renderer.h"
+#include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/OBJModelComponent.h"
+#include "Viewer/Renderer/Entity.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -14,7 +22,7 @@
 
 namespace VkRender {
 
-    class Renderer3DRight : public VkRender::Layer {
+    class SideBarLayer : public VkRender::Layer {
     public:
 
         std::future<std::filesystem::path> loadFileFuture;
@@ -136,14 +144,12 @@ namespace VkRender {
         }
 
         void createSceneHierarchy(GuiObjectHandles *handles) {
-            ImGui::Dummy(ImVec2(0.0f, 50.0f));
-
             ImGui::Text("Scene hierarchy");
             // Calculate 90% of the available width
             float width = ImGui::GetContentRegionAvail().x * 0.9f;
             // Set a dynamic height based on content, starting with a minimum of 150px
             float height = 150.0f; // Start with your minimum height
-            float maxHeight = 500.0f;
+            float maxHeight = 600.0f;
             ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
             ImGui::BeginChild("MyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
@@ -432,4 +438,4 @@ namespace VkRender {
     };
 
 }
-#endif //MULTISENSE_VIEWER_RENDERER3DRIGHT_H
+#endif //MULTISENSE_VIEWER_SIDEBARLAYER_H

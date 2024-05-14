@@ -37,7 +37,7 @@
 #ifndef MULTISENSE_VIEWER_LAYEREXAMPLE_H
 #define MULTISENSE_VIEWER_LAYEREXAMPLE_H
 
-#include "Viewer/ImGui/Layer.h"
+#include "Viewer/ImGui/Layers/Layer.h"
 #include "Viewer/Tools/Macros.h"
 // Dont pass on disable warnings from the example
 DISABLE_WARNING_PUSH

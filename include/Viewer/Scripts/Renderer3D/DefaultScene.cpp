@@ -40,7 +40,7 @@ void DefaultScene::setup() {
                 Utils::getModelsPath() / "obj" / "quad.obj",
                 m_context->renderUtils.device);
 
-        quad.addComponent<VkRender::RenderOnTopOfUIComponent>();
+        quad.addComponent<VkRender::ImageViewComponent>();
 
         auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
                                                                                    "default2D.vert.spv",
@@ -135,7 +135,7 @@ void DefaultScene::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
         auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
-        quad.addComponent<VkRender::RenderOnTopOfUIComponent>();
+        quad.addComponent<VkRender::ImageViewComponent>();
 
         res.bind(modelComponent);
         res.setTexture(&m_context->renderUtils.secondaryRenderPasses->front().depthImageInfo);

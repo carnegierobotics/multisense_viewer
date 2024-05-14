@@ -218,9 +218,12 @@ namespace VkRender {
         }
         clearValues[1].depthStencil = {1.0f, 0};
 
-        const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f,
-                                                       1.0f);
+        const VkViewport viewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f, 1.0f);
         const VkRect2D scissor = Populate::rect2D(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 0, 0);
+
+        VkViewport uiViewport = Populate::viewport(static_cast<float>(m_Width), static_cast<float>(m_Height), 0.0f, 1.0f);
+        //VkViewport sceneViewport = Populate::viewport(static_cast<float>(subWindowWidth), static_cast<float>(subWindowHeight), 0.0f, 1.0f);
+
         // Render secondary viewpoints
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
@@ -309,6 +312,7 @@ namespace VkRender {
                         1, &barrier // Image barrier
                 );
             }
+
         }
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
@@ -420,7 +424,7 @@ namespace VkRender {
             // For example, using stb_image_write to write a PNG
 
             float zNear = 0.1f;
-            float zFar = 25.0f;
+            float zFar = cameras[selectedCameraTag]->m_Zfar;
             float *ptr = reinterpret_cast<float *>(data);
             for (size_t i = 0; i < m_Width * m_Height; ++i) {
                 float z_n = 2.0f * ptr[i] - 1.0f; // Back to NDC
@@ -458,7 +462,7 @@ namespace VkRender {
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent2>(
-                entt::exclude<DeleteComponent, RenderOnTopOfUIComponent>)) {
+                entt::exclude<DeleteComponent, ImageViewComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
@@ -479,7 +483,7 @@ namespace VkRender {
         guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
 
         /**@brief Record commandbuffers for obj models */
-        for (auto entity: m_registry.view<VkRender::RenderOnTopOfUIComponent>(
+        for (auto entity: m_registry.view<VkRender::ImageViewComponent>(
                 entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
@@ -973,8 +977,8 @@ namespace VkRender {
     }
 
     template<>
-    void Renderer::onComponentAdded<VkRender::RenderOnTopOfUIComponent>(Entity entity,
-                                                                            VkRender::RenderOnTopOfUIComponent &component) {
+    void Renderer::onComponentAdded<VkRender::ImageViewComponent>(Entity entity,
+                                                                  VkRender::ImageViewComponent &component) {
     }
 
     template<>

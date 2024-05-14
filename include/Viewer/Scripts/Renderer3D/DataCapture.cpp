@@ -42,6 +42,11 @@ void DataCapture::update() {
             return;
         }
 
+        if (!scenes[sceneIndex].exists) {
+            sceneIndex++;
+            return;
+        }
+
         // Load colmap poses
         if (!scenes[sceneIndex].posesReady) {
             const auto &cameraData = scenes[sceneIndex].camera;
@@ -149,6 +154,9 @@ void DataCapture::update() {
     for (const auto &img: images) {
         std::string tag = "Camera: " + std::to_string(img.imageID);
         auto entity = m_context->findEntityByName(tag);
+        if (!entity)
+            continue;
+
         auto &obj = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
         auto &camComponent = m_context->m_registry.get<VkRender::CameraComponent>(entity);
         obj.mvp.projection = defaultCamera.matrices.perspective;
@@ -279,6 +287,7 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                     if (std::filesystem::is_regular_file(fileEntry) && fileEntry.path().extension() == ".obj") {
                         fileEntry.path();
                         scene.objPath = fileEntry.path();
+                        scene.exists = true;
                     }
                 }
                 scenes.emplace_back(scene);

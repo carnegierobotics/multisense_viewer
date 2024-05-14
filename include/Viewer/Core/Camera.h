@@ -60,11 +60,6 @@
 
 namespace VkRender {
     class Camera {
-    private:
-        float m_Fov = 60.0f;
-        float m_Znear = 0.1f;
-        float m_Zfar = 10.0f;
-
     public:
         enum CameraType {
             arcball, flycam
@@ -80,11 +75,16 @@ namespace VkRender {
             glm::mat4 view = glm::mat4(1.0f);
         } matrices{};
 
+
+        float m_Fov = 60.0f;
+        float m_Znear = 0.1f;
+        float m_Zfar = 10.0f;
+
         Camera() = default;
 
         Camera(uint32_t width, uint32_t height) {
             m_type = VkRender::Camera::arcball;
-            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height), 0.1f, 25.0f);
+            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height));
             resetPosition();
             // Initialize quaternion to have a forward looking x-axis
             //rotateQuaternion(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -201,7 +201,7 @@ namespace VkRender {
         }
 
 
-        void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 25.0f) {
+        void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 40.0f) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
 
             m_Fov = fov;

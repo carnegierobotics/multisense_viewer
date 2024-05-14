@@ -61,10 +61,10 @@ namespace VkRender {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_Width = 4640 / 4;
-        m_Height = 2088 / 4;
-        m_Width = 1200;
-        m_Height = 540;
+        m_Width = 1280 / 1;
+        m_Height = 720 / 1;
+        //m_Width = 1200;
+        //m_Height = 540;
         window = glfwCreateWindow(static_cast<int>(m_Width), static_cast<int>(m_Height), title.c_str(), nullptr,
                                   nullptr);
         glfwMakeContextCurrent(window);
@@ -75,7 +75,7 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
-        glfwSetWindowSizeLimits(window, m_Width, m_Height, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        glfwSetWindowSizeLimits(window, m_Width / 4, m_Height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -1170,7 +1170,7 @@ namespace VkRender {
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
             float fpsTimer = std::chrono::duration<float, std::milli>(tEnd - graphLastTimestamp).count();
-            if (fpsTimer > 1000.0f) {
+            if (fpsTimer > 333.0f) {
                 lastFPS = static_cast<float>(frameCounter) * (1000.0f / fpsTimer);
                 frameCounter = 0;
                 graphLastTimestamp = tEnd;

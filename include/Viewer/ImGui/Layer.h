@@ -99,7 +99,7 @@ namespace VkRender {
         /** @brief aspect ratio of window surface */
         float aspect{};
         /**@brief Width of sidebar*/
-        float sidebarWidth = 200.0f;
+        float sidebarWidth = 300.0f;
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
         /**@brief Width of sidebar*/
@@ -159,6 +159,7 @@ namespace VkRender {
         float tabAreaHeight = 60.0f;
         /** @brief size of Control Area*/
         float controlAreaWidth = 440.0f, controlAreaHeight = height;
+
         int numControlTabs = 2;
         /** @brief size of viewing Area*/
         float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;

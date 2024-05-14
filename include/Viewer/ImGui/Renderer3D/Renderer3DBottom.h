@@ -39,6 +39,7 @@ namespace VkRender {
         void onUIRender(VkRender::GuiObjectHandles *handles) override {
             if (!handles->renderer3D)
                 return;
+            /*
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
             window_flags =
@@ -179,18 +180,19 @@ namespace VkRender {
             ImGui::SetNextItemWidth(50.0f);
             ImGui::InputInt("Start Scene", &val, 1, 100, ImGuiInputTextFlags_CharsDecimal);
             setCusorToColumn(3, ImGui::GetCursorPosY());
-            /*
+
             std::string label = handles->startDataCapture ? "Stop Data Capture" : "Start Data Capture";
             if (ImGui::Button(label.c_str(), ImVec2(150.0f, 25.0f))) {
                 handles->startDataCapture = !handles->startDataCapture;
             }
-            */
+
 
 
             ImGui::PopStyleColor(); // text white
             ImGui::End();
             ImGui::PopStyleColor();
 
+            */
         }
 
         /** Called once upon this object destruction **/

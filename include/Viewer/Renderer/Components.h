@@ -132,7 +132,7 @@ namespace VkRender {
         bool render = true;
     };
 
-    struct RenderOnTopOfUIComponent {
+    struct ImageViewComponent {
         bool render = true;
     };
 

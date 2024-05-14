@@ -56,6 +56,7 @@ public:
         CameraData camera;
         bool loaded = false;
         bool posesReady = false;
+        bool exists = false;
     };
     bool recordNextScene = false;
     uint32_t sceneIndex = 0;

@@ -46,6 +46,6 @@ void main() {
     float actualDistance = -viewSpaceDepth; // Since view space Z is typically negative going into the screen
 
     float outVal = actualDistance;
-    outVal = map(outVal, 0.8, 1, 0, 1);
+    outVal = map(outVal, 0.9, 1, 0, 1);
     outColor = vec4(vec3(depth), 1.0f);
 }

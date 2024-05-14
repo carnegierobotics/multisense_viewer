@@ -1323,8 +1323,8 @@ namespace VkRender {
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
-            myApp->pLogger->info("Escape key registered. Closing program..");
-            glfwSetWindowShouldClose(window, true);
+            myApp->pLogger->info("Escape key registered");
+            myApp->closeApplication();
         }
         ImGuiIO &io = ImGui::GetIO();
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
@@ -1844,7 +1844,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::closeApplication() {
-        pLogger->info("Closing application");
+        pLogger->info("Closing application...");
         glfwSetWindowShouldClose(window, true);
     }
 }

@@ -88,6 +88,9 @@ namespace VkRender {
          * @brief cleans up resources on application exist
          */
         void cleanUp();
+        void closeApplication(){
+            VulkanRenderer::closeApplication();
+        }
 
         Entity createEntity(const std::string &name);
         std::shared_ptr<Entity> createEntitySharedPtr(const std::string &name, UUID uuid = UUID());
@@ -110,6 +113,7 @@ namespace VkRender {
         bool saveDepthPassToFile = false; // TODO move to appropriate place
         std::filesystem::path saveFileName;
         std::unique_ptr<VkRender::GuiManager> guiManager{};
+
 
     private:
         template<typename T>

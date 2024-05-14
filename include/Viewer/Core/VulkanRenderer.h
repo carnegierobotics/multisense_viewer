@@ -189,6 +189,8 @@ namespace VkRender {
         /** @brief Presents the current m_Image to the swap chain */
         void submitFrame();
 
+        void closeApplication();
+
 
     protected:
         // Window instance GLFW

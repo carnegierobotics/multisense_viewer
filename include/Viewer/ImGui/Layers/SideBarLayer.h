@@ -163,13 +163,12 @@ namespace VkRender {
         }
 
         void otherTab(GuiObjectHandles *handles) {
-            float width = ImGui::GetContentRegionAvail().x * 0.95f;
             // Set a dynamic height based on content, starting with a minimum of 150px
-            float height = 200.0f; // Start with your minimum height
+            float height = 50.0f; // Start with your minimum height
             float maxHeight = 500.0f;
             ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
-            ImGui::BeginChild("otherTabChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
+            ImGui::BeginChild("otherTabChild", ImVec2(-FLT_MIN, (height > maxHeight) ? maxHeight : height), true);
 
             ImGui::EndChild();
             ImGui::PopStyleColor(); // ImGuiCol_ChildBg
@@ -177,13 +176,12 @@ namespace VkRender {
 
 
             void cameraTab(GuiObjectHandles *handles) {
-            float width = ImGui::GetContentRegionAvail().x * 0.95f;
             // Set a dynamic height based on content, starting with a minimum of 150px
             float height = 250.0f; // Start with your minimum height
-            float maxHeight = 500.0f;
+            float maxHeight = 600.0f;
             ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
-            ImGui::BeginChild("cameraTabChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
+            ImGui::BeginChild("cameraTabChild", ImVec2(-FLT_MIN, (height > maxHeight) ? maxHeight : height), true);
 
 
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);

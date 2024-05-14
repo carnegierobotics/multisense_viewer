@@ -1842,4 +1842,9 @@ namespace VkRender {
         }
         return true;
     }
+
+    void VulkanRenderer::closeApplication() {
+        pLogger->info("Closing application");
+        glfwSetWindowShouldClose(window, true);
+    }
 }

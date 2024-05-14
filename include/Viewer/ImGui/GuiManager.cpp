@@ -141,16 +141,12 @@ namespace VkRender {
 
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
-        pushLayer("WelcomeScreenLayer");
         pushLayer("SideBarLayer");
-        pushLayer("MainLayer");
+        pushLayer("MenuLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
-        pushLayer("CustomMetadata");
-        pushLayer("Renderer3DLeft");
-        pushLayer("Renderer3DBottom");
-        pushLayer("Renderer3DRight");
+
 
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
         handles.pool = pool;

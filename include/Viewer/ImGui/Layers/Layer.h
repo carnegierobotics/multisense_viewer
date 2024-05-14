@@ -100,6 +100,8 @@ namespace VkRender {
         float aspect{};
         /**@brief Width of sidebar*/
         float sidebarWidth = 300.0f;
+
+        float menuBarHeight = 25.0f;
         /**@brief Size of elements in sidebar */
         float elementHeight = 140.0f;
         /**@brief Width of sidebar*/
@@ -270,6 +272,8 @@ namespace VkRender {
         bool stopDataCapture = false;
         int startScene = 0;
         int imagesPerScene = 100;
+        bool enableDepthView = false;
+        bool fixAspectRatio = true;
     };
 
     /**

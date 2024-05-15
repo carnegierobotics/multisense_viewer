@@ -486,8 +486,12 @@ namespace Utils {
                 // Make sure any shader reads from the m_Image have been finished
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                break;
             default:
                 // Other source layouts aren't firstUpdate (yet)
+                Log::Logger::getInstance()->error("Source layouts arent updated yet. No Image transition completed");
                 break;
         }
 
@@ -528,7 +532,7 @@ namespace Utils {
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
             default:
-                // Other source layouts aren't firstUpdate (yet)
+                Log::Logger::getInstance()->error("Source layouts arent updated yet. No Image transition completed");
                 break;
         }
 

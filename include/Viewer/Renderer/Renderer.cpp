@@ -544,10 +544,24 @@ namespace VkRender {
         }
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
+
+
         if (guiManager->handles.enableDepthView){
+
+            VkImageSubresourceRange subresourceRange = {};
+            subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            subresourceRange.levelCount = 1;
+            subresourceRange.layerCount = 1;
+
+            Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->images[imageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange,
+                                  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+
+
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
 
-// Define the viewport
+            // Define the viewport
             VkViewport viewport2{};
             viewport2.x = 0.0f;
             viewport2.y = static_cast<float>(m_Height) / 2.0f;  // Start from the middle
@@ -556,7 +570,7 @@ namespace VkRender {
             viewport2.minDepth = 0.0f;
             viewport2.maxDepth = 1.0f;
 
-// Define the scissor rectangle
+            // Define the scissor rectangle
             VkRect2D scissor2{};
             scissor2.offset = {0, static_cast<int32_t>(m_Height) / 2};  // Start from the middle
             scissor2.extent = {static_cast<uint32_t>(m_Width - guiManager->handles.info->sidebarWidth), m_Height / 2};  // Extend to the bottom
@@ -567,7 +581,7 @@ namespace VkRender {
             renderPassBeginInfoSecondary.renderArea.offset.y = 0;
             renderPassBeginInfoSecondary.renderArea.extent.width = m_Width;
             renderPassBeginInfoSecondary.renderArea.extent.height = m_Height;
-            renderPassBeginInfoSecondary.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassBeginInfoSecondary.clearValueCount = clearValues.size();
             renderPassBeginInfoSecondary.pClearValues = clearValues.data();
             renderPassBeginInfoSecondary.framebuffer = frameBuffers[imageIndex];
             vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfoSecondary, VK_SUBPASS_CONTENTS_INLINE);
@@ -586,7 +600,7 @@ namespace VkRender {
 
 
         // Transition color attachment for UI render pass
-        VkImageMemoryBarrier barrier = {};
+        VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;

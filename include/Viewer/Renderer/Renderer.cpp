@@ -231,7 +231,6 @@ namespace VkRender {
         // Define the viewport with the adjusted dimensions
         VkViewport viewport{};
         VkRect2D scissor;
-        VkRect2D scissorDepth;
         if (guiManager->handles.fixAspectRatio) {
             // Original aspect ratio
             float mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
@@ -295,8 +294,14 @@ namespace VkRender {
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &depthRenderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
         drawCmdBuffers.boundRenderPass = depthRenderPassBeginInfo.renderPass;
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+        VkViewport viewportDepth = Populate::viewport(static_cast<float>(m_Width),
+                                      m_Height, 0.0f, 1.0f);
+
+        VkRect2D scissorDepth = Populate::rect2D(m_Width, m_Height, 0, 0);
+
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewportDepth);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissorDepth);
 
 
         /**@brief Record commandbuffers for obj models */

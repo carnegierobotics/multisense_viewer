@@ -63,10 +63,27 @@ namespace VkRender {
         // Create Log C++ Interface
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         pLogger = Log::Logger::getInstance();
-
-
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
+
+
+        // TODO Make dynamic
+        depthRenderPass.type = "depth";
+        depthRenderPass.multisampled = false;
+        VulkanRenderer::setupSecondaryRenderPasses(&depthRenderPass);
+        uiRenderPass.type = "ui";
+        uiRenderPass.multisampled = true;
+        VulkanRenderer::setupUIRenderPass(&uiRenderPass);
+        secondRenderPass.setupFrameBuffer = false;
+        secondRenderPass.multisampled = true; // if we reuse s
+        VulkanRenderer::setupSecondaryRenderPasses(&secondRenderPass);
+
+        renderUtils.depthRenderPass = &depthRenderPass;
+
+        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice, uiRenderPass.renderPass, m_Width, m_Height,
+                                                            msaaSamples,
+                                                            swapchain->imageCount);
+
         backendInitialized = true;
         // Create default camera object
         m_Camera = Camera(m_Width, m_Height);
@@ -84,9 +101,6 @@ namespace VkRender {
         usageMonitor->loadSettingsFromFile();
         usageMonitor->userStartSession(rendererStartTime);
 
-        guiManager = std::make_unique<VkRender::GuiManager>(vulkanDevice, renderPass, m_Width, m_Height,
-                                                            msaaSamples,
-                                                            swapchain->imageCount);
         guiManager->handles.mouse = &mouseButtons;
         guiManager->handles.usageMonitor = usageMonitor;
         guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag]->m_type;
@@ -102,10 +116,6 @@ namespace VkRender {
         cameras[selectedCameraTag]->setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height));
         cameras[selectedCameraTag]->resetPosition();
         cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
-
-        // TODO Make dynamic
-        VulkanRenderer::setupSecondaryRenderPasses(false);
-        renderUtils.secondaryRenderPasses = &secondaryRenderPasses;
 
         // Run Once
         renderUtils.device = vulkanDevice;
@@ -208,8 +218,8 @@ namespace VkRender {
         cmdBufInfo.pInheritanceInfo = nullptr;
         std::array<VkClearValue, 3> clearValues{};
         if (guiManager->handles.renderer3D) {
-            clearValues[0] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-            clearValues[2] = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+            clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+            clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
         } else {
             clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
                                 guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
@@ -228,7 +238,14 @@ namespace VkRender {
             // Sub-window dimensions (initial)
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
             auto subWindowHeight = static_cast<float>(m_Height);
-            // Calculate sub-window aspect ratio
+
+            if (guiManager->handles.enableDepthView) {
+                mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height / 2);
+                // Sub-window dimensions (initial)
+                subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+                subWindowHeight = static_cast<float>(m_Height / 2);
+            }
+                // Calculate sub-window aspect ratio
             float subWindowAspectRatio = subWindowWidth / subWindowHeight;
             // Adjust sub-window dimensions to maintain the original aspect ratio
             if (subWindowAspectRatio > mainAspectRatio) {
@@ -243,9 +260,17 @@ namespace VkRender {
             scissor = Populate::rect2D(static_cast<int32_t>(subWindowWidth),
                                        static_cast<int32_t>(subWindowHeight), 0, 0);
         } else {
-            viewport = Populate::viewport(static_cast<float>(m_Width),
-                                          m_Height, 0.0f, 1.0f);
-            scissor = Populate::rect2D(m_Width, m_Height, 0, 0);
+            float windowHeight = m_Height;
+            if (guiManager->handles.enableDepthView) {
+                windowHeight = m_Height / 2;
+            }
+
+            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+
+            viewport = Populate::viewport(static_cast<float>(subWindowWidth),
+                                          windowHeight, 0.0f, 1.0f);
+
+            scissor = Populate::rect2D(subWindowWidth, windowHeight, 0, 0);
         }
 
 
@@ -256,112 +281,94 @@ namespace VkRender {
         // Render secondary viewpoints
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
         drawCmdBuffers.renderPassType = RENDER_PASS_DEPTH_ONLY;
-        for (const auto &render: secondaryRenderPasses) {
-            if (!guiManager->handles.enableDepthView)
-                continue;
 
-            VkRenderPassBeginInfo secondaryRenderPassBeginInfo = {};
-            secondaryRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            secondaryRenderPassBeginInfo.renderPass = render.renderPass; // The second render pass
-            secondaryRenderPassBeginInfo.framebuffer = render.frameBuffers[imageIndex];
-            secondaryRenderPassBeginInfo.renderArea.offset = {0, 0};
-            secondaryRenderPassBeginInfo.renderArea.extent = {m_Width,
-                                                              m_Height}; // Set to your off-screen image dimensions
-            secondaryRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            secondaryRenderPassBeginInfo.pClearValues = clearValues.data();
+        VkRenderPassBeginInfo depthRenderPassBeginInfo = {};
+        depthRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        depthRenderPassBeginInfo.renderPass = depthRenderPass.renderPass; // The second render pass
+        depthRenderPassBeginInfo.framebuffer = depthRenderPass.frameBuffers[imageIndex];
+        depthRenderPassBeginInfo.renderArea.offset = {0, 0};
+        depthRenderPassBeginInfo.renderArea.extent = {m_Width,
+                                                      m_Height}; // Set to your off-screen image dimensions
+        depthRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        depthRenderPassBeginInfo.pClearValues = clearValues.data();
 
-            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &secondaryRenderPassBeginInfo,
-                                 VK_SUBPASS_CONTENTS_INLINE);
-            drawCmdBuffers.boundRenderPass = secondaryRenderPassBeginInfo.renderPass;
-            vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-            vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &depthRenderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.boundRenderPass = depthRenderPassBeginInfo.renderPass;
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
 
-            /**@brief Record commandbuffers for obj models */
-            // Accessing components in a non-copying manner
-            for (auto ent: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
-                auto entity = Entity(ent, this);
-
-                if (entity.hasComponent<DefaultGraphicsPipelineComponent2>()) {
-                    auto &resources = entity.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
-                    resources.draw(&drawCmdBuffers);
-                }
-
-                /*
-                if (entity.hasComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>()) {
-                    auto &resources =  entity.getComponent<RenderResource::DefaultPBRGraphicsPipelineComponent>();
-                    auto &gltfComponent =  entity.getComponent<VkRender::GLTFModelComponent>();
-
-                    if (!resources.markedForDeletion)
-                        resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
-                    else
-                        resources.resources[currentFrame].busy = false;
-
-                }
-                 */
+        /**@brief Record commandbuffers for obj models */
+        // Accessing components in a non-copying manner
+        for (auto ent: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
+            auto entity = Entity(ent, this);
+            if (entity.hasComponent<DefaultGraphicsPipelineComponent2>()) {
+                auto &resources = entity.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
+                resources.draw(&drawCmdBuffers);
             }
-
-            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-
-            // Depth pass pipeline barrier before next render pass
-            {
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = render.colorImage.image; // TODO type depending on we are using multisample or not
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = 1;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
-
-                // Syncrhonization before main renderpass
-                vkCmdPipelineBarrier(
-                        drawCmdBuffers.buffers[currentFrame],
-                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
-                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
-                        0,
-                        0, nullptr,
-                        0, nullptr,
-                        1, &barrier
-                );
-
-                // Define the depth image layout transition barrier
-                barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = secondaryRenderPasses[0].depthStencil.image;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = 1;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
-
-                VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-                VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-                barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-                vkCmdPipelineBarrier(
-                        drawCmdBuffers.buffers[currentFrame],
-                        sourceStage, destinationStage,
-                        0, // Dependency flags
-                        0, nullptr, // No memory barriers
-                        0, nullptr, // No buffer barriers
-                        1, &barrier // Image barrier
-                );
-            }
-
         }
+
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+        // Depth pass pipeline barrier before next render pass
+        {
+            VkImageMemoryBarrier barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = depthRenderPass.colorImage.image; // TODO type depending on we are using multisample or not
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+
+            // Syncrhonization before main renderpass
+            vkCmdPipelineBarrier(
+                    drawCmdBuffers.buffers[currentFrame],
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Wait for the render pass to finish
+                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Before fragment shader reads
+                    0,
+                    0, nullptr,
+                    0, nullptr,
+                    1, &barrier
+            );
+
+            // Define the depth image layout transition barrier
+            barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = depthRenderPass.depthStencil.image;
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
+
+            VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            vkCmdPipelineBarrier(
+                    drawCmdBuffers.buffers[currentFrame],
+                    sourceStage, destinationStage,
+                    0, // Dependency flags
+                    0, nullptr, // No memory barriers
+                    0, nullptr, // No buffer barriers
+                    1, &barrier // Image barrier
+            );
+        }
+
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
         renderPassBeginInfo.renderArea.offset.x = 0;
@@ -379,7 +386,6 @@ namespace VkRender {
 
         // Generate command for copying depth render pass to file
         if (saveDepthPassToFile) {
-            auto &secondaryRenderPass = secondaryRenderPasses.front();
 
             VkBufferCreateInfo bufferInfo = {};
             bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -411,7 +417,7 @@ namespace VkRender {
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = secondaryRenderPass.depthStencil.image;
+            barrier.image = depthRenderPass.depthStencil.image;
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             barrier.subresourceRange.baseMipLevel = 0;
             barrier.subresourceRange.levelCount = 1;
@@ -443,7 +449,7 @@ namespace VkRender {
 
             vkCmdCopyImageToBuffer(
                     commandBuffer,
-                    secondaryRenderPass.depthStencil.image,
+                    depthRenderPass.depthStencil.image,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                     stagingBuffer,
                     1,
@@ -529,10 +535,6 @@ namespace VkRender {
         }
 
 
-        /** Generate UI draw commands **/
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &uiViewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-        guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
 
         /**@brief Record commandbuffers for obj models */
         for (auto entity: m_registry.view<VkRender::ImageViewComponent>(
@@ -540,7 +542,87 @@ namespace VkRender {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
+        if (guiManager->handles.enableDepthView){
+            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+
+// Define the viewport
+            VkViewport viewport2{};
+            viewport2.x = 0.0f;
+            viewport2.y = static_cast<float>(m_Height) / 2.0f;  // Start from the middle
+            viewport2.width = static_cast<float>(subWindowWidth);
+            viewport2.height = static_cast<float>(m_Height) / 2.0f;  // Draw to the bottom
+            viewport2.minDepth = 0.0f;
+            viewport2.maxDepth = 1.0f;
+
+// Define the scissor rectangle
+            VkRect2D scissor2{};
+            scissor2.offset = {0, static_cast<int32_t>(m_Height) / 2};  // Start from the middle
+            scissor2.extent = {static_cast<uint32_t>(m_Width - guiManager->handles.info->sidebarWidth), m_Height / 2};  // Extend to the bottom
+
+            VkRenderPassBeginInfo renderPassBeginInfoSecondary = Populate::renderPassBeginInfo();
+            renderPassBeginInfoSecondary.renderPass = secondRenderPass.renderPass;
+            renderPassBeginInfoSecondary.renderArea.offset.x = 0;
+            renderPassBeginInfoSecondary.renderArea.offset.y = 0;
+            renderPassBeginInfoSecondary.renderArea.extent.width = m_Width;
+            renderPassBeginInfoSecondary.renderArea.extent.height = m_Height;
+            renderPassBeginInfoSecondary.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassBeginInfoSecondary.pClearValues = clearValues.data();
+            renderPassBeginInfoSecondary.framebuffer = frameBuffers[imageIndex];
+            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfoSecondary, VK_SUBPASS_CONTENTS_INLINE);
+            drawCmdBuffers.boundRenderPass = renderPassBeginInfoSecondary.renderPass;
+            drawCmdBuffers.renderPassType = RENDER_PASS_SECOND;
+            vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport2);
+            vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor2);
+
+            /**@brief Record commandbuffers for Custom models (GRID) */
+            for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
+                resource.draw(&drawCmdBuffers);
+            }
+
+            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        }
+
+
+        // Transition color attachment for UI render pass
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = colorImage.image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        vkCmdPipelineBarrier(
+                drawCmdBuffers.buffers[currentFrame],
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+        );
+
+
+        /** Generate UI draw commands **/
+        VkRenderPassBeginInfo uiRenderPassBeginInfo = renderPassBeginInfo;
+        uiRenderPassBeginInfo.renderPass = uiRenderPass.renderPass;
+        uiRenderPassBeginInfo.clearValueCount = 0;
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &uiRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.boundRenderPass = uiRenderPassBeginInfo.renderPass;
+        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+
+
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &uiViewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
@@ -840,117 +922,7 @@ namespace VkRender {
     }
 
     void Renderer::postRenderActions() {
-        if (saveDepthPassToFile) {
-            auto &secondaryRenderPass = secondaryRenderPasses.front();
 
-            VkBufferCreateInfo bufferInfo = {};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = m_Width * m_Height * 4; // Adjust the size based on your depth format
-            bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-
-            VkBuffer stagingBuffer;
-            VkDeviceMemory stagingBufferMemory;
-            vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
-            VkMemoryRequirements memReqs;
-            vkGetBufferMemoryRequirements(device, stagingBuffer, &memReqs);
-
-
-            VkMemoryAllocateInfo memAllocInfo{};
-            memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            memAllocInfo.allocationSize = memReqs.size;
-            memAllocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
-                                                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            vkAllocateMemory(device, &memAllocInfo, nullptr, &stagingBufferMemory);
-
-            vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
-
-            VkImageMemoryBarrier barrier = {};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = secondaryRenderPass.depthStencil.image;
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
-
-            VkCommandBuffer commandBuffer = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-            vkCmdPipelineBarrier(
-                    commandBuffer,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &barrier
-            );
-
-
-            VkBufferImageCopy copyRegion = {};
-            copyRegion.bufferOffset = 0;
-            copyRegion.bufferRowLength = 0;
-            copyRegion.bufferImageHeight = 0;
-            copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            copyRegion.imageSubresource.mipLevel = 0;
-            copyRegion.imageSubresource.baseArrayLayer = 0;
-            copyRegion.imageSubresource.layerCount = 1;
-            copyRegion.imageOffset = {0, 0, 0};
-            copyRegion.imageExtent = {m_Width, m_Height, 1};
-
-            vkCmdCopyImageToBuffer(
-                    commandBuffer,
-                    secondaryRenderPass.depthStencil.image,
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    stagingBuffer,
-                    1,
-                    &copyRegion
-            );
-
-            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-
-            vkCmdPipelineBarrier(
-                    commandBuffer,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                    0,
-                    0, nullptr,
-                    0, nullptr,
-                    1, &barrier
-            );
-
-            vulkanDevice->flushCommandBuffer(commandBuffer, graphicsQueue);
-
-            // Now copy it to file
-            void *data;
-            vkMapMemory(device, stagingBufferMemory, 0, VK_WHOLE_SIZE, 0, &data);
-
-            // Here you can use an external library to write the depth data
-            // For example, using stb_image_write to write a PNG
-
-            float zNear = 0.1f;
-            float zFar = 25.0f;
-            float *ptr = reinterpret_cast<float *>(data);
-            for (size_t i = 0; i < m_Width * m_Height; ++i) {
-                float z_n = 2.0f * ptr[i] - 1.0f; // Back to NDC
-                float z_cam = (2.0f * zNear * zFar) / (zFar + zNear - z_n * (zFar - zNear));
-                ptr[i] = z_cam;
-            }
-
-            if (!std::filesystem::exists(saveFileName.parent_path()))
-                std::filesystem::create_directories(saveFileName.parent_path());
-            Utils::writeTIFFImage(saveFileName, m_Width, m_Height, reinterpret_cast<float *> (data));
-            vkUnmapMemory(device, stagingBufferMemory);
-            vkFreeMemory(device, stagingBufferMemory, nullptr);
-            vkDestroyBuffer(device, stagingBuffer, nullptr);
-
-            saveDepthPassToFile = false;
-        }
 
     }
 

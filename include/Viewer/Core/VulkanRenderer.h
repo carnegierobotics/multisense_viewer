@@ -178,7 +178,8 @@ namespace VkRender {
         virtual void prepare();
 
         /** @brief Prepares secondary render passes. Can be added during runtime TODO Test */
-        void setupSecondaryRenderPasses(bool useSingleSample);
+        void setupSecondaryRenderPasses(SecondaryRenderPasses* secondaryRenderPasses);
+        void setupUIRenderPass(SecondaryRenderPasses *secondaryRenderPasses);
 
         /** @brief Entry point for the main render loop */
         void renderLoop();
@@ -268,7 +269,10 @@ namespace VkRender {
         VkPipelineCache pipelineCache{};
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
-        std::vector<SecondaryRenderPasses> secondaryRenderPasses;
+        //std::vector<SecondaryRenderPasses> secondaryRenderPasses;
+        SecondaryRenderPasses depthRenderPass;
+        SecondaryRenderPasses uiRenderPass;
+        SecondaryRenderPasses secondRenderPass;
 
         int frameCounter = 0;
         int frameID = 0;

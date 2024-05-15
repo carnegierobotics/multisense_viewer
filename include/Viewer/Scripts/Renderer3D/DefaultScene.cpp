@@ -46,7 +46,7 @@ void DefaultScene::setup() {
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.secondaryRenderPasses->front().depthImageInfo);
+        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
     }
 
 }
@@ -140,7 +140,7 @@ void DefaultScene::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
         quad.addComponent<VkRender::ImageViewComponent>();
 
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.secondaryRenderPasses->front().depthImageInfo);
+        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
     }
 
 }

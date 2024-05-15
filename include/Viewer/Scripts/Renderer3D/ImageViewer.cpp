@@ -28,7 +28,7 @@ void ImageViewer::setup() {
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.secondaryRenderPasses->front().depthImageInfo);
+        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
     }
 }
 

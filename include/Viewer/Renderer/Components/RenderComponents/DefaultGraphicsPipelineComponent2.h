@@ -54,7 +54,7 @@ namespace VkRender {
             for (auto &data: m_renderData) {
                 setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
                               VK_SAMPLE_COUNT_1_BIT,
-                              utils->secondaryRenderPasses->front().renderPass);
+                              utils->depthRenderPass->renderPass);
             }
 
         }

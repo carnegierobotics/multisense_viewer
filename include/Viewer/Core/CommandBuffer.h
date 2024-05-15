@@ -15,6 +15,8 @@
 enum RenderPassType {
     RENDER_PASS_COLOR       = 0x00000001,
     RENDER_PASS_DEPTH_ONLY  = 0x00000002,
+    RENDER_PASS_UI          = 0x00000004,
+    RENDER_PASS_SECOND          = 0x00000008,
 };
 
 struct CommandBuffer {

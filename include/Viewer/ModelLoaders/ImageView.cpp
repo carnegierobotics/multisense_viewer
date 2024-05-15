@@ -241,7 +241,7 @@ void ImageView::createDescriptors(bool useOffScreenImageRender) {
                 writeDescriptorSets[2].descriptorCount = 1;
                 writeDescriptorSets[2].dstSet = m_model->resources[j].descriptors[i];
                 writeDescriptorSets[2].dstBinding = 2;
-                writeDescriptorSets[2].pImageInfo = &(*m_renderUtils->secondaryRenderPasses)[0].imageInfo;
+                writeDescriptorSets[2].pImageInfo = &m_renderUtils->depthRenderPass->imageInfo;
             } else {
 
 
@@ -344,7 +344,7 @@ void ImageView::createGraphicsPipeline() {
             if (j == 0) {
                 pipelineCI.renderPass = *m_renderUtils->renderPass;
             } else {
-                pipelineCI.renderPass = (*m_renderUtils->secondaryRenderPasses)[0].renderPass;
+                pipelineCI.renderPass = m_renderUtils->depthRenderPass->renderPass;
             }
 
             pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;

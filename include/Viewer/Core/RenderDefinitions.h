@@ -201,27 +201,30 @@ namespace VkRender {
 
     struct SecondaryRenderPasses {
         std::vector<VkFramebuffer> frameBuffers{};
-        VkRenderPass renderPass{};
+        VkRenderPass renderPass = VK_NULL_HANDLE;
         Camera *camera{};
         struct {
-            VkImage image;
-            VkDeviceMemory mem;
-            VkImageView view;
-            VkSampler sampler;
+            VkImage image = VK_NULL_HANDLE;
+            VkDeviceMemory mem = VK_NULL_HANDLE;
+            VkImageView view = VK_NULL_HANDLE;
+            VkSampler sampler = VK_NULL_HANDLE;
         } depthStencil{};
         struct {
-            VkImage image;
-            VkImage resolvedImage;
-            VkDeviceMemory mem;
-            VkDeviceMemory resolvedMem;
-            VkImageView view;
-            VkImageView resolvedView;
-            VkSampler sampler;
+            VkImage image = VK_NULL_HANDLE;
+            VkImage resolvedImage = VK_NULL_HANDLE;
+            VkDeviceMemory mem = VK_NULL_HANDLE;
+            VkDeviceMemory resolvedMem = VK_NULL_HANDLE;
+            VkImageView view = VK_NULL_HANDLE;
+            VkImageView resolvedView = VK_NULL_HANDLE;
+            VkSampler sampler = VK_NULL_HANDLE;
         } colorImage{};
 
         bool idle = true;
         VkDescriptorImageInfo imageInfo{};
         VkDescriptorImageInfo depthImageInfo{};
+        std::string type;
+        bool setupFrameBuffer = true;
+        bool multisampled = false;
     };
 
 
@@ -238,7 +241,7 @@ namespace VkRender {
         const std::vector<VkFence> *fence{};
         uint32_t swapchainIndex = 0;
         // Multiple viewpoint (Off screen rendering)
-        const std::vector<SecondaryRenderPasses>* secondaryRenderPasses{};
+        const SecondaryRenderPasses* depthRenderPass{};
 
 
     };

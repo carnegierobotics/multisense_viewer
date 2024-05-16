@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-#set(CMAKE_CXX_COMPILER "clang++")
-#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g -O0")
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g -O0")
 #
-#set(CMAKE_C_COMPILER "clang")
+set(CMAKE_C_COMPILER "clang")
 
 project(
         MultiSense-Viewer

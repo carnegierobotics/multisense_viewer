@@ -6,16 +6,7 @@
 
 
 void Example3D::setup() {
-
-
-
 }
-
 
 void Example3D::update() {
-
-}
-
-void Example3D::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
-
 }

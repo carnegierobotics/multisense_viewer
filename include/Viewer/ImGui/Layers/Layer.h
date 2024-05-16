@@ -272,7 +272,7 @@ namespace VkRender {
         bool stopDataCapture = false;
         int startScene = 0;
         int imagesPerScene = 100;
-        bool secondaryView = false;
+        bool secondaryView = true;
         bool fixAspectRatio = false;
     };
 

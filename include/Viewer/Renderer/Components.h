@@ -128,7 +128,11 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
-    struct SecondaryRenderPassComponent {
+    struct DepthRenderPassComponent {
+        bool render = true;
+    };
+
+    struct SecondaryRenderViewComponent {
         bool render = true;
     };
 

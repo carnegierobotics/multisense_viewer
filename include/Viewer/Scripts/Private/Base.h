@@ -17,13 +17,10 @@ namespace VkRender {
     class Base {
     public:
         Renderer* m_context;
-
         virtual ~Base() = default;
 
-
         DISABLE_WARNING_PUSH
-                DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
-
+        DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
         DISABLE_WARNING_EMPTY_BODY
 
         /**@brief Pure virtual function called only once when VK is ready to render*/
@@ -46,12 +43,6 @@ namespace VkRender {
         virtual void onDestroy() {
         }
 
-        /**@brief Record draw command into a VkCommandBuffer */
-        virtual void draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
-            //Log::Logger::getInstance()->info("draw not overridden for {} script", renderData.scriptName);
-        }
-
-
         void windowResize(const VkRender::GuiObjectHandles *uiHandle) {
             onWindowResize(uiHandle);
         }
@@ -59,29 +50,20 @@ namespace VkRender {
         void uiUpdate(VkRender::GuiObjectHandles *uiHandle) {
             onUIUpdate(uiHandle);
         }
-
-        void drawScript(CommandBuffer *commandBuffer, uint32_t i, bool b) {
-            draw(commandBuffer, i, b);
-        }
         DISABLE_WARNING_POP
 
-
         void updateUniformBufferData() {
-
                 update();
-
         }
 
         void createUniformBuffers() {
             setup();
-
         }
 
         /**@brief Call to delete the attached script. */
         void onDestroyScript() {
             onDestroy();
         }
-
 
     private:
 

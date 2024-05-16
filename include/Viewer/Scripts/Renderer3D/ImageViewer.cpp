@@ -14,29 +14,25 @@
 
 void ImageViewer::setup() {
 
-
-    if (false)
-    {
-        auto quad = m_context->createEntity("imageView");
+        auto quad = m_context->createEntity("3dgs_image");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "quad.obj",
                 m_context->renderUtils.device);
 
-        quad.addComponent<VkRender::ImageViewComponent>();
+        quad.addComponent<VkRender::SecondaryRenderViewComponent>();
 
         auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
-    }
+        res.setTexture(&m_context->renderUtils.depthRenderPass->imageInfo);
 }
 
 
 void ImageViewer::update() {
     auto& camera = m_context->getCamera();
 
-    auto imageView = m_context->findEntityByName("imageView");
+    auto imageView = m_context->findEntityByName("3dgs_image");
     if (imageView) {
         auto &obj = imageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
         obj.mvp.projection = camera.matrices.perspective;
@@ -48,10 +44,7 @@ void ImageViewer::update() {
         model = glm::translate(model, glm::vec3(translationX, translationY, 0.0f));
         float scaleX = 300.0f / m_context->renderData.width;
         model = glm::scale(model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
-        obj.mvp.model = model;
+        obj.mvp.model = glm::mat4(0.2f);
     }
 }
 
-void ImageViewer::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
-
-}

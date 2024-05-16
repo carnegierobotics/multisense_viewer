@@ -4,7 +4,7 @@
 
 #include "SyclRenderer.h"
 
-/*
+
 #include <fstream>
 #include "RT_IN_ONE_WEEKEND/kernels.h"
 #include "RT_IN_ONE_WEEKEND/camera.h"
@@ -119,4 +119,3 @@ SyclRenderer::SyclRenderer(int width, int height) {
 
 }
 
-*/

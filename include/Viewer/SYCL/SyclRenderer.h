@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_SYCLRENDERER_H
 #define MULTISENSE_VIEWER_SYCLRENDERER_H
 
-/*
+
 #include <sycl/sycl.hpp>
 #include "Viewer/SYCL/RT_IN_ONE_WEEKEND/vec3.h"
 #include "Viewer/SYCL/RT_IN_ONE_WEEKEND/camera.h"
@@ -25,5 +25,5 @@ public:
                 Camera *camera);
 };
 
-*/
+
 #endif //MULTISENSE_VIEWER_SYCLRENDERER_H

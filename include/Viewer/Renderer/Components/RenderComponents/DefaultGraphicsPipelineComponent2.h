@@ -48,6 +48,9 @@ namespace VkRender {
 
                 setupPipeline(data, RENDER_PASS_COLOR, vertexShader, fragmentShader, utils->msaaSamples,
                               *utils->renderPass);
+
+                setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
+                              *utils->renderPass);
             }
             // Then create depth pass render resources
             // Graphics pipelines

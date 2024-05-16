@@ -131,7 +131,7 @@ void DataCapture::update() {
                                                                                m_context->renderUtils.device);
             auto &obj = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils);
             obj.bind(component);
-            entity.addComponent<VkRender::SecondaryRenderPassComponent>();
+            entity.addComponent<VkRender::DepthRenderPassComponent>();
             obj.mvp.projection = defaultCamera.matrices.perspective;
             obj.mvp.view = defaultCamera.matrices.view;
             obj.mvp.model = glm::mat4(1.0f);
@@ -269,7 +269,7 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         auto &component = entity.addComponent<VkRender::OBJModelComponent>(uiHandle->m_paths.importObjFilePath,
                                                                            m_context->renderUtils.device);
         entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils).bind(component);
-        entity.addComponent<VkRender::SecondaryRenderPassComponent>();
+        entity.addComponent<VkRender::DepthRenderPassComponent>();
 
     }
 

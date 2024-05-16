@@ -36,7 +36,7 @@ void MultiSense::setup() {
         auto ent = m_context->createEntity("Coordinates");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
                                                                          m_context->renderUtils.device);
-        ent.addComponent<VkRender::SecondaryRenderPassComponent>();
+        ent.addComponent<VkRender::DepthRenderPassComponent>();
 
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<RenderResource::SkyboxGraphicsPipelineComponent>();
@@ -109,10 +109,4 @@ void MultiSense::update() {
         }
         obj.update();
     }
-
-}
-
-void MultiSense::draw(CommandBuffer *commandBuffer, uint32_t i, bool b) {
-
-
 }

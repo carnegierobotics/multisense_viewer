@@ -306,7 +306,7 @@ namespace VkRender {
 
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
-        for (auto ent: m_registry.view<VkRender::SecondaryRenderPassComponent>(entt::exclude<DeleteComponent>)) {
+        for (auto ent: m_registry.view<VkRender::DepthRenderPassComponent>(entt::exclude<DeleteComponent>)) {
             auto entity = Entity(ent, this);
             if (entity.hasComponent<DefaultGraphicsPipelineComponent2>()) {
                 auto &resources = entity.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
@@ -521,7 +521,7 @@ namespace VkRender {
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<VkRender::DefaultGraphicsPipelineComponent2>(
-                entt::exclude<DeleteComponent, ImageViewComponent>)) {
+                entt::exclude<DeleteComponent, ImageViewComponent, SecondaryRenderViewComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
@@ -540,19 +540,18 @@ namespace VkRender {
         }
 
 
-
         /**@brief Record commandbuffers for obj models */
         for (auto entity: m_registry.view<VkRender::ImageViewComponent>(
                 entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
             resources.draw(&drawCmdBuffers);
         }
+
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
 
 
         if (guiManager->handles.secondaryView){
-
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             subresourceRange.levelCount = 1;
@@ -562,10 +561,7 @@ namespace VkRender {
                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange,
                                   VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-
-
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
-
             // Define the viewport
             VkViewport viewport2{};
             viewport2.x = 0.0f;
@@ -594,10 +590,17 @@ namespace VkRender {
             drawCmdBuffers.renderPassType = RENDER_PASS_SECOND;
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport2);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor2);
+            /**@brief Record commandbuffers for custom camera models */
+            for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
+                resources.draw(&drawCmdBuffers);
+            }
 
-            /**@brief Record commandbuffers for Custom models (GRID) */
-            for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
-                resource.draw(&drawCmdBuffers);
+            /**@brief Record commandbuffers for obj models */
+            for (auto entity: m_registry.view<VkRender::SecondaryRenderViewComponent>(
+                    entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+                resources.draw(&drawCmdBuffers);
             }
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
@@ -1015,8 +1018,8 @@ namespace VkRender {
     }
 
     template<>
-    void Renderer::onComponentAdded<VkRender::SecondaryRenderPassComponent>(Entity entity,
-                                                                            VkRender::SecondaryRenderPassComponent &component) {
+    void Renderer::onComponentAdded<VkRender::DepthRenderPassComponent>(Entity entity,
+                                                                        VkRender::DepthRenderPassComponent &component) {
     }
 
     template<>
@@ -1032,6 +1035,11 @@ namespace VkRender {
     template<>
     void Renderer::onComponentAdded<VkRender::DefaultGraphicsPipelineComponent2>(Entity entity,
                                                                                  VkRender::DefaultGraphicsPipelineComponent2 &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<VkRender::SecondaryRenderViewComponent>(Entity entity,
+                                                                                 VkRender::SecondaryRenderViewComponent &component) {
     }
 
     DISABLE_WARNING_POP

@@ -33,9 +33,6 @@ public:
     void onDestroy() override{
     }
 
-    /** @brief draw function called once per frame **/
-    void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
-
     struct LightSource {
         glm::vec3 color = glm::vec3(1.0f);
         glm::vec3 rotation = glm::vec3(75.0f, 40.0f, 0.0f);

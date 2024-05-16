@@ -27,6 +27,9 @@ namespace VkRender {
         virtual void pauseRendering() {
             stopRendering = true;
         };
+        virtual void resumeRendering() {
+            stopRendering = false;
+        };
         virtual bool shouldStopRendering(){
             return stopRendering;
         }

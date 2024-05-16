@@ -196,6 +196,12 @@ namespace VkRender {
 
         std::unordered_map<RenderPassType, bool> busy{};
         std::unordered_map<RenderPassType, bool> requestIdle{};
+
+
+        bool isBusy() const {
+            return std::any_of(busy.begin(), busy.end(), [](const auto& item) { return item.second; });
+        }
+
     };
 
 

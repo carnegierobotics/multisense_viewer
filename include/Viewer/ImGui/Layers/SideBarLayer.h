@@ -14,6 +14,7 @@
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 #include "Viewer/Renderer/Entity.h"
+#include "Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -95,12 +96,12 @@ namespace VkRender {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
-                //auto e = Entity(entity, handles->m_context);
-                //if (e.hasComponent<CameraGraphicsPipelineComponent2>()) {
-                //    if (ImGui::SmallButton("Reload Shader")) {
-                //e.getComponent<CameraGraphicsPipelineComponent2>().updateGraphicsPipeline();
-                //    }
-                //}
+                auto e = Entity(entity, handles->m_context);
+                if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
+                    if (ImGui::SmallButton("Reload Shader")) {
+                        e.getComponent<DefaultGraphicsPipelineComponent2>().reloadShaders();
+                    }
+                }
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
                     handles->m_context->markEntityForDestruction(Entity(entity, handles->m_context));

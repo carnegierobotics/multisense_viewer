@@ -104,7 +104,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
         include/Viewer/Scripts/Renderer3D/DataCapture.cpp
 
-        include/Viewer/SYCL/SyclRenderer.cpp ## TODO MOVE out of here and into separate library
+        include/Viewer/SYCL/SYCLRayTracer.cpp ## TODO MOVE out of here and into separate library
 )
 
 

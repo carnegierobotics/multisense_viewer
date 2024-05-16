@@ -44,7 +44,6 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-
 #include <tiny_gltf.h>
 
 #include "Viewer/Core/Buffer.h"
@@ -78,6 +77,15 @@ public:
     };
 
 
+    // TODO Somehow exchange is not available in llvm sycl branch?
+    template<class T, class U = T>
+    T exchange(T& obj, U&& new_value)
+    {
+        T old_value = std::move(obj);
+        obj = std::forward<U>(new_value);
+        return old_value;
+    }
+
     Texture() = default;
 
     virtual ~Texture() {
@@ -105,12 +113,12 @@ public:
     // Move constructor
     Texture2D(Texture2D &&other)  noexcept : Texture(std::move(other)) {
         // Move constructor logic specific to Texture2D
-        m_device = std::exchange(other.m_device, nullptr);
-        m_image = std::exchange(other.m_image, {});
-        m_deviceMemory = std::exchange(other.m_deviceMemory, {});
-        m_view = std::exchange(other.m_view, {});
-        m_sampler = std::exchange(other.m_sampler, {});
-        m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+        m_device = exchange(other.m_device, nullptr);
+        m_image = exchange(other.m_image, {});
+        m_deviceMemory = exchange(other.m_deviceMemory, {});
+        m_view = exchange(other.m_view, {});
+        m_sampler = exchange(other.m_sampler, {});
+        m_YUVSamplerToRGB = exchange(other.m_YUVSamplerToRGB, {});
         m_imageLayout = other.m_imageLayout;
         m_width = other.m_width;
         m_height = other.m_height;
@@ -128,12 +136,12 @@ public:
         if (this != &other) {
             // Proper cleanup of existing resources
             // Move all resources from 'other' to 'this'
-            m_device = std::exchange(other.m_device, nullptr);
-            m_image = std::exchange(other.m_image, {});
-            m_deviceMemory = std::exchange(other.m_deviceMemory, {});
-            m_view = std::exchange(other.m_view, {});
-            m_sampler = std::exchange(other.m_sampler, {});
-            m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+            m_device = exchange(other.m_device, nullptr);
+            m_image = exchange(other.m_image, {});
+            m_deviceMemory = exchange(other.m_deviceMemory, {});
+            m_view = exchange(other.m_view, {});
+            m_sampler = exchange(other.m_sampler, {});
+            m_YUVSamplerToRGB = exchange(other.m_YUVSamplerToRGB, {});
             // Copy simple types
             m_imageLayout = other.m_imageLayout;
             m_width = other.m_width;
@@ -250,12 +258,12 @@ public:
         if (this != &other) {
             // Proper cleanup of existing resources
             // Move all resources from 'other' to 'this'
-            m_device = std::exchange(other.m_device, nullptr);
-            m_image = std::exchange(other.m_image, {});
-            m_deviceMemory = std::exchange(other.m_deviceMemory, {});
-            m_view = std::exchange(other.m_view, {});
-            m_sampler = std::exchange(other.m_sampler, {});
-            m_YUVSamplerToRGB = std::exchange(other.m_YUVSamplerToRGB, {});
+            m_device = exchange(other.m_device, nullptr);
+            m_image = exchange(other.m_image, {});
+            m_deviceMemory = exchange(other.m_deviceMemory, {});
+            m_view = exchange(other.m_view, {});
+            m_sampler = exchange(other.m_sampler, {});
+            m_YUVSamplerToRGB = exchange(other.m_YUVSamplerToRGB, {});
             // Copy simple types
             m_imageLayout = other.m_imageLayout;
             m_width = other.m_width;

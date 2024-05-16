@@ -42,6 +42,8 @@ $glslc ${sceneDir}/../default2D.frag -o ${sceneOutDir}default2D.frag.spv
 $glslc ${sceneDir}/../default2D.vert -o ${sceneOutDir}default2D.vert.spv
 $glslc ${sceneDir}/../CameraGizmo.frag -o ${sceneOutDir}CameraGizmo.frag.spv
 $glslc ${sceneDir}/../CameraGizmo.vert -o ${sceneOutDir}CameraGizmo.vert.spv
+$glslc ${sceneDir}/../SYCLRenderer.frag -o ${sceneOutDir}SYCLRenderer.frag.spv
+$glslc ${sceneDir}/../SYCLRenderer.vert -o ${sceneOutDir}SYCLRenderer.vert.spv
 echo "Compiled Default shaders"
 
 #$glslc ${sceneDir}/video/color.vert -o ${sceneOutDir}color.vert.spv

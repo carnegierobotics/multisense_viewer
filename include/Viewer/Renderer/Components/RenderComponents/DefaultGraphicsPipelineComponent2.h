@@ -33,6 +33,7 @@ namespace VkRender {
 
             m_numSwapChainImages = utils->swapchainImages;
             m_vulkanDevice = utils->device;
+            m_utils = utils;
             // Number of resources per render pass
             m_renderData.resize(m_numSwapChainImages);
             m_emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, m_vulkanDevice, m_vulkanDevice->m_TransferQueue);
@@ -51,15 +52,14 @@ namespace VkRender {
 
                 setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
                               *utils->renderPass);
-            }
-            // Then create depth pass render resources
-            // Graphics pipelines
-            for (auto &data: m_renderData) {
+
                 setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
                               VK_SAMPLE_COUNT_1_BIT,
                               utils->depthRenderPass->renderPass);
             }
 
+            m_vertexShader = vertexShader;
+            m_fragmentShader = fragmentShader;
         }
 
         ~DefaultGraphicsPipelineComponent2() override {
@@ -73,6 +73,8 @@ namespace VkRender {
         bool cleanUp(uint32_t currentFrame, bool force = false) override;
 
         void update(uint32_t currentFrame) override;
+
+        void reloadShaders();
 
         template <typename T>
         void bind(T &modelComponent);
@@ -116,6 +118,10 @@ namespace VkRender {
         Indices indices{};
         Vertices vertices{};
 
+        bool requestRebuildPipelines = false;
+        std::string m_vertexShader;
+        std::string m_fragmentShader;
+        VkRender::RenderUtils *m_utils;
     };
 
 

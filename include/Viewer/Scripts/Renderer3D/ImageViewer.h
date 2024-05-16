@@ -9,7 +9,7 @@
 
 #include "Viewer/Renderer/Components/CustomModels.h"
 #include "Viewer/ModelLoaders/ImageView.h"
-#include "Viewer/SYCL/SyclRenderer.h"
+#include "Viewer/SYCL/SYCLRayTracer.h"
 
 class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
 {
@@ -34,6 +34,10 @@ public:
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
     }
+
+    std::unique_ptr<SYCLRayTracer> m_syclRenderer;
+
+    Texture2D syclRenderTarget;
 
 };
 

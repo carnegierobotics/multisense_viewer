@@ -14,23 +14,33 @@
 
 void ImageViewer::setup() {
 
-        auto quad = m_context->createEntity("3dgs_image");
-        auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "quad.obj",
-                m_context->renderUtils.device);
+    auto quad = m_context->createEntity("3dgs_image");
+    auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
+            Utils::getModelsPath() / "obj" / "quad.obj",
+            m_context->renderUtils.device);
 
-        quad.addComponent<VkRender::SecondaryRenderViewComponent>();
+    quad.addComponent<VkRender::SecondaryRenderViewComponent>();
 
-        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
-                                                                                   "default2D.vert.spv",
-                                                                                   "default2D.frag.spv");
-        res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.depthRenderPass->imageInfo);
+    auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+                                                                               "SYCLRenderer.vert.spv",
+                                                                               "SYCLRenderer.frag.spv");
+    res.bind(modelComponent);
+
+    m_syclRenderer = std::make_unique<SYCLRayTracer>(m_context->renderData.width, m_context->renderData.height);
+    m_syclRenderer->save_image("../sycl.ppm",  m_context->renderData.width,  m_context->renderData.height);
+    auto syclOutput = m_syclRenderer->get_image_8bit(m_context->renderData.width,  m_context->renderData.height);
+
+    uint32_t size = syclOutput.size() * sizeof(SYCLRayTracer::Pixel);
+
+    syclRenderTarget.fromBuffer(syclOutput.data(), size, VK_FORMAT_R8G8B8A8_UNORM, m_context->renderData.width, m_context->renderData.height, m_context->renderUtils.device, m_context->renderUtils.device->m_TransferQueue);
+    //syclRenderTarget.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, m_context->renderUtils.device, m_context->renderUtils.device->m_TransferQueue);
+
+    res.setTexture(&syclRenderTarget.m_descriptor);
 }
 
 
 void ImageViewer::update() {
-    auto& camera = m_context->getCamera();
+    auto &camera = m_context->getCamera();
 
     auto imageView = m_context->findEntityByName("3dgs_image");
     if (imageView) {

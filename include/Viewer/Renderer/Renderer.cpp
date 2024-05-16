@@ -590,16 +590,17 @@ namespace VkRender {
             drawCmdBuffers.renderPassType = RENDER_PASS_SECOND;
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport2);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor2);
-            /**@brief Record commandbuffers for custom camera models */
-            for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
-                auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
-                resources.draw(&drawCmdBuffers);
-            }
 
             /**@brief Record commandbuffers for obj models */
             for (auto entity: m_registry.view<VkRender::SecondaryRenderViewComponent>(
                     entt::exclude<DeleteComponent>)) {
                 auto &resources = m_registry.get<VkRender::DefaultGraphicsPipelineComponent2>(entity);
+                resources.draw(&drawCmdBuffers);
+            }
+
+            /**@brief Record commandbuffers for custom camera models */
+            for (auto entity: m_registry.view<VkRender::CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
                 resources.draw(&drawCmdBuffers);
             }
 

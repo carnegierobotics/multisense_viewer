@@ -263,6 +263,9 @@ namespace VkRender {
 
 
     void CustomModelComponent::draw(CommandBuffer *cmdBuffer) {
+        if (!model->draw)
+            return;
+
         uint32_t cbIndex = cmdBuffer->currentFrame;
 
         if (shouldStopRendering())

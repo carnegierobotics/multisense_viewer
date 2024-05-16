@@ -238,7 +238,7 @@ namespace VkRender {
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
             auto subWindowHeight = static_cast<float>(m_Height);
 
-            if (guiManager->handles.enableDepthView) {
+            if (guiManager->handles.secondaryView) {
                 mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height / 2);
                 // Sub-window dimensions (initial)
                 subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
@@ -260,7 +260,7 @@ namespace VkRender {
                                        static_cast<int32_t>(subWindowHeight), 0, 0);
         } else {
             float windowHeight = m_Height;
-            if (guiManager->handles.enableDepthView) {
+            if (guiManager->handles.secondaryView) {
                 windowHeight = m_Height / 2;
             }
 
@@ -551,7 +551,7 @@ namespace VkRender {
 
 
 
-        if (guiManager->handles.enableDepthView){
+        if (guiManager->handles.secondaryView){
 
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

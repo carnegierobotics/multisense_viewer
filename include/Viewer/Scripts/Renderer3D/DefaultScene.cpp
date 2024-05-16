@@ -33,7 +33,13 @@ void DefaultScene::setup() {
             &m_context->renderUtils).bind(component);
 
 }
+
 */
+
+    auto cameraGizmo = m_context->findEntityByName("Default");
+    auto &rr = cameraGizmo.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
+
+
     if (showDepthView) {
         auto quad = m_context->createEntity("depthImageView");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
@@ -53,21 +59,29 @@ void DefaultScene::setup() {
 
 
 void DefaultScene::update() {
-    //Log::Logger::getInstance()->traceWithFrequency("Tag", 5000, "Update from {}", GetFactoryName());
-    // Update UBO data
+    auto &camera = m_context->getCamera();
+
     auto e = m_context->findEntityByName("3DViewerGrid");
-    if (!e)
-        return;
-    auto& camera = m_context->getCamera();
+    if (e) {
+        auto &c = e.getComponent<VkRender::CustomModelComponent>();
+        c.mvp.model = glm::mat4(1.0f);
+        c.mvp.view = camera.matrices.view;
+        c.mvp.projection = camera.matrices.perspective;
+        c.model->draw = enable;
+        c.update(m_context->renderUtils.swapchainIndex);
 
-    auto &c = e.getComponent<VkRender::CustomModelComponent>();
-    c.mvp.model = glm::mat4(1.0f);
-    c.mvp.view = camera.matrices.view;
-    c.mvp.projection = camera.matrices.perspective;
+    }
 
-    c.update(m_context->renderUtils.swapchainIndex);
+    auto cameraEntity = m_context->findEntityByName("Default");
+    if (cameraEntity && cameraEntity.hasComponent<VkRender::CameraComponent>()){
+        auto& camModel = cameraEntity.getComponent<VkRender::CameraComponent>().camera;
+        auto& cameraGizmo = cameraEntity.getComponent<VkRender::CameraGraphicsPipelineComponent>();
+        cameraGizmo.mvp.model = glm::scale(glm::inverse(camModel.matrices.view), glm::vec3(0.2f, 0.2f, 0.2f));
+        cameraGizmo.mvp.view = camera.matrices.view;
+        cameraGizmo.mvp.projection = camera.matrices.perspective;
+    }
 
-    if (showDepthView){
+    if (showDepthView) {
         auto depthImageView = m_context->findEntityByName("depthImageView");
         if (depthImageView) {
             auto &obj = depthImageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
@@ -87,7 +101,6 @@ void DefaultScene::update() {
     }
 
 
-
     auto gsMesh = m_context->findEntityByName("viking_room");
     if (gsMesh) {
         auto &obj = gsMesh.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
@@ -100,7 +113,7 @@ void DefaultScene::update() {
 
 
 void DefaultScene::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
-    auto& currentCamera = m_context->getCamera();
+    auto &currentCamera = m_context->getCamera();
 
     // Loop through cameras and update the camera gizmo position
     for (auto entity: m_context->m_registry.view<VkRender::CameraGraphicsPipelineComponent>()) {

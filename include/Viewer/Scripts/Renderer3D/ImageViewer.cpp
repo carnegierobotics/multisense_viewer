@@ -26,16 +26,8 @@ void ImageViewer::setup() {
                                                                                "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
 
-    m_syclRenderer = std::make_unique<SYCLRayTracer>(m_context->renderData.width, m_context->renderData.height);
-    m_syclRenderer->save_image("../sycl.ppm",  m_context->renderData.width,  m_context->renderData.height);
-    auto syclOutput = m_syclRenderer->get_image_8bit(m_context->renderData.width,  m_context->renderData.height);
+    m_syclSobel = std::make_unique<GaussianRenderer>(m_context->getCamera());
 
-    uint32_t size = syclOutput.size() * sizeof(SYCLRayTracer::Pixel);
-
-    syclRenderTarget.fromBuffer(syclOutput.data(), size, VK_FORMAT_R8G8B8A8_UNORM, m_context->renderData.width, m_context->renderData.height, m_context->renderUtils.device, m_context->renderUtils.device->m_TransferQueue);
-    //syclRenderTarget.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, m_context->renderUtils.device, m_context->renderUtils.device->m_TransferQueue);
-
-    res.setTexture(&syclRenderTarget.m_descriptor);
 }
 
 

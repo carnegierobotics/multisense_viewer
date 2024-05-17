@@ -93,8 +93,8 @@ public:
             real_t u = (x_coord + rng.generate()) / width;
             real_t v = (y_coord + rng.generate()) / height;
 
-            ray r = get_ray(x_coord, y_coord, m_cameraPtr, (pixel_index * samplesPerPixel + sample));
-            pixelColor += ray_color(r, m_spherePtr);
+            //ray r = get_ray(x_coord, y_coord, m_cameraPtr, (pixel_index * samplesPerPixel + sample));
+            //pixelColor += ray_color(r, m_spherePtr);
         }
 
         pixelColor /= samplesPerPixel;

@@ -10,6 +10,7 @@
 #include "Viewer/Renderer/Components/CustomModels.h"
 #include "Viewer/ModelLoaders/ImageView.h"
 #include "Viewer/SYCL/SYCLRayTracer.h"
+#include "Viewer/SYCL/GaussianRenderer.h"
 
 class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
 {
@@ -36,6 +37,7 @@ public:
     }
 
     std::unique_ptr<SYCLRayTracer> m_syclRenderer;
+    std::unique_ptr<GaussianRenderer> m_syclSobel;
 
     Texture2D syclRenderTarget;
 

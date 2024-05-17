@@ -51,6 +51,8 @@
 
 #include <glm/gtx/string_cast.hpp>
 
+#include "Viewer/Tools/Logger.h"
+
 #define DEFAULT_FRONT glm::vec3(0.0f, 0.0f, -1.0f)
 #define DEFAULT_UP glm::vec3(0.0f, 1.0f, 0.0f)
 #define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
@@ -80,14 +82,22 @@ namespace VkRender {
         float m_Znear = 0.1f;
         float m_Zfar = 10.0f;
 
+        uint32_t m_height = 0;
+        uint32_t m_width = 0;
+
         Camera() = default;
 
         Camera(uint32_t width, uint32_t height) {
+            m_width = width;
+            m_height = height;
             m_type = VkRender::Camera::arcball;
             setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height));
             resetPosition();
             // Initialize quaternion to have a forward looking x-axis
             //rotateQuaternion(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            if (m_height == 0 || m_width == 0){
+                Log::Logger::getInstance()->warning("Initializing a camera with 0 on one dimension {}x{}", m_width, m_height);
+            }
         }
 
         void updateViewMatrix() {

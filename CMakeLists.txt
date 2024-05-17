@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g -O0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g")
 #
 set(CMAKE_C_COMPILER "clang")
 
@@ -105,6 +105,7 @@ set(SCRIPTS_LIB_SRC
         include/Viewer/Scripts/Renderer3D/DataCapture.cpp
 
         include/Viewer/SYCL/SYCLRayTracer.cpp ## TODO MOVE out of here and into separate library
+        include/Viewer/SYCL/GaussianRenderer.cpp ## TODO MOVE out of here and into separate library
 )
 
 
@@ -145,7 +146,7 @@ if (UNIX) ## Linux
     add_dependencies(VulkanRenderer rosbag_cpp_writer)
 
     add_library(ScriptLibrary STATIC ${SCRIPTS_LIB_SRC})
-    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer)
+    target_link_libraries(ScriptLibrary VulkanRenderer -lavutil -lswscale rosbag_cpp_writer )
 
     add_executable(MultiSense-Viewer include/main.cpp)
     target_link_libraries(MultiSense-Viewer VulkanRenderer ScriptLibrary )

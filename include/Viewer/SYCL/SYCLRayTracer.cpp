@@ -10,6 +10,10 @@
 #include "RT_IN_ONE_WEEKEND/camera.h"
 #include "RT_IN_ONE_WEEKEND/sphere.h"
 
+#include <sycl/image.hpp>
+#include "sycl/ext/oneapi/bindless_images.hpp"
+#include "sycl/ext/oneapi/bindless_images_descriptor.hpp"
+
 
 void SYCLRayTracer::save_image(const std::string& filename, uint32_t width, uint32_t height) {
     std::ofstream file(filename);
@@ -35,10 +39,15 @@ void SYCLRayTracer::save_image(const std::string& filename, uint32_t width, uint
 }
 
 void SYCLRayTracer::render(int width, int height, int num_spheres, sycl::queue &queue, vec3 *fb_data, const sphere *spheres, Camera* camera) {
+    /*
     auto num_pixels = width * height;
     auto frame_buf = sycl::buffer<vec3, 1>(fb_data, sycl::range<1>(num_pixels));
+
+    sycl::buffer<sphere> spheres_buf2;
     sycl::buffer<sphere> spheres_buf(spheres, sycl::range<1>(num_spheres));
     sycl::buffer<Camera> cameraBuffer(camera, sycl::range<1>(1));
+
+    sycl::ext::oneapi::experimental::image_descriptor sycl;
 
     static constexpr auto TileX = 8;
     static constexpr auto TileY = 8;
@@ -59,6 +68,8 @@ void SYCLRayTracer::render(int width, int height, int num_spheres, sycl::queue &
         // execute kernel
         cgh.parallel_for(index_space, render_k);
     });
+
+     */
 }
 
 

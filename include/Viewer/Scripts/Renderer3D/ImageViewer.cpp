@@ -28,12 +28,17 @@ void ImageViewer::setup() {
 
     m_syclSobel = std::make_unique<GaussianRenderer>(m_context->getCamera());
 
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "btn", &btn);
+
 }
 
 
 void ImageViewer::update() {
     auto &camera = m_context->getCamera();
-
+    if (btn){
+        std::cout << "View Matrix:\n";
+        std::cout << glm::to_string(camera.matrices.view) << "\n";
+    }
     auto imageView = m_context->findEntityByName("3dgs_image");
     if (imageView) {
         auto &obj = imageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();

@@ -40,6 +40,7 @@ public:
     std::unique_ptr<GaussianRenderer> m_syclSobel;
 
     Texture2D syclRenderTarget;
+    bool btn;
 
 };
 

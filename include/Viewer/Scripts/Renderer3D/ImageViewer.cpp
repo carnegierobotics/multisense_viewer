@@ -25,10 +25,16 @@ void ImageViewer::setup() {
                                                                                "SYCLRenderer.vert.spv",
                                                                                "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
-
-    m_syclSobel = std::make_unique<GaussianRenderer>(m_context->getCamera());
+    const auto& camera = m_context->getCamera();
+    m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
 
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "btn", &btn);
+
+
+    m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height, m_context->renderUtils.device,
+                                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                        VK_FORMAT_R8G8B8A8_UNORM);
+    res.setTexture(&m_syclRenderTarget->m_descriptor);
 
 }
 
@@ -39,6 +45,15 @@ void ImageViewer::update() {
         std::cout << "View Matrix:\n";
         std::cout << glm::to_string(camera.matrices.view) << "\n";
     }
+    m_gaussianRenderer->simpleRasterizer(camera);
+    auto* dataPtr = m_syclRenderTarget->m_DataPtr;
+
+    uint32_t size = camera.m_height * camera.m_width * 4;
+    std::memcpy(dataPtr, m_gaussianRenderer->img, size);
+
+    m_syclRenderTarget->updateTextureFromBuffer();
+
+
     auto imageView = m_context->findEntityByName("3dgs_image");
     if (imageView) {
         auto &obj = imageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();

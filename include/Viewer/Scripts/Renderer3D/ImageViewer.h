@@ -37,9 +37,9 @@ public:
     }
 
     std::unique_ptr<SYCLRayTracer> m_syclRenderer;
-    std::unique_ptr<GaussianRenderer> m_syclSobel;
+    std::unique_ptr<GaussianRenderer> m_gaussianRenderer;
 
-    Texture2D syclRenderTarget;
+    std::unique_ptr<TextureVideo> m_syclRenderTarget;
     bool btn;
 
 };

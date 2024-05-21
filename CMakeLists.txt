@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g")
+set(CMAKE_CXX_FLAGS "-fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
 #
 set(CMAKE_C_COMPILER "clang")
 
@@ -109,7 +109,7 @@ set(SCRIPTS_LIB_SRC
 )
 
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader;GPUOpen::VulkanMemoryAllocator;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

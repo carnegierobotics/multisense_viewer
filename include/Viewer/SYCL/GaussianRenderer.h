@@ -22,6 +22,13 @@
 class GaussianRenderer {
 public:
 
+    struct CameraParams {
+        float tanFovX = 0;
+        float tanFovY = 0;
+        float focalX = 0;
+        float focalY = 0;
+    };
+
     struct GaussianPoints {
         std::vector<glm::vec3> positions;
         std::vector<glm::quat> quats;
@@ -48,11 +55,12 @@ private:
     static GaussianPoints loadNaive();
 
 
-    std::vector<float> getHtanfovxyFocal(float fovy, float h, float w) {
+    CameraParams getHtanfovxyFocal(float fovy, float h, float w) {
         float htany = std::tan(glm::radians(fovy) / 2.0f);
         float htanx = htany / h * w;
         float focal_y = h / (2.0f * htany);
         float focal_x = focal_y * (w / h); // Ensure aspect ratio is maintained
+
         return {htanx, htany, focal_x, focal_y};
     }
 
@@ -73,6 +81,8 @@ private:
 
     sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
     sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
+
+    GaussianPoints loadFromFile(int i);
 };
 
 

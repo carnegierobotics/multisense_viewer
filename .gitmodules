@@ -45,3 +45,6 @@
 [submodule "external/VulkanMemoryAllocator"]
 	path = external/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "external/tinyply"]
+	path = external/tinyply
+	url = https://github.com/ddiakopoulos/tinyply

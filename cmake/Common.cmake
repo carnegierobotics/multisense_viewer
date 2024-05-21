@@ -42,6 +42,7 @@ set(NLOHMANN_JSON external/json)
 set(CPP_HTTPLIB external/cpp-httplib)
 set(ENTT_DIR external/entt)
 set(TINY_OBJ_LOADER_DIR external/tinyobjloader)
+set(TINY_PLY_DIR external/tinyply)
 
 set(ROSBAGS_WRITER_DIR internal/rosbag_writer_cpp)
 set(AUTOCONNECT_DIR internal/AutoConnect)
@@ -95,6 +96,13 @@ else ()
     add_subdirectory(${TINY_OBJ_LOADER_DIR})
     include_directories(${TINY_OBJ_LOADER_DIR})
 
+endif ()
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${TINY_PLY_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules ${TINY_PLY_DIR}/ not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+else ()
+    message("[INFO] Adding TINY_PLY_DIR from directory: ${TINY_PLY_DIR}")
+    add_subdirectory(${TINY_PLY_DIR})
+    include_directories("${TINY_PLY_DIR}/source")
 endif ()
 
 

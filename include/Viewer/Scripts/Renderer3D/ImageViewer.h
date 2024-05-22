@@ -40,7 +40,7 @@ public:
     std::unique_ptr<GaussianRenderer> m_gaussianRenderer;
 
     std::unique_ptr<TextureVideo> m_syclRenderTarget;
-    bool btn;
+    bool btn = false;
 
 };
 

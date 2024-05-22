@@ -8,6 +8,23 @@
 #include <filesystem>
 #include <tinyply.h>
 
+#define SH_C0 0.28209479177387814f
+#define SH_C1 0.4886025119029199f
+
+#define SH_C2_0 1.0925484305920792f
+#define SH_C2_1 -1.0925484305920792f
+#define SH_C2_2 0.31539156525252005f
+#define SH_C2_3 -1.0925484305920792f
+#define SH_C2_4 0.5462742152960396f
+
+#define SH_C3_0 -0.5900435899266435f
+#define SH_C3_1 2.890611442640554f
+#define SH_C3_2 -0.4570457994644658f
+#define SH_C3_3 0.3731763325901154f
+#define SH_C3_4 -0.4570457994644658f
+#define SH_C3_5 1.445305721320277f
+#define SH_C3_6 -0.5900435899266435f
+
 GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
     // Define a callable device selector using a lambda
     auto cpuSelector = [](const sycl::device &dev) {
@@ -30,26 +47,36 @@ GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
         queue = sycl::queue(gpuSelector);
         // Use the queue for your computation
     } catch (const sycl::exception &e) {
-        std::cerr << "CPU device not found: " << e.what() << '\n';
-        std::cerr << "Falling back to default device selector.\n";
+        Log::Logger::getInstance()->warning("GPU device not found");
+        Log::Logger::getInstance()->info("Falling back to default device selector");
         // Fallback to default device selector
         queue = sycl::queue();
     }
-    Log::Logger::getInstance()->info("Selected Device {}",queue.get_device().get_info<sycl::info::device::name>().c_str());
+    Log::Logger::getInstance()->info("Selected Device {}",
+                                     queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-    gs = loadFromFile(100);
+    gs = loadNaive();
+    loadedPly = false;
+    setupBuffers(camera);
+
+    simpleRasterizer(camera);
+}
+
+void GaussianRenderer::setupBuffers(const VkRender::Camera &camera) {
     Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
 
     positionBuffer = {gs.positions.data(), sycl::range<1>(gs.getSize())};
     scalesBuffer = {gs.scales.data(), sycl::range<1>(gs.getSize())};
     quaternionBuffer = {gs.quats.data(), sycl::range<1>(gs.getSize())};
     opacityBuffer = {gs.opacities.data(), sycl::range<1>(gs.getSize())};
+    sphericalHarmonicsBuffer = {gs.sphericalHarmonics.data(), sycl::range<1>(gs.sphericalHarmonics.size())};
 
     // Create a buffer to store the resulting 2D covariance vectors
     covariance2DBuffer = {sycl::range<1>(gs.getSize())};
     conicBuffer = {sycl::range<1>(gs.getSize())};
     screenPosBuffer = sycl::buffer<glm::vec3, 1>{sycl::range<1>(gs.getSize())};
     covarianceBuffer = {sycl::range<1>(gs.getSize())};
+    colorOutputBuffer = {sycl::range<1>(gs.getSize())};
 
     int width, height, channels;
     std::filesystem::path path = Utils::getTexturePath() / "moon.png";
@@ -62,8 +89,6 @@ GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
     //sycl::buffer<uint8_t, 1> pngImageBuffer{image, sycl::range<1>(width * height * channels)};
     pngImageBuffer = {image, sycl::range<3>(height, width, 4)};
     imageBuffer = {sycl::range<3>(camera.m_height, camera.m_width, 4)};
-
-    simpleRasterizer(camera);
 }
 
 glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
@@ -93,17 +118,22 @@ glm::vec3 computeCov2D(const glm::vec4 &pView,
     t.x = std::min(limx, std::max(-limx, txtz)) * t.z;
     t.y = std::min(limy, std::max(-limy, tytz)) * t.z;
 
+    //float l = glm::length(glm::vec3(t));
     float l = glm::length(glm::vec3(t));
-    glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, t.x / l,
-                            0.0f, camera.focalY / t.z, t.y / l,
-                            -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), t.z / l);
+    /*  glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, t.x / l,
+                              0.0f, camera.focalY / t.z, t.y / l,
+                              -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), t.z / l);
+  */
+    glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, 0.0f,
+                            0.0f, camera.focalY / t.z, 0.0f,
+                            -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), 0.0f);
 
     auto W = glm::mat3(viewMat);
     glm::mat3 T = J * W;
     glm::mat3 cov = J * W * cov3D * glm::transpose(W) * glm::transpose(J);
     cov[0][0] += 0.3f;
     cov[1][1] += 0.3f;
-    //cov = glm::transpose(cov);
+    cov = glm::transpose(cov);
 
     return {cov[0][0], cov[0][1], cov[1][1]};
 
@@ -116,6 +146,7 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
 
     glm::mat4 viewMatrix = camera.matrices.view;
     glm::mat4 projectionMatrix = camera.matrices.perspective;
+    glm::vec3 camPos = camera.pose.pos;
 
     /*
     float aspect =  static_cast<float>(camera.m_width) / static_cast<float>(camera.m_height);
@@ -135,6 +166,14 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     const size_t imageWidth = camera.m_width;
     const size_t imageHeight = camera.m_height;
 
+    std::vector<float> depths(gs.getSize());
+    std::vector<int> indices(gs.getSize());
+
+    sycl::buffer<float, 1> depthsBuffer(depths.data(), sycl::range<1>(gs.getSize()));
+    sycl::buffer<int, 1> indicesBuffer(indices.data(), sycl::range<1>(gs.getSize()));
+
+
+
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
@@ -144,15 +183,22 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
         auto covariances2D = covariance2DBuffer.get_access<sycl::access::mode::write>(h);
         auto conic = conicBuffer.get_access<sycl::access::mode::write>(h);
         auto screenPos = screenPosBuffer.get_access<sycl::access::mode::write>(h);
+        auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto colorOutput = colorOutputBuffer.get_access<sycl::access::mode::write>(h);
+
+        auto depthsAccess = depthsBuffer.get_access<sycl::access::mode::write>(h);
+        auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::write>(h);
+
+
+        uint32_t shDim = gs.getShDim();
 
         h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
             glm::vec3 scale = scales[idx];
             glm::quat q = quaternions[idx];
             glm::vec3 position = positions[idx];
-            covariances[idx] = computeCov3D(scale, q);
             glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
 
-            //covariances2D[idx] = computeCov2D(posView, focalX, focalY, tanX, tanY, covariances[idx], viewMatrix);
+            covariances[idx] = computeCov3D(scale, q);
             covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params);
 
             // Invert covariance (EWA)
@@ -170,8 +216,77 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             float framebufferX = (posNDC.x * 0.5f + 0.5f) * imageWidth;
             float framebufferY = (posNDC.y * 0.5f + 0.5f) * imageHeight; // Flip (Vulkan framebuffer coordinates)
             screenPos[idx] = glm::vec3(framebufferX, framebufferY, posNDC.z);
+
+            // Calculate spherical harmonics to color:
+            glm::vec3 dir = glm::normalize(position - camPos);
+            glm::vec3 color = SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[(idx * shDim) + 1], shs[(idx * shDim) + 2]);
+
+            /*
+            if (shDim > 3)  // 1 * 3
+            {
+                float x = dir.x;
+                float y = dir.y;
+                float z = dir.z;
+                color = color - SH_C1 * y * shs[idx * 3 + 1] + SH_C1 * z * shs[idx * 3 + 2] -
+                        SH_C1 * x * shs[idx * 3 + 3];
+            }
+            */
+
+            color += 0.5f;
+
+            colorOutput[idx] = color;
+
+            depthsAccess[idx] = posView.z; // Depth
+            indicesAccess[idx] = idx; // Original index
         });
     }).wait();
+
+    {
+        auto depthsHost = depthsBuffer.get_host_access();
+        std::sort(indices.begin(), indices.end(), [&](int a, int b) {
+            return depthsHost[a] > depthsHost[b];
+        });
+    }
+
+    indicesBuffer = sycl::buffer<int, 1>(indices.data(), sycl::range<1>(gs.getSize()));
+
+    sycl::buffer<glm::vec3, 1> sortedScreenPositionsBuffer(gs.getSize());
+    sycl::buffer<glm::vec3, 1> sortedColorsBuffer(gs.getSize());
+    sycl::buffer<glm::vec3, 1> sortedConicsBuffer(gs.getSize());
+    sycl::buffer<float, 1> sortedOpacitiesBuffer(gs.getSize());
+    sycl::buffer<float, 1> sortedSphericalHarmonicsBuffer(gs.getSize() * gs.getShDim());
+    const uint32_t shDim = gs.getShDim();
+    const uint32_t numGaussians = gs.getSize();
+       queue.submit([&](sycl::handler &h) {
+           auto positions = screenPosBuffer.get_access<sycl::access::mode::read>(h);
+           auto color = colorOutputBuffer.get_access<sycl::access::mode::read>(h);
+           auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
+           auto opacities = opacityBuffer.get_access<sycl::access::mode::read>(h);
+           auto sphericalHarmonics = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+
+           auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::read>(h);
+
+           auto sortedPositionsAccess = sortedScreenPositionsBuffer.get_access<sycl::access::mode::write>(h);
+           auto sortedColorsAccess = sortedColorsBuffer.get_access<sycl::access::mode::write>(h);
+           auto sortedConicsAccess = sortedConicsBuffer.get_access<sycl::access::mode::write>(h);
+           auto sortedOpacitiesAccess = sortedOpacitiesBuffer.get_access<sycl::access::mode::write>(h);
+           auto sortedSphericalHarmonicsAccess = sortedSphericalHarmonicsBuffer.get_access<sycl::access::mode::write>(h);
+
+
+           h.parallel_for(sycl::range<1>(numGaussians), [=](sycl::id<1> idx) {
+               int sortedIdx = indicesAccess[idx];
+
+               sortedPositionsAccess[idx] = positions[sortedIdx];
+               sortedColorsAccess[idx] = color[sortedIdx];
+               sortedConicsAccess[idx] = conic[sortedIdx];
+               sortedOpacitiesAccess[idx] = opacities[sortedIdx];
+               for (size_t j = 0; j < shDim; ++j) {
+                   sortedSphericalHarmonicsAccess[idx * shDim + j] = sphericalHarmonics[sortedIdx * shDim + j];
+               }
+           });
+
+       }).wait();
+
 
     sycl::range<2> localWorkSize(16, 16);
     // Compute the global work size ensuring it is a multiple of the local work size
@@ -179,11 +294,12 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
     sycl::range<2> globalWorkSize(globalHeight, globalWidth);
     queue.submit([&](sycl::handler &h) {
-        auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
-        auto screenPosGaussian = screenPosBuffer.get_access<sycl::access::mode::read>(h);
+        auto conic = sortedConicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto screenPosGaussian = sortedScreenPositionsBuffer.get_access<sycl::access::mode::read>(h);
+        auto colors = sortedColorsBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacities = sortedOpacitiesBuffer.get_access<sycl::access::mode::read>(h);
+
         auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
-        auto pngImageAccessor = pngImageBuffer.get_access<sycl::access::mode::read>(h);
-        auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
 
         h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
             auto global_id = item.get_global_id(); // Get global indices of the work item
@@ -191,50 +307,40 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             size_t col = global_id[1];
 
             if (row < imageHeight && col < imageWidth) {
-                float maxInfluence = 0.0f;
-                glm::vec3 rgb(0.0f);
-                for (size_t id = 0; id < screenPosGaussian.size(); ++id) {
+                // Initialize helper variables
+                float T = 1.0f;
+                uint32_t contributor = 0;
+                float C[3] = {0};
+                for (int id = screenPosGaussian.size() - 1; id >= 0; --id) { // Iterate from back to front
                     glm::vec3 pos = screenPosGaussian[id];
                     glm::vec3 c = conic[id];
 
                     float dx = col - pos.x;
                     float dy = row - pos.y;
                     float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
-                    float influence = std::exp(power);
                     if (power > 0.0f)
                         continue;
-
-                    if (influence > maxInfluence) {
-                        maxInfluence = influence;
-                        float finalColor = influence * 255.0f;
-                        switch (id) {
-                            case 1:
-                                rgb.x = finalColor;
-                                break;
-                            case 2:
-                                rgb.y = finalColor;
-                                break;
-                            case 3:
-                                rgb.z = finalColor;
-                                break;
-                            default:
-                                rgb = glm::vec3(finalColor);
-                        }
+                    float alpha = opacities[id];
+                    alpha = std::min(0.99f, alpha * expf(power));
+                    float test_T = T * (1 - alpha);
+                    if (test_T < 0.001f) {
+                        continue;
                     }
+                    if (alpha < 1.0f/255.0f)
+                        continue;
 
+                    // Eq. (3) from 3D Gaussian splatting paper.
+                    for (int ch = 0; ch < 3; ch++)
+                        C[ch] += colors[id][ch] * alpha * T;
 
+                    T = test_T;
                 }
                 size_t rowFlipped = imageHeight - row - 1;
+                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0]) * 255.0f);
+                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1]) * 255.0f);
+                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2]) * 255.0f);
+                imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
 
-                imageAccessor[rowFlipped][col][0] = static_cast<uint8_t>(rgb.x);
-                imageAccessor[rowFlipped][col][1] = static_cast<uint8_t>(rgb.y);
-                imageAccessor[rowFlipped][col][2] = static_cast<uint8_t>(rgb.z);
-
-                //imageAccessor[row][col][0] = pngImageAccessor[row][col][0];
-                //imageAccessor[row][col][1] = pngImageAccessor[row][col][1];
-                //imageAccessor[row][col][2] = pngImageAccessor[row][col][2];
-
-                imageAccessor[row][col][3] = 255; // Alpha channel remains constant
             }
         });
     }).wait();
@@ -301,26 +407,36 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {
     data.positions.emplace_back(pos + glm::vec3(1.0f, 0.0f, 0.0f));
     data.positions.emplace_back(pos + glm::vec3(0.0f, 1.0f, 0.0f));
     data.positions.emplace_back(pos + glm::vec3(0.0f, 0.0f, 1.0f));
-    data.scales.emplace_back(scale);
-    //data.scales.emplace_back(scale);
-    //data.scales.emplace_back(scale);
-    //data.scales.emplace_back(scale);
-    data.scales.emplace_back(scale * glm::vec3(5.0f, 1.0f, 1.0f));
-    data.scales.emplace_back(scale * glm::vec3(1.0f, 5.0f, 1.0f));
-    data.scales.emplace_back(scale * glm::vec3(1.0f, 1.0f, 5.0f));
+
+    data.scales.emplace_back(glm::vec3(0.03f, 0.03f, 0.03f));
+    data.scales.emplace_back(glm::vec3(0.2f, 0.03f, 0.03f));
+    data.scales.emplace_back(glm::vec3(0.03f, 0.2f, 0.03f));
+    data.scales.emplace_back(glm::vec3(0.03f, 0.03f, 0.2f));
 
     for (int i = 0; i < 4; ++i) {
         data.quats.emplace_back(unitQuat);
         data.opacities.emplace_back(1.0f);
     }
 
+    std::vector<float> sphericalHarmonics = {
+            1.0f, 0.0f, 1.0f,   // White
+            1.0f, 0.0f, 0.0f,  // Red
+            0.0f, 1.0f, 0.0f,  // Green
+            0.0f, 0.0f, 1.0f,  // Blue
+    };
+    for (auto &sh: sphericalHarmonics)
+        sh = (sh - 0.5f) / 0.28209f;
+
+    data.sphericalHarmonics = sphericalHarmonics;
+    data.shDim = 3;
     return data;
 
 }
 
 GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRate) {
     GaussianPoints data;
-    auto plyFilePath = std::filesystem::path("/home/magnus/phd/SuGaR/output/refined_ply/0000/3dgs.ply");
+    //auto plyFilePath = std::filesystem::path("/home/magnus/phd/SuGaR/output/refined_ply/0000/3dgs.ply");
+    auto plyFilePath = std::filesystem::path("/home/magnus/Downloads/point_cloud.ply");
 
 // Open the PLY file
     std::ifstream ss(plyFilePath, std::ios::binary);
@@ -331,19 +447,29 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRa
     tinyply::PlyFile file;
     file.parse_header(ss);
 
-    std::shared_ptr<tinyply::PlyData> vertices, scales, quats, opacities;
+    std::shared_ptr<tinyply::PlyData> vertices, scales, quats, opacities, colors, harmonics;
 
     try { vertices = file.request_properties_from_element("vertex", {"x", "y", "z"}); }
-    catch (const std::exception & e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
 
     try { scales = file.request_properties_from_element("vertex", {"scale_0", "scale_1", "scale_2"}); }
-    catch (const std::exception & e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
 
     try { quats = file.request_properties_from_element("vertex", {"rot_0", "rot_1", "rot_2", "rot_3"}); }
-    catch (const std::exception & e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
 
     try { opacities = file.request_properties_from_element("vertex", {"opacity"}); }
-    catch (const std::exception & e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+
+    try { colors = file.request_properties_from_element("vertex", {"f_dc_0", "f_dc_1", "f_dc_2"}); }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+    // Request spherical harmonics properties
+    std::vector<std::string> harmonics_properties;
+    for (int i = 0; i < 45; ++i) {
+        harmonics_properties.push_back("f_rest_" + std::to_string(i));
+    }
+    try { harmonics = file.request_properties_from_element("vertex", harmonics_properties); }
+    catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
 
 
     file.read(ss);
@@ -378,7 +504,8 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRa
         std::memcpy(quatBuffer.data(), quats->buffer.get(), numQuatsBytes);
 
         for (size_t i = 0; i < numVertices; i += downSampleRate) {
-            data.quats.emplace_back(quatBuffer[i * 4], quatBuffer[i * 4 + 1], quatBuffer[i * 4 + 2], quatBuffer[i * 4 + 3]);
+            data.quats.emplace_back(quatBuffer[i * 4], quatBuffer[i * 4 + 1], quatBuffer[i * 4 + 2],
+                                    quatBuffer[i * 4 + 3]);
         }
     }
 
@@ -389,9 +516,33 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRa
         std::memcpy(opacityBuffer.data(), opacities->buffer.get(), numOpacitiesBytes);
 
         for (size_t i = 0; i < numVertices; i += downSampleRate) {
-            data.opacities.push_back(opacityBuffer[i]);
+            float opacity = opacityBuffer[i];
+            opacity = 1.0f / (1.0f + expf(-opacity));
+            data.opacities.push_back(opacity);
         }
     }
 
+    // Process colors and spherical harmonics
+    if (colors && harmonics) {
+        const size_t numColorsBytes = colors->buffer.size_bytes();
+        std::vector<float> colorBuffer(numVertices * 3);
+        std::memcpy(colorBuffer.data(), colors->buffer.get(), numColorsBytes);
+
+        const size_t numHarmonicsBytes = harmonics->buffer.size_bytes();
+        std::vector<float> harmonicsBuffer(numVertices * harmonics_properties.size());
+        std::memcpy(harmonicsBuffer.data(), harmonics->buffer.get(), numHarmonicsBytes);
+
+        for (size_t i = 0; i < numVertices; i += downSampleRate) {
+            data.sphericalHarmonics.push_back(colorBuffer[i * 3]);
+            data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 1]);
+            data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 2]);
+
+            for (size_t j = 0; j < harmonics_properties.size(); ++j) {
+                data.sphericalHarmonics.push_back(harmonicsBuffer[i * harmonics_properties.size() + j]);
+            }
+        }
+
+        data.shDim = 3 + harmonics_properties.size();
+    }
     return data;
 }

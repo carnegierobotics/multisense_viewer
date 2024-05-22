@@ -34,9 +34,13 @@ public:
         std::vector<glm::quat> quats;
         std::vector<glm::vec3> scales;
         std::vector<float> opacities;
-
+        std::vector<float> sphericalHarmonics;  // Add this line
+        uint32_t shDim = 3; // default rgb
         [[nodiscard]] uint32_t getSize() const {
             return positions.size();
+        }
+        uint32_t getShDim() const {
+            return shDim;
         }
     };
 
@@ -50,10 +54,13 @@ public:
 
     uint8_t *img{};
 
-private:
-
     static GaussianPoints loadNaive();
+    static GaussianPoints loadFromFile(int i);
+    GaussianRenderer::GaussianPoints gs;
+    bool loadedPly = false;
+    void setupBuffers(const VkRender::Camera &camera);
 
+private:
 
     CameraParams getHtanfovxyFocal(float fovy, float h, float w) {
         float htany = std::tan(glm::radians(fovy) / 2.0f);
@@ -68,21 +75,21 @@ private:
     uint8_t *image;
 
     sycl::queue queue{};
-    GaussianRenderer::GaussianPoints gs;
     sycl::buffer<glm::vec3, 1> positionBuffer{0};
     sycl::buffer<glm::vec3, 1> scalesBuffer{0};
     sycl::buffer<glm::quat, 1> quaternionBuffer{0};
     sycl::buffer<float, 1> opacityBuffer{0};
+    sycl::buffer<float, 1> sphericalHarmonicsBuffer{0};
 
     sycl::buffer<glm::vec3, 1> covariance2DBuffer{0};
     sycl::buffer<glm::vec3, 1> conicBuffer{0};
     sycl::buffer<glm::vec3, 1> screenPosBuffer{0};
     sycl::buffer<glm::mat3, 1> covarianceBuffer{0};
+    sycl::buffer<glm::vec3, 1> colorOutputBuffer{0};
 
     sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
     sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
 
-    GaussianPoints loadFromFile(int i);
 };
 
 

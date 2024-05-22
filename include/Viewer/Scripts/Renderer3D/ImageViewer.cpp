@@ -25,10 +25,10 @@ void ImageViewer::setup() {
                                                                                "SYCLRenderer.vert.spv",
                                                                                "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
-    const auto& camera = m_context->getCamera();
+    const auto &camera = m_context->getCamera();
     m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "btn", &btn);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Load scene/coordinate", &btn);
 
 
     m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height, m_context->renderUtils.device,
@@ -40,13 +40,20 @@ void ImageViewer::setup() {
 
 
 void ImageViewer::update() {
-    auto &camera = m_context->getCamera();
-    if (btn){
-        std::cout << "View Matrix:\n";
-        std::cout << glm::to_string(camera.matrices.view) << "\n";
+    if (btn) {
+        if (!m_gaussianRenderer->loadedPly) {
+            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(500);
+            m_gaussianRenderer->loadedPly = true;
+        } else {
+            m_gaussianRenderer->gs = GaussianRenderer::loadNaive();
+            m_gaussianRenderer->loadedPly = false;
+
+        }
+        m_gaussianRenderer->setupBuffers(m_context->getCamera());
     }
+    auto &camera = m_context->getCamera();
     m_gaussianRenderer->simpleRasterizer(camera);
-    auto* dataPtr = m_syclRenderTarget->m_DataPtr;
+    auto *dataPtr = m_syclRenderTarget->m_DataPtr;
 
     uint32_t size = camera.m_height * camera.m_width * 4;
     std::memcpy(dataPtr, m_gaussianRenderer->img, size);

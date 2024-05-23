@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <tinyply.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #define SH_C0 0.28209479177387814f
 #define SH_C1 0.4886025119029199f
@@ -92,20 +93,17 @@ void GaussianRenderer::setupBuffers(const VkRender::Camera &camera) {
 }
 
 glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
+
     glm::mat3 S(0.f);
     S[0][0] = scale.x;
     S[1][1] = scale.y;
     S[2][2] = scale.z;
-
     glm::mat3 R = glm::mat3_cast(q);
-
-    glm::mat3 M = S * R;
     glm::mat3 St = glm::transpose(S);
     glm::mat3 Rt = glm::transpose(R);
     glm::mat3 Sigma = R * S * St * Rt;
-
-    //glm::mat3 Sigma = M * transpose(M);
     return Sigma;
+
 }
 
 glm::vec3 computeCov2D(const glm::vec4 &pView,
@@ -118,26 +116,24 @@ glm::vec3 computeCov2D(const glm::vec4 &pView,
     t.x = std::min(limx, std::max(-limx, txtz)) * t.z;
     t.y = std::min(limy, std::max(-limy, tytz)) * t.z;
 
-    //float l = glm::length(glm::vec3(t));
+    /*
     float l = glm::length(glm::vec3(t));
-    /*  glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, t.x / l,
+     glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, t.x / l,
                               0.0f, camera.focalY / t.z, t.y / l,
                               -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), t.z / l);
-  */
+
+     */
     glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, 0.0f,
                             0.0f, camera.focalY / t.z, 0.0f,
                             -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), 0.0f);
 
     auto W = glm::mat3(viewMat);
     glm::mat3 T = J * W;
-    glm::mat3 cov = J * W * cov3D * glm::transpose(W) * glm::transpose(J);
+    glm::mat3 cov = T * cov3D * glm::transpose(T);
     cov[0][0] += 0.3f;
     cov[1][1] += 0.3f;
-    cov = glm::transpose(cov);
-
     return {cov[0][0], cov[0][1], cov[1][1]};
-
-}
+    }
 
 
 void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
@@ -147,6 +143,22 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     glm::mat4 viewMatrix = camera.matrices.view;
     glm::mat4 projectionMatrix = camera.matrices.perspective;
     glm::vec3 camPos = camera.pose.pos;
+
+    glm::vec3 up = camera.pose.up;
+    glm::vec3 right = camera.pose.right;
+    glm::vec3 front = camera.pose.front;
+
+    viewMatrix[0][0] = right.x;
+    viewMatrix[1][0] = right.y;
+    viewMatrix[2][0] = right.z;
+    viewMatrix[0][1] = -up.x;
+    viewMatrix[1][1] = -up.y;
+    viewMatrix[2][1] = -up.z;
+    viewMatrix[0][2] = front.x;
+    viewMatrix[1][2] = front.y;
+    viewMatrix[2][2] = front.z;
+    viewMatrix = glm::translate(viewMatrix, camPos);
+
 
     /*
     float aspect =  static_cast<float>(camera.m_width) / static_cast<float>(camera.m_height);
@@ -173,22 +185,20 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     sycl::buffer<int, 1> indicesBuffer(indices.data(), sycl::range<1>(gs.getSize()));
 
 
-
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
         auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
+        auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
 
         auto covariances = covarianceBuffer.get_access<sycl::access::mode::write>(h);
         auto covariances2D = covariance2DBuffer.get_access<sycl::access::mode::write>(h);
         auto conic = conicBuffer.get_access<sycl::access::mode::write>(h);
         auto screenPos = screenPosBuffer.get_access<sycl::access::mode::write>(h);
-        auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
         auto colorOutput = colorOutputBuffer.get_access<sycl::access::mode::write>(h);
 
         auto depthsAccess = depthsBuffer.get_access<sycl::access::mode::write>(h);
         auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::write>(h);
-
 
         uint32_t shDim = gs.getShDim();
 
@@ -197,57 +207,49 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             glm::quat q = quaternions[idx];
             glm::vec3 position = positions[idx];
             glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
-
-            covariances[idx] = computeCov3D(scale, q);
-            covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params);
-
-            // Invert covariance (EWA)
-            const auto &cov2D = covariances2D[idx];
-            float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
-            if (determinant == 0) return;
-
-            float invDeterminant = 1 / determinant;
-            conic[idx] = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
-
             glm::vec4 posClip = projectionMatrix * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
 
-            // Transform to framebuffer coordinates
-            float framebufferX = (posNDC.x * 0.5f + 0.5f) * imageWidth;
-            float framebufferY = (posNDC.y * 0.5f + 0.5f) * imageHeight; // Flip (Vulkan framebuffer coordinates)
-            screenPos[idx] = glm::vec3(framebufferX, framebufferY, posNDC.z);
+            covariances[idx] = computeCov3D(scale, q);
+            covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params);
+            // Invert covariance (EWA)
+            const auto &cov2D = covariances2D[idx];
+            float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
+            if (determinant != 0) {
 
-            // Calculate spherical harmonics to color:
-            glm::vec3 dir = glm::normalize(position - camPos);
-            glm::vec3 color = SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[(idx * shDim) + 1], shs[(idx * shDim) + 2]);
-
-            /*
-            if (shDim > 3)  // 1 * 3
-            {
-                float x = dir.x;
-                float y = dir.y;
-                float z = dir.z;
-                color = color - SH_C1 * y * shs[idx * 3 + 1] + SH_C1 * z * shs[idx * 3 + 2] -
-                        SH_C1 * x * shs[idx * 3 + 3];
+                float invDeterminant = 1 / determinant;
+                conic[idx] = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
+                // Transform to framebuffer coordinates
+                float framebufferX = (posNDC.x * 0.5f + 0.5f) * imageWidth;
+                float framebufferY = (posNDC.y * 0.5f + 0.5f) * imageHeight; // Flip (Vulkan framebuffer coordinates)
+                screenPos[idx] = glm::vec3(framebufferX, framebufferY, posNDC.z);
+                // Calculate spherical harmonics to color:
+                glm::vec3 dir = glm::normalize(position - camPos);
+                glm::vec3 color =
+                        SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[(idx * shDim) + 1], shs[(idx * shDim) + 2]);
+                /*
+                if (shDim > 3)  // 1 * 3
+                {
+                    float x = dir.x;
+                    float y = dir.y;
+                    float z = dir.z;
+                    color = color - SH_C1 * y * shs[idx * 3 + 1] + SH_C1 * z * shs[idx * 3 + 2] -
+                            SH_C1 * x * shs[idx * 3 + 3];
+                }
+                */
+                color += 0.5f;
+                colorOutput[idx] = color;
+                depthsAccess[idx] = posNDC.z; // Depth
+                indicesAccess[idx] = idx; // Original index
             }
-            */
-
-            color += 0.5f;
-
-            colorOutput[idx] = color;
-
-            depthsAccess[idx] = posView.z; // Depth
-            indicesAccess[idx] = idx; // Original index
         });
     }).wait();
-
     {
         auto depthsHost = depthsBuffer.get_host_access();
         std::sort(indices.begin(), indices.end(), [&](int a, int b) {
             return depthsHost[a] > depthsHost[b];
         });
     }
-
     indicesBuffer = sycl::buffer<int, 1>(indices.data(), sycl::range<1>(gs.getSize()));
 
     sycl::buffer<glm::vec3, 1> sortedScreenPositionsBuffer(gs.getSize());
@@ -257,36 +259,30 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     sycl::buffer<float, 1> sortedSphericalHarmonicsBuffer(gs.getSize() * gs.getShDim());
     const uint32_t shDim = gs.getShDim();
     const uint32_t numGaussians = gs.getSize();
-       queue.submit([&](sycl::handler &h) {
-           auto positions = screenPosBuffer.get_access<sycl::access::mode::read>(h);
-           auto color = colorOutputBuffer.get_access<sycl::access::mode::read>(h);
-           auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
-           auto opacities = opacityBuffer.get_access<sycl::access::mode::read>(h);
-           auto sphericalHarmonics = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+    queue.submit([&](sycl::handler &h) {
+        auto positions = screenPosBuffer.get_access<sycl::access::mode::read>(h);
+        auto color = colorOutputBuffer.get_access<sycl::access::mode::read>(h);
+        auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacities = opacityBuffer.get_access<sycl::access::mode::read>(h);
+        auto sphericalHarmonics = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::read>(h);
 
-           auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::read>(h);
-
-           auto sortedPositionsAccess = sortedScreenPositionsBuffer.get_access<sycl::access::mode::write>(h);
-           auto sortedColorsAccess = sortedColorsBuffer.get_access<sycl::access::mode::write>(h);
-           auto sortedConicsAccess = sortedConicsBuffer.get_access<sycl::access::mode::write>(h);
-           auto sortedOpacitiesAccess = sortedOpacitiesBuffer.get_access<sycl::access::mode::write>(h);
-           auto sortedSphericalHarmonicsAccess = sortedSphericalHarmonicsBuffer.get_access<sycl::access::mode::write>(h);
-
-
-           h.parallel_for(sycl::range<1>(numGaussians), [=](sycl::id<1> idx) {
-               int sortedIdx = indicesAccess[idx];
-
-               sortedPositionsAccess[idx] = positions[sortedIdx];
-               sortedColorsAccess[idx] = color[sortedIdx];
-               sortedConicsAccess[idx] = conic[sortedIdx];
-               sortedOpacitiesAccess[idx] = opacities[sortedIdx];
-               for (size_t j = 0; j < shDim; ++j) {
-                   sortedSphericalHarmonicsAccess[idx * shDim + j] = sphericalHarmonics[sortedIdx * shDim + j];
-               }
-           });
-
-       }).wait();
-
+        auto sortedPositionsAccess = sortedScreenPositionsBuffer.get_access<sycl::access::mode::write>(h);
+        auto sortedColorsAccess = sortedColorsBuffer.get_access<sycl::access::mode::write>(h);
+        auto sortedConicsAccess = sortedConicsBuffer.get_access<sycl::access::mode::write>(h);
+        auto sortedOpacitiesAccess = sortedOpacitiesBuffer.get_access<sycl::access::mode::write>(h);
+        auto sortedSphericalHarmonicsAccess = sortedSphericalHarmonicsBuffer.get_access<sycl::access::mode::write>(h);
+        h.parallel_for(sycl::range<1>(numGaussians), [=](sycl::id<1> idx) {
+            int sortedIdx = indicesAccess[idx];
+            sortedPositionsAccess[idx] = positions[sortedIdx];
+            sortedColorsAccess[idx] = color[sortedIdx];
+            sortedConicsAccess[idx] = conic[sortedIdx];
+            sortedOpacitiesAccess[idx] = opacities[sortedIdx];
+            for (size_t j = 0; j < shDim; ++j) {
+                sortedSphericalHarmonicsAccess[idx * shDim + j] = sphericalHarmonics[sortedIdx * shDim + j];
+            }
+        });
+    }).wait();
 
     sycl::range<2> localWorkSize(16, 16);
     // Compute the global work size ensuring it is a multiple of the local work size
@@ -326,7 +322,7 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
                     if (test_T < 0.001f) {
                         continue;
                     }
-                    if (alpha < 1.0f/255.0f)
+                    if (alpha < 1.0f / 255.0f)
                         continue;
 
                     // Eq. (3) from 3D Gaussian splatting paper.
@@ -409,9 +405,9 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {
     data.positions.emplace_back(pos + glm::vec3(0.0f, 0.0f, 1.0f));
 
     data.scales.emplace_back(glm::vec3(0.03f, 0.03f, 0.03f));
-    data.scales.emplace_back(glm::vec3(0.2f, 0.03f, 0.03f));
-    data.scales.emplace_back(glm::vec3(0.03f, 0.2f, 0.03f));
-    data.scales.emplace_back(glm::vec3(0.03f, 0.03f, 0.2f));
+    data.scales.emplace_back(glm::vec3(0.5f, 0.03f, 0.03f));
+    data.scales.emplace_back(glm::vec3(0.03f, 0.5f, 0.03f));
+    data.scales.emplace_back(glm::vec3(0.03f, 0.03f, 0.5f));
 
     for (int i = 0; i < 4; ++i) {
         data.quats.emplace_back(unitQuat);

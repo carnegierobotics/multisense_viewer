@@ -29,6 +29,7 @@ void ImageViewer::setup() {
     m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
 
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Load scene/coordinate", &btn);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &render3DGSImage);
 
 
     m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height, m_context->renderUtils.device,
@@ -38,28 +39,31 @@ void ImageViewer::setup() {
 
 }
 
+void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Load scene/coordinate", &btn);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &render3DGSImage);
+}
+
 
 void ImageViewer::update() {
     if (btn) {
         if (!m_gaussianRenderer->loadedPly) {
-            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(500);
+            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile("/home/magnus/phd/SuGaR/output/refined_ply/0000/3dgs.ply", 1);
             m_gaussianRenderer->loadedPly = true;
         } else {
-            m_gaussianRenderer->gs = GaussianRenderer::loadNaive();
+            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_coordinates.ply", 1);
             m_gaussianRenderer->loadedPly = false;
-
         }
         m_gaussianRenderer->setupBuffers(m_context->getCamera());
     }
     auto &camera = m_context->getCamera();
-    m_gaussianRenderer->simpleRasterizer(camera);
-    auto *dataPtr = m_syclRenderTarget->m_DataPtr;
-
-    uint32_t size = camera.m_height * camera.m_width * 4;
-    std::memcpy(dataPtr, m_gaussianRenderer->img, size);
-
-    m_syclRenderTarget->updateTextureFromBuffer();
-
+    if (render3DGSImage){
+        m_gaussianRenderer->simpleRasterizer(camera, btn);
+        auto *dataPtr = m_syclRenderTarget->m_DataPtr;
+        uint32_t size = camera.m_height * camera.m_width * 4;
+        std::memcpy(dataPtr, m_gaussianRenderer->img, size);
+        m_syclRenderTarget->updateTextureFromBuffer();
+    }
 
     auto imageView = m_context->findEntityByName("3dgs_image");
     if (imageView) {

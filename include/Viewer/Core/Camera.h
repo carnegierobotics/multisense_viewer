@@ -58,7 +58,8 @@
 #define DEFAULT_RIGHT glm::vec3(1.0f, 0.0f, 0.0f)
 //#define DEFAULT_ORIENTATION glm::quat(0.780483f, 0.483536f, 0.208704f, 0.336872f)
 #define DEFAULT_ORIENTATION glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
-#define DEFAULT_POSITION glm::vec3(7.35f, -6.9f, 4.9f)
+//#define DEFAULT_POSITION glm::vec3(7.35f, -6.9f, 4.9f)
+#define DEFAULT_POSITION glm::vec3(0.0f, 0.0f, 3.0f);
 
 namespace VkRender {
     class Camera {
@@ -117,7 +118,7 @@ namespace VkRender {
         struct Pose {
             //glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
             glm::quat q = DEFAULT_ORIENTATION; // We start by having a orientation facing positive x
-            glm::vec3 pos = glm::vec3(-3.0f, 0.0f, 2.0f); // default starting location
+            glm::vec3 pos = DEFAULT_POSITION; // default starting location
             glm::vec3 front = DEFAULT_FRONT; // Default Vulkan is negative-z is forward
             glm::vec3 up = DEFAULT_UP;
             glm::vec3 right = DEFAULT_RIGHT;

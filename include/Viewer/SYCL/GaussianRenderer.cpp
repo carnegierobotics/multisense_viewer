@@ -56,16 +56,15 @@ GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
     Log::Logger::getInstance()->info("Selected Device {}",
                                      queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-    gs = loadNaive();
+    gs = loadFromFile("../3dgs_coordinates.ply", 1);
     loadedPly = false;
     setupBuffers(camera);
 
-    simpleRasterizer(camera);
+    simpleRasterizer(camera, false);
 }
 
 void GaussianRenderer::setupBuffers(const VkRender::Camera &camera) {
     Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
-
     positionBuffer = {gs.positions.data(), sycl::range<1>(gs.getSize())};
     scalesBuffer = {gs.scales.data(), sycl::range<1>(gs.getSize())};
     quaternionBuffer = {gs.quats.data(), sycl::range<1>(gs.getSize())};
@@ -107,7 +106,8 @@ glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
 }
 
 glm::vec3 computeCov2D(const glm::vec4 &pView,
-                       const glm::mat3 &cov3D, const glm::mat4 &viewMat, const GaussianRenderer::CameraParams &camera) {
+                       const glm::mat3 &cov3D, const glm::mat4 &viewMat, const GaussianRenderer::CameraParams &camera,
+                       bool debug = false) {
     glm::vec4 t = pView;
     const float limx = 1.3f * camera.tanFovX;
     const float limy = 1.3f * camera.tanFovY;
@@ -116,27 +116,56 @@ glm::vec3 computeCov2D(const glm::vec4 &pView,
     t.x = std::min(limx, std::max(-limx, txtz)) * t.z;
     t.y = std::min(limy, std::max(-limy, tytz)) * t.z;
 
-    /*
-    float l = glm::length(glm::vec3(t));
-     glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, t.x / l,
-                              0.0f, camera.focalY / t.z, t.y / l,
-                              -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), t.z / l);
-
-     */
-    glm::mat3 J = glm::mat3(camera.focalX / t.z, 0.0f, 0.0f,
+    float l = glm::length(pView);
+    glm::mat3 J = glm::mat3(camera.focalY / t.z, 0.0f, 0.0f,
                             0.0f, camera.focalY / t.z, 0.0f,
-                            -(camera.focalX * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), 0.0f);
+                            -(camera.focalY * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), 0.0f);
 
     auto W = glm::mat3(viewMat);
     glm::mat3 T = J * W;
     glm::mat3 cov = T * cov3D * glm::transpose(T);
+
+    if (debug) {
+        // Print matrices using printf
+        sycl::ext::oneapi::experimental::printf("Length L: %f\n", l);
+
+        sycl::ext::oneapi::experimental::printf("Matrix W:\n");
+        for (int i = 0; i < 3; ++i) {
+            sycl::ext::oneapi::experimental::printf("%f %f %f\n", W[i][0], W[i][1], W[i][2]);
+        }
+        sycl::ext::oneapi::experimental::printf("\n");
+
+        sycl::ext::oneapi::experimental::printf("Matrix J:\n");
+        for (int i = 0; i < 3; ++i) {
+            sycl::ext::oneapi::experimental::printf("%f %f %f\n", J[i][0], J[i][1], J[i][2]);
+        }
+        sycl::ext::oneapi::experimental::printf("\n");
+
+        sycl::ext::oneapi::experimental::printf("Matrix T:\n");
+        for (int i = 0; i < 3; ++i) {
+            sycl::ext::oneapi::experimental::printf("%f %f %f\n", T[i][0], T[i][1], T[i][2]);
+        }
+        sycl::ext::oneapi::experimental::printf("\n");
+
+        sycl::ext::oneapi::experimental::printf("Matrix cov2D:\n");
+        for (int i = 0; i < 3; ++i) {
+            sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov[i][0], cov[i][1], cov[i][2]);
+        }
+        sycl::ext::oneapi::experimental::printf("\n");
+
+        sycl::ext::oneapi::experimental::printf("Matrix cov3D:\n");
+        for (int i = 0; i < 3; ++i) {
+            sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov3D[i][0], cov3D[i][1], cov3D[i][2]);
+        }
+
+        sycl::ext::oneapi::experimental::printf("\n");
+    }
     cov[0][0] += 0.3f;
     cov[1][1] += 0.3f;
-    return {cov[0][0], cov[0][1], cov[1][1]};
-    }
+    return {cov[0][0], cov[1][0], cov[1][1]};
+}
 
-
-void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
+void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool debug) {
 
     auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
 
@@ -144,36 +173,12 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     glm::mat4 projectionMatrix = camera.matrices.perspective;
     glm::vec3 camPos = camera.pose.pos;
 
-    glm::vec3 up = camera.pose.up;
-    glm::vec3 right = camera.pose.right;
-    glm::vec3 front = camera.pose.front;
+    // Flip the second and third rows of the view matrix
+    //viewMatrix[1] = -viewMatrix[1];
+    //viewMatrix[2] = -viewMatrix[2];
 
-    viewMatrix[0][0] = right.x;
-    viewMatrix[1][0] = right.y;
-    viewMatrix[2][0] = right.z;
-    viewMatrix[0][1] = -up.x;
-    viewMatrix[1][1] = -up.y;
-    viewMatrix[2][1] = -up.z;
-    viewMatrix[0][2] = front.x;
-    viewMatrix[1][2] = front.y;
-    viewMatrix[2][2] = front.z;
-    viewMatrix = glm::translate(viewMatrix, camPos);
-
-
-    /*
-    float aspect =  static_cast<float>(camera.m_width) / static_cast<float>(camera.m_height);
-    float focalLength = 1.0f / tanf(glm::radians(camera.m_Fov) * 0.5f);
-    float x = focalLength / aspect;
-    float y = focalLength;
-    float A = camera.m_Zfar / (camera.m_Zfar - camera.m_Znear);
-    float B = (-camera.m_Zfar * camera.m_Znear) / (camera.m_Zfar - camera.m_Znear);
-    projectionMatrix = glm::mat4(
-            x, 0.0f, 0.0f, 0.0f,
-            0.0f, y, 0.0f, 0.0f,
-            0.0f, 0.0f, A, 1.0f,
-            0.0f, 0.0f, B, 0.0f
-    );
-    */
+    // Flip the second row of the projection matrix
+    projectionMatrix[1] = -projectionMatrix[1];
 
     const size_t imageWidth = camera.m_width;
     const size_t imageHeight = camera.m_height;
@@ -184,6 +189,34 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     sycl::buffer<float, 1> depthsBuffer(depths.data(), sycl::range<1>(gs.getSize()));
     sycl::buffer<int, 1> indicesBuffer(indices.data(), sycl::range<1>(gs.getSize()));
 
+
+    if (debug) {
+        size_t i = 1;
+        glm::vec3 position = gs.positions[i];
+        glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
+        glm::vec3 scale = gs.scales[i];
+        glm::quat q = gs.quats[i];
+        glm::mat3 covariances = computeCov3D(scale, q);
+
+        const auto &cov2D = computeCov2D(posView, covariances, viewMatrix, params, debug);
+        float determinant = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
+        if (determinant != 0) {
+            float invDeterminant = 1.0f / determinant;
+            auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
+
+            sycl::ext::oneapi::experimental::printf("Conic\n");
+            sycl::ext::oneapi::experimental::printf("%f %f %f, inv_det: %f\n", conic.x, conic.y, conic.z,
+                                                    invDeterminant);
+        }
+        /*
+
+            sycl::ext::oneapi::experimental::printf("Conic2D\n");
+            for (int i = 0; i < 2; ++i) {
+                sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov2DInv[i][0], cov2DInv[i][1]);
+            }
+        }
+         */
+    }
 
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
@@ -210,40 +243,43 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             glm::vec4 posClip = projectionMatrix * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
 
+            glm::vec3 threshold(1.3f);
+            // Manually compute absolute values
+            glm::vec3 pos_screen_abs = glm::vec3(
+                    std::abs(posNDC.x),
+                    std::abs(posNDC.y),
+                    std::abs(posNDC.z)
+            );
+            if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
+                screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
+                //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
+                return;
+            }
             covariances[idx] = computeCov3D(scale, q);
-            covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params);
+            covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params, false);
             // Invert covariance (EWA)
             const auto &cov2D = covariances2D[idx];
             float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
             if (determinant != 0) {
-
                 float invDeterminant = 1 / determinant;
                 conic[idx] = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
-                // Transform to framebuffer coordinates
-                float framebufferX = (posNDC.x * 0.5f + 0.5f) * imageWidth;
-                float framebufferY = (posNDC.y * 0.5f + 0.5f) * imageHeight; // Flip (Vulkan framebuffer coordinates)
-                screenPos[idx] = glm::vec3(framebufferX, framebufferY, posNDC.z);
+                screenPos[idx] = posNDC;
                 // Calculate spherical harmonics to color:
                 glm::vec3 dir = glm::normalize(position - camPos);
                 glm::vec3 color =
                         SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[(idx * shDim) + 1], shs[(idx * shDim) + 2]);
-                /*
-                if (shDim > 3)  // 1 * 3
-                {
-                    float x = dir.x;
-                    float y = dir.y;
-                    float z = dir.z;
-                    color = color - SH_C1 * y * shs[idx * 3 + 1] + SH_C1 * z * shs[idx * 3 + 2] -
-                            SH_C1 * x * shs[idx * 3 + 3];
-                }
-                */
+
                 color += 0.5f;
                 colorOutput[idx] = color;
                 depthsAccess[idx] = posNDC.z; // Depth
                 indicesAccess[idx] = idx; // Original index
             }
         });
-    }).wait();
+    });
+
+
+    /*
+
     {
         auto depthsHost = depthsBuffer.get_host_access();
         std::sort(indices.begin(), indices.end(), [&](int a, int b) {
@@ -283,6 +319,8 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             }
         });
     }).wait();
+    */
+
 
     sycl::range<2> localWorkSize(16, 16);
     // Compute the global work size ensuring it is a multiple of the local work size
@@ -290,10 +328,17 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
     size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
     sycl::range<2> globalWorkSize(globalHeight, globalWidth);
     queue.submit([&](sycl::handler &h) {
-        auto conic = sortedConicsBuffer.get_access<sycl::access::mode::read>(h);
+/*
         auto screenPosGaussian = sortedScreenPositionsBuffer.get_access<sycl::access::mode::read>(h);
         auto colors = sortedColorsBuffer.get_access<sycl::access::mode::read>(h);
+        auto conic = sortedConicsBuffer.get_access<sycl::access::mode::read>(h);
         auto opacities = sortedOpacitiesBuffer.get_access<sycl::access::mode::read>(h);
+
+*/
+        auto screenPosGaussian = screenPosBuffer.get_access<sycl::access::mode::read>(h);
+        auto colors = colorOutputBuffer.get_access<sycl::access::mode::read>(h);
+        auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacities = opacityBuffer.get_access<sycl::access::mode::read>(h);
 
         auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
 
@@ -305,46 +350,49 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
             if (row < imageHeight && col < imageWidth) {
                 // Initialize helper variables
                 float T = 1.0f;
-                uint32_t contributor = 0;
                 float C[3] = {0};
                 for (int id = screenPosGaussian.size() - 1; id >= 0; --id) { // Iterate from back to front
                     glm::vec3 pos = screenPosGaussian[id];
-                    glm::vec3 c = conic[id];
 
-                    float dx = col - pos.x;
-                    float dy = row - pos.y;
-                    float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
-                    if (power > 0.0f)
-                        continue;
-                    float alpha = opacities[id];
-                    alpha = std::min(0.99f, alpha * expf(power));
-                    float test_T = T * (1 - alpha);
-                    if (test_T < 0.001f) {
+                    float pixPosX = ((pos.x + 1.0f) * imageWidth - 1.0f)  * 0.5f;
+                    float pixPosY = ((pos.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
+                    // Calculate the exponent term
+                    glm::vec2 diff = glm::vec2(col, row) - glm::vec2(pixPosX, pixPosY);
+                    glm::vec3 c = conic[id];
+                    glm::mat2 V(c.x, c.y, c.y, c.z);
+                    float power = -0.5f * glm::dot(diff, V * diff);
+                    //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
+                    //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
+                    if (power > 0.0f) {
                         continue;
                     }
+                    float alpha = std::min(0.99f, opacities[id] * expf(power));
+
                     if (alpha < 1.0f / 255.0f)
                         continue;
 
+                    float test_T = T * (1 - alpha);
+                    if (test_T < 0.0001f) {
+                        continue;
+                    }
                     // Eq. (3) from 3D Gaussian splatting paper.
-                    for (int ch = 0; ch < 3; ch++)
+                    for (int ch = 0; ch < 3; ch++) {
                         C[ch] += colors[id][ch] * alpha * T;
-
+                    }
                     T = test_T;
                 }
-                size_t rowFlipped = imageHeight - row - 1;
-                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0]) * 255.0f);
-                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1]) * 255.0f);
-                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2]) * 255.0f);
+                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
                 imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
-
             }
         });
-    }).wait();
+    });
     auto hostImageAccessor = imageBuffer.get_host_access();
     img = hostImageAccessor.get_pointer();
 
-/*
 
+    /*
     // Copy data from SYCL buffer to host vector
     auto cov2DHost = covariance2DBuffer.get_host_access();
     auto screenPosHost = screenPosBuffer.get_host_access();
@@ -389,7 +437,8 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera) {
         }
         std::cout << "\n";
     }
-*/
+    */
+
 }
 
 GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {
@@ -429,10 +478,10 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {
 
 }
 
-GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRate) {
+GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem::path path, int downSampleRate) {
     GaussianPoints data;
     //auto plyFilePath = std::filesystem::path("/home/magnus/phd/SuGaR/output/refined_ply/0000/3dgs.ply");
-    auto plyFilePath = std::filesystem::path("/home/magnus/Downloads/point_cloud.ply");
+    auto plyFilePath = std::filesystem::path(path);
 
 // Open the PLY file
     std::ifstream ss(plyFilePath, std::ios::binary);
@@ -489,7 +538,7 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(int downSampleRa
         std::memcpy(scaleBuffer.data(), scales->buffer.get(), numScalesBytes);
 
         for (size_t i = 0; i < numVertices; i += downSampleRate) {
-            data.scales.emplace_back(scaleBuffer[i * 3], scaleBuffer[i * 3 + 1], scaleBuffer[i * 3 + 2]);
+            data.scales.emplace_back(expf(scaleBuffer[i * 3]), expf(scaleBuffer[i * 3 + 1]), expf(scaleBuffer[i * 3 + 2]));
         }
     }
 

@@ -50,12 +50,12 @@ public:
             stbi_image_free(image);
     }
 
-    void simpleRasterizer(const VkRender::Camera &camera);
+    void simpleRasterizer(const VkRender::Camera &camera, bool debug);
 
     uint8_t *img{};
 
     static GaussianPoints loadNaive();
-    static GaussianPoints loadFromFile(int i);
+    static GaussianPoints loadFromFile(std::filesystem::path path, int i);
     GaussianRenderer::GaussianPoints gs;
     bool loadedPly = false;
     void setupBuffers(const VkRender::Camera &camera);

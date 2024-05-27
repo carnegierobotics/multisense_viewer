@@ -173,10 +173,6 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
     glm::mat4 projectionMatrix = camera.matrices.perspective;
     glm::vec3 camPos = camera.pose.pos;
 
-    // Flip the second and third rows of the view matrix
-    //viewMatrix[1] = -viewMatrix[1];
-    //viewMatrix[2] = -viewMatrix[2];
-
     // Flip the second row of the projection matrix
     projectionMatrix[1] = -projectionMatrix[1];
 
@@ -189,7 +185,7 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
     sycl::buffer<float, 1> depthsBuffer(depths.data(), sycl::range<1>(gs.getSize()));
     sycl::buffer<int, 1> indicesBuffer(indices.data(), sycl::range<1>(gs.getSize()));
 
-
+    /*
     if (debug) {
         size_t i = 1;
         glm::vec3 position = gs.positions[i];
@@ -208,16 +204,9 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
             sycl::ext::oneapi::experimental::printf("%f %f %f, inv_det: %f\n", conic.x, conic.y, conic.z,
                                                     invDeterminant);
         }
-        /*
 
-            sycl::ext::oneapi::experimental::printf("Conic2D\n");
-            for (int i = 0; i < 2; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov2DInv[i][0], cov2DInv[i][1]);
-            }
-        }
-         */
     }
-
+ */
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
@@ -275,7 +264,7 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
                 indicesAccess[idx] = idx; // Original index
             }
         });
-    });
+    }).wait();
 
 
     /*
@@ -387,7 +376,7 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
                 imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
             }
         });
-    });
+    }).wait();
     auto hostImageAccessor = imageBuffer.get_host_access();
     img = hostImageAccessor.get_pointer();
 

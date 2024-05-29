@@ -262,11 +262,11 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (uiHandle->m_paths.updateObjPath) {
         // Load new obj file
-        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importObjFilePath.string());
-        std::string entityName = uiHandle->m_paths.importObjFilePath.filename().string();
+        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importFilePath.string());
+        std::string entityName = uiHandle->m_paths.importFilePath.filename().string();
         entities.push_back(entityName);
         auto entity = m_context->createEntity(entityName);
-        auto &component = entity.addComponent<VkRender::OBJModelComponent>(uiHandle->m_paths.importObjFilePath,
+        auto &component = entity.addComponent<VkRender::OBJModelComponent>(uiHandle->m_paths.importFilePath,
                                                                            m_context->renderUtils.device);
         entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils).bind(component);
         entity.addComponent<VkRender::DepthRenderPassComponent>();
@@ -390,7 +390,8 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
         // Aspect ratio
         float aspect = static_cast<float>(cameraData.width) / static_cast<float>(cameraData.height);
 
-        auto camera = VkRender::Camera(cameraData.width, cameraData.height);
+        //auto camera = VkRender::Camera(cameraData.width, cameraData.height);
+        auto camera = VkRender::Camera(1280, 720);
 
         // Update the perspective of the camera
         camera.setPerspective(fov, aspect);

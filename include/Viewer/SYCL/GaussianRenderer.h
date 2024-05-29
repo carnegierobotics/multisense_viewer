@@ -21,7 +21,15 @@
 
 class GaussianRenderer {
 public:
+    struct GaussianPoint {
 
+        float opacityBuffer{0};
+        glm::vec3 colorOutputBuffer{0};
+        glm::vec3 conicBuffer{0};
+        glm::vec3 screenPosBuffer{0};
+        uint32_t tileID = 0;
+        uint32_t numPointsInTile = 0;
+    };
     struct CameraParams {
         float tanFovX = 0;
         float tanFovY = 0;
@@ -50,7 +58,9 @@ public:
             stbi_image_free(image);
     }
 
-    void simpleRasterizer(const VkRender::Camera &camera, bool debug);
+    void simpleRasterizerTileBased(const VkRender::Camera &camera, bool debug);
+    void simpleRasterizerTileBased2(const VkRender::Camera &camera, bool debug);
+    void tileRasterizer(const VkRender::Camera &camera);
 
     uint8_t *img{};
 
@@ -87,8 +97,13 @@ private:
     sycl::buffer<glm::mat3, 1> covarianceBuffer{0};
     sycl::buffer<glm::vec3, 1> colorOutputBuffer{0};
 
+    // Optimization buffers
+    sycl::buffer<bool, 1> activeGSBuffer{0};
+
+
     sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
     sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
+    uint32_t width, height;
 
 };
 

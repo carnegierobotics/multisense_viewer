@@ -30,6 +30,11 @@ DISABLE_WARNING_POP
 
 namespace VkRender::LayerUtils {
 
+    struct LoadFileInfo {
+        std::filesystem::path path;
+        std::string fileType;
+    };
+
 #ifdef WIN32
 
     static inline std::filesystem::path selectFolder(std::string openLocation = "") {
@@ -119,7 +124,7 @@ namespace VkRender::LayerUtils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
 
-    static inline std::filesystem::path selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
+    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
         std::string filename;
 
         gtk_init(0, NULL);
@@ -150,7 +155,7 @@ namespace VkRender::LayerUtils {
             gtk_main_iteration();
         }
 
-        return filename;
+        return {filename, fileType};
     }
 
 

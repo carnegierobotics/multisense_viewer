@@ -206,9 +206,10 @@ namespace VkRender {
     /** @Brief Holds paths to various UI inpits stuff */
     struct Paths {
         std::filesystem::path loadColMapPosesPath;
-        std::filesystem::path importObjFilePath;
+        std::filesystem::path importFilePath;
 
         bool updateObjPath = false;
+        bool update3DGSPath = false;
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */

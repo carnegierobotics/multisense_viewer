@@ -26,6 +26,9 @@
 #define SH_C3_5 1.445305721320277f
 #define SH_C3_6 -0.5900435899266435f
 
+#define BLOCK_X 16
+#define BLOCK_Y 16
+
 GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
     // Define a callable device selector using a lambda
     auto cpuSelector = [](const sycl::device &dev) {
@@ -57,10 +60,11 @@ GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
                                      queue.get_device().get_info<sycl::info::device::name>().c_str());
 
     gs = loadFromFile("../3dgs_coordinates.ply", 1);
+    //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
     loadedPly = false;
     setupBuffers(camera);
 
-    simpleRasterizer(camera, false);
+    //simpleRasterizer(camera, false);
 }
 
 void GaussianRenderer::setupBuffers(const VkRender::Camera &camera) {
@@ -77,18 +81,21 @@ void GaussianRenderer::setupBuffers(const VkRender::Camera &camera) {
     screenPosBuffer = sycl::buffer<glm::vec3, 1>{sycl::range<1>(gs.getSize())};
     covarianceBuffer = {sycl::range<1>(gs.getSize())};
     colorOutputBuffer = {sycl::range<1>(gs.getSize())};
+    activeGSBuffer = {sycl::range<1>(gs.getSize())};
 
-    int width, height, channels;
+    int texWidth, texHeight, texChannels;
     std::filesystem::path path = Utils::getTexturePath() / "moon.png";
-    image = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    image = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!image) {
         std::cerr << "Error loading image: " << stbi_failure_reason() << std::endl;
         return;
     }
 
-    //sycl::buffer<uint8_t, 1> pngImageBuffer{image, sycl::range<1>(width * height * channels)};
-    pngImageBuffer = {image, sycl::range<3>(height, width, 4)};
+    //sycl::buffer<uint8_t, 1> pngImageBuffer{image, sycl::range<1>(texWidth * texHeight * channels)};
+    pngImageBuffer = {image, sycl::range<3>(texHeight, texWidth, 4)};
     imageBuffer = {sycl::range<3>(camera.m_height, camera.m_width, 4)};
+    width = camera.m_width;
+    height = camera.m_height;
 }
 
 glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
@@ -165,7 +172,36 @@ glm::vec3 computeCov2D(const glm::vec4 &pView,
     return {cov[0][0], cov[1][0], cov[1][1]};
 }
 
-void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool debug) {
+void getRect(const glm::vec2 p, int max_radius, glm::vec2 &rect_min, glm::vec2 &rect_max, glm::vec3 grid) {
+    rect_min = {
+            std::min(grid.x, std::max(0.0f, ((p.x - max_radius) / BLOCK_X))),
+            std::min(grid.y, std::max(0.0f, ((p.y - max_radius) / BLOCK_Y)))
+    };
+    rect_max = glm::vec2(
+            static_cast<float>(std::min(grid.x, std::max(0.0f, ((p.x + max_radius + BLOCK_X - 1.0f) / BLOCK_X)))),
+            static_cast<float>(std::min(grid.y, std::max(0.0f, ((p.y + max_radius + BLOCK_Y - 1.0f) / BLOCK_Y))))
+    );
+}
+
+template<typename T>
+T my_ceil(T x) {
+    if (x == static_cast<int>(x)) {
+        return x;
+    } else {
+        return static_cast<int>(x) + ((x > 0) ? 1 : 0);
+    }
+}
+
+// Function to calculate the tile ID for a given point
+uint32_t calculateTileID(float x, float y, uint32_t imageWidth, uint32_t tileWidth, uint32_t tileHeight) {
+    uint32_t numTilesPerRow = imageWidth / tileWidth;
+    uint32_t tileRow = static_cast<uint32_t>(std::floor(y / tileHeight));
+    uint32_t tileCol = static_cast<uint32_t>(std::floor(x / tileWidth));
+    return tileRow * numTilesPerRow + tileCol;
+}
+
+
+void GaussianRenderer::simpleRasterizerTileBased(const VkRender::Camera &camera, bool debug) {
 
     auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
 
@@ -178,6 +214,9 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
 
     const size_t imageWidth = camera.m_width;
     const size_t imageHeight = camera.m_height;
+
+    const size_t tileWidth = 16;
+    const size_t tileHeight = 16;
 
     std::vector<float> depths(gs.getSize());
     std::vector<int> indices(gs.getSize());
@@ -207,32 +246,31 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
 
     }
  */
+    uint32_t numTiles = (imageWidth * imageHeight) / (tileWidth * tileHeight);
+    sycl::buffer<GaussianPoint, 1> pointsBuffer(sycl::range<1>(gs.getSize()));
+
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
         auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
         auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
 
-        auto covariances = covarianceBuffer.get_access<sycl::access::mode::write>(h);
-        auto covariances2D = covariance2DBuffer.get_access<sycl::access::mode::write>(h);
-        auto conic = conicBuffer.get_access<sycl::access::mode::write>(h);
-        auto screenPos = screenPosBuffer.get_access<sycl::access::mode::write>(h);
-        auto colorOutput = colorOutputBuffer.get_access<sycl::access::mode::write>(h);
-
-        auto depthsAccess = depthsBuffer.get_access<sycl::access::mode::write>(h);
-        auto indicesAccess = indicesBuffer.get_access<sycl::access::mode::write>(h);
-
+        auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
         uint32_t shDim = gs.getShDim();
 
         h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
             glm::vec3 scale = scales[idx];
             glm::quat q = quaternions[idx];
             glm::vec3 position = positions[idx];
+
             glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
             glm::vec4 posClip = projectionMatrix * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
 
-            glm::vec3 threshold(1.3f);
+            glm::vec3 threshold(1.0f);
             // Manually compute absolute values
             glm::vec3 pos_screen_abs = glm::vec3(
                     std::abs(posNDC.x),
@@ -240,31 +278,93 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
                     std::abs(posNDC.z)
             );
             if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
-                screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
+                //screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
                 //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
+                //activeGSAccess[idx] = false;
                 return;
             }
-            covariances[idx] = computeCov3D(scale, q);
-            covariances2D[idx] = computeCov2D(posView, covariances[idx], viewMatrix, params, false);
+            float pixPosX = ((posNDC.x + 1.0f) * imageWidth - 1.0f) * 0.5f;
+            float pixPosY = ((posNDC.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
+            auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
+
+            // Which tile does this gaussian belong to?
+            uint32_t tileID = calculateTileID(pixPosX, pixPosY, imageWidth, tileWidth, tileHeight);
+            //activeGSAccess[idx] = true;
+            // Calculate which tile
+
+            glm::mat3 cov3D = computeCov3D(scale, q);
+            //covariances[idx] = cov3D;
+
+            glm::vec3 cov2D = computeCov2D(posView, cov3D, viewMatrix, params, false);
+            //covariances2D[idx] = cov2D;
+
             // Invert covariance (EWA)
-            const auto &cov2D = covariances2D[idx];
             float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
             if (determinant != 0) {
                 float invDeterminant = 1 / determinant;
-                conic[idx] = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
-                screenPos[idx] = posNDC;
-                // Calculate spherical harmonics to color:
-                glm::vec3 dir = glm::normalize(position - camPos);
-                glm::vec3 color =
-                        SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[(idx * shDim) + 1], shs[(idx * shDim) + 2]);
 
+                // Compute extent in screen space (by finding eigenvalues of
+                // 2D covariance matrix). Use extent to compute a bounding rectangle
+                // of screen-space tiles that this Gaussian overlaps with. Quit if
+                // rectangle covers 0 tiles.
+                glm::vec3 grid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
+
+
+                float mid = 0.5f * (cov2D.x + cov2D.z);
+                float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float my_radius = my_ceil(3.f * std::sqrt(std::max(lambda1, lambda2)));
+                glm::vec2 rect_min, rect_max;
+                getRect(screenPosPoint, my_radius, rect_min, rect_max, grid);
+                if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                    return;
+
+                glm::vec3 dir = glm::normalize(position - camPos);
+                glm::vec3 color = SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
                 color += 0.5f;
-                colorOutput[idx] = color;
-                depthsAccess[idx] = posNDC.z; // Depth
-                indicesAccess[idx] = idx; // Original index
+
+                auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
+                //screenPos[idx] = glm::vec4(screenPosPoint, 1.0f);
+                //conicAccess[idx] = conic;
+                //colorOutput[idx] = color;
+
+                pointsBufferAccess[idx].tileID = tileID;
+                pointsBufferAccess[idx].conicBuffer = conic;
+                pointsBufferAccess[idx].screenPosBuffer = screenPosPoint;
+                pointsBufferAccess[idx].colorOutputBuffer = color;
+                pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
             }
         });
     }).wait();
+    // Stop timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationPreprocess = end - start;
+
+    auto ptsPtr = pointsBuffer.get_host_access();
+    // Step 2: Group points by tile ID
+    std::unordered_map<uint32_t, std::vector<GaussianPoint>> tilePointsMap;
+    for (const auto &point: ptsPtr) {
+        if (point.opacityBuffer <= 0)
+            continue;
+        tilePointsMap[point.tileID].push_back(point);
+    }
+
+    // Step 3: Calculate maxPointsPerTile
+    /*
+    for (const auto& entry : tilePointsMap) {
+        maxPointsPerTile = std::max(maxPointsPerTile, static_cast<uint32_t>(entry.second.size()));
+    }
+     */
+    uint32_t maxPointsPerTile = 100;
+
+    std::vector<GaussianPoint> flatPoints(numTiles * maxPointsPerTile);
+
+    // Flatten the tilePointsMap into a single vector for SYCL processing
+    for (uint32_t tileID = 0; tileID < numTiles; ++tileID) {
+        std::copy(tilePointsMap[tileID].begin(), tilePointsMap[tileID].end(),
+                  flatPoints.begin() + tileID * maxPointsPerTile);
+    }
+    sycl::buffer<GaussianPoint, 1> flatPointsBuf(flatPoints.data(), sycl::range<1>(flatPoints.size()));
 
 
     /*
@@ -310,25 +410,16 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
     }).wait();
     */
 
-
-    sycl::range<2> localWorkSize(16, 16);
+    start = std::chrono::high_resolution_clock::now();
+    sycl::range<2> localWorkSize(tileHeight, tileWidth);
     // Compute the global work size ensuring it is a multiple of the local work size
     size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
     size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
     sycl::range<2> globalWorkSize(globalHeight, globalWidth);
     queue.submit([&](sycl::handler &h) {
-/*
-        auto screenPosGaussian = sortedScreenPositionsBuffer.get_access<sycl::access::mode::read>(h);
-        auto colors = sortedColorsBuffer.get_access<sycl::access::mode::read>(h);
-        auto conic = sortedConicsBuffer.get_access<sycl::access::mode::read>(h);
-        auto opacities = sortedOpacitiesBuffer.get_access<sycl::access::mode::read>(h);
 
-*/
-        auto screenPosGaussian = screenPosBuffer.get_access<sycl::access::mode::read>(h);
-        auto colors = colorOutputBuffer.get_access<sycl::access::mode::read>(h);
-        auto conic = conicBuffer.get_access<sycl::access::mode::read>(h);
-        auto opacities = opacityBuffer.get_access<sycl::access::mode::read>(h);
-
+        //auto activeGSAccess = activeGSBuffer.get_access<sycl::access::mode::read>(h);
+        auto flatPointsAccess = flatPointsBuf.get_access<sycl::access::mode::read>(h);
         auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
 
         h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
@@ -337,49 +428,61 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
             size_t col = global_id[1];
 
             if (row < imageHeight && col < imageWidth) {
+                uint32_t tileID = calculateTileID(col, row, imageWidth, tileWidth, tileHeight);
+                size_t startIdx = tileID * maxPointsPerTile;
+                size_t endIdx = startIdx + maxPointsPerTile;
                 // Initialize helper variables
                 float T = 1.0f;
                 float C[3] = {0};
-                for (int id = screenPosGaussian.size() - 1; id >= 0; --id) { // Iterate from back to front
-                    glm::vec3 pos = screenPosGaussian[id];
+                for (size_t id = startIdx; id < endIdx; ++id) {
+                    const GaussianPoint &point = flatPointsAccess[id];
+                    if (point.tileID == tileID) {
+                        // Perform processing on the point and update the image
+                        // Example: Set the pixel to a specific value
+                        glm::vec2 pos = point.screenPosBuffer;
+                        // Calculate the exponent term
+                        glm::vec2 diff = glm::vec2(col, row) - pos;
+                        glm::vec3 c = point.conicBuffer;
+                        glm::mat2 V(c.x, c.y, c.y, c.z);
+                        float power = -0.5f * glm::dot(diff, V * diff);
+                        //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
+                        //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
+                        if (power > 0.0f) {
+                            continue;
+                        }
+                        float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
 
-                    float pixPosX = ((pos.x + 1.0f) * imageWidth - 1.0f)  * 0.5f;
-                    float pixPosY = ((pos.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
-                    // Calculate the exponent term
-                    glm::vec2 diff = glm::vec2(col, row) - glm::vec2(pixPosX, pixPosY);
-                    glm::vec3 c = conic[id];
-                    glm::mat2 V(c.x, c.y, c.y, c.z);
-                    float power = -0.5f * glm::dot(diff, V * diff);
-                    //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
-                    //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
-                    if (power > 0.0f) {
-                        continue;
-                    }
-                    float alpha = std::min(0.99f, opacities[id] * expf(power));
+                        if (alpha < 1.0f / 255.0f)
+                            continue;
 
-                    if (alpha < 1.0f / 255.0f)
-                        continue;
-
-                    float test_T = T * (1 - alpha);
-                    if (test_T < 0.0001f) {
-                        continue;
+                        float test_T = T * (1 - alpha);
+                        if (test_T < 0.0001f) {
+                            continue;
+                        }
+                        // Eq. (3) from 3D Gaussian splatting paper.
+                        for (int ch = 0; ch < 3; ch++) {
+                            C[ch] += point.colorOutputBuffer[ch] * alpha * T;
+                        }
+                        T = test_T;
                     }
-                    // Eq. (3) from 3D Gaussian splatting paper.
-                    for (int ch = 0; ch < 3; ch++) {
-                        C[ch] += colors[id][ch] * alpha * T;
-                    }
-                    T = test_T;
                 }
                 imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
                 imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
                 imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
                 imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
+
+
             }
         });
     }).wait();
+
+
+    std::chrono::duration<double> durationEvaluate = std::chrono::high_resolution_clock::now() - start;
+    std::cout << "SYCL RASTERIZE execution time: " << durationEvaluate.count() << "s "
+              << "SYCL PREPROCESS execution time: " << durationPreprocess.count() << " seconds" << std::endl;
+
     auto hostImageAccessor = imageBuffer.get_host_access();
     img = hostImageAccessor.get_pointer();
-
 
     /*
     // Copy data from SYCL buffer to host vector
@@ -427,6 +530,427 @@ void GaussianRenderer::simpleRasterizer(const VkRender::Camera &camera, bool deb
         std::cout << "\n";
     }
     */
+
+}
+
+void GaussianRenderer::simpleRasterizerTileBased2(const VkRender::Camera &camera, bool debug) {
+    auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
+    glm::mat4 viewMatrix = camera.matrices.view;
+    glm::mat4 projectionMatrix = camera.matrices.perspective;
+    glm::vec3 camPos = camera.pose.pos;
+
+    // Flip the second row of the projection matrix
+    projectionMatrix[1] = -projectionMatrix[1];
+
+    const size_t imageWidth = width;
+    const size_t imageHeight = height;
+    const size_t tileWidth = 16;
+    const size_t tileHeight = 16;
+
+    uint32_t numTiles = (imageWidth * imageHeight) / (tileWidth * tileHeight);
+    sycl::buffer<GaussianPoint, 1> pointsBuffer(sycl::range<1>(gs.getSize()));
+
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+    queue.submit([&](sycl::handler &h) {
+        auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
+        auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
+        auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
+        auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
+
+        auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
+        uint32_t shDim = gs.getShDim();
+
+        h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
+            glm::vec3 scale = scales[idx];
+            glm::quat q = quaternions[idx];
+            glm::vec3 position = positions[idx];
+
+            glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
+            glm::vec4 posClip = projectionMatrix * posView;
+            glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
+
+            glm::vec3 threshold(1.0f);
+            // Manually compute absolute values
+            glm::vec3 pos_screen_abs = glm::vec3(
+                    std::abs(posNDC.x),
+                    std::abs(posNDC.y),
+                    std::abs(posNDC.z)
+            );
+            if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
+                //screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
+                //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
+                //activeGSAccess[idx] = false;
+                return;
+            }
+            float pixPosX = ((posNDC.x + 1.0f) * imageWidth - 1.0f) * 0.5f;
+            float pixPosY = ((posNDC.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
+            auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
+
+            // Which tile does this gaussian belong to?
+            uint32_t tileID = calculateTileID(pixPosX, pixPosY, imageWidth, tileWidth, tileHeight);
+            //activeGSAccess[idx] = true;
+            // Calculate which tile
+
+            glm::mat3 cov3D = computeCov3D(scale, q);
+            //covariances[idx] = cov3D;
+
+            glm::vec3 cov2D = computeCov2D(posView, cov3D, viewMatrix, params, false);
+            //covariances2D[idx] = cov2D;
+
+            // Invert covariance (EWA)
+            float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
+            if (determinant != 0) {
+                float invDeterminant = 1 / determinant;
+
+                // Compute extent in screen space (by finding eigenvalues of
+                // 2D covariance matrix). Use extent to compute a bounding rectangle
+                // of screen-space tiles that this Gaussian overlaps with. Quit if
+                // rectangle covers 0 tiles.
+                glm::vec3 grid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
+
+
+                float mid = 0.5f * (cov2D.x + cov2D.z);
+                float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float my_radius = my_ceil(3.f * std::sqrt(std::max(lambda1, lambda2)));
+                glm::vec2 rect_min, rect_max;
+                getRect(screenPosPoint, my_radius, rect_min, rect_max, grid);
+                if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                    return;
+
+                glm::vec3 dir = glm::normalize(position - camPos);
+                glm::vec3 color = SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
+                color += 0.5f;
+
+                auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
+                //screenPos[idx] = glm::vec4(screenPosPoint, 1.0f);
+                //conicAccess[idx] = conic;
+                //colorOutput[idx] = color;
+
+                pointsBufferAccess[idx].tileID = tileID;
+                pointsBufferAccess[idx].conicBuffer = conic;
+                pointsBufferAccess[idx].screenPosBuffer = screenPosPoint;
+                pointsBufferAccess[idx].colorOutputBuffer = color;
+                pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
+            }
+        });
+    }).wait();
+    // Stop timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationPreprocess = end - start;
+
+    auto ptsPtr = pointsBuffer.get_host_access();
+    // Step 2: Group points by tile ID
+    std::unordered_map<uint32_t, std::vector<GaussianPoint>> tilePointsMap;
+    for (const auto &point: ptsPtr) {
+        if (point.opacityBuffer <= 0)
+            continue;
+        tilePointsMap[point.tileID].push_back(point);
+    }
+
+    // Step 3: Calculate maxPointsPerTile
+    /*
+    for (const auto& entry : tilePointsMap) {
+        maxPointsPerTile = std::max(maxPointsPerTile, static_cast<uint32_t>(entry.second.size()));
+    }
+     */
+    uint32_t maxPointsPerTile = 1000;
+
+    std::vector<GaussianPoint> flatPoints(numTiles * maxPointsPerTile);
+
+    // Flatten the tilePointsMap into a single vector for SYCL processing
+    for (uint32_t tileID = 0; tileID < numTiles; ++tileID) {
+        std::copy(tilePointsMap[tileID].begin(), tilePointsMap[tileID].end(),
+                  flatPoints.begin() + tileID * maxPointsPerTile);
+    }
+    sycl::buffer<GaussianPoint, 1> flatPointsBuf(flatPoints.data(), sycl::range<1>(flatPoints.size()));
+
+
+    start = std::chrono::high_resolution_clock::now();
+    sycl::range<2> localWorkSize(tileHeight, tileWidth);
+    // Compute the global work size ensuring it is a multiple of the local work size
+    size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
+    size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
+    sycl::range<2> globalWorkSize(globalHeight, globalWidth);
+    queue.submit([&](sycl::handler &h) {
+
+        //auto activeGSAccess = activeGSBuffer.get_access<sycl::access::mode::read>(h);
+        auto flatPointsAccess = flatPointsBuf.get_access<sycl::access::mode::read>(h);
+        auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
+
+        h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
+            auto global_id = item.get_global_id(); // Get global indices of the work item
+            size_t row = global_id[0];
+            size_t col = global_id[1];
+
+            if (row < imageHeight && col < imageWidth) {
+                uint32_t tileID = calculateTileID(col, row, imageWidth, tileWidth, tileHeight);
+                size_t startIdx = tileID * maxPointsPerTile;
+                size_t endIdx = startIdx + maxPointsPerTile;
+                // Initialize helper variables
+                float T = 1.0f;
+                float C[3] = {0};
+                for (size_t id = startIdx; id < endIdx; ++id) {
+                    const GaussianPoint &point = flatPointsAccess[id];
+                    if (point.tileID == tileID) {
+                        // Perform processing on the point and update the image
+                        // Example: Set the pixel to a specific value
+                        glm::vec2 pos = point.screenPosBuffer;
+                        // Calculate the exponent term
+                        glm::vec2 diff = glm::vec2(col, row) - pos;
+                        glm::vec3 c = point.conicBuffer;
+                        glm::mat2 V(c.x, c.y, c.y, c.z);
+                        float power = -0.5f * glm::dot(diff, V * diff);
+                        //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
+                        //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
+                        if (power > 0.0f) {
+                            continue;
+                        }
+                        float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
+
+                        if (alpha < 1.0f / 255.0f)
+                            continue;
+
+                        float test_T = T * (1 - alpha);
+                        if (test_T < 0.0001f) {
+                            continue;
+                        }
+                        // Eq. (3) from 3D Gaussian splatting paper.
+                        for (int ch = 0; ch < 3; ch++) {
+                            C[ch] += point.colorOutputBuffer[ch] * alpha * T;
+                        }
+                        T = test_T;
+                    }
+                }
+                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
+
+
+            }
+        });
+    }).wait();
+
+
+    std::chrono::duration<double> durationEvaluate = std::chrono::high_resolution_clock::now() - start;
+    std::cout << "SYCL RASTERIZE execution time: " << durationEvaluate.count() << "s "
+              << "SYCL PREPROCESS execution time: " << durationPreprocess.count() << " seconds" << std::endl;
+
+    auto hostImageAccessor = imageBuffer.get_host_access();
+    img = hostImageAccessor.get_pointer();
+
+}
+
+void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
+    auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
+    glm::mat4 viewMatrix = camera.matrices.view;
+    glm::mat4 projectionMatrix = camera.matrices.perspective;
+    glm::vec3 camPos = camera.pose.pos;
+
+    // Flip the second row of the projection matrix
+    projectionMatrix[1] = -projectionMatrix[1];
+
+    const size_t imageWidth = width;
+    const size_t imageHeight = height;
+    const size_t tileWidth = 16;
+    const size_t tileHeight = 16;
+
+    uint32_t numTiles = (imageWidth * imageHeight) / (tileWidth * tileHeight);
+    sycl::buffer<GaussianPoint, 1> pointsBuffer(sycl::range<1>(gs.getSize()));
+
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+    queue.submit([&](sycl::handler &h) {
+        auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
+        auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
+        auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
+        auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+        auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
+
+        auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
+        uint32_t shDim = gs.getShDim();
+
+        h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
+            glm::vec3 scale = scales[idx];
+            glm::quat q = quaternions[idx];
+            glm::vec3 position = positions[idx];
+
+            glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
+            glm::vec4 posClip = projectionMatrix * posView;
+            glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
+
+            glm::vec3 threshold(1.0f);
+            // Manually compute absolute values
+            glm::vec3 pos_screen_abs = glm::vec3(
+                    std::abs(posNDC.x),
+                    std::abs(posNDC.y),
+                    std::abs(posNDC.z)
+            );
+            if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
+                //screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
+                //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
+                //activeGSAccess[idx] = false;
+                return;
+            }
+            float pixPosX = ((posNDC.x + 1.0f) * imageWidth - 1.0f) * 0.5f;
+            float pixPosY = ((posNDC.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
+            auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
+
+            // Which tile does this gaussian belong to?
+            uint32_t tileID = calculateTileID(pixPosX, pixPosY, imageWidth, tileWidth, tileHeight);
+            //activeGSAccess[idx] = true;
+            // Calculate which tile
+
+            glm::mat3 cov3D = computeCov3D(scale, q);
+            //covariances[idx] = cov3D;
+
+            glm::vec3 cov2D = computeCov2D(posView, cov3D, viewMatrix, params, false);
+            //covariances2D[idx] = cov2D;
+
+            // Invert covariance (EWA)
+            float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
+            if (determinant != 0) {
+                float invDeterminant = 1 / determinant;
+
+                // Compute extent in screen space (by finding eigenvalues of
+                // 2D covariance matrix). Use extent to compute a bounding rectangle
+                // of screen-space tiles that this Gaussian overlaps with. Quit if
+                // rectangle covers 0 tiles.
+                glm::vec3 grid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
+
+
+                float mid = 0.5f * (cov2D.x + cov2D.z);
+                float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
+                float my_radius = my_ceil(3.f * std::sqrt(std::max(lambda1, lambda2)));
+                glm::vec2 rect_min, rect_max;
+                getRect(screenPosPoint, my_radius, rect_min, rect_max, grid);
+                if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                    return;
+
+                glm::vec3 dir = glm::normalize(position - camPos);
+                glm::vec3 color = SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
+                color += 0.5f;
+
+                auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant, cov2D.x * invDeterminant);
+                //screenPos[idx] = glm::vec4(screenPosPoint, 1.0f);
+                //conicAccess[idx] = conic;
+                //colorOutput[idx] = color;
+
+                pointsBufferAccess[idx].tileID = tileID;
+                pointsBufferAccess[idx].conicBuffer = conic;
+                pointsBufferAccess[idx].screenPosBuffer = screenPosPoint;
+                pointsBufferAccess[idx].colorOutputBuffer = color;
+                pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
+            }
+        });
+    }).wait();
+    // Stop timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationPreprocess = end - start;
+
+    auto ptsPtr = pointsBuffer.get_host_access();
+    // Step 2: Group points by tile ID
+    std::unordered_map<uint32_t, std::vector<GaussianPoint>> tilePointsMap;
+    for (const auto &point: ptsPtr) {
+        if (point.opacityBuffer <= 0)
+            continue;
+        tilePointsMap[point.tileID].push_back(point);
+    }
+
+    // Step 3: Calculate maxPointsPerTile
+    /*
+    for (const auto& entry : tilePointsMap) {
+        maxPointsPerTile = std::max(maxPointsPerTile, static_cast<uint32_t>(entry.second.size()));
+    }
+     */
+    uint32_t maxPointsPerTile = 1000;
+    std::vector<GaussianPoint> flatPoints(numTiles * maxPointsPerTile);
+
+    // Flatten the tilePointsMap into a single vector for SYCL processing
+    for (uint32_t tileID = 0; tileID < numTiles; ++tileID) {
+        std::copy(tilePointsMap[tileID].begin(), tilePointsMap[tileID].end(),
+                  flatPoints.begin() + tileID * maxPointsPerTile);
+    }
+    sycl::buffer<GaussianPoint, 1> flatPointsBuf(flatPoints.data(), sycl::range<1>(flatPoints.size()));
+
+
+    start = std::chrono::high_resolution_clock::now();
+    sycl::range<2> localWorkSize(tileHeight, tileWidth);
+    // Compute the global work size ensuring it is a multiple of the local work size
+    size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
+    size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
+    sycl::range<2> globalWorkSize(globalHeight, globalWidth);
+    queue.submit([&](sycl::handler &h) {
+
+        //auto activeGSAccess = activeGSBuffer.get_access<sycl::access::mode::read>(h);
+        auto flatPointsAccess = flatPointsBuf.get_access<sycl::access::mode::read>(h);
+        auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
+
+        h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
+            auto global_id = item.get_global_id(); // Get global indices of the work item
+            size_t row = global_id[0];
+            size_t col = global_id[1];
+
+            if (row < imageHeight && col < imageWidth) {
+                uint32_t tileID = calculateTileID(col, row, imageWidth, tileWidth, tileHeight);
+                size_t startIdx = tileID * maxPointsPerTile;
+                size_t endIdx = startIdx + maxPointsPerTile;
+                // Initialize helper variables
+                float T = 1.0f;
+                float C[3] = {0};
+                for (size_t id = startIdx; id < endIdx; ++id) {
+                    const GaussianPoint &point = flatPointsAccess[id];
+                    if (point.tileID == tileID) {
+                        // Perform processing on the point and update the image
+                        // Example: Set the pixel to a specific value
+                        glm::vec2 pos = point.screenPosBuffer;
+                        // Calculate the exponent term
+                        glm::vec2 diff = glm::vec2(col, row) - pos;
+                        glm::vec3 c = point.conicBuffer;
+                        glm::mat2 V(c.x, c.y, c.y, c.z);
+                        float power = -0.5f * glm::dot(diff, V * diff);
+                        //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
+                        //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
+                        if (power > 0.0f) {
+                            continue;
+                        }
+                        float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
+
+                        if (alpha < 1.0f / 255.0f)
+                            continue;
+
+                        float test_T = T * (1 - alpha);
+                        if (test_T < 0.0001f) {
+                            continue;
+                        }
+                        // Eq. (3) from 3D Gaussian splatting paper.
+                        for (int ch = 0; ch < 3; ch++) {
+                            C[ch] += point.colorOutputBuffer[ch] * alpha * T;
+                        }
+                        T = test_T;
+                    }
+                }
+                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
+
+
+            }
+        });
+    }).wait();
+
+
+    std::chrono::duration<double> durationEvaluate = std::chrono::high_resolution_clock::now() - start;
+    std::cout << "SYCL RASTERIZE execution time: " << durationEvaluate.count() << "s "
+              << "SYCL PREPROCESS execution time: " << durationPreprocess.count() << " seconds" << std::endl;
+
+    auto hostImageAccessor = imageBuffer.get_host_access();
+    img = hostImageAccessor.get_pointer();
 
 }
 
@@ -527,7 +1051,8 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem:
         std::memcpy(scaleBuffer.data(), scales->buffer.get(), numScalesBytes);
 
         for (size_t i = 0; i < numVertices; i += downSampleRate) {
-            data.scales.emplace_back(expf(scaleBuffer[i * 3]), expf(scaleBuffer[i * 3 + 1]), expf(scaleBuffer[i * 3 + 2]));
+            data.scales.emplace_back(expf(scaleBuffer[i * 3]), expf(scaleBuffer[i * 3 + 1]),
+                                     expf(scaleBuffer[i * 3 + 2]));
         }
     }
 

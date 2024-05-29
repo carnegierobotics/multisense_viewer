@@ -32,6 +32,7 @@ public:
     void setup() override;
     /** @brief update function called once per frame **/
     void update() override;
+    void onUIUpdate(VkRender::GuiObjectHandles *uiHandle) override;
     /** @brief destroy function called before script deletion **/
     void onDestroy() override{
     }
@@ -39,11 +40,13 @@ public:
     std::unique_ptr<SYCLRayTracer> m_syclRenderer;
     std::unique_ptr<GaussianRenderer> m_gaussianRenderer;
 
+    std::string entityName;
+
     std::unique_ptr<TextureVideo> m_syclRenderTarget;
     bool btn = false;
     bool render3DGSImage = false;
-
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
+
 };
 
 

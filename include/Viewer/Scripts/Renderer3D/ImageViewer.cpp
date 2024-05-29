@@ -14,59 +14,64 @@
 
 void ImageViewer::setup() {
 
-    auto quad = m_context->createEntity("3dgs_image");
-    auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
+    std::filesystem::path filePath = "/home/magnus/crl/multisense_viewer/3dgs_insect.ply";
+    Log::Logger::getInstance()->info("Loading new model from {}", filePath.string());
+    entityName = filePath.string();
+    auto entity = m_context->createEntity(entityName);
+    auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
             Utils::getModelsPath() / "obj" / "quad.obj",
             m_context->renderUtils.device);
-
-    quad.addComponent<VkRender::SecondaryRenderViewComponent>();
-
-    auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
-                                                                               "SYCLRenderer.vert.spv",
-                                                                               "SYCLRenderer.frag.spv");
+    entity.addComponent<VkRender::SecondaryRenderViewComponent>();
+    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+                                                                                 "SYCLRenderer.vert.spv",
+                                                                                 "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
     const auto &camera = m_context->getCamera();
     m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Load scene/coordinate", &btn);
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &render3DGSImage);
-
-
-    m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height, m_context->renderUtils.device,
+    m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
+                                                        m_context->renderUtils.device,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                         VK_FORMAT_R8G8B8A8_UNORM);
     res.setTexture(&m_syclRenderTarget->m_descriptor);
+    m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
+            filePath, 1);
+    m_gaussianRenderer->setupBuffers(m_context->getCamera());
 
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Load scene/coordinate", &btn);
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &render3DGSImage);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Switch scene/coordinate", &btn);
 }
 
 
 void ImageViewer::update() {
+    auto &camera = m_context->getCamera();
     if (btn) {
+        /*
         if (!m_gaussianRenderer->loadedPly) {
-            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile("/home/magnus/phd/SuGaR/output/refined_ply/0000/3dgs.ply", 1);
+            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
+                    "/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
             m_gaussianRenderer->loadedPly = true;
         } else {
-            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_coordinates.ply", 1);
+            m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
+                    "/home/magnus/crl/multisense_viewer/3dgs_coordinates.ply", 1);
             m_gaussianRenderer->loadedPly = false;
         }
         m_gaussianRenderer->setupBuffers(m_context->getCamera());
+        */
+
     }
-    auto &camera = m_context->getCamera();
-    if (render3DGSImage){
-        m_gaussianRenderer->simpleRasterizer(camera, btn);
+
+    auto imageView = m_context->findEntityByName(entityName);
+    if (imageView) {
+
+        m_gaussianRenderer->tileRasterizer(camera);
         auto *dataPtr = m_syclRenderTarget->m_DataPtr;
         uint32_t size = camera.m_height * camera.m_width * 4;
         std::memcpy(dataPtr, m_gaussianRenderer->img, size);
         m_syclRenderTarget->updateTextureFromBuffer();
-    }
 
-    auto imageView = m_context->findEntityByName("3dgs_image");
-    if (imageView) {
         auto &obj = imageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
         obj.mvp.projection = camera.matrices.perspective;
         obj.mvp.view = camera.matrices.view;
@@ -79,5 +84,37 @@ void ImageViewer::update() {
         model = glm::scale(model, glm::vec3(scaleX, scaleX, 1.0f)); // Uniform scaling in x and y
         obj.mvp.model = glm::mat4(0.2f);
     }
+}
+
+void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
+
+    if (uiHandle->m_paths.update3DGSPath) {
+        if (m_context->findEntityByName(entityName))
+            return;
+        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importFilePath.string());
+        entityName = uiHandle->m_paths.importFilePath.filename().string();
+        auto entity = m_context->createEntity(entityName);
+        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
+                Utils::getModelsPath() / "obj" / "quad.obj",
+                m_context->renderUtils.device);
+        entity.addComponent<VkRender::SecondaryRenderViewComponent>();
+        auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+                                                                                      "SYCLRenderer.vert.spv",
+                                                                                      "SYCLRenderer.frag.spv");
+        res.bind(modelComponent);
+        const auto &camera = m_context->getCamera();
+        m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
+
+        m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
+                                                            m_context->renderUtils.device,
+                                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                            VK_FORMAT_R8G8B8A8_UNORM);
+        res.setTexture(&m_syclRenderTarget->m_descriptor);
+        m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
+                uiHandle->m_paths.importFilePath.string(), 1);
+        m_gaussianRenderer->setupBuffers(m_context->getCamera());
+
+    }
+
 }
 

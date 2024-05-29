@@ -26,7 +26,7 @@ namespace VkRender {
     class SideBarLayer : public VkRender::Layer {
     public:
 
-        std::future<std::filesystem::path> loadFileFuture;
+        std::future<LayerUtils::LoadFileInfo> loadFileFuture;
         std::future<std::filesystem::path> folderFuture;
 
         /** Called once upon this object creation**/
@@ -41,6 +41,7 @@ namespace VkRender {
 
         void processEntities(GuiObjectHandles *handles) {
             // TODO We should do better sorting here
+            /*
             // Create a view for entities with a GLTFModelComponent and a TagComponent
             auto gltfView = handles->m_context->m_registry.view<GLTFModelComponent, TagComponent>(
                     entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
@@ -90,9 +91,19 @@ namespace VkRender {
                     processEntity(handles, entity, model, tag);
                 }
             }
+            */
+            auto view = handles->m_context->m_registry.view<TagComponent>(
+                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
+
+            // Iterate over entities that have a GLTFModelComponent and a TagComponent
+            for (auto entity: view) {
+                auto &tag = view.get<TagComponent>(entity);
+                // Process each entity here
+                processEntity(handles, entity, tag);
+            }
         }
 
-        void processEntity(GuiObjectHandles *handles, entt::entity entity, auto &model, TagComponent &tag) {
+        void processEntity(GuiObjectHandles *handles, entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
@@ -136,6 +147,9 @@ namespace VkRender {
                 }
                 if (ImGui::MenuItem("Load glTF 2.0 (.gltf)")) {
                     openImportFileDialog("glTF 2.0", "gltf");
+                }
+                if (ImGui::MenuItem("Load 3D GS file (.ply)")) {
+                    openImportFileDialog("Load 3D GS file", "ply");
                 }
 
                 ImGui::EndPopup();
@@ -404,18 +418,22 @@ namespace VkRender {
             /// FUTURES
             if (loadFileFuture.valid()) {
                 if (loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                    std::string selectedFile = loadFileFuture.get(); // This will also make the future invalid
-                    if (!selectedFile.empty()) {
+                    auto selectedFile = loadFileFuture.get(); // This will also make the future invalid
+                    if (!selectedFile.path.empty()) {
                         // Do something with the selected folder
-
-                        Log::Logger::getInstance()->info("Selected folder {}", selectedFile);
-                        RendererConfig::getInstance().getUserSetting().lastOpenedImportModelFolderPath = selectedFile;
-                        handles->m_paths.importObjFilePath = selectedFile;
-                        handles->m_paths.updateObjPath = true;
+                        Log::Logger::getInstance()->info("Selected file {}", selectedFile.path.string().c_str());
+                        RendererConfig::getInstance().getUserSetting().lastOpenedImportModelFolderPath = selectedFile.path;
+                        if (selectedFile.fileType == "ply"){
+                            handles->m_paths.update3DGSPath = true;
+                        } else if (selectedFile.fileType == "obj"){
+                            handles->m_paths.updateObjPath = true;
+                        }
+                        handles->m_paths.importFilePath = selectedFile.path;
                     }
                 }
             } else {
                 handles->m_paths.updateObjPath = false;
+                handles->m_paths.update3DGSPath = false;
             }
 
             if (folderFuture.valid()) {

@@ -4,7 +4,7 @@
 Carnegie Robotics LLC ("we", "us", "our") is committed to protecting the privacy of our users. This Privacy Policy outlines how we collect, use, and disclose information about anonymous users of our application.
 
 <h2>Information We Collect</h2>
-MultiSense Viewer collects anonymous usage and debug logs from the application. This information is uploaded to a server in the cloud once every day and when the application is closed. The logs cannot be traced back to a specific user without asking the user for their specific ID that is automatically generated upon first launch of the application.
+MultiSense Viewer collects anonymous usage and debug logs from the application. This information is uploaded to a server in the cloud when the application is closed. The logs cannot be traced back to a specific user without asking the user for their specific ID. The ID is automatically generated upon the first launch of the application.
 
 <h3>The types of information we collect include:</h3>
 Usage data: This includes information about how our application is used, such as which features are used, how often they are used, and how long users spend using the application.

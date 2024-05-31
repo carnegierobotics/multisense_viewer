@@ -37,11 +37,12 @@ void ImageViewer::setup() {
     m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
             filePath, 1);
     m_gaussianRenderer->setupBuffers(m_context->getCamera());
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
 
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Switch scene/coordinate", &btn);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
 }
 
 
@@ -66,7 +67,7 @@ void ImageViewer::update() {
     auto imageView = m_context->findEntityByName(entityName);
     if (imageView) {
 
-        m_gaussianRenderer->tileRasterizer(camera);
+        m_gaussianRenderer->tileRasterizer(camera, btn);
         auto *dataPtr = m_syclRenderTarget->m_DataPtr;
         uint32_t size = camera.m_height * camera.m_width * 4;
         std::memcpy(dataPtr, m_gaussianRenderer->img, size);

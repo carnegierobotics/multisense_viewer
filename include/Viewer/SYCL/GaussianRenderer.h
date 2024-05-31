@@ -71,7 +71,7 @@ public:
         if (image)
             stbi_image_free(image);
     }
-    void tileRasterizer(const VkRender::Camera &camera);
+    void tileRasterizer(const VkRender::Camera &camera, bool debug);
 
     uint8_t *img{};
 

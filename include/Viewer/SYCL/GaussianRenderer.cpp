@@ -253,26 +253,31 @@ void duplicateWithKeys(
     }
 }
 
-struct ImgState {
-    std::vector<uint32_t> ranges;
+struct ImageState {
+    std::vector<glm::ivec2> ranges;
 };
 
-void identifyTileRanges(int num_rendered, const std::vector<uint64_t> &point_list_keys, std::vector<uint32_t> &ranges,
-                        const glm::vec3 &tile_grid) {
-    uint32_t num_tiles = tile_grid.x * tile_grid.y;
+void identifyTileRanges(int L, const std::vector<uint64_t> &point_list_keys, ImageState &imgState) {
+    // Initialize ranges with -1 to indicate uninitialized ranges
+    imgState.ranges.resize(L, glm::ivec2(-1, -1));
 
-    // Initialize ranges to maximum value
-    ranges.assign(num_tiles * 2, std::numeric_limits<uint32_t>::max());  // 2 entries per tile: start and end
+    for (int idx = 0; idx < point_list_keys.size(); ++idx) {
+        uint64_t key = point_list_keys[idx];
+        uint32_t currtile = key >> 32;
 
-    // Identify start and end ranges for each tile
-    for (int i = 0; i < num_rendered; ++i) {
-        uint64_t key = point_list_keys[i];
-        uint32_t tile_id = key >> 32;
-
-        if (ranges[tile_id * 2] == std::numeric_limits<uint32_t>::max()) {
-            ranges[tile_id * 2] = i;  // Start range
+        if (idx == 0) {
+            imgState.ranges[currtile].x = 0;
+        } else {
+            uint32_t prevtile = point_list_keys[idx - 1] >> 32;
+            if (currtile != prevtile) {
+                imgState.ranges[prevtile].y = idx;
+                imgState.ranges[currtile].x = idx;
+            }
         }
-        ranges[tile_id * 2 + 1] = i + 1;  // End range (exclusive)
+
+        if (idx == point_list_keys.size() - 1) {
+            imgState.ranges[currtile].y = point_list_keys.size();
+        }
     }
 }
 
@@ -334,8 +339,127 @@ void processGaussianPoints(GaussianRenderer::GaussianPoint *points, const std::v
     }
 }
 
+// Helper function to find the next-highest bit of the MSB
+// on the CPU.
+uint32_t getHigherMsb(uint32_t n) {
+    uint32_t msb = sizeof(n) * 4;
+    uint32_t step = msb;
+    while (step > 1) {
+        step /= 2;
+        if (n >> msb)
+            msb += step;
+        else
+            msb -= step;
+    }
+    if (n >> msb)
+        msb++;
+    return msb;
+}
 
-void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
+
+// Function to get the maximum value in the array
+uint64_t getMax(const std::vector<uint64_t> &arr) {
+    return *std::max_element(arr.begin(), arr.end());
+}
+
+// A function to do counting sort of arr[] according to the digit represented by exp
+void countingSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
+    size_t n = keys_unsorted.size();
+    std::vector<uint64_t> outputKeys(n);
+    std::vector<uint32_t> outputValues(n);
+    int count[10] = {0};
+
+    // Store count of occurrences in count[]
+    for (size_t i = 0; i < n; i++) {
+        uint64_t digit = (keys_unsorted[i] / exp) % 10;
+        count[digit]++;
+    }
+
+    // Change count[i] so that count[i] now contains the actual position of this digit in output[]
+    for (int i = 1; i < 10; i++) {
+        count[i] += count[i - 1];
+    }
+
+    // Build the output array
+    for (int i = n - 1; i >= 0; i--) {
+        uint64_t digit = (keys_unsorted[i] / exp) % 10;
+        outputKeys[count[digit] - 1] = keys_unsorted[i];
+        outputValues[count[digit] - 1] = values_unsorted[i];
+        count[digit]--;
+    }
+
+    // Copy the output array to keys_sorted and values_sorted
+    for (size_t i = 0; i < n; i++) {
+        keys_sorted[i] = outputKeys[i];
+        values_sorted[i] = outputValues[i];
+    }
+}
+
+// The main function to sort an array of given size using Radix Sort
+void radixSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+               std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
+    // Find the maximum number to know the number of digits
+    uint64_t max = getMax(keys_unsorted);
+
+    // Ensure the destination vectors have the same size as the input vectors
+    keys_sorted = keys_unsorted;
+    values_sorted = values_unsorted;
+
+    // Do counting sort for every digit. Note that exp is 10^i where i is the current digit number
+    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
+        countingSort(keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
+    }
+}
+
+// Utility function to print an array
+void print(const std::vector<uint64_t> &keys, const std::vector<uint32_t> &values) {
+    for (size_t i = 0; i < keys.size(); i++) {
+        std::cout << "(" << keys[i] << ", " << values[i] << ") ";
+    }
+    std::cout << std::endl;
+}
+
+void printRanges(const ImageState &imgState) {
+    for (size_t i = 0; i < imgState.ranges.size(); ++i) {
+        if (imgState.ranges[i].x == -1)
+            continue;
+        std::cout << "Tile " << i << ": Start = " << imgState.ranges[i].x
+                  << ", End = " << imgState.ranges[i].y << std::endl;
+    }
+}
+
+void printDurations(
+        const std::chrono::duration<double> &durationRasterization,
+        const std::chrono::duration<double> &durationIdentification,
+        const std::chrono::duration<double> &durationSorting,
+        const std::chrono::duration<double> &durationAccumulation,
+        const std::chrono::duration<double> &durationPreprocess,
+        const std::chrono::duration<double> &durationTotal) {
+    // Convert durations to milliseconds
+    auto durationRasterizationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationRasterization);
+    auto durationIdentificationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationIdentification);
+    auto durationSortingMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationSorting);
+    auto durationAccumulationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationAccumulation);
+    auto durationPreprocessUs = std::chrono::duration_cast<std::chrono::microseconds>(durationPreprocess);
+    auto durationTotalMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationTotal);
+
+    // Create an output string stream to format the output
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(3); // Set fixed-point notation and precision
+
+    oss << "Total Duration: " << durationTotalMs.count() << " ms\n";
+    oss << "Rasterization: " << durationRasterizationMs.count() << " ms\n";
+    oss << "Identification: " << durationIdentificationMs.count() << " ms\n";
+    oss << "Sorting: " << durationSortingMs.count() << " ms\n";
+    oss << "Accumulation: " << durationAccumulationMs.count() << " ms\n";
+    oss << "Preprocessing: " << durationPreprocessUs.count() << " us\n\n";
+
+    // Print the formatted string
+    std::cout << oss.str();
+}
+
+void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera, bool debug) {
     auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
     glm::mat4 viewMatrix = camera.matrices.view;
     glm::mat4 projectionMatrix = camera.matrices.perspective;
@@ -344,17 +468,18 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
     // Flip the second row of the projection matrix
     projectionMatrix[1] = -projectionMatrix[1];
 
-    const size_t imageWidth = width;
-    const size_t imageHeight = height;
-    const size_t tileWidth = 16;
-    const size_t tileHeight = 16;
+    const uint32_t imageWidth = width;
+    const uint32_t imageHeight = height;
+    const uint32_t tileWidth = 16;
+    const uint32_t tileHeight = 16;
     glm::vec3 tileGrid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
 
     sycl::buffer<GaussianPoint, 1> pointsBuffer(sycl::range<1>(gs.getSize()));
     sycl::buffer<uint32_t, 1> numTilesTouchedBuffer(sycl::range<1>(gs.getSize()));
 
     // Start timing
-    auto start = std::chrono::high_resolution_clock::now();
+    auto startPreprocess = std::chrono::high_resolution_clock::now();
+
     queue.submit([&](sycl::handler &h) {
         auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
@@ -438,14 +563,16 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
                 pointsBufferAccess[idx].screenPos = screenPosPoint;
                 pointsBufferAccess[idx].color = color;
                 pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
-
+                // How many tiles we access
+                // rect_min/max are in tile space
                 numTilesTouchedAccess[idx] = static_cast<int>((rect_max.y - rect_min.y) * (rect_max.x - rect_min.x));
             }
         });
     }).wait();
     // Stop timing
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> durationPreprocess = end - start;
+    auto endPreprocess = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationPreprocess = endPreprocess - startPreprocess;
+
 
     int numRendered = 0;
     uint32_t numPoints = gs.getSize();
@@ -453,55 +580,58 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
     std::vector<uint64_t> gaussian_keys_unsorted;  // Adjust size later
     std::vector<uint32_t> gaussian_values_unsorted;  // Adjust size later
 
+    auto startAccumulation = std::chrono::high_resolution_clock::now();
     {
-        const auto& numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
+        const auto &numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
         for (size_t i = 1; i < numTilesTouchedHost.size(); ++i) {
             numTilesTouchedHost[i] += numTilesTouchedHost[i - 1];
         }
         numRendered = numTilesTouchedHost[numTilesTouchedHost.size() - 1];
 
-        gaussian_keys_unsorted.resize(numRendered * 2);
-        gaussian_values_unsorted.resize(numRendered * 2);
+        gaussian_keys_unsorted.resize(numRendered);
+        gaussian_values_unsorted.resize(numRendered);
 
-               const auto& gaussianBufferHost = pointsBuffer.get_host_access<>();
+        const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
+
+        for (int idx = 0; idx < numPoints; ++idx) {
+            const auto &gaussian = gaussianBufferHost[idx];
+
+            // Generate no key/value pair for invisible Gaussians
+            if (gaussian.radius > 0) {
+                // Find this Gaussian's offset in buffer for writing keys/values.
+                uint32_t off = (idx == 0) ? 0 : numTilesTouchedHost[idx - 1];
+                glm::ivec2 rect_min, rect_max;
+
+                getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
+
+                // For each tile that the bounding rect overlaps, emit a key/value pair.
+                for (int y = rect_min.y; y < rect_max.y; ++y) {
+                    for (int x = rect_min.x; x < rect_max.x; ++x) {
+                        if (off >= numRendered) {
+                            break;
+                        }
+                        uint64_t key = static_cast<uint64_t>(y) * static_cast<uint64_t>(tileGrid.x) + x;
+                        key <<= 32;
+                        key |= *reinterpret_cast<const uint32_t *>(&gaussian.depth);
+                        gaussian_keys_unsorted[off] = key;
+                        gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
+                        ++off;
+
+                    }
+                }
+            }
+        }
+    }
+    auto endAccumulation = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationAccumulation = endAccumulation - startAccumulation;
 
 
-                      //duplicateWithKeys(numPoints, gaussianBufferHost.get_pointer(), numTilesTouchedHost.get_pointer(),gaussian_keys_unsorted, gaussian_values_unsorted, tileGrid);
-
-
-                      for (int idx = 0; idx < numPoints; ++idx) {
-                          const auto &gaussian = gaussianBufferHost[idx];
-
-                          // Generate no key/value pair for invisible Gaussians
-                          if (gaussian.radius > 0) {
-                              // Find this Gaussian's offset in buffer for writing keys/values.
-                              uint32_t off = (idx == 0) ? 0 : numTilesTouchedHost[idx - 1];
-                              glm::ivec2 rect_min, rect_max;
-
-                              getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
-
-                              // For each tile that the bounding rect overlaps, emit a key/value pair.
-                              for (int y = rect_min.y; y < rect_max.y; ++y) {
-                                  for (int x = rect_min.x; x < rect_max.x; ++x) {
-                                      uint64_t key = static_cast<uint64_t>(y) * tileGrid.x + x;
-                                      key <<= 32;
-                                      key |= *reinterpret_cast<const uint32_t *>(&gaussian.depth);
-                                      gaussian_keys_unsorted[off] = key;
-                                      gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
-                                      ++off;
-                                  }
-                              }
-                          }
-                      }
-
+    if (numRendered <= 0) {
+        auto hostImageAccessor = imageBuffer.get_host_access();
+        img = hostImageAccessor.get_pointer();
+        return;
     }
 
-
-    // Create a vector of indices for sorting
-    std::vector<size_t> indices(numRendered);
-    for (size_t i = 0; i < numRendered; ++i) {
-        indices[i] = i;
-    }
     BinningState binningState{};
     // Ensure the destination vectors have the same size
     binningState.point_list_keys.resize(numRendered);
@@ -509,122 +639,162 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera) {
     binningState.point_list_keys_unsorted = gaussian_keys_unsorted; // Fill with data
     binningState.point_list_unsorted = gaussian_values_unsorted; // Fill with data
 
-    uint32_t numTiles = (imageWidth * imageHeight) / (tileWidth * tileHeight);
+    auto startSorting = std::chrono::high_resolution_clock::now();
 
-    // Sort indices based on keys
-    std::sort(indices.begin(), indices.end(),
-              [&binningState](size_t a, size_t b) {
-                  return binningState.point_list_keys_unsorted[a] < binningState.point_list_keys_unsorted[b];
-              });
+    radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
 
-    // Reorder keys and values based on sorted indices
-    for (size_t i = 0; i < numRendered; ++i) {
-        binningState.point_list_keys[i] = binningState.point_list_keys_unsorted[indices[i]];
-        binningState.point_list[i] = binningState.point_list_unsorted[indices[i]];
-    }
+    //binningState.point_list_keys = gaussian_keys_unsorted;
+    //binningState.point_list = gaussian_values_unsorted;
 
-    // Initialize imgState.ranges to zero
-    ImgState imgState;
-    uint32_t num_tiles = tileGrid.x * tileGrid.y;
-    imgState.ranges.resize(num_tiles * 2 + 1, std::numeric_limits<uint32_t>::max());
+    auto endSorting = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationSorting = endSorting - startSorting;
 
-    // Identify tile ranges
-    if (numRendered > 0) {
-        identifyTileRanges(numRendered, binningState.point_list_keys, imgState.ranges, tileGrid);
-    }
+    ImageState imgState;
+    auto startIdentification = std::chrono::high_resolution_clock::now();
+    identifyTileRanges(tileGrid.x * tileGrid.y, binningState.point_list_keys, imgState);
+    auto endIdentification = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationIdentification = endIdentification - startIdentification;
 
-    // Print ranges for verification
-    for (uint32_t i = 0; i < num_tiles; ++i) {
-        uint32_t start = imgState.ranges[i * 2];
-        uint32_t end = imgState.ranges[i * 2 + 1];
-        if (start != std::numeric_limits<uint32_t>::max()) {
-            std::cout << "Tile " << i << ": Start = " << start << ", End = " << end << '\n';
-        }
-    }
-
-    std::cout << "Num Rendered/NumPoints: " << numRendered << "/" << numPoints << std::endl;
-
-
-    sycl::buffer<uint32_t, 1> rangesBuffer(imgState.ranges.data(), imgState.ranges.size());
+    sycl::buffer<glm::ivec2, 1> rangesBuffer(imgState.ranges.data(), imgState.ranges.size());
     sycl::range<2> localWorkSize(tileHeight, tileWidth);
     // Compute the global work size ensuring it is a multiple of the local work size
     size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
     size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
     sycl::range<2> globalWorkSize(globalHeight, globalWidth);
+    uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
 
-    start = std::chrono::high_resolution_clock::now();
+    if (debug) {
+        for (uint32_t row = 0; row < globalHeight; ++row) {
+            for (uint32_t col = 0; col < globalWidth; ++col) {
+                uint32_t groupRow = row / 16;
+                uint32_t groupCol = col / 16;
+                uint32_t tileId = groupRow * horizontal_blocks + groupCol;
+
+                auto range = imgState.ranges[tileId];
+                int xRange = range.x;
+                int yRange = range.y;
+
+                if (range.x >= 0 && range.y >= 0) {
+                    auto key = binningState.point_list_keys[xRange];
+                    uint32_t currtile = key >> 32;
+                    uint32_t depthBits = key & 0xFFFFFFFF;
+                    // Interpret these bits as a float
+                    union {
+                        uint32_t i;
+                        float f;
+                    } u;
+
+                    u.i = depthBits;
+                    float depth = u.f;
+                    bool match = tileId == currtile;
+
+                    const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
+
+                    for (uint32_t listIndex = range.x; listIndex < range.y; ++listIndex) {
+                        auto index = binningState.point_list[listIndex];
+                        const GaussianPoint &point = gaussianBufferHost[index];
+                        int k = 0;
+
+                    }
+
+                }
+            }
+        }
+    }
+
+
+    sycl::buffer<uint64_t, 1> pointListKeysBuffer(binningState.point_list_keys.data(),
+                                                  binningState.point_list_keys.size());
+    sycl::buffer<uint32_t, 1> pointListBuffer(binningState.point_list.data(), binningState.point_list.size());
+
+    auto startRasterize = std::chrono::high_resolution_clock::now();
     queue.submit([&](sycl::handler &h) {
 
         auto rangesBufferAccess = rangesBuffer.get_access<sycl::access::mode::read>(h);
         auto gaussianBufferAccess = pointsBuffer.get_access<sycl::access::mode::read>(h);
+        auto pointListKeysBufferAccess = pointListKeysBuffer.get_access<sycl::access::mode::read>(h);
+        auto pointListBufferAccess = pointListBuffer.get_access<sycl::access::mode::read>(h);
 
         auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
 
         h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
+            auto globalID = item.get_global_id(); // Get global indices of the work item
+            auto localID = item.get_local_id(); // Get global indices of the work item
+            auto group = item.get_group();
+            uint32_t row = globalID[0];
+            uint32_t col = globalID[1];
 
 
-         auto global_id = item.get_global_id(); // Get global indices of the work item
-         size_t row = global_id[0];
-         size_t col = global_id[1];
+            if (row < imageHeight && col < imageWidth) {
+                //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
+                //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
+                uint32_t groupRow = row / 16;
+                uint32_t groupCol = col / 16;
+                uint32_t tileId = groupRow * horizontal_blocks + groupCol;
 
+                // Ensure tileId is within bounds
+                if (tileId >= rangesBufferAccess.size()) {
+                    sycl::ext::oneapi::experimental::printf(
+                            "TileId %u out of bounds (max %u ). groupRow %u, groupCol %u, horizontal_blocks %u, imageWidth %u \n",
+                            tileId, static_cast<uint32_t>(rangesBufferAccess.size() - 1), groupRow, groupCol,
+                            horizontal_blocks, imageWidth);
+                    return;
+                }
+                //size_t tileId = group.get_group_id(1) * horizontal_blocks + group.get_group_id(0);
+                glm::ivec2 range = rangesBufferAccess[tileId];
+                // Initialize helper variables
+                float T = 1.0f;
+                float C[3] = {0};
+                if (range.x >= 0 && range.y >= 0) {
+                    //sycl::ext::oneapi::experimental::printf("Num Gaussians %d, in Tile %d, pixel (row,col): (%u,%u)\n", numGaussiansInTile, tileId, row, col);
+                    for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
+                        auto index = pointListBufferAccess[listIndex];
+                        const GaussianPoint &point = gaussianBufferAccess[index];
+                        // Perform processing on the point and update the image
+                        // Example: Set the pixel to a specific value
+                        glm::vec2 pos = point.screenPos;
+                        // Calculate the exponent term
+                        glm::vec2 diff = glm::vec2(col, row) - pos;
+                        glm::vec3 c = point.conic;
+                        glm::mat2 V(c.x, c.y, c.y, c.z);
+                        float power = -0.5f * glm::dot(diff, V * diff);
+                        //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
+                        //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
+                        if (power > 0.0f) {
+                            continue;
+                        }
+                        float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
 
+                        if (alpha < 1.0f / 255.0f)
+                            continue;
 
-         if (row < imageHeight && col < imageWidth) {
-             uint32_t tileID = calculateTileID(col, row, imageWidth, tileWidth, tileHeight);
-             uint32_t startIdx = rangesBufferAccess[tileID * 2];
-             uint32_t endIdx = rangesBufferAccess[tileID * 2 + 1];
-             if (startIdx == std::numeric_limits<uint32_t>::max()) {
-                 return; // No data for this tile
-             }
-
-             // Initialize helper variables
-             float T = 1.0f;
-             float C[3] = {0};
-             for (size_t id = startIdx; id < endIdx; ++id) {
-                 const GaussianPoint &point = gaussianBufferAccess[id];
-                     // Perform processing on the point and update the image
-                     // Example: Set the pixel to a specific value
-                     glm::vec2 pos = point.screenPos;
-                     // Calculate the exponent term
-                     glm::vec2 diff = glm::vec2(col, row) - pos;
-                     glm::vec3 c = point.conic;
-                     glm::mat2 V(c.x, c.y, c.y, c.z);
-                     float power = -0.5f * glm::dot(diff, V * diff);
-                     //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
-                     //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
-                     if (power > 0.0f) {
-                         continue;
-                     }
-                     float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
-
-                     if (alpha < 1.0f / 255.0f)
-                         continue;
-
-                     float test_T = T * (1 - alpha);
-                     if (test_T < 0.0001f) {
-                         continue;
-                     }
-                     // Eq. (3) from 3D Gaussian splatting paper.
-                     for (int ch = 0; ch < 3; ch++) {
-                         C[ch] += point.color[ch] * alpha * T;
-                     }
-                     T = test_T;
-
-             }
-             imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
-             imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
-             imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
-             imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
-
-         }
+                        float test_T = T * (1 - alpha);
+                        if (test_T < 0.0001f) {
+                            continue;
+                        }
+                        // Eq. (3) from 3D Gaussian splatting paper.
+                        for (int ch = 0; ch < 3; ch++) {
+                            C[ch] += point.color[ch] * alpha * T;
+                        }
+                        T = test_T;
+                    }
+                }
+                imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
+            } // endif
         });
     }).wait();
 
+    auto endRasterization = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;
 
-    std::chrono::duration<double> durationEvaluate = std::chrono::high_resolution_clock::now() - start;
-    std::cout << "SYCL RASTERIZE execution time: " << durationEvaluate.count() << "s "
-              << "SYCL PREPROCESS execution time: " << durationPreprocess.count() << " seconds" << std::endl;
+    std::chrono::duration<double> totalDuration = endRasterization - startPreprocess;
+    printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation,
+                   durationPreprocess, totalDuration);
+
     auto hostImageAccessor = imageBuffer.get_host_access();
     img = hostImageAccessor.get_pointer();
 

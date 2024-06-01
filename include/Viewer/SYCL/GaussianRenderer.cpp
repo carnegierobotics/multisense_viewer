@@ -9,6 +9,8 @@
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <sycl/ext/oneapi/experimental/group_helpers_sorters.hpp>
+
 #define SH_C0 0.28209479177387814f
 #define SH_C1 0.4886025119029199f
 
@@ -357,6 +359,7 @@ uint32_t getHigherMsb(uint32_t n) {
 }
 
 
+
 // Function to get the maximum value in the array
 uint64_t getMax(const std::vector<uint64_t> &arr) {
     return *std::max_element(arr.begin(), arr.end());
@@ -411,6 +414,81 @@ void radixSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &valu
         countingSort(keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
     }
 }
+
+/*
+// Function to get the maximum value in the array
+uint64_t getMax(const std::vector<uint64_t> &arr) {
+    return *std::max_element(arr.begin(), arr.end());
+}
+
+// A function to do counting sort of arr[] according to the digit represented by exp
+void countingSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
+    size_t n = keys_unsorted.size();
+    sycl::buffer<uint64_t> keys_unsorted_buf(keys_unsorted.data(), n);
+    sycl::buffer<uint32_t> values_unsorted_buf(values_unsorted.data(), n);
+    sycl::buffer<uint64_t> keys_sorted_buf(keys_sorted.data(), n);
+    sycl::buffer<uint32_t> values_sorted_buf(values_sorted.data(), n);
+    sycl::buffer<uint32_t> count_buf(10);
+
+    q.submit([&](sycl::handler &h) {
+        auto count = count_buf.get_access<sycl::access::mode::write>(h);
+        h.fill(count, static_cast<uint32_t>(0));
+    }).wait();
+
+    q.submit([&](sycl::handler &h) {
+        auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
+        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
+
+        h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
+            uint64_t digit = (keys_unsorted_acc[i] / exp) % 10;
+            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device,
+                    sycl::access::address_space::global_space> atomic_count(count[digit]);
+            atomic_count.fetch_add(1);
+        });
+    }).wait();
+
+    q.submit([&](sycl::handler &h) {
+        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
+        h.single_task([=]() {
+            for (int i = 1; i < 10; i++) {
+                count[i] += count[i - 1];
+            }
+        });
+    }).wait();
+
+    q.submit([&](sycl::handler &h) {
+        auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
+        auto values_unsorted_acc = values_unsorted_buf.get_access<sycl::access::mode::read>(h);
+        auto keys_sorted_acc = keys_sorted_buf.get_access<sycl::access::mode::write>(h);
+        auto values_sorted_acc = values_sorted_buf.get_access<sycl::access::mode::write>(h);
+        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
+
+        h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
+            int idx = n - 1 - i;
+            uint64_t digit = (keys_unsorted_acc[idx] / exp) % 10;
+            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device,
+                    sycl::access::address_space::global_space> atomic_count(count[digit]);
+            int pos = atomic_count.fetch_sub(1) - 1;
+            keys_sorted_acc[pos] = keys_unsorted_acc[idx];
+            values_sorted_acc[pos] = values_unsorted_acc[idx];
+        });
+    }).wait();
+}
+
+// The main function to sort an array of given size using Radix Sort
+void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+               std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
+    uint64_t max = getMax(keys_unsorted);
+    keys_sorted = keys_unsorted;
+    values_sorted = values_unsorted;
+
+    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
+        countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
+    }
+}
+*/
+
 
 // Utility function to print an array
 void print(const std::vector<uint64_t> &keys, const std::vector<uint32_t> &values) {

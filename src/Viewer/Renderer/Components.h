@@ -16,6 +16,8 @@
 
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/UUID.h"
+#include "Viewer/Scripts/Private/Base.h"
+#include "Viewer/Scripts/Private/ScriptBuilder.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH
@@ -31,7 +33,7 @@ namespace VkRender {
         explicit IDComponent(const UUID &uuid) : ID(uuid) {}
 
         // Explicitly define the copy assignment operator
-        IDComponent& operator=(const IDComponent& other) {
+        IDComponent &operator=(const IDComponent &other) {
             return *this;
         }
 
@@ -49,9 +51,25 @@ namespace VkRender {
     };
 
     struct TransformComponent {
-        glm::vec3 Translation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 Rotation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 Scale = {1.0f, 1.0f, 1.0f};
+        enum class RotationType {
+            Euler,
+            Quaternion
+        };
+
+        union {
+            struct {
+                float pitch;
+                float yaw;
+                float roll;
+            } euler;
+
+            glm::quat quaternion;
+        };
+        RotationType type;
+
+        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
         TransformComponent() = default;
 
@@ -61,42 +79,69 @@ namespace VkRender {
 
 
         [[nodiscard]] glm::mat4 GetTransform() const {
-            glm::mat4 rotation = glm::toMat4(glm::quat(Rotation));
+            glm::mat4 rot = getRotMat();
 
-            return glm::translate(glm::mat4(1.0f), Translation)
-                   * rotation
-                   * glm::scale(glm::mat4(1.0f), Scale);
+            return glm::translate(glm::mat4(1.0f), translation)
+                   * rot
+                   * glm::scale(glm::mat4(1.0f), scale);
         }
+
+        void setEuler(float pitch, float yaw, float roll) {
+            euler.pitch = pitch;
+            euler.yaw = yaw;
+            euler.roll = roll;
+            type = RotationType::Euler;
+        }
+
+        void setQuaternion(const glm::quat &q) {
+            quaternion = q;
+            type = RotationType::Quaternion;
+        }
+        void setPosition(const glm::vec3 &v) {
+            translation = v;
+        }
+
+        glm::mat4 getRotMat() const {
+            if (type == RotationType::Euler) {
+                glm::quat q = glm::quat(glm::vec3(euler.pitch, euler.yaw, euler.roll));
+                return glm::toMat4(q);
+            } else {
+                return glm::toMat4(quaternion);
+            }
+        }
+
     };
 
 
     struct CameraComponent {
-        Camera camera;
+        const Camera *camera;
         bool drawGizmo = true;
 
-        explicit CameraComponent(Camera cam): camera(cam){}
-
-        CameraComponent(const CameraComponent &) = default;
-
-        explicit CameraComponent(Camera *cam) : camera(*cam) {}
+        explicit CameraComponent(Camera *cam) : camera(cam) {}
 
         // Explicitly define the copy assignment operator
-        CameraComponent& operator=(const CameraComponent& other) {
+        CameraComponent &operator=(const CameraComponent &other) {
             return *this;
+        }
+
+        // Overload the function call operator
+        const Camera *operator()() const {
+            return camera;
         }
     };
 
     struct ScriptComponent {
         std::string ClassName;
         std::shared_ptr<Base> script;
+
         ScriptComponent() = default;
 
         ScriptComponent(const ScriptComponent &) = default;
 
-        ScriptComponent(std::string scriptName, Renderer* m_context){
-            script = VkRender::ComponentMethodFactory::Create(scriptName);
+        ScriptComponent(std::string scriptName, Renderer *m_context) {
+            script = ComponentMethodFactory::Create(scriptName);
             script->m_context = m_context;
-            if (script.get() == nullptr) {
+            if (script == nullptr) {
                 Log::Logger::getInstance()->error("Failed to register script {}.", scriptName);
                 return;
             }

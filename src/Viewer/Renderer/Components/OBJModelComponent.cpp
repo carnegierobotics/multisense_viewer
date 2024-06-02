@@ -80,12 +80,12 @@ namespace VkRender {
                         attrib.vertices[3 * index.vertex_index + 1],
                         attrib.vertices[3 * index.vertex_index + 2]
                 };
-
-                vertex.uv0 = {
-                        attrib.texcoords[2 * index.texcoord_index + 0],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-
+                if (index.texcoord_index > -1) {
+                    vertex.uv0 = {
+                            attrib.texcoords[2 * index.texcoord_index + 0],
+                            1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                    };
+                }
                 auto [it, inserted] = uniqueVertices.try_emplace(vertex, m_vertices.size());
                 if (inserted) {
                     m_vertices.push_back(vertex);

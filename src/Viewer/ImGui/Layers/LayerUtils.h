@@ -77,6 +77,8 @@ namespace VkRender::LayerUtils {
     }
 
     static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
+        std::string fileWithDot = "*." + fileType;
+        std::wstring fileTypeFilter = std::wstring(fileWithDot.begin(), fileWithDot.end());
         PWSTR path = nullptr;
         std::string filePath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -86,11 +88,23 @@ namespace VkRender::LayerUtils {
                                   reinterpret_cast<void **>(&pfd));
             if (SUCCEEDED(hr)) {
                 // Set the file types to display only. Notice the double null termination.
+
                 COMDLG_FILTERSPEC rgSpec[] = {
-                        {L"YAML Files", L"*.yaml;*.yml"},
-                        {L"All Files",  L"*.*"},
+                        {L".obj", fileTypeFilter.c_str()},
+                        {L"All Files", L"*.*"},
                 };
                 pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+
+                // Set the default folder
+                if (!setCurrentFolder.empty()) {
+                    IShellItem *psiFolder;
+                    std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
+                    hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
+                    if (SUCCEEDED(hr)) {
+                        pfd->SetFolder(psiFolder);
+                        psiFolder->Release();
+                    }
+                }
 
                 // Show the dialog
                 hr = pfd->Show(nullptr);

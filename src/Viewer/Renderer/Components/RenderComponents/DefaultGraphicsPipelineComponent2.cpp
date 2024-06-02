@@ -104,6 +104,16 @@ namespace VkRender {
 
     }
 
+    void DefaultGraphicsPipelineComponent2::updateTransform(const TransformComponent& transform){
+        mvp.model = transform.GetTransform();
+
+    }
+    void DefaultGraphicsPipelineComponent2::updateView(const Camera& camera){
+        mvp.view = camera.matrices.view;
+        mvp.projection = camera.matrices.perspective;
+
+    }
+
     void DefaultGraphicsPipelineComponent2::reloadShaders() {
         requestRebuildPipelines = true;
         pauseRendering();
@@ -165,15 +175,15 @@ namespace VkRender {
 
 
             std::vector<VkDescriptorPoolSize> poolSizes = {
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages},
-                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages},
+                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages * 2},
+                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages * 2},
             };
 
             VkDescriptorPoolCreateInfo descriptorPoolCI{};
             descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             descriptorPoolCI.pPoolSizes = poolSizes.data();
-            descriptorPoolCI.maxSets = static_cast<uint32_t>(poolSizes.size()) * m_numSwapChainImages;
+            descriptorPoolCI.maxSets = m_numSwapChainImages * static_cast<uint32_t>(poolSizes.size());
             CHECK_RESULT(
                     vkCreateDescriptorPool(m_vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr,
                                            &resource.descriptorPool));
@@ -206,8 +216,10 @@ namespace VkRender {
                     descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
                     descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayout;
                     descriptorSetAllocInfo.descriptorSetCount = 1;
-                    CHECK_RESULT(vkAllocateDescriptorSets(m_vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
-                                                          &resource.descriptorSets[i]));
+                    VkResult res = vkAllocateDescriptorSets(m_vulkanDevice->m_LogicalDevice, &descriptorSetAllocInfo,
+                                                          &resource.descriptorSets[i]);
+                    if (res != VK_SUCCESS)
+                        throw std::runtime_error("Failed to allocate descriptor sets");
 
                     std::array<VkWriteDescriptorSet, 3> writeDescriptorSets{};
 

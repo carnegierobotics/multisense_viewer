@@ -24,6 +24,15 @@ namespace VkRender {
         }
     }
 
+    void CustomModelComponent::updateTransform(const TransformComponent& transform){
+        mvp.model = transform.GetTransform();
+
+    }
+    void CustomModelComponent::updateView(const Camera& camera){
+        mvp.view = camera.matrices.view;
+        mvp.projection = camera.matrices.perspective;
+
+    }
 
     void CustomModelComponent::Model::uploadMeshDeviceLocal(const std::vector<VkRender::Vertex> &vertices,
                                                             const std::vector<uint32_t> &indices) {

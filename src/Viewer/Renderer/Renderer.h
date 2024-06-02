@@ -56,6 +56,7 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RendererConfig.h"
+#include "Viewer/Core/Camera.h"
 
 #include "Generated/ScriptHeader.h"
 #include "Viewer/Core/UUID.h"
@@ -98,12 +99,13 @@ namespace VkRender {
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
 
-        const Camera getCamera();
+        Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
+        Camera& getCamera();
+        Camera& getCamera(std::string tag);
 
         VkRender::RenderUtils renderUtils{};
         VkRender::RenderData renderData{};
 
-        std::unordered_map<std::string, Camera*> cameras;
         std::string selectedCameraTag = "Default";
     public:
         entt::registry m_registry;
@@ -144,6 +146,7 @@ namespace VkRender {
 
         std::vector<std::string> availableScriptNames;
         std::shared_ptr<UsageMonitor> usageMonitor;
+        std::unordered_map<std::string, Camera> cameras;
 
         bool renderSelectionPass = true;
 

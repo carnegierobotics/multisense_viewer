@@ -11,6 +11,7 @@
 #include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Renderer/Components.h"
 
 namespace VkRender {
 
@@ -67,6 +68,9 @@ namespace VkRender {
                 cleanUp(0, true);
         };
 
+        void updateView(const Camera &camera);
+
+        void updateTransform(const TransformComponent &transform);
 
         void draw(CommandBuffer *cmdBuffers) override;
 
@@ -122,6 +126,8 @@ namespace VkRender {
         std::string m_vertexShader;
         std::string m_fragmentShader;
         VkRender::RenderUtils *m_utils;
+
+
     };
 
 

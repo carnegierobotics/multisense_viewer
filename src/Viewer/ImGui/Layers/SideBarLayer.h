@@ -40,58 +40,6 @@ namespace VkRender {
         }
 
         void processEntities(GuiObjectHandles *handles) {
-            // TODO We should do better sorting here
-            /*
-            // Create a view for entities with a GLTFModelComponent and a TagComponent
-            auto gltfView = handles->m_context->m_registry.view<GLTFModelComponent, TagComponent>(
-                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
-
-            // Iterate over entities that have a GLTFModelComponent and a TagComponent
-            for (auto entity: gltfView) {
-                auto &model = gltfView.get<GLTFModelComponent>(entity);
-                auto &tag = gltfView.get<TagComponent>(entity);
-
-                // Process each entity here
-                processEntity(handles, entity, model, tag);
-            }
-            auto objView = handles->m_context->m_registry.view<OBJModelComponent, TagComponent>(
-                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
-
-            // Iterate over entities that have a OBJModelComponent and a TagComponent
-            for (auto entity: objView) {
-                auto &model = objView.get<OBJModelComponent>(entity);
-                auto &tag = objView.get<TagComponent>(entity);
-
-                // Process each entity here
-                processEntity(handles, entity, model, tag);
-            }
-            // Iterate over entities that have a OBJModelComponent and a TagComponent
-            auto cameraView = handles->m_context->m_registry.view<CameraGraphicsPipelineComponent, TagComponent>(
-                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent>);
-
-            for (auto entity: cameraView) {
-                auto &model = cameraView.get<CameraGraphicsPipelineComponent>(entity);
-                auto &tag = cameraView.get<TagComponent>(entity);
-
-                // Process each entity here
-                processEntity(handles, entity, model, tag);
-            }
-
-            // Create a view for entities with a CustomModelComponent and a TagComponent
-            auto customView = handles->m_context->m_registry.view<CustomModelComponent, TagComponent>();
-
-            // Iterate over entities that have a CustomModelComponent and a TagComponent
-            for (auto entity: customView) {
-                // To avoid processing entities with both components twice, check if they were already processed
-                if (!gltfView.contains(entity)) {
-                    auto &model = customView.get<CustomModelComponent>(entity);
-                    auto &tag = customView.get<TagComponent>(entity);
-
-                    // Process each entity here
-                    processEntity(handles, entity, model, tag);
-                }
-            }
-            */
             auto view = handles->m_context->m_registry.view<TagComponent>(
                     entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
@@ -204,14 +152,16 @@ namespace VkRender {
             handles->m_cameraSelection.info[cameraTag].reset = false;
             if (ImGui::RadioButton("Arcball", &handles->m_cameraSelection.info[cameraTag].type, 0)) {
                 handles->usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->m_context->cameras[cameraTag]->setType(Camera::arcball);
-                handles->m_context->cameras[cameraTag]->resetPosition();
+                auto& camera = handles->m_context->getCamera(cameraTag);
+                camera.setType(Camera::arcball);
+                camera.resetPosition();
             }
             ImGui::SameLine();
             if (ImGui::RadioButton("Flycam", &handles->m_cameraSelection.info[cameraTag].type, 1)) {
                 handles->usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                handles->m_context->cameras[cameraTag]->setType(Camera::flycam);
-                handles->m_context->cameras[cameraTag]->resetPosition();
+                auto& camera = handles->m_context->getCamera(cameraTag);
+                camera.setType(Camera::flycam);
+                camera.resetPosition();
             }
             ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 5.0f));
@@ -251,11 +201,8 @@ namespace VkRender {
             if (ImGui::Button("Add Camera", ImVec2(150.0f, 25.0f))) {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
-                auto e = handles->m_context->createEntity(tag);
-                auto &c = e.addComponent<CameraComponent>(Camera(handles->info->width, handles->info->height));
-                e.addComponent<CameraGraphicsPipelineComponent>(&handles->m_context->renderUtils);
-
-                handles->m_context->cameras[tag] = &c.camera;
+                auto camera = handles->m_context->createNewCamera(tag, handles->info->width, handles->info->height);
+                //e.addComponent<CameraGraphicsPipelineComponent>(&handles->m_context->renderUtils);
                 handles->m_cameraSelection.tag = tag;
             }
 
@@ -304,19 +251,18 @@ namespace VkRender {
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
             const std::string &tag = handles->m_cameraSelection.tag;
             if (!tag.empty()) {
-                if (handles->m_context->cameras.at(tag)) {
+                auto& camera = handles->m_context->getCamera(tag);
                     ImGui::Text("Camera: %s", tag.c_str());
                     ImGui::Text("Position: (%.3f, %.3f, %.3f)",
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.pos.x),
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.pos.y),
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.pos.z));
+                                static_cast<double>(camera.pose.pos.x),
+                                static_cast<double>(camera.pose.pos.y),
+                                static_cast<double>(camera.pose.pos.z));
 
                     ImGui::Text("Q: (%.3f, %.3f, %.3f, %.3f)",
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.q.w),
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.q.x),
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.q.y),
-                                static_cast<double>(handles->m_context->cameras[tag]->pose.q.z));
-                }
+                                static_cast<double>(camera.pose.q.w),
+                                static_cast<double>(camera.pose.q.x),
+                                static_cast<double>(camera.pose.q.y),
+                                static_cast<double>(camera.pose.q.z));
             }
             ImGui::PopStyleColor(); // ImGuiCol_Text
 

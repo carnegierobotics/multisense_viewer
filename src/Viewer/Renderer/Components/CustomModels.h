@@ -11,6 +11,7 @@
 #include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
+#include "Viewer/Renderer/Components.h"
 
 namespace VkRender {
     struct CustomModelComponent : RenderBase {
@@ -33,6 +34,9 @@ namespace VkRender {
             return shaderStage;
         }
 
+        void updateView(const Camera &camera);
+
+        void updateTransform(const TransformComponent &transform);
 
         void draw(CommandBuffer *cmdBuffer) override;
 

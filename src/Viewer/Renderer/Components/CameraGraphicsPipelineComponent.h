@@ -11,6 +11,7 @@
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
+#include "Viewer/Renderer/Components.h"
 
 namespace VkRender {
 
@@ -42,10 +43,7 @@ namespace VkRender {
                 setupPipeline(data, RENDER_PASS_SECOND, "CameraGizmo.vert.spv", "CameraGizmo.frag.spv", utils->msaaSamples,
                               *utils->renderPass); // TODO set correct render pass
             }
-
         }
-
-
         VkRender::UBOMatrix mvp{};
         VkRender::UBOCamera vertices{};
 
@@ -53,6 +51,14 @@ namespace VkRender {
         VulkanDevice *m_vulkanDevice = nullptr;
         uint32_t m_numSwapChainImages = 0;
         bool resourcesDeleted = false;
+
+        void updateTransform(const TransformComponent& transform){
+            mvp.model = transform.GetTransform();
+        }
+        void updateView(const Camera& camera){
+            mvp.view = camera.matrices.view;
+            mvp.projection = camera.matrices.perspective;
+        }
 
         ~CameraGraphicsPipelineComponent() {
             if (!resourcesDeleted)

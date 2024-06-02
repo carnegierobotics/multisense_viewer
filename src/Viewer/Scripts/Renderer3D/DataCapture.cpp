@@ -62,16 +62,16 @@ void DataCapture::update() {
             // Aspect ratio
             float aspect = static_cast<float>(cameraData.width) / static_cast<float>(cameraData.height);
             for (const auto &pose: scenes[sceneIndex].poses) {
-                auto camera = VkRender::Camera(cameraData.width, cameraData.height);
+                std::string tag = "Camera: " + std::to_string(pose.imageID);
+
+                auto camera = m_context->createNewCamera(tag, cameraData.width, cameraData.height);
                 // Update the perspective of the camera
                 camera.setPerspective(fov, aspect);
                 // Set the camera at the colmap image position:
-                std::string tag = "Camera: " + std::to_string(pose.imageID);
                 auto e = m_context->createEntity(tag);
-                auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+                auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(&camera);
                 auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
 
-                m_context->cameras[tag] = &cameraComponent.camera;
                 m_context->guiManager->handles.m_cameraSelection.tag = tag;
 
                 glm::quat colmapRotation(pose.qw, pose.qx, pose.qy, pose.qz);
@@ -105,13 +105,13 @@ void DataCapture::update() {
                 viewMatrix[1][2] = vulkanFront.y;
                 viewMatrix[2][2] = vulkanFront.z;
                 viewMatrix = glm::translate(viewMatrix, correctPos);
-                cameraComponent.camera.matrices.view = viewMatrix;
+                camera.matrices.view = viewMatrix;
                 scenes[sceneIndex].posesReady = true;
             }
         }
 
         std::string tag = "Camera: " + std::to_string(scenes[sceneIndex].poses[poseIndex].imageID);
-        defaultCamera = *m_context->cameras[tag];
+        defaultCamera = m_context->getCamera(tag);
         if (!scenes[sceneIndex].poses[poseIndex].savedToFile && frameCount % skipFrames > (skipFrames - 2)) {
             m_context->saveDepthPassToFile = true;
             scenes[sceneIndex].poses[poseIndex].savedToFile = true;
@@ -158,7 +158,7 @@ void DataCapture::update() {
         auto entity = m_context->findEntityByName(tag);
         if (!entity)
             continue;
-
+        auto& camera = m_context->getCamera(tag);
         auto &obj = m_context->m_registry.get<VkRender::CameraGraphicsPipelineComponent>(entity);
         auto &camComponent = m_context->m_registry.get<VkRender::CameraComponent>(entity);
         obj.mvp.projection = defaultCamera.matrices.perspective;
@@ -195,7 +195,7 @@ void DataCapture::update() {
         viewMatrix[1][2] = vulkanFront.y;
         viewMatrix[2][2] = vulkanFront.z;
         viewMatrix = glm::translate(viewMatrix, correctPos);
-        camComponent.camera.matrices.view = viewMatrix;
+        camera.matrices.view = viewMatrix;
 
         obj.mvp.model = glm::scale(glm::inverse(viewMatrix), glm::vec3(0.25f, 0.25f, 0.25f));
     }
@@ -260,19 +260,6 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
     }
     if (uiHandle->m_loadColmapCameras) {
         loadColmapPoses(uiHandle);
-    }
-
-    if (uiHandle->m_paths.updateObjPath) {
-        // Load new obj file
-        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importFilePath.string());
-        std::string entityName = uiHandle->m_paths.importFilePath.filename().string();
-        entities.push_back(entityName);
-        auto entity = m_context->createEntity(entityName);
-        auto &component = entity.addComponent<VkRender::OBJModelComponent>(uiHandle->m_paths.importFilePath,
-                                                                           m_context->renderUtils.device);
-        entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils).bind(component);
-        entity.addComponent<VkRender::DepthRenderPassComponent>();
-
     }
 
     if (uiHandle->startDataCapture) {
@@ -392,16 +379,15 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
         float aspect = static_cast<float>(cameraData.width) / static_cast<float>(cameraData.height);
 
         //auto camera = VkRender::Camera(cameraData.width, cameraData.height);
-        auto camera = VkRender::Camera(1280, 720);
+        auto camera = m_context->createNewCamera(tag, 1280, 720);
 
         // Update the perspective of the camera
         camera.setPerspective(fov, aspect);
 
         // Set the camera at the colmap image position:
         auto e = uiHandle->m_context->createEntity(tag);
-        auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(camera);
+        auto &cameraComponent = e.addComponent<VkRender::CameraComponent>(&camera);
         auto &rr = e.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
-        m_context->cameras[tag] = &cameraComponent.camera;
         uiHandle->m_cameraSelection.tag = tag;
     }
 

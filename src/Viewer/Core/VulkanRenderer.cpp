@@ -629,7 +629,7 @@ namespace VkRender {
         createCommandPool();
         createCommandBuffers();
         createSynchronizationPrimitives();
-        createColorResources();
+        createColorResources( );
         setupDepthStencil();
         setupRenderPass();
         createPipelineCache();

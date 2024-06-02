@@ -13,6 +13,11 @@
 
 namespace VkRender::AppConfig {
 
+    struct EditorUIState {
+        // Define specific UI settings here
+        bool enableSecondaryView = false;
+        bool fixAspectRatio = false;
+    };
 
     struct ApplicationUserSetting {
         Log::LogLevel logLevel = Log::LOG_LEVEL_INFO;
@@ -21,6 +26,9 @@ namespace VkRender::AppConfig {
         bool userConsentToSendLogs = true;
         /** @brief If there is no prior registered consent from the user */
         bool askForUsageLoggingPermissions = true;
+
+        /** @brief UI application lifetime settings **/
+        EditorUIState editorUiState;
 
         std::filesystem::path lastOpenedFolderPath;
         std::filesystem::path lastOpenedImportModelFolderPath;
@@ -33,6 +41,8 @@ namespace VkRender::AppConfig {
                 {"userConsentToSendLogs",           settings.userConsentToSendLogs},
                 {"askForUsageLoggingPermissions",   settings.askForUsageLoggingPermissions},
                 {"lastOpenedFolderPath",            settings.lastOpenedFolderPath.string()},
+                {"enableSecondaryView",             settings.editorUiState.enableSecondaryView},
+                {"fixAspectRatio",                  settings.editorUiState.fixAspectRatio},
                 {"lastOpenedImportModelFolderPath", settings.lastOpenedImportModelFolderPath.string()}
         };
     }
@@ -42,6 +52,8 @@ namespace VkRender::AppConfig {
         j.at("sendUsageLogOnExit").get_to(settings.sendUsageLogOnExit);
         j.at("userConsentToSendLogs").get_to(settings.userConsentToSendLogs);
         j.at("askForUsageLoggingPermissions").get_to(settings.askForUsageLoggingPermissions);
+        j.at("enableSecondaryView").get_to(settings.editorUiState.enableSecondaryView);
+        j.at("fixAspectRatio").get_to(settings.editorUiState.fixAspectRatio);
         settings.lastOpenedFolderPath = j.at("lastOpenedFolderPath").get<std::string>();
         settings.lastOpenedImportModelFolderPath = j.at("lastOpenedImportModelFolderPath").get<std::string>();
     }

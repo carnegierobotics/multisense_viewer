@@ -84,7 +84,6 @@ namespace VkRender {
         guiManager = std::make_unique<GuiManager>(vulkanDevice, uiRenderPass.renderPass, m_Width, m_Height,
                                                             msaaSamples,
                                                             swapchain->imageCount);
-
         renderUtils.device = vulkanDevice;
         renderUtils.instance = &instance;
         renderUtils.renderPass = &renderPass;
@@ -93,6 +92,8 @@ namespace VkRender {
         renderUtils.queueSubmitMutex = &queueSubmitMutex;
         renderUtils.fence = &waitFences;
         renderUtils.swapchainIndex = currentFrame;
+        renderUtils.width = m_Width;
+        renderUtils.height = m_Height;
 
         backendInitialized = true;
         // Create default camera object
@@ -100,8 +101,6 @@ namespace VkRender {
         pLogger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 
-        renderData.height = m_Height;
-        renderData.width = m_Width;
         // Start up usage monitor
         usageMonitor = std::make_shared<UsageMonitor>();
         usageMonitor->loadSettingsFromFile();
@@ -243,7 +242,7 @@ namespace VkRender {
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
             auto subWindowHeight = static_cast<float>(m_Height);
 
-            if (guiManager->handles.secondaryView) {
+            if (guiManager->handles.enableSecondaryView) {
                 mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height / 2);
                 // Sub-window dimensions (initial)
                 subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
@@ -265,7 +264,7 @@ namespace VkRender {
                                        static_cast<int32_t>(subWindowHeight), 0, 0);
         } else {
             float windowHeight = m_Height;
-            if (guiManager->handles.secondaryView) {
+            if (guiManager->handles.enableSecondaryView) {
                 windowHeight = m_Height / 2;
             }
 
@@ -556,7 +555,7 @@ namespace VkRender {
 
 
 
-        if (guiManager->handles.secondaryView){
+        if (guiManager->handles.enableSecondaryView){
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             subresourceRange.levelCount = 1;
@@ -680,11 +679,6 @@ namespace VkRender {
         }
 
         selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
-        renderData.camera = &cameras[selectedCameraTag];
-        renderData.deltaT = frameTimer;
-        renderData.frameID = frameID;
-        renderData.height = m_Height;
-        renderData.width = m_Width;
         renderUtils.swapchainIndex = currentFrame;
         renderUtils.input = &input;
         // New version available?
@@ -741,7 +735,7 @@ namespace VkRender {
 
         // Update GUI
         guiManager->handles.info->frameID = frameID;
-        guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
+        guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->uiUpdate(&guiManager->handles);
@@ -786,12 +780,16 @@ namespace VkRender {
     }
 
     void Renderer::windowResized() {
-        renderData.camera = &cameras[selectedCameraTag];
-        renderData.deltaT = frameTimer;
-        renderData.frameID = frameID;
-        renderData.height = m_Height;
-        renderData.width = m_Width;
-        renderData.renderPassIndex = currentFrame;
+        renderUtils.device = vulkanDevice;
+        renderUtils.instance = &instance;
+        renderUtils.renderPass = &renderPass;
+        renderUtils.msaaSamples = msaaSamples;
+        renderUtils.swapchainImages = swapchain->imageCount;
+        renderUtils.queueSubmitMutex = &queueSubmitMutex;
+        renderUtils.fence = &waitFences;
+        renderUtils.swapchainIndex = currentFrame;
+        renderUtils.width = m_Width;
+        renderUtils.height = m_Height;
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
             for (auto &camera: cameras)
@@ -799,7 +797,7 @@ namespace VkRender {
         }
         Widgets::clear();
         // Update gui with new res
-        guiManager->update((frameCounter == 0), frameTimer, renderData.width, renderData.height, &input);
+        guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
 
         // Notify scripts
         auto view = m_registry.view<ScriptComponent>();

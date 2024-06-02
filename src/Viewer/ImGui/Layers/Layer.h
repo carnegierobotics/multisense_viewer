@@ -101,13 +101,11 @@ namespace VkRender {
         float sidebarWidth = 300.0f;
 
         float menuBarHeight = 25.0f;
-        /**@brief Size of elements in sidebar */
-        float elementHeight = 140.0f;
-        /**@brief Width of sidebar*/
+        /**@brief Width debug window*/
         float debuggerWidth = 960.0f * 0.75f;
-        /**@brief Size of elements in sidebar */
+        /**@brief Heightdebug window */
         float debuggerHeight = 480.0f * 0.75f;
-        /**@brief Width of sidebar*/
+        /**@brief Width of metrics sidebar in debug window*/
         float metricsWidth = 350.0f;
         /**@brief Physical Graphics m_Device used*/
         std::string deviceName = "DeviceName";
@@ -167,7 +165,6 @@ namespace VkRender {
         bool showDebugWindow = false;
 
         /** @brief Open the popup window */
-        bool openAddDevicePopup = false;
         bool renderer3D = true;
 
 
@@ -176,7 +173,7 @@ namespace VkRender {
         bool newVersionAvailable = false;
         bool askUserForNewVersion = true;
 
-        const VkRender::MouseButtons *mouse;
+        const VkRender::MouseButtons *mouse{};
 
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
         GuiObjectHandles() {
@@ -190,16 +187,16 @@ namespace VkRender {
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
         CameraSelection m_cameraSelection{};
-        Renderer *m_context;
+        Renderer *m_context{};
         bool m_loadColmapCameras = false;
         Paths m_paths;
 
-        // datarecording 3dgs
+        // data recording 3dgs
         bool startDataCapture = false;
         bool stopDataCapture = false;
         int startScene = 0;
         int imagesPerScene = 100;
-        bool secondaryView = true;
+        bool enableSecondaryView = true;
         bool fixAspectRatio = false;
     };
 

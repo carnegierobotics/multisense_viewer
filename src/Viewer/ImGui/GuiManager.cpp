@@ -71,6 +71,11 @@ namespace VkRender {
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
+        // Load UI info from file:
+        auto &userSetting = RendererConfig::getInstance().getUserSetting();
+        handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
+        handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
+
 
         ImGui::CreateContext();
         ImGuiIO io = ImGui::GetIO();
@@ -321,7 +326,7 @@ namespace VkRender {
         if (std::chrono::duration_cast<std::chrono::duration<float >>(
                 std::chrono::steady_clock::now() - saveSettingsTimer).count() > 5.0f) {
             Log::Logger::getInstance()->trace("Saving ImGui file: {}",
-                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+                                              (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             saveSettingsTimer = std::chrono::steady_clock::now();
         }
@@ -449,8 +454,10 @@ namespace VkRender {
             // Reset the scissors
             VkRect2D scissorRectFull;
             scissorRectFull.offset = {0, 0};
-            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width), static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);        }
+            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width),
+                                      static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
+        }
     }
 
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {

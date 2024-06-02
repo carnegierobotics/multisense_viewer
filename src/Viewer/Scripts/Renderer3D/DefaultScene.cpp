@@ -38,11 +38,11 @@ void DefaultScene::update() {
         auto depthImageView = m_context->findEntityByName("depthImageView");
         if (depthImageView) {
             auto &transform = depthImageView.getComponent<VkRender::TransformComponent>();
-            float xOffsetPx = (m_context->renderData.width - 150.0) / m_context->renderData.width;
+            float xOffsetPx = (m_context->renderUtils.width - 150.0) / m_context->renderUtils.width;
             float translationX = xOffsetPx * 2 - 1;
             float translationY = xOffsetPx * 2 - 1;
             transform.translation = glm::vec3(translationX, translationY, 0.0f);
-            float scaleX = 300.0f / m_context->renderData.width;
+            float scaleX = 300.0f / m_context->renderUtils.width;
             transform.scale =glm::vec3(scaleX, scaleX, 1.0f);
         }
     }

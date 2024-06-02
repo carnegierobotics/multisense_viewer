@@ -64,34 +64,15 @@
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/CommandBuffer.h"
-#include "KeyInput.h"
-
-#define INTERVAL_1_SECOND 1
-#define INTERVAL_5_SECONDS 5
-
+#include "Viewer/Core/KeyInput.h"
 
 // Predeclare to speed up compile times
 namespace VkRender {
     class Camera;
-    namespace MultiSense {
-        class CRLPhysicalCamera;
-    }
+
 }
 
 namespace VkRender {
-
-/**
- * @brief Labels data coming from the camera to a type used to initialize textures with various formats and samplers
- */
-    typedef enum CRLCameraDataType {
-        CRL_DATA_NONE,
-        CRL_GRAYSCALE_IMAGE,
-        CRL_COLOR_IMAGE_RGBA,
-        CRL_COLOR_IMAGE_YUV420,
-        CRL_CAMERA_IMAGE_NONE,
-        CRL_DISPARITY_IMAGE,
-        CRL_POINT_CLOUD,
-    } CRLCameraDataType;
 
 
     /**
@@ -204,7 +185,6 @@ namespace VkRender {
 
     };
 
-
     struct SecondaryRenderPasses {
         std::vector<VkFramebuffer> frameBuffers{};
         VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -233,7 +213,6 @@ namespace VkRender {
         bool multisampled = false;
     };
 
-
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
@@ -242,7 +221,8 @@ namespace VkRender {
         VkRenderPass *renderPass{};
         VkSampleCountFlagBits msaaSamples;
         Input* input{};
-
+        uint32_t height = 0;
+        uint32_t width = 0;
         std::mutex *queueSubmitMutex{};
         const std::vector<VkFence> *fence{};
         uint32_t swapchainIndex = 0;
@@ -252,27 +232,6 @@ namespace VkRender {
 
     };
 
-    /**@brief grouping containing useful pointers used to render scripts. This will probably change frequently as the viewer grows **/
-    struct RenderData {
-
-        uint32_t frameID = 0;
-        Camera *camera = nullptr;
-        float deltaT = 0.0f;
-        bool drawThisScript = false;
-        /**
-         * @brief Runtime measured in seconds
-         */
-        float scriptRuntime = 0.0f;
-        int scriptDrawCount = 0;
-        std::string scriptName;
-        MultiSense::CRLPhysicalCamera *crlCamera{};
-        uint32_t height = 0;
-        uint32_t width = 0;
-        bool additionalBuffers = false;
-        void *streamToRun;
-        int renderPassIndex = 0;
-
-    };
 
 }
 

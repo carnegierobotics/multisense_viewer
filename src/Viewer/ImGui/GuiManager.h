@@ -79,6 +79,9 @@ namespace VkRender {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
 
+            auto &userSetting = RendererConfig::getInstance().getUserSetting();
+            userSetting.editorUiState.enableSecondaryView = handles.enableSecondaryView;
+            userSetting.editorUiState.fixAspectRatio = handles.fixAspectRatio;
         };
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
@@ -148,9 +151,6 @@ namespace VkRender {
         VulkanDevice *device = nullptr;
         std::shared_ptr<VkRender::ThreadPool> pool;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
-
-        // Initialization functions
-        void initializeFonts();
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);
 

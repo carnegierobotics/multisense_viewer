@@ -104,7 +104,6 @@ namespace VkRender {
         Camera& getCamera(std::string tag);
 
         VkRender::RenderUtils renderUtils{};
-        VkRender::RenderData renderData{};
 
         std::string selectedCameraTag = "Default";
     public:

@@ -4,15 +4,15 @@
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
 #include "Viewer/Tools/Utils.h"
 
-namespace RenderResource {
+namespace VkRender {
 
 
     void DefaultPBRGraphicsPipelineComponent::renderNode(CommandBuffer *commandBuffer, uint32_t cbIndex,
-                                                         VkRender::Node *node,
-                                                         VkRender::Material::AlphaMode alphaMode) {
+                                                         Node *node,
+                                                         Material::AlphaMode alphaMode) {
         if (node->mesh) {
             // Render mesh primitives
-            for (VkRender::Primitive *primitive: node->mesh->primitives) {
+            for (Primitive *primitive: node->mesh->primitives) {
                 if (primitive->material.alphaMode == alphaMode) {
                     std::string pipelineName = "pbr";
                     std::string pipelineVariant = "";
@@ -23,7 +23,7 @@ namespace RenderResource {
                     };
 
                     // Material properties define if we e.g. need to bind a pipeline variant with culling disabled (double sided)
-                    if (alphaMode == VkRender::Material::ALPHAMODE_BLEND) {
+                    if (alphaMode == Material::ALPHAMODE_BLEND) {
                         pipelineVariant = "_alpha_blending";
                     } else {
                         if (primitive->material.doubleSided) {
@@ -68,7 +68,7 @@ namespace RenderResource {
     }
 
     void DefaultPBRGraphicsPipelineComponent::draw(CommandBuffer *commandBuffer, uint32_t cbIndex,
-                                                   const VkRender::GLTFModelComponent &component) {
+                                                   const GLTFModelComponent &component) {
         VkDeviceSize offsets[1] = { 0 };
 
         vkCmdBindVertexBuffers(commandBuffer->buffers[cbIndex], 0, 1, &component.model->vertices.buffer, offsets);
@@ -80,16 +80,16 @@ namespace RenderResource {
         resources[cbIndex].boundPipeline = VK_NULL_HANDLE;
         // Opaque primitives first
         for (auto node : component.model->nodes) {
-            renderNode(commandBuffer, cbIndex, node, VkRender::Material::ALPHAMODE_OPAQUE);
+            renderNode(commandBuffer, cbIndex, node, Material::ALPHAMODE_OPAQUE);
         }
         // Alpha masked primitives
         for (auto node : component.model->nodes) {
-            renderNode(commandBuffer, cbIndex, node, VkRender::Material::ALPHAMODE_MASK);
+            renderNode(commandBuffer, cbIndex, node, Material::ALPHAMODE_MASK);
         }
         // Transparent primitives
         // TODO: Correct depth sorting
         for (auto node : component.model->nodes) {
-            renderNode(commandBuffer, cbIndex, node, VkRender::Material::ALPHAMODE_BLEND);
+            renderNode(commandBuffer, cbIndex, node, Material::ALPHAMODE_BLEND);
         }
 
         resources[cbIndex].busy = true;
@@ -98,25 +98,34 @@ namespace RenderResource {
     void DefaultPBRGraphicsPipelineComponent::setupUniformBuffers(Resource& resource) {
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                       &resource.bufferParams, sizeof(VkRender::ShaderValuesParams));
+                                       &resource.bufferParams, sizeof(ShaderValuesParams));
             vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                       &resource.bufferScene, sizeof(VkRender::UBOMatrix));
+                                       &resource.bufferScene, sizeof(UBOMatrix));
 
             resource.bufferScene.map();
             resource.bufferParams.map();
 
     }
+    void DefaultPBRGraphicsPipelineComponent::updateTransform(const TransformComponent& transform){
+        resources[renderUtils->swapchainIndex].uboMatrix.model = transform.GetTransform();
 
-    void DefaultPBRGraphicsPipelineComponent::update(){
+    }
+    void DefaultPBRGraphicsPipelineComponent::updateView(const Camera& camera){
+        resources[renderUtils->swapchainIndex].uboMatrix.view = camera.matrices.view;
+        resources[renderUtils->swapchainIndex].uboMatrix.projection = camera.matrices.perspective;
+        resources[renderUtils->swapchainIndex].uboMatrix.camPos = camera.pose.pos;
+    }
 
-        memcpy(resources[renderUtils->swapchainIndex].bufferParams.mapped, &resources[renderUtils->swapchainIndex].shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
-        memcpy(resources[renderUtils->swapchainIndex].bufferScene.mapped, &resources[renderUtils->swapchainIndex].uboMatrix, sizeof(VkRender::UBOMatrix));
+    void DefaultPBRGraphicsPipelineComponent::update(uint32_t frameID){
+
+        memcpy(resources[frameID].bufferParams.mapped, &resources[frameID].shaderValuesParams, sizeof(ShaderValuesParams));
+        memcpy(resources[frameID].bufferScene.mapped, &resources[frameID].uboMatrix, sizeof(UBOMatrix));
 
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupDescriptors(Resource& resource, const VkRender::GLTFModelComponent &component,
-                                                               const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
+    void DefaultPBRGraphicsPipelineComponent::setupDescriptors(Resource& resource, const GLTFModelComponent &component,
+                                                               const SkyboxGraphicsPipelineComponent &skyboxComponent) {
 /*
 			Descriptor Pool
 		*/
@@ -345,7 +354,7 @@ namespace RenderResource {
         }
     }
 
-    void DefaultPBRGraphicsPipelineComponent::setupNodeDescriptorSet(VkRender::Node *node, VkDescriptorPool pool, VkDescriptorSetLayout* layout) {
+    void DefaultPBRGraphicsPipelineComponent::setupNodeDescriptorSet(Node *node, VkDescriptorPool pool, VkDescriptorSetLayout* layout) {
         if (node->mesh) {
             VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
             descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -446,7 +455,7 @@ namespace RenderResource {
                 vkCreatePipelineLayout(vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr, &resource.pipelineLayouts[prefix]));
 
         // Vertex bindings an attributes
-        VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
+        VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
         std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT,    0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT,    sizeof(float) * 3},
@@ -522,7 +531,7 @@ namespace RenderResource {
     }
 
 
-    void DefaultPBRGraphicsPipelineComponent::createMaterialBuffer(Resource& resource, const VkRender::GLTFModelComponent &component) {
+    void DefaultPBRGraphicsPipelineComponent::createMaterialBuffer(Resource& resource, const GLTFModelComponent &component) {
         std::vector<ShaderMaterial> shaderMaterials{};
         for (auto &material: component.model->materials) {
             ShaderMaterial shaderMaterial{};
@@ -537,7 +546,7 @@ namespace RenderResource {
                     material.occlusionTexture != nullptr ? material.texCoordSets.occlusion : -1;
             shaderMaterial.emissiveTextureSet =
                     material.emissiveTexture != nullptr ? material.texCoordSets.emissive : -1;
-            shaderMaterial.alphaMask = static_cast<float>(material.alphaMode == VkRender::Material::ALPHAMODE_MASK);
+            shaderMaterial.alphaMask = static_cast<float>(material.alphaMode == Material::ALPHAMODE_MASK);
             shaderMaterial.alphaMaskCutoff = material.alphaCutoff;
             shaderMaterial.emissiveStrength = material.emissiveStrength;
 

@@ -41,7 +41,7 @@ namespace VkRender {
 
         void processEntities(GuiObjectHandles *handles) {
             auto view = handles->m_context->m_registry.view<TagComponent>(
-                    entt::exclude<RenderResource::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
+                    entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
             // Iterate over entities that have a GLTFModelComponent and a TagComponent
             for (auto entity: view) {
@@ -373,6 +373,8 @@ namespace VkRender {
                             handles->m_paths.update3DGSPath = true;
                         } else if (selectedFile.fileType == "obj"){
                             handles->m_paths.updateObjPath = true;
+                        } else if (selectedFile.fileType == "gltf"){
+                            handles->m_paths.updateGLTFPath = true;
                         }
                         handles->m_paths.importFilePath = selectedFile.path;
                     }
@@ -380,6 +382,7 @@ namespace VkRender {
             } else {
                 handles->m_paths.updateObjPath = false;
                 handles->m_paths.update3DGSPath = false;
+                handles->m_paths.updateGLTFPath = false;
             }
 
             if (folderFuture.valid()) {

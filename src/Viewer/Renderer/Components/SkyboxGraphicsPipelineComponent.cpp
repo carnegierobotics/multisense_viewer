@@ -8,7 +8,7 @@
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Tools/Macros.h"
 
-namespace RenderResource {
+namespace VkRender {
 
     void SkyboxGraphicsPipelineComponent::generateBRDFLUT() {
         auto tStart = std::chrono::high_resolution_clock::now();

@@ -184,7 +184,7 @@ namespace VkRender {
     void Renderer::processDeletions() {
         // TODO Specify cleanup routine for each component individually. Let the component manage the deletion itself
         // Check for PBR elements and if we should delay deletion
-        for (auto [entity, gltfModel, deleteComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, DeleteComponent>().each()) {
+        for (auto [entity, gltfModel, deleteComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, DeleteComponent>().each()) {
             gltfModel.markedForDeletion = true;
             bool readyForDeletion = true;
             for (const auto &resource: gltfModel.resources) {
@@ -506,14 +506,14 @@ namespace VkRender {
         }
 
         /**@brief Record command buffers for skybox */
-        for (auto [entity, skybox, gltfComponent]: m_registry.view<RenderResource::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
+        for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
                 entt::exclude<DeleteComponent>).each()) {
             skybox.draw(&drawCmdBuffers, currentFrame);
             gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
         }
 
         /**@brief Record commandbuffers for gltf models */
-        for (auto [entity, resources, gltfComponent]: m_registry.view<RenderResource::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
+        for (auto [entity, resources, gltfComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
                 entt::exclude<DeleteComponent>).each()) {
             if (!resources.markedForDeletion)
                 resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
@@ -731,6 +731,16 @@ namespace VkRender {
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
+        }        /**@brief Record commandbuffers for gltf models */
+        // Accessing components in a non-copying manner
+        for (auto entity: m_registry.view<DefaultPBRGraphicsPipelineComponent>()) {
+            auto &resources = m_registry.get<DefaultPBRGraphicsPipelineComponent>(entity);
+            auto &tag = m_registry.get<TagComponent>(entity);
+            const auto& transform = m_registry.get<TransformComponent>(entity);
+            const auto& currentCamera = cameras[selectedCameraTag];
+            resources.updateTransform(transform);
+            resources.updateView(currentCamera);
+            resources.update(currentFrame);
         }
 
         // Update GUI
@@ -745,12 +755,24 @@ namespace VkRender {
         // Load new obj file
         if (guiManager->handles.m_paths.updateObjPath){
             Log::Logger::getInstance()->info("Loading new model from {}", guiManager->handles.m_paths.importFilePath.string());
-            std::string entityName = guiManager->handles.m_paths.importFilePath.filename().string();
-            auto entity = createEntity(entityName);
+            std::filesystem::path filename = guiManager->handles.m_paths.importFilePath.filename();
+
+            auto entity = createEntity(filename.replace_extension().string());
             auto &component = entity.addComponent<OBJModelComponent>(guiManager->handles.m_paths.importFilePath, renderUtils.device);
             entity.addComponent<DefaultGraphicsPipelineComponent2>(&renderUtils).bind(component);
-            //entity.addComponent<DefaultGraphicsPipelineComponent2>(&renderUtils).bind(transform);
             entity.addComponent<DepthRenderPassComponent>();
+        }
+        // Load new gltf file
+        if (guiManager->handles.m_paths.updateGLTFPath){
+            Log::Logger::getInstance()->info("Loading new model from {}", guiManager->handles.m_paths.importFilePath.string());
+            std::filesystem::path filename = guiManager->handles.m_paths.importFilePath.filename();
+            auto entity = createEntity(filename.replace_extension().string());
+            auto &component = entity.addComponent<VkRender::GLTFModelComponent>(guiManager->handles.m_paths.importFilePath.string(),
+                                                                             renderUtils.device);
+            auto &sky = findEntityByName("Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
+            entity.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&renderUtils, component, sky);
+            entity.addComponent<DepthRenderPassComponent>();
+
         }
 
         // Update camera gizmos
@@ -1038,13 +1060,13 @@ namespace VkRender {
     }
 
     template<>
-    void Renderer::onComponentAdded<RenderResource::SkyboxGraphicsPipelineComponent>(Entity entity,
-                                                                                     RenderResource::SkyboxGraphicsPipelineComponent &component) {
+    void Renderer::onComponentAdded<VkRender::SkyboxGraphicsPipelineComponent>(Entity entity,
+                                                                               VkRender::SkyboxGraphicsPipelineComponent &component) {
     }
 
     template<>
-    void Renderer::onComponentAdded<RenderResource::DefaultPBRGraphicsPipelineComponent>(Entity entity,
-                                                                                         RenderResource::DefaultPBRGraphicsPipelineComponent &component) {
+    void Renderer::onComponentAdded<VkRender::DefaultPBRGraphicsPipelineComponent>(Entity entity,
+                                                                                   VkRender::DefaultPBRGraphicsPipelineComponent &component) {
     }
 
 

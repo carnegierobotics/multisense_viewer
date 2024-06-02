@@ -103,7 +103,8 @@ namespace VkRender {
 
         glm::mat4 getRotMat() const {
             if (type == RotationType::Euler) {
-                glm::quat q = glm::quat(glm::vec3(euler.pitch, euler.yaw, euler.roll));
+                glm::vec3 radiansEuler = glm::radians(glm::vec3(euler.pitch, euler.yaw, euler.roll));
+                glm::quat q = glm::quat(radiansEuler);
                 return glm::toMat4(q);
             } else {
                 return glm::toMat4(quaternion);

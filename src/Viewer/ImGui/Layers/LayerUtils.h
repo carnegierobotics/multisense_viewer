@@ -78,6 +78,7 @@ namespace VkRender::LayerUtils {
 
     static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
         std::string fileWithDot = "*." + fileType;
+        std::wstring wFileType = std::wstring(fileType.begin(), fileType.end());
         std::wstring fileTypeFilter = std::wstring(fileWithDot.begin(), fileWithDot.end());
         PWSTR path = nullptr;
         std::string filePath;
@@ -90,7 +91,7 @@ namespace VkRender::LayerUtils {
                 // Set the file types to display only. Notice the double null termination.
 
                 COMDLG_FILTERSPEC rgSpec[] = {
-                        {L".obj", fileTypeFilter.c_str()},
+                        {wFileType.c_str(), fileTypeFilter.c_str()},
                         {L"All Files", L"*.*"},
                 };
                 pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);

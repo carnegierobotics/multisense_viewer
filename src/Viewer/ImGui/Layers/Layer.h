@@ -151,6 +151,7 @@ namespace VkRender {
 
         bool updateObjPath = false;
         bool update3DGSPath = false;
+        bool updateGLTFPath = false;
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */

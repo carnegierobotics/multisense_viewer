@@ -111,6 +111,7 @@ namespace VkRender {
     void DefaultGraphicsPipelineComponent2::updateView(const Camera& camera){
         mvp.view = camera.matrices.view;
         mvp.projection = camera.matrices.perspective;
+        mvp.camPos = camera.pose.pos;
 
     }
 

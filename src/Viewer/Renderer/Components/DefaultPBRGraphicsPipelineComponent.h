@@ -11,8 +11,9 @@
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/GLTFDefines.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/Renderer/Components.h"
 
-namespace RenderResource {
+namespace VkRender {
 
     struct DefaultPBRGraphicsPipelineComponent {
         DefaultPBRGraphicsPipelineComponent() = default;
@@ -22,9 +23,9 @@ namespace RenderResource {
         DefaultPBRGraphicsPipelineComponent &
         operator=(const DefaultPBRGraphicsPipelineComponent &other) { return *this; }
 
-        DefaultPBRGraphicsPipelineComponent(VkRender::RenderUtils *utils,
-                                            const VkRender::GLTFModelComponent &modelComponent,
-                                            const RenderResource::SkyboxGraphicsPipelineComponent &skyboxComponent) {
+        DefaultPBRGraphicsPipelineComponent(RenderUtils *utils,
+                                            const GLTFModelComponent &modelComponent,
+                                            const SkyboxGraphicsPipelineComponent &skyboxComponent) {
             renderUtils = utils;
             vulkanDevice = utils->device;
             resources.resize(renderUtils->swapchainImages);
@@ -57,7 +58,7 @@ namespace RenderResource {
             }
         };
 
-        VkRender::RenderUtils *renderUtils;
+        RenderUtils *renderUtils;
         VulkanDevice *vulkanDevice;
 
         struct DescriptorSetLayouts {
@@ -83,8 +84,8 @@ namespace RenderResource {
 
             VkDescriptorSet descriptorSetMaterials;
 
-            VkRender::UBOMatrix uboMatrix;
-            VkRender::ShaderValuesParams shaderValuesParams;
+            UBOMatrix uboMatrix;
+            ShaderValuesParams shaderValuesParams;
 
             bool busy = false;
         };
@@ -119,22 +120,27 @@ namespace RenderResource {
 
         void setupPipelines(Resource& res);
 
-        void draw(CommandBuffer *commandBuffer, uint32_t cbIndex, const VkRender::GLTFModelComponent &component);
+        void draw(CommandBuffer *commandBuffer, uint32_t cbIndex, const GLTFModelComponent &component);
 
-        void createMaterialBuffer(Resource& res, const VkRender::GLTFModelComponent &component);
+        void createMaterialBuffer(Resource& res, const GLTFModelComponent &component);
 
-        void setupNodeDescriptorSet(VkRender::Node *pNode, VkDescriptorPool pool, VkDescriptorSetLayout* layout);
+        void setupNodeDescriptorSet(Node *pNode, VkDescriptorPool pool, VkDescriptorSetLayout* layout);
 
         void addPipelineSet(Resource& resource, std::string prefix, std::string vertexShader, std::string fragmentShader);
 
         void
-        setupDescriptors(Resource& res, const VkRender::GLTFModelComponent &component,
+        setupDescriptors(Resource& res, const GLTFModelComponent &component,
                          const SkyboxGraphicsPipelineComponent &skyboxComponent);
 
-        void renderNode(CommandBuffer *commandBuffer, uint32_t cbIndex, VkRender::Node *node,
-                        VkRender::Material::AlphaMode alphaMode);
+        void renderNode(CommandBuffer *commandBuffer, uint32_t cbIndex, Node *node,
+                        Material::AlphaMode alphaMode);
 
-        void update();
+        void update(uint32_t frameID);
+
+        void updateView(const Camera &camera);
+
+        void updateTransform(const TransformComponent &transform);
+
     };
 
 }

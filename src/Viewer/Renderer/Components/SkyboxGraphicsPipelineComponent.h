@@ -19,7 +19,7 @@
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Core/CommandBuffer.h"
 
-namespace RenderResource {
+namespace VkRender {
 
 
     struct SkyboxGraphicsPipelineComponent {

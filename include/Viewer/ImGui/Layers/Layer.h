@@ -51,7 +51,6 @@
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
-#include "Viewer/Core/MultiSenseDeviceDefinitions.h"
 #include "Viewer/Tools/ThreadPool.h"
 
 namespace VkRender {
@@ -128,65 +127,9 @@ namespace VkRender {
         /** @brief Containing descriptor handles for each image button texture */
         std::vector<ImTextureID> imageButtonTextureDescriptor;
 
-        /** @brief
-        * Container to hold animated gif images
-        */
-        struct {
-            ImTextureID image[20]{};
-            uint32_t id{};
-            uint32_t lastFrame = 0;
-            uint32_t width{};
-            uint32_t height{};
-            uint32_t imageSize{};
-            uint32_t totalFrames{};
-            uint32_t *delay{};
-        } gif{};
-
-        /** @brief ImGUI Overlay on previews window sizes */
-        float viewAreaElementSizeY = {0};
-        float viewAreaElementSizeX = {0};
-        float previewBorderPadding = 60.0f;
-        /** @brief add m_Device button params */
-        float addDeviceBottomPadding = 45.0f;
-        float addDeviceWidth = 180.0f, addDeviceHeight = 35.0f;
-        /** @brief Height of popupModal*/
-        float popupHeight = 600.0f;
-        /** @brief Width of popupModal*/
-        float popupWidth = 550.0f;
-        /** @brief Width of popupModal*/
-        float metadataWidth = 700.0f;
-        /** @brief Width of popupModal*/
-        float metadataHeight = 600.0f;
-        /**@brief size of control area tabs*/
-        float tabAreaHeight = 60.0f;
-        /** @brief size of Control Area*/
-        float controlAreaWidth = 440.0f, controlAreaHeight = height;
-
-        int numControlTabs = 2;
-        /** @brief size of viewing Area*/
-        float viewingAreaWidth = width - controlAreaWidth - sidebarWidth, viewingAreaHeight = height;
-
-        ImVec2 viewingAreaWindowPos;
-        /** @brief Horizontal size of scrollbar */
-        float scrollbarSize = 10.0f;
-        bool hoverState = false;
-        bool isViewingAreaHovered = false;
-        bool is3DTopBarHovered = false;
-
     };
 
-    struct CameraUIBlock {
-        /** @brief 3D view camera type for this device. Arcball or first person view controls) */
-        int type = 0;
-        /** @brief Reset 3D view camera position and rotation */
-        bool reset = false;
 
-        glm::vec3 pos;
-        glm::vec3 up;
-        glm::vec3 target;
-        glm::vec3 cameraFront;
-
-    };
 
     /** @brief block for simulated camera, Mostly used for testing  */
     struct CameraSelection {
@@ -215,21 +158,9 @@ namespace VkRender {
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
-        std::vector<Device> devices;
         /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
-        /** User action to configure network automatically even when using manual approach **/
-        bool configureNetwork = false;
-        /** Keypress and mouse events */
-        float accumulatedActiveScroll = 0.0f;
-        /**  Measures change in scroll. Does not provide change the accumulated scroll is outside of min and max scroll  */
-        float scroll = 0.0f;
-        std::unordered_map<StreamWindowIndex, float> previewZoom{};
-        float minZoom = 1.0f;
-        float maxZoom = 4.5f;
-        /** @brief min/max scroll used in DoublePreview layout */
-        float maxScroll = 450.0f, minScroll = -550.0f;
-        /** @brief Input from backend to IMGUI */
+
         const Input *input{};
         std::array<float, 4> clearColor{};
         /** @brief Display the debug window */
@@ -254,11 +185,6 @@ namespace VkRender {
             clearColor[2] = 0.862f;
             clearColor[3] = 1.0f;
 
-            // Initialize map used for zoom for each preview window
-            previewZoom[CRL_PREVIEW_ONE] = 1.0f;
-            previewZoom[CRL_PREVIEW_TWO] = 1.0f;
-            previewZoom[CRL_PREVIEW_THREE] = 1.0f;
-            previewZoom[CRL_PREVIEW_FOUR] = 1.0f;
         }
 
         /** @brief Reference to threadpool held by GuiManager */
@@ -314,103 +240,6 @@ namespace VkRender {
         virtual void onFinishedRender() = 0;
     };
 
-
-    /** @brief An initialized object needed to create a \refitem Device */
-    struct EntryConnectDevice {
-        std::string profileName = "MultiSense";
-        std::string IP = "10.66.171.21";
-        std::string interfaceName;
-        std::string description;
-        uint32_t interfaceIndex{};
-
-        std::string cameraName;
-        bool isRemoteHead = false;
-
-        EntryConnectDevice() = default;
-
-        EntryConnectDevice(std::string ip, std::string iName, std::string camera, uint32_t idx, std::string desc) : IP(
-                std::move(ip)),
-                                                                                                                    interfaceName(
-                                                                                                                            std::move(
-                                                                                                                                    iName)),
-                                                                                                                    description(
-                                                                                                                            std::move(
-                                                                                                                                    desc)),
-                                                                                                                    interfaceIndex(
-                                                                                                                            idx),
-                                                                                                                    cameraName(
-                                                                                                                            std::move(
-                                                                                                                                    camera)) {
-            profileName.reserve(64);
-            IP.reserve(16);
-        }
-
-        void reset() {
-            profileName = "";
-            IP = "";
-            interfaceName = "";
-            interfaceIndex = 0;
-        }
-
-        /**
-         * @brief Utility function to check if the requested profile in \ref m_Entry is not conflicting with any of the previously connected devices in the sidebar
-         * @param devices list of current devices
-         * @param entry new connection to be added
-         * @return true of we can add this new profile to list. False if not
-         */
-        bool ready(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) const {
-            bool profileNameEmpty = entry.profileName.empty();
-            bool profileNameTaken = false;
-            bool IPEmpty = entry.IP.empty();
-            bool adapterNameEmpty = entry.interfaceName.empty();
-
-            bool AdapterAndIPInTaken = false;
-            // Loop through devices and check that it doesn't exist already.
-            for (auto &d: devices) {
-                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    //AdapterAndIPInTaken = true;
-                    //Log::Logger::getInstance()->info("Ip {} on adapter {} already in use", entry.IP, entry.interfaceName);
-                }
-                if (d.name == entry.profileName) {
-                    profileNameTaken = true;
-                    //Log::Logger::getInstance()->info("Profile m_Name '{}' already taken", entry.profileName);
-                }
-
-            }
-            bool ready = true;
-            if (profileNameEmpty || profileNameTaken || IPEmpty || adapterNameEmpty || AdapterAndIPInTaken)
-                ready = false;
-            return ready;
-        }
-
-        std::vector<std::string>
-        getNotReadyReasons(const std::vector<VkRender::Device> &devices, const EntryConnectDevice &entry) {
-            std::vector<std::string> errors;
-            bool profileNameEmpty = entry.profileName.empty();
-            bool IPEmpty = entry.IP.empty();
-            bool adapterNameEmpty = entry.interfaceName.empty();
-            // Loop through devices and check that it doesn't exist already.
-            for (auto &d: devices) {
-                if (d.IP == entry.IP && d.interfaceName == entry.interfaceName) {
-                    //errors.emplace_back("The IP address on the selected adapter is in use");
-                }
-                if (d.name == entry.profileName) {
-                    errors.emplace_back("Profile name already in use");
-                }
-
-            }
-            if (profileNameEmpty)
-                errors.emplace_back("Profile name cannot be left blank");
-
-            if (IPEmpty)
-                errors.emplace_back("IP Address cannot be left blank");
-            if (adapterNameEmpty)
-                errors.emplace_back("No selected network adapter");
-
-            return errors;
-
-        }
-    };
 
 }
 

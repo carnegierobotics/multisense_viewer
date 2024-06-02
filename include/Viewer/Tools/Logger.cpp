@@ -39,6 +39,7 @@
 #include <ctime>
 #include <vector>
 #include <regex>
+#include <filesystem>
 
 
 #ifdef WIN32
@@ -46,9 +47,7 @@
 #define semWait(x, y) WaitForSingleObject(x, y)
 #define CTIME(time, size, timer) ctime_s(time, size, timer)
 #else
-
 #include<bits/stdc++.h>
-
 #define semPost(x) sem_post(x)
 #define CTIME(time, timer) ctime(timer)
 #endif
@@ -60,9 +59,8 @@ using namespace std;
 namespace Log {
 
 
-    Logger *Logger::m_Instance = nullptr;
-    VkRender::ThreadPool *Logger::m_ThreadPool = nullptr;
-    Metrics *Logger::m_Metrics = nullptr;
+    Logger *Logger::m_instance = nullptr;
+    VkRender::ThreadPool *Logger::m_threadPool = nullptr;
 
     Logger::Logger(const std::string &logFileName) {
         // Check file size
@@ -78,9 +76,9 @@ namespace Log {
             }
         }
 
-        m_File.open(logFileName.c_str(), ios::out | ios::app);
-        m_LogLevel = LOG_LEVEL_TRACE;
-        m_LogType = FILE_LOG;
+        m_file.open(logFileName.c_str(), ios::out | ios::app);
+        m_logLevel = LOG_LEVEL_TRACE;
+        m_logType = FILE_LOG;
 
         this->info("<=============================== START OF PROGRAM ===============================>");
 
@@ -93,32 +91,25 @@ namespace Log {
 
 
     Logger::~Logger() {
-        m_File.close();
-        delete m_Instance;
-        delete m_Metrics;
-        delete m_ThreadPool;
+        m_file.close();
+        delete m_instance;
+        delete m_threadPool;
     }
 
     Logger *Logger::getInstance(const std::string &fileName) noexcept {
-        if (m_Instance == nullptr) {
-            m_Metrics = new Metrics();
-            m_ThreadPool = new VkRender::ThreadPool(1);
-            m_Instance = new Logger(fileName);
-            m_Instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, getLogStringFromEnum(m_Instance->m_LogLevel));
+        if (m_instance == nullptr) {
+            m_threadPool = new VkRender::ThreadPool(1);
+            m_instance = new Logger(fileName);
+            m_instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, getLogStringFromEnum(m_instance->m_logLevel));
         }
-        return m_Instance;
-    }
-
-    Metrics *Logger::getLogMetrics() noexcept {
-        return m_Metrics;
+        return m_instance;
     }
 
     void Logger::logIntoFile(void *ctx, std::string &data) {
         auto *app = static_cast<Logger *> (ctx);
-        app->m_Mutex.lock();
-        app->m_File << getCurrentTime() << "  " << data << endl;
-        app->m_Metrics->logQueue.push(data);
-        app->m_Mutex.unlock();
+        app->m_mutex.lock();
+        app->m_file << getCurrentTime() << "  " << data << endl;
+        app->m_mutex.unlock();
     }
 
     void Logger::logOnConsole(std::string &data) {
@@ -149,10 +140,10 @@ namespace Log {
         data.append(text);
 
         // ERROR must be capture
-        if (m_LogType == FILE_LOG) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if (m_LogType == CONSOLE) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if (m_logType == FILE_LOG) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_logType == CONSOLE) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
     }
     // Interface for Error Log
@@ -162,10 +153,10 @@ namespace Log {
         data.append(text);
 
         // ERROR must be capture
-        if (m_LogType == FILE_LOG) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if (m_LogType == CONSOLE) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if (m_logType == FILE_LOG) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_logType == CONSOLE) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
     }
 
@@ -175,10 +166,10 @@ namespace Log {
         data.append(text);
 
         // ERROR must be capture
-        if (m_LogType == FILE_LOG) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if (m_LogType == CONSOLE) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if (m_logType == FILE_LOG) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_logType == CONSOLE) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
     }
 
@@ -188,10 +179,10 @@ namespace Log {
         data.append("[INFO]: ");
         data.append(text);
 
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_INFO)) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_INFO)) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if ((m_logType == FILE_LOG) && (m_logLevel >= LOG_LEVEL_INFO)) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if ((m_logType == CONSOLE) && (m_logLevel >= LOG_LEVEL_INFO)) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
 
     }
@@ -201,10 +192,10 @@ namespace Log {
         data.append("[TRACE]: ");
         data.append(text);
 
-        if ((m_LogType == FILE_LOG) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if ((m_LogType == CONSOLE) && (m_LogLevel >= LOG_LEVEL_TRACE)) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if ((m_logType == FILE_LOG) && (m_logLevel >= LOG_LEVEL_TRACE)) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if ((m_logType == CONSOLE) && (m_logLevel >= LOG_LEVEL_TRACE)) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
 
     }
@@ -216,10 +207,10 @@ namespace Log {
         data.append(text);
 
         // No check for ALWAYS logs
-        if (m_LogType == FILE_LOG) {
-            m_ThreadPool->Push(Logger::logIntoFile, this, data);
-        } else if (m_LogType == CONSOLE) {
-            m_ThreadPool->Push(Logger::logOnConsole, data);
+        if (m_logType == FILE_LOG) {
+            m_threadPool->Push(Logger::logIntoFile, this, data);
+        } else if (m_logType == CONSOLE) {
+            m_threadPool->Push(Logger::logOnConsole, data);
         }
     }
 
@@ -239,7 +230,7 @@ namespace Log {
     }
 
     void Logger::setLogLevel(LogLevel logLevel) {
-        m_LogLevel = logLevel;
+        m_logLevel = logLevel;
     }
 
 };

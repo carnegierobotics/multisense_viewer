@@ -70,9 +70,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-            va_start(args, fmt);
+                    va_start(args, fmt);
             Buf.appendfv(fmt, args);
-            va_end(args);
+                    va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -190,244 +190,104 @@ public:
         handles->info->debuggerWidth = ImGui::GetWindowWidth();
         handles->info->debuggerHeight = ImGui::GetWindowHeight();
 
-        auto &log = Log::Logger::getLogMetrics()->logQueue;
 
-        while (!log.empty()) {
-            window.AddLog("%s\n", log.front().c_str());
-            log.pop();
+
+
+        // Update frame time display
+        if (handles->info->firstFrame) {
+            std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
+                        handles->info->frameTimes.end());
+            float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
+            handles->info->frameTimes.back() = frameTime;
+            if (frameTime < handles->info->frameTimeMin) {
+                handles->info->frameTimeMin = frameTime;
+            }
+            if (frameTime > handles->info->frameTimeMax) {
+                handles->info->frameTimeMax = frameTime;
+            }
         }
 
+        ImGui::Dummy(ImVec2(5.0f, 0.0f));
         ImGui::SameLine();
-        if (ImGui::BeginChild("Metrics", ImVec2(handles->info->metricsWidth, 0.0f), false)) {
+        ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, nullptr,
+                         handles->info->frameTimeMin,
+                         handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
 
-            {
-                // Renderer Info
-                ImGui::PushFont(handles->info->font15);
-                ImGui::Text("Application Info:");
-                ImGui::PopFont();
-                ImGui::Dummy(ImVec2(5.0f, 5.0f));
+        ImGui::Dummy(ImVec2(5.0f, 0.0f));
 
-                ImVec2 txtSize = ImGui::CalcTextSize(handles->info->title.c_str());
-                float xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-                ImGui::Dummy(ImVec2(xOffset, 0.0f));
-                ImGui::SameLine();
-                ImGui::Text("%s", handles->info->title.c_str());
-
-                txtSize = ImGui::CalcTextSize(handles->info->deviceName.c_str());
-                // If it is too long then just remove some word towards the end.
-                if (txtSize.x > handles->info->sidebarWidth) {
-                    std::string devName = handles->info->deviceName;
-                    while (txtSize.x > handles->info->sidebarWidth) {
-                        devName.erase(devName.find_last_of(' '), devName.length());
-                        txtSize = ImGui::CalcTextSize(devName.c_str());
-                    }
-                    xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-                    ImGui::Dummy(ImVec2(xOffset, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::Text("%s", devName.c_str());
-                } else {
-                    xOffset = (handles->info->sidebarWidth / 2) - (txtSize.x / 2);
-                    ImGui::Dummy(ImVec2(xOffset, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::Text("%s", handles->info->deviceName.c_str());
-                }
+        ImGui::Text("Frame time: %.5f", static_cast<double>( handles->info->frameTimer));
+        ImGui::Text("Frame: %lu", handles->info->frameID);
 
 
-                // Update frame time display
-                if (handles->info->firstFrame) {
-                    std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
-                                handles->info->frameTimes.end());
-                    float frameTime = 1000.0f / (handles->info->frameTimer * 1000.0f);
-                    handles->info->frameTimes.back() = frameTime;
-                    if (frameTime < handles->info->frameTimeMin) {
-                        handles->info->frameTimeMin = frameTime;
-                    }
-                    if (frameTime > handles->info->frameTimeMax) {
-                        handles->info->frameTimeMax = frameTime;
-                    }
-                }
-
-                ImGui::Dummy(ImVec2(5.0f, 0.0f));
-                ImGui::SameLine();
-                ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, nullptr,
-                                 handles->info->frameTimeMin,
-                                 handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
-
-                ImGui::Dummy(ImVec2(5.0f, 0.0f));
-
-                ImGui::Text("Frame time: %.5f",static_cast<double>( handles->info->frameTimer));
-                ImGui::Text("Frame: %lu", handles->info->frameID);
+        ImGui::Separator();
 
 
-            }
-            ImGui::Separator();
+        ImGui::PushFont(handles->info->font15);
+        ImGui::Text("Application Options:");
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 8.0f));
+        ImGui::PopFont();
 
-            auto met = Log::Logger::getLogMetrics();
-
-            if (met->device.dev != nullptr && !met->device.dev->simulatedDevice) {
-                // Check if channelInfo contains key 0
-                if (!met->device.dev->channelInfo.empty()) {
-                    ImGui::PushFont(handles->info->font15);
-                    ImGui::Text("MultiSense Info:");
-                    ImGui::PopFont();
-
-                    std::stringstream stream;
-                    std::string res;
-
-                    ImGui::Text("Device: %s", met->device.dev->cameraName.c_str());
-                    ImGui::Text("Serial Number: %s", met->device.info.serialNumber.c_str());
-                    ImGui::Text("API build date: %s", met->device.info.apiBuildDate.c_str());
-
-                    ImGui::Text("API version: 0x%s", fmt::format("{:x}", met->device.info.apiVersion).c_str());
-                    ImGui::Text("Firmware build date: %s", met->device.info.firmwareBuildDate.c_str());
-                    stream << std::hex << met->device.info.firmwareVersion;
-                    ImGui::Text("Firmware version: 0x%s",
-                                fmt::format("{:x}", met->device.info.firmwareVersion).c_str());
-                    stream << std::hex << met->device.info.hardwareVersion;
-                    ImGui::Text("Hardware version: 0x%s",
-                                fmt::format("{:x}", met->device.info.hardwareVersion).c_str());
-                    stream << std::hex << met->device.info.hardwareMagic;
-                    ImGui::Text("Hardware magic: 0x%s", fmt::format("{:x}", met->device.info.hardwareMagic).c_str());
-                    stream << std::hex << met->device.info.sensorFpgaDna;
-                    ImGui::Text("FPGA DNA: 0x%s", fmt::format("{:x}", met->device.info.sensorFpgaDna).c_str());
-
-#ifdef MULTISENSE_DEBUG
-                    ImGui::Dummy(ImVec2(5.0f, 5.0f));
-                    ImGui::Dummy(ImVec2(2.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::Text("Application Enabled Sources:");
-                    for (const auto &enabled: info->enabledStreams) {
-                        ImGui::Dummy(ImVec2(10.0f, 0.0f));
-                        ImGui::SameLine();
-                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
-                        ImGui::Text("%s", enabled.c_str());
-                        ImGui::PopStyleColor();
-                    }
-                    ImGui::Dummy(ImVec2(2.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::Text("UI Requested Sources:");
-                    ImVec2 posMax = ImGui::GetItemRectMax();
-                    for (const auto &req: info->requestedStreams) {
-                        if (req == "Idle")
-                            continue;
-
-                        ImGui::Dummy(ImVec2(10.0f, 0.0f));
-                        ImGui::SameLine();
-                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLCoolGray);
-                        ImGui::Text("%s", req.c_str());
-                        ImGui::PopStyleColor();
-
-                        ImVec2 posMaxTmp = ImGui::GetItemRectMax();
-                        if (posMaxTmp.x > posMax.x)
-                            posMax = posMaxTmp;
-                    }
-
-
-                    for (const auto &id: met->device.sourceReceiveMapCounter) {
-                        for (const auto &src: id.second) {
-                            ImGui::Text("%hd :", id.first);
-                            ImGui::SameLine();
-                            ImGui::Text("%s ", src.first.c_str());
-                            ImGui::SameLine();
-                            ImGui::Text("%d", src.second);
-                        }
-                    }
-#endif
-                    ImGui::Text("MultiSense uptime: %.1f s", met->device.upTime);
-                }
-            }
-
-            ImGui::Separator();
-            ImGui::PushFont(handles->info->font15);
-            ImGui::Text("Application Options:");
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 8.0f));
-            ImGui::PopFont();
-            ImGui::Spacing();
-            if (ImGui::Checkbox("Ignore MultiSense missing status update", &met->device.ignoreMissingStatusUpdate)) {
-                handles->usageMonitor->userClickAction("Ignore MultiSense missing status update", "Checkbox",
-                                                       ImGui::GetCurrentWindow()->Name);
-            }
-
-
-            if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
-                update = true;
-                usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
-                handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
-                                                       ImGui::GetCurrentWindow()->Name);
-            }
+        if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
+            update = true;
+            usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
+                                                   ImGui::GetCurrentWindow()->Name);
+        }
 
 
 #ifdef MULTISENSE_VIEWER_DEBUG
-            static bool showDemo = false;
-            ImGui::Checkbox("ShowDemo", &showDemo);
-            if (showDemo)
-                ImGui::ShowDemoWindow();
-
-            static bool addTestDevice = false;
-            addTestDevice = ImGui::Button("Add test device");
-            if (addTestDevice) {
-                handles->usageMonitor->userClickAction("Add test device", "Button", ImGui::GetCurrentWindow()->Name);
-                // Add test device to renderer if not present
-                bool exists = false;
-                for (const auto &device: handles->devices) {
-                    if (device.cameraName == "Multisense-KS21")
-                        exists = true;
-                }
-                if (!exists) {
-                    VkRender::Device testDevice;
-                    Utils::initializeUIDataBlockWithTestData(testDevice);
-                    handles->devices.emplace_back(testDevice);
-                    Log::Logger::getInstance()->info("Adding a test device to the profile section");
-                }
-            }
+        static bool showDemo = false;
+        ImGui::Checkbox("ShowDemo", &showDemo);
+        if (showDemo)
+            ImGui::ShowDemoWindow();
 #endif
 
-            static bool sendUserLog = false;
-            sendUserLog = ImGui::Button("Send user log");
-            if (sendUserLog) {
-                sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
-                handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
-            }
+        static bool sendUserLog = false;
+        sendUserLog = ImGui::Button("Send user log");
+        if (sendUserLog) {
+            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
+            handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
+        }
 
-            if (ImGui::Button("Reset consent")) {
-                usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
-                handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
-                                                       ImGui::GetCurrentWindow()->Name);
-                user.askForUsageLoggingPermissions = true;
-                update = true;
-            }
-            if (!user.userConsentToSendLogs)
-                user.sendUsageLogOnExit = false;
+        if (ImGui::Button("Reset consent")) {
+            usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+            handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
+                                                   ImGui::GetCurrentWindow()->Name);
+            user.askForUsageLoggingPermissions = true;
+            update = true;
+        }
+        if (!user.userConsentToSendLogs)
+            user.sendUsageLogOnExit = false;
 
-            // Set log level
-            const char *items[] = {"LOG_TRACE", "LOG_INFO"};
-            static int itemIdIndex = 1; // Here we store our selection data as an index.
-            if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE) {
-                itemIdIndex = 0;
-            } else
-                itemIdIndex = 1;
+        // Set log level
+        const char *items[] = {"LOG_TRACE", "LOG_INFO"};
+        static int itemIdIndex = 1; // Here we store our selection data as an index.
+        if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE) {
+            itemIdIndex = 0;
+        } else
+            itemIdIndex = 1;
 
-            const char *previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
-            ImGui::SetNextItemWidth(100.0f);
-            if (ImGui::BeginCombo("Set Log level", previewValue, 0)) {
-                for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-                    const bool is_selected = (itemIdIndex == n);
-                    if (ImGui::Selectable(items[n], is_selected)) {
-                        itemIdIndex = n;
-                        auto level = Utils::getLogLevelEnumFromString(items[n]);
-                        user.logLevel = level;
-                        usageMonitor.setSetting("log_level", items[n]);
-                        update |= true;
-                        handles->usageMonitor->userClickAction("Set Log level", "combo",
-                                                               ImGui::GetCurrentWindow()->Name);
+        const char *previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+        ImGui::SetNextItemWidth(100.0f);
+        if (ImGui::BeginCombo("Set Log level", previewValue, 0)) {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                const bool is_selected = (itemIdIndex == n);
+                if (ImGui::Selectable(items[n], is_selected)) {
+                    itemIdIndex = n;
+                    auto level = Utils::getLogLevelEnumFromString(items[n]);
+                    user.logLevel = level;
+                    usageMonitor.setSetting("log_level", items[n]);
+                    update |= true;
+                    handles->usageMonitor->userClickAction("Set Log level", "combo",
+                                                           ImGui::GetCurrentWindow()->Name);
 
-                    }
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
                 }
-                ImGui::EndCombo();
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
             }
+            ImGui::EndCombo();
+
 
             ImGui::PopStyleVar(); //Item spacing
 
@@ -441,16 +301,16 @@ public:
             ImGui::Text("Icons from https://icons8.com");
 
         }
-        ImGui::EndChild();
         ImGui::End();
-
         if (update)
             config.setUserSetting(user);
 
     }
 
 /** Called once upon this object destruction **/
-    void onDetach() override {
+    void onDetach()
+
+    override {
 
     }
 

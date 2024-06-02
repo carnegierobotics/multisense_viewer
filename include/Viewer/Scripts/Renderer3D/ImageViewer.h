@@ -8,8 +8,6 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 
 #include "Viewer/Renderer/Components/CustomModels.h"
-#include "Viewer/ModelLoaders/ImageView.h"
-#include "Viewer/SYCL/SYCLRayTracer.h"
 #include "Viewer/SYCL/GaussianRenderer.h"
 
 class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
@@ -37,7 +35,6 @@ public:
     void onDestroy() override{
     }
 
-    std::unique_ptr<SYCLRayTracer> m_syclRenderer;
     std::unique_ptr<GaussianRenderer> m_gaussianRenderer;
 
     std::string entityName;

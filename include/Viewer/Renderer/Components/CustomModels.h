@@ -7,9 +7,10 @@
 
 
 #include "Viewer/Core/RenderDefinitions.h"
-#include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/CommandBuffer.h"
 #include "Viewer/Renderer/Components/RenderComponents/RenderBase.h"
+#include "Viewer/Tools/Utils.h"
+#include "Viewer/Tools/Logger.h"
 
 namespace VkRender {
     struct CustomModelComponent : RenderBase {

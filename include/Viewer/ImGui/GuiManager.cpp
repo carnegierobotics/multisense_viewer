@@ -138,15 +138,11 @@ namespace VkRender {
         loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_quad_layout.png").string(), 8);
         loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_nine_layout.png").string(), 9);
 
-
-        loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
-
         pushLayer("SideBarLayer");
         pushLayer("MenuLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
-
 
         pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
         handles.pool = pool;
@@ -176,7 +172,6 @@ namespace VkRender {
 
         std::array<VkPipelineShaderStageCreateInfo, 2> shaders{vtxShaderStage, fragShaderStage};
 
-
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
         style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
@@ -191,8 +186,6 @@ namespace VkRender {
         style.Colors[ImGuiCol_TabHovered] = VkRender::Colors::CRLRedHover;
         style.Colors[ImGuiCol_Button] = VkRender::Colors::CRLBlueIsh;
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
-
-
 
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -302,7 +295,6 @@ namespace VkRender {
         if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
             throw std::runtime_error("Failed to create graphics m_Pipeline");
-
     }
 
     void
@@ -459,72 +451,6 @@ namespace VkRender {
             scissorRectFull.offset = {0, 0};
             scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width), static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
             vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);        }
-    }
-
-
-    void GuiManager::loadAnimatedGif(const std::string &file) {
-        int width = 0, height = 0, depth = 0, comp = 0;
-        int *delays = nullptr;
-        int channels = 4;
-
-        std::ifstream input(file, std::ios::binary | std::ios::ate);
-        std::streamsize size = input.tellg();
-        input.seekg(0, std::ios::beg);
-
-        stbi_uc *pixels = nullptr;
-        std::vector<stbi_uc> buffer(size);
-        if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
-            pixels = stbi_load_gif_from_memory(buffer.data(), static_cast<int> (size), &delays, &width, &height, &depth,
-                                               &comp, channels);
-            if (!pixels)
-                throw std::runtime_error("failed to load texture m_Image: " + file);
-        }
-        uint32_t imageSize = width * height * channels;
-
-        handles.info->gif.width = width;
-        handles.info->gif.height = height;
-        handles.info->gif.totalFrames = depth;
-        handles.info->gif.imageSize = imageSize;
-        handles.info->gif.delay = reinterpret_cast<uint32_t *>( delays);
-        gifImageDescriptors.reserve(static_cast<size_t>(depth) + 1);
-
-        auto *pixelPointer = pixels; // Store original position in pixels
-
-        for (int i = 0; i < depth; ++i) {
-            VkDescriptorSet dSet{};
-            gifTexture[i] = std::make_unique<Texture2D>();
-
-            gifTexture[i]->fromBuffer(pixelPointer, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
-                                      handles.info->gif.width, handles.info->gif.height, device,
-                                      device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-
-            // Create Descriptor Set:
-
-            VkDescriptorSetAllocateInfo alloc_info = {};
-            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            alloc_info.descriptorPool = descriptorPool;
-            alloc_info.descriptorSetCount = 1;
-            alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &dSet));
-
-
-            // Update the Descriptor Set:
-            VkWriteDescriptorSet write_desc[1] = {};
-            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = dSet;
-            write_desc[0].descriptorCount = 1;
-            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &gifTexture[i]->m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
-
-            handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
-            pixelPointer += handles.info->gif.imageSize;
-
-            gifImageDescriptors.emplace_back(dSet);
-        }
-        stbi_image_free(pixels);
     }
 
     void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {

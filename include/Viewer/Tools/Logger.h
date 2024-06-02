@@ -44,6 +44,7 @@
 #include <string_view>
 #include <fmt/core.h>
 #include <mutex>
+#include <map>
 
 #ifdef _WIN32
 
@@ -75,7 +76,6 @@
 #endif
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/Core/MultiSenseDeviceDefinitions.h"
 
 
 namespace Log {
@@ -123,49 +123,11 @@ namespace Log {
 #endif
     };
 
-    struct Metrics {
-        // InfoLogs
-        std::queue<std::string> logQueue;
-        /// MultiSense device
-        struct {
-            struct {
-                std::string apiBuildDate;
-                uint32_t apiVersion;
-                std::string firmwareBuildDate;
-                std::string serialNumber;
-                uint32_t firmwareVersion;
-                uint64_t hardwareVersion;
-                uint64_t hardwareMagic;
-                uint64_t sensorFpgaDna;
-            } info;
-            const VkRender::Device *dev = nullptr;
-            std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<std::string, uint32_t>> sourceReceiveMapCounter;
-            std::unordered_map<crl::multisense::RemoteHeadChannel, uint32_t> imuReceiveMapCounter;
-
-            std::vector<std::string> enabledSources;
-            std::vector<std::string> requestedSources;
-            std::vector<std::string> disabledSources;
-            double upTime = 0.0;
-            bool ignoreMissingStatusUpdate = false;
-        } device;
-        /// SingleLayout Preview
-        struct {
-            uint32_t width = 0, height = 0;
-            uint32_t texWidth = 0, texHeight = 0;
-            VkRender::CRLCameraResolution res = VkRender::CRL_RESOLUTION_NONE;
-            std::string src;
-            bool usingDefaultTexture = false;
-            int empty = 0;
-        } preview;
-
-    };
 
     class Logger {
     public:
 
         static Logger *getInstance(const std::string &logFileName = "") noexcept;
-
-        static Metrics *getLogMetrics() noexcept;
 
         void errorInternal(const char *text) noexcept;
 
@@ -232,18 +194,18 @@ namespace Log {
         template<typename... Args>
         void
         traceWithFrequency(const std::string &tag, uint32_t frequency, const FormatString &format, Args &&... args) {
-            if (frequencies.find(tag) != frequencies.end() && counter.find(tag) != counter.end()) {
-                counter[tag]++;
+            if (m_frequencies.find(tag) != m_frequencies.end() && m_counter.find(tag) != m_counter.end()) {
+                m_counter[tag]++;
             } else {
-                counter.insert_or_assign(tag, static_cast<uint32_t>(1));
-                frequencies.insert_or_assign(tag, frequency);
+                m_counter.insert_or_assign(tag, static_cast<uint32_t>(1));
+                m_frequencies.insert_or_assign(tag, frequency);
             }
             // I would like to use % == 0, but at least on windows if I do
-            // counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the counter map get initialized with NULL.
-            // which makes the next line crash when I reference value in counter[tag].
+            // m_counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the m_counter map get initialized with NULL.
+            // which makes the next line crash when I reference value in m_counter[tag].
             // Does not happen if I use any other value such as 1. No functional difference but just weird
             // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
-            if (counter[tag] % frequencies[tag] == 1) {
+            if (m_counter[tag] % m_frequencies[tag] == 1) {
                 vTrace(tag, format, fmt::make_format_args(args...));
             }
         }
@@ -259,18 +221,18 @@ namespace Log {
         template<typename... Args>
         void
         warningWithFrequency(const std::string &tag, uint32_t frequency, const FormatString &format, Args &&... args) {
-            if (frequencies.find(tag) != frequencies.end() && counter.find(tag) != counter.end()) {
-                counter[tag]++;
+            if (m_frequencies.find(tag) != m_frequencies.end() && m_counter.find(tag) != m_counter.end()) {
+                m_counter[tag]++;
             } else {
-                counter.insert_or_assign(tag, static_cast<uint32_t>(1));
-                frequencies.insert_or_assign(tag, frequency);
+                m_counter.insert_or_assign(tag, static_cast<uint32_t>(1));
+                m_frequencies.insert_or_assign(tag, frequency);
             }
             // I would like to use % == 0, but at least on windows if I do
-            // counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the counter map get initialized with NULL.
-            // which makes the next line crash when I reference value in counter[tag].
+            // m_counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the m_counter map get initialized with NULL.
+            // which makes the next line crash when I reference value in m_counter[tag].
             // Does not happen if I use any other value such as 1. No functional difference but just weird
             // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
-            if (counter[tag] % frequencies[tag] == 1) {
+            if (m_counter[tag] % m_frequencies[tag] == 1) {
                 vWarning(tag, format, fmt::make_format_args(args...));
             }
         }
@@ -345,17 +307,16 @@ namespace Log {
             return msg;
         }
 
-        static Logger *m_Instance;
-        static VkRender::ThreadPool *m_ThreadPool;
-        static Metrics *m_Metrics;
-        std::ofstream m_File;
-        std::map<std::string, uint32_t> frequencies;
-        std::map<std::string, uint32_t> counter;
+        static Logger *m_instance;
+        static VkRender::ThreadPool *m_threadPool;
+        std::ofstream m_file;
+        std::map<std::string, uint32_t> m_frequencies;
+        std::map<std::string, uint32_t> m_counter;
 
-        std::mutex m_Mutex{};
+        std::mutex m_mutex{};
 
-        LogLevel m_LogLevel{};
-        LogType m_LogType{};
+        LogLevel m_logLevel{};
+        LogType m_logType{};
 
     };
 

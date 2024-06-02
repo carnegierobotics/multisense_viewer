@@ -83,7 +83,7 @@ namespace VkRender {
     };
 
     struct Mesh {
-        VulkanDevice *device;
+        VulkanDevice *m_device;
         std::vector<Primitive *> primitives;
         BoundingBox bb;
         BoundingBox aabb;
@@ -168,15 +168,15 @@ namespace VkRender {
     struct Model {
 
         Model(std::filesystem::path modelPath, VulkanDevice *_device) {
-            device = _device;
+            m_device = _device;
             loadFromFile(modelPath.string());
         }
 
         ~Model(){
-            destroy(device->m_LogicalDevice);
+            destroy(m_device->m_LogicalDevice);
         }
 
-        VulkanDevice *device;
+        VulkanDevice *m_device;
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;

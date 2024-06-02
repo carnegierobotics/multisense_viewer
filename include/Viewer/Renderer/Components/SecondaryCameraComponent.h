@@ -6,8 +6,8 @@
 #define MULTISENSE_VIEWER_SECONDARYCAMERA_H
 
 #include "Viewer/Core/RenderDefinitions.h"
-#include "Viewer/Scripts/Private/TextureDataDef.h"
 #include "Viewer/Core/CommandBuffer.h"
+
 namespace VkRender {
     struct SecondaryCameraComponent {
 

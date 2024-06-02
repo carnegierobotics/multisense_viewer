@@ -38,11 +38,11 @@ namespace VkRender::LayerUtils {
 #ifdef WIN32
 
     static inline std::filesystem::path selectFolder(std::string openLocation = "") {
-        PWSTR path = NULL;
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        PWSTR path = nullptr;
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
             IFileOpenDialog* pfd;
-            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+            hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
                                   reinterpret_cast<void**>(&pfd));
             if (SUCCEEDED(hr)) {
                 DWORD dwOptions;
@@ -50,7 +50,7 @@ namespace VkRender::LayerUtils {
                 if (SUCCEEDED(hr)) {
                     hr = pfd->SetOptions(dwOptions | FOS_PICKFOLDERS);
                     if (SUCCEEDED(hr)) {
-                        hr = pfd->Show(NULL);
+                        hr = pfd->Show(nullptr);
                         if (SUCCEEDED(hr)) {
                             IShellItem* psi;
                             hr = pfd->GetResult(&psi);
@@ -67,44 +67,44 @@ namespace VkRender::LayerUtils {
         }
 
         if (path) {
-            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, NULL, NULL);
+            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
             std::string str(count - 1, 0);
-            WideCharToMultiByte(CP_UTF8, 0, path, -1, &str[0], count, NULL, NULL);
+            WideCharToMultiByte(CP_UTF8, 0, path, -1, &str[0], count, nullptr, nullptr);
             CoTaskMemFree(path);
             return str;
         }
         return std::string();
     }
 
-    static inline std::filesystem::path selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
-        PWSTR path = NULL;
+    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
+        PWSTR path = nullptr;
         std::string filePath;
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
-            IFileOpenDialog* pfd;
-            hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
-                                  reinterpret_cast<void**>(&pfd));
+            IFileOpenDialog *pfd;
+            hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<void **>(&pfd));
             if (SUCCEEDED(hr)) {
                 // Set the file types to display only. Notice the double null termination.
                 COMDLG_FILTERSPEC rgSpec[] = {
-                    {L"YAML Files", L"*.yaml;*.yml"},
-                    {L"All Files", L"*.*"},
+                        {L"YAML Files", L"*.yaml;*.yml"},
+                        {L"All Files",  L"*.*"},
                 };
                 pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
 
                 // Show the dialog
-                hr = pfd->Show(NULL);
+                hr = pfd->Show(nullptr);
                 if (SUCCEEDED(hr)) {
-                    IShellItem* psi;
+                    IShellItem *psi;
                     hr = pfd->GetResult(&psi);
                     if (SUCCEEDED(hr)) {
                         hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
                         psi->Release();
                         if (SUCCEEDED(hr)) {
                             // Convert the selected file path to a narrow string
-                            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, NULL, NULL);
+                            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
                             filePath.resize(count - 1);
-                            WideCharToMultiByte(CP_UTF8, 0, path, -1, &filePath[0], count, NULL, NULL);
+                            WideCharToMultiByte(CP_UTF8, 0, path, -1, &filePath[0], count, nullptr, nullptr);
                         }
                     }
                 }
@@ -117,7 +117,7 @@ namespace VkRender::LayerUtils {
             CoTaskMemFree(path);
         }
 
-        return filePath;
+        return {filePath, fileType};
     }
 
 #else
@@ -127,15 +127,15 @@ namespace VkRender::LayerUtils {
     static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
         std::string filename;
 
-        gtk_init(0, NULL);
+        gtk_init(0, nullptr);
 
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
                 dialogName.c_str(),
-                NULL,
+                nullptr,
                 GTK_FILE_CHOOSER_ACTION_OPEN,
                 ("_Cancel"), GTK_RESPONSE_CANCEL,
                 ("_Open"), GTK_RESPONSE_ACCEPT,
-                NULL
+                nullptr
         );
 
         GtkFileFilter *filter = gtk_file_filter_new();
@@ -162,15 +162,15 @@ namespace VkRender::LayerUtils {
     static inline std::filesystem::path selectFolder(std::string openLocation) {
         std::string folderPath;
 
-        gtk_init(0, NULL);
+        gtk_init(0, nullptr);
 
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
                 "Select Folder",
-                NULL,
+                nullptr,
                 GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
                 ("_Cancel"), GTK_RESPONSE_CANCEL,
                 ("_Open"), GTK_RESPONSE_ACCEPT,
-                NULL
+                nullptr
         );
         std::string openLoc = openLocation.empty() ? Utils::getSystemHomePath().string() : openLocation;
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), openLoc.c_str());

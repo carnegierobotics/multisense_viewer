@@ -26,9 +26,11 @@ namespace VkRender {
 
         GLTFModelComponent(const GLTFModelComponent &) = default;
 
+        /*
         GLTFModelComponent &operator=(const GLTFModelComponent &other) {
             return *this;
         }
+        */
 
         GLTFModelComponent(const std::filesystem::path &modelPath, VulkanDevice *device) {
             model = std::make_unique<Model>(modelPath, device);

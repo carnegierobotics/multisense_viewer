@@ -69,7 +69,7 @@ public:
     bool resetDataCapture = true;
     bool saveDepthImage = false;
 
-    std::vector<ImageData> loadPoses(std::filesystem::path path);
+    std::vector<ImageData> loadPoses(const std::filesystem::path& path);
 
     static bool compareImageID(const ImageData &img1, const ImageData &img2);
 

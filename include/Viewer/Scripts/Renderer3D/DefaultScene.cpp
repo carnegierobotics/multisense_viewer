@@ -40,6 +40,7 @@ void DefaultScene::setup() {
     auto &rr = cameraGizmo.addComponent<VkRender::CameraGraphicsPipelineComponent>(&m_context->renderUtils);
 
 
+    /*
     if (showDepthView) {
         auto quad = m_context->createEntity("depthImageView");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
@@ -54,6 +55,7 @@ void DefaultScene::setup() {
         res.bind(modelComponent);
         res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
     }
+     */
 
 }
 

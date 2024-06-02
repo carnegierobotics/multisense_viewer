@@ -115,7 +115,6 @@ namespace VkRender {
         cameras[selectedCameraTag]->setType(VkRender::Camera::arcball);
         cameras[selectedCameraTag]->setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height));
         cameras[selectedCameraTag]->resetPosition();
-        cameraConnection = std::make_unique<VkRender::MultiSense::CameraConnection>();
 
         // Run Once
         renderUtils.device = vulkanDevice;
@@ -677,7 +676,6 @@ namespace VkRender {
         renderData.frameID = frameID;
         renderData.height = m_Height;
         renderData.width = m_Width;
-        renderData.crlCamera = &cameraConnection->camPtr;
         renderUtils.swapchainIndex = currentFrame;
         renderUtils.input = &input;
         // New version available?
@@ -737,7 +735,6 @@ namespace VkRender {
         renderData.frameID = frameID;
         renderData.height = m_Height;
         renderData.width = m_Width;
-        renderData.crlCamera = &cameraConnection->camPtr;
         renderData.renderPassIndex = currentFrame;
 
         if ((m_Width > 0.0) && (m_Height > 0.0)) {
@@ -771,11 +768,6 @@ namespace VkRender {
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
 
-        for (auto &dev: guiManager->handles.devices) {
-            dev.interruptConnection = true; // Disable all current connections if user wants to exit early
-            cameraConnection->saveProfileAndDisconnect(&dev);
-        }
-
         startTime = std::chrono::steady_clock::now();
         // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
         guiManager.reset();
@@ -806,23 +798,16 @@ namespace VkRender {
         mouseButtons.dx = dx;
         mouseButtons.dy = dy;
 
-        bool is3DViewSelected = false;
-        for (const auto &dev: guiManager->handles.devices) {
-            if (dev.state != VkRender::CRL_STATE_ACTIVE)
-                continue;
-            is3DViewSelected = dev.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD;
-        }
 
         // UPdate camera if we have one selected
         if (!selectedCameraTag.empty()) {
             auto it = cameras.find(selectedCameraTag);
             if (it != cameras.end()) {
-                if (mouseButtons.left && guiManager->handles.info->isViewingAreaHovered &&
-                    is3DViewSelected) {
+                if (mouseButtons.left) {
                     // && !mouseButtons.middle) {
                     cameras[selectedCameraTag]->rotate(dx, dy);
                 }
-                if (mouseButtons.left && guiManager->handles.renderer3D && !guiManager->handles.info->is3DTopBarHovered)
+                if (mouseButtons.left && guiManager->handles.renderer3D)
                     cameras[selectedCameraTag]->rotate(dx, dy);
 
                 if (mouseButtons.right) {
@@ -844,13 +829,6 @@ namespace VkRender {
     }
 
     void Renderer::mouseScroll(float change) {
-        for (const auto &item: guiManager->handles.devices) {
-            if (item.state == VkRender::CRL_STATE_ACTIVE &&
-                item.selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD &&
-                guiManager->handles.info->isViewingAreaHovered) {
-                cameras[selectedCameraTag]->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
-            }
-        }
         if (guiManager->handles.renderer3D) {
             cameras[selectedCameraTag]->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
@@ -870,18 +848,6 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Created Entity with UUID: {} and Tag: {}",
                                          entity.getUUID().operator std::string(), entity.getName());
         m_entityMap[uuid] = entity;
-
-        return entity;
-    }
-
-    std::shared_ptr<Entity> Renderer::createEntitySharedPtr(const std::string &name, UUID uuid) {
-        auto entity = std::make_shared<Entity>(m_registry.create(), this);
-        entity->addComponent<IDComponent>(UUID());
-        entity->addComponent<TransformComponent>();
-        auto &tag = entity->addComponent<TagComponent>();
-        tag.Tag = name.empty() ? "Entity" : name;
-
-        m_entityMap[uuid] = *entity;  // Store in a map if needed
 
         return entity;
     }

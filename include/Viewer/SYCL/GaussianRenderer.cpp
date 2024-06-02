@@ -3,8 +3,9 @@
 //
 
 #include "GaussianRenderer.h"
-#include "Viewer/Tools/Utils.h"
 
+/*
+#include "Viewer/Tools/Utils.h"
 #include <filesystem>
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -487,7 +488,7 @@ void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector
         countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
     }
 }
-*/
+
 
 
 // Utility function to print an array
@@ -1030,3 +1031,4 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem:
     }
     return data;
 }
+ */

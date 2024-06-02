@@ -58,7 +58,7 @@ namespace VkRender
 
     // Mesh
     Mesh::Mesh(VulkanDevice *device, glm::mat4 matrix) {
-        this->device = device;
+        this->m_device = device;
         this->uniformBlock.matrix = matrix;
         CHECK_RESULT(device->createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -67,13 +67,13 @@ namespace VkRender
                 &uniformBuffer.buffer,
                 &uniformBuffer.memory,
                 &uniformBlock));
-        CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
+        CHECK_RESULT(vkMapMemory(m_device->m_LogicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
         uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
     };
 
     Mesh::~Mesh() {
-        vkDestroyBuffer(device->m_LogicalDevice, uniformBuffer.buffer, nullptr);
-        vkFreeMemory(device->m_LogicalDevice, uniformBuffer.memory, nullptr);
+        vkDestroyBuffer(m_device->m_LogicalDevice, uniformBuffer.buffer, nullptr);
+        vkFreeMemory(m_device->m_LogicalDevice, uniformBuffer.memory, nullptr);
         for (Primitive* p : primitives)
             delete p;
     }
@@ -204,7 +204,7 @@ namespace VkRender
         // Node contains mesh data
         if (node.mesh > -1) {
             const tinygltf::Mesh mesh = model.meshes[node.mesh];
-            Mesh *newMesh = new Mesh(device, newNode->matrix);
+            Mesh *newMesh = new Mesh(m_device, newNode->matrix);
             for (size_t j = 0; j < mesh.primitives.size(); j++) {
                 const tinygltf::Primitive &primitive = mesh.primitives[j];
                 uint32_t vertexStart = static_cast<uint32_t>(loaderInfo.vertexPos);
@@ -755,7 +755,7 @@ namespace VkRender
 
         if (fileLoaded) {
             loadTextureSamplers(gltfModel);
-            loadTextures(gltfModel, device, device->m_TransferQueue);
+            loadTextures(gltfModel, m_device, m_device->m_TransferQueue);
             loadMaterials(gltfModel);
 
             const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
@@ -808,7 +808,7 @@ namespace VkRender
 
         // Create staging buffers
         // Vertex data
-        CHECK_RESULT(device->createBuffer(
+        CHECK_RESULT(m_device->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 vertexBufferSize,
@@ -817,7 +817,7 @@ namespace VkRender
                 loaderInfo.vertexBuffer));
         // Index data
         if (indexBufferSize > 0) {
-            CHECK_RESULT(device->createBuffer(
+            CHECK_RESULT(m_device->createBuffer(
                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     indexBufferSize,
@@ -828,7 +828,7 @@ namespace VkRender
 
         // Create device local buffers
         // Vertex buffer
-        CHECK_RESULT(device->createBuffer(
+        CHECK_RESULT(m_device->createBuffer(
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 vertexBufferSize,
@@ -836,7 +836,7 @@ namespace VkRender
                 &vertices.memory));
         // Index buffer
         if (indexBufferSize > 0) {
-            CHECK_RESULT(device->createBuffer(
+            CHECK_RESULT(m_device->createBuffer(
                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     indexBufferSize,
@@ -845,7 +845,7 @@ namespace VkRender
         }
 
         // Copy from staging buffers
-        VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkCommandBuffer copyCmd = m_device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
         VkBufferCopy copyRegion = {};
 
@@ -857,13 +857,13 @@ namespace VkRender
             vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
         }
 
-        device->flushCommandBuffer(copyCmd, device->m_TransferQueue, true);
+        m_device->flushCommandBuffer(copyCmd, m_device->m_TransferQueue, true);
 
-        vkDestroyBuffer(device->m_LogicalDevice, vertexStaging.buffer, nullptr);
-        vkFreeMemory(device->m_LogicalDevice, vertexStaging.memory, nullptr);
+        vkDestroyBuffer(m_device->m_LogicalDevice, vertexStaging.buffer, nullptr);
+        vkFreeMemory(m_device->m_LogicalDevice, vertexStaging.memory, nullptr);
         if (indexBufferSize > 0) {
-            vkDestroyBuffer(device->m_LogicalDevice, indexStaging.buffer, nullptr);
-            vkFreeMemory(device->m_LogicalDevice, indexStaging.memory, nullptr);
+            vkDestroyBuffer(m_device->m_LogicalDevice, indexStaging.buffer, nullptr);
+            vkFreeMemory(m_device->m_LogicalDevice, indexStaging.memory, nullptr);
         }
 
         delete[] loaderInfo.vertexBuffer;

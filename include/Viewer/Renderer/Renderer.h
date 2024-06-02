@@ -54,7 +54,6 @@
 #include "Viewer/Core/VulkanRenderer.h"
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/CRLCamera/CameraConnection.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RendererConfig.h"
 
@@ -88,12 +87,12 @@ namespace VkRender {
          * @brief cleans up resources on application exist
          */
         void cleanUp();
+
         void closeApplication(){
             VulkanRenderer::closeApplication();
         }
 
         Entity createEntity(const std::string &name);
-        std::shared_ptr<Entity> createEntitySharedPtr(const std::string &name, UUID uuid = UUID());
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         VkRender::Entity findEntityByName(std::string_view name);
@@ -145,18 +144,10 @@ namespace VkRender {
 
         std::vector<std::string> availableScriptNames;
         std::shared_ptr<UsageMonitor> usageMonitor;
-        std::unique_ptr<VkRender::MultiSense::CameraConnection> cameraConnection{};
 
         bool renderSelectionPass = true;
 
-        // Create a host-visible staging buffer that contains the raw m_Image data
-        VkBuffer selectionBuffer{};
-        VkDeviceMemory selectionMemory{};
-        VkBufferImageCopy bufferCopyRegion{};
-        VkMemoryRequirements m_MemReqs{};
-
         friend class Entity;
-
 
         void processDeletions();
 

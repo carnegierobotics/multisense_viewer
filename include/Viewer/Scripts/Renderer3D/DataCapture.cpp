@@ -2,6 +2,8 @@
 // Created by magnus on 10/3/23.
 //
 
+#include <filesystem>
+
 #include "Viewer/Scripts/Renderer3D/DataCapture.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Renderer/Components/CustomModels.h"
@@ -282,10 +284,9 @@ void DataCapture::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
         for (const auto &entry: std::filesystem::directory_iterator(path)) {
             if (std::filesystem::is_directory(entry.status())) {
                 Scene scene{};
-                scene.scene = entry.path().filename();
+                scene.scene = entry.path().filename().string();
                 for (const auto &fileEntry: std::filesystem::recursive_directory_iterator(entry.path())) {
                     if (std::filesystem::is_regular_file(fileEntry) && fileEntry.path().extension() == ".obj") {
-                        fileEntry.path();
                         scene.objPath = fileEntry.path();
                         scene.exists = true;
                     }
@@ -377,8 +378,8 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
 
         std::string tag = "Camera: " + std::to_string(img.imageID);
 
-        float fov_x = 2.0f * atan(cameraData.width / (2.0f * cameraData.parameters[0]));
-        float fov_y = 2.0f * atan(cameraData.height / (2.0f * cameraData.parameters[1]));
+        float fov_x = 2.0f * atanf(cameraData.width / (2.0f * cameraData.parameters[0]));
+        float fov_y = 2.0f * atanf(cameraData.height / (2.0f * cameraData.parameters[1]));
 
         // Convert to degrees
         float fov_x_deg = glm::degrees(fov_x);
@@ -408,7 +409,7 @@ void DataCapture::loadColmapPoses(VkRender::GuiObjectHandles *uiHandle) {
 }
 
 
-std::vector<DataCapture::ImageData> DataCapture::loadPoses(std::filesystem::path path) {
+std::vector<DataCapture::ImageData> DataCapture::loadPoses(const std::filesystem::path& path) {
 
     std::vector<ImageData> images;
     std::ifstream file(path / "images.txt");

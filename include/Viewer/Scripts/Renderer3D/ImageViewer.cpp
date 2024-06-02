@@ -14,6 +14,7 @@
 
 void ImageViewer::setup() {
 
+    /*
     std::filesystem::path filePath = "/home/magnus/crl/multisense_viewer/3dgs_insect.ply";
     Log::Logger::getInstance()->info("Loading new model from {}", filePath.string());
     entityName = filePath.string();
@@ -34,15 +35,15 @@ void ImageViewer::setup() {
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                         VK_FORMAT_R8G8B8A8_UNORM);
     res.setTexture(&m_syclRenderTarget->m_descriptor);
-    m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
-            filePath, 1);
-    m_gaussianRenderer->setupBuffers(m_context->getCamera());
+    //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
+
+   // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
 
+     */
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
 }
 
 
@@ -67,10 +68,10 @@ void ImageViewer::update() {
     auto imageView = m_context->findEntityByName(entityName);
     if (imageView) {
 
-        m_gaussianRenderer->tileRasterizer(camera, btn);
+        //m_gaussianRenderer->tileRasterizer(camera, btn);
         auto *dataPtr = m_syclRenderTarget->m_DataPtr;
         uint32_t size = camera.m_height * camera.m_width * 4;
-        std::memcpy(dataPtr, m_gaussianRenderer->img, size);
+        //std::memcpy(dataPtr, m_gaussianRenderer->img, size);
         m_syclRenderTarget->updateTextureFromBuffer();
 
         auto &obj = imageView.getComponent<VkRender::DefaultGraphicsPipelineComponent2>();
@@ -90,6 +91,7 @@ void ImageViewer::update() {
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (uiHandle->m_paths.update3DGSPath) {
+        /*
         if (m_context->findEntityByName(entityName))
             return;
         Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importFilePath.string());
@@ -115,6 +117,7 @@ void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
                 uiHandle->m_paths.importFilePath.string(), 1);
         m_gaussianRenderer->setupBuffers(m_context->getCamera());
 
+        */
     }
 
 }

@@ -268,7 +268,7 @@ namespace VkRender {
                     handles->m_context->markEntityForDestruction(entity);
                     // Update the cameras list immediately after deletion
                     cameras.clear();
-                    for (auto [entity, camera, tagComponent]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                    for (auto [ent, camera, tagComponent]: handles->m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                         if (!Utils::isInVector(cameras, tagComponent.Tag))
                             cameras.emplace_back(tagComponent.Tag);
                     }
@@ -438,11 +438,11 @@ namespace VkRender {
 
             if (folderFuture.valid()) {
                 if (folderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                    std::string selectedFolder = folderFuture.get(); // This will also make the future invalid
+                    auto selectedFolder = folderFuture.get(); // This will also make the future invalid
                     if (!selectedFolder.empty()) {
                         // Do something with the selected folder
 
-                        Log::Logger::getInstance()->info("Selected folder {}", selectedFolder);
+                        Log::Logger::getInstance()->info("Selected folder {}", selectedFolder.string().c_str());
                         RendererConfig::getInstance().getUserSetting().lastOpenedFolderPath = selectedFolder;
                         handles->m_loadColmapCameras = true;
                         handles->m_paths.loadColMapPosesPath = selectedFolder;

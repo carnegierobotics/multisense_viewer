@@ -45,21 +45,17 @@
 #include <vulkan/vulkan_core.h>
 #include <regex>
 #include <algorithm>
+#include <tiffio.h>
 
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-
 #include <direct.h>
 #include <windows.h>
 #include <UserEnv.h>
-
 #else
-
 #include <sys/stat.h>
-#include <tiffio.h>
-
 #endif
 
 #include "Viewer/Tools/Macros.h"
@@ -91,118 +87,7 @@ namespace Utils {
         return {"Scripts/"};
     }
 
-    static std::string dataSourceToString(crl::multisense::DataSource d) {
-        switch (d) {
-            case crl::multisense::Source_Raw_Left:
-                return "Raw Left";
-            case crl::multisense::Source_Raw_Right:
-                return "Raw Right";
-            case crl::multisense::Source_Luma_Left:
-                return "Luma Left";
-            case crl::multisense::Source_Luma_Right:
-                return "Luma Right";
-            case crl::multisense::Source_Luma_Rectified_Left:
-                return "Luma Rectified Left";
-            case crl::multisense::Source_Luma_Rectified_Right:
-                return "Luma Rectified Right";
-            case crl::multisense::Source_Chroma_Left:
-                return "Color Left";
-            case crl::multisense::Source_Chroma_Right:
-                return "Source Color Right";
-            case crl::multisense::Source_Disparity_Left:
-                return "Disparity Left";
-            case crl::multisense::Source_Disparity_Cost:
-                return "Disparity Cost";
-            case crl::multisense::Source_Lidar_Scan:
-                return "Source Lidar Scan";
-            case crl::multisense::Source_Raw_Aux:
-                return "Raw Aux";
-            case crl::multisense::Source_Luma_Aux:
-                return "Luma Aux";
-            case crl::multisense::Source_Luma_Rectified_Aux:
-                return "Luma Rectified Aux";
-            case crl::multisense::Source_Chroma_Aux:
-                return "Color Aux";
-            case crl::multisense::Source_Chroma_Rectified_Aux:
-                return "Color Rectified Aux";
-            case crl::multisense::Source_Disparity_Aux:
-                return "Disparity Aux";
-            case crl::multisense::Source_Compressed_Left:
-                return "Luma Compressed Left";
-            case crl::multisense::Source_Compressed_Rectified_Left:
-                return "Luma Compressed Rectified Left";
-            case crl::multisense::Source_Compressed_Right:
-                return "Luma Compressed Right";
-            case crl::multisense::Source_Compressed_Rectified_Right:
-                return "Luma Compressed Rectified Reight";
-            case crl::multisense::Source_Compressed_Aux:
-                return "Compressed Aux";
-            case crl::multisense::Source_Compressed_Rectified_Aux:
-                return "Compressed Rectified Aux";
-            case (crl::multisense::Source_Chroma_Rectified_Aux | crl::multisense::Source_Luma_Rectified_Aux):
-                return "Color Rectified Aux";
-            case (crl::multisense::Source_Chroma_Aux | crl::multisense::Source_Luma_Aux):
-                return "Color Aux";
-            case crl::multisense::Source_Imu:
-                return "IMU";
-            default:
-                return "Unknown";
-        }
-    }
-
-    static crl::multisense::DataSource stringToDataSource(const std::string &d) {
-        if (d == "Raw Left") return crl::multisense::Source_Raw_Left;
-        if (d == "Raw Right") return crl::multisense::Source_Raw_Right;
-        if (d == "Luma Left") return crl::multisense::Source_Luma_Left;
-        if (d == "Luma Right") return crl::multisense::Source_Luma_Right;
-        if (d == "Luma Rectified Left") return crl::multisense::Source_Luma_Rectified_Left;
-        if (d == "Luma Rectified Right") return crl::multisense::Source_Luma_Rectified_Right;
-        if (d == "Luma Compressed Rectified Left") return crl::multisense::Source_Compressed_Rectified_Left;
-        if (d == "Luma Compressed Left") return crl::multisense::Source_Compressed_Left;
-        if (d == "Color Left") return crl::multisense::Source_Chroma_Left;
-        if (d == "Source Color Right") return crl::multisense::Source_Chroma_Right;
-        if (d == "Disparity Left") return crl::multisense::Source_Disparity_Left;
-        if (d == "Disparity Cost") return crl::multisense::Source_Disparity_Cost;
-        if (d == "Jpeg Left") return crl::multisense::Source_Jpeg_Left;
-        if (d == "Source Rgb Left") return crl::multisense::Source_Rgb_Left;
-        if (d == "Source Lidar Scan") return crl::multisense::Source_Lidar_Scan;
-        if (d == "Raw Aux") return crl::multisense::Source_Raw_Aux;
-        if (d == "Luma Aux") return crl::multisense::Source_Luma_Aux;
-        if (d == "Luma Rectified Aux") return crl::multisense::Source_Luma_Rectified_Aux;
-        if (d == "Color Aux") return crl::multisense::Source_Chroma_Aux;
-        if (d == "Color Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
-        if (d == "Chroma Aux") return crl::multisense::Source_Chroma_Aux;
-        if (d == "Chroma Rectified Aux") return crl::multisense::Source_Chroma_Rectified_Aux;
-        if (d == "Disparity Aux") return crl::multisense::Source_Disparity_Aux;
-        if (d == "IMU") return crl::multisense::Source_Imu;
-        if (d == "All") return crl::multisense::Source_All;
-        return false;
-    }
-
-    static VkRender::CRLCameraDataType CRLSourceToTextureType(const std::string &d) {
-        if (d == "Luma Left") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Right") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Left") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Right") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Left") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Right") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Left") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Compressed Rectified Right") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Disparity Left") return VkRender::CRL_DISPARITY_IMAGE;
-
-        if (d == "Color Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
-        if (d == "Color Rectified Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
-        if (d == "Luma Aux") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Luma Rectified Aux") return VkRender::CRL_GRAYSCALE_IMAGE;
-        if (d == "Compressed Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
-        if (d == "Compressed Rectified Aux") return VkRender::CRL_COLOR_IMAGE_YUV420;
-
-        return VkRender::CRL_CAMERA_IMAGE_NONE;
-    }
-
     DISABLE_WARNING_POP
-
-
     /**@brief small utility function. Usage of this makes other code more readable */
     inline bool isInVector(const std::vector<std::string> &v, const std::string &str) {
         if (std::find(v.begin(), v.end(), str) != v.end())
@@ -210,21 +95,6 @@ namespace Utils {
         return false;
 
     }
-
-    /**@brief small utility function. Usage of this makes other code more readable */
-    inline bool isStreamRunning(VkRender::Device &dev, const std::string &stream) {
-        // Check if disparity stream is running
-        for (auto &ch: dev.channelInfo) {
-            if (ch.state != VkRender::CRL_STATE_ACTIVE)
-                continue;
-
-            if (Utils::isInVector(ch.enabledStreams, stream)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**@brief small utility function. Usage of this makes other code more readable */
     inline bool removeFromVector(std::vector<std::string> *v, const std::string &str) {
         auto it = std::find(v->begin(), v->end(), str);
@@ -235,162 +105,6 @@ namespace Utils {
         return true;
     }
 
-
-    /**@brief small utility function. Usage of this makes other code more readable */
-    template<typename T>
-    inline bool delFromVector(std::vector<T> *v, const T &str) {
-        auto itr = std::find(v->begin(), v->end(), str);
-        if (itr != v->end()) {
-            v->erase(itr);
-            return true;
-        }
-        return false;
-    }
-
-#ifdef WIN32
-
-    inline bool hasAdminRights() {
-        BOOL fRet = FALSE;
-        HANDLE hToken = NULL;
-        if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-            TOKEN_ELEVATION Elevation;
-            DWORD cbSize = sizeof(TOKEN_ELEVATION);
-            if (GetTokenInformation(hToken, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
-                fRet = Elevation.TokenIsElevated;
-            }
-        }
-        if (hToken) {
-            CloseHandle(hToken);
-        }
-        return !fRet;
-    }
-
-#endif
-
-
-    inline VkRender::CRLCameraResolution stringToCameraResolution(const std::string &resolution) {
-        if (resolution == "960 x 600 x 64x") return VkRender::CRL_RESOLUTION_960_600_64;
-        if (resolution == "960 x 600 x 128x") return VkRender::CRL_RESOLUTION_960_600_128;
-        if (resolution == "960 x 600 x 256x") return VkRender::CRL_RESOLUTION_960_600_256;
-        if (resolution == "1920 x 1200 x 64x") return VkRender::CRL_RESOLUTION_1920_1200_64;
-        if (resolution == "1920 x 1200 x 128x") return VkRender::CRL_RESOLUTION_1920_1200_128;
-        if (resolution == "1920 x 1200 x 256x") return VkRender::CRL_RESOLUTION_1920_1200_256;
-        if (resolution == "1024 x 1024 x 128x") return VkRender::CRL_RESOLUTION_1024_1024_128;
-        if (resolution == "2048 x 1088 x 256x") return VkRender::CRL_RESOLUTION_2048_1088_256;
-        return VkRender::CRL_RESOLUTION_NONE;
-    }
-
-    inline std::string cameraResolutionToString(const VkRender::CRLCameraResolution &res) {
-        switch (res) {
-            case VkRender::CRL_RESOLUTION_960_600_64:
-                return "960 x 600 x 64";
-            case VkRender::CRL_RESOLUTION_960_600_128:
-                return "960 x 600 x 128";
-            case VkRender::CRL_RESOLUTION_960_600_256:
-                return "960 x 600 x 256";
-            case VkRender::CRL_RESOLUTION_1920_1200_64:
-                return "1920 x 1200 x 64";
-            case VkRender::CRL_RESOLUTION_1920_1200_128:
-                return "1920 x 1200 x 128";
-            case VkRender::CRL_RESOLUTION_1920_1200_256:
-                return "1920 x 1200 x 256";
-            case VkRender::CRL_RESOLUTION_1024_1024_128:
-                return "1024 x 1024 x 128";
-            case VkRender::CRL_RESOLUTION_2048_1088_256:
-                return "2048 x 1088 x 256";
-            case VkRender::CRL_RESOLUTION_NONE:
-                return "Resolution not supported";
-        }
-        return "Resolution not supported";
-    }
-
-    /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
-    inline void
-    cameraResolutionToValue(VkRender::CRLCameraResolution resolution, uint32_t *_width, uint32_t *_height,
-                            uint32_t *_depth) {
-        uint32_t width = 0, height = 0, depth = 0;
-        switch (resolution) {
-            case VkRender::CRL_RESOLUTION_NONE:
-                width = 0;
-                height = 0;
-                depth = 0;
-                break;
-            case VkRender::CRL_RESOLUTION_960_600_64:
-                width = 960;
-                height = 600;
-                depth = 64;
-                break;
-            case VkRender::CRL_RESOLUTION_960_600_128:
-                width = 960;
-                height = 600;
-                depth = 128;
-                break;
-            case VkRender::CRL_RESOLUTION_960_600_256:
-                width = 960;
-                height = 600;
-                depth = 256;
-                break;
-            case VkRender::CRL_RESOLUTION_1920_1200_64:
-                width = 1920;
-                height = 1200;
-                depth = 64;
-                break;
-            case VkRender::CRL_RESOLUTION_1920_1200_128:
-                width = 1920;
-                height = 1200;
-                depth = 128;
-                break;
-            case VkRender::CRL_RESOLUTION_1920_1200_256:
-                width = 1920;
-                height = 1200;
-                depth = 256;
-                break;
-            case VkRender::CRL_RESOLUTION_1024_1024_128:
-                width = 1024;
-                height = 1024;
-                depth = 128;
-                break;
-            case VkRender::CRL_RESOLUTION_2048_1088_256:
-                width = 2048;
-                height = 1088;
-                depth = 256;
-                break;
-        }
-
-        *_width = width;
-        *_height = height;
-        *_depth = depth;
-    }
-
-    /** @brief Convert camera resolution enum to uint32_t values used by the libmultisense */
-    inline VkRender::CRLCameraResolution
-    valueToCameraResolution(uint32_t _width, uint32_t _height, uint32_t _depth) {
-        if (_height == 600 && _width == 960 && _depth == 64) {
-            return VkRender::CRL_RESOLUTION_960_600_64;
-        }
-        if (_height == 600 && _width == 960 && _depth == 128) {
-            return VkRender::CRL_RESOLUTION_960_600_128;
-        }
-        if (_height == 600 && _width == 960 && _depth == 256) {
-            return VkRender::CRL_RESOLUTION_960_600_256;
-        }
-        if (_height == 1200 && _width == 1920 && _depth == 64) {
-            return VkRender::CRL_RESOLUTION_1920_1200_64;
-        }
-        if (_height == 1200 && _width == 1920 && _depth == 128) {
-            return VkRender::CRL_RESOLUTION_1920_1200_128;
-        }
-        if (_height == 1200 && _width == 1920 && _depth == 256) {
-            return VkRender::CRL_RESOLUTION_1920_1200_256;
-        }
-        if (_height == 1024 && _width == 1024 && _depth == 128) {
-            return VkRender::CRL_RESOLUTION_1024_1024_128;
-        }
-        if (_height == 2048 && _width == 1088 && _depth == 256) {
-            return VkRender::CRL_RESOLUTION_2048_1088_256;
-        }
-        return VkRender::CRL_RESOLUTION_NONE;
-    }
 
     inline VkFormat
     findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat> &candidates, VkImageTiling tiling,
@@ -414,8 +128,6 @@ namespace Utils {
                                    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
                                    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
-
-
     // Create an m_Image memory barrier for changing the layout of
     // an m_Image and put it into an active command buffer
     // See chapter 11.4 "Image Layout" for details
@@ -643,51 +355,6 @@ namespace Utils {
     }
 
 
-    static inline void initializeUIDataBlockWithTestData(VkRender::Device &dev) {
-        dev.state = VkRender::CRL_STATE_JUST_ADDED;
-        dev.cameraName = "Simulated device";
-        dev.IP = "127.0.0.1";
-        dev.simulatedDevice = true;
-        dev.channelInfo.resize(4); // max number of remote heads
-        dev.win.clear();
-        crl::multisense::RemoteHeadChannel ch = 0;
-        VkRender::ChannelInfo chInfo;
-        chInfo.availableSources.clear();
-        chInfo.modes.clear();
-        chInfo.availableSources.emplace_back("Idle");
-        chInfo.index = ch;
-        chInfo.state = VkRender::CRL_STATE_JUST_ADDED;
-        chInfo.selectedResolutionMode = VkRender::CRL_RESOLUTION_1920_1200_128;
-        std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes;
-        supportedDeviceModes.emplace_back();
-        //initCameraModes(&chInfo.modes, supportedModes);
-        chInfo.selectedResolutionMode = Utils::valueToCameraResolution(1920, 1080, 128);
-        for (int i = 0; i < VkRender::CRL_PREVIEW_TOTAL_MODES; ++i) {
-            dev.win[static_cast<VkRender::StreamWindowIndex>(i)].availableRemoteHeads.push_back(std::to_string(ch + 1));
-            if (!chInfo.availableSources.empty())
-                dev.win[static_cast<VkRender::StreamWindowIndex>(i)].selectedRemoteHeadIndex = ch;
-        }
-
-        // stop streams if there were any enabled, just so we can start with a clean slate
-        //stopStreamTask(this, "All", ch);
-
-        dev.channelInfo.at(ch) = chInfo;
-
-        Log::Logger::getLogMetrics()->device.dev = &dev;
-
-        // Update Debug Window
-        auto &info = Log::Logger::getLogMetrics()->device.info;
-
-        info.firmwareBuildDate = "cInfo.sensorFirmwareBuildDate";
-        info.firmwareVersion = 12;
-        info.apiBuildDate = "cInfo.apiBuildDate";
-        info.apiVersion = 13;
-        info.hardwareMagic = 14;
-        info.hardwareVersion = 16;
-        info.sensorFpgaDna = 17;
-
-    }
-
     static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
         if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
         else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
@@ -819,147 +486,6 @@ namespace Utils {
         return false;
     }
 
-
-    static inline bool parseCustomMetadataToJSON(VkRender::Device *dev) {
-
-        std::string serialNumber = Log::Logger::getLogMetrics()->device.info.serialNumber;
-        nlohmann::json metadataJSON;
-        uint32_t fwVersion = Log::Logger::getLogMetrics()->device.info.firmwareVersion;
-        std::string fwVersionStr = fmt::format("0x{:x}", fwVersion);
-        std::string firmwareBuildDate = Log::Logger::getLogMetrics()->device.info.firmwareBuildDate;
-        uint32_t apiVersion = Log::Logger::getLogMetrics()->device.info.apiVersion;
-        std::string apiVersionStr = fmt::format("0x{:x}", apiVersion);
-        std::string apiBuildDate = Log::Logger::getLogMetrics()->device.info.apiBuildDate;
-
-        std::filesystem::path saveFolder = dev->record.frameSaveFolder;
-
-#ifdef WIN32
-        auto t = std::time(nullptr);
-        std::tm tm;
-        localtime_s(&tm, &t);  // Use localtime_s instead of std::localtime
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
-        auto date = oss.str();
-#else
-        auto t = std::time(nullptr);
-        auto tm = *std::localtime(&t);
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
-        auto date = oss.str();
-#endif
-
-        try {
-
-            // Populate JSON object with metadata
-            metadataJSON["metadata"]["name"] = std::string(dev->record.metadata.logName);
-            metadataJSON["metadata"]["date"] = date;
-            metadataJSON["metadata"]["location"] = std::string(dev->record.metadata.location);
-            metadataJSON["metadata"]["description"] = std::string(dev->record.metadata.recordDescription);
-            metadataJSON["metadata"]["equipment_description"] = std::string(dev->record.metadata.equipmentDescription);
-            metadataJSON["metadata"]["camera_extrinsics"] =
-                    (saveFolder / (serialNumber + "_extrinsics.yml")).string();
-            metadataJSON["metadata"]["camera_intrinsics"] =
-                    (saveFolder / (serialNumber + "_intrinsics.yml")).string();
-            metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
-            metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
-            metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;
-            metadataJSON["metadata"]["camera_api_build_date"] = apiBuildDate;
-            //metadataJSON["metadata"]["camera_calibration_info"] = std::string(dev->record.metadata.camera_calibration_info);
-            //metadataJSON["metadata"]["camera_firmware_version"] = std::string(dev->record.metadata.camera_firmware_version);
-            metadataJSON["metadata"]["tags"] = std::string(dev->record.metadata.tags);
-
-            // Check if the user has set a camera name
-            if (strlen(dev->record.metadata.camera) <= 0) {
-                metadataJSON["metadata"]["camera_name"] = std::string(
-                        Log::Logger::getLogMetrics()->device.dev->cameraName);
-            } else {
-                metadataJSON["metadata"]["camera_name"] = std::string(dev->record.metadata.camera);
-            }
-
-            // Split the string by newline characters
-            std::istringstream iss(dev->record.metadata.customField);
-            std::string line;
-            std::map<std::string, std::string> customFields;
-
-            while (std::getline(iss, line)) {
-                // Skip empty lines
-                if (line.empty()) continue;
-
-                // Find the position of the '=' character
-                size_t pos = line.find('=');
-                if (pos != std::string::npos) {
-                    std::string key = line.substr(0, pos);
-                    std::string value = line.substr(pos + 1);
-
-                    // Trim spaces
-                    key.erase(0, key.find_first_not_of(' '));
-                    key.erase(key.find_last_not_of(' ') + 1);
-                    value.erase(0, value.find_first_not_of(' '));
-                    value.erase(value.find_last_not_of(' ') + 1);
-
-                    customFields[key] = value;
-                }
-            }
-            metadataJSON["metadata"]["custom_fields"] = customFields;
-
-            metadataJSON["data_info"]["session_start"] = date;
-
-            dev->record.metadata.JSON = metadataJSON;
-            dev->record.metadata.parsed = true;
-        } catch (nlohmann::json::exception &e) {
-            Log::Logger::getInstance()->error("Failed to parse metadata to JSON: {}", e.what());
-            dev->record.metadata.parsed = false;
-        }
-        return dev->record.metadata.parsed;
-    }
-
-    static inline bool parseMetadataToJSON(VkRender::Device *dev) {
-        std::string serialNumber = Log::Logger::getLogMetrics()->device.info.serialNumber;
-        nlohmann::json metadataJSON;
-        uint32_t fwVersion = Log::Logger::getLogMetrics()->device.info.firmwareVersion;
-        std::string fwVersionStr = fmt::format("0x{:x}", fwVersion);
-        std::string firmwareBuildDate = Log::Logger::getLogMetrics()->device.info.firmwareBuildDate;
-        uint32_t apiVersion = Log::Logger::getLogMetrics()->device.info.apiVersion;
-        std::string apiVersionStr = fmt::format("0x{:x}", apiVersion);
-        std::string apiBuildDate = Log::Logger::getLogMetrics()->device.info.apiBuildDate;
-        std::filesystem::path saveFolder = dev->record.frameSaveFolder;
-        // Get todays date:
-#ifdef WIN32
-        auto t = std::time(nullptr);
-        std::tm tm;
-        localtime_s(&tm, &t);  // Use localtime_s instead of std::localtime
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
-        auto date = oss.str();
-#else
-        auto t = std::time(nullptr);
-        auto tm = *std::localtime(&t);
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S");
-        auto date = oss.str();
-#endif
-        try {
-            // Populate JSON object with metadata
-            metadataJSON["metadata"]["date"] = date;
-            metadataJSON["metadata"]["camera_extrinsics"] = (saveFolder / (serialNumber + "_extrinsics.yml")).string();
-            metadataJSON["metadata"]["camera_intrinsics"] = (
-                    saveFolder / (serialNumber + "_intrinsics.yml")).string();
-            metadataJSON["metadata"]["camera_firmware_version"] = fwVersionStr;
-            metadataJSON["metadata"]["camera_firmware_build_date"] = firmwareBuildDate;
-            metadataJSON["metadata"]["camera_api_version"] = apiVersionStr;
-            metadataJSON["metadata"]["camera_api_build_date"] = apiBuildDate;
-            metadataJSON["metadata"]["camera_name"] = std::string(Log::Logger::getLogMetrics()->device.dev->cameraName);
-
-            metadataJSON["data_info"]["session_start"] = date;
-
-            dev->record.metadata.JSON = metadataJSON;
-            dev->record.metadata.parsed = true;
-        } catch (nlohmann::json::exception &e) {
-            Log::Logger::getInstance()->error("Failed to parse metadata to JSON: {}", e.what());
-            dev->record.metadata.parsed = false;
-        }
-        return dev->record.metadata.parsed;
-    }
 
     static inline void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
         int samplesPerPixel = 1;

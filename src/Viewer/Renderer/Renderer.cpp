@@ -54,6 +54,7 @@
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 #include "Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
+#include "Viewer/Renderer/Components/CustomModels.h"
 
 namespace VkRender {
 

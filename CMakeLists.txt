@@ -42,7 +42,7 @@ else()
     message(STATUS "Doxygen not found, not building docs")
 endif()
 
-include_directories(include)
+include_directories(src)
 include_directories(Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
@@ -50,47 +50,48 @@ ExportScriptIncludes()
 GenerateVersionFile()
 
 set(SOURCE_FILES
-        include/main.cpp
-        include/Viewer/Core/Buffer.cpp
-        include/Viewer/Core/Texture.cpp
-        include/Viewer/Core/VulkanDevice.cpp
-        include/Viewer/Core/VulkanRenderer.cpp
-        include/Viewer/Core/VulkanSwapchain.cpp
-        include/Viewer/Core/UUID.cpp
-        include/Viewer/Core/RendererConfig.cpp
-        include/Viewer/Core/ServerConnection.cpp
-        include/Viewer/Core/CommandBuffer.cpp
+        src/main.cpp
+        src/Viewer/Core/Buffer.cpp
+        src/Viewer/Core/Texture.cpp
+        src/Viewer/Core/VulkanDevice.cpp
+        src/Viewer/Core/VulkanRenderer.cpp
+        src/Viewer/Core/VulkanSwapchain.cpp
+        src/Viewer/Core/UUID.cpp
+        src/Viewer/Core/RendererConfig.cpp
+        src/Viewer/Core/ServerConnection.cpp
+        src/Viewer/Core/CommandBuffer.cpp
 
-        include/Viewer/Renderer/Renderer.cpp
-        include/Viewer/Renderer/Entity.cpp
-        include/Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.cpp
-        include/Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
-        include/Viewer/Renderer/Components/GLTFModelComponent.cpp
-        include/Viewer/Renderer/Components/CustomModels.cpp
-        include/Viewer/Renderer/Components/GLTFDefines.h
-        include/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
-        include/Viewer/Renderer/Components/OBJModelComponent.cpp
-        include/Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
-        include/Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h
-        include/Viewer/Renderer/UsageMonitor.cpp
-        include/Viewer/Renderer/ApplicationUserSetting.h
+        src/Viewer/Renderer/Renderer.cpp
+        src/Viewer/Renderer/Entity.cpp
+        src/Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.cpp
+        src/Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
+        src/Viewer/Renderer/Components/GLTFModelComponent.cpp
+        src/Viewer/Renderer/Components/CustomModels.cpp
+        src/Viewer/Renderer/Components/GLTFDefines.h
+        src/Viewer/Renderer/Components/SecondaryCameraComponent.cpp
+        src/Viewer/Renderer/Components/OBJModelComponent.cpp
+        src/Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
+        src/Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h
+        src/Viewer/Renderer/UsageMonitor.cpp
+        src/Viewer/Renderer/ApplicationUserSetting.h
 
-        include/Viewer/ImGui/Widgets.cpp
-        include/Viewer/ImGui/Layers/LayerFactory.cpp
-        include/Viewer/ImGui/GuiManager.cpp
+        src/Viewer/ImGui/Widgets.cpp
+        src/Viewer/ImGui/Layers/LayerFactory.cpp
+        src/Viewer/ImGui/GuiManager.cpp
+        src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
 
-        include/Viewer/Tools/StbInclude.cpp
-        include/Viewer/Tools/Logger.cpp
-        include/Viewer/Tools/ThreadPool.h
+        src/Viewer/Tools/StbInclude.cpp
+        src/Viewer/Tools/Logger.cpp
+        src/Viewer/Tools/ThreadPool.h
 
-        include/Viewer/Scripts/Private/ScriptUtils.h
-        include/Viewer/Scripts/Renderer3D/DefaultScene.cpp
-        include/Viewer/Scripts/Renderer3D/MultiSense.cpp
-        include/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        include/Viewer/Scripts/Renderer3D/ImageViewer.cpp
-        include/Viewer/Scripts/Renderer3D/DataCapture.cpp
+        src/Viewer/Scripts/Private/ScriptUtils.h
+        src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
+        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
+        src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
+        src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
+        src/Viewer/Scripts/Renderer3D/DataCapture.cpp
 
-        include/Viewer/SYCL/GaussianRenderer.cpp
+        src/Viewer/SYCL/GaussianRenderer.cpp
 )
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")

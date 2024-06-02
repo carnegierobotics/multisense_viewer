@@ -190,9 +190,16 @@ public:
         handles->info->debuggerWidth = ImGui::GetWindowWidth();
         handles->info->debuggerHeight = ImGui::GetWindowHeight();
 
+        auto* log = Log::Logger::getConsoleLogQueue();
 
+        while (!log->empty()) {
+            window.AddLog("%s\n", log->front().c_str());
+            log->pop();
+        }
 
+        ImGui::SameLine();
 
+        ImGui::BeginChild("InfoChild",  ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration);
         // Update frame time display
         if (handles->info->firstFrame) {
             std::rotate(handles->info->frameTimes.begin(), handles->info->frameTimes.begin() + 1,
@@ -212,19 +219,14 @@ public:
         ImGui::PlotLines("##FrameTimes", &handles->info->frameTimes[0], 50, 0, nullptr,
                          handles->info->frameTimeMin,
                          handles->info->frameTimeMax, ImVec2(handles->info->sidebarWidth - 28.0f, 80.0f));
-
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
-
         ImGui::Text("Frame time: %.5f", static_cast<double>( handles->info->frameTimer));
         ImGui::Text("Frame: %lu", handles->info->frameID);
-
-
         ImGui::Separator();
 
 
         ImGui::PushFont(handles->info->font15);
         ImGui::Text("Application Options:");
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5.0f, 8.0f));
         ImGui::PopFont();
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
@@ -287,20 +289,17 @@ public:
                     ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
-
-
-            ImGui::PopStyleVar(); //Item spacing
-
-            ImGui::Text("Anonymous ID: %s", VkRender::RendererConfig::getInstance().getAnonymousIdentifier().c_str());
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            ImGui::Text("About: ");
-            ImGui::Text("Icons from https://icons8.com");
-
         }
+        ImGui::Text("Anonymous ID: %s", VkRender::RendererConfig::getInstance().getAnonymousIdentifier().c_str());
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::Text("About: ");
+        ImGui::Text("Icons from https://icons8.com");
+        ImGui::EndChild();
+
         ImGui::End();
         if (update)
             config.setUserSetting(user);

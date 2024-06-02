@@ -54,13 +54,11 @@
 
 #include "Viewer/Tools/Logger.h"
 
-// Code Specific Header Files(s)
-using namespace std;
 namespace Log {
-
 
     Logger *Logger::m_instance = nullptr;
     VkRender::ThreadPool *Logger::m_threadPool = nullptr;
+    std::queue<std::string> *Logger::m_consoleLogQueue = nullptr;
 
     Logger::Logger(const std::string &logFileName) {
         // Check file size
@@ -76,7 +74,7 @@ namespace Log {
             }
         }
 
-        m_file.open(logFileName.c_str(), ios::out | ios::app);
+        m_file.open(logFileName.c_str(), std::ios::out | std::ios::app);
         m_logLevel = LOG_LEVEL_TRACE;
         m_logType = FILE_LOG;
 
@@ -94,10 +92,12 @@ namespace Log {
         m_file.close();
         delete m_instance;
         delete m_threadPool;
+        delete m_consoleLogQueue;
     }
 
     Logger *Logger::getInstance(const std::string &fileName) noexcept {
         if (m_instance == nullptr) {
+            m_consoleLogQueue = new std::queue<std::string>();
             m_threadPool = new VkRender::ThreadPool(1);
             m_instance = new Logger(fileName);
             m_instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, getLogStringFromEnum(m_instance->m_logLevel));
@@ -105,18 +105,23 @@ namespace Log {
         return m_instance;
     }
 
+    std::queue<std::string>* Logger::getConsoleLogQueue() noexcept{
+        return m_consoleLogQueue;
+    }
+
     void Logger::logIntoFile(void *ctx, std::string &data) {
         auto *app = static_cast<Logger *> (ctx);
         app->m_mutex.lock();
-        app->m_file << getCurrentTime() << "  " << data << endl;
+        app->m_file << getCurrentTime() << "  " << data << std::endl;
+        app->m_consoleLogQueue->push(data);
         app->m_mutex.unlock();
     }
 
     void Logger::logOnConsole(std::string &data) {
-        cout << getCurrentTime() << "  " << data << endl;
+        std::cout << getCurrentTime() << "  " << data << std::endl;
     }
 
-    string Logger::getCurrentTime() {
+    std::string Logger::getCurrentTime() {
         //Current date/time based on current time
         // Convert current time to string
         std::time_t currentTime = std::time(nullptr);
@@ -129,13 +134,13 @@ namespace Log {
 #endif
 
         // Last character of currentTime is "\n", so remove it
-        string currentTimeStr(timeString);
+        std::string currentTimeStr(timeString);
         return currentTimeStr.substr(0, currentTimeStr.size() - 1);
     }
 
 // Interface for Error Log
     void Logger::errorInternal(const char *text) noexcept {
-        string data;
+        std::string data;
         data.append("[ERROR]: ");
         data.append(text);
 
@@ -148,7 +153,7 @@ namespace Log {
     }
     // Interface for Error Log
     void Logger::fatalInternal(const char *text) noexcept {
-        string data;
+        std::string data;
         data.append("[FATAL ERROR]: ");
         data.append(text);
 
@@ -161,7 +166,7 @@ namespace Log {
     }
 
     void Logger::warningInternal(const char *text) noexcept {
-        string data;
+        std::string data;
         data.append("[WARNING]: ");
         data.append(text);
 
@@ -175,7 +180,7 @@ namespace Log {
 
 // Interface for Info Log
     void Logger::infoInternal(const char *text) noexcept {
-        string data;
+        std::string data;
         data.append("[INFO]: ");
         data.append(text);
 
@@ -188,7 +193,7 @@ namespace Log {
     }
 
     void Logger::traceInternal(const char *text) noexcept {
-        string data;
+        std::string data;
         data.append("[TRACE]: ");
         data.append(text);
 
@@ -202,7 +207,7 @@ namespace Log {
 
 // Interface for Always Log
     void Logger::always(std::string text) noexcept {
-        string data;
+        std::string data;
         data.append("[ALWAYS]: ");
         data.append(text);
 

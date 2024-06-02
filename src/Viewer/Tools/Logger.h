@@ -128,6 +128,7 @@ namespace Log {
     public:
 
         static Logger *getInstance(const std::string &logFileName = "") noexcept;
+        static std::queue<std::string> *getConsoleLogQueue() noexcept;
 
         void errorInternal(const char *text) noexcept;
 
@@ -307,11 +308,13 @@ namespace Log {
             return msg;
         }
 
+        static std::queue<std::string>* m_consoleLogQueue;
         static Logger *m_instance;
         static VkRender::ThreadPool *m_threadPool;
         std::ofstream m_file;
         std::map<std::string, uint32_t> m_frequencies;
         std::map<std::string, uint32_t> m_counter;
+
 
         std::mutex m_mutex{};
 

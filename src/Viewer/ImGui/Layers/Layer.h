@@ -131,7 +131,7 @@ namespace VkRender {
 
     /** @brief block for simulated camera, Mostly used for testing  */
     struct CameraSelection {
-        std::string tag = "Default";
+        std::string tag = "Default Camera";
         bool enabled = false;
         bool selected = false;
         int currentItemSelected = 0;

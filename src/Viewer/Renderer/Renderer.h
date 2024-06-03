@@ -105,7 +105,7 @@ namespace VkRender {
 
         VkRender::RenderUtils renderUtils{};
 
-        std::string selectedCameraTag = "Default";
+        std::string selectedCameraTag = "Default Camera";
     public:
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;

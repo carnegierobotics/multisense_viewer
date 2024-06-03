@@ -97,7 +97,7 @@ namespace VkRender {
 
         backendInitialized = true;
         // Create default camera object
-        createNewCamera("Default Camera", m_Width, m_Height);
+        createNewCamera(selectedCameraTag, m_Width, m_Height);
         pLogger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 

@@ -36,6 +36,7 @@ namespace VkRender {
         virtual void setup(const InitializeInfo &initInfo) = 0;
         virtual void render(const RenderInfo &renderInfo) = 0;
         virtual uint8_t* getImage() = 0;
+        virtual uint32_t getImageSize() = 0;
 
     };
 }

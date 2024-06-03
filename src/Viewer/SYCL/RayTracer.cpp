@@ -31,4 +31,8 @@ namespace VkRender {
     uint8_t *RayTracer::getImage() {
         return m_image;
     }
+
+    uint32_t RayTracer::getImageSize() {
+        return m_initInfo.imageSize;
+    }
 }

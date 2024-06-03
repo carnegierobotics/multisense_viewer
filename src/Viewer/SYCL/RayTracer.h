@@ -24,6 +24,8 @@ namespace VkRender {
 
         uint8_t* getImage() override;
 
+        uint32_t getImageSize() override;
+
     private:
         uint8_t* m_image = nullptr;
         InitializeInfo m_initInfo{};

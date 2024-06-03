@@ -18,7 +18,6 @@ void ImageViewer::setup() {
                                                         m_context->renderUtils.device,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                         VK_FORMAT_R8G8B8A8_UNORM);
-
     entityName = "SecondaryView";
     auto entity = m_context->createEntity(entityName);
     entity.addComponent<VkRender::SecondaryRenderViewComponent>();
@@ -59,15 +58,12 @@ void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
 void ImageViewer::update() {
     if (!renderImage)
         return;
-
     auto &camera = m_context->getCamera();
-
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
     info.debug =  btn;
     m_renderer->render(info);
-    uint32_t size = camera.m_height * camera.m_width * 4;
-    m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), size);
+    m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), m_renderer->getImageSize());
 }
 
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {

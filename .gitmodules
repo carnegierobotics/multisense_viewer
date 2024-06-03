@@ -19,10 +19,6 @@
 [submodule "external/simpleini"]
 	path = external/simpleini
 	url = https://github.com/brofield/simpleini
-[submodule "internal/AutoConnect"]
-	path = internal/AutoConnect
-	url = https://github.com/M-Gjerde/AutoConnect
-    branch = main
 [submodule "external/libtiff"]
 	path = external/libtiff
 	url = https://gitlab.com/libtiff/libtiff
@@ -36,9 +32,6 @@
 [submodule "external/cpp-httplib"]
 	path = external/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib
-[submodule "internal/rosbag_writer_cpp"]
-	path = internal/rosbag_writer_cpp
-	url = https://github.com/M-Gjerde/rosbag_writer_cpp
 [submodule "external/tinyobjloader"]
 	path = external/tinyobjloader
 	url = https://github.com/tinyobjloader/tinyobjloader

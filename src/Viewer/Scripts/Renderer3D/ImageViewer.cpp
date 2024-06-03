@@ -13,10 +13,7 @@
 #include "Viewer/SYCL/RayTracer.h"
 
 void ImageViewer::setup() {
-
-    bool useGaussian = false;
     const auto &camera = m_context->getCamera();
-
     m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
                                                         m_context->renderUtils.device,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -45,12 +42,14 @@ void ImageViewer::setup() {
         //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
    // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     m_renderer = std::make_unique<VkRender::GaussianRenderer>();
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
+
 #else
     m_renderer = std::make_unique<VkRender::RayTracer>();
 #endif
     m_renderer->setup(initInfo);
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "RenderCustomView", &renderImage);
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
@@ -58,11 +57,14 @@ void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
 
 
 void ImageViewer::update() {
+    if (!renderImage)
+        return;
+
     auto &camera = m_context->getCamera();
 
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
-    info.debug = btn;
+    info.debug =  btn;
     m_renderer->render(info);
     uint32_t size = camera.m_height * camera.m_width * 4;
     m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), size);
@@ -74,29 +76,16 @@ void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 #ifdef SYCL_ENABLED
         if (m_context->findEntityByName(entityName))
             return;
-        Log::Logger::getInstance()->info("Loading new model from {}", uiHandle->m_paths.importFilePath.string());
-        entityName = uiHandle->m_paths.importFilePath.filename().string();
-        auto entity = m_context->createEntity(entityName);
-        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "quad.obj",
-                m_context->renderUtils.device);
-        entity.addComponent<VkRender::SecondaryRenderViewComponent>();
-        auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
-                                                                                      "SYCLRenderer.vert.spv",
-                                                                                      "SYCLRenderer.frag.spv");
-        res.bind(modelComponent);
-        const auto &camera = m_context->getCamera();
-        m_gaussianRenderer = std::make_unique<GaussianRenderer>(camera);
 
-        m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
-                                                            m_context->renderUtils.device,
-                                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                            VK_FORMAT_R8G8B8A8_UNORM);
-        res.setTexture(&m_syclRenderTarget->m_descriptor);
         m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
                 uiHandle->m_paths.importFilePath.string(), 1);
         m_gaussianRenderer->setupBuffers(m_context->getCamera());
 
+#else
+        std::string filePath = uiHandle->m_paths.importFilePath.string();
+        Log::Logger::getInstance()->info("Loading new 3DGS file from {}", filePath.c_str());
+        //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), 1);
+        //m_gaussianRenderer->setupBuffers(m_context->getCamera());
 #endif
     }
 

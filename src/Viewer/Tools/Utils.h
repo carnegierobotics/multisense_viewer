@@ -61,7 +61,6 @@
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
-#include "MultiSense/MultiSenseTypes.hh"
 
 namespace Utils {
     DISABLE_WARNING_PUSH

@@ -4,7 +4,7 @@
 
 #include "GaussianRenderer.h"
 
-/*
+
 #include "Viewer/Tools/Utils.h"
 #include <filesystem>
 #include <tinyply.h>
@@ -416,12 +416,8 @@ void radixSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &valu
     }
 }
 
-/*
-// Function to get the maximum value in the array
-uint64_t getMax(const std::vector<uint64_t> &arr) {
-    return *std::max_element(arr.begin(), arr.end());
-}
 
+/*
 // A function to do counting sort of arr[] according to the digit represented by exp
 void countingSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
                   std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
@@ -488,7 +484,7 @@ void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector
         countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
     }
 }
-
+*/
 
 
 // Utility function to print an array
@@ -1031,4 +1027,4 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem:
     }
     return data;
 }
- */
+

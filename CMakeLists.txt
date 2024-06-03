@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
+set(CMAKE_CXX_COMPILER "clang++")
+set(CMAKE_CXX_FLAGS "-fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
+#
+set(CMAKE_C_COMPILER "clang")
+
 project(
         MultiSense-Viewer
         DESCRIPTION "A MultiSense Viewer Application"
@@ -94,7 +99,7 @@ set(SOURCE_FILES
         src/Viewer/SYCL/GaussianRenderer.cpp
 )
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;SimpleIni;imgui;tiff;MultiSense;LibAutoConnect;ktx;nlohmann_json::nlohmann_json;httplib::httplib;rosbag_cpp_writer;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -116,20 +121,12 @@ if (UNIX) # Linux
     add_definitions(${GTK3_CFLAGS_OTHER})
 
     add_executable(MultiSense-Viewer ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} -lavutil -lswscale rosbag_cpp_writer fmt::fmt)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
 
     set_project_warnings(MultiSense-Viewer)
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnect CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/AutoConnectLauncher.sh CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-
-    add_custom_command(TARGET MultiSense-Viewer
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/internal/AutoConnect/AutoConnect ${CMAKE_BINARY_DIR}/
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/Assets/Tools/Ubuntu/AutoConnectLauncher.sh ${CMAKE_BINARY_DIR}/
-    )
 endif ()
 
 if (WIN32)
@@ -145,18 +142,6 @@ if (WIN32)
         add_definitions(-DNOMINMAX)
     endif ()
 
-    include_directories(internal/AutoConnect/include/WinPcap)
-
-    add_library(avutil STATIC IMPORTED GLOBAL)
-    set_target_properties(avutil PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES  "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/avutil.lib")
-
-    add_library(swscale STATIC IMPORTED GLOBAL)
-    set_target_properties(swscale PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/lib/swscale.lib")
-
     add_library(libsll STATIC IMPORTED GLOBAL)
     set_target_properties(libsll PROPERTIES
             IMPORTED_LINK_INTERFACE_LANGUAGES "C"
@@ -168,29 +153,16 @@ if (WIN32)
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES} avutil swscale libsll libcrypto rosbag_cpp_writer fmt::fmt userenv.lib)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES}  libsll libcrypto rosbag_cpp_writer fmt::fmt userenv.lib)
 
     set_project_warnings(MultiSense-Viewer)
 
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
-    set_target_properties(AutoConnect PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
     set(THIRD_PARTY_DLLS
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/swscale-6.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/ffmpeg/bin/avutil-57.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libcrypto-1_1-x64.dll
             ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libssl-1_1-x64.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/AutoConnect/WinPcap/Packet.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/internal/AutoConnect/WinPcap/wpcap.dll
     )
 
     foreach (file_i ${THIRD_PARTY_DLLS})
@@ -206,7 +178,6 @@ if (WIN32)
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
     install(FILES
-            ${CMAKE_BINARY_DIR}/MultiSense.dll
             ${CMAKE_BINARY_DIR}/Packet.dll
             ${CMAKE_BINARY_DIR}/wpcap.dll
             ${CMAKE_BINARY_DIR}/swscale-6.dll
@@ -215,7 +186,6 @@ if (WIN32)
             ${CMAKE_BINARY_DIR}/libssl-1_1-x64.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
 
-    install(PROGRAMS ${CMAKE_BINARY_DIR}/AutoConnect.exe CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
     if (MSVC)

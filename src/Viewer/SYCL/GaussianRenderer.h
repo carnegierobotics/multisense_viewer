@@ -12,17 +12,16 @@
 #include <cstring>
 #include <vector>
 #include <glm/ext/quaternion_float.hpp>
-//#include <sycl/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include <stb_image_write.h>
 #include <stb_image.h>
+#include <filesystem>
 
 #include "Viewer/Core/Camera.h"
 
 
 class GaussianRenderer {
-};
-    /*
 public:
 
     struct GaussianPoint {
@@ -121,6 +120,6 @@ private:
     std::vector<uint8_t> flattenedImage;
 };
 
-*/
+
 
 #endif //MULTISENSE_VIEWER_GAUSSIANRENDERER_H

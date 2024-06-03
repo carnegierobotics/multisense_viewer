@@ -19,9 +19,10 @@
 #include <filesystem>
 
 #include "Viewer/Core/Camera.h"
+#include "AbstractRenderer.h"
 
 
-class GaussianRenderer {
+class GaussianRenderer : public  AbstractRenderer {
 public:
 
     struct GaussianPoint {
@@ -34,16 +35,6 @@ public:
         glm::vec2 bbMin, bbMax;
         float depth = 0.0f;
         float radius = 0.0f;
-    };
-
-    // Define Splat struct
-    struct Splat {
-        float depth;
-        int tileIndex;
-
-        bool operator<(const Splat& other) const {
-            return depth < other.depth;
-        }
     };
 
     struct CameraParams {
@@ -73,7 +64,14 @@ public:
         if (image)
             stbi_image_free(image);
     }
-    void tileRasterizer(const VkRender::Camera &camera, bool debug);
+    void render(const VkRender::Camera &camera, bool debug);
+
+    void setup(const InitializeInfo &initInfo) override;
+
+    void render(const RenderInfo &renderInfo) override;
+
+
+public:
 
     uint8_t *img{};
 

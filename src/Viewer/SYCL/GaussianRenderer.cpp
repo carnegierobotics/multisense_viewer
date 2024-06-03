@@ -32,7 +32,9 @@
 #define BLOCK_X 16
 #define BLOCK_Y 16
 
+
 GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
+
     // Define a callable device selector using a lambda
     auto cpuSelector = [](const sycl::device &dev) {
         if (dev.is_cpu()) {
@@ -534,7 +536,7 @@ void printDurations(
     std::cout << oss.str();
 }
 
-void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera, bool debug) {
+void GaussianRenderer::render(const VkRender::Camera &camera, bool debug) {
     auto params = getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
     glm::mat4 viewMatrix = camera.matrices.view;
     glm::mat4 projectionMatrix = camera.matrices.perspective;
@@ -1026,5 +1028,13 @@ GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem:
         data.shDim = 3 + harmonics_properties.size();
     }
     return data;
+}
+
+void GaussianRenderer::setup(const AbstractRenderer::InitializeInfo &initInfo) {
+
+}
+
+void GaussianRenderer::render(const AbstractRenderer::RenderInfo &renderInfo) {
+
 }
 

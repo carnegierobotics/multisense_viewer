@@ -10,9 +10,6 @@
 [submodule "external/tinygltf"]
 	path = external/tinygltf
 	url = https://github.com/syoyo/tinygltf
-[submodule "external/LibMultiSense"]
-	path = external/LibMultiSense
-	url = https://github.com/carnegierobotics/LibMultiSense
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt

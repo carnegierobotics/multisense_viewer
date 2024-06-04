@@ -8,7 +8,7 @@
 #include "Viewer/Scripts/Private/ScriptBuilder.h"
 
 #include "Viewer/Renderer/Components/CustomModels.h"
-#include "Viewer/SYCL/AbstractRenderer.h"
+#include "Viewer/SYCL/GaussianRenderer.h"
 
 class ImageViewer: public VkRender::Base, public VkRender::RegisteredInFactory<ImageViewer>
 {
@@ -35,9 +35,9 @@ public:
     void onDestroy() override{
     }
 
-    std::unique_ptr<VkRender::AbstractRenderer> m_renderer;
+    std::unique_ptr<VkRender::GaussianRenderer> m_renderer;
 
-    std::string entityName;
+    std::string splatEntity;
 
     std::unique_ptr<TextureVideo> m_syclRenderTarget;
     bool btn = false;

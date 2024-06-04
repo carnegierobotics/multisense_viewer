@@ -12,14 +12,17 @@
 
 #include "Viewer/SYCL/RayTracer.h"
 
+#ifdef SYCL_ENABLED
+#include "Viewer/SYCL/GaussianRenderer.h"
+#endif
+
 void ImageViewer::setup() {
     const auto &camera = m_context->getCamera();
     m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
                                                         m_context->renderUtils.device,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                         VK_FORMAT_R8G8B8A8_UNORM);
-    entityName = "SecondaryView";
-    auto entity = m_context->createEntity(entityName);
+    auto entity = m_context->createEntity("SecondaryView");
     entity.addComponent<VkRender::SecondaryRenderViewComponent>();
     auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
             Utils::getModelsPath() / "obj" / "quad.obj",
@@ -41,7 +44,10 @@ void ImageViewer::setup() {
         //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
    // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     m_renderer = std::make_unique<VkRender::GaussianRenderer>();
+
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
+    splatEntity = "Default 3DGS model";
+    m_context->createEntity(splatEntity);
 
 #else
     m_renderer = std::make_unique<VkRender::RayTracer>();
@@ -62,21 +68,20 @@ void ImageViewer::update() {
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
     info.debug =  btn;
-    m_renderer->render(info);
-    m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), m_renderer->getImageSize());
+    if (m_context->findEntityByName(splatEntity)){
+        m_renderer->render(info);
+        m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), m_renderer->getImageSize());
+    }
 }
 
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (uiHandle->m_paths.update3DGSPath) {
 #ifdef SYCL_ENABLED
-        if (m_context->findEntityByName(entityName))
-            return;
-
-        m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(
-                uiHandle->m_paths.importFilePath.string(), 1);
-        m_gaussianRenderer->setupBuffers(m_context->getCamera());
-
+        m_renderer->gs = VkRender::GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), 1);
+        splatEntity = uiHandle->m_paths.importFilePath.filename();
+        m_renderer->setupBuffers(&m_context->getCamera());
+        m_context->createEntity(splatEntity);
 #else
         std::string filePath = uiHandle->m_paths.importFilePath.string();
         Log::Logger::getInstance()->info("Loading new 3DGS file from {}", filePath.c_str());

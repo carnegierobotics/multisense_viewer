@@ -923,7 +923,12 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
 }
 
 
-void TextureVideo::updateTextureFromBuffer(VkImageLayout initialLayout, VkImageLayout finalLayout) {
+void TextureVideo::updateTextureFromBuffer(uint8_t* data, uint32_t size, VkImageLayout initialLayout, VkImageLayout finalLayout) {
+
+    // copy to texture data pointer
+    assert(size <= m_TexSize);
+    std::memcpy(m_DataPtr, data, size);
+
     VkImageSubresourceRange subresourceRange = {};
     subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     subresourceRange.baseMipLevel = 0;

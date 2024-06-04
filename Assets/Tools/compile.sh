@@ -11,6 +11,7 @@ if [[ "$1" == "windows" ]]; then
     project_path="$(pwd)/../.."
     echo "Compiling from Windows: project path: ${project_path})"
     glslc="${project_path}/shaderc/build/glslc/Debug/glslc.exe"
+    glslc="glslc.exe"
     sceneOutDir="${project_path}/Assets/Shaders/spv/"
     sceneDir="${project_path}/Assets/Shaders/Scene"
     outDir="${project_path}/cmake-build-debug/Assets/Shaders/spv/"

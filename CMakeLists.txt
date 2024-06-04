@@ -1,9 +1,18 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
-#
-set(CMAKE_C_COMPILER "clang")
+option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
+option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
+
+if (ENABLE_SYCL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_CXX_COMPILER "clang++")
+    add_compile_definitions(SYCL_ENABLED)
+    message(STATUS "SYCL support enabled. Flags: ${CMAKE_CXX_FLAGS}")
+else()
+    message(STATUS "SYCL support not enabled.")
+endif()
+
 
 project(
         MultiSense-Viewer
@@ -96,8 +105,14 @@ set(SOURCE_FILES
         src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
         src/Viewer/Scripts/Renderer3D/DataCapture.cpp
 
-        src/Viewer/SYCL/GaussianRenderer.cpp
+        src/Viewer/SYCL/RayTracer.cpp
 )
+
+if (ENABLE_SYCL)
+    list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
+    message(STATUS "SYCL: Adding Gaussian Renderer to source")
+endif()
+
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
 
@@ -153,7 +168,7 @@ if (WIN32)
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES}  libsll libcrypto rosbag_cpp_writer fmt::fmt userenv.lib)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES}  libsll libcrypto fmt::fmt userenv.lib)
 
     set_project_warnings(MultiSense-Viewer)
 

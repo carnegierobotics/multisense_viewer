@@ -12,6 +12,8 @@
 
 #include <sycl/ext/oneapi/experimental/group_helpers_sorters.hpp>
 
+#include <random>
+
 #define SH_C0 0.28209479177387814f
 #define SH_C1 0.4886025119029199f
 
@@ -32,8 +34,137 @@
 #define BLOCK_X 16
 #define BLOCK_Y 16
 
+
+uint64_t getMax(const std::vector<uint64_t> &arr) {
+    return *std::max_element(arr.begin(), arr.end());
+}
+
+
+// A function to do counting sort of arr[] according to the digit represented by exp
+void countingSortCPU(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+                     std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
+    size_t n = keys_unsorted.size();
+    std::vector<uint64_t> outputKeys(n);
+    std::vector<uint32_t> outputValues(n);
+    int count[10] = {0};
+
+    // Store count of occurrences in count[]
+    for (size_t i = 0; i < n; i++) {
+        uint64_t digit = (keys_unsorted[i] / exp) % 10;
+        count[digit]++;
+    }
+
+    // Change count[i] so that count[i] now contains the actual position of this digit in output[]
+    for (int i = 1; i < 10; i++) {
+        count[i] += count[i - 1];
+    }
+
+    // Build the output array
+    for (int i = n - 1; i >= 0; i--) {
+        uint64_t digit = (keys_unsorted[i] / exp) % 10;
+        outputKeys[count[digit] - 1] = keys_unsorted[i];
+        outputValues[count[digit] - 1] = values_unsorted[i];
+        count[digit]--;
+    }
+
+    // Copy the output array to keys_sorted and values_sorted
+    for (size_t i = 0; i < n; i++) {
+        keys_sorted[i] = outputKeys[i];
+        values_sorted[i] = outputValues[i];
+    }
+}
+
+
+void countingSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
+    size_t n = keys_unsorted.size();
+    std::vector<uint64_t> outputKeys(n);
+    std::vector<uint32_t> outputValues(n);
+    int count[10] = {0};
+
+    {
+        sycl::buffer<uint64_t, 1> keys_unsorted_buf(keys_unsorted.data(), sycl::range<1>(n));
+        sycl::buffer<uint32_t, 1> values_unsorted_buf(values_unsorted.data(), sycl::range<1>(n));
+        sycl::buffer<uint64_t, 1> keys_sorted_buf(outputKeys.data(), sycl::range<1>(n));
+        sycl::buffer<uint32_t, 1> values_sorted_buf(outputValues.data(), sycl::range<1>(n));
+        sycl::buffer<int, 1> count_buf(count, sycl::range<1>(10));
+
+        q.submit([&](sycl::handler &h) {
+            auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
+            auto count_acc = count_buf.get_access<sycl::access::mode::write>(h);
+
+            h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
+                uint64_t digit = (keys_unsorted_acc[i] / exp) % 10;
+                count_acc[digit]++;
+            });
+        }).wait();
+
+        q.submit([&](sycl::handler &h) {
+            auto count_acc = count_buf.get_access<sycl::access::mode::read_write>(h);
+            h.single_task([=]() {
+                for (int i = 1; i < 10; i++) {
+                    count_acc[i] += count_acc[i - 1];
+                }
+            });
+        }).wait();
+
+        q.submit([&](sycl::handler &h) {
+            auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
+            auto values_unsorted_acc = values_unsorted_buf.get_access<sycl::access::mode::read>(h);
+            auto keys_sorted_acc = keys_sorted_buf.get_access<sycl::access::mode::write>(h);
+            auto values_sorted_acc = values_sorted_buf.get_access<sycl::access::mode::write>(h);
+            auto count_acc = count_buf.get_access<sycl::access::mode::read_write>(h);
+
+            h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
+                int index = n - 1 - i;
+                uint64_t digit = (keys_unsorted_acc[index] / exp) % 10;
+
+                keys_sorted_acc[count_acc[digit] - 1] = keys_unsorted_acc[index];
+                values_sorted_acc[count_acc[digit] - 1] = values_unsorted_acc[index];
+                count_acc[digit]--;
+            });
+        }).wait();
+
+        auto keys = keys_sorted_buf.get_host_access();
+        auto values = values_sorted_buf.get_host_access();
+        for (size_t i = 0; i < n; i++) {
+            keys_sorted[i] = keys[i];
+            values_sorted[i] = values[i];
+        }
+    }
+}
+
+// The main function to sort an array of given size using Radix Sort
+void radixSortCPU(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
+    // Find the maximum number to know the number of digits
+    uint64_t max = getMax(keys_unsorted);
+
+    // Ensure the destination vectors have the same size as the input vectors
+    keys_sorted = keys_unsorted;
+    values_sorted = values_unsorted;
+
+    // Do counting sort for every digit. Note that exp is 10^i where i is the current digit number
+    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
+        countingSortCPU(keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
+    }
+}
+
+
+void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
+               std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
+    uint64_t max = getMax(keys_unsorted);
+
+    keys_sorted = keys_unsorted;
+    values_sorted = values_unsorted;
+
+    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
+        countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
+    }
+}
+
+
 GaussianRenderer::GaussianRenderer(const VkRender::Camera &camera) {
-    // Define a callable device selector using a lambda
     auto cpuSelector = [](const sycl::device &dev) {
         if (dev.is_cpu()) {
             return 1; // Positive value to prefer GPU devices
@@ -360,133 +491,6 @@ uint32_t getHigherMsb(uint32_t n) {
 }
 
 
-
-// Function to get the maximum value in the array
-uint64_t getMax(const std::vector<uint64_t> &arr) {
-    return *std::max_element(arr.begin(), arr.end());
-}
-
-// A function to do counting sort of arr[] according to the digit represented by exp
-void countingSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
-    size_t n = keys_unsorted.size();
-    std::vector<uint64_t> outputKeys(n);
-    std::vector<uint32_t> outputValues(n);
-    int count[10] = {0};
-
-    // Store count of occurrences in count[]
-    for (size_t i = 0; i < n; i++) {
-        uint64_t digit = (keys_unsorted[i] / exp) % 10;
-        count[digit]++;
-    }
-
-    // Change count[i] so that count[i] now contains the actual position of this digit in output[]
-    for (int i = 1; i < 10; i++) {
-        count[i] += count[i - 1];
-    }
-
-    // Build the output array
-    for (int i = n - 1; i >= 0; i--) {
-        uint64_t digit = (keys_unsorted[i] / exp) % 10;
-        outputKeys[count[digit] - 1] = keys_unsorted[i];
-        outputValues[count[digit] - 1] = values_unsorted[i];
-        count[digit]--;
-    }
-
-    // Copy the output array to keys_sorted and values_sorted
-    for (size_t i = 0; i < n; i++) {
-        keys_sorted[i] = outputKeys[i];
-        values_sorted[i] = outputValues[i];
-    }
-}
-
-// The main function to sort an array of given size using Radix Sort
-void radixSort(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-               std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
-    // Find the maximum number to know the number of digits
-    uint64_t max = getMax(keys_unsorted);
-
-    // Ensure the destination vectors have the same size as the input vectors
-    keys_sorted = keys_unsorted;
-    values_sorted = values_unsorted;
-
-    // Do counting sort for every digit. Note that exp is 10^i where i is the current digit number
-    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
-        countingSort(keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
-    }
-}
-
-
-/*
-// A function to do counting sort of arr[] according to the digit represented by exp
-void countingSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                  std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
-    size_t n = keys_unsorted.size();
-    sycl::buffer<uint64_t> keys_unsorted_buf(keys_unsorted.data(), n);
-    sycl::buffer<uint32_t> values_unsorted_buf(values_unsorted.data(), n);
-    sycl::buffer<uint64_t> keys_sorted_buf(keys_sorted.data(), n);
-    sycl::buffer<uint32_t> values_sorted_buf(values_sorted.data(), n);
-    sycl::buffer<uint32_t> count_buf(10);
-
-    q.submit([&](sycl::handler &h) {
-        auto count = count_buf.get_access<sycl::access::mode::write>(h);
-        h.fill(count, static_cast<uint32_t>(0));
-    }).wait();
-
-    q.submit([&](sycl::handler &h) {
-        auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
-        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
-
-        h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
-            uint64_t digit = (keys_unsorted_acc[i] / exp) % 10;
-            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device,
-                    sycl::access::address_space::global_space> atomic_count(count[digit]);
-            atomic_count.fetch_add(1);
-        });
-    }).wait();
-
-    q.submit([&](sycl::handler &h) {
-        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
-        h.single_task([=]() {
-            for (int i = 1; i < 10; i++) {
-                count[i] += count[i - 1];
-            }
-        });
-    }).wait();
-
-    q.submit([&](sycl::handler &h) {
-        auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
-        auto values_unsorted_acc = values_unsorted_buf.get_access<sycl::access::mode::read>(h);
-        auto keys_sorted_acc = keys_sorted_buf.get_access<sycl::access::mode::write>(h);
-        auto values_sorted_acc = values_sorted_buf.get_access<sycl::access::mode::write>(h);
-        auto count = count_buf.get_access<sycl::access::mode::read_write>(h);
-
-        h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
-            int idx = n - 1 - i;
-            uint64_t digit = (keys_unsorted_acc[idx] / exp) % 10;
-            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device,
-                    sycl::access::address_space::global_space> atomic_count(count[digit]);
-            int pos = atomic_count.fetch_sub(1) - 1;
-            keys_sorted_acc[pos] = keys_unsorted_acc[idx];
-            values_sorted_acc[pos] = values_unsorted_acc[idx];
-        });
-    }).wait();
-}
-
-// The main function to sort an array of given size using Radix Sort
-void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-               std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
-    uint64_t max = getMax(keys_unsorted);
-    keys_sorted = keys_unsorted;
-    values_sorted = values_unsorted;
-
-    for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
-        countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
-    }
-}
-*/
-
-
 // Utility function to print an array
 void print(const std::vector<uint64_t> &keys, const std::vector<uint32_t> &values) {
     for (size_t i = 0; i < keys.size(); i++) {
@@ -714,9 +718,22 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera, bool debug
     binningState.point_list_keys_unsorted = gaussian_keys_unsorted; // Fill with data
     binningState.point_list_unsorted = gaussian_values_unsorted; // Fill with data
 
+    BinningState binningStateCPU{};
+    // Ensure the destination vectors have the same size
+    binningStateCPU.point_list_keys.resize(numRendered);
+    binningStateCPU.point_list.resize(numRendered);
+    binningStateCPU.point_list_keys_unsorted = gaussian_keys_unsorted; // Fill with data
+    binningStateCPU.point_list_unsorted = gaussian_values_unsorted; // Fill with data
+
     auto startSorting = std::chrono::high_resolution_clock::now();
 
-    radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
+    //radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
+    if (debug)
+        radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
+             binningState.point_list);
+    else
+        radixSortCPU(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
+                     binningState.point_list);
 
     //binningState.point_list_keys = gaussian_keys_unsorted;
     //binningState.point_list = gaussian_values_unsorted;
@@ -739,6 +756,7 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera, bool debug
     uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
 
+    /*
     if (debug) {
         for (uint32_t row = 0; row < globalHeight; ++row) {
             for (uint32_t col = 0; col < globalWidth; ++col) {
@@ -777,6 +795,7 @@ void GaussianRenderer::tileRasterizer(const VkRender::Camera &camera, bool debug
             }
         }
     }
+     */
 
 
     sycl::buffer<uint64_t, 1> pointListKeysBuffer(binningState.point_list_keys.data(),

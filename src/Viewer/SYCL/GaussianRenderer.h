@@ -95,7 +95,7 @@ private:
     }
 
 private:
-    uint8_t *image;
+    uint8_t *image{};
 
     sycl::queue queue{};
     sycl::buffer<glm::vec3, 1> positionBuffer{0};
@@ -116,7 +116,7 @@ private:
 
     sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
     sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
-    uint32_t width, height;
+    uint32_t width{}, height{};
     std::vector<uint8_t> flattenedImage;
 };
 

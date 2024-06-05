@@ -922,7 +922,7 @@ private:
                 for (size_t n = 0; n < entryConnectDeviceList.size(); n++) {
                     if (entryConnectDeviceList[n].cameraName.empty()) continue;
                     if (ImGui::Selectable((entryConnectDeviceList[n].cameraName + "##" + std::to_string(n)).c_str(),
-                                          resultsComboIndex == n,
+                                          resultsComboIndex == static_cast<int>(n),
                                           ImGuiSelectableFlags_DontClosePopups,
                                           ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
                         handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable",

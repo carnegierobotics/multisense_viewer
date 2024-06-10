@@ -12,9 +12,6 @@
 
 #include "Viewer/SYCL/RayTracer.h"
 
-#ifdef SYCL_ENABLED
-#include "Viewer/SYCL/GaussianRenderer.h"
-#endif
 
 void ImageViewer::setup() {
     const auto &camera = m_context->getCamera();
@@ -48,11 +45,8 @@ void ImageViewer::setup() {
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
     splatEntity = "Default 3DGS model";
     m_context->createEntity(splatEntity);
-
-#else
-    m_renderer = std::make_unique<VkRender::RayTracer>();
-#endif
     m_renderer->setup(initInfo);
+#endif
 
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "RenderCustomView", &renderImage);
 }
@@ -68,10 +62,13 @@ void ImageViewer::update() {
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
     info.debug =  btn;
+#ifdef SYCL_ENABLED
     if (m_context->findEntityByName(splatEntity)){
         m_renderer->render(info);
         m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), m_renderer->getImageSize());
     }
+#endif
+
 }
 
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {

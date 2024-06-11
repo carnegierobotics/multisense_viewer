@@ -45,7 +45,7 @@ void ImageViewer::setup() {
    // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     m_renderer = std::make_unique<VkRender::GaussianRenderer>();
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "RunCPU", &btn);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "SortGPU", &btn);
     splatEntity = "Default 3DGS model";
     m_context->createEntity(splatEntity);
 
@@ -58,6 +58,9 @@ void ImageViewer::setup() {
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "SortGPU", &btn);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "RenderCustomView", &renderImage);
+
 }
 
 

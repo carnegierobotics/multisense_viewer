@@ -110,6 +110,8 @@ set(SOURCE_FILES
 
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/SYCL/radixsort/Scan.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/SYCL/radixsort/RadixSort.cpp)
     message(STATUS "SYCL: Adding Gaussian Renderer to source")
 endif()
 

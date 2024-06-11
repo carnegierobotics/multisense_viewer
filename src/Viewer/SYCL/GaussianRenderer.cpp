@@ -10,8 +10,6 @@
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <sycl/ext/oneapi/experimental/group_helpers_sorters.hpp>
-
 #include <random>
 
 #define SH_C0 0.28209479177387814f
@@ -191,18 +189,18 @@ namespace VkRender {
 
         try {
             // Create a queue using the CPU device selector
-            queue = sycl::queue(gpuSelector);
+            queue = sycl::queue(gpuSelector, sycl::property::queue::in_order());
             // Use the queue for your computation
         } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("GPU device not found");
             Log::Logger::getInstance()->info("Falling back to default device selector");
             // Fallback to default device selector
-            queue = sycl::queue();
+            queue = sycl::queue(sycl::property::queue::in_order());
         }
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-        gs = loadFromFile("../3dgs_coordinates.ply", 1);
+        gs = loadFromFile(Utils::getModelsPath() /"3dgs/3dgs_coordinates.ply", 1);
         //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
         loadedPly = false;
         setupBuffers(initInfo.camera);
@@ -575,7 +573,7 @@ namespace VkRender {
                                                                   (rect_max.x - rect_min.x));
                 }
             });
-        }).wait();
+        });
         // Stop timing
         auto endPreprocess = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationPreprocess = endPreprocess - startPreprocess;
@@ -657,8 +655,7 @@ namespace VkRender {
 
         //radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
         if (info.debug)
-            radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
-                      binningState.point_list);
+            radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
         else
             radixSortCPU(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
                          binningState.point_list);
@@ -808,7 +805,7 @@ namespace VkRender {
                     imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
                 } // endif
             });
-        }).wait();
+        });
 
         auto endRasterization = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;

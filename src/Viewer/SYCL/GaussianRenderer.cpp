@@ -200,7 +200,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-        gs = loadFromFile(Utils::getModelsPath() /"3dgs/3dgs_coordinates.ply", 1);
+        gs = loadFromFile(Utils::getModelsPath() /"3dgs/coordinates.ply", 1);
         //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
         loadedPly = false;
         setupBuffers(initInfo.camera);

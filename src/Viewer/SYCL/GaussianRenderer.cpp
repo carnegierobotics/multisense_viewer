@@ -10,6 +10,9 @@
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/algorithm>
+
 #include <random>
 
 #define SH_C0 0.28209479177387814f
@@ -170,7 +173,7 @@ namespace VkRender {
         }
     }
 
-    void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo& initInfo){
+    void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo) {
         m_initInfo = initInfo;
         auto cpuSelector = [](const sycl::device &dev) {
             if (dev.is_cpu()) {
@@ -200,7 +203,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-        gs = loadFromFile(Utils::getModelsPath() /"3dgs/coordinates.ply", 1);
+        gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
         //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
         loadedPly = false;
         setupBuffers(initInfo.camera);
@@ -208,7 +211,7 @@ namespace VkRender {
         //simpleRasterizer(camera, false);
     }
 
-    void GaussianRenderer::setupBuffers(const VkRender::Camera* camera) {
+    void GaussianRenderer::setupBuffers(const VkRender::Camera *camera) {
         Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
         positionBuffer = {gs.positions.data(), sycl::range<1>(gs.getSize())};
         scalesBuffer = {gs.scales.data(), sycl::range<1>(gs.getSize())};
@@ -460,8 +463,8 @@ namespace VkRender {
         std::cout << oss.str();
     }
 
-    void GaussianRenderer::render(const VkRender::AbstractRenderer::RenderInfo& info) {
-        auto* camera = info.camera;
+    void GaussianRenderer::render(const VkRender::AbstractRenderer::RenderInfo &info) {
+        auto *camera = info.camera;
         auto params = getHtanfovxyFocal(camera->m_Fov, camera->m_height, camera->m_width);
         glm::mat4 viewMatrix = camera->matrices.view;
         glm::mat4 projectionMatrix = camera->matrices.perspective;
@@ -586,29 +589,43 @@ namespace VkRender {
         std::vector<uint32_t> gaussian_values_unsorted;  // Adjust size later
 
         auto startAccumulation = std::chrono::high_resolution_clock::now();
-        {
-            const auto &numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
-            for (size_t i = 1; i < numTilesTouchedHost.size(); ++i) {
-                numTilesTouchedHost[i] += numTilesTouchedHost[i - 1];
-            }
-            numRendered = numTilesTouchedHost[numTilesTouchedHost.size() - 1];
 
+        sycl::buffer<uint32_t, 1> numTilesTouchedInclusiveSumBuffer(sycl::range<1>(gs.getSize()));
+
+        // Submit a command group to the queue
+        queue.submit([&](sycl::handler& cgh) {
+            // Get access to the buffer on the device
+            auto data_acc = numTilesTouchedBuffer.get_access<sycl::access::mode::read_write>(cgh);
+            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::read_write>(cgh);
+
+            // Perform inclusive scan on the buffer
+            cgh.parallel_for<class InclusiveScanKernel>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
+                // Perform an inclusive scan using a local variable for temporary storage
+                int sum = 0;
+                for (size_t i = 0; i <= idx[0]; ++i) {
+                    sum += data_acc[i];
+                }
+                inclusiveSumAccess[idx] = sum;
+            });
+        });
+
+
+        {
+
+            numRendered = numTilesTouchedInclusiveSumBuffer.get_host_access()[gs.getSize() - 1];
+            auto numTilesTouchedHost = numTilesTouchedInclusiveSumBuffer.get_host_access();
+            // Duplicate with keys
             gaussian_keys_unsorted.resize(numRendered);
             gaussian_values_unsorted.resize(numRendered);
-
             const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
-
             for (int idx = 0; idx < numPoints; ++idx) {
                 const auto &gaussian = gaussianBufferHost[idx];
-
                 // Generate no key/value pair for invisible Gaussians
                 if (gaussian.radius > 0) {
                     // Find this Gaussian's offset in buffer for writing keys/values.
                     uint32_t off = (idx == 0) ? 0 : numTilesTouchedHost[idx - 1];
                     glm::ivec2 rect_min, rect_max;
-
                     getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
-
                     // For each tile that the bounding rect overlaps, emit a key/value pair.
                     for (int y = rect_min.y; y < rect_max.y; ++y) {
                         for (int x = rect_min.x; x < rect_max.x; ++x) {
@@ -621,7 +638,6 @@ namespace VkRender {
                             gaussian_keys_unsorted[off] = key;
                             gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
                             ++off;
-
                         }
                     }
                 }
@@ -655,7 +671,8 @@ namespace VkRender {
 
         //radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
         if (info.debug)
-            radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
+            radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
+                      binningState.point_list);
         else
             radixSortCPU(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
                          binningState.point_list);

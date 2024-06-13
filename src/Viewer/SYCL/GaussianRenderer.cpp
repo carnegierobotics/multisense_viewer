@@ -9,10 +9,6 @@
 #include <filesystem>
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
-
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
-
 #include <random>
 
 #define SH_C0 0.28209479177387814f
@@ -37,6 +33,36 @@
 
 namespace VkRender {
 
+    uint as_uint(const float x) {
+        return *(uint *) &x;
+    }
+
+    float as_float(const uint x) {
+        return *(float *) &x;
+    }
+
+    float half_to_float(
+            const ushort x) { // IEEE-754 16-bit floating-point format (without infinity): 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
+        const uint e = (x & 0x7C00) >> 10; // exponent
+        const uint m = (x & 0x03FF) << 13; // mantissa
+        const uint v = as_uint((float) m) >> 23; // evil log2 bit hack to count leading zeros in denormalized format
+        return as_float((x & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) | ((e == 0) & (m != 0)) *
+                                                                                ((v - 37) << 23 | ((m << (150 - v)) &
+                                                                                                   0x007FE000))); // sign : normalized : denormalized
+    }
+
+    ushort float_to_half(
+            const float x) { // IEEE-754 16-bit floating-point format (without infinity): 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
+        const uint b = as_uint(x) + 0x00001000; // round-to-nearest-even: add last bit after truncated mantissa
+        const uint e = (b & 0x7F800000) >> 23; // exponent
+        const uint m = b &
+                       0x007FFFFF; // mantissa; in line below: 0x007FF000 = 0x00800000-0x00001000 = decimal indicator flag - initial rounding
+        return (b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) |
+               ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) |
+               (e > 143) * 0x7FFF; // sign : normalized : denormalized : saturate
+    }
+
+
     uint8_t *GaussianRenderer::getImage() {
         return m_image;
     }
@@ -45,133 +71,6 @@ namespace VkRender {
         return m_initInfo.imageSize;
     }
 
-    uint64_t getMax(const std::vector<uint64_t> &arr) {
-        return *std::max_element(arr.begin(), arr.end());
-    }
-
-
-// A function to do counting sort of arr[] according to the digit represented by exp
-    void countingSortCPU(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                         std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
-        size_t n = keys_unsorted.size();
-        std::vector<uint64_t> outputKeys(n);
-        std::vector<uint32_t> outputValues(n);
-        int count[10] = {0};
-
-        // Store count of occurrences in count[]
-        for (size_t i = 0; i < n; i++) {
-            uint64_t digit = (keys_unsorted[i] / exp) % 10;
-            count[digit]++;
-        }
-
-        // Change count[i] so that count[i] now contains the actual position of this digit in output[]
-        for (int i = 1; i < 10; i++) {
-            count[i] += count[i - 1];
-        }
-
-        // Build the output array
-        for (int i = n - 1; i >= 0; i--) {
-            uint64_t digit = (keys_unsorted[i] / exp) % 10;
-            outputKeys[count[digit] - 1] = keys_unsorted[i];
-            outputValues[count[digit] - 1] = values_unsorted[i];
-            count[digit]--;
-        }
-
-        // Copy the output array to keys_sorted and values_sorted
-        for (size_t i = 0; i < n; i++) {
-            keys_sorted[i] = outputKeys[i];
-            values_sorted[i] = outputValues[i];
-        }
-    }
-
-
-    void countingSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                      std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted, uint64_t exp) {
-        size_t n = keys_unsorted.size();
-        std::vector<uint64_t> outputKeys(n);
-        std::vector<uint32_t> outputValues(n);
-        int count[10] = {0};
-
-        {
-            sycl::buffer<uint64_t, 1> keys_unsorted_buf(keys_unsorted.data(), sycl::range<1>(n));
-            sycl::buffer<uint32_t, 1> values_unsorted_buf(values_unsorted.data(), sycl::range<1>(n));
-            sycl::buffer<uint64_t, 1> keys_sorted_buf(outputKeys.data(), sycl::range<1>(n));
-            sycl::buffer<uint32_t, 1> values_sorted_buf(outputValues.data(), sycl::range<1>(n));
-            sycl::buffer<int, 1> count_buf(count, sycl::range<1>(10));
-
-            q.submit([&](sycl::handler &h) {
-                auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
-                auto count_acc = count_buf.get_access<sycl::access::mode::write>(h);
-
-                h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
-                    uint64_t digit = (keys_unsorted_acc[i] / exp) % 10;
-                    count_acc[digit]++;
-                });
-            }).wait();
-
-            q.submit([&](sycl::handler &h) {
-                auto count_acc = count_buf.get_access<sycl::access::mode::read_write>(h);
-                h.single_task([=]() {
-                    for (int i = 1; i < 10; i++) {
-                        count_acc[i] += count_acc[i - 1];
-                    }
-                });
-            }).wait();
-
-            q.submit([&](sycl::handler &h) {
-                auto keys_unsorted_acc = keys_unsorted_buf.get_access<sycl::access::mode::read>(h);
-                auto values_unsorted_acc = values_unsorted_buf.get_access<sycl::access::mode::read>(h);
-                auto keys_sorted_acc = keys_sorted_buf.get_access<sycl::access::mode::write>(h);
-                auto values_sorted_acc = values_sorted_buf.get_access<sycl::access::mode::write>(h);
-                auto count_acc = count_buf.get_access<sycl::access::mode::read_write>(h);
-
-                h.parallel_for(sycl::range<1>(n), [=](sycl::id<1> i) {
-                    int index = n - 1 - i;
-                    uint64_t digit = (keys_unsorted_acc[index] / exp) % 10;
-
-                    keys_sorted_acc[count_acc[digit] - 1] = keys_unsorted_acc[index];
-                    values_sorted_acc[count_acc[digit] - 1] = values_unsorted_acc[index];
-                    count_acc[digit]--;
-                });
-            }).wait();
-
-            auto keys = keys_sorted_buf.get_host_access();
-            auto values = values_sorted_buf.get_host_access();
-            for (size_t i = 0; i < n; i++) {
-                keys_sorted[i] = keys[i];
-                values_sorted[i] = values[i];
-            }
-        }
-    }
-
-// The main function to sort an array of given size using Radix Sort
-    void radixSortCPU(std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                      std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
-        // Find the maximum number to know the number of digits
-        uint64_t max = getMax(keys_unsorted);
-
-        // Ensure the destination vectors have the same size as the input vectors
-        keys_sorted = keys_unsorted;
-        values_sorted = values_unsorted;
-
-        // Do counting sort for every digit. Note that exp is 10^i where i is the current digit number
-        for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
-            countingSortCPU(keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
-        }
-    }
-
-
-    void radixSort(sycl::queue &q, std::vector<uint64_t> &keys_unsorted, std::vector<uint32_t> &values_unsorted,
-                   std::vector<uint64_t> &keys_sorted, std::vector<uint32_t> &values_sorted) {
-        uint64_t max = getMax(keys_unsorted);
-
-        keys_sorted = keys_unsorted;
-        values_sorted = values_unsorted;
-
-        for (uint64_t exp = 1; max / exp > 0; exp *= 10) {
-            countingSort(q, keys_sorted, values_sorted, keys_sorted, values_sorted, exp);
-        }
-    }
 
     void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo) {
         m_initInfo = initInfo;
@@ -208,6 +107,7 @@ namespace VkRender {
         loadedPly = false;
         setupBuffers(initInfo.camera);
 
+        radixSorter = std::make_unique<crl::RadixSorter>(queue);
         //simpleRasterizer(camera, false);
     }
 
@@ -229,6 +129,15 @@ namespace VkRender {
         imageBuffer = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
         width = camera->m_width;
         height = camera->m_height;
+
+
+        keysBuffer = sycl::buffer<uint32_t, 1> ((1 << 21)); // Adjust size later
+        valuesBuffer = sycl::buffer<uint32_t, 1> ((1 << 21));  // Adjust size later
+
+        pointsBuffer = sycl::buffer<GaussianPoint, 1> (sycl::range<1>(gs.getSize()));
+        numTilesTouchedBuffer = sycl::buffer<uint32_t, 1> (sycl::range<1>(gs.getSize()));
+        numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t, 1>(sycl::range<1>(gs.getSize()));
+
     }
 
     glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
@@ -266,41 +175,6 @@ namespace VkRender {
         glm::mat3 T = J * W;
         glm::mat3 cov = T * cov3D * glm::transpose(T);
 
-        if (debug) {
-            // Print matrices using printf
-            sycl::ext::oneapi::experimental::printf("Length L: %f\n", l);
-
-            sycl::ext::oneapi::experimental::printf("Matrix W:\n");
-            for (int i = 0; i < 3; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", W[i][0], W[i][1], W[i][2]);
-            }
-            sycl::ext::oneapi::experimental::printf("\n");
-
-            sycl::ext::oneapi::experimental::printf("Matrix J:\n");
-            for (int i = 0; i < 3; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", J[i][0], J[i][1], J[i][2]);
-            }
-            sycl::ext::oneapi::experimental::printf("\n");
-
-            sycl::ext::oneapi::experimental::printf("Matrix T:\n");
-            for (int i = 0; i < 3; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", T[i][0], T[i][1], T[i][2]);
-            }
-            sycl::ext::oneapi::experimental::printf("\n");
-
-            sycl::ext::oneapi::experimental::printf("Matrix cov2D:\n");
-            for (int i = 0; i < 3; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov[i][0], cov[i][1], cov[i][2]);
-            }
-            sycl::ext::oneapi::experimental::printf("\n");
-
-            sycl::ext::oneapi::experimental::printf("Matrix cov3D:\n");
-            for (int i = 0; i < 3; ++i) {
-                sycl::ext::oneapi::experimental::printf("%f %f %f\n", cov3D[i][0], cov3D[i][1], cov3D[i][2]);
-            }
-
-            sycl::ext::oneapi::experimental::printf("\n");
-        }
         cov[0][0] += 0.3f;
         cov[1][1] += 0.3f;
         return {cov[0][0], cov[1][0], cov[1][1]};
@@ -348,90 +222,6 @@ namespace VkRender {
         return tileRow * numTilesPerRow + tileCol;
     }
 
-    struct BinningState {
-        std::vector<uint64_t> point_list_keys_unsorted;
-        std::vector<uint64_t> point_list_keys;
-        std::vector<uint32_t> point_list_unsorted;
-        std::vector<uint32_t> point_list;
-    };
-
-    void duplicateWithKeys(
-            int P,
-            const GaussianRenderer::GaussianPoint *gaussians,
-            const uint32_t *offsets,
-            std::vector<uint64_t> &gaussian_keys_unsorted,
-            std::vector<uint32_t> &gaussian_values_unsorted,
-            const glm::vec3 &grid) {
-        for (int idx = 0; idx < P; ++idx) {
-            const auto &gaussian = gaussians[idx];
-
-            // Generate no key/value pair for invisible Gaussians
-            if (gaussian.radius > 0) {
-                // Find this Gaussian's offset in buffer for writing keys/values.
-                uint32_t off = (idx == 0) ? 0 : offsets[idx - 1];
-                glm::ivec2 rect_min, rect_max;
-
-                getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, grid);
-
-                // For each tile that the bounding rect overlaps, emit a key/value pair.
-                for (int y = rect_min.y; y < rect_max.y; ++y) {
-                    for (int x = rect_min.x; x < rect_max.x; ++x) {
-                        uint64_t key = static_cast<uint64_t>(y) * grid.x + x;
-                        key <<= 32;
-                        key |= *reinterpret_cast<const uint32_t *>(&gaussian.depth);
-                        gaussian_keys_unsorted[off] = key;
-                        gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
-                        ++off;
-                    }
-                }
-            }
-        }
-    }
-
-    struct ImageState {
-        std::vector<glm::ivec2> ranges;
-    };
-
-    void identifyTileRanges(int L, const std::vector<uint64_t> &point_list_keys, ImageState &imgState) {
-        // Initialize ranges with -1 to indicate uninitialized ranges
-        imgState.ranges.resize(L, glm::ivec2(-1, -1));
-
-        for (int idx = 0; idx < point_list_keys.size(); ++idx) {
-            uint64_t key = point_list_keys[idx];
-            uint32_t currtile = key >> 32;
-
-            if (idx == 0) {
-                imgState.ranges[currtile].x = 0;
-            } else {
-                uint32_t prevtile = point_list_keys[idx - 1] >> 32;
-                if (currtile != prevtile) {
-                    imgState.ranges[prevtile].y = idx;
-                    imgState.ranges[currtile].x = idx;
-                }
-            }
-
-            if (idx == point_list_keys.size() - 1) {
-                imgState.ranges[currtile].y = point_list_keys.size();
-            }
-        }
-    }
-
-// Utility function to print an array
-    void print(const std::vector<uint64_t> &keys, const std::vector<uint32_t> &values) {
-        for (size_t i = 0; i < keys.size(); i++) {
-            std::cout << "(" << keys[i] << ", " << values[i] << ") ";
-        }
-        std::cout << std::endl;
-    }
-
-    void printRanges(const ImageState &imgState) {
-        for (size_t i = 0; i < imgState.ranges.size(); ++i) {
-            if (imgState.ranges[i].x == -1)
-                continue;
-            std::cout << "Tile " << i << ": Start = " << imgState.ranges[i].x
-                      << ", End = " << imgState.ranges[i].y << std::endl;
-        }
-    }
 
     void printDurations(
             const std::chrono::duration<double> &durationRasterization,
@@ -439,6 +229,7 @@ namespace VkRender {
             const std::chrono::duration<double> &durationSorting,
             const std::chrono::duration<double> &durationAccumulation,
             const std::chrono::duration<double> &durationPreprocess,
+            const std::chrono::duration<double> &durationInclusiveSum,
             const std::chrono::duration<double> &durationTotal) {
         // Convert durations to milliseconds
         auto durationRasterizationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationRasterization);
@@ -446,6 +237,7 @@ namespace VkRender {
         auto durationSortingMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationSorting);
         auto durationAccumulationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationAccumulation);
         auto durationPreprocessUs = std::chrono::duration_cast<std::chrono::microseconds>(durationPreprocess);
+        auto durationInclusiveSumMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationInclusiveSum);
         auto durationTotalMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationTotal);
 
         // Create an output string stream to format the output
@@ -457,10 +249,62 @@ namespace VkRender {
         oss << "Identification: " << durationIdentificationMs.count() << " ms\n";
         oss << "Sorting: " << durationSortingMs.count() << " ms\n";
         oss << "Accumulation: " << durationAccumulationMs.count() << " ms\n";
-        oss << "Preprocessing: " << durationPreprocessUs.count() << " us\n\n";
+        oss << "Preprocessing: " << durationPreprocessUs.count() << " us\n";
+        oss << "Inclusive Scan: " << durationInclusiveSumMs.count() << " ms\n\n";
 
         // Print the formatted string
         std::cout << oss.str();
+    }
+
+    void parallel_inclusive_scan(sycl::queue& queue, sycl::buffer<uint32_t, 1>& inputBuffer, sycl::buffer<uint32_t, 1>& outputBuffer, size_t size) {
+        // Step 1: Up-Sweep (Reduce) Phase
+        for (size_t stride = 1; stride < size; stride *= 2) {
+            queue.submit([&](sycl::handler &cgh) {
+                auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
+                cgh.parallel_for<class UpSweep>(sycl::range<1>(size / (2 * stride)), [=](sycl::id<1> idx) {
+                    size_t i = idx[0] * 2 * stride;
+                    if (i + 2 * stride - 1 < size) {
+                        input[i + 2 * stride - 1] += input[i + stride - 1];
+                    }
+                });
+            }).wait();
+        }
+
+        // Step 2: Set last element to 0 for the down-sweep phase
+        queue.submit([&](sycl::handler &cgh) {
+            auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
+            cgh.single_task<class SetLastElementZero>([=]() {
+                input[size - 1] = 0;
+            });
+        }).wait();
+
+        // Step 3: Down-Sweep Phase
+        for (size_t stride = size / 2; stride >= 1; stride /= 2) {
+            queue.submit([&](sycl::handler &cgh) {
+                auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
+                cgh.parallel_for<class DownSweep>(sycl::range<1>(size / (2 * stride)), [=](sycl::id<1> idx) {
+                    size_t i = idx[0] * 2 * stride;
+                    if (i + 2 * stride - 1 < size) {
+                        int t = input[i + stride - 1];
+                        input[i + stride - 1] = input[i + 2 * stride - 1];
+                        input[i + 2 * stride - 1] += t;
+                    }
+                });
+            }).wait();
+        }
+
+        // Step 4: Convert Exclusive to Inclusive Scan
+        queue.submit([&](sycl::handler &cgh) {
+            auto input = inputBuffer.get_access<sycl::access::mode::read>(cgh);
+            auto output = outputBuffer.get_access<sycl::access::mode::write>(cgh);
+            cgh.parallel_for<class InclusiveScan>(sycl::range<1>(size), [=](sycl::id<1> idx) {
+                if (idx[0] == 0) {
+                    output[idx] = input[idx];
+                } else {
+                    output[idx] = input[idx] + input[idx - 1];
+                }
+            });
+        }).wait();
     }
 
     void GaussianRenderer::render(const VkRender::AbstractRenderer::RenderInfo &info) {
@@ -479,8 +323,7 @@ namespace VkRender {
         const uint32_t tileHeight = 16;
         glm::vec3 tileGrid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
 
-        sycl::buffer<GaussianPoint, 1> pointsBuffer(sycl::range<1>(gs.getSize()));
-        sycl::buffer<uint32_t, 1> numTilesTouchedBuffer(sycl::range<1>(gs.getSize()));
+
 
         // Start timing
         auto startPreprocess = std::chrono::high_resolution_clock::now();
@@ -576,28 +419,18 @@ namespace VkRender {
                                                                   (rect_max.x - rect_min.x));
                 }
             });
-        });
+        }).wait();
         // Stop timing
         auto endPreprocess = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationPreprocess = endPreprocess - startPreprocess;
 
-
-        int numRendered = 0;
-        uint32_t numPoints = gs.getSize();
-
-        std::vector<uint64_t> gaussian_keys_unsorted;  // Adjust size later
-        std::vector<uint32_t> gaussian_values_unsorted;  // Adjust size later
-
-        auto startAccumulation = std::chrono::high_resolution_clock::now();
-
-        sycl::buffer<uint32_t, 1> numTilesTouchedInclusiveSumBuffer(sycl::range<1>(gs.getSize()));
-
+        auto startInclusiveSum = std::chrono::high_resolution_clock::now();
         // Submit a command group to the queue
-        queue.submit([&](sycl::handler& cgh) {
+        /*
+        queue.submit([&](sycl::handler &cgh) {
             // Get access to the buffer on the device
-            auto data_acc = numTilesTouchedBuffer.get_access<sycl::access::mode::read_write>(cgh);
-            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::read_write>(cgh);
-
+            auto data_acc = numTilesTouchedBuffer.get_access<sycl::access::mode::read>(cgh);
+            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::write>(cgh);
             // Perform inclusive scan on the buffer
             cgh.parallel_for<class InclusiveScanKernel>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
                 // Perform an inclusive scan using a local variable for temporary storage
@@ -606,151 +439,150 @@ namespace VkRender {
                     sum += data_acc[i];
                 }
                 inclusiveSumAccess[idx] = sum;
+
+                auto sum = sycl::ext::oneapi::experimental::inclusive_scan(data_acc.get_pointer(), data_acc.get_pointer() + gs.getSize(), inclusiveSumAccess.get_pointer());
+
             });
-        });
+        }).wait();
+        */
+
+        parallel_inclusive_scan(queue, numTilesTouchedBuffer, numTilesTouchedInclusiveSumBuffer, numTilesTouchedBuffer.size());
+
+        auto endInclusiveSum = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> durationInclusiveSum = endInclusiveSum - startInclusiveSum;
 
 
-        {
+        auto startAccumulation = std::chrono::high_resolution_clock::now();
 
-            numRendered = numTilesTouchedInclusiveSumBuffer.get_host_access()[gs.getSize() - 1];
-            auto numTilesTouchedHost = numTilesTouchedInclusiveSumBuffer.get_host_access();
-            // Duplicate with keys
-            gaussian_keys_unsorted.resize(numRendered);
-            gaussian_values_unsorted.resize(numRendered);
-            const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
-            for (int idx = 0; idx < numPoints; ++idx) {
-                const auto &gaussian = gaussianBufferHost[idx];
-                // Generate no key/value pair for invisible Gaussians
+        queue.submit([&](sycl::handler &cgh) {
+            auto keysAcc = keysBuffer.get_access<sycl::access::mode::write>(cgh);
+            auto valuesAcc = valuesBuffer.get_access<sycl::access::mode::write>(cgh);
+
+            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::read>(cgh);
+            auto gaussianAccess = pointsBuffer.get_access<sycl::access::mode::read>(cgh);
+            cgh.parallel_for<class GaussianProcessing>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
+                uint32_t i = idx.get(0);
+                const auto &gaussian = gaussianAccess[i];
+                uint32_t numRendered = inclusiveSumAccess[inclusiveSumAccess.size() - 1];
+
                 if (gaussian.radius > 0) {
-                    // Find this Gaussian's offset in buffer for writing keys/values.
-                    uint32_t off = (idx == 0) ? 0 : numTilesTouchedHost[idx - 1];
+                    uint32_t off = (i == 0) ? 0 : inclusiveSumAccess[i - 1];
                     glm::ivec2 rect_min, rect_max;
                     getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
-                    // For each tile that the bounding rect overlaps, emit a key/value pair.
                     for (int y = rect_min.y; y < rect_max.y; ++y) {
                         for (int x = rect_min.x; x < rect_max.x; ++x) {
                             if (off >= numRendered) {
                                 break;
                             }
-                            uint64_t key = static_cast<uint64_t>(y) * static_cast<uint64_t>(tileGrid.x) + x;
-                            key <<= 32;
-                            key |= *reinterpret_cast<const uint32_t *>(&gaussian.depth);
-                            gaussian_keys_unsorted[off] = key;
-                            gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
+                            uint32_t key = static_cast<uint32_t>(y) * static_cast<uint32_t>(tileGrid.x) + x;
+                            key <<= 16;
+                            key |= float_to_half(gaussian.depth);
+                            keysAcc[off] = key;
+                            valuesAcc[off] = i;
+
+                            /*
+                            if (valuesAcc[off] >= 3600)
+                                sycl::ext::oneapi::experimental::printf("valuesAcc: %u off: %u\n", valuesAcc[off], off);
+
+                            */
                             ++off;
                         }
                     }
                 }
-            }
-        }
+            });
+        }).wait();
         auto endAccumulation = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationAccumulation = endAccumulation - startAccumulation;
 
 
-        if (numRendered <= 0) {
+        /*
+        if (numTilesTouchedInclusiveSumBuffer.get_host_access()[numTilesTouchedInclusiveSumBuffer.size()] <= 0) {
             auto hostImageAccessor = imageBuffer.get_host_access();
             m_image = hostImageAccessor.get_pointer();
             return;
         }
-
-        BinningState binningState{};
-        // Ensure the destination vectors have the same size
-        binningState.point_list_keys.resize(numRendered);
-        binningState.point_list.resize(numRendered);
-        binningState.point_list_keys_unsorted = gaussian_keys_unsorted; // Fill with data
-        binningState.point_list_unsorted = gaussian_values_unsorted; // Fill with data
-
-        BinningState binningStateCPU{};
-        // Ensure the destination vectors have the same size
-        binningStateCPU.point_list_keys.resize(numRendered);
-        binningStateCPU.point_list.resize(numRendered);
-        binningStateCPU.point_list_keys_unsorted = gaussian_keys_unsorted; // Fill with data
-        binningStateCPU.point_list_unsorted = gaussian_values_unsorted; // Fill with data
+        */
 
         auto startSorting = std::chrono::high_resolution_clock::now();
 
-        //radixSort(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys, binningState.point_list);
-        if (info.debug)
-            radixSort(queue, gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
-                      binningState.point_list);
-        else
-            radixSortCPU(gaussian_keys_unsorted, gaussian_values_unsorted, binningState.point_list_keys,
-                         binningState.point_list);
+        //VkRender::crl::performOneSweep(queue, numRendered, keysBuffer, valuesBuffer);
+        radixSorter->performOneSweep(numTilesTouchedInclusiveSumBuffer, keysBuffer, valuesBuffer);
+        queue.wait();
+        /*
+        {
+            std::vector<uint32_t> keysHost(keysBuffer.size());
+            std::vector<uint32_t> valuesHost(valuesBuffer.size());
+            // Copy data back to host
+            auto keysHostAcc = keysBuffer.get_host_access();
+            for (size_t i = 0; i < keysHostAcc.size(); ++i) {
+                keysHost[i] = keysHostAcc[i];
+            }
+            auto valuesHostAcc = valuesBuffer.get_host_access();
+            for (size_t i = 0; i < valuesHostAcc.size(); ++i) {
+                valuesHost[i] = valuesHostAcc[i];
+                if (valuesHost[i] >= 3600) {
+                    printf("Error %zu, %d\n", i, valuesHost[i]);
+                }
+            }
+            VkRender::crl::ValidationTest(keysHost, keysBuffer.size(), 2);
+        }
+         */
 
-        //binningState.point_list_keys = gaussian_keys_unsorted;
-        //binningState.point_list = gaussian_values_unsorted;
 
         auto endSorting = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationSorting = endSorting - startSorting;
 
-        ImageState imgState;
         auto startIdentification = std::chrono::high_resolution_clock::now();
-        identifyTileRanges(tileGrid.x * tileGrid.y, binningState.point_list_keys, imgState);
+
+        sycl::buffer<glm::ivec2, 1> rangesBuffer(tileGrid.x * tileGrid.y);
+
+        // IdentifyTileRanges
+        {
+            queue.submit([&](sycl::handler &cgh) {
+                auto keysAcc = keysBuffer.get_access<sycl::access::mode::read>(cgh);
+                auto rangesAcc = rangesBuffer.get_access<sycl::access::mode::read_write>(cgh);
+
+                cgh.parallel_for<class IdentifyTileRanges>(sycl::range<1>(rangesBuffer.size()), [=](sycl::id<1> idx) {
+                    int i = idx[0];
+                    rangesAcc[i] = glm::ivec2(-1, -1);
+                    uint32_t key = keysAcc[i];
+                    uint32_t currtile = key >> 16;
+
+                    if (i == 0) {
+                        rangesAcc[currtile].x = 0;
+                    } else {
+                        uint32_t prevtile = keysAcc[i - 1] >> 16;
+                        if (currtile != prevtile) {
+                            rangesAcc[prevtile].y = i;
+                            rangesAcc[currtile].x = i;
+                        }
+                    }
+
+                    if (i == keysAcc.size() - 1) {
+                        rangesAcc[currtile].y = keysAcc.size();
+                    }
+                });
+            });
+        }
+
         auto endIdentification = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationIdentification = endIdentification - startIdentification;
 
-        sycl::buffer<glm::ivec2, 1> rangesBuffer(imgState.ranges.data(), imgState.ranges.size());
-        sycl::range<2> localWorkSize(tileHeight, tileWidth);
         // Compute the global work size ensuring it is a multiple of the local work size
+        sycl::range<2> localWorkSize(tileHeight, tileWidth);
         size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
         size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
         sycl::range<2> globalWorkSize(globalHeight, globalWidth);
         uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
 
-        /*
-        if (debug) {
-            for (uint32_t row = 0; row < globalHeight; ++row) {
-                for (uint32_t col = 0; col < globalWidth; ++col) {
-                    uint32_t groupRow = row / 16;
-                    uint32_t groupCol = col / 16;
-                    uint32_t tileId = groupRow * horizontal_blocks + groupCol;
-
-                    auto range = imgState.ranges[tileId];
-                    int xRange = range.x;
-                    int yRange = range.y;
-
-                    if (range.x >= 0 && range.y >= 0) {
-                        auto key = binningState.point_list_keys[xRange];
-                        uint32_t currtile = key >> 32;
-                        uint32_t depthBits = key & 0xFFFFFFFF;
-                        // Interpret these bits as a float
-                        union {
-                            uint32_t i;
-                            float f;
-                        } u;
-
-                        u.i = depthBits;
-                        float depth = u.f;
-                        bool match = tileId == currtile;
-
-                        const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
-
-                        for (uint32_t listIndex = range.x; listIndex < range.y; ++listIndex) {
-                            auto index = binningState.point_list[listIndex];
-                            const GaussianPoint &point = gaussianBufferHost[index];
-                            int k = 0;
-
-                        }
-
-                    }
-                }
-            }
-        }
-         */
-
-
-        sycl::buffer<uint64_t, 1> pointListKeysBuffer(binningState.point_list_keys.data(),
-                                                      binningState.point_list_keys.size());
-        sycl::buffer<uint32_t, 1> pointListBuffer(binningState.point_list.data(), binningState.point_list.size());
-
         auto startRasterize = std::chrono::high_resolution_clock::now();
         queue.submit([&](sycl::handler &h) {
-
+            uint32_t numPoints = gs.getSize();
             auto rangesBufferAccess = rangesBuffer.get_access<sycl::access::mode::read>(h);
             auto gaussianBufferAccess = pointsBuffer.get_access<sycl::access::mode::read>(h);
-            auto pointListKeysBufferAccess = pointListKeysBuffer.get_access<sycl::access::mode::read>(h);
-            auto pointListBufferAccess = pointListBuffer.get_access<sycl::access::mode::read>(h);
+            auto pointListKeysBufferAccess = keysBuffer.get_access<sycl::access::mode::read>(h);
+            auto pointListBufferAccess = valuesBuffer.get_access<sycl::access::mode::read>(h);
 
             auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
 
@@ -783,10 +615,16 @@ namespace VkRender {
                     float T = 1.0f;
                     float C[3] = {0};
                     if (range.x >= 0 && range.y >= 0) {
-                        //sycl::ext::oneapi::experimental::printf("Num Gaussians %d, in Tile %d, pixel (row,col): (%u,%u)\n", numGaussiansInTile, tileId, row, col);
+                        //sycl::ext::oneapi::experimental::printf("Range: (x, y): (%d, %d), in Tile %d, pixel (row,col): (%u,%u)\n", range.x, range.y, tileId, row, col);
+
                         for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
-                            auto index = pointListBufferAccess[listIndex];
+                            uint32_t index = pointListBufferAccess[listIndex];
                             const GaussianPoint &point = gaussianBufferAccess[index];
+                            //if (index >= numPoints || listIndex >= 3600)
+                            //    continue;
+                            //sycl::ext::oneapi::experimental::printf("ListIndex: %u index: %u\n", listIndex, index);
+
+
                             // Perform processing on the point and update the image
                             // Example: Set the pixel to a specific value
                             glm::vec2 pos = point.screenPos;
@@ -827,14 +665,13 @@ namespace VkRender {
         auto endRasterization = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;
 
+        queue.wait();
+
         std::chrono::duration<double> totalDuration = endRasterization - startPreprocess;
         printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation,
-                       durationPreprocess, totalDuration);
-
+                       durationPreprocess, durationInclusiveSum, totalDuration);
         auto hostImageAccessor = imageBuffer.get_host_access();
         m_image = hostImageAccessor.get_pointer();
-
-
     }
 
     GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {

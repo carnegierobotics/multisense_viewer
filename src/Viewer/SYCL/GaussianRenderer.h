@@ -19,6 +19,7 @@
 #include <filesystem>
 
 #include "Viewer/Core/Camera.h"
+#include "Viewer/SYCL/radixsort/RadixSorter.h"
 #include "AbstractRenderer.h"
 
 namespace VkRender {
@@ -69,7 +70,7 @@ namespace VkRender {
 
         void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo);
 
-        void render(const VkRender::AbstractRenderer::RenderInfo& info);
+        void render(const VkRender::AbstractRenderer::RenderInfo &info);
 
         uint8_t *getImage();
 
@@ -83,7 +84,7 @@ namespace VkRender {
 
         bool loadedPly = false;
 
-        void setupBuffers(const VkRender::Camera* camera);
+        void setupBuffers(const VkRender::Camera *camera);
 
     private:
 
@@ -113,8 +114,17 @@ namespace VkRender {
         sycl::buffer<glm::mat3, 1> covarianceBuffer{0};
         sycl::buffer<glm::vec3, 1> colorOutputBuffer{0};
 
+        sycl::buffer<uint32_t, 1> keysBuffer{0};
+        sycl::buffer<uint32_t, 1> valuesBuffer{0};
+
+
+        sycl::buffer<GaussianPoint, 1> pointsBuffer{0};
+        sycl::buffer<uint32_t, 1> numTilesTouchedBuffer{0};
+        sycl::buffer<uint32_t, 1> numTilesTouchedInclusiveSumBuffer{0};
         // Optimization buffers
         sycl::buffer<bool, 1> activeGSBuffer{0};
+
+        std::unique_ptr<crl::RadixSorter> radixSorter;
 
 
         sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};

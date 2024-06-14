@@ -7,17 +7,10 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <vector>
 #include <glm/ext/quaternion_float.hpp>
 #include <sycl/sycl.hpp>
-
-#include <stb_image_write.h>
-#include <stb_image.h>
 #include <filesystem>
-
 #include "Viewer/Core/Camera.h"
 #include "AbstractRenderer.h"
 

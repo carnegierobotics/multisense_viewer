@@ -10,9 +10,6 @@
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
-
 #include <random>
 
 #define SH_C0 0.28209479177387814f
